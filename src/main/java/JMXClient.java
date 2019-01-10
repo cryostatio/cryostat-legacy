@@ -1,10 +1,9 @@
+package es.andrewazor.dockertest;
+
 import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
-
-import java.util.NoSuchElementException;
-import java.util.Scanner;
 
 import org.openjdk.jmc.rjmx.internal.JMXConnectionDescriptor;
 import org.openjdk.jmc.rjmx.internal.RJMXConnection;
@@ -32,23 +31,9 @@ class JMXClient {
             abort();
         }
 
-        Scanner scanner = new Scanner(System.in);
-        String in;
-        do {
-            System.out.print("> ");
-            try {
-                in = scanner.nextLine().trim();
-            } catch (NoSuchElementException e) {
-                break;
-            }
-            System.out.println(String.format("\t\"%s\"", in));
-
-            if (in.equals("list")) {
-                System.out.println("MBeans:");
-                System.out.println(conn.getMBeanNames());
-            }
-        } while (!in.toLowerCase().equals("exit") && !in.toLowerCase().equals("quit"));
-        System.out.println("exit");
+        Thread t = new Thread(new JMXConnectionHandler(conn));
+        t.run();
+        t.join();
     }
 
     private static void abort() {

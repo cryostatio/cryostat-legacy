@@ -10,4 +10,4 @@ CMD java \
         -Dcom.sun.management.jmxremote.local.only=false \
         -Djava.rmi.server.hostname=0.0.0.0 \
         -cp docker-test.jar \
-        Listener
+        es.andrewazor.dockertest.Listener
