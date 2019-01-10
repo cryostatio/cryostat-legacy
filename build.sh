@@ -2,5 +2,5 @@
 
 set -e
 
-./gradlew build
+./gradlew clean build
 docker build -t docker-jmx-test .

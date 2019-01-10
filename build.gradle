@@ -4,9 +4,25 @@ apply plugin: 'application'
 
 repositories {
     jcenter()
+    mavenLocal();
 }
 
 dependencies {
+    implementation "org.openjdk.jmc:org.openjdk.jmc.rjmx:7.0.0-SNAPSHOT"
+    implementation "org.openjdk.jmc:org.openjdk.jmc.ui.common:7.0.0-SNAPSHOT"
+    implementation "org.eclipse.core:runtime:3.10.0+"
+}
+
+jar {
+    manifest {
+        attributes(
+                'Main-Class': 'Listener'
+                )
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
 }
 
 mainClassName = 'JMXClient'
