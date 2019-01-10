@@ -1,5 +1,5 @@
 FROM openjdk:11-jre-slim
-COPY Listener.class /
+COPY build/classes/java/main/Listener.class /
 EXPOSE 9090 9091
 CMD java \
         -Dcom.sun.management.jmxremote.rmi.port=9091 \

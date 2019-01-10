@@ -2,6 +2,5 @@
 
 set -e
 
-javac Listener.java
-javac JMXClient.java
+./gradlew build
 docker build -t docker-jmx-test .
