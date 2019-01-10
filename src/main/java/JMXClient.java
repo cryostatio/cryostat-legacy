@@ -28,8 +28,7 @@ class JMXClient {
                 null
                 );
         RJMXConnection conn = new RJMXConnection(cd, sd, JMXClient::abort);
-        boolean status = conn.connect();
-        if (!status) {
+        if (!conn.connect()) {
             abort();
         }
 
