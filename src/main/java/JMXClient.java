@@ -5,6 +5,8 @@ import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
+import org.eclipse.core.runtime.RegistryFactory;
+
 import org.openjdk.jmc.rjmx.internal.JMXConnectionDescriptor;
 import org.openjdk.jmc.rjmx.internal.RJMXConnection;
 import org.openjdk.jmc.rjmx.internal.ServerDescriptor;
@@ -14,8 +16,7 @@ import org.openjdk.jmc.ui.common.security.SecurityManagerFactory;
 
 class JMXClient {
     public static void main(String[] args) throws Exception {
-        //TODO: implement non-interactive JMC SecurityManager
-        System.out.println(String.format("SecurityManager: %s", SecurityManagerFactory.getSecurityManager()));
+        RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
         JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
                 new JMXServiceURL("service:jmx:rmi:///jndi/rmi://:9091/jmxrmi"),

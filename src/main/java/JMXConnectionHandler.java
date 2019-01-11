@@ -29,7 +29,7 @@ class JMXConnectionHandler implements Runnable {
             try {
                 if (in.equals("list")) {
                     System.out.println("MBeans:");
-                    System.out.println(this.connection.getMBeanNames());
+                    this.connection.getMBeanNames().forEach(o -> System.out.println(String.format("\n\t%s", o.getCanonicalName())));
                 }
             } catch (Exception e) {
                 System.err.println(String.format("%s operation failed due to %s", in, e.getMessage()));
