@@ -16,11 +16,7 @@ class RegistryProvider implements IRegistryProvider {
         return new ExtensionRegistry(new RegistryStrategy(null, null), "", "") {
             @Override
             public IExtensionPoint getExtensionPoint(String id) {
-                if ("org.openjdk.jmc.rjmx.syntheticattribute".equals(id)
-                        || "org.openjdk.jmc.rjmx.syntheticnotification".equals(id)) {
-                    return new StubExtensionPoint();
-                }
-                return super.getExtensionPoint(id);
+                return new StubExtensionPoint();
             }
         };
     }
