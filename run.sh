@@ -6,7 +6,7 @@ docker rm $(docker ps -a -q --filter ancestor=docker-test)
 
 set -e
 
-docker run -d -p 9090:9090 -p 9091:9091 docker-test
+docker run -d -p 9090:9090 -p 9091:9091 -v mnt:/jfr docker-test
 echo "Waiting for start"
 sleep 2
 pushd build/libs

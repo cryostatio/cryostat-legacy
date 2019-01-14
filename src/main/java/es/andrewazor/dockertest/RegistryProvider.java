@@ -18,6 +18,14 @@ class RegistryProvider implements IRegistryProvider {
             public IExtensionPoint getExtensionPoint(String id) {
                 return new StubExtensionPoint();
             }
+
+            @Override
+            public IConfigurationElement[] getConfigurationElementsFor(String id) {
+                if ("org.openjdk.jmc.rjmx.service".equals(id)) {
+                    return new IConfigurationElement[] { new ServiceFactoryConfig() };
+                }
+                return new IConfigurationElement[0];
+            }
         };
     }
 
