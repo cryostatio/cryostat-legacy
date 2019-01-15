@@ -1,5 +1,9 @@
 package es.andrewazor.dockertest.commands.internal;
 
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -38,6 +42,6 @@ class DownloadCommand implements Command {
 
         System.out.println(String.format("\tDownloading recording \"%s\" to \"%s\" ...", recordingName, savePath));
 
-        // GZIPInputStream gzip = new GZIPInputStream(service.openStream(descriptor, false));
+        Files.copy(service.openStream(descriptor, false), Paths.get(savePath));
     }
 }
