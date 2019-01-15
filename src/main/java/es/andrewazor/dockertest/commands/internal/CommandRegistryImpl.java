@@ -12,6 +12,7 @@ import es.andrewazor.dockertest.commands.CommandRegistry;
 
 public class CommandRegistryImpl implements CommandRegistry {
 
+    // TODO: implement something smarter than this hardcoded list
     private static final List<Class<? extends Command>> COMMANDS = Arrays.asList(
         DownloadCommand.class,
         DumpCommand.class,
