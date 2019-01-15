@@ -3,6 +3,9 @@ package es.andrewazor.dockertest;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.GZIPInputStream;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
@@ -12,7 +15,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 class JMXConnectionHandler implements Runnable {
 
-    private final IFlightRecorderService svc;
+    private static final Pattern DOWNLOAD_PATTERN = Pattern.compile("download\\s(.+)\\s(.+)");
+    private final IFlightRecorderService svc;;
 
     JMXConnectionHandler(IFlightRecorderService svc) {
         this.svc = svc;
@@ -49,6 +53,28 @@ class JMXConnectionHandler implements Runnable {
                     for (IRecordingDescriptor recording : svc.getAvailableRecordings()) {
                         System.out.println(String.format("\t%s", recording));
                     }
+                } else if (in.matches(DOWNLOAD_PATTERN.pattern())) {
+                    Matcher m = DOWNLOAD_PATTERN.matcher(in);
+                    m.find();
+                    String recordingName = m.group(1);
+                    String savePath = m.group(2);
+
+                    IRecordingDescriptor descriptor = null;
+                    for (IRecordingDescriptor recording : svc.getAvailableRecordings()) {
+                        if (recording.getName().equals(recordingName)) {
+                            descriptor = recording;
+                            break;
+                        }
+                    }
+
+                    if (descriptor == null) {
+                        System.out.println(String.format("\tCould not locate recording named \"%s\"", recordingName));
+                        continue;
+                    }
+
+                    System.out.println(String.format("\tDownloading recording \"%s\" to \"%s\" ...", recordingName, savePath));
+
+                    // GZIPInputStream gzip = new GZIPInputStream(svc.openStream(descriptor, false));
                 } else {
                     System.out.println("Command not recognized");
                 }
