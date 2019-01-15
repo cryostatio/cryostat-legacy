@@ -2,6 +2,7 @@ package es.andrewazor.dockertest.commands.internal;
 
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -18,6 +19,9 @@ class DownloadCommand implements Command {
         return "download";
     }
 
+    /**
+     * First argument is recordingName, second is save path relative to user home.
+     */
     @Override
     public void execute(IFlightRecorderService service, String[] args) throws Exception {
         if (args.length != 2) {
@@ -25,7 +29,8 @@ class DownloadCommand implements Command {
         }
 
         String recordingName = args[0];
-        String savePath = args[1];
+        String saveName = args[1];
+        Path savePath = Paths.get(System.getProperty("user.home"), saveName);
 
         IRecordingDescriptor descriptor = null;
         for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
@@ -40,8 +45,8 @@ class DownloadCommand implements Command {
             return;
         }
 
-        System.out.println(String.format("\tDownloading recording \"%s\" to \"%s\" ...", recordingName, savePath));
+        System.out.println(String.format("\tDownloading recording \"%s\" to \"%s\" ...", recordingName, savePath.toString()));
 
-        Files.copy(service.openStream(descriptor, false), Paths.get(savePath));
+        Files.copy(service.openStream(descriptor, false), savePath);
     }
 }
