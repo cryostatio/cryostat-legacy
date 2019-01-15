@@ -17,6 +17,8 @@ import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceFactory;
 import org.openjdk.jmc.ui.common.security.InMemoryCredentials;
 import org.openjdk.jmc.ui.common.security.SecurityManagerFactory;
 
+import es.andrewazor.dockertest.jmc.RegistryProvider;
+
 class JMXClient {
     public static void main(String[] args) throws Exception {
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());

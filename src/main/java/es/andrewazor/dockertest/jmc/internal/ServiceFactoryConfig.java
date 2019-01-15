@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest;
+package es.andrewazor.dockertest.jmc.internal;
 
 import org.openjdk.jmc.rjmx.services.internal.CommercialFeaturesServiceFactory;
 import org.eclipse.core.runtime.CoreException;
@@ -7,7 +7,7 @@ import org.eclipse.core.runtime.IContributor;
 import org.eclipse.core.runtime.IExtension;
 import org.eclipse.core.runtime.InvalidRegistryObjectException;
 
-class ServiceFactoryConfig implements IConfigurationElement {
+public class ServiceFactoryConfig implements IConfigurationElement {
     @Override
     public Object createExecutableExtension(String propertyName) throws CoreException {
         if ("factory".equals(propertyName)) {
