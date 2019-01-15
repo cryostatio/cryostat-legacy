@@ -1,5 +1,6 @@
 package es.andrewazor.dockertest;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -33,7 +34,10 @@ class JMXConnectionHandler implements Runnable {
             } catch (NoSuchElementException e) {
                 break;
             }
-            System.out.println(String.format("\t\"%s\"", in));
+            String[] words = in.split("\\s");
+            String cmd = words[0];
+            String[] args = Arrays.copyOfRange(words, 1, words.length);
+            System.out.println(String.format("\t\"%s\" \"%s\"", cmd, Arrays.asList(args)));
 
             try {
                 if (in.equals("list-options")) {
@@ -76,7 +80,7 @@ class JMXConnectionHandler implements Runnable {
 
                     // GZIPInputStream gzip = new GZIPInputStream(svc.openStream(descriptor, false));
                 } else {
-                    System.out.println("Command not recognized");
+                    System.out.println(String.format("Command \"%s\" not recognized", cmd));
                 }
             } catch (Exception e) {
                 System.err.println(String.format("%s operation failed due to %s", in, e.getMessage()));
