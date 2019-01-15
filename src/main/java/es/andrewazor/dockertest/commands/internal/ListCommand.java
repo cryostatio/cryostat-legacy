@@ -1,5 +1,7 @@
 package es.andrewazor.dockertest.commands.internal;
 
+import java.lang.reflect.Method;
+
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -16,7 +18,21 @@ class ListCommand implements Command {
     public void execute(IFlightRecorderService service, String[] args) throws Exception {
         System.out.println("Available recordings:");
         for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
-            System.out.println(String.format("\t%s", recording));
+            System.out.println(toString(recording));
         }
+    }
+
+    private static String toString(IRecordingDescriptor descriptor) throws Exception {
+        StringBuilder sb = new StringBuilder();
+
+        for (Method m : descriptor.getClass().getDeclaredMethods()) {
+            if (m.getParameterTypes().length == 0 && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
+                sb.append("\t" + m.getName());
+                sb.append("\t\t" + m.invoke(descriptor));
+                sb.append("\n");
+            }
+        }
+
+        return sb.toString();
     }
 }
