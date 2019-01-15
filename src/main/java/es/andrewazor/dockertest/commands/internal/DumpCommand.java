@@ -17,7 +17,6 @@ class DumpCommand implements Command {
     @Override
     public void execute(IFlightRecorderService service, String[] args) throws Exception {
         IConstrainedMap<String> recordingOptions = new RecordingOptionsBuilder(service)
-            .toDisk(true)
             .duration(10000)
             .build();
         service.start(recordingOptions, null);
