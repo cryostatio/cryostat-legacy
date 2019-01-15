@@ -37,6 +37,7 @@ public class CommandRegistryImpl implements CommandRegistry {
     public void execute(String commandName, String[] args) throws Exception {
         if (!classMap.containsKey(commandName)) {
             System.out.println(String.format("Command \"%s\" not recognized", commandName));
+            return;
         }
         classMap.get(commandName).getDeclaredConstructor().newInstance().execute(service, args);
     }
