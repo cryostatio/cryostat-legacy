@@ -10,6 +10,7 @@ set -e
 
 docker run -d -p 9090:9090 -p 9091:9091 docker-jmx-test
 echo "Waiting for start"
+# TODO: better detection of container startup
 sleep 2
 pushd build/libs
 java \
