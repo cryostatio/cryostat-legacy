@@ -17,3 +17,8 @@ java \
     -cp docker-test.jar \
     es.andrewazor.dockertest.JMXClient "$@"
 popd
+
+set +e
+
+docker kill $(docker ps -a -q --filter ancestor=docker-jmx-test)
+docker rm $(docker ps -a -q --filter ancestor=docker-jmx-test)
