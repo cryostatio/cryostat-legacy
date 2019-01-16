@@ -1,6 +1,30 @@
+== BUILD
 The gradle builds expects to be able to find Java Mission Control (JMC) 7
 artefacts in the local Maven repository. To ensure these are available, clone
 the JMC project at https://hg.openjdk.java.net/jmc/jmc7/ and follow its build
 instructions. Run "mvn install" in the jmc project root to install its artefacts
 to the local repository. After this is complete, the project in this repository
-may be built locally.
+may be built locally. This can be done with `./gradlew build` or `sh build.sh`.
+
+== RUN
+For convenience, `sh run.sh` can be used to run a demo. This will run a Docker
+container with an image containing the Listener class and the RJMX ports
+exposed. The Listener class simply listens on localhost port 9090 and writes
+lines it receives to its stdout stream. The script will also run the JMXClient
+class. If you run run.sh without arguments then JMXClient is started in an
+interactive shell-like mode. If you run it with arguments then the arguments
+are treated as a series of shell-like commands delimited with semicolons,
+equivalent to typing the commands into the shell in interactive mode.
+
+=== EXAMPLES
+
+`sh build.sh && sh run.sh`
+This will set up the demo Listener and Client and drop you into the Client
+"shell". Try "help" to see a listing of available commands.
+
+`sh build.sh && sh run.sh "dump foo 10;wait-for foo;download foo foo-recording.jfr"`
+This will set up the demo and run a series of three commands within the client.
+These commands will trigger a 10s recording in the target JVM, wait for the
+recording to finish, and download the recording to your local machine as
+$HOME/foo-recording.jfr . You can then open the local recording file with your
+tool of choice, such as JMC.
