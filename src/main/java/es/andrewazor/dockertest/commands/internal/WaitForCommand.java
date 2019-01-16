@@ -19,7 +19,8 @@ class WaitForCommand extends AbstractCommand {
         String name = args[0];
         IRecordingDescriptor descriptor = getByName(name);
         if (descriptor == null) {
-            throw new RuntimeException(String.format("Recording with name \"%s\" not found in target JVM", name));
+            System.out.println(String.format("Recording with name \"%s\" not found in target JVM", name));
+            return;
         }
 
         while (!descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
