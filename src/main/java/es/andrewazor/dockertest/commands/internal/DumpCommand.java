@@ -21,17 +21,16 @@ class DumpCommand extends AbstractCommand {
         return "dump";
     }
 
+    /**
+     * First argument is recording name, second argument is recording length in seconds
+     */
     @Override
     public void execute(String[] args) throws Exception {
-        String name;
-        if (args.length == 0) {
-            name = LocalDate.now() + "-" + LocalTime.now();
-        } else {
-            name = args[0];
-        }
+        String name = args[0];
+        int seconds = Integer.parseInt(args[1]);
         IConstrainedMap<String> recordingOptions = new RecordingOptionsBuilder(service)
             .name(name)
-            .duration(10000)
+            .duration(1000 * seconds)
             .build();
         service.start(recordingOptions, null);
     }
