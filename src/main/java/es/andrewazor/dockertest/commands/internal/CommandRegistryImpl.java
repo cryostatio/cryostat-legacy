@@ -52,7 +52,8 @@ public class CommandRegistryImpl implements CommandRegistry {
 
     public static class CommandDefinitionException extends Exception {
         public CommandDefinitionException(String commandName, Class<? extends Command> cmd1, Class<? extends Command> cmd2) {
-            super(String.format("Command \"%s\" definitions provided by class %s AND class %s", cmd1.getCanonicalName(), cmd2.getCanonicalName()));
+            super(String.format("\"%s\" command definitions provided by class %s AND class %s",
+                        commandName, cmd1.getCanonicalName(), cmd2.getCanonicalName()));
         }
     }
 }
