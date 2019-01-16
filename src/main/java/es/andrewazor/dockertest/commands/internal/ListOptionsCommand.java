@@ -3,10 +3,7 @@ package es.andrewazor.dockertest.commands.internal;
 import java.util.Map;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-
-import es.andrewazor.dockertest.commands.Command;
 
 class ListOptionsCommand extends AbstractCommand {
     ListOptionsCommand(IFlightRecorderService service) {

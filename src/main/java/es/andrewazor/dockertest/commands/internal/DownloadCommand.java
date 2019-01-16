@@ -7,11 +7,8 @@ import java.nio.file.Paths;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import es.andrewazor.dockertest.commands.Command;
 
 class DownloadCommand extends AbstractCommand {
     DownloadCommand(IFlightRecorderService service) {

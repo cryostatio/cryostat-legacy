@@ -5,11 +5,7 @@ import java.time.LocalTime;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import es.andrewazor.dockertest.commands.Command;
 
 class DumpCommand extends AbstractCommand {
     DumpCommand(IFlightRecorderService service) {

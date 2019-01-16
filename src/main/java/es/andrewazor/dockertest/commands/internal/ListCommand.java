@@ -2,11 +2,8 @@ package es.andrewazor.dockertest.commands.internal;
 
 import java.lang.reflect.Method;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import es.andrewazor.dockertest.commands.Command;
 
 class ListCommand extends AbstractCommand {
 

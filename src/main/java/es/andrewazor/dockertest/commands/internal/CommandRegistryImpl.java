@@ -17,7 +17,8 @@ public class CommandRegistryImpl implements CommandRegistry {
         DownloadCommand.class,
         DumpCommand.class,
         ListCommand.class,
-        ListOptionsCommand.class
+        ListOptionsCommand.class,
+        WaitForCommand.class
     );
 
     private final Map<String, Class<? extends Command>> classMap = new HashMap<String, Class<? extends Command>>();
