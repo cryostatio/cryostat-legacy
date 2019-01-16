@@ -1,5 +1,6 @@
 #!/bin/sh
 
+set -x
 set -e
 
 ./gradlew clean build

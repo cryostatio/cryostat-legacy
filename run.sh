@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -x
+
 # TODO: better Docker container management
 docker kill $(docker ps -a -q --filter ancestor=docker-jmx-test)
 docker rm $(docker ps -a -q --filter ancestor=docker-jmx-test)
