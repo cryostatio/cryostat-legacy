@@ -11,14 +11,18 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.dockertest.commands.Command;
 
-class DumpCommand implements Command {
+class DumpCommand extends AbstractCommand {
+    DumpCommand(IFlightRecorderService service) {
+        super(service);
+    }
+
     @Override
     public String getName() {
         return "dump";
     }
 
     @Override
-    public void execute(IFlightRecorderService service, String[] args) throws Exception {
+    public void execute(String[] args) throws Exception {
         String name;
         if (args.length == 0) {
             name = LocalDate.now() + "-" + LocalTime.now();

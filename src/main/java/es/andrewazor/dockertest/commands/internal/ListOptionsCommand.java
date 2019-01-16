@@ -8,14 +8,18 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.dockertest.commands.Command;
 
-class ListOptionsCommand implements Command {
+class ListOptionsCommand extends AbstractCommand {
+    ListOptionsCommand(IFlightRecorderService service) {
+        super(service);
+    }
+
     @Override
     public String getName() {
         return "list-options";
     }
 
     @Override
-    public void execute(IFlightRecorderService service, String[] args) throws Exception {
+    public void execute(String[] args) throws Exception {
         System.out.println("Available recording options:");
         Map<String, IOptionDescriptor<?>> options = service.getAvailableRecordingOptions();
         for (Map.Entry<String, IOptionDescriptor<?>> entry : options.entrySet()) {

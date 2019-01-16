@@ -8,14 +8,19 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.dockertest.commands.Command;
 
-class ListCommand implements Command {
+class ListCommand extends AbstractCommand {
+
+    ListCommand(IFlightRecorderService service) {
+        super(service);
+    }
+
     @Override
     public String getName() {
         return "list";
     }
 
     @Override
-    public void execute(IFlightRecorderService service, String[] args) throws Exception {
+    public void execute(String[] args) throws Exception {
         System.out.println("Available recordings:");
         for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
             System.out.println(toString(recording));

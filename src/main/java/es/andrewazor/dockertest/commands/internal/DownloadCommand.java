@@ -13,7 +13,11 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.dockertest.commands.Command;
 
-class DownloadCommand implements Command {
+class DownloadCommand extends AbstractCommand {
+    DownloadCommand(IFlightRecorderService service) {
+        super(service);
+    }
+
     @Override
     public String getName() {
         return "download";
@@ -23,7 +27,7 @@ class DownloadCommand implements Command {
      * First argument is recordingName, second is save path relative to user home.
      */
     @Override
-    public void execute(IFlightRecorderService service, String[] args) throws Exception {
+    public void execute(String[] args) throws Exception {
         if (args.length != 2) {
             System.out.println(String.format("%s expects two arguments (recording name, save path)", getName()));
         }
