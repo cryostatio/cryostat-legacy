@@ -28,7 +28,7 @@ public class CommandRegistryImpl implements CommandRegistry {
 
     public CommandRegistryImpl(IFlightRecorderService service) throws Exception {
         for (Class<? extends Command> klazz : COMMANDS) {
-            Command instance = (Command) klazz.getDeclaredConstructor(IFlightRecorderService.class).newInstance(service);
+            Command instance = createInstance(klazz);
             if (classMap.containsKey(instance.getName())) {
                 throw new CommandDefinitionException(instance.getName(), klazz, classMap.get(instance.getName()));
             }
@@ -43,7 +43,11 @@ public class CommandRegistryImpl implements CommandRegistry {
             System.out.println(String.format("Command \"%s\" not recognized", commandName));
             return;
         }
-        classMap.get(commandName).getDeclaredConstructor(IFlightRecorderService.class).newInstance(this.service).execute(args);
+        createInstance(classMap.get(commandName)).execute(args);
+    }
+
+    private Command createInstance(Class<? extends Command> klazz) throws Exception {
+        return (Command) klazz.getDeclaredConstructor(IFlightRecorderService.class).newInstance(service);
     }
 
     public static class CommandDefinitionException extends Exception {
