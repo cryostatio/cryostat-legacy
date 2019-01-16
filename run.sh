@@ -14,5 +14,5 @@ java \
     -Ddockertest.pwd="$DOCKER_TEST_PWD" \
     -Dorg.openjdk.jmc.common.security.manager="es.andrewazor.dockertest.jmc.SecurityManager" \
     -cp docker-test.jar \
-    es.andrewazor.dockertest.JMXClient
+    es.andrewazor.dockertest.JMXClient "$@"
 popd

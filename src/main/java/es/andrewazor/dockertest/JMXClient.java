@@ -1,5 +1,7 @@
 package es.andrewazor.dockertest;
 
+import java.util.Arrays;
+
 import javax.management.MBeanServerConnection;
 import javax.management.remote.JMXConnector;
 import javax.management.remote.JMXConnectorFactory;
@@ -21,6 +23,7 @@ import es.andrewazor.dockertest.jmc.RegistryProvider;
 
 class JMXClient {
     public static void main(String[] args) throws Exception {
+        System.out.println(String.format("JMXClient started. args: %s", Arrays.asList(args).toString()));
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
         JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
@@ -38,6 +41,7 @@ class JMXClient {
         }
 
         Thread t = new Thread(new JMXConnectionHandler(
+                    args,
                     new FlightRecorderServiceFactory().getServiceInstance(
                         new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0])
                         )
