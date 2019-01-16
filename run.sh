@@ -2,9 +2,13 @@
 
 set -x
 
-# TODO: better Docker container management
-docker kill $(docker ps -a -q --filter ancestor=docker-jmx-test)
-docker rm $(docker ps -a -q --filter ancestor=docker-jmx-test)
+function docker_cleanup() {
+    # TODO: better Docker container management
+    docker kill $(docker ps -a -q --filter ancestor=docker-jmx-test)
+    docker rm $(docker ps -a -q --filter ancestor=docker-jmx-test)
+}
+
+docker_cleanup
 
 set -e
 
@@ -21,5 +25,4 @@ popd
 
 set +e
 
-docker kill $(docker ps -a -q --filter ancestor=docker-jmx-test)
-docker rm $(docker ps -a -q --filter ancestor=docker-jmx-test)
+docker_cleanup
