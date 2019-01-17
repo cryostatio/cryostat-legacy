@@ -40,7 +40,7 @@ class DumpCommand extends AbstractCommand {
             .build();
         IRecordingDescriptor descriptor = service.start(recordingOptions, null);
 
-        EventOptionsBuilder builder = new EventOptionsBuilder(handle);
+        EventOptionsBuilder builder = new EventOptionsBuilder(connection);
 
         service.updateEventOptions(descriptor, builder.build());
     }
