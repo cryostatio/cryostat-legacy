@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.dockertest.commands.CommandRegistry;
@@ -23,6 +24,13 @@ class JMXConnectionHandler implements Runnable {
 
     @Override
     public void run() {
+        try {
+            if (!svc.isEnabled()) {
+                svc.enable();
+            }
+        } catch (FlightRecorderException fre) {
+            throw new RuntimeException(fre);
+        }
         if (args.length == 0) {
             runInteractive();
         } else {
