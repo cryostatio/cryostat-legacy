@@ -7,13 +7,13 @@ import java.nio.file.Paths;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.IConnectionHandle;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.dockertest.JMCConnection;
+
 class DownloadCommand extends AbstractCommand {
-    DownloadCommand(IFlightRecorderService service, IConnectionHandle handle) {
-        super(service, handle);
+    DownloadCommand(JMCConnection connection) {
+        super(connection);
     }
 
     @Override

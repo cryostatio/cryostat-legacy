@@ -6,7 +6,6 @@ import javax.management.remote.JMXServiceURL;
 
 import org.eclipse.core.runtime.RegistryFactory;
 
-import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.IConnectionListener;
 import org.openjdk.jmc.rjmx.internal.DefaultConnectionHandle;
 import org.openjdk.jmc.rjmx.internal.JMXConnectionDescriptor;
@@ -35,12 +34,9 @@ class JMXClient {
             abort();
         }
 
-        IConnectionHandle handle =
-            new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0]);
-
         Thread t = new Thread(new JMXConnectionHandler(
                     Arrays.copyOfRange(args, 1, args.length),
-                    handle
+                    new JMCConnection(new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0]))
                     )
                 );
         t.run();

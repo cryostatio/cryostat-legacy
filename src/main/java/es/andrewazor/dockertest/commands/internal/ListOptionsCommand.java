@@ -3,12 +3,12 @@ package es.andrewazor.dockertest.commands.internal;
 import java.util.Map;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
-import org.openjdk.jmc.rjmx.IConnectionHandle;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
+import es.andrewazor.dockertest.JMCConnection;
 
 class ListOptionsCommand extends AbstractCommand {
-    ListOptionsCommand(IFlightRecorderService service, IConnectionHandle handle) {
-        super(service, handle);
+    ListOptionsCommand(JMCConnection connection) {
+        super(connection);
     }
 
     @Override

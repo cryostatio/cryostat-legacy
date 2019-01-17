@@ -5,13 +5,13 @@ import java.time.LocalTime;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.IConnectionHandle;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.dockertest.JMCConnection;
+
 class DumpCommand extends AbstractCommand {
-    DumpCommand(IFlightRecorderService service, IConnectionHandle handle) {
-        super(service, handle);
+    DumpCommand(JMCConnection connection) {
+        super(connection);
     }
 
     @Override

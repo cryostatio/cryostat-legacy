@@ -4,10 +4,7 @@ import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
-import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceFactory;
 
 import es.andrewazor.dockertest.commands.CommandRegistry;
 import es.andrewazor.dockertest.commands.CommandRegistryFactory;
@@ -15,20 +12,20 @@ import es.andrewazor.dockertest.commands.CommandRegistryFactory;
 class JMXConnectionHandler implements Runnable {
 
     private final String[] args;
-    private final IFlightRecorderService svc;
+    private final JMCConnection connection;
     private final CommandRegistry commandRegistry;
 
-    JMXConnectionHandler(String[] args, IConnectionHandle handle) throws Exception {
+    JMXConnectionHandler(String[] args, JMCConnection connection) throws Exception {
         this.args = args;
-        this.svc = new FlightRecorderServiceFactory().getServiceInstance(handle);
-        this.commandRegistry = CommandRegistryFactory.createNewInstance(svc, handle);
+        this.connection = connection;
+        this.commandRegistry = CommandRegistryFactory.createNewInstance(connection);
     }
 
     @Override
     public void run() {
         try {
-            if (!svc.isEnabled()) {
-                svc.enable();
+            if (!connection.getService().isEnabled()) {
+                connection.getService().enable();
             }
         } catch (FlightRecorderException fre) {
             throw new RuntimeException(fre);
