@@ -6,14 +6,14 @@ import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
 import es.andrewazor.dockertest.JMCConnection;
 
-class ListOptionsCommand extends AbstractCommand {
-    ListOptionsCommand(JMCConnection connection) {
+class ListRecordingOptionsCommand extends AbstractCommand {
+    ListRecordingOptionsCommand(JMCConnection connection) {
         super(connection);
     }
 
     @Override
     public String getName() {
-        return "list-options";
+        return "list-recording-options";
     }
 
     @Override
