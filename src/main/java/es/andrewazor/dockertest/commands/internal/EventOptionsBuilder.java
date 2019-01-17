@@ -9,13 +9,14 @@ import es.andrewazor.dockertest.JMCConnection;
 class EventOptionsBuilder {
 
     private final boolean isV2;
+    private final IConstrainedMap<EventOptionID> map;
 
     EventOptionsBuilder(JMCConnection connection) {
         this.isV2 = FlightRecorderServiceV2.isAvailable(connection.getHandle());
+        this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
     }
 
-
     IConstrainedMap<EventOptionID> build() {
-        return null;
+        return map;
     }
 }
