@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.dockertest.commands.Command;
@@ -25,8 +26,9 @@ public class CommandRegistryImpl implements CommandRegistry {
 
     private final Map<String, Class<? extends Command>> classMap = new HashMap<String, Class<? extends Command>>();
     private final IFlightRecorderService service;
+    private final IConnectionHandle handle;
 
-    public CommandRegistryImpl(IFlightRecorderService service) throws Exception {
+    public CommandRegistryImpl(IFlightRecorderService service, IConnectionHandle handle) throws Exception {
         for (Class<? extends Command> klazz : COMMANDS) {
             Command instance = createInstance(klazz);
             if (classMap.containsKey(instance.getName())) {
@@ -35,6 +37,7 @@ public class CommandRegistryImpl implements CommandRegistry {
             classMap.put(instance.getName(), klazz);
         }
         this.service = service;
+        this.handle = handle;
     }
 
     @Override
@@ -47,7 +50,7 @@ public class CommandRegistryImpl implements CommandRegistry {
     }
 
     private Command createInstance(Class<? extends Command> klazz) throws Exception {
-        return (Command) klazz.getDeclaredConstructor(IFlightRecorderService.class).newInstance(service);
+        return (Command) klazz.getDeclaredConstructor(IFlightRecorderService.class, IConnectionHandle.class).newInstance(service, handle);
     }
 
     public static class CommandDefinitionException extends Exception {

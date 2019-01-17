@@ -7,12 +7,13 @@ import java.nio.file.Paths;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 class DownloadCommand extends AbstractCommand {
-    DownloadCommand(IFlightRecorderService service) {
-        super(service);
+    DownloadCommand(IFlightRecorderService service, IConnectionHandle handle) {
+        super(service, handle);
     }
 
     @Override

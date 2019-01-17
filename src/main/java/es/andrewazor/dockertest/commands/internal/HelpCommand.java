@@ -1,12 +1,13 @@
 package es.andrewazor.dockertest.commands.internal;
 
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.dockertest.commands.Command;
 
 class HelpCommand extends AbstractCommand {
-    HelpCommand(IFlightRecorderService service) {
-        super(service);
+    HelpCommand(IFlightRecorderService service, IConnectionHandle handle) {
+        super(service, handle);
     }
 
     @Override

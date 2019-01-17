@@ -1,12 +1,13 @@
 package es.andrewazor.dockertest.commands.internal;
 
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 class WaitForCommand extends AbstractCommand {
-    WaitForCommand(IFlightRecorderService service) {
-        super(service);
+    WaitForCommand(IFlightRecorderService service, IConnectionHandle handle) {
+        super(service, handle);
     }
 
     @Override

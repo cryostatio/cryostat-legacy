@@ -5,12 +5,13 @@ import java.time.LocalTime;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 class DumpCommand extends AbstractCommand {
-    DumpCommand(IFlightRecorderService service) {
-        super(service);
+    DumpCommand(IFlightRecorderService service, IConnectionHandle handle) {
+        super(service, handle);
     }
 
     @Override
@@ -37,6 +38,10 @@ class DumpCommand extends AbstractCommand {
             .name(name)
             .duration(1000 * seconds)
             .build();
-        service.start(recordingOptions, null);
+        IRecordingDescriptor descriptor = service.start(recordingOptions, null);
+
+        EventOptionsBuilder builder = new EventOptionsBuilder(handle);
+
+        service.updateEventOptions(descriptor, builder.build());
     }
 }

@@ -2,22 +2,17 @@ package es.andrewazor.dockertest;
 
 import java.util.Arrays;
 
-import javax.management.MBeanServerConnection;
-import javax.management.remote.JMXConnector;
-import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import org.eclipse.core.runtime.RegistryFactory;
 
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.IConnectionListener;
 import org.openjdk.jmc.rjmx.internal.DefaultConnectionHandle;
 import org.openjdk.jmc.rjmx.internal.JMXConnectionDescriptor;
 import org.openjdk.jmc.rjmx.internal.RJMXConnection;
 import org.openjdk.jmc.rjmx.internal.ServerDescriptor;
-import org.openjdk.jmc.rjmx.preferences.JMXRMIPreferences;
-import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceFactory;
 import org.openjdk.jmc.ui.common.security.InMemoryCredentials;
-import org.openjdk.jmc.ui.common.security.SecurityManagerFactory;
 
 import es.andrewazor.dockertest.jmc.RegistryProvider;
 
@@ -40,11 +35,12 @@ class JMXClient {
             abort();
         }
 
+        IConnectionHandle handle =
+            new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0]);
+
         Thread t = new Thread(new JMXConnectionHandler(
                     Arrays.copyOfRange(args, 1, args.length),
-                    new FlightRecorderServiceFactory().getServiceInstance(
-                        new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0])
-                        )
+                    handle
                     )
                 );
         t.run();

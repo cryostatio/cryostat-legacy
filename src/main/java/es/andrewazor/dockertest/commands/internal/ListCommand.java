@@ -2,13 +2,14 @@ package es.andrewazor.dockertest.commands.internal;
 
 import java.lang.reflect.Method;
 
+import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 class ListCommand extends AbstractCommand {
 
-    ListCommand(IFlightRecorderService service) {
-        super(service);
+    ListCommand(IFlightRecorderService service, IConnectionHandle handle) {
+        super(service, handle);
     }
 
     @Override
