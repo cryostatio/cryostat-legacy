@@ -9,6 +9,7 @@ function docker_cleanup() {
 }
 
 docker_cleanup
+trap docker_cleanup EXIT
 
 set -e
 
@@ -24,5 +25,3 @@ java \
 popd
 
 set +e
-
-docker_cleanup
