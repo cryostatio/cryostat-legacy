@@ -18,12 +18,13 @@ equivalent to typing the commands into the shell in interactive mode.
 
 === EXAMPLES
 
-`sh build.sh && sh run.sh`
+`sh build.sh && sh run.sh ":9091"`
 This will set up the demo Listener and Client and drop you into the Client
 "shell". Try "help" to see a listing of available commands.
 
-`sh build.sh && sh run.sh "dump foo 10;wait-for foo;download foo foo-recording.jfr"`
+`sh build.sh && sh run.sh ":9091" "dump foo 10;wait-for foo;download foo foo-recording.jfr"`
 This will set up the demo and run a series of three commands within the client.
+The client expects to find the target at localhost:9091 as specified in args[0].
 These commands will trigger a 10s recording in the target JVM, wait for the
 recording to finish, and download the recording to your local machine as
 $HOME/foo-recording.jfr . You can then open the local recording file with your

@@ -27,7 +27,7 @@ class JMXClient {
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
         JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
-                new JMXServiceURL("service:jmx:rmi:///jndi/rmi://:9091/jmxrmi"),
+                new JMXServiceURL(String.format("service:jmx:rmi:///jndi/rmi://%s/jmxrmi", args[0])),
                 new InMemoryCredentials(null, null)
                 );
         ServerDescriptor sd = new ServerDescriptor(
@@ -41,7 +41,7 @@ class JMXClient {
         }
 
         Thread t = new Thread(new JMXConnectionHandler(
-                    args,
+                    Arrays.copyOfRange(args, 1, args.length),
                     new FlightRecorderServiceFactory().getServiceInstance(
                         new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0])
                         )
