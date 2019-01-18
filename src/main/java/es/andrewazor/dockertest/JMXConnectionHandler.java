@@ -38,6 +38,7 @@ class JMXConnectionHandler implements Runnable {
     }
 
     private void runScripted() {
+        // TODO validate all commands/args before any are executed
         String[] commands = args[0].split(";");
         for (String command : commands) {
             executeCommandLine(command.trim());
