@@ -29,3 +29,7 @@ These commands will trigger a 10s recording in the target JVM, wait for the
 recording to finish, and download the recording to your local machine as
 $HOME/foo-recording.jfr . You can then open the local recording file with your
 tool of choice, such as JMC.
+
+There are some demo "scripts" located in the "demos" directory. These can be
+used as follows: `sh run.sh ":9091" "$(cat demos/demoname)"`, where "demoname"
+is replaced with the name of the demo script file you want to run.
