@@ -1,5 +1,7 @@
 package es.andrewazor.dockertest.commands.internal;
 
+import static es.andrewazor.dockertest.commands.internal.EventOptionsBuilder.Option;
+
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -40,7 +42,11 @@ class DumpCommand extends AbstractCommand {
             .build();
         IRecordingDescriptor descriptor = service.start(recordingOptions, null);
 
-        EventOptionsBuilder builder = new EventOptionsBuilder(connection);
+        EventOptionsBuilder builder = new EventOptionsBuilder(connection)
+            .socketWrite(Option.ENABLED, Boolean.TRUE)
+            .socketRead(Option.ENABLED, Boolean.TRUE)
+            .highCpu(Option.ENABLED, Boolean.TRUE)
+            ;
 
         service.updateEventOptions(descriptor, builder.build());
     }
