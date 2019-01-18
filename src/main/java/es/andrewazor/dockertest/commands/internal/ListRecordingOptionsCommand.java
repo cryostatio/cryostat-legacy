@@ -27,4 +27,9 @@ class ListRecordingOptionsCommand extends AbstractCommand {
             System.out.println(String.format("\t%s : %s", entry.getKey(), entry.getValue()));
         }
     }
+
+    @Override
+    public boolean validate(String[] args) {
+        return true;
+    }
 }

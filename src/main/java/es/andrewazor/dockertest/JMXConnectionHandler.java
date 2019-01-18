@@ -1,6 +1,8 @@
 package es.andrewazor.dockertest;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 
@@ -38,11 +40,7 @@ class JMXConnectionHandler implements Runnable {
     }
 
     private void runScripted() {
-        // TODO validate all commands/args before any are executed
-        String[] commands = args[0].split(";");
-        for (String command : commands) {
-            executeCommandLine(command.trim());
-        }
+        executeCommands(args[0].split(";"));
     }
 
     private void runInteractive() {
@@ -60,17 +58,67 @@ class JMXConnectionHandler implements Runnable {
         System.out.println("exit");
     }
 
-    private void executeCommandLine(String line) {
-        String[] words = line.split("\\s");
-        String cmd = words[0];
-        String[] args = Arrays.copyOfRange(words, 1, words.length);
-        System.out.println(String.format("\t\"%s\" \"%s\"", cmd, Arrays.asList(args)));
+    private void executeCommands(String[] lines) {
+        List<CommandLine> commandLines = new ArrayList(lines.length);
+        for (String line : lines) {
+            String[] words = line.split("\\s");
+            String cmd = words[0];
+            String[] args = Arrays.copyOfRange(words, 1, words.length);
+            commandLines.add(new CommandLine(cmd, args));
+        }
 
-        try {
-            this.commandRegistry.execute(cmd, args);
-        } catch (Exception e) {
-            System.err.println(String.format("%s operation failed due to %s", line, e.getMessage()));
-            e.printStackTrace();
+        boolean allValid = true;
+        for (CommandLine commandLine : commandLines) {
+            try {
+                boolean valid = this.commandRegistry.validate(commandLine.command, commandLine.args);
+                if (!valid) {
+                    System.out.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
+                }
+                allValid &= valid;
+            } catch (Exception e) {
+                allValid = false;
+                e.printStackTrace();
+            }
+        }
+
+        if (!allValid) {
+            return;
+        }
+
+        for (CommandLine commandLine : commandLines) {
+            try {
+                System.out.println(String.format("\t\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
+                this.commandRegistry.execute(commandLine.command, commandLine.args);
+            } catch (Exception e) {
+                System.err.println(String.format("%s operation failed due to %s", commandLine, e.getMessage()));
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void executeCommandLine(String line) {
+        executeCommands(new String[] { line  });
+    }
+
+    private static class CommandLine {
+        final String command;
+        final String[] args;
+
+        CommandLine(String command, String[] args) {
+            this.command = command;
+            this.args = args;
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder sb = new StringBuilder();
+            sb.append(command);
+            sb.append(" ");
+            for (String arg : args) {
+                sb.append(arg);
+                sb.append(" ");
+            }
+            return sb.toString().trim();
         }
     }
 }

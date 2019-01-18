@@ -26,10 +26,6 @@ class DownloadCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        if (args.length != 2) {
-            System.out.println(String.format("%s expects two arguments (recording name, save path)", getName()));
-        }
-
         String recordingName = args[0];
         String saveName = args[1];
         Path savePath = Paths.get(System.getProperty("user.home"), saveName);
@@ -55,5 +51,24 @@ class DownloadCommand extends AbstractCommand {
         System.out.println(String.format("\tDownloading recording \"%s\" to \"%s\" ...", recordingName, savePath.toString()));
 
         Files.copy(service.openStream(descriptor, false), savePath);
+    }
+
+    @Override
+    public boolean validate(String[] args) {
+        if (args.length != 2) {
+            System.out.println(String.format("%s expects two arguments (recording name, save path)", getName()));
+            return false;
+        }
+        String recordingName = args[0];
+        String savePath = args[1];
+
+        if (!recordingName.matches("[\\w-_]+")) {
+            System.out.println(String.format("%s is an invalid recording name", recordingName));
+            return false;
+        }
+
+        // TODO validate savePath
+
+        return true;
     }
 }

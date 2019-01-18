@@ -46,6 +46,15 @@ public class CommandRegistryImpl implements CommandRegistry {
         createInstance(classMap.get(commandName)).execute(args);
     }
 
+    @Override
+    public boolean validate(String commandName, String[] args) throws Exception {
+        if (!classMap.containsKey(commandName)) {
+            System.out.println(String.format("Command \"%s\" not recognized", commandName));
+            return false;
+        }
+        return createInstance(classMap.get(commandName)).validate(args);
+    }
+
     private Command createInstance(Class<? extends Command> klazz) throws Exception {
         return (Command) klazz.getDeclaredConstructor(JMCConnection.class).newInstance(connection);
     }

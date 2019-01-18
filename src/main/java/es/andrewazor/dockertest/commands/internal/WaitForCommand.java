@@ -35,6 +35,20 @@ class WaitForCommand extends AbstractCommand {
         }
     }
 
+    @Override
+    public boolean validate(String[] args) {
+        if (args.length != 1) {
+            System.out.println("Expected one argument");
+            return false;
+        }
+
+        if (!args[0].matches("[\\w-_]+")) {
+            System.out.println(String.format("%s is an invalid recording name", args[0]));
+        }
+
+        return true;
+    }
+
     private IRecordingDescriptor getByName(String name) throws FlightRecorderException {
         for (IRecordingDescriptor descriptor : service.getAvailableRecordings()) {
             if (descriptor.getName().equals(name)) {

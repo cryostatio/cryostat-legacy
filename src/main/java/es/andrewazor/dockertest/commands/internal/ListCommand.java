@@ -28,6 +28,11 @@ class ListCommand extends AbstractCommand {
         }
     }
 
+    @Override
+    public boolean validate(String[] args) {
+        return true;
+    }
+
     private static String toString(IRecordingDescriptor descriptor) throws Exception {
         StringBuilder sb = new StringBuilder();
 

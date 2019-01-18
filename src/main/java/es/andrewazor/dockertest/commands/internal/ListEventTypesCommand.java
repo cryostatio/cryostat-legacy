@@ -29,4 +29,9 @@ class ListEventTypesCommand extends AbstractCommand {
             System.out.println(String.format("\t%s", event));
         }
     }
+
+    @Override
+    public boolean validate(String[] args) {
+        return true;
+    }
 }

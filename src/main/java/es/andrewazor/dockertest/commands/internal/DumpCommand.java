@@ -31,9 +31,6 @@ class DumpCommand extends AbstractCommand {
     // can be specified (ex. threshold, duration)
     @Override
     public void execute(String[] args) throws Exception {
-        if (args.length != 3) {
-            System.out.println("Expected three arguments: recording name, recording length, and event types.");
-        }
         String name = args[0];
         int seconds = Integer.parseInt(args[1]);
         String[] events = args[2].split(",");
@@ -55,6 +52,31 @@ class DumpCommand extends AbstractCommand {
         enableEvents(builder, events);
 
         service.updateEventOptions(descriptor, builder.build());
+    }
+
+    @Override
+    public boolean validate(String[] args) {
+        if (args.length != 3) {
+            System.out.println("Expected three arguments: recording name, recording length, and event types.");
+            return false;
+        }
+
+        String name = args[0];
+        String seconds = args[1];
+        String events = args[2];
+
+        if (!name.matches("[\\w-_]+")) {
+            System.out.println(String.format("%s is an invalid recording name", name));
+            return false;
+        }
+
+        if (!seconds.matches("\\d+")) {
+            System.out.println(String.format("%s is an invalid recording length", seconds));
+        }
+
+        // TODO validate events (event names as well as list format)
+
+        return true;
     }
 
     private void enableEvents(EventOptionsBuilder builder, String[] events) throws QuantityConversionException {

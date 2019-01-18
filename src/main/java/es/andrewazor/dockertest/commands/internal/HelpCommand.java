@@ -24,5 +24,10 @@ class HelpCommand extends AbstractCommand {
             System.out.println(String.format("\t%s", instance.getName()));
         }
     }
+
+    @Override
+    public boolean validate(String[] args) {
+        return true;
+    }
 }
 
