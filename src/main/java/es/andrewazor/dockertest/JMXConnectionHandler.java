@@ -87,7 +87,7 @@ class JMXConnectionHandler implements Runnable {
 
         for (CommandLine commandLine : commandLines) {
             try {
-                System.out.println(String.format("\t\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
+                System.out.println(String.format("\n\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
                 this.commandRegistry.execute(commandLine.command, commandLine.args);
             } catch (Exception e) {
                 System.err.println(String.format("%s operation failed due to %s", commandLine, e.getMessage()));
