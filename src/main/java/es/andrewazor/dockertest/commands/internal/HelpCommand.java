@@ -13,6 +13,9 @@ class HelpCommand extends AbstractCommand {
         return "help";
     }
 
+    /**
+     * No args expected.
+     */
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available commands:");

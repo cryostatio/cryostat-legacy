@@ -20,7 +20,7 @@ class DumpCommand extends AbstractCommand {
     }
 
     /**
-     * First argument is recording name, second argument is recording length in seconds
+     * Two args expected. First argument is recording name, second argument is recording length in seconds.
      */
     @Override
     public void execute(String[] args) throws Exception {

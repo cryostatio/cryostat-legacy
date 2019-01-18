@@ -22,7 +22,7 @@ class DownloadCommand extends AbstractCommand {
     }
 
     /**
-     * First argument is recordingName, second is save path relative to user home.
+     * Two args expected. First argument is recordingName, second is save path relative to user home.
      */
     @Override
     public void execute(String[] args) throws Exception {

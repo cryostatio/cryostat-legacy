@@ -15,6 +15,9 @@ class WaitForCommand extends AbstractCommand {
         return "wait-for";
     }
 
+    /**
+     * One arg expected. Given a recording name, this will slowly spinlock on recording completion.
+     */
     @Override
     public void execute(String[] args) throws Exception {
         String name = args[0];

@@ -18,6 +18,9 @@ class ListEventTypesCommand extends AbstractCommand {
         return "list-event-types";
     }
 
+    /**
+     * No args expected. Prints a list of available event types in the target JVM.
+     */
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available event types");

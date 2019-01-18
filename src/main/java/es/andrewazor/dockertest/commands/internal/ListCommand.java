@@ -17,6 +17,9 @@ class ListCommand extends AbstractCommand {
         return "list";
     }
 
+    /**
+     * No args expected. Prints list of available recordings in target JVM.
+     */
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available recordings:");

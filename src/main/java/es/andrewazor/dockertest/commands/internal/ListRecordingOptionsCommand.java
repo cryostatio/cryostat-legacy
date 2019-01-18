@@ -16,6 +16,9 @@ class ListRecordingOptionsCommand extends AbstractCommand {
         return "list-recording-options";
     }
 
+    /**
+     * No args expected. Prints list of available recording options in target JVM.
+     */
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available recording options:");
