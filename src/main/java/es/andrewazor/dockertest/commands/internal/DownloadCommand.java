@@ -34,6 +34,11 @@ class DownloadCommand extends AbstractCommand {
         String saveName = args[1];
         Path savePath = Paths.get(System.getProperty("user.home"), saveName);
 
+        if (savePath.toFile().exists()) {
+            System.out.println(String.format("Save file %s already exists, canceling download", savePath));
+            return;
+        }
+
         IRecordingDescriptor descriptor = null;
         for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
             if (recording.getName().equals(recordingName)) {
