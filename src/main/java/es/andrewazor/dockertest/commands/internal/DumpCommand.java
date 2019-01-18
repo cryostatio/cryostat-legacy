@@ -6,6 +6,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -22,12 +23,20 @@ class DumpCommand extends AbstractCommand {
     }
 
     /**
-     * Two args expected. First argument is recording name, second argument is recording length in seconds.
+     * Three args expected.
+     * First argument is recording name, second argument is recording length in seconds.
+     * Third argument is comma-separated names of event types to enable.
      */
+    // TODO better syntax for specifying events and options, so that options other than "enabled"
+    // can be specified (ex. threshold, duration)
     @Override
     public void execute(String[] args) throws Exception {
+        if (args.length != 3) {
+            System.out.println("Expected three arguments: recording name, recording length, and event types.");
+        }
         String name = args[0];
         int seconds = Integer.parseInt(args[1]);
+        String[] events = args[2].split(",");
 
         for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
             if (recording.getName().equals(name)) {
@@ -42,12 +51,21 @@ class DumpCommand extends AbstractCommand {
             .build();
         IRecordingDescriptor descriptor = service.start(recordingOptions, null);
 
-        EventOptionsBuilder builder = new EventOptionsBuilder(connection)
-            .socketWrite(Option.ENABLED, Boolean.TRUE)
-            .socketRead(Option.ENABLED, Boolean.TRUE)
-            .highCpu(Option.ENABLED, Boolean.TRUE)
-            ;
+        EventOptionsBuilder builder = new EventOptionsBuilder(connection);
+        enableEvents(builder, events);
 
         service.updateEventOptions(descriptor, builder.build());
+    }
+
+    private void enableEvents(EventOptionsBuilder builder, String[] events) throws QuantityConversionException {
+        for (String event : events) {
+            if (event.equals("socketWrite")) {
+                builder.socketWrite(Option.ENABLED, Boolean.TRUE);
+            } else if (event.equals("socketRead")) {
+                builder.socketRead(Option.ENABLED, Boolean.TRUE);
+            } else if (event.equals("highCpu")) {
+                builder.highCpu(Option.ENABLED, Boolean.TRUE);
+            }
+        }
     }
 }
