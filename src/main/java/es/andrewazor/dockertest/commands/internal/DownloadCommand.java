@@ -27,30 +27,11 @@ class DownloadCommand extends AbstractCommand {
     @Override
     public void execute(String[] args) throws Exception {
         String recordingName = args[0];
-        String saveName = args[1];
-        Path savePath = Paths.get("recordings", saveName);
-
-        if (savePath.toFile().exists()) {
-            System.out.println(String.format("Save file %s already exists, canceling download", savePath));
-            return;
-        }
-
-        IRecordingDescriptor descriptor = null;
-        for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
-            if (recording.getName().equals(recordingName)) {
-                descriptor = recording;
-                break;
-            }
-        }
-
-        if (descriptor == null) {
-            System.out.println(String.format("\tCould not locate recording named \"%s\"", recordingName));
-            return;
-        }
+        Path savePath = Paths.get("recordings", args[1]);
 
         System.out.println(String.format("\tDownloading recording \"%s\" to \"%s\" ...", recordingName, savePath.toString()));
 
-        Files.copy(service.openStream(descriptor, false), savePath);
+        Files.copy(service.openStream(getRecordingByName(recordingName), false), savePath);
     }
 
     @Override
@@ -60,15 +41,39 @@ class DownloadCommand extends AbstractCommand {
             return false;
         }
         String recordingName = args[0];
-        String savePath = args[1];
+        String saveName = args[1];
 
         if (!recordingName.matches("[\\w-_]+")) {
             System.out.println(String.format("%s is an invalid recording name", recordingName));
             return false;
         }
 
-        // TODO validate savePath
+        Path savePath = Paths.get("recordings", saveName);
+        if (savePath.toFile().exists()) {
+            System.out.println(String.format("Save file %s already exists, canceling download", savePath));
+            return false;
+        }
+
+        try {
+            if (getRecordingByName(recordingName) == null) {
+                System.out.println(String.format("\tCould not locate recording named \"%s\"", recordingName));
+                return false;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
 
         return true;
     }
+
+    private IRecordingDescriptor getRecordingByName(String recordingName) throws Exception {
+        for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
+            if (recording.getName().equals(recordingName)) {
+                return recording;
+            }
+        }
+        return null;
+    }
+
 }
