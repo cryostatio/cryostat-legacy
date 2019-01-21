@@ -9,27 +9,36 @@ may be built locally. This can be done with `./gradlew build` or `sh build.sh`.
 == RUN
 For convenience, `sh run.sh` can be used to run a demo. This will run a Docker
 container with an image containing the Listener class and the RJMX ports
-exposed. The Listener class simply listens on localhost port 9090 and writes
-lines it receives to its stdout stream. The script will also run the JMXClient
-class. If you run run.sh without arguments then JMXClient is started in an
-interactive shell-like mode. If you run it with arguments then the arguments
-are treated as a series of shell-like commands delimited with semicolons,
-equivalent to typing the commands into the shell in interactive mode.
+exposed. The Listener image simply listens on localhost port 9090 and writes
+lines it receives to its stdout stream. This port is exposed to the Client
+container through a Docker user-defined network, but is also mapped to the host
+machine's port 9090 as well. This allows you to connect to the Listener running
+within the container with netcat via "nc localhost 9090" and write messages to
+the Listener. You can observe its output using `docker logs -f docker-jmx-listener` .
+The special case of a received line of the form "fib n" where n is a natural
+number will cause the Listener to compute and print the nth Fibonacci Number.
+This can be used to produce some more interesting event data for recordings.
+
+The script will also run the JMXClient image. If you run run.sh without
+arguments then JMXClient is started in an interactive shell-like mode. If you
+run it with arguments then the arguments are treated as a series of shell-like
+commands delimited with semicolons, equivalent to typing the commands into the
+shell in interactive mode.
 
 === EXAMPLES
 
-`sh build.sh && sh run.sh ":9091"`
+`sh build.sh && sh run.sh "docker-jmx-listener:9091"`
 This will set up the demo Listener and Client and drop you into the Client
 "shell". Try "help" to see a listing of available commands.
 
-`sh build.sh && sh run.sh ":9091" "dump foo 10;wait-for foo;download foo foo-recording.jfr"`
+`sh build.sh && sh run.sh "docker-jmx-listener:9091" "dump foo 10;wait-for foo;download foo recordings/foo-recording.jfr"`
 This will set up the demo and run a series of three commands within the client.
-The client expects to find the target at localhost:9091 as specified in args[0].
-These commands will trigger a 10s recording in the target JVM, wait for the
-recording to finish, and download the recording to your local machine as
-$HOME/foo-recording.jfr . You can then open the local recording file with your
-tool of choice, such as JMC.
+The client expects to find the target at docker-jmx-listener:9091 as specified in
+args[0].  These commands will trigger a 10s recording in the target JVM, wait for
+the recording to finish, and download the recording to your local machine as
+$PROJECTDIR/recordings/foo-recording.jfr . You can then open the local
+recording file with your tool of choice, such as JMC.
 
 There are some demo "scripts" located in the "demos" directory. These can be
-used as follows: `sh run.sh ":9091" "$(cat demos/demoname)"`, where "demoname"
-is replaced with the name of the demo script file you want to run.
+used as follows: `sh run.sh "docker-jmx-listener:9091" "$(more demos/demoname)"`,
+where "demoname" is replaced with the name of the demo script file you want to run.

@@ -1,0 +1,4 @@
+FROM openjdk:11-jre-slim
+COPY build/libs/docker-test.jar /
+EXPOSE 9091
+ENTRYPOINT ["java", "-Dorg.openjdk.jmc.common.security.manager=es.andrewazor.dockertest.jmc.SecurityManager", "-cp", "docker-test.jar", "es.andrewazor.dockertest.JMXClient"]

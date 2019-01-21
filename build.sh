@@ -4,4 +4,5 @@ set -x
 set -e
 
 ./gradlew clean build
-docker build -t docker-jmx-test:latest .
+docker build -f Dockerfile.listener -t docker-jmx-listener:latest .
+docker build -f Dockerfile.client -t docker-jmx-client:latest .

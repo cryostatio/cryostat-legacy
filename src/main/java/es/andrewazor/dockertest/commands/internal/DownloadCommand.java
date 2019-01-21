@@ -28,7 +28,7 @@ class DownloadCommand extends AbstractCommand {
     public void execute(String[] args) throws Exception {
         String recordingName = args[0];
         String saveName = args[1];
-        Path savePath = Paths.get(System.getProperty("user.home"), saveName);
+        Path savePath = Paths.get("recordings", saveName);
 
         if (savePath.toFile().exists()) {
             System.out.println(String.format("Save file %s already exists, canceling download", savePath));
