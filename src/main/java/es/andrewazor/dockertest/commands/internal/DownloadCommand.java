@@ -31,7 +31,13 @@ class DownloadCommand extends AbstractCommand {
 
         System.out.println(String.format("\tDownloading recording \"%s\" to \"%s\" ...", recordingName, savePath.toString()));
 
-        Files.copy(service.openStream(getRecordingByName(recordingName), false), savePath);
+        IRecordingDescriptor recording = getRecordingByName(recordingName);
+        if (recording == null) {
+            System.out.println(String.format("\tCould not locate recording named \"%s\"", recordingName));
+            return;
+        }
+
+        Files.copy(service.openStream(recording, false), savePath);
     }
 
     @Override
@@ -51,16 +57,6 @@ class DownloadCommand extends AbstractCommand {
         Path savePath = Paths.get("recordings", saveName);
         if (savePath.toFile().exists()) {
             System.out.println(String.format("Save file %s already exists, canceling download", savePath));
-            return false;
-        }
-
-        try {
-            if (getRecordingByName(recordingName) == null) {
-                System.out.println(String.format("\tCould not locate recording named \"%s\"", recordingName));
-                return false;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
             return false;
         }
 
