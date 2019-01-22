@@ -26,5 +26,5 @@ echo "Waiting for start"
 # TODO: better detection of container startup
 sleep 2
 pushd build/libs
-docker run --rm --net=docker-jmx-test -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker-jmx-client "$@"
+docker run --rm --net=docker-jmx-test -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker-jmx-client "$@"
 popd
