@@ -1,1 +1,1 @@
-dump sockets 30 jdk.socketRead:enabled=true,jdk.socketWrite:enabled=true;wait-for sockets;download sockets docker_sockets_demo.jfr
+dump sockets 30 jdk.SocketRead:enabled=true,jdk.SocketWrite:enabled=true;wait-for sockets;download sockets docker_sockets_demo.jfr
