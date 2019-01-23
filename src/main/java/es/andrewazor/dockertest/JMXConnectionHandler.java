@@ -60,7 +60,7 @@ class JMXConnectionHandler implements Runnable {
     }
 
     private void executeCommands(String[] lines) {
-        List<CommandLine> commandLines = new ArrayList(lines.length);
+        List<CommandLine> commandLines = new ArrayList<>(lines.length);
         for (String line : lines) {
             String[] words = line.split("\\s");
             String cmd = words[0];
