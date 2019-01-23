@@ -1,15 +1,20 @@
 package es.andrewazor.dockertest.commands.internal;
 
-import static es.andrewazor.dockertest.commands.internal.EventOptionsBuilder.Option;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.dockertest.JMCConnection;
 
 class DumpCommand extends AbstractCommand {
+
+    private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");
+
     DumpCommand(JMCConnection connection) {
         super(connection);
     }
@@ -30,7 +35,7 @@ class DumpCommand extends AbstractCommand {
     public void execute(String[] args) throws Exception {
         String name = args[0];
         int seconds = Integer.parseInt(args[1]);
-        String[] events = args[2].split(",");
+        String events = args[2];
 
         for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
             if (recording.getName().equals(name)) {
@@ -45,10 +50,35 @@ class DumpCommand extends AbstractCommand {
             .build();
         IRecordingDescriptor descriptor = service.start(recordingOptions, null);
 
-        EventOptionsBuilder builder = new EventOptionsBuilder(connection);
-        enableEvents(builder, events);
+        service.updateEventOptions(descriptor, enableEvents(events, new EventOptionsBuilder(connection)));
+    }
 
-        service.updateEventOptions(descriptor, builder.build());
+    private IConstrainedMap<EventOptionID> enableEvents(String events, EventOptionsBuilder builder) throws QuantityConversionException {
+        Matcher matcher = EVENTS_PATTERN.matcher(events);
+
+        while (matcher.find()) {
+            String eventTypeId = matcher.group(1);
+            String option = matcher.group(2);
+            String rawValue = matcher.group(3);
+
+            // TODO use JMC event option constraints to look up expected option value type and parse accordingly,
+            // rather than cascading attempt different popular types
+            Object value;
+            try {
+                value = Integer.valueOf(rawValue);
+            } catch (NumberFormatException nfe) {
+                try {
+                    value = Double.valueOf(rawValue);
+                } catch (NumberFormatException nfe2) {
+                    value = Boolean.valueOf(rawValue);
+                }
+            }
+
+            System.out.println(String.format("Set event %s option %s=%s", eventTypeId, option, value));
+            builder.addEvent(eventTypeId, option, value);
+        }
+
+        return builder.build();
     }
 
     @Override
@@ -69,22 +99,14 @@ class DumpCommand extends AbstractCommand {
 
         if (!seconds.matches("\\d+")) {
             System.out.println(String.format("%s is an invalid recording length", seconds));
+            return false;
         }
 
-        // TODO validate events (event names as well as list format)
+        if (!EVENTS_PATTERN.matcher(events).find()) {
+            System.out.println(String.format("%s is an invalid events pattern", events));
+            return false;
+        }
 
         return true;
-    }
-
-    private void enableEvents(EventOptionsBuilder builder, String[] events) throws QuantityConversionException {
-        for (String event : events) {
-            if (event.equals("socketWrite")) {
-                builder.socketWrite(Option.ENABLED, Boolean.TRUE);
-            } else if (event.equals("socketRead")) {
-                builder.socketRead(Option.ENABLED, Boolean.TRUE);
-            } else if (event.equals("highCpu")) {
-                builder.highCpu(Option.ENABLED, Boolean.TRUE);
-            }
-        }
     }
 }
