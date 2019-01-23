@@ -101,6 +101,7 @@ class DumpCommand extends AbstractCommand {
             return false;
         }
 
+        // TODO better validation of entire events string (not just looking for one acceptable setting)
         if (!EVENTS_PATTERN.matcher(events).find()) {
             System.out.println(String.format("%s is an invalid events pattern", events));
             return false;
