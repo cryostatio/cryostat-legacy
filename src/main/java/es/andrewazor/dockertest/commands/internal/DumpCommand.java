@@ -13,7 +13,6 @@ import es.andrewazor.dockertest.JMCConnection;
 
 class DumpCommand extends AbstractCommand {
 
-    // ex. jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
     private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");
 
     DumpCommand(JMCConnection connection) {
@@ -28,7 +27,7 @@ class DumpCommand extends AbstractCommand {
     /**
      * Three args expected.
      * First argument is recording name, second argument is recording length in seconds.
-     * Third argument is comma-separated names of event types to enable.
+     * Third argument is comma-separated event options list, ex. jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
      */
     @Override
     public void execute(String[] args) throws Exception {
