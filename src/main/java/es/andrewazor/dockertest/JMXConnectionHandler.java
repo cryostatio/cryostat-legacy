@@ -44,18 +44,19 @@ class JMXConnectionHandler implements Runnable {
     }
 
     private void runInteractive() {
-        Scanner scanner = new Scanner(System.in);
-        String in;
-        do {
-            System.out.print("> ");
-            try {
-                in = scanner.nextLine().trim();
-            } catch (NoSuchElementException e) {
-                break;
-            }
-            executeCommandLine(in);
-        } while (!in.toLowerCase().equals("exit") && !in.toLowerCase().equals("quit"));
-        System.out.println("exit");
+        try (Scanner scanner = new Scanner(System.in)) {
+            String in;
+            do {
+                System.out.print("> ");
+                try {
+                    in = scanner.nextLine().trim();
+                } catch (NoSuchElementException e) {
+                    break;
+                }
+                executeCommandLine(in);
+            } while (!in.toLowerCase().equals("exit") && !in.toLowerCase().equals("quit"));
+            System.out.println("exit");
+        }
     }
 
     private void executeCommands(String[] lines) {
