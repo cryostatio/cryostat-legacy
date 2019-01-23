@@ -1,9 +1,7 @@
 package es.andrewazor.dockertest.commands.internal;
 
 import java.util.Collection;
-import java.util.Map;
 
-import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import es.andrewazor.dockertest.JMCConnection;

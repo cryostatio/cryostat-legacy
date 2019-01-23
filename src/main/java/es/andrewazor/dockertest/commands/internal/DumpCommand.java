@@ -2,9 +2,6 @@ package es.andrewazor.dockertest.commands.internal;
 
 import static es.andrewazor.dockertest.commands.internal.EventOptionsBuilder.Option;
 
-import java.time.LocalDate;
-import java.time.LocalTime;
-
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
