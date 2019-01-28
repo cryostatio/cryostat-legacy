@@ -45,12 +45,13 @@ class DumpCommand extends AbstractCommand {
             .name(name)
             .duration(1000 * seconds)
             .build();
-        service.start(recordingOptions, enableEvents(events, new EventOptionsBuilder(connection)));
+        service.start(recordingOptions, enableEvents(events));
     }
 
-    private IConstrainedMap<EventOptionID> enableEvents(String events, EventOptionsBuilder builder) throws Exception {
-        Matcher matcher = EVENTS_PATTERN.matcher(events);
+    private IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {
+        EventOptionsBuilder builder = new EventOptionsBuilder(this.connection);
 
+        Matcher matcher = EVENTS_PATTERN.matcher(events);
         while (matcher.find()) {
             String eventTypeId = matcher.group(1);
             String option = matcher.group(2);
