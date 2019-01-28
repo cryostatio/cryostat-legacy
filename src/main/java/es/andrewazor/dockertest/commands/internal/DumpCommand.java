@@ -4,7 +4,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
-import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -46,33 +45,17 @@ class DumpCommand extends AbstractCommand {
             .name(name)
             .duration(1000 * seconds)
             .build();
-        IRecordingDescriptor descriptor = service.start(recordingOptions, null);
-
-        service.updateEventOptions(descriptor, enableEvents(events, new EventOptionsBuilder(connection)));
+        service.start(recordingOptions, enableEvents(events, new EventOptionsBuilder(connection)));
     }
 
-    private IConstrainedMap<EventOptionID> enableEvents(String events, EventOptionsBuilder builder) throws QuantityConversionException {
+    private IConstrainedMap<EventOptionID> enableEvents(String events, EventOptionsBuilder builder) throws Exception {
         Matcher matcher = EVENTS_PATTERN.matcher(events);
 
         while (matcher.find()) {
             String eventTypeId = matcher.group(1);
             String option = matcher.group(2);
-            String rawValue = matcher.group(3);
+            String value = matcher.group(3);
 
-            // TODO use JMC event option constraints to look up expected option value type and parse accordingly,
-            // rather than cascading attempt different popular types
-            Object value;
-            try {
-                value = Integer.valueOf(rawValue);
-            } catch (NumberFormatException nfe) {
-                try {
-                    value = Double.valueOf(rawValue);
-                } catch (NumberFormatException nfe2) {
-                    value = Boolean.valueOf(rawValue);
-                }
-            }
-
-            System.out.println(String.format("Set event %s option %s=%s", eventTypeId, option, value));
             builder.addEvent(eventTypeId, option, value);
         }
 
