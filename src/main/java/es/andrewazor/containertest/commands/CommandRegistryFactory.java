@@ -1,7 +1,7 @@
-package es.andrewazor.dockertest.commands;
+package es.andrewazor.containertest.commands;
 
-import es.andrewazor.dockertest.JMCConnection;
-import es.andrewazor.dockertest.commands.internal.CommandRegistryImpl;
+import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.commands.internal.CommandRegistryImpl;
 
 public class CommandRegistryFactory {
     private CommandRegistryFactory() { }

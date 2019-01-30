@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -8,7 +8,7 @@ import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.dockertest.JMCConnection;
+import es.andrewazor.containertest.JMCConnection;
 
 class DumpCommand extends AbstractCommand {
 

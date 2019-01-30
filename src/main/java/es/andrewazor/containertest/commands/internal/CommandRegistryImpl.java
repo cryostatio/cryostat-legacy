@@ -1,13 +1,13 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import es.andrewazor.dockertest.JMCConnection;
-import es.andrewazor.dockertest.commands.Command;
-import es.andrewazor.dockertest.commands.CommandRegistry;
+import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.commands.CommandRegistry;
 
 public class CommandRegistryImpl implements CommandRegistry {
 

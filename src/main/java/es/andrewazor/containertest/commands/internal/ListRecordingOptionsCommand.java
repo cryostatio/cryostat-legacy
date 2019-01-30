@@ -1,10 +1,10 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
 import java.util.Map;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
-import es.andrewazor.dockertest.JMCConnection;
+import es.andrewazor.containertest.JMCConnection;
 
 class ListRecordingOptionsCommand extends AbstractCommand {
     ListRecordingOptionsCommand(JMCConnection connection) {

@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest;
+package es.andrewazor.containertest;
 
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;

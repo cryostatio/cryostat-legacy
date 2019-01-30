@@ -15,4 +15,4 @@ include 'api'
 include 'services:webservice'
 */
 
-rootProject.name = 'docker-test'
+rootProject.name = 'container-test'

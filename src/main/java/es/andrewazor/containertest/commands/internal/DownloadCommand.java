@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -6,7 +6,7 @@ import java.nio.file.Paths;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.dockertest.JMCConnection;
+import es.andrewazor.containertest.JMCConnection;
 
 class DownloadCommand extends AbstractCommand {
     DownloadCommand(JMCConnection connection) {

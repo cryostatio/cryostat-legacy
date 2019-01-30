@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest;
+package es.andrewazor.containertest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,8 +8,8 @@ import java.util.Scanner;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
-import es.andrewazor.dockertest.commands.CommandRegistry;
-import es.andrewazor.dockertest.commands.CommandRegistryFactory;
+import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
 class JMXConnectionHandler implements Runnable {
 

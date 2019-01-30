@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.jmc.internal;
+package es.andrewazor.containertest.jmc.internal;
 
 import org.openjdk.jmc.rjmx.services.internal.CommercialFeaturesServiceFactory;
 import org.eclipse.core.runtime.CoreException;

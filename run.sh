@@ -9,12 +9,12 @@ fi
 function cleanup() {
     set +e
     # TODO: better container management
-    $CMD kill $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/docker-jmx-listener-podman)
-    $CMD kill $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/docker-jmx-listener-docker)
-    $CMD kill $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/docker-jmx-client)
-    $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/docker-jmx-listener-podman)
-    $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/docker-jmx-listener-docker)
-    $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/docker-jmx-client)
+    $CMD kill $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
+    $CMD kill $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-docker)
+    $CMD kill $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
+    $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
+    $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-docker)
+    $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
 }
 
 cleanup
@@ -30,17 +30,17 @@ RECORDING_DIR="$(pwd)/recordings"
 mkdir -p "$RECORDING_DIR"
 
 if [ "$CMD" == "$(command -v podman)" ]; then
-    podman run --net=host --name docker-jmx-listener -d docker.io/andrewazores/docker-jmx-listener-podman
+    podman run --net=host --name container-jmx-listener -d docker.io/andrewazores/container-jmx-listener-podman
 else
-    docker run --rm --net=docker-jmx-test --name docker-jmx-listener -p 9090:9090 -d docker.io/andrewazores/docker-jmx-listener-docker
+    docker run --rm --net=docker-jmx-test --name container-jmx-listener -p 9090:9090 -d docker.io/andrewazores/container-jmx-listener-docker
 fi
 echo "Waiting for start"
 # TODO: better detection of container startup
 sleep 2
 pushd build/libs
 if [ "$CMD" == "$(command -v podman)" ]; then
-    podman run --net=host --rm -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/docker-jmx-client "$@"
+    podman run --net=host --rm -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
 else
-    docker run --rm --net=docker-jmx-test -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/docker-jmx-client "$@"
+    docker run --rm --net=docker-jmx-test -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
 fi
 popd

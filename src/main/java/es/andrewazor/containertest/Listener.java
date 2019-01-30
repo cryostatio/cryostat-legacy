@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest;
+package es.andrewazor.containertest;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;

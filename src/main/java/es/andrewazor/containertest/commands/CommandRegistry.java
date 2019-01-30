@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.commands;
+package es.andrewazor.containertest.commands;
 
 public interface CommandRegistry {
     void execute(String commandName, String[] args) throws Exception;

@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.jmc;
+package es.andrewazor.containertest.jmc;
 
 import java.util.Collections;
 import java.util.Set;
@@ -10,7 +10,7 @@ import org.openjdk.jmc.ui.common.security.FailedToSaveException;
 import org.openjdk.jmc.ui.common.security.ISecurityManager;
 import org.openjdk.jmc.ui.common.security.SecurityException;
 
-import es.andrewazor.dockertest.jmc.internal.Store;
+import es.andrewazor.containertest.jmc.internal.Store;
 
 public class SecurityManager implements ISecurityManager {
 

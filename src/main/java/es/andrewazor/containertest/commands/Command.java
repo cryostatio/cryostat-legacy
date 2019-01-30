@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.commands;
+package es.andrewazor.containertest.commands;
 
 public interface Command {
     String getName();

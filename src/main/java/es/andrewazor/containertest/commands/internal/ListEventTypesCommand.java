@@ -1,10 +1,10 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
 import java.util.Collection;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import es.andrewazor.dockertest.JMCConnection;
+import es.andrewazor.containertest.JMCConnection;
 
 class ListEventTypesCommand extends AbstractCommand {
     ListEventTypesCommand(JMCConnection connection) {

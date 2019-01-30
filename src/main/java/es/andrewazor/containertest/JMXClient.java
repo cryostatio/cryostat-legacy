@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest;
+package es.andrewazor.containertest;
 
 import java.util.Arrays;
 
@@ -13,7 +13,7 @@ import org.openjdk.jmc.rjmx.internal.RJMXConnection;
 import org.openjdk.jmc.rjmx.internal.ServerDescriptor;
 import org.openjdk.jmc.ui.common.security.InMemoryCredentials;
 
-import es.andrewazor.dockertest.jmc.RegistryProvider;
+import es.andrewazor.containertest.jmc.RegistryProvider;
 
 class JMXClient {
     public static void main(String[] args) throws Exception {
@@ -26,7 +26,7 @@ class JMXClient {
                 );
         ServerDescriptor sd = new ServerDescriptor(
                 null,
-                "Docker",
+                "Container",
                 null
                 );
         RJMXConnection conn = new RJMXConnection(cd, sd, JMXClient::abort);

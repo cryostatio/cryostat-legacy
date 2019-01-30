@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.jmc.internal;
+package es.andrewazor.containertest.jmc.internal;
 
 import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IContributor;

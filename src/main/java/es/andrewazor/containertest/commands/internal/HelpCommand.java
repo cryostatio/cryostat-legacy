@@ -1,7 +1,7 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
-import es.andrewazor.dockertest.JMCConnection;
-import es.andrewazor.dockertest.commands.Command;
+import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.commands.Command;
 
 class HelpCommand extends AbstractCommand {
     HelpCommand(JMCConnection connection) {

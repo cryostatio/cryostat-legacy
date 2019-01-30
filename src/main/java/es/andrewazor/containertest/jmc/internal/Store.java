@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.jmc.internal;
+package es.andrewazor.containertest.jmc.internal;
 
 import java.util.Iterator;
 import java.util.HashMap;

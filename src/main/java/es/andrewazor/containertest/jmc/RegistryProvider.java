@@ -1,4 +1,4 @@
-package es.andrewazor.dockertest.jmc;
+package es.andrewazor.containertest.jmc;
 
 import org.eclipse.core.internal.registry.ExtensionRegistry;
 import org.eclipse.core.runtime.spi.IRegistryProvider;
@@ -7,8 +7,8 @@ import org.eclipse.core.runtime.IConfigurationElement;
 import org.eclipse.core.runtime.IExtensionRegistry;
 import org.eclipse.core.runtime.IExtensionPoint;
 
-import es.andrewazor.dockertest.jmc.internal.ServiceFactoryConfig;
-import es.andrewazor.dockertest.jmc.internal.StubExtensionPoint;
+import es.andrewazor.containertest.jmc.internal.ServiceFactoryConfig;
+import es.andrewazor.containertest.jmc.internal.StubExtensionPoint;
 
 public class RegistryProvider implements IRegistryProvider {
     @Override

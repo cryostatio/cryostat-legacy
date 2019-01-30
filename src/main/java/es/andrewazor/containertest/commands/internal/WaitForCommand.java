@@ -1,9 +1,9 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.dockertest.JMCConnection;
+import es.andrewazor.containertest.JMCConnection;
 
 class WaitForCommand extends AbstractCommand {
     WaitForCommand(JMCConnection connection) {

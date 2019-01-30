@@ -28,4 +28,4 @@ jar {
     exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
 }
 
-mainClassName = 'es.andrewazor.dockertest.JMXClient'
+mainClassName = 'es.andrewazor.containertest.JMXClient'

@@ -1,10 +1,10 @@
-package es.andrewazor.dockertest.commands.internal;
+package es.andrewazor.containertest.commands.internal;
 
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
-import es.andrewazor.dockertest.JMCConnection;
-import es.andrewazor.dockertest.commands.Command;
+import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.commands.Command;
 
 abstract class AbstractCommand implements Command {
     protected final JMCConnection connection;
