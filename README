@@ -1,7 +1,7 @@
 == REQUIREMENTS
 JDK
 JMC
-Docker
+Podman/Docker
 Gradle
 
 == BUILD
@@ -13,31 +13,51 @@ to the local repository. After this is complete, the project in this repository
 may be built locally. This can be done with `./gradlew build` or `sh build.sh`.
 
 == RUN
-For convenience, `sh run.sh` can be used to run a demo. This will run a Docker
+For convenience, `sh run.sh $TARGET` can be used to run a demo. This will run a
 container with an image containing the Listener class and the RJMX ports
-exposed. The Listener image simply listens on localhost port 9090 and writes
-lines it receives to its stdout stream. This port is exposed to the Client
-container through a Docker user-defined network, but is also mapped to the host
-machine's port 9090 as well. This allows you to connect to the Listener running
-within the container with netcat via "nc localhost 9090" and write messages to
-the Listener. You can observe its output using `docker logs -f docker-jmx-listener` .
+exposed. The Listener image simply listens on its localhost port 9090 and writes
+lines it receives to its stdout stream. A Client container will also be run,
+which will attempt to connect to the Listener container via a socket connection
+at the $TARGET host/port pair that you have specified.
+
+With Podman, the Listener and Client containers are both bound to the host
+machine's localhost network interface, which facilitates simple socket
+communication between the containers but also to the outside world (which may
+not be desirable in a real-world deployment scenario). With Docker, this port
+is exposed to the Client container through a Docker user-defined network, but
+is also mapped to the host machine's port 9090 as well. Within the user-defined
+network the Listener container can be identified by its hostname,
+'docker-jmx-listener', allowing the Client to reach the Listener container.
+
+With either container management system, this allows you to connect to the
+Listener running within the container with netcat via "nc localhost 9090" and
+write messages to the Listener. You can observe its output using
+`podman logs -f docker-jmx-listener` or `docker logs -f docker-jmx-listener` .
 The special case of a received line of the form "fib n" where n is a natural
 number will cause the Listener to compute and print the nth Fibonacci Number.
 This can be used to produce some more interesting event data for recordings.
 
-The script will also run the JMXClient image. If you run run.sh without
-arguments then JMXClient is started in an interactive shell-like mode. If you
-run it with arguments then the arguments are treated as a series of shell-like
-commands delimited with semicolons, equivalent to typing the commands into the
-shell in interactive mode.
+If you run run.sh with only a $TARGET argument then the Client container is
+started in an interactive shell-like mode. If you run it with additional
+arguments then the arguments are treated as a series of shell-like commands
+delimited with semicolons, equivalent to typing the commands into the shell in
+interactive mode.
 
 === EXAMPLES
 
-`sh build.sh && sh run.sh "docker-jmx-listener:9091"`
+The `run.sh` script will attempt to automatically detect if Podman or Docker is
+available on your system. If both are available then Podman will be preferred.
+This can be overridden by setting the environment variable `CMD` to the path
+to your preferred container manager, ie `CMD=$(which docker) sh run.sh`.
+
+When using Podman, the $TARGET should be `localhost:9091`. When using Docker,
+it should be `docker-jmx-listener:9091`.
+
+`sh build.sh && sh run.sh $TARGET`
 This will set up the demo Listener and Client and drop you into the Client
 "shell". Try "help" to see a listing of available commands.
 
-`sh build.sh && sh run.sh "docker-jmx-listener:9091" "dump foo 10;wait-for foo;download foo recordings/foo-recording.jfr"`
+`sh build.sh && sh run.sh $TARGET "dump foo 10;wait-for foo;download foo recordings/foo-recording.jfr"`
 This will set up the demo and run a series of three commands within the client.
 The client expects to find the target at docker-jmx-listener:9091 as specified in
 args[0].  These commands will trigger a 10s recording in the target JVM, wait for
