@@ -2,6 +2,7 @@
 
 set -x
 
+# TODO: split this into two separate run scripts
 if [ -z "$CMD" ]; then
     CMD="$(command -v podman || command -v docker)"
 fi
