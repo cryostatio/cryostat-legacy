@@ -15,12 +15,19 @@ function cleanup() {
     $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
     $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-docker)
     $CMD rm $($CMD ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
+
+    if [ "$CMD" == "$(command -v podman)" ]; then
+        sudo podman pod kill podman-jmx-test
+        sudo podman pod rm podman-jmx-test
+    fi
 }
 
 cleanup
 trap cleanup EXIT
 
-if [ "$CMD" == "$(command -v docker)" ]; then
+if [ "$CMD" == "$(command -v podman)" ]; then
+    sudo podman pod create --name podman-jmx-test
+else
     docker network create --attachable docker-jmx-test
 fi
 
@@ -30,7 +37,7 @@ RECORDING_DIR="$(pwd)/recordings"
 mkdir -p "$RECORDING_DIR"
 
 if [ "$CMD" == "$(command -v podman)" ]; then
-    podman run --net=host --name container-jmx-listener -d docker.io/andrewazores/container-jmx-listener-podman
+    sudo podman run --pod podman-jmx-test --name container-jmx-listener -d docker.io/andrewazores/container-jmx-listener-podman
 else
     docker run --rm --net=docker-jmx-test --name container-jmx-listener -p 9090:9090 -d docker.io/andrewazores/container-jmx-listener-docker
 fi
@@ -39,7 +46,7 @@ echo "Waiting for start"
 sleep 2
 pushd build/libs
 if [ "$CMD" == "$(command -v podman)" ]; then
-    podman run --net=host --rm -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
+    sudo podman run --pod podman-jmx-test --rm -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
 else
     docker run --rm --net=docker-jmx-test -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
 fi
