@@ -14,7 +14,10 @@ if [ "$CMD" == "$(command -v podman)" ]; then
         exit 1
     fi
     bash ./run.podman.sh "$@"
-else
+elif [ "$CMD" == "$(command -v docker)" ]; then
     bash ./run.docker.sh "$@"
+else
+    echo "Podman or Docker could not be found"
+    exit 1
 fi
 
