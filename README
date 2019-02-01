@@ -20,22 +20,21 @@ lines it receives to its stdout stream. A Client container will also be run,
 which will attempt to connect to the Listener container via a socket connection
 at the $TARGET host/port pair that you have specified.
 
-With Podman, the Listener and Client containers are both bound to the host
-machine's localhost network interface, which facilitates simple socket
-communication between the containers but also to the outside world (which may
-not be desirable in a real-world deployment scenario). With Docker, this port
-is exposed to the Client container through a Docker user-defined network, but
-is also mapped to the host machine's port 9090 as well. Within the user-defined
-network the Listener container can be identified by its hostname,
+With Podman, the Listener and Client containers are both inserted into a common
+Pod, which facilitates simple socket communication between the containers. With
+Docker, the containers share a Docker user-defined network, and the Listener
+port 9090 is also mapped to the host machine's port 9090. Within the
+user-defined network the Listener container can be identified by its hostname,
 'container-jmx-listener', allowing the Client to reach the Listener container.
 
 With either container management system, this allows you to connect to the
 Listener running within the container with netcat via "nc localhost 9090" and
 write messages to the Listener. You can observe its output using
-`podman logs -f container-jmx-listener` or `docker logs -f container-jmx-listener` .
-The special case of a received line of the form "fib n" where n is a natural
-number will cause the Listener to compute and print the nth Fibonacci Number.
-This can be used to produce some more interesting event data for recordings.
+`podman logs -f container-jmx-listener` or
+`docker logs -f container-jmx-listener` . The special case of a received line
+of the form "fib n" where n is a natural number will cause the Listener to
+compute and print the nth Fibonacci Number. This can be used to produce some
+more interesting event data for recordings.
 
 If you run run.sh with only a $TARGET argument then the Client container is
 started in an interactive shell-like mode. If you run it with additional
@@ -59,12 +58,12 @@ This will set up the demo Listener and Client and drop you into the Client
 
 `sh build.sh && sh run.sh $TARGET "dump foo 10;wait-for foo;download foo recordings/foo-recording.jfr"`
 This will set up the demo and run a series of three commands within the client.
-The client expects to find the target at container-jmx-listener:9091 as specified in
+The client expects to find the target at $TARGET as specified in
 args[0].  These commands will trigger a 10s recording in the target JVM, wait for
 the recording to finish, and download the recording to your local machine as
 $PROJECTDIR/recordings/foo-recording.jfr . You can then open the local
 recording file with your tool of choice, such as JMC.
 
 There are some demo "scripts" located in the "demos" directory. These can be
-used as follows: `sh run.sh "container-jmx-listener:9091" "$(more demos/demoname)"`,
+used as follows: `sh run.sh "$TARGET" "$(more demos/demoname)"`,
 where "demoname" is replaced with the name of the demo script file you want to run.
