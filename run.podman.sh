@@ -28,5 +28,5 @@ echo "Waiting for start"
 # TODO: better detection of container startup
 sleep 2
 pushd build/libs
-podman run --pod podman-jmx-test --rm -it -u "$(id -u)" -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
+podman run --pod podman-jmx-test --rm -it -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
 popd
