@@ -9,8 +9,8 @@ function cleanup() {
     podman kill $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
     podman rm $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
     podman rm $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
-    podman pod kill podman-jmx-test
-    podman pod rm podman-jmx-test
+    podman pod kill jmx-test
+    podman pod rm jmx-test
 }
 
 cleanup
@@ -21,12 +21,10 @@ set -e
 RECORDING_DIR="$(pwd)/recordings"
 mkdir -p "$RECORDING_DIR"
 
-podman pod create --name podman-jmx-test
+podman pod create --name jmx-test
 
-podman run --pod podman-jmx-test --name container-jmx-listener -d docker.io/andrewazores/container-jmx-listener-podman
-echo "Waiting for start"
-# TODO: better detection of container startup
-sleep 2
-pushd build/libs
-podman run --pod podman-jmx-test --rm -it -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
-popd
+podman create --pod jmx-test --name jmx-listener -d docker.io/andrewazores/container-jmx-listener-podman
+podman create --pod jmx-test --name jmx-client --rm -it -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
+
+podman pod start jmx-test
+podman attach jmx-client
