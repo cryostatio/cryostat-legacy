@@ -6,10 +6,8 @@ function cleanup() {
     set +e
     # TODO: better container management
     podman kill $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
-    podman kill $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-docker)
     podman kill $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
     podman rm $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
-    podman rm $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-docker)
     podman rm $(podman ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
     podman pod kill podman-jmx-test
     podman pod rm podman-jmx-test

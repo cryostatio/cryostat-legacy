@@ -5,10 +5,8 @@ set -x
 function cleanup() {
     set +e
     # TODO: better container management
-    docker kill $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
     docker kill $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-docker)
     docker kill $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
-    docker rm $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-podman)
     docker rm $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener-docker)
     docker rm $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
 }
