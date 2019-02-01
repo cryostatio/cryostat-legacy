@@ -18,13 +18,14 @@ container with an image containing the Listener class and the RJMX ports
 exposed. The Listener image simply listens on its localhost port 9090 and writes
 lines it receives to its stdout stream. A Client container will also be run,
 which will attempt to connect to the Listener container via a socket connection
-at the $TARGET host/port pair that you have specified.
+at the $TARGET host/port pair that you have specified. Typically, $TARGET will
+be "jmx-listener:9091" for the purposes of this demo.
 
 With Podman, the Listener and Client containers are both inserted into a common
 Pod, which facilitates simple socket communication between the containers. With
 Docker, the containers share a Docker user-defined network, and the Listener
-port 9090 is also mapped to the host machine's port 9090. Within the
-user-defined network the Listener container can be identified by its hostname,
+port 9090 is also mapped to the host machine's port 9090. Within either network
+the Listener container can be identified by its hostname,
 'container-jmx-listener', allowing the Client to reach the Listener container.
 
 With either container management system, this allows you to connect to the
@@ -48,9 +49,6 @@ The `run.sh` script will attempt to automatically detect if Podman or Docker is
 available on your system. If both are available then Podman will be preferred.
 This can be overridden by setting the environment variable `CMD` to the path
 to your preferred container manager, ie `CMD=$(which docker) sh run.sh`.
-
-When using Podman, the $TARGET should be `localhost:9091`. When using Docker,
-it should be `container-jmx-listener:9091`.
 
 `sh build.sh && sh run.sh $TARGET`
 This will set up the demo Listener and Client and drop you into the Client
