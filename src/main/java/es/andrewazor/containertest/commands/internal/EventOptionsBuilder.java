@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.common.unit.IConstraint;
 import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
@@ -49,10 +50,17 @@ class EventOptionsBuilder {
         if (!optionDescriptors.containsKey(option)) {
             throw new EventOptionException(typeId, option);
         }
-        // TODO use OptionDescriptor.getConstraint().validate() to validate value
-        this.map.put(new EventOptionID(EVENT_IDS.get(typeId), option), optionDescriptors.get(option).getConstraint().parseInteractive(value));
+        IConstraint<?> constraint = optionDescriptors.get(option).getConstraint();
+        Object parsedValue = constraint.parseInteractive(value);
+        constraint.validate(captureValue(parsedValue));
+        this.map.put(new EventOptionID(EVENT_IDS.get(typeId), option), parsedValue);
 
         return this;
+    }
+
+    private static <T> T captureValue(Object v) {
+        // TODO clean up this generics hack
+        return (T) v;
     }
 
     IConstrainedMap<EventOptionID> build() {
