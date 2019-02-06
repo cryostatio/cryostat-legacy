@@ -45,7 +45,7 @@ class DumpCommand extends AbstractCommand {
             .name(name)
             .duration(1000 * seconds)
             .build();
-        service.start(recordingOptions, enableEvents(events));
+        this.connection.getRecordingExporter().addRecording(service.start(recordingOptions, enableEvents(events)));
     }
 
     private IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {

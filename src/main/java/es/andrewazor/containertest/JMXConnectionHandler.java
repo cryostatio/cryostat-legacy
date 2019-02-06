@@ -41,6 +41,7 @@ class JMXConnectionHandler implements Runnable {
 
     private void runScripted() {
         executeCommands(args[0].split(";"));
+        connection.getRecordingExporter().stop();
     }
 
     private void runInteractive() {
@@ -56,6 +57,7 @@ class JMXConnectionHandler implements Runnable {
                 executeCommandLine(in);
             } while (!in.toLowerCase().equals("exit") && !in.toLowerCase().equals("quit"));
             System.out.println("exit");
+            connection.getRecordingExporter().stop();
         }
     }
 

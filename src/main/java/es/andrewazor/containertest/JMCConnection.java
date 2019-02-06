@@ -8,10 +8,12 @@ public class JMCConnection {
 
     private final IConnectionHandle handle;
     private final IFlightRecorderService service;
+    private final RecordingExporter exporter;
 
     public JMCConnection(IConnectionHandle handle) throws Exception {
         this.handle = handle;
         this.service = new FlightRecorderServiceFactory().getServiceInstance(handle);
+        this.exporter = new RecordingExporter(service);
     }
 
     public IConnectionHandle getHandle() {
@@ -20,5 +22,9 @@ public class JMCConnection {
 
     public IFlightRecorderService getService() {
         return this.service;
+    }
+
+    public RecordingExporter getRecordingExporter() {
+        return this.exporter;
     }
 }

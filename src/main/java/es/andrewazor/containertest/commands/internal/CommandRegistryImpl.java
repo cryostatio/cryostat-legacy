@@ -15,12 +15,13 @@ public class CommandRegistryImpl implements CommandRegistry {
     static final List<Class<? extends Command>> COMMANDS = Arrays.asList(
         HelpCommand.class,
 
-        DownloadCommand.class,
         DumpCommand.class,
+        IpCommand.class,
         ListCommand.class,
         ListEventTypesCommand.class,
         ListRecordingOptionsCommand.class,
-        WaitForCommand.class
+        WaitForCommand.class,
+        WaitForDownloadCommand.class
     );
 
     private final Map<String, Class<? extends Command>> classMap = new HashMap<String, Class<? extends Command>>();

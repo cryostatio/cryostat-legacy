@@ -18,13 +18,10 @@ trap cleanup EXIT
 
 set -e
 
-RECORDING_DIR="$(pwd)/recordings"
-mkdir -p "$RECORDING_DIR"
-
 podman pod create --name jmx-test
 
 podman create --pod jmx-test --name jmx-listener --net=bridge --hostname jmx-listener -p 9090:9090 -d docker.io/andrewazores/container-jmx-listener
-podman create --pod jmx-test --name jmx-client --net=container:jmx-listener --rm -it -v "$RECORDING_DIR:/recordings" docker.io/andrewazores/container-jmx-client "$@"
+podman create --pod jmx-test --name jmx-client --net=container:jmx-listener --rm -it docker.io/andrewazores/container-jmx-client "$@"
 
 podman pod start jmx-test
 podman attach jmx-client

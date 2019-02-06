@@ -49,7 +49,7 @@ class WaitForCommand extends AbstractCommand {
         return true;
     }
 
-    private IRecordingDescriptor getByName(String name) throws FlightRecorderException {
+    protected IRecordingDescriptor getByName(String name) throws FlightRecorderException {
         for (IRecordingDescriptor descriptor : service.getAvailableRecordings()) {
             if (descriptor.getName().equals(name)) {
                 return descriptor;

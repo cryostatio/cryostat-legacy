@@ -54,14 +54,15 @@ to your preferred container manager, ie `CMD=$(which docker) sh run.sh`.
 This will set up the demo Listener and Client and drop you into the Client
 "shell". Try "help" to see a listing of available commands.
 
-`sh build.sh && sh run.sh $TARGET "dump foo 10;wait-for foo;download foo recordings/foo-recording.jfr"`
+`sh build.sh && sh run.sh $TARGET "dump foo 10;wait-for foo;wait-for-download-foo"`
 This will set up the demo and run a series of three commands within the client.
 The client expects to find the target at $TARGET as specified in
-args[0].  These commands will trigger a 10s recording in the target JVM, wait for
-the recording to finish, and download the recording to your local machine as
-$PROJECTDIR/recordings/foo-recording.jfr . You can then open the local
-recording file with your tool of choice, such as JMC.
+args[0].  These commands will trigger a 10s recording in the target JVM, wait
+for the recording to finish, and wait for the embedded webserver to serve the
+recording file to you (via ex. cURL) before exiting. You can then open the
+local recording file with your tool of choice, such as JMC.
 
 There are some demo "scripts" located in the "demos" directory. These can be
 used as follows: `sh run.sh "$TARGET" "$(more demos/demoname)"`,
-where "demoname" is replaced with the name of the demo script file you want to run.
+where "demoname" is replaced with the name of the demo script file you want to
+run.
