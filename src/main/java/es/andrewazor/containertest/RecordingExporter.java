@@ -1,7 +1,9 @@
 package es.andrewazor.containertest;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
@@ -65,9 +67,7 @@ public class RecordingExporter {
                         String.format("%s not found", recordingName));
             }
             try {
-                downloadCounts.put(recordingName, downloadCounts.getOrDefault(recordingName, 0) + 1);
-                return newChunkedResponse(Status.OK, "application/octet-stream",
-                        service.openStream(recordings.get(recordingName), false));
+                return newFlightRecorderResponse(recordingName);
             } catch (FlightRecorderException fre) {
                 fre.printStackTrace();
                 return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT,
@@ -78,6 +78,17 @@ public class RecordingExporter {
         @Override
         protected boolean useGzipWhenAccepted(Response r) {
             return true;
+        }
+
+        private Response newFlightRecorderResponse(String recordingName) throws FlightRecorderException {
+            return new Response(Status.OK, "application/octet-stream",
+                    service.openStream(recordings.get(recordingName), false), -1) {
+                @Override
+                public void close() throws IOException {
+                    super.close();
+                    downloadCounts.put(recordingName, downloadCounts.getOrDefault(recordingName, 0) + 1);
+                }
+            };
         }
     }
 }
