@@ -28,6 +28,16 @@ public class RecordingExporter {
                 InetAddress.getLocalHost().getHostAddress(), server.getListeningPort()));
     }
 
+    void start() throws IOException, FlightRecorderException {
+        if (!this.server.wasStarted()) {
+            this.server.start();
+        }
+    }
+
+    void stop() {
+        this.server.stop();
+    }
+
     public void addRecording(IRecordingDescriptor descriptor) {
         recordings.put(descriptor.getName(), descriptor);
     }
@@ -38,10 +48,6 @@ public class RecordingExporter {
 
     public String getDownloadURL(String recordingName) throws UnknownHostException {
         return String.format("http://%s:%d/%s", InetAddress.getLocalHost().getHostAddress(), server.getListeningPort(), recordingName);
-    }
-
-    void stop() {
-        this.server.stop();
     }
 
     private class ServerImpl extends NanoHTTPD {

@@ -1,5 +1,6 @@
 package es.andrewazor.containertest;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -29,19 +30,20 @@ class JMXConnectionHandler implements Runnable {
             if (!connection.getService().isEnabled()) {
                 connection.getService().enable();
             }
-        } catch (FlightRecorderException fre) {
-            throw new RuntimeException(fre);
+            connection.getRecordingExporter().start();
+        } catch (FlightRecorderException | IOException e) {
+            throw new RuntimeException(e);
         }
         if (args.length == 0) {
             runInteractive();
         } else {
             runScripted();
         }
+        connection.getRecordingExporter().stop();
     }
 
     private void runScripted() {
         executeCommands(args[0].split(";"));
-        connection.getRecordingExporter().stop();
     }
 
     private void runInteractive() {
@@ -57,7 +59,6 @@ class JMXConnectionHandler implements Runnable {
                 executeCommandLine(in);
             } while (!in.toLowerCase().equals("exit") && !in.toLowerCase().equals("quit"));
             System.out.println("exit");
-            connection.getRecordingExporter().stop();
         }
     }
 
