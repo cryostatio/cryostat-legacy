@@ -23,15 +23,15 @@ public class RecordingExporter {
     RecordingExporter(IFlightRecorderService service) throws IOException {
         this.service = service;
         this.server = new ServerImpl();
-
-        System.out.println(String.format("Recordings available at http://%s:%d/$RECORDING_NAME",
-                InetAddress.getLocalHost().getHostAddress(), server.getListeningPort()));
     }
 
     void start() throws IOException, FlightRecorderException {
         if (!this.server.wasStarted()) {
             this.server.start();
             this.service.getAvailableRecordings().forEach(this::addRecording);
+
+            System.out.println(String.format("Recordings available at http://%s:%d/$RECORDING_NAME",
+                    InetAddress.getLocalHost().getHostAddress(), server.getListeningPort()));
         }
     }
 
