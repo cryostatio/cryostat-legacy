@@ -3,8 +3,8 @@ package es.andrewazor.containertest;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -17,8 +17,8 @@ public class RecordingExporter {
 
     private final IFlightRecorderService service;
     private final ServerImpl server;
-    private final Map<String, IRecordingDescriptor> recordings = new HashMap<>();
-    private final Map<String, Integer> downloadCounts = new HashMap<>();
+    private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
+    private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
     RecordingExporter(IFlightRecorderService service) throws IOException {
         this.service = service;
