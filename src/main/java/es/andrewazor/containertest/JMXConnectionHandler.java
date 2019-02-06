@@ -67,6 +67,7 @@ class JMXConnectionHandler implements Runnable {
         List<CommandLine> commandLines = new ArrayList<>(
             Arrays.asList(lines)
                 .stream()
+                .map(line -> line.trim())
                 .map(line -> line.split("\\s"))
                 .map(words -> new CommandLine(words[0], Arrays.copyOfRange(words, 1, words.length)))
                 .collect(Collectors.toList())
