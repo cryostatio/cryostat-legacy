@@ -115,14 +115,12 @@ class JMXConnectionHandler implements Runnable {
 
         @Override
         public String toString() {
-            StringBuilder sb = new StringBuilder();
-            sb.append(command);
-            sb.append(" ");
+            StringBuilder sb = new StringBuilder(command);
             for (String arg : args) {
-                sb.append(arg);
                 sb.append(" ");
+                sb.append(arg);
             }
-            return sb.toString().trim();
+            return sb.toString();
         }
     }
 }
