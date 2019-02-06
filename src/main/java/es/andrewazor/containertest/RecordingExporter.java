@@ -31,6 +31,7 @@ public class RecordingExporter {
     void start() throws IOException, FlightRecorderException {
         if (!this.server.wasStarted()) {
             this.server.start();
+            this.service.getAvailableRecordings().forEach(this::addRecording);
         }
     }
 
