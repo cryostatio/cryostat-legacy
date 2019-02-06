@@ -1,9 +1,7 @@
 package es.andrewazor.containertest;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
