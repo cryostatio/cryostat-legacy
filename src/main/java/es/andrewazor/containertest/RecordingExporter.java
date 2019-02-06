@@ -30,7 +30,7 @@ public class RecordingExporter {
 
     void start() throws IOException, FlightRecorderException {
         if (!this.server.wasStarted()) {
-            this.server.start();
+            this.server.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             this.service.getAvailableRecordings().forEach(this::addRecording);
         }
     }
@@ -54,7 +54,6 @@ public class RecordingExporter {
     private class ServerImpl extends NanoHTTPD {
         private ServerImpl() throws IOException {
             super(8080);
-            start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
         }
 
         @Override
