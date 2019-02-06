@@ -74,5 +74,10 @@ public class RecordingExporter {
                         String.format("%s could not be opened", recordingName));
             }
         }
+
+        @Override
+        protected boolean useGzipWhenAccepted(Response r) {
+            return true;
+        }
     }
 }
