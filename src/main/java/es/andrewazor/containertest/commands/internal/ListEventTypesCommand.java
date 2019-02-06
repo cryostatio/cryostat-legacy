@@ -1,7 +1,5 @@
 package es.andrewazor.containertest.commands.internal;
 
-import java.util.Collection;
-
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import es.andrewazor.containertest.JMCConnection;
@@ -22,14 +20,15 @@ class ListEventTypesCommand extends AbstractCommand {
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available event types");
-        Collection<? extends IEventTypeInfo> events = service.getAvailableEventTypes();
-        for (IEventTypeInfo event : events) {
-            System.out.println(String.format("\t%s", event));
-        }
+        service.getAvailableEventTypes().forEach(this::printEvent);
     }
 
     @Override
     public boolean validate(String[] args) {
         return true;
+    }
+
+    private void printEvent(IEventTypeInfo event) {
+        System.out.println(String.format("\t%s", event));
     }
 }

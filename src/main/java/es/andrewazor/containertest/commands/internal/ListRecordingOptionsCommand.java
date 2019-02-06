@@ -22,14 +22,15 @@ class ListRecordingOptionsCommand extends AbstractCommand {
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available recording options:");
-        Map<String, IOptionDescriptor<?>> options = service.getAvailableRecordingOptions();
-        for (Map.Entry<String, IOptionDescriptor<?>> entry : options.entrySet()) {
-            System.out.println(String.format("\t%s : %s", entry.getKey(), entry.getValue()));
-        }
+        service.getAvailableRecordingOptions().entrySet().forEach(this::printOptions);
     }
 
     @Override
     public boolean validate(String[] args) {
         return true;
+    }
+
+    private void printOptions(Map.Entry<String, IOptionDescriptor<?>> entry) {
+        System.out.println(String.format("\t%s : %s", entry.getKey(), entry.getValue()));
     }
 }

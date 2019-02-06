@@ -6,6 +6,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
+import java.util.stream.Collectors;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
@@ -63,13 +64,13 @@ class JMXConnectionHandler implements Runnable {
     }
 
     private void executeCommands(String[] lines) {
-        List<CommandLine> commandLines = new ArrayList<>(lines.length);
-        for (String line : lines) {
-            String[] words = line.split("\\s");
-            String cmd = words[0];
-            String[] args = Arrays.copyOfRange(words, 1, words.length);
-            commandLines.add(new CommandLine(cmd, args));
-        }
+        List<CommandLine> commandLines = new ArrayList<>(
+            Arrays.asList(lines)
+                .stream()
+                .map(line -> line.split("\\s"))
+                .map(words -> new CommandLine(words[0], Arrays.copyOfRange(words, 1, words.length)))
+                .collect(Collectors.toList())
+        );
 
         boolean allValid = true;
         for (CommandLine commandLine : commandLines) {

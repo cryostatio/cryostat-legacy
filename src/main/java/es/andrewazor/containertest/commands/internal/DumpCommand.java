@@ -34,11 +34,9 @@ class DumpCommand extends AbstractCommand {
         int seconds = Integer.parseInt(args[1]);
         String events = args[2];
 
-        for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
-            if (recording.getName().equals(name)) {
-                System.out.println(String.format("Recording with name %s already exists", name));
-                return;
-            }
+        if (service.getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
+            System.out.println(String.format("Recording with name %s already exists", name));
+            return;
         }
 
         IConstrainedMap<String> recordingOptions = new RecordingOptionsBuilder(service)
