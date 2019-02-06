@@ -1,7 +1,6 @@
 package es.andrewazor.containertest;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -64,15 +63,13 @@ class JMXConnectionHandler implements Runnable {
     }
 
     private void executeCommands(String[] lines) {
-        List<CommandLine> commandLines = new ArrayList<>(
-            Arrays.asList(lines)
-                .stream()
-                .map(line -> line.trim())
-                .map(line -> line.split("\\s"))
-                .filter(words -> words.length > 0 && !words[0].isEmpty())
-                .map(words -> new CommandLine(words[0], Arrays.copyOfRange(words, 1, words.length)))
-                .collect(Collectors.toList())
-        );
+        List<CommandLine> commandLines = Arrays.asList(lines)
+            .stream()
+            .map(line -> line.trim())
+            .map(line -> line.split("\\s"))
+            .filter(words -> words.length > 0 && !words[0].isEmpty())
+            .map(words -> new CommandLine(words[0], Arrays.copyOfRange(words, 1, words.length)))
+            .collect(Collectors.toList());
 
         boolean allValid = true;
         for (CommandLine commandLine : commandLines) {
