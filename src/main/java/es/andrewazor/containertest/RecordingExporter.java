@@ -85,8 +85,11 @@ public class RecordingExporter {
                     service.openStream(recordings.get(recordingName), false), -1) {
                 @Override
                 public void close() throws IOException {
-                    super.close();
-                    downloadCounts.put(recordingName, downloadCounts.getOrDefault(recordingName, 0) + 1);
+                    try {
+                        super.close();
+                    } finally {
+                        downloadCounts.put(recordingName, downloadCounts.getOrDefault(recordingName, 0) + 1);
+                    }
                 }
             };
         }
