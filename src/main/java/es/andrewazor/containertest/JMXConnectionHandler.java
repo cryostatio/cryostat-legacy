@@ -31,15 +31,16 @@ class JMXConnectionHandler implements Runnable {
                 connection.getService().enable();
             }
             connection.getRecordingExporter().start();
+            if (args.length == 0) {
+                runInteractive();
+            } else {
+                runScripted();
+            }
         } catch (FlightRecorderException | IOException e) {
             throw new RuntimeException(e);
+        } finally {
+            connection.getRecordingExporter().stop();
         }
-        if (args.length == 0) {
-            runInteractive();
-        } else {
-            runScripted();
-        }
-        connection.getRecordingExporter().stop();
     }
 
     private void runScripted() {
