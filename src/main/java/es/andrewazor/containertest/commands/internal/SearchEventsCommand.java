@@ -29,6 +29,6 @@ class SearchEventsCommand extends AbstractCommand {
     }
 
     private void printEvent(IEventTypeInfo event) {
-        System.out.println(String.format("\t%s", event));
+        System.out.println(String.format("\t%s\toptions: %s", event.getEventTypeID().getFullKey(), event.getOptionDescriptors().keySet().toString()));
     }
 }
