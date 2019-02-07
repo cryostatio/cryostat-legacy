@@ -20,6 +20,7 @@ public class CommandRegistryImpl implements CommandRegistry {
         ListCommand.class,
         ListEventTypesCommand.class,
         ListRecordingOptionsCommand.class,
+        SearchEventsCommand.class,
         WaitForCommand.class,
         WaitForDownloadCommand.class
     );
