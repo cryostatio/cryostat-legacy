@@ -24,7 +24,7 @@ class SearchEventsCommand extends AbstractCommand {
     public void execute(String[] args) throws Exception {
         service.getAvailableEventTypes()
             .stream()
-            .filter(event -> event.getName().toLowerCase().contains(args[0]))
+            .filter(event -> event.getEventTypeID().getFullKey().toLowerCase().contains(args[0].toLowerCase()))
             .forEach(this::printEvent);
     }
 
