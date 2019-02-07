@@ -58,9 +58,9 @@ class EventOptionsBuilder {
         return this;
     }
 
-    private static <T> T captureValue(Object v) {
+    private static <T, V> V captureValue(T t) {
         // TODO clean up this generics hack
-        return (T) v;
+        return (V) t;
     }
 
     IConstrainedMap<EventOptionID> build() {
