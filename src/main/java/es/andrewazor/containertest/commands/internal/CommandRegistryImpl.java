@@ -1,6 +1,7 @@
 package es.andrewazor.containertest.commands.internal;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -12,7 +13,7 @@ import es.andrewazor.containertest.commands.CommandRegistry;
 public class CommandRegistryImpl implements CommandRegistry {
 
     // TODO: implement something smarter than this hardcoded list
-    static final List<Class<? extends Command>> COMMANDS = Arrays.asList(
+    static final List<Class<? extends Command>> COMMANDS = Collections.unmodifiableList(Arrays.asList(
         HelpCommand.class,
 
         DumpCommand.class,
@@ -23,7 +24,7 @@ public class CommandRegistryImpl implements CommandRegistry {
         SearchEventsCommand.class,
         WaitForCommand.class,
         WaitForDownloadCommand.class
-    );
+    ));
 
     private final Map<String, Class<? extends Command>> classMap = new HashMap<String, Class<? extends Command>>();
     private final JMCConnection connection;
