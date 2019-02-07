@@ -25,7 +25,7 @@ class ListEventTypesCommand extends AbstractCommand {
 
     @Override
     public boolean validate(String[] args) {
-        return true;
+        return args.length == 0;
     }
 
     private void printEvent(IEventTypeInfo event) {
