@@ -52,13 +52,13 @@ class EventOptionsBuilder {
         }
         IConstraint<?> constraint = optionDescriptors.get(option).getConstraint();
         Object parsedValue = constraint.parseInteractive(value);
-        constraint.validate(captureValue(parsedValue));
+        constraint.validate(capture(parsedValue));
         this.map.put(new EventOptionID(EVENT_IDS.get(typeId), option), parsedValue);
 
         return this;
     }
 
-    private static <T, V> V captureValue(T t) {
+    private static <T, V> V capture(T t) {
         // TODO clean up this generics hack
         return (V) t;
     }
