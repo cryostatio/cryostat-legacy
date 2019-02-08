@@ -2,6 +2,8 @@ package es.andrewazor.containertest;
 
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -14,6 +16,9 @@ import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class RecordingExporter {
+
+    private static final String HOST_PROPERTY = "es.andrewazor.containertest.download.host";
+    private static final String PORT_PROPERTY = "es.andrewazor.containertest.download.port";
 
     private final IFlightRecorderService service;
     private final ServerImpl server;
@@ -30,8 +35,7 @@ public class RecordingExporter {
             this.server.start();
             this.service.getAvailableRecordings().forEach(this::addRecording);
 
-            System.out.println(String.format("Recordings available at http://%s:%d/$RECORDING_NAME",
-                    InetAddress.getLocalHost().getHostAddress(), server.getListeningPort()));
+            System.out.println(String.format("Recordings available at %s", this.getDownloadURL("$RECORDING_NAME")));
         }
     }
 
@@ -47,8 +51,14 @@ public class RecordingExporter {
         return this.downloadCounts.getOrDefault(recordingName, -1);
     }
 
-    public String getDownloadURL(String recordingName) throws UnknownHostException {
-        return String.format("http://%s:%d/%s", InetAddress.getLocalHost().getHostAddress(), server.getListeningPort(), recordingName);
+    public URL getHostUrl() throws UnknownHostException, MalformedURLException {
+        String hostname = System.getProperty(HOST_PROPERTY, InetAddress.getLocalHost().getHostAddress());
+        int port = Integer.valueOf(System.getProperty(PORT_PROPERTY, "8080"));
+        return new URL("http", hostname, port, "");
+    }
+
+    public String getDownloadURL(String recordingName) throws UnknownHostException, MalformedURLException {
+        return String.format("%s/%s", this.getHostUrl(), recordingName);
     }
 
     private class ServerImpl extends NanoHTTPD {
