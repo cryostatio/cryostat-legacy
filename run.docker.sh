@@ -23,5 +23,5 @@ echo "Waiting for start"
 # TODO: better detection of container startup
 sleep 2
 pushd build/libs
-docker run --rm --net=jmx-test -it -u "$(id -u)" docker.io/andrewazores/container-jmx-client "$@"
+docker run --rm --net=jmx-test -it docker.io/andrewazores/container-jmx-client "$@"
 popd
