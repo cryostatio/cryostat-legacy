@@ -52,8 +52,17 @@ public class RecordingExporter {
     }
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException {
-        String hostname = System.getProperty(HOST_PROPERTY, InetAddress.getLocalHost().getHostAddress());
-        int port = Integer.valueOf(System.getProperty(PORT_PROPERTY, "8080"));
+        String hostname = System.getProperty(HOST_PROPERTY);
+        if (hostname == null || hostname.isEmpty()) {
+            hostname = InetAddress.getLocalHost().getHostAddress();
+        }
+
+        int port = 8080;
+        String portProperty = System.getProperty(PORT_PROPERTY);
+        if (portProperty != null && !portProperty.isEmpty()) {
+            port = Integer.valueOf(portProperty);
+        }
+
         return new URL("http", hostname, port, "");
     }
 

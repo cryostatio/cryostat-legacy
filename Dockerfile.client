@@ -1,7 +1,5 @@
 FROM openjdk:11-jre-slim
 COPY build/libs/container-test.jar /
+COPY entrypoint.client.sh /
 EXPOSE 9091
-ENTRYPOINT ["java",\
-    "-Dorg.openjdk.jmc.common.security.manager=es.andrewazor.containertest.jmc.SecurityManager",\
-    "-cp", "container-test.jar",\
-    "es.andrewazor.containertest.JMXClient"]
+ENTRYPOINT ["/entrypoint.client.sh"]
