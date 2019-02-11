@@ -17,6 +17,7 @@ public class CommandRegistryImpl implements CommandRegistry {
         HelpCommand.class,
 
         DumpCommand.class,
+        HostnameCommand.class,
         IpCommand.class,
         ListCommand.class,
         ListEventTypesCommand.class,
