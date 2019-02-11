@@ -1,5 +1,8 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Collection;
+import java.util.stream.Collectors;
+
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import es.andrewazor.containertest.JMCConnection;
@@ -22,10 +25,15 @@ class SearchEventsCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        service.getAvailableEventTypes()
+        Collection<? extends IEventTypeInfo> matchingEvents = service.getAvailableEventTypes()
             .stream()
             .filter(event -> event.getEventTypeID().getFullKey().toLowerCase().contains(args[0].toLowerCase()))
-            .forEach(this::printEvent);
+            .collect(Collectors.toList());
+
+        if (matchingEvents.isEmpty()) {
+            System.out.println("\tNo matches");
+        }
+        matchingEvents.forEach(this::printEvent);
     }
 
     private void printEvent(IEventTypeInfo event) {

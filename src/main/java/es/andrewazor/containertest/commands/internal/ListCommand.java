@@ -1,6 +1,7 @@
 package es.andrewazor.containertest.commands.internal;
 
 import java.lang.reflect.Method;
+import java.util.Collection;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -23,7 +24,11 @@ class ListCommand extends AbstractCommand {
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available recordings:");
-        for (IRecordingDescriptor recording : service.getAvailableRecordings()) {
+        Collection<IRecordingDescriptor> recordings = service.getAvailableRecordings();
+        if (recordings.isEmpty()) {
+            System.out.println("\tNone");
+        }
+        for (IRecordingDescriptor recording : recordings) {
             System.out.println(toString(recording));
         }
     }
