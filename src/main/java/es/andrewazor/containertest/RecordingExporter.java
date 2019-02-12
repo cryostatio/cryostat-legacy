@@ -1,12 +1,15 @@
 package es.andrewazor.containertest;
 
 import java.io.IOException;
+import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.MalformedURLException;
+import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -51,10 +54,25 @@ public class RecordingExporter {
         return this.downloadCounts.getOrDefault(recordingName, -1);
     }
 
-    public URL getHostUrl() throws UnknownHostException, MalformedURLException {
+    public String getHostName() throws SocketException, UnknownHostException {
+        return getLocalAddressProperty(InetAddress::getHostName);
+    }
+
+    public String getHostAddress() throws SocketException, UnknownHostException {
+        return getLocalAddressProperty(InetAddress::getHostAddress);
+    }
+
+    private <T> T getLocalAddressProperty(Function<InetAddress, T> fn) throws SocketException, UnknownHostException {
+        try (DatagramSocket s = new DatagramSocket()) {
+            s.connect(InetAddress.getByName("1.1.1.1"), 80);
+            return fn.apply(s.getLocalAddress());
+        }
+    }
+
+    public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
         String hostname = System.getProperty(HOST_PROPERTY);
         if (hostname == null || hostname.isEmpty()) {
-            hostname = InetAddress.getLocalHost().getHostAddress();
+            hostname = getHostAddress();
         }
 
         int port = 8080;
@@ -66,7 +84,7 @@ public class RecordingExporter {
         return new URL("http", hostname, port, "");
     }
 
-    public String getDownloadURL(String recordingName) throws UnknownHostException, MalformedURLException {
+    public String getDownloadURL(String recordingName) throws UnknownHostException, MalformedURLException, SocketException {
         return String.format("%s/%s", this.getHostUrl(), recordingName);
     }
 

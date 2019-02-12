@@ -26,13 +26,6 @@ podman create --pod jmx-test \
     -p 9090:9090 \
     -d docker.io/andrewazores/container-jmx-listener
 
-# TODO fix pod DNS. jmx-client is not currently able to determine its own
-# host-accessible hostname/IP, which breaks the ability for the container to
-# print messages pointing to its own download locations.
-if [ -z $CONTAINER_DOWNLOAD_HOST ]; then
-    CONTAINER_DOWNLOAD_HOST=jmx-client
-fi
-
 podman create --pod jmx-test \
     --name jmx-client --hostname jmx-client \
     --net=container:jmx-listener \

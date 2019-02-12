@@ -1,7 +1,5 @@
 package es.andrewazor.containertest.commands.internal;
 
-import java.net.InetAddress;
-
 import es.andrewazor.containertest.JMCConnection;
 
 class HostnameCommand extends AbstractCommand {
@@ -21,6 +19,6 @@ class HostnameCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println(InetAddress.getLocalHost().getHostName());
+        System.out.println(String.format("\t%s", connection.getRecordingExporter().getHostName()));
     }
 }
