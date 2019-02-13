@@ -19,22 +19,11 @@ import es.andrewazor.containertest.jmc.RegistryProvider;
 class JMXClient {
     public static void main(String[] args) throws Exception {
         LogManager.getLogManager().reset();
+
         System.out.println(String.format("JMXClient started. args: %s", Arrays.asList(args).toString()));
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
-        JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
-                new JMXServiceURL(String.format("service:jmx:rmi:///jndi/rmi://%s/jmxrmi", args[0])),
-                new InMemoryCredentials(null, null)
-                );
-        ServerDescriptor sd = new ServerDescriptor(
-                null,
-                "Container",
-                null
-                );
-        RJMXConnection conn = new RJMXConnection(cd, sd, JMXClient::abort);
-        if (!conn.connect()) {
-            abort();
-        }
+        RJMXConnection conn = attemptConnect(args[0], 10);
 
         Thread t = new Thread(new JMXConnectionHandler(
                     Arrays.copyOfRange(args, 1, args.length),
@@ -45,8 +34,34 @@ class JMXClient {
         t.join();
     }
 
-    private static void abort() {
-        System.err.println("Connection failed");
-        System.exit(1);
+    private static RJMXConnection attemptConnect(String host, int maxRetry) throws Exception {
+        JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
+                new JMXServiceURL(String.format("service:jmx:rmi:///jndi/rmi://%s/jmxrmi", host)),
+                new InMemoryCredentials(null, null)
+                );
+        ServerDescriptor sd = new ServerDescriptor(
+                null,
+                "Container",
+                null
+                );
+
+        int attempts = 0;
+        while (true) {
+            try {
+                RJMXConnection conn = new RJMXConnection(cd, sd, () -> {});
+                conn.connect();
+                return conn;
+            } catch (Exception e) {
+                attempts++;
+                System.out.println(String.format("Connection attempt #%s failed", attempts));
+                if (attempts >= maxRetry) {
+                    System.out.println("Aborting...");
+                    throw e;
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ignored) { }
+            }
+        }
     }
 }

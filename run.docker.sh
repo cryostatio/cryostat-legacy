@@ -19,13 +19,9 @@ docker network create --attachable jmx-test
 set -e
 
 docker run --rm --net=jmx-test --name jmx-listener -p 9090:9090 -d docker.io/andrewazores/container-jmx-listener
-echo "Waiting for start"
-# TODO: better detection of container startup
-sleep 2
-pushd build/libs
+
 docker run \
     --net=jmx-test \
     -e CONTAINER_DOWNLOAD_HOST=$CONTAINER_DOWNLOAD_HOST \
     -e CONTAINER_DOWNLOAD_PORT=$CONTAINER_DOWNLOAD_PORT \
     --rm -it docker.io/andrewazores/container-jmx-client "$@"
-popd
