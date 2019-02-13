@@ -49,7 +49,9 @@ class JMXClient {
         while (true) {
             try {
                 RJMXConnection conn = new RJMXConnection(cd, sd, () -> {});
-                conn.connect();
+                if (!conn.connect()) {
+                    throw new RuntimeException("Connection Failed");
+                }
                 return conn;
             } catch (Exception e) {
                 attempts++;
