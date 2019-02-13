@@ -59,6 +59,8 @@ class JMXClient {
                 if (attempts >= maxRetry) {
                     System.out.println("Aborting...");
                     throw e;
+                } else {
+                    e.printStackTrace();
                 }
                 try {
                     Thread.sleep(500);
