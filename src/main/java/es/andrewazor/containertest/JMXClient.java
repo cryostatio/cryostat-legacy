@@ -23,15 +23,15 @@ class JMXClient {
         System.out.println(String.format("JMXClient started. args: %s", Arrays.asList(args).toString()));
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
-        RJMXConnection conn = attemptConnect(args[0], 10);
-
-        Thread t = new Thread(new JMXConnectionHandler(
-                    Arrays.copyOfRange(args, 1, args.length),
-                    new JMCConnection(new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0]))
-                    )
-                );
-        t.run();
-        t.join();
+        try (RJMXConnection conn = attemptConnect(args[0], 10)) {
+            Thread t = new Thread(new JMXConnectionHandler(
+                        Arrays.copyOfRange(args, 1, args.length),
+                        new JMCConnection(new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0]))
+                        )
+                    );
+            t.run();
+            t.join();
+        }
     }
 
     private static RJMXConnection attemptConnect(String host, int maxRetry) throws Exception {
