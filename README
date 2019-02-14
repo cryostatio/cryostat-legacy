@@ -19,21 +19,22 @@ exposed. The Listener image simply listens on its localhost port 9090 and writes
 lines it receives to its stdout stream. A Client container will also be run,
 which will attempt to connect to the Listener container via a socket connection
 at the $TARGET host/port pair that you have specified. Typically, $TARGET will
-be "jmx-listener:9091" for the purposes of this demo.
+be "jmx-listener:9091" or "localhost:9091" (for Docker and podman respectively)
+for the purposes of this demo.
 
 With Podman, the Listener and Client containers are both inserted into a common
 Pod, which facilitates simple socket communication between the containers. With
 Docker, the containers share a Docker user-defined network, and the Listener
-port 9090 is also mapped to the host machine's port 9090. Within either network
-the Listener container can be identified by its hostname,
-'container-jmx-listener', allowing the Client to reach the Listener container.
+port 9090 is also mapped to the host machine's port 9090. Within the Docker
+bridged network the Listener can be identified via its hostname of
+"jmx-listener". Within the podman pod both containers share "localhost".
 
 With either container management system, this allows you to connect to the
 Listener running within the container with netcat via "nc localhost 9090" and
 write messages to the Listener. You can observe its output using
-`podman logs -f container-jmx-listener` or
-`docker logs -f container-jmx-listener` . The special case of a received line
-of the form "fib n" where n is a natural number will cause the Listener to
+`podman logs -f container-jmx-podman-listener` or
+`docker logs -f container-jmx-docker-listener` . The special case of a received
+line of the form "fib n" where n is a natural number will cause the Listener to
 compute and print the nth Fibonacci Number. This can be used to produce some
 more interesting event data for recordings.
 
