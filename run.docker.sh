@@ -5,10 +5,10 @@ set -x
 function cleanup() {
     set +e
     # TODO: better container management
-    docker kill $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener)
-    docker kill $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
-    docker rm $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-listener)
-    docker rm $(docker ps -a -q --filter ancestor=docker.io/andrewazores/container-jmx-client)
+    docker kill $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-listener)
+    docker kill $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-client)
+    docker rm $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-listener)
+    docker rm $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-client)
 }
 
 cleanup
@@ -18,10 +18,10 @@ set +e
 docker network create --attachable jmx-test
 set -e
 
-docker run --rm --net=jmx-test --name jmx-listener -p 9090:9090 -d docker.io/andrewazores/container-jmx-listener
+docker run --rm --net=jmx-test --name jmx-listener -p 9090:9090 -d andrewazores/container-jmx-listener
 
 docker run \
     --net=jmx-test \
     -e CONTAINER_DOWNLOAD_HOST=$CONTAINER_DOWNLOAD_HOST \
     -e CONTAINER_DOWNLOAD_PORT=$CONTAINER_DOWNLOAD_PORT \
-    --rm -it docker.io/andrewazores/container-jmx-client "$@"
+    --rm -it andrewazores/container-jmx-client "$@"

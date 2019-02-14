@@ -8,5 +8,5 @@ if [ -z "$CMD" ]; then
 fi
 
 ./gradlew clean build
-$CMD build -f Dockerfile.listener -t docker.io/andrewazores/container-jmx-listener:latest .
-$CMD build -f Dockerfile.client -t docker.io/andrewazores/container-jmx-client:latest .
+$CMD build -f Dockerfile.listener -t andrewazores/container-jmx-listener:latest .
+$CMD build -f Dockerfile.client -t andrewazores/container-jmx-client:latest .
