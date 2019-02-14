@@ -23,7 +23,7 @@ class JMXClient {
         System.out.println(String.format("JMXClient started. args: %s", Arrays.asList(args).toString()));
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
-        try (RJMXConnection conn = attemptConnect(args[0], 10)) {
+        try (RJMXConnection conn = attemptConnect(args[0], 3)) {
             Thread t = new Thread(new JMXConnectionHandler(
                         Arrays.copyOfRange(args, 1, args.length),
                         new JMCConnection(new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0]))
