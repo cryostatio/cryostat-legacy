@@ -22,9 +22,15 @@ abstract class AbstractCommand implements Command {
         }
     }
 
-    protected void validateConnection() {
+    protected void validateConnection() throws Exception {
         if (connection == null) {
-            throw new RuntimeException("disconnected");
+            throw new JMXConnectionException();
+        }
+    }
+
+    static class JMXConnectionException extends Exception {
+        JMXConnectionException() {
+            super("No active JMX Connection");
         }
     }
 }
