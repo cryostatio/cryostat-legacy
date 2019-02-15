@@ -14,7 +14,7 @@ import es.andrewazor.containertest.commands.CommandRegistry;
 
 public class CommandRegistryImpl implements CommandRegistry {
 
-    // TODO: implement something smarter than this hardcoded list
+    // TODO: implement something smarter than this hardcoded list (annotation based?)
     private static final List<Class<? extends Command>> COMMANDS = Collections.unmodifiableList(Arrays.asList(
         HelpCommand.class,
 
