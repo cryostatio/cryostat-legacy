@@ -1,14 +1,14 @@
 package es.andrewazor.containertest.commands.internal;
 
-import es.andrewazor.containertest.JMCConnection;
+import javax.inject.Inject;
 
-public class ExitCommand extends AbstractCommand {
+import es.andrewazor.containertest.commands.Command;
+
+public class ExitCommand implements Command {
 
     public static final String NAME = "exit";
 
-    ExitCommand(JMCConnection connection) {
-        super(connection);
-    }
+    @Inject ExitCommand() { }
 
     @Override
     public String getName() {
@@ -22,9 +22,6 @@ public class ExitCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) {
-        if (connection != null) {
-            connection.getRecordingExporter().stop();
-        }
     };
 
 }

@@ -2,15 +2,15 @@ package es.andrewazor.containertest.commands.internal;
 
 import java.util.Map;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
-import es.andrewazor.containertest.JMCConnection;
+@Singleton
+class ListRecordingOptionsCommand extends AbstractConnectedCommand {
 
-class ListRecordingOptionsCommand extends AbstractCommand {
-
-    ListRecordingOptionsCommand(JMCConnection connection) {
-        super(connection);
-    }
+    @Inject ListRecordingOptionsCommand() { }
 
     @Override
     public String getName() {
@@ -22,9 +22,8 @@ class ListRecordingOptionsCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
         System.out.println("Available recording options:");
-        service.getAvailableRecordingOptions().entrySet().forEach(this::printOptions);
+        getService().getAvailableRecordingOptions().entrySet().forEach(this::printOptions);
     }
 
     @Override

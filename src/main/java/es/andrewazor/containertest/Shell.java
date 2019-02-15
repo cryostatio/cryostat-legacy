@@ -8,38 +8,39 @@ import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
+
+import dagger.Module;
+import dagger.Provides;
 import es.andrewazor.containertest.commands.CommandRegistry;
-import es.andrewazor.containertest.commands.CommandRegistryFactory;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
-class Shell implements Runnable {
+@Module
+class Shell {
 
-    private final String[] args;
     private final CommandRegistry commandRegistry;
 
-    Shell() throws Exception {
-        this(new String[0]);
+    @Inject Shell(CommandRegistry commandRegistry) {
+        this.commandRegistry = commandRegistry;
     }
 
-    Shell(String[] args) throws Exception {
-        this.args = args;
-        this.commandRegistry = CommandRegistryFactory.getInstance();
+    @Provides static Shell provideShell(CommandRegistry commandRegistry) {
+        return new Shell(commandRegistry);
     }
 
-    @Override
-    public void run() {
+    public void run(String[] args) {
         try {
             if (args.length == 0) {
                 runInteractive();
             } else {
-                runScripted();
+                runScripted(args);
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
-    private void runScripted() {
+    private void runScripted(String[] args) {
         List<String> commands = new ArrayList<>(Arrays.asList(args[0].split(";")));
         commands.add(ExitCommand.NAME);
         executeCommands(commands);

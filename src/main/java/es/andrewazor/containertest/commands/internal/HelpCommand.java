@@ -1,9 +1,20 @@
 package es.andrewazor.containertest.commands.internal;
 
-import es.andrewazor.containertest.commands.Command;
-import es.andrewazor.containertest.commands.CommandRegistryFactory;
+import javax.inject.Inject;
 
+import dagger.Lazy;
+import dagger.Module;
+import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.commands.CommandRegistry;
+
+@Module
 class HelpCommand implements Command {
+
+    private final Lazy<CommandRegistry> registry;
+
+    @Inject HelpCommand(Lazy<CommandRegistry> commandRegistry) {
+        this.registry = commandRegistry;
+    }
 
     @Override
     public String getName() {
@@ -16,7 +27,7 @@ class HelpCommand implements Command {
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available commands:");
-        CommandRegistryFactory.getInstance().getRegisteredCommandNames()
+        registry.get().getRegisteredCommandNames()
             .forEach(name -> System.out.println(String.format("\t%s", name)));
     }
 

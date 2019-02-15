@@ -1,14 +1,14 @@
 package es.andrewazor.containertest.commands.internal;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import es.andrewazor.containertest.JMCConnection;
+@Singleton
+class ListEventTypesCommand extends AbstractConnectedCommand {
 
-class ListEventTypesCommand extends AbstractCommand {
-
-    ListEventTypesCommand(JMCConnection connection) {
-        super(connection);
-    }
+    @Inject ListEventTypesCommand() { }
 
     @Override
     public String getName() {
@@ -20,9 +20,8 @@ class ListEventTypesCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
         System.out.println("Available event types");
-        service.getAvailableEventTypes().forEach(this::printEvent);
+        getService().getAvailableEventTypes().forEach(this::printEvent);
     }
 
     @Override

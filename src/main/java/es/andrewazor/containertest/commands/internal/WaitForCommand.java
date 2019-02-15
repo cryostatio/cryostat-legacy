@@ -1,15 +1,15 @@
 package es.andrewazor.containertest.commands.internal;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.JMCConnection;
+@Singleton
+class WaitForCommand extends AbstractConnectedCommand {
 
-class WaitForCommand extends AbstractCommand {
-
-    WaitForCommand(JMCConnection connection) {
-        super(connection);
-    }
+    @Inject WaitForCommand() { }
 
     @Override
     public String getName() {
@@ -21,7 +21,6 @@ class WaitForCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
         String name = args[0];
         IRecordingDescriptor descriptor = getByName(name);
         if (descriptor == null) {
@@ -52,7 +51,7 @@ class WaitForCommand extends AbstractCommand {
     }
 
     protected IRecordingDescriptor getByName(String name) throws FlightRecorderException {
-        for (IRecordingDescriptor descriptor : service.getAvailableRecordings()) {
+        for (IRecordingDescriptor descriptor : getService().getAvailableRecordings()) {
             if (descriptor.getName().equals(name)) {
                 return descriptor;
             }

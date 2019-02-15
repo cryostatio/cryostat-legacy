@@ -3,18 +3,24 @@ package es.andrewazor.containertest.commands.internal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
-import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.RecordingExporter;
 
-class DumpCommand extends AbstractCommand {
+@Singleton
+class DumpCommand extends AbstractConnectedCommand {
 
     private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");
 
-    DumpCommand(JMCConnection connection) {
-        super(connection);
+    private final RecordingExporter exporter;
+
+    @Inject DumpCommand(RecordingExporter exporter) {
+        this.exporter = exporter;
     }
 
     @Override
@@ -29,21 +35,20 @@ class DumpCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
         String name = args[0];
         int seconds = Integer.parseInt(args[1]);
         String events = args[2];
 
-        if (service.getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
+        if (getService().getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
             System.out.println(String.format("Recording with name %s already exists", name));
             return;
         }
 
-        IConstrainedMap<String> recordingOptions = new RecordingOptionsBuilder(service)
+        IConstrainedMap<String> recordingOptions = new RecordingOptionsBuilder(getService())
             .name(name)
             .duration(1000 * seconds)
             .build();
-        this.connection.getRecordingExporter().addRecording(service.start(recordingOptions, enableEvents(events)));
+        this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
     }
 
     private IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {
