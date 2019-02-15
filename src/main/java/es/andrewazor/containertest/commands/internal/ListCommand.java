@@ -9,13 +9,10 @@ import es.andrewazor.containertest.JMCConnection;
 
 class ListCommand extends AbstractCommand {
 
+    static final String NAME = "list";
+
     ListCommand(JMCConnection connection) {
         super(connection);
-    }
-
-    @Override
-    public String getName() {
-        return "list";
     }
 
     /**

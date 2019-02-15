@@ -3,13 +3,11 @@ package es.andrewazor.containertest.commands.internal;
 import es.andrewazor.containertest.JMCConnection;
 
 class HostnameCommand extends AbstractCommand {
+
+    static final String NAME = "hostname";
+
     HostnameCommand(JMCConnection connection) {
         super(connection);
-    }
-
-    @Override
-    public String getName() {
-        return "hostname";
     }
 
     @Override

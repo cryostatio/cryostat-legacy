@@ -7,13 +7,11 @@ import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import es.andrewazor.containertest.JMCConnection;
 
 class ListRecordingOptionsCommand extends AbstractCommand {
+
+    static final String NAME = "list-recording-options";
+
     ListRecordingOptionsCommand(JMCConnection connection) {
         super(connection);
-    }
-
-    @Override
-    public String getName() {
-        return "list-recording-options";
     }
 
     /**

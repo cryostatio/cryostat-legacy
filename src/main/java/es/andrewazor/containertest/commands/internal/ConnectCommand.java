@@ -15,12 +15,9 @@ import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
 class ConnectCommand implements Command {
 
-    ConnectCommand(JMCConnection connection) { }
+    static final String NAME = "connect";
 
-    @Override
-    public String getName() {
-        return "connect";
-    }
+    ConnectCommand(JMCConnection connection) { }
 
     @Override
     public boolean validate(String[] args) {

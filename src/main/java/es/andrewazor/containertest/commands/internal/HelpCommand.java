@@ -1,16 +1,14 @@
 package es.andrewazor.containertest.commands.internal;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
 class HelpCommand extends AbstractCommand {
+
+    static final String NAME = "help";
+
     HelpCommand(JMCConnection connection) {
         super(connection);
-    }
-
-    @Override
-    public String getName() {
-        return "help";
     }
 
     /**
@@ -18,12 +16,9 @@ class HelpCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
         System.out.println("Available commands:");
-        for (Class<? extends Command> klazz : CommandRegistryImpl.COMMANDS) {
-            Command instance = (Command) klazz.getDeclaredConstructor(JMCConnection.class).newInstance(connection);
-            System.out.println(String.format("\t%s", instance.getName()));
-        }
+        CommandRegistryFactory.getInstance().getRegisteredCommandNames()
+            .forEach(name -> System.out.println(String.format("\t%s", name)));
     }
 
     @Override

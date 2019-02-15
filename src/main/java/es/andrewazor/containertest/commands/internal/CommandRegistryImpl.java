@@ -2,9 +2,10 @@ package es.andrewazor.containertest.commands.internal;
 
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 
 import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.Command;
@@ -13,7 +14,7 @@ import es.andrewazor.containertest.commands.CommandRegistry;
 public class CommandRegistryImpl implements CommandRegistry {
 
     // TODO: implement something smarter than this hardcoded list
-    static final List<Class<? extends Command>> COMMANDS = Collections.unmodifiableList(Arrays.asList(
+    private static final List<Class<? extends Command>> COMMANDS = Collections.unmodifiableList(Arrays.asList(
         HelpCommand.class,
 
         DumpCommand.class,
@@ -28,17 +29,22 @@ public class CommandRegistryImpl implements CommandRegistry {
         WaitForDownloadCommand.class
     ));
 
-    private final Map<String, Class<? extends Command>> classMap = new HashMap<String, Class<? extends Command>>();
+    private final Map<String, Class<? extends Command>> classMap = new TreeMap<String, Class<? extends Command>>();
     private JMCConnection connection;
 
     public CommandRegistryImpl() throws Exception {
         for (Class<? extends Command> klazz : COMMANDS) {
-            Command instance = createInstance(klazz);
-            if (classMap.containsKey(instance.getName())) {
-                throw new CommandDefinitionException(instance.getName(), klazz, classMap.get(instance.getName()));
+            String commandName = (String) klazz.getDeclaredField("NAME").get(null);
+            if (classMap.containsKey(commandName)) {
+                throw new CommandDefinitionException(commandName, klazz, classMap.get(commandName));
             }
-            classMap.put(instance.getName(), klazz);
+            classMap.put(commandName, klazz);
         }
+    }
+
+    @Override
+    public Set<String> getRegisteredCommandNames() {
+        return this.classMap.keySet();
     }
 
     @Override

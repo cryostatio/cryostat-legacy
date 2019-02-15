@@ -3,13 +3,11 @@ package es.andrewazor.containertest.commands.internal;
 import es.andrewazor.containertest.JMCConnection;
 
 class IpCommand extends AbstractCommand {
+
+    static final String NAME = "ip";
+
     IpCommand(JMCConnection connection) {
         super(connection);
-    }
-
-    @Override
-    public String getName() {
-        return "ip";
     }
 
     @Override
