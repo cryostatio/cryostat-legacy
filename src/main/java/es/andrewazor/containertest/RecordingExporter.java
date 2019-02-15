@@ -1,4 +1,4 @@
-package es.andrewazor.containertest.commands.internal;
+package es.andrewazor.containertest;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -33,7 +33,7 @@ public class RecordingExporter {
         this.server = new ServerImpl();
     }
 
-    void start() throws IOException, FlightRecorderException {
+    public void start() throws IOException, FlightRecorderException {
         if (!this.server.wasStarted()) {
             this.server.start();
             this.service.getAvailableRecordings().forEach(this::addRecording);
@@ -42,8 +42,15 @@ public class RecordingExporter {
         }
     }
 
-    void stop() {
+    public void stop() {
         this.server.stop();
+        recordings.clear();
+        downloadCounts.clear();
+    }
+
+    public void restart() throws IOException, FlightRecorderException {
+        stop();
+        start();
     }
 
     public void addRecording(IRecordingDescriptor descriptor) {

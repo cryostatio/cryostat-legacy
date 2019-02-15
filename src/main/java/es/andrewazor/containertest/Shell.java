@@ -8,6 +8,7 @@ import java.util.stream.Collectors;
 
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.CommandRegistryFactory;
+import es.andrewazor.containertest.commands.internal.ExitCommand;
 
 class Shell implements Runnable {
 
@@ -33,8 +34,6 @@ class Shell implements Runnable {
             }
         } catch (Exception e) {
             throw new RuntimeException(e);
-        } finally {
-            this.commandRegistry.stop();
         }
     }
 
@@ -50,11 +49,10 @@ class Shell implements Runnable {
                 try {
                     in = scanner.nextLine().trim();
                 } catch (NoSuchElementException e) {
-                    break;
+                    in = ExitCommand.NAME;
                 }
                 executeCommandLine(in);
-            } while (!in.toLowerCase().equals("exit") && !in.toLowerCase().equals("quit"));
-            System.out.println("exit");
+            } while (!in.toLowerCase().equals(ExitCommand.NAME));
         }
     }
 

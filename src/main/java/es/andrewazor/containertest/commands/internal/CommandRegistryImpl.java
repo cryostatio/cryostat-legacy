@@ -18,8 +18,9 @@ public class CommandRegistryImpl implements CommandRegistry {
     private static final List<Class<? extends Command>> COMMANDS = Collections.unmodifiableList(Arrays.asList(
         HelpCommand.class,
 
-        DumpCommand.class,
         ConnectCommand.class,
+        DumpCommand.class,
+        ExitCommand.class,
         HostnameCommand.class,
         IpCommand.class,
         ListCommand.class,
@@ -54,14 +55,7 @@ public class CommandRegistryImpl implements CommandRegistry {
         if (!connection.getService().isEnabled()) {
             connection.getService().enable();
         }
-        connection.getRecordingExporter().start();
-    }
-
-    @Override
-    public void stop() {
-        if (connection != null) {
-            connection.getRecordingExporter().stop();
-        }
+        connection.getRecordingExporter().restart();
     }
 
     @Override
