@@ -17,8 +17,6 @@ class ConnectCommand implements Command {
 
     static final String NAME = "connect";
 
-    ConnectCommand(JMCConnection connection) { }
-
     @Override
     public boolean validate(String[] args) {
         return true;

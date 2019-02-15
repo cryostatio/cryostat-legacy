@@ -1,5 +1,6 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.lang.reflect.Constructor;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -82,7 +83,12 @@ public class CommandRegistryImpl implements CommandRegistry {
     }
 
     private Command createInstance(Class<? extends Command> klazz) throws Exception {
-        return (Command) klazz.getDeclaredConstructor(JMCConnection.class).newInstance(connection);
+        for (Constructor<?> cons : klazz.getDeclaredConstructors()) {
+            if (Arrays.deepEquals(new Class<?>[] { JMCConnection.class }, cons.getParameterTypes())) {
+                return (Command) klazz.getDeclaredConstructor(JMCConnection.class).newInstance(connection);
+            }
+        }
+        return (Command) klazz.getDeclaredConstructor().newInstance();
     }
 
     public static class CommandDefinitionException extends Exception {

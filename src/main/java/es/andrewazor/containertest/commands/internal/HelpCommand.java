@@ -1,15 +1,11 @@
 package es.andrewazor.containertest.commands.internal;
 
-import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
-class HelpCommand extends AbstractCommand {
+class HelpCommand implements Command {
 
     static final String NAME = "help";
-
-    HelpCommand(JMCConnection connection) {
-        super(connection);
-    }
 
     /**
      * No args expected.
