@@ -5,7 +5,10 @@ import es.andrewazor.containertest.commands.Command;
 
 class HostnameCommand implements Command {
 
-    static final String NAME = "hostname";
+    @Override
+    public String getName() {
+        return "hostname";
+    }
 
     @Override
     public boolean validate(String[] args) {

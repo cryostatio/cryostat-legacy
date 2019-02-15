@@ -9,10 +9,13 @@ import es.andrewazor.containertest.JMCConnection;
 
 class SearchEventsCommand extends AbstractCommand {
 
-    static final String NAME = "search-events";
-
     SearchEventsCommand(JMCConnection connection) {
         super(connection);
+    }
+
+    @Override
+    public String getName() {
+        return "search-events";
     }
 
     @Override

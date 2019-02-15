@@ -5,7 +5,10 @@ import es.andrewazor.containertest.commands.Command;
 
 class IpCommand implements Command {
 
-    static final String NAME = "ip";
+    @Override
+    public String getName() {
+        return "ip";
+    }
 
     @Override
     public boolean validate(String[] args) {

@@ -15,7 +15,10 @@ import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
 class ConnectCommand implements Command {
 
-    static final String NAME = "connect";
+    @Override
+    public String getName() {
+        return "connect";
+    }
 
     @Override
     public boolean validate(String[] args) {

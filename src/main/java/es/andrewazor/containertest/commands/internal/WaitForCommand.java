@@ -7,10 +7,13 @@ import es.andrewazor.containertest.JMCConnection;
 
 class WaitForCommand extends AbstractCommand {
 
-    static final String NAME = "wait-for";
-
     WaitForCommand(JMCConnection connection) {
         super(connection);
+    }
+
+    @Override
+    public String getName() {
+        return "wait-for";
     }
 
     /**

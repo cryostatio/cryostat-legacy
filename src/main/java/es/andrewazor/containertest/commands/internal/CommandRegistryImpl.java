@@ -37,7 +37,8 @@ public class CommandRegistryImpl implements CommandRegistry {
 
     public CommandRegistryImpl() throws Exception {
         for (Class<? extends Command> klazz : COMMANDS) {
-            String commandName = (String) klazz.getDeclaredField("NAME").get(null);
+            Command instance = createInstance(klazz);
+            String commandName = instance.getName();
             if (classMap.containsKey(commandName)) {
                 throw new CommandDefinitionException(commandName, klazz, classMap.get(commandName));
             }

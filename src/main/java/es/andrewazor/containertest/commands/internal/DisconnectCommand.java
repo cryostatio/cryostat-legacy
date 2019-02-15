@@ -5,7 +5,10 @@ import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
 class DisconnectCommand extends AbstractCommand {
 
-    static final String NAME = "disconnect";
+    @Override
+    public String getName() {
+        return "disconnect";
+    }
 
     DisconnectCommand(JMCConnection connection) {
         super(connection);

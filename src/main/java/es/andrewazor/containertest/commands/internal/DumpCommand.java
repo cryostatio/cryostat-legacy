@@ -11,11 +11,15 @@ import es.andrewazor.containertest.JMCConnection;
 
 class DumpCommand extends AbstractCommand {
 
-    static final String NAME = "dump";
     private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");
 
     DumpCommand(JMCConnection connection) {
         super(connection);
+    }
+
+    @Override
+    public String getName() {
+        return "dump";
     }
 
     /**

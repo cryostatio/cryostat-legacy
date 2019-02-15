@@ -6,10 +6,13 @@ import es.andrewazor.containertest.JMCConnection;
 
 class WaitForDownloadCommand extends WaitForCommand {
 
-    static final String NAME = "wait-for-download";
-
     WaitForDownloadCommand(JMCConnection connection) {
         super(connection);
+    }
+
+    @Override
+    public String getName() {
+        return "wait-for-download";
     }
 
     /**

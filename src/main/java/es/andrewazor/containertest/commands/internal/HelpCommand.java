@@ -5,7 +5,10 @@ import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
 class HelpCommand implements Command {
 
-    static final String NAME = "help";
+    @Override
+    public String getName() {
+        return "help";
+    }
 
     /**
      * No args expected.

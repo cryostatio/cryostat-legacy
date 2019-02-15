@@ -11,6 +11,11 @@ public class ExitCommand extends AbstractCommand {
     }
 
     @Override
+    public String getName() {
+        return NAME;
+    }
+
+    @Override
     public boolean validate(String[] args) {
         return args.length == 0;
     }
