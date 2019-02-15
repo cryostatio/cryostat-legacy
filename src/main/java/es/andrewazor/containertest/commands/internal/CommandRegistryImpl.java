@@ -19,6 +19,7 @@ public class CommandRegistryImpl implements CommandRegistry {
         HelpCommand.class,
 
         ConnectCommand.class,
+        DisconnectCommand.class,
         DumpCommand.class,
         ExitCommand.class,
         HostnameCommand.class,
@@ -52,10 +53,12 @@ public class CommandRegistryImpl implements CommandRegistry {
     @Override
     public void setConnection(JMCConnection connection) throws Exception {
         this.connection = connection;
-        if (!connection.getService().isEnabled()) {
-            connection.getService().enable();
+        if (connection != null) {
+            if (!connection.getService().isEnabled()) {
+                connection.getService().enable();
+            }
+            connection.getRecordingExporter().restart();
         }
-        connection.getRecordingExporter().restart();
     }
 
     @Override
