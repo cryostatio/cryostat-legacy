@@ -91,6 +91,9 @@ class Shell implements Runnable {
             try {
                 System.out.println(String.format("\n\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
                 this.commandRegistry.execute(commandLine.command, commandLine.args);
+                if (commandLine.command.toLowerCase().equals(ExitCommand.NAME.toLowerCase())) {
+                    break;
+                }
             } catch (Exception e) {
                 System.err.println(String.format("%s operation failed due to %s", commandLine, e.getMessage()));
                 e.printStackTrace();
