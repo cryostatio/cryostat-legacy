@@ -19,6 +19,7 @@ class HostnameCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         System.out.println(String.format("\t%s", connection.getRecordingExporter().getHostName()));
     }
 }

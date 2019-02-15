@@ -21,6 +21,7 @@ class ListRecordingOptionsCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         System.out.println("Available recording options:");
         service.getAvailableRecordingOptions().entrySet().forEach(this::printOptions);
     }

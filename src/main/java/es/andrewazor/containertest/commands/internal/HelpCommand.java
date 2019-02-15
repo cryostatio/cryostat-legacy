@@ -18,6 +18,7 @@ class HelpCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         System.out.println("Available commands:");
         for (Class<? extends Command> klazz : CommandRegistryImpl.COMMANDS) {
             Command instance = (Command) klazz.getDeclaredConstructor(JMCConnection.class).newInstance(connection);

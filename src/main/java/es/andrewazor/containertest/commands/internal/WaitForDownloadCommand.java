@@ -19,6 +19,7 @@ class WaitForDownloadCommand extends WaitForCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         String name = args[0];
         IRecordingDescriptor descriptor = getByName(name);
         if (descriptor == null) {

@@ -4,6 +4,8 @@ import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceFactory;
 
+import es.andrewazor.containertest.commands.internal.RecordingExporter;
+
 public class JMCConnection {
 
     private final IConnectionHandle handle;

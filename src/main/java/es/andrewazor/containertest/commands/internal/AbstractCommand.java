@@ -13,7 +13,18 @@ abstract class AbstractCommand implements Command {
 
     protected AbstractCommand(JMCConnection connection) {
         this.connection = connection;
-        this.service = connection.getService();
-        this.handle = connection.getHandle();
+        if (connection != null) {
+            this.service = connection.getService();
+            this.handle = connection.getHandle();
+        } else {
+            this.service = null;
+            this.handle = null;
+        }
+    }
+
+    protected void validateConnection() {
+        if (connection == null) {
+            throw new RuntimeException("disconnected");
+        }
     }
 }

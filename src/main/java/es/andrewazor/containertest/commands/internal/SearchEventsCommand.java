@@ -25,6 +25,7 @@ class SearchEventsCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         Collection<? extends IEventTypeInfo> matchingEvents = service.getAvailableEventTypes()
             .stream()
             .filter(event -> event.getEventTypeID().getFullKey().toLowerCase().contains(args[0].toLowerCase()))

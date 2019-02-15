@@ -17,6 +17,7 @@ public class CommandRegistryImpl implements CommandRegistry {
         HelpCommand.class,
 
         DumpCommand.class,
+        ConnectCommand.class,
         HostnameCommand.class,
         IpCommand.class,
         ListCommand.class,
@@ -28,16 +29,31 @@ public class CommandRegistryImpl implements CommandRegistry {
     ));
 
     private final Map<String, Class<? extends Command>> classMap = new HashMap<String, Class<? extends Command>>();
-    private final JMCConnection connection;
+    private JMCConnection connection;
 
-    public CommandRegistryImpl(JMCConnection connection) throws Exception {
-        this.connection = connection;
+    public CommandRegistryImpl() throws Exception {
         for (Class<? extends Command> klazz : COMMANDS) {
             Command instance = createInstance(klazz);
             if (classMap.containsKey(instance.getName())) {
                 throw new CommandDefinitionException(instance.getName(), klazz, classMap.get(instance.getName()));
             }
             classMap.put(instance.getName(), klazz);
+        }
+    }
+
+    @Override
+    public void setConnection(JMCConnection connection) throws Exception {
+        this.connection = connection;
+        if (!connection.getService().isEnabled()) {
+            connection.getService().enable();
+        }
+        connection.getRecordingExporter().start();
+    }
+
+    @Override
+    public void stop() {
+        if (connection != null) {
+            connection.getRecordingExporter().stop();
         }
     }
 

@@ -19,6 +19,7 @@ class ListEventTypesCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         System.out.println("Available event types");
         service.getAvailableEventTypes().forEach(this::printEvent);
     }

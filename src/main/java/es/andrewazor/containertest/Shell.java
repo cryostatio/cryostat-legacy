@@ -1,45 +1,40 @@
 package es.andrewazor.containertest;
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
 import java.util.stream.Collectors;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
-class JMXConnectionHandler implements Runnable {
+class Shell implements Runnable {
 
     private final String[] args;
-    private final JMCConnection connection;
     private final CommandRegistry commandRegistry;
 
-    JMXConnectionHandler(String[] args, JMCConnection connection) throws Exception {
+    Shell() throws Exception {
+        this(new String[0]);
+    }
+
+    Shell(String[] args) throws Exception {
         this.args = args;
-        this.connection = connection;
-        this.commandRegistry = CommandRegistryFactory.createNewInstance(connection);
+        this.commandRegistry = CommandRegistryFactory.getInstance();
     }
 
     @Override
     public void run() {
         try {
-            if (!connection.getService().isEnabled()) {
-                connection.getService().enable();
-            }
-            connection.getRecordingExporter().start();
             if (args.length == 0) {
                 runInteractive();
             } else {
                 runScripted();
             }
-        } catch (FlightRecorderException | IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException(e);
         } finally {
-            connection.getRecordingExporter().stop();
+            this.commandRegistry.stop();
         }
     }
 

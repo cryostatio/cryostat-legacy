@@ -1,12 +1,17 @@
 package es.andrewazor.containertest.commands;
 
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.internal.CommandRegistryImpl;
 
 public class CommandRegistryFactory {
+
+    private static CommandRegistry registry;
+
     private CommandRegistryFactory() { }
 
-    public static CommandRegistry createNewInstance(JMCConnection connection) throws Exception {
-        return new CommandRegistryImpl(connection);
+    public static CommandRegistry getInstance() throws Exception {
+        if (registry == null) {
+            registry = new CommandRegistryImpl();
+        }
+        return registry;
     }
 }

@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.commands.internal;
 
 import java.io.IOException;
 import java.net.DatagramSocket;
@@ -28,7 +28,7 @@ public class RecordingExporter {
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    RecordingExporter(IFlightRecorderService service) throws IOException {
+    public RecordingExporter(IFlightRecorderService service) throws IOException {
         this.service = service;
         this.server = new ServerImpl();
     }

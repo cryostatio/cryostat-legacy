@@ -23,6 +23,7 @@ class ListCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         System.out.println("Available recordings:");
         Collection<IRecordingDescriptor> recordings = service.getAvailableRecordings();
         if (recordings.isEmpty()) {

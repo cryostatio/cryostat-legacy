@@ -29,6 +29,7 @@ class DumpCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
+        validateConnection();
         String name = args[0];
         int seconds = Integer.parseInt(args[1]);
         String events = args[2];
