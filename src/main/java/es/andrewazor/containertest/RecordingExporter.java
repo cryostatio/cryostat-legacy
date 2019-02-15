@@ -1,15 +1,12 @@
 package es.andrewazor.containertest;
 
 import java.io.IOException;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Function;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -24,12 +21,14 @@ public class RecordingExporter {
     private static final String PORT_PROPERTY = "es.andrewazor.containertest.download.port";
 
     private final IFlightRecorderService service;
+    private final NetworkResolver resolver;
     private final ServerImpl server;
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
     public RecordingExporter(IFlightRecorderService service) throws IOException {
         this.service = service;
+        this.resolver = new NetworkResolver();
         this.server = new ServerImpl();
     }
 
@@ -61,25 +60,10 @@ public class RecordingExporter {
         return this.downloadCounts.getOrDefault(recordingName, -1);
     }
 
-    public String getHostName() throws SocketException, UnknownHostException {
-        return getLocalAddressProperty(InetAddress::getHostName);
-    }
-
-    public String getHostAddress() throws SocketException, UnknownHostException {
-        return getLocalAddressProperty(InetAddress::getHostAddress);
-    }
-
-    private <T> T getLocalAddressProperty(Function<InetAddress, T> fn) throws SocketException, UnknownHostException {
-        try (DatagramSocket s = new DatagramSocket()) {
-            s.connect(InetAddress.getByName("1.1.1.1"), 80);
-            return fn.apply(s.getLocalAddress());
-        }
-    }
-
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
         String hostname = System.getProperty(HOST_PROPERTY);
         if (hostname == null || hostname.isEmpty()) {
-            hostname = getHostAddress();
+            hostname = resolver.getHostAddress();
         }
 
         int port = 8080;

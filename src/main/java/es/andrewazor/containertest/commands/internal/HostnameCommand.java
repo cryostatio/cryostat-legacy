@@ -1,14 +1,11 @@
 package es.andrewazor.containertest.commands.internal;
 
-import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.NetworkResolver;
+import es.andrewazor.containertest.commands.Command;
 
-class HostnameCommand extends AbstractCommand {
+class HostnameCommand implements Command {
 
     static final String NAME = "hostname";
-
-    HostnameCommand(JMCConnection connection) {
-        super(connection);
-    }
 
     @Override
     public boolean validate(String[] args) {
@@ -17,7 +14,6 @@ class HostnameCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
-        System.out.println(String.format("\t%s", connection.getRecordingExporter().getHostName()));
+        System.out.println(String.format("\t%s", new NetworkResolver().getHostName()));
     }
 }
