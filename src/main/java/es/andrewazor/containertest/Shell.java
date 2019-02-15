@@ -1,6 +1,8 @@
 package es.andrewazor.containertest;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Scanner;
@@ -38,7 +40,9 @@ class Shell implements Runnable {
     }
 
     private void runScripted() {
-        executeCommands(args[0].split(";"));
+        List<String> commands = new ArrayList<>(Arrays.asList(args[0].split(";")));
+        commands.add(ExitCommand.NAME);
+        executeCommands(commands);
     }
 
     private void runInteractive() {
@@ -56,8 +60,8 @@ class Shell implements Runnable {
         }
     }
 
-    private void executeCommands(String[] lines) {
-        List<CommandLine> commandLines = Arrays.asList(lines)
+    private void executeCommands(List<String> lines) {
+        List<CommandLine> commandLines = lines
             .stream()
             .map(line -> line.trim())
             .map(line -> line.split("\\s"))
@@ -95,7 +99,7 @@ class Shell implements Runnable {
     }
 
     private void executeCommandLine(String line) {
-        executeCommands(new String[] { line  });
+        executeCommands(Collections.singletonList(line));
     }
 
     private static class CommandLine {
