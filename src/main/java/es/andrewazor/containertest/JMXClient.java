@@ -14,7 +14,7 @@ class JMXClient {
         System.out.println(String.format("JMXClient started. args: %s", Arrays.asList(args).toString()));
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
-        Thread t = new Thread(new Shell());
+        Thread t = new Thread(new Shell(args));
         t.run();
         t.join();
     }
