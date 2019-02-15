@@ -1,0 +1,1 @@
+connect localhost:9091;list-recording-options;list-event-types;

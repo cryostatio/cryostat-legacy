@@ -1,1 +1,0 @@
-dump sockets 30 jdk.SocketRead:enabled=true,jdk.SocketWrite:enabled=true;wait-for sockets;wait-for-download sockets
