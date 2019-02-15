@@ -13,21 +13,18 @@ to the local repository. After this is complete, the project in this repository
 may be built locally. This can be done with `./gradlew build` or `sh build.sh`.
 
 == RUN
-For convenience, `sh run.sh $TARGET` can be used to run a demo. This will run a
+For convenience, `sh run.sh` can be used to run a demo. This will run a
 container with an image containing the Listener class and the RJMX ports
 exposed. The Listener image simply listens on its localhost port 9090 and writes
-lines it receives to its stdout stream. A Client container will also be run,
-which will attempt to connect to the Listener container via a socket connection
-at the $TARGET host/port pair that you have specified. Typically, $TARGET will
-be "jmx-listener:9091" or "localhost:9091" (for Docker and podman respectively)
-for the purposes of this demo.
+lines it receives to its stdout stream. A Client container will also be run
+alongside the Listener.
 
 With Podman, the Listener and Client containers are both inserted into a common
 Pod, which facilitates simple socket communication between the containers. With
 Docker, the containers share a Docker user-defined network, and the Listener
 port 9090 is also mapped to the host machine's port 9090. Within the Docker
 bridged network the Listener can be identified via its hostname of
-"jmx-listener". Within the podman pod both containers share "localhost".
+"jmx-listener". Within the Podman pod both containers share "localhost".
 
 With either container management system, this allows you to connect to the
 Listener running within the container with netcat via "nc localhost 9090" and
@@ -38,11 +35,10 @@ line of the form "fib n" where n is a natural number will cause the Listener to
 compute and print the nth Fibonacci Number. This can be used to produce some
 more interesting event data for recordings.
 
-If you run run.sh with only a $TARGET argument then the Client container is
-started in an interactive shell-like mode. If you run it with additional
-arguments then the arguments are treated as a series of shell-like commands
-delimited with semicolons, equivalent to typing the commands into the shell in
-interactive mode.
+If you run run.sh with no arguments then the Client container is started in an
+interactive shell-like mode. If you run it with arguments then the arguments
+are treated as a series of shell-like commands delimited with semicolons,
+equivalent to typing the commands into the shell in interactive mode.
 
 === EXAMPLES
 
@@ -51,19 +47,21 @@ available on your system. If both are available then Podman will be preferred.
 This can be overridden by setting the environment variable `CMD` to the path
 to your preferred container manager, ie `CMD=$(which docker) sh run.sh`.
 
-`sh build.sh && sh run.sh $TARGET`
+`sh build.sh && sh run.sh`
 This will set up the demo Listener and Client and drop you into the Client
 "shell". Try "help" to see a listing of available commands.
 
-`sh build.sh && sh run.sh $TARGET "dump foo 10;wait-for foo;wait-for-download-foo"`
-This will set up the demo and run a series of three commands within the client.
-The client expects to find the target at $TARGET as specified in
-args[0].  These commands will trigger a 10s recording in the target JVM, wait
-for the recording to finish, and wait for the embedded webserver to serve the
-recording file to you (via ex. cURL) before exiting. You can then open the
-local recording file with your tool of choice, such as JMC.
+`sh build.sh && sh run.sh "connect $TARGET;dump foo 10;wait-for foo;wait-for-download-foo"`
+This will set up the demo and run a series of four commands within the client.
+The client expects to find the target at $TARGET, which for Docker should be
+"jmx-listener:9091" and for Podman should be "localhost:9091". The next
+commands will trigger a 10s recording in the target JVM, wait for the recording
+to finish, and wait for the embedded webserver to serve the recording file to
+you (via ex. cURL) before exiting. You can then open the local recording file
+with your tool of choice, such as JMC.
 
 There are some demo "scripts" located in the "demos" directory. These can be
-used as follows: `sh run.sh "$TARGET" "$(more demos/demoname)"`,
-where "demoname" is replaced with the name of the demo script file you want to
-run.
+used as follows: `sh run.sh "$(more demos/demoname)"`, where "demoname" is
+replaced with the name of the demo script file you want to run. Be sure to
+select a demo with the correct container manager available on your host system,
+if applicable.
