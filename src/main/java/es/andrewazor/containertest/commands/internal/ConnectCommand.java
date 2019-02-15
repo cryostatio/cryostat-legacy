@@ -19,7 +19,8 @@ class ConnectCommand implements Command {
 
     @Override
     public boolean validate(String[] args) {
-        return true;
+        // TODO better validation of host
+        return args.length == 1;
     }
 
     @Override
