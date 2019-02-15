@@ -56,7 +56,7 @@ class Shell implements Runnable {
                     in = ExitCommand.NAME;
                 }
                 executeCommandLine(in);
-            } while (!in.toLowerCase().equals(ExitCommand.NAME));
+            } while (!in.toLowerCase().equals(ExitCommand.NAME.toLowerCase()));
         }
     }
 
