@@ -1,5 +1,9 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Set;
+
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
 import org.openjdk.jmc.rjmx.IConnectionListener;
@@ -9,13 +13,23 @@ import org.openjdk.jmc.rjmx.internal.RJMXConnection;
 import org.openjdk.jmc.rjmx.internal.ServerDescriptor;
 import org.openjdk.jmc.ui.common.security.InMemoryCredentials;
 
+import es.andrewazor.containertest.ConnectionListener;
 import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.Command;
-import es.andrewazor.containertest.commands.CommandRegistryFactory;
 
+@Singleton 
 class ConnectCommand implements Command {
 
-    static final String NAME = "connect";
+    private final Set<ConnectionListener> connectionListeners;
+
+    @Inject ConnectCommand(Set<ConnectionListener> connectionListeners) {
+        this.connectionListeners = connectionListeners;
+    }
+
+    @Override
+    public String getName() {
+        return "connect";
+    }
 
     @Override
     public boolean validate(String[] args) {
@@ -25,9 +39,9 @@ class ConnectCommand implements Command {
 
     @Override
     public void execute(String[] args) throws Exception {
-        RJMXConnection conn = attemptConnect(args[0]);
-        CommandRegistryFactory.getInstance().setConnection(
-                new JMCConnection(new DefaultConnectionHandle(conn, "RJMX Connection", new IConnectionListener[0])));
+        JMCConnection connection = new JMCConnection(
+                new DefaultConnectionHandle(attemptConnect(args[0]), "RJMX Connection", new IConnectionListener[0]));
+        connectionListeners.forEach(listener -> listener.connectionChanged(connection));
     }
 
     private static RJMXConnection attemptConnect(String host) throws Exception {

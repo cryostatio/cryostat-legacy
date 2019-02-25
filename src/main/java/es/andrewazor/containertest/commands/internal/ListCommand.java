@@ -3,16 +3,19 @@ package es.andrewazor.containertest.commands.internal;
 import java.lang.reflect.Method;
 import java.util.Collection;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.JMCConnection;
+@Singleton
+class ListCommand extends AbstractConnectedCommand {
 
-class ListCommand extends AbstractCommand {
+    @Inject ListCommand() { }
 
-    static final String NAME = "list";
-
-    ListCommand(JMCConnection connection) {
-        super(connection);
+    @Override
+    public String getName() {
+        return "list";
     }
 
     /**
@@ -20,9 +23,8 @@ class ListCommand extends AbstractCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
         System.out.println("Available recordings:");
-        Collection<IRecordingDescriptor> recordings = service.getAvailableRecordings();
+        Collection<IRecordingDescriptor> recordings = getService().getAvailableRecordings();
         if (recordings.isEmpty()) {
             System.out.println("\tNone");
         }

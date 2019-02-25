@@ -1,12 +1,53 @@
 package es.andrewazor.containertest.commands;
 
+import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
-import es.andrewazor.containertest.JMCConnection;
+import javax.inject.Singleton;
 
-public interface CommandRegistry {
-    Set<String> getRegisteredCommandNames();
-    void execute(String commandName, String[] args) throws Exception;
-    boolean validate(String commandName, String[] args) throws Exception;
-    void setConnection(JMCConnection connection) throws Exception;
+import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.commands.CommandRegistry;
+
+@Singleton
+public class CommandRegistry {
+
+    private final Map<String, Command> commandMap = new TreeMap<>();
+
+    CommandRegistry(Set<Command> commands) {
+        for (Command command : commands) {
+            String commandName = command.getName();
+            if (commandMap.containsKey(commandName)) {
+                throw new CommandDefinitionException(commandName, command.getClass(), commandMap.get(commandName).getClass());
+            }
+            commandMap.put(commandName, command);
+        }
+    }
+
+    public Set<String> getRegisteredCommandNames() {
+        return this.commandMap.keySet();
+    }
+
+    public void execute(String commandName, String[] args) throws Exception {
+        if (!commandMap.containsKey(commandName)) {
+            System.out.println(String.format("Command \"%s\" not recognized", commandName));
+            return;
+        }
+        commandMap.get(commandName).execute(args);
+    }
+
+    public boolean validate(String commandName, String[] args) throws Exception {
+        if (!commandMap.containsKey(commandName)) {
+            System.out.println(String.format("Command \"%s\" not recognized", commandName));
+            return false;
+        }
+        return commandMap.get(commandName).validate(args);
+    }
+
+    public static class CommandDefinitionException extends RuntimeException {
+        public CommandDefinitionException(String commandName, Class<? extends Command> cmd1, Class<? extends Command> cmd2) {
+            super(String.format("\"%s\" command definitions provided by class %s AND class %s",
+                        commandName, cmd1.getCanonicalName(), cmd2.getCanonicalName()));
+        }
+    }
 }

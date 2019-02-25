@@ -1,15 +1,24 @@
 package es.andrewazor.containertest.commands.internal;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.RecordingExporter;
 
+@Singleton
 class WaitForDownloadCommand extends WaitForCommand {
 
-    static final String NAME = "wait-for-download";
+    private final RecordingExporter exporter;
 
-    WaitForDownloadCommand(JMCConnection connection) {
-        super(connection);
+    @Inject WaitForDownloadCommand(RecordingExporter exporter) {
+        this.exporter = exporter;
+    }
+
+    @Override
+    public String getName() {
+        return "wait-for-download";
     }
 
     /**
@@ -17,7 +26,6 @@ class WaitForDownloadCommand extends WaitForCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
         String name = args[0];
         IRecordingDescriptor descriptor = getByName(name);
         if (descriptor == null) {
@@ -25,8 +33,8 @@ class WaitForDownloadCommand extends WaitForCommand {
             return;
         }
 
-        System.out.println(String.format("Waiting for download of recording \"%s\" at %s", name, connection.getRecordingExporter().getDownloadURL(name)));
-        while (connection.getRecordingExporter().getDownloadCount(name) < 1) {
+        System.out.println(String.format("Waiting for download of recording \"%s\" at %s", name, this.exporter.getDownloadURL(name)));
+        while (this.exporter.getDownloadCount(name) < 1) {
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ignored) { }

@@ -1,14 +1,23 @@
 package es.andrewazor.containertest.commands.internal;
 
-import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.commands.CommandRegistryFactory;
+import java.util.Set;
 
-class DisconnectCommand extends AbstractCommand {
+import javax.inject.Inject;
 
-    static final String NAME = "disconnect";
+import es.andrewazor.containertest.ConnectionListener;
+import es.andrewazor.containertest.commands.Command;
 
-    DisconnectCommand(JMCConnection connection) {
-        super(connection);
+class DisconnectCommand implements Command {
+
+    private final Set<ConnectionListener> connectionListeners;
+
+    @Inject DisconnectCommand(Set<ConnectionListener> connectionListeners) {
+        this.connectionListeners = connectionListeners;
+    }
+
+    @Override
+    public String getName() {
+        return "disconnect";
     }
 
     @Override
@@ -18,8 +27,7 @@ class DisconnectCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        connection.getRecordingExporter().stop();
-        CommandRegistryFactory.getInstance().setConnection(null);
+        connectionListeners.forEach(listener -> listener.connectionChanged(null));
     }
 
 }

@@ -8,6 +8,9 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -15,25 +18,40 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
-public class RecordingExporter {
+@Singleton
+public class RecordingExporter implements ConnectionListener {
 
     private static final String HOST_PROPERTY = "es.andrewazor.containertest.download.host";
     private static final String PORT_PROPERTY = "es.andrewazor.containertest.download.port";
 
-    private final IFlightRecorderService service;
+    private IFlightRecorderService service;
     private final NetworkResolver resolver;
     private final ServerImpl server;
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    public RecordingExporter(IFlightRecorderService service) throws IOException {
-        this.service = service;
+    @Inject public RecordingExporter() {
         this.resolver = new NetworkResolver();
-        this.server = new ServerImpl();
+        try {
+            this.server = new ServerImpl();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    public void connectionChanged(JMCConnection connection) {
+        this.service = connection.getService();
+        try {
+            restart();
+        } catch (Exception e) {
+            stop();
+            throw new RuntimeException(e);
+        }
     }
 
     public void start() throws IOException, FlightRecorderException {
-        if (!this.server.wasStarted()) {
+        if (this.service != null && !this.server.isAlive()) {
             this.server.start();
             this.service.getAvailableRecordings().forEach(this::addRecording);
 
@@ -42,7 +60,9 @@ public class RecordingExporter {
     }
 
     public void stop() {
-        this.server.stop();
+        if (this.server.isAlive()) {
+            this.server.stop();
+        }
         recordings.clear();
         downloadCounts.clear();
     }

@@ -1,11 +1,18 @@
 package es.andrewazor.containertest.commands.internal;
 
+import javax.inject.Inject;
+
 import es.andrewazor.containertest.NetworkResolver;
 import es.andrewazor.containertest.commands.Command;
 
 class HostnameCommand implements Command {
 
-    static final String NAME = "hostname";
+    @Inject HostnameCommand() { }
+
+    @Override
+    public String getName() {
+        return "hostname";
+    }
 
     @Override
     public boolean validate(String[] args) {

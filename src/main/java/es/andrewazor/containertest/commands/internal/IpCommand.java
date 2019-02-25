@@ -1,11 +1,18 @@
 package es.andrewazor.containertest.commands.internal;
 
+import javax.inject.Inject;
+
 import es.andrewazor.containertest.NetworkResolver;
 import es.andrewazor.containertest.commands.Command;
 
 class IpCommand implements Command {
 
-    static final String NAME = "ip";
+    @Inject IpCommand() { }
+
+    @Override
+    public String getName() {
+        return "ip";
+    }
 
     @Override
     public boolean validate(String[] args) {

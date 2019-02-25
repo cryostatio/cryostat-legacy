@@ -3,16 +3,19 @@ package es.andrewazor.containertest.commands.internal;
 import java.util.Collection;
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import es.andrewazor.containertest.JMCConnection;
+@Singleton
+class SearchEventsCommand extends AbstractConnectedCommand {
 
-class SearchEventsCommand extends AbstractCommand {
+    @Inject SearchEventsCommand() { }
 
-    static final String NAME = "search-events";
-
-    SearchEventsCommand(JMCConnection connection) {
-        super(connection);
+    @Override
+    public String getName() {
+        return "search-events";
     }
 
     @Override
@@ -23,8 +26,7 @@ class SearchEventsCommand extends AbstractCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        validateConnection();
-        Collection<? extends IEventTypeInfo> matchingEvents = service.getAvailableEventTypes()
+        Collection<? extends IEventTypeInfo> matchingEvents = getService().getAvailableEventTypes()
             .stream()
             .filter(event -> event.getEventTypeID().getFullKey().toLowerCase().contains(args[0].toLowerCase()))
             .collect(Collectors.toList());
