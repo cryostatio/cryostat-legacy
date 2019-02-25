@@ -60,7 +60,6 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     public void stop() {
-        System.out.println("Stopping exporter");
         this.server.stop();
         recordings.clear();
         downloadCounts.clear();
