@@ -3,15 +3,17 @@ package es.andrewazor.containertest.commands.internal;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+import dagger.Lazy;
 import es.andrewazor.containertest.ConnectionListener;
-import es.andrewazor.containertest.commands.Command;
 
-class DisconnectCommand implements Command {
+@Singleton
+class DisconnectCommand extends AbstractConnectedCommand {
 
-    private final Set<ConnectionListener> connectionListeners;
+    private final Lazy<Set<ConnectionListener>> connectionListeners;
 
-    @Inject DisconnectCommand(Set<ConnectionListener> connectionListeners) {
+    @Inject DisconnectCommand(Lazy<Set<ConnectionListener>> connectionListeners) {
         this.connectionListeners = connectionListeners;
     }
 
@@ -26,13 +28,8 @@ class DisconnectCommand implements Command {
     }
 
     @Override
-    public boolean isAvailable() {
-        return true;
-    }
-
-    @Override
     public void execute(String[] args) throws Exception {
-        connectionListeners.forEach(listener -> listener.connectionChanged(null));
+        connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
     }
 
 }
