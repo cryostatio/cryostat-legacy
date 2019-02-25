@@ -41,6 +41,11 @@ public class RecordingExporter implements ConnectionListener {
 
     @Override
     public void connectionChanged(JMCConnection connection) {
+        if (connection == null) {
+            stop();
+            return;
+        }
+
         this.service = connection.getService();
         try {
             restart();
