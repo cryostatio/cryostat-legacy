@@ -47,8 +47,7 @@ public class CommandRegistry {
     }
 
     public boolean validate(String commandName, String[] args) throws Exception {
-        return isCommandRegistered(commandName) && isCommandAvailable(commandName)
-                && commandMap.get(commandName).validate(args);
+        return isCommandRegistered(commandName) && commandMap.get(commandName).validate(args);
     }
 
     private boolean isCommandRegistered(String commandName) {
