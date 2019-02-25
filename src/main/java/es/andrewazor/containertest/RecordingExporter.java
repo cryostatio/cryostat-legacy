@@ -51,7 +51,7 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     public void start() throws IOException, FlightRecorderException {
-        if (this.service != null) {
+        if (this.service != null && !this.server.isAlive()) {
             this.server.start();
             this.service.getAvailableRecordings().forEach(this::addRecording);
 
@@ -60,7 +60,9 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     public void stop() {
-        this.server.stop();
+        if (this.server.isAlive()) {
+            this.server.stop();
+        }
         recordings.clear();
         downloadCounts.clear();
     }
