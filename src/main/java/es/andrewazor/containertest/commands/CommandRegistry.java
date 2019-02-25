@@ -40,17 +40,15 @@ public class CommandRegistry {
     }
 
     public void execute(String commandName, String[] args) throws Exception {
-        if (!isCommandRegistered(commandName)) {
+        if (!isCommandRegistered(commandName) || !isCommandAvailable(commandName)) {
             return;
         }
         commandMap.get(commandName).execute(args);
     }
 
     public boolean validate(String commandName, String[] args) throws Exception {
-        if (!isCommandRegistered(commandName)) {
-            return false;
-        }
-        return commandMap.get(commandName).validate(args);
+        return isCommandRegistered(commandName) && isCommandAvailable(commandName)
+                && commandMap.get(commandName).validate(args);
     }
 
     private boolean isCommandRegistered(String commandName) {
@@ -59,6 +57,14 @@ public class CommandRegistry {
             System.out.println(String.format("Command \"%s\" not recognized", commandName));
         }
         return registered;
+    }
+
+    private boolean isCommandAvailable(String commandName) {
+        boolean available = getAvailableCommandNames().contains(commandName);
+        if (!available) {
+            System.out.println(String.format("Command \"%s\" not available", commandName));
+        }
+        return available;
     }
 
     public static class CommandDefinitionException extends RuntimeException {
