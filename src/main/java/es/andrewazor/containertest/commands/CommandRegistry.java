@@ -33,8 +33,8 @@ public class CommandRegistry {
         return this.commandMap
             .values()
             .stream()
-            .filter(c -> c.isAvailable())
-            .map(c -> c.getName())
+            .filter(Command::isAvailable)
+            .map(Command::getName)
             .collect(Collectors.toSet())
             ;
     }
