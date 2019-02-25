@@ -20,6 +20,8 @@ import es.andrewazor.containertest.commands.Command;
 @Singleton 
 class ConnectCommand implements Command {
 
+    private static final String URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s/jmxrmi";
+
     private final Set<ConnectionListener> connectionListeners;
 
     @Inject ConnectCommand(Set<ConnectionListener> connectionListeners) {
@@ -55,7 +57,7 @@ class ConnectCommand implements Command {
 
     private static RJMXConnection attemptConnect(String host, int maxRetry) throws Exception {
         JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
-                new JMXServiceURL(String.format("service:jmx:rmi:///jndi/rmi://%s/jmxrmi", host)),
+                new JMXServiceURL(String.format(URL_FORMAT, host)),
                 new InMemoryCredentials(null, null));
         ServerDescriptor sd = new ServerDescriptor(null, "Container", null);
 
