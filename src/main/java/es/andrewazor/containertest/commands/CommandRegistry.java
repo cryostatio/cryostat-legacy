@@ -40,19 +40,25 @@ public class CommandRegistry {
     }
 
     public void execute(String commandName, String[] args) throws Exception {
-        if (!commandMap.containsKey(commandName)) {
-            System.out.println(String.format("Command \"%s\" not recognized", commandName));
+        if (!isCommandRegistered(commandName)) {
             return;
         }
         commandMap.get(commandName).execute(args);
     }
 
     public boolean validate(String commandName, String[] args) throws Exception {
-        if (!commandMap.containsKey(commandName)) {
-            System.out.println(String.format("Command \"%s\" not recognized", commandName));
+        if (!isCommandRegistered(commandName)) {
             return false;
         }
         return commandMap.get(commandName).validate(args);
+    }
+
+    private boolean isCommandRegistered(String commandName) {
+        boolean registered = getRegisteredCommandNames().contains(commandName);
+        if (!registered) {
+            System.out.println(String.format("Command \"%s\" not recognized", commandName));
+        }
+        return registered;
     }
 
     public static class CommandDefinitionException extends RuntimeException {
