@@ -33,7 +33,7 @@ class HelpCommand implements Command {
 
     @Override
     public boolean validate(String[] args) {
-        return true;
+        return args.length == 0;
     }
 
     @Override

@@ -35,7 +35,7 @@ class ListCommand extends AbstractConnectedCommand {
 
     @Override
     public boolean validate(String[] args) {
-        return true;
+        return args.length == 0;
     }
 
     private static String toString(IRecordingDescriptor descriptor) throws Exception {
