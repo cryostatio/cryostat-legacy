@@ -3,6 +3,7 @@ package es.andrewazor.containertest.commands;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
@@ -26,6 +27,16 @@ public class CommandRegistry {
 
     public Set<String> getRegisteredCommandNames() {
         return this.commandMap.keySet();
+    }
+
+    public Set<String> getAvailableCommandNames() {
+        return this.commandMap
+            .values()
+            .stream()
+            .filter(c -> c.isAvailable())
+            .map(c -> c.getName())
+            .collect(Collectors.toSet())
+            ;
     }
 
     public void execute(String commandName, String[] args) throws Exception {

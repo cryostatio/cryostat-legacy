@@ -15,6 +15,11 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
         this.connection = connection;
     }
 
+    @Override
+    public final boolean isAvailable() {
+        return this.connection != null;
+    }
+
     protected JMCConnection getConnection() throws JMXConnectionException {
         validateConnection();
         return this.connection;

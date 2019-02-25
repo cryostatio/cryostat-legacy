@@ -21,6 +21,11 @@ public class ExitCommand implements Command {
     }
 
     @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
     public void execute(String[] args) {
     };
 

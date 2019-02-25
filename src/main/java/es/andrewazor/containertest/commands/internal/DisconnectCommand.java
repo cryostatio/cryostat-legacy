@@ -26,6 +26,11 @@ class DisconnectCommand implements Command {
     }
 
     @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
     public void execute(String[] args) throws Exception {
         connectionListeners.forEach(listener -> listener.connectionChanged(null));
     }

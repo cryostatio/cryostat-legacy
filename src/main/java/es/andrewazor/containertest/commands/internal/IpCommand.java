@@ -20,6 +20,11 @@ class IpCommand implements Command {
     }
 
     @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
     public void execute(String[] args) throws Exception {
         System.out.println(String.format("\t%s", new NetworkResolver().getHostAddress()));
     }

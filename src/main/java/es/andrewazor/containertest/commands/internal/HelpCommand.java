@@ -27,12 +27,17 @@ class HelpCommand implements Command {
     @Override
     public void execute(String[] args) throws Exception {
         System.out.println("Available commands:");
-        registry.get().getRegisteredCommandNames()
+        registry.get().getAvailableCommandNames()
             .forEach(name -> System.out.println(String.format("\t%s", name)));
     }
 
     @Override
     public boolean validate(String[] args) {
+        return true;
+    }
+
+    @Override
+    public boolean isAvailable() {
         return true;
     }
 }

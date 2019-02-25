@@ -38,6 +38,11 @@ class ConnectCommand implements Command {
     }
 
     @Override
+    public boolean isAvailable() {
+        return true;
+    }
+
+    @Override
     public void execute(String[] args) throws Exception {
         JMCConnection connection = new JMCConnection(
                 new DefaultConnectionHandle(attemptConnect(args[0]), "RJMX Connection", new IConnectionListener[0]));
