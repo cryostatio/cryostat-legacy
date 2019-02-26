@@ -24,7 +24,7 @@ dependencies {
 jar {
     manifest {
         attributes(
-                'Main-Class': 'Listener'
+                'Main-Class': 'es.andrewazor.containertest.JMXClient'
                 )
     }
     from {
