@@ -1,4 +1,3 @@
 .gradle/
 **/*.class
 build/
-recordings/
