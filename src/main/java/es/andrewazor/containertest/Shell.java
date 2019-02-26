@@ -9,23 +9,31 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
 @Module
-class Shell {
+class Shell implements ConnectionListener {
 
-    private final CommandRegistry commandRegistry;
+    private final Lazy<CommandRegistry> commandRegistry;
+    private boolean connected = false;
 
-    @Inject Shell(CommandRegistry commandRegistry) {
+    @Inject Shell(Lazy<CommandRegistry> commandRegistry) {
         this.commandRegistry = commandRegistry;
     }
 
-    @Provides static Shell provideShell(CommandRegistry commandRegistry) {
+    @Provides @Singleton static Shell provideShell(Lazy<CommandRegistry> commandRegistry) {
         return new Shell(commandRegistry);
+    }
+
+    @Override
+    public void connectionChanged(JMCConnection connection) {
+        this.connected = connection != null;
     }
 
     public void run(String[] args) {
@@ -50,7 +58,7 @@ class Shell {
         try (Scanner scanner = new Scanner(System.in)) {
             String in;
             do {
-                System.out.print("> ");
+                System.out.print(this.connected ? "> " : "- ");
                 try {
                     in = scanner.nextLine().trim();
                 } catch (NoSuchElementException e) {
@@ -73,7 +81,7 @@ class Shell {
         boolean allValid = true;
         for (CommandLine commandLine : commandLines) {
             try {
-                boolean valid = this.commandRegistry.validate(commandLine.command, commandLine.args);
+                boolean valid = this.commandRegistry.get().validate(commandLine.command, commandLine.args);
                 if (!valid) {
                     System.out.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
                 }
@@ -91,7 +99,7 @@ class Shell {
         for (CommandLine commandLine : commandLines) {
             try {
                 System.out.println(String.format("\n\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
-                this.commandRegistry.execute(commandLine.command, commandLine.args);
+                this.commandRegistry.get().execute(commandLine.command, commandLine.args);
                 if (commandLine.command.toLowerCase().equals(ExitCommand.NAME.toLowerCase())) {
                     break;
                 }

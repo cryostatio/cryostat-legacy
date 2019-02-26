@@ -11,4 +11,5 @@ import es.andrewazor.containertest.commands.CommandsModule;
 })
 abstract class MainModule {
     @Binds @IntoSet abstract ConnectionListener bindRecordingExporter(RecordingExporter exporter);
+    @Binds @IntoSet abstract ConnectionListener bindShell(Shell shell);
 }
