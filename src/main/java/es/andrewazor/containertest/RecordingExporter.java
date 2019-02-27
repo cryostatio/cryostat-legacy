@@ -23,8 +23,8 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
 @Singleton
 public class RecordingExporter implements ConnectionListener {
 
-    private static final String HOST_PROPERTY = "es.andrewazor.containertest.download.host";
-    private static final String PORT_PROPERTY = "es.andrewazor.containertest.download.port";
+    private static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
+    private static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
 
     private static final Pattern SNAPSHOT_PATTERN = Pattern.compile("/snapshot/(\\d+)");
 
@@ -94,13 +94,13 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
-        String hostname = System.getProperty(HOST_PROPERTY);
+        String hostname = System.getenv(HOST_VAR);
         if (hostname == null || hostname.isEmpty()) {
             hostname = resolver.getHostAddress();
         }
 
         int port = 8080;
-        String portProperty = System.getProperty(PORT_PROPERTY);
+        String portProperty = System.getenv(PORT_VAR);
         if (portProperty != null && !portProperty.isEmpty()) {
             port = Integer.valueOf(portProperty);
         }

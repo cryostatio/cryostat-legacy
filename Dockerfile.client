@@ -1,5 +1,0 @@
-FROM openjdk:11-jre-slim
-COPY build/libs/container-test.jar /
-COPY entrypoint.client.sh /
-EXPOSE 9091
-ENTRYPOINT ["/entrypoint.client.sh"]
