@@ -73,6 +73,7 @@ class Shell implements ConnectionListener {
         List<CommandLine> commandLines = lines
             .stream()
             .map(String::trim)
+            .filter(s -> !s.startsWith("#"))
             .map(line -> line.split("\\s"))
             .filter(words -> words.length > 0 && !words[0].isEmpty())
             .map(words -> new CommandLine(words[0], Arrays.copyOfRange(words, 1, words.length)))
