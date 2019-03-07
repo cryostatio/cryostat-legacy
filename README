@@ -16,3 +16,11 @@ the JMC project at https://hg.openjdk.java.net/jmc/jmc7/ and follow its build
 instructions. Run "mvn install" in the jmc project root to install its artefacts
 to the local repository. After this is complete, the project in this repository
 may be built locally. This can be done with `./gradlew build` or `sh build.sh`.
+
+== RUN
+The `run.sh` script can be used to spin up a Docker container of the JMXClient,
+running alone but set up so that it is able to introspect itself with JFR. This
+can be achieved by doing `sh run.sh` and then typing `connect jmx-client:9091`
+into the client shell that appears. Some client shell demo scripts are also
+available in the `demos` directory. These can be used with ex.
+`sh run.sh "$(more demos/print_help)"`
