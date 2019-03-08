@@ -8,6 +8,7 @@ import es.andrewazor.containertest.commands.Command;
 @Module
 public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindConnectCommand(ConnectCommand command);
+    @Binds @IntoSet abstract Command bindDeleteCommand(DeleteCommand command);
     @Binds @IntoSet abstract Command bindDisconnectCommand(DisconnectCommand command);
     @Binds @IntoSet abstract Command bindDumpCommand(DumpCommand command);
     @Binds @IntoSet abstract Command bindExitCommand(ExitCommand command);
