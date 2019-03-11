@@ -40,7 +40,7 @@ class DumpCommand extends AbstractConnectedCommand {
         String events = args[2];
 
         if (getService().getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
-            System.out.println(String.format("Recording with name %s already exists", name));
+            System.out.println(String.format("Recording with name \"%s\" already exists", name));
             return;
         }
 
