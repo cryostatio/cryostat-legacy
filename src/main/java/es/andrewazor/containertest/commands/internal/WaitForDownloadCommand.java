@@ -23,6 +23,7 @@ class WaitForDownloadCommand extends WaitForCommand {
 
     /**
      * One arg expected. Given a recording name, this will slowly spinlock on recording download.
+     * TODO: handle snapshots, since those all have the same name and must be differentiated by ID
      */
     @Override
     public void execute(String[] args) throws Exception {

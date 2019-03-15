@@ -3,12 +3,9 @@ package es.andrewazor.containertest.commands.internal;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.inject.Singleton;
-
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 
-@Singleton
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
     private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");

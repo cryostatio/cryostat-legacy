@@ -19,6 +19,7 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindListEventTypesCommand(ListEventTypesCommand command);
     @Binds @IntoSet abstract Command bindListRecordingOptionsCommand(ListRecordingOptionsCommand command);
     @Binds @IntoSet abstract Command bindSearchEventsCommand(SearchEventsCommand command);
+    @Binds @IntoSet abstract Command bindSnapshotCommand(SnapshotCommand command);
     @Binds @IntoSet abstract Command bindStartRecordingCommand(StartRecordingCommand command);
     @Binds @IntoSet abstract Command bindStopRecordingCommand(StopRecordingCommand command);
     @Binds @IntoSet abstract Command bindWaitForCommand(WaitForCommand command);

@@ -7,6 +7,8 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -23,6 +25,8 @@ public class RecordingExporter implements ConnectionListener {
 
     private static final String HOST_PROPERTY = "es.andrewazor.containertest.download.host";
     private static final String PORT_PROPERTY = "es.andrewazor.containertest.download.port";
+
+    private static final Pattern SNAPSHOT_PATTERN = Pattern.compile("/snapshot/(\\d+)");
 
     private IFlightRecorderService service;
     private final NetworkResolver resolver;
@@ -81,6 +85,10 @@ public class RecordingExporter implements ConnectionListener {
         recordings.put(descriptor.getName(), descriptor);
     }
 
+    public void addSnapshot(IRecordingDescriptor descriptor) {
+        recordings.put(getSnapshotIdentifier(descriptor), descriptor);
+    }
+
     public int getDownloadCount(String recordingName) {
         return this.downloadCounts.getOrDefault(recordingName, -1);
     }
@@ -104,30 +112,71 @@ public class RecordingExporter implements ConnectionListener {
         return String.format("%s/%s", this.getHostUrl(), recordingName);
     }
 
+    private static String getSnapshotIdentifier(IRecordingDescriptor descriptor) {
+        return getSnapshotIdentifier(descriptor.getId());
+    }
+
+    private static String getSnapshotIdentifier(long id) {
+        return "snapshot-" + id;
+    }
+
     private class ServerImpl extends NanoHTTPD {
+
         private ServerImpl() throws IOException {
             super(8080);
         }
 
         @Override
         public Response serve(IHTTPSession session) {
+            Matcher matcher = SNAPSHOT_PATTERN.matcher(session.getUri());
+            boolean isSnapshotRequest = matcher.matches();
+            if (isSnapshotRequest) {
+                int id = Integer.parseInt(matcher.group(1));
+                return serveSnapshot(session, id);
+            } else {
+                return serveRecording(session);
+            }
+        }
+
+        private Response serveRecording(IHTTPSession session) {
             String recordingName = session.getUri().substring(1);
             if (!recordings.containsKey(recordingName)) {
-                return newFixedLengthResponse(Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT,
-                        String.format("%s not found", recordingName));
+                return newNotFoundResponse(recordingName);
             }
             try {
                 return newFlightRecorderResponse(recordingName);
             } catch (FlightRecorderException fre) {
                 fre.printStackTrace();
-                return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT,
-                        String.format("%s could not be opened", recordingName));
+                return newCouldNotBeOpenedResponse(recordingName);
+            }
+        }
+
+        private Response serveSnapshot(IHTTPSession session, int id) {
+            String identifier = getSnapshotIdentifier(id);
+            try {
+                if (!recordings.containsKey(identifier)) {
+                    return newNotFoundResponse(identifier);
+                }
+                return newSnapshotResponse(identifier);
+            } catch (FlightRecorderException fre) {
+                fre.printStackTrace();
+                return newCouldNotBeOpenedResponse(identifier);
             }
         }
 
         @Override
         protected boolean useGzipWhenAccepted(Response r) {
             return true;
+        }
+
+        private Response newNotFoundResponse(String recordingName) {
+            return newFixedLengthResponse(Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT,
+                    String.format("%s not found", recordingName));
+        }
+
+        private Response newCouldNotBeOpenedResponse(String recordingName) {
+            return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT,
+                    String.format("%s could not be opened", recordingName));
         }
 
         private Response newFlightRecorderResponse(String recordingName) throws FlightRecorderException {
@@ -139,6 +188,20 @@ public class RecordingExporter implements ConnectionListener {
                         super.close();
                     } finally {
                         downloadCounts.put(recordingName, downloadCounts.getOrDefault(recordingName, 0) + 1);
+                    }
+                }
+            };
+        }
+
+        private Response newSnapshotResponse(String identifier) throws FlightRecorderException {
+            return new Response(Status.OK, "application/octet-stream",
+                    service.openStream(recordings.get(identifier), false), -1) {
+                @Override
+                public void close() throws IOException {
+                    try {
+                        super.close();
+                    } finally {
+                        downloadCounts.put(identifier, downloadCounts.getOrDefault(identifier, 0) + 1);
                     }
                 }
             };
