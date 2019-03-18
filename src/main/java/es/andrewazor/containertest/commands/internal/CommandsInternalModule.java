@@ -22,6 +22,7 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindSnapshotCommand(SnapshotCommand command);
     @Binds @IntoSet abstract Command bindStartRecordingCommand(StartRecordingCommand command);
     @Binds @IntoSet abstract Command bindStopRecordingCommand(StopRecordingCommand command);
+    @Binds @IntoSet abstract Command bindWaitCommand(WaitCommand command);
     @Binds @IntoSet abstract Command bindWaitForCommand(WaitForCommand command);
     @Binds @IntoSet abstract Command bindWaitForDownloadCommand(WaitForDownloadCommand command);
 }
