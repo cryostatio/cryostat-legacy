@@ -28,6 +28,11 @@ class WaitForCommand extends AbstractConnectedCommand {
             return;
         }
 
+        if (descriptor.isContinuous() && !descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
+            System.out.println(String.format("Recording \"%s\" is continuous, refusing to wait", name));
+            return;
+        }
+
         while (!descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
             try {
                 Thread.sleep(1000);
