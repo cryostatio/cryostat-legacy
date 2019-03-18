@@ -33,12 +33,39 @@ class WaitForCommand extends AbstractConnectedCommand {
             return;
         }
 
+        long recordingStart = descriptor.getDataStartTime().longValue();
+        long recordingEnd = descriptor.getDataEndTime().longValue();
+        long recordingLength = recordingEnd - recordingStart;
+        int lastDots = 0;
+        boolean progressFlag = false;
         while (!descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
+            long recordingElapsed = getConnection().getApproximateServerTime() - recordingStart;
+            double elapsedProportion = ((double) recordingElapsed) / ((double) recordingLength);
+            int currentDots = (int) Math.ceil(10 * elapsedProportion);
+            if (currentDots > lastDots) {
+                for (int i = 0; i < 2 * currentDots; i++) {
+                    System.out.print('\b');
+                }
+                StringBuilder sb = new StringBuilder();
+                for (int i = 0; i < currentDots; i++) {
+                    sb.append(". ");
+                }
+                System.out.print(sb.toString().trim());
+                lastDots = currentDots;
+            } else {
+                progressFlag = !progressFlag;
+                if (progressFlag) {
+                    System.out.print('\b');
+                } else {
+                    System.out.print('.');
+                }
+            }
             try {
                 Thread.sleep(1000);
             } catch (InterruptedException ignored) { }
             descriptor = getByName(name);
         }
+        System.out.println();
     }
 
     @Override
