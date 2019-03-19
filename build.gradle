@@ -27,7 +27,7 @@ mainClassName = 'es.andrewazor.containertest.JMXClient'
 
 jib {
     from {
-        image = 'openjdk:11-jre-slim'
+        image = 'gcr.io/distroless/java:11'
     }
     to {
         image = 'andrewazores/container-jmx-client'
