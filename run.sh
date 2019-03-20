@@ -17,8 +17,9 @@ docker network create --attachable jmx-test
 set -e
 
 docker run \
-    --net=jmx-test \
+    --net jmx-test \
     --name jmx-client \
+    --memory 64M \
     -e CONTAINER_DOWNLOAD_HOST=$CONTAINER_DOWNLOAD_HOST \
     -e CONTAINER_DOWNLOAD_PORT=$CONTAINER_DOWNLOAD_PORT \
     --rm -it andrewazores/container-jmx-client "$@"
