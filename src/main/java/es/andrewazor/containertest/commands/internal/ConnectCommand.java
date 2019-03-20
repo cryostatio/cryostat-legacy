@@ -1,6 +1,8 @@
 package es.andrewazor.containertest.commands.internal;
 
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -20,7 +22,8 @@ import es.andrewazor.containertest.commands.Command;
 @Singleton 
 class ConnectCommand implements Command {
 
-    private static final String URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s/jmxrmi";
+    private static final String URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
+    private static final Pattern HOST_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private final Set<ConnectionListener> connectionListeners;
 
@@ -35,8 +38,10 @@ class ConnectCommand implements Command {
 
     @Override
     public boolean validate(String[] args) {
-        // TODO better validation of host
-        return args.length == 1;
+        if (args.length != 1) {
+            return false;
+        }
+        return HOST_PATTERN.matcher(args[0]).matches();
     }
 
     @Override
@@ -46,18 +51,26 @@ class ConnectCommand implements Command {
 
     @Override
     public void execute(String[] args) throws Exception {
+        Matcher m = HOST_PATTERN.matcher(args[0]);
+        m.find();
+        String host = m.group(1);
+        String port = m.group(2);
+        if (port == null) {
+            port = "9091";
+        }
         JMCConnection connection = new JMCConnection(
-                new DefaultConnectionHandle(attemptConnect(args[0]), "RJMX Connection", new IConnectionListener[0]));
+                new DefaultConnectionHandle(attemptConnect(host, Integer.parseInt(port)), "RJMX Connection",
+                        new IConnectionListener[0]));
         connectionListeners.forEach(listener -> listener.connectionChanged(connection));
     }
 
-    private static RJMXConnection attemptConnect(String host) throws Exception {
-        return attemptConnect(host, 0);
+    private static RJMXConnection attemptConnect(String host, int port) throws Exception {
+        return attemptConnect(host, port, 0);
     }
 
-    private static RJMXConnection attemptConnect(String host, int maxRetry) throws Exception {
+    private static RJMXConnection attemptConnect(String host, int port, int maxRetry) throws Exception {
         JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
-                new JMXServiceURL(String.format(URL_FORMAT, host)),
+                new JMXServiceURL(String.format(URL_FORMAT, host, port)),
                 new InMemoryCredentials(null, null));
         ServerDescriptor sd = new ServerDescriptor(null, "Container", null);
 
