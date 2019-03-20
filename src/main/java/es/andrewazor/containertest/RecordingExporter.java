@@ -7,7 +7,6 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.inject.Inject;
@@ -25,8 +24,6 @@ public class RecordingExporter implements ConnectionListener {
 
     private static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
     private static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
-
-    private static final Pattern SNAPSHOT_PATTERN = Pattern.compile("/snapshot/(\\d+)");
 
     private IFlightRecorderService service;
     private final NetworkResolver resolver;
@@ -85,10 +82,6 @@ public class RecordingExporter implements ConnectionListener {
         recordings.put(descriptor.getName(), descriptor);
     }
 
-    public void addSnapshot(IRecordingDescriptor descriptor) {
-        recordings.put(getSnapshotIdentifier(descriptor), descriptor);
-    }
-
     public int getDownloadCount(String recordingName) {
         return this.downloadCounts.getOrDefault(recordingName, -1);
     }
@@ -112,14 +105,6 @@ public class RecordingExporter implements ConnectionListener {
         return String.format("%s/%s", this.getHostUrl(), recordingName);
     }
 
-    private static String getSnapshotIdentifier(IRecordingDescriptor descriptor) {
-        return getSnapshotIdentifier(descriptor.getId());
-    }
-
-    private static String getSnapshotIdentifier(long id) {
-        return "snapshot-" + id;
-    }
-
     private class ServerImpl extends NanoHTTPD {
 
         private ServerImpl() throws IOException {
@@ -128,17 +113,6 @@ public class RecordingExporter implements ConnectionListener {
 
         @Override
         public Response serve(IHTTPSession session) {
-            Matcher matcher = SNAPSHOT_PATTERN.matcher(session.getUri());
-            boolean isSnapshotRequest = matcher.matches();
-            if (isSnapshotRequest) {
-                int id = Integer.parseInt(matcher.group(1));
-                return serveSnapshot(session, id);
-            } else {
-                return serveRecording(session);
-            }
-        }
-
-        private Response serveRecording(IHTTPSession session) {
             String recordingName = session.getUri().substring(1);
             if (!recordings.containsKey(recordingName)) {
                 return newNotFoundResponse(recordingName);
@@ -148,19 +122,6 @@ public class RecordingExporter implements ConnectionListener {
             } catch (FlightRecorderException fre) {
                 fre.printStackTrace();
                 return newCouldNotBeOpenedResponse(recordingName);
-            }
-        }
-
-        private Response serveSnapshot(IHTTPSession session, int id) {
-            String identifier = getSnapshotIdentifier(id);
-            try {
-                if (!recordings.containsKey(identifier)) {
-                    return newNotFoundResponse(identifier);
-                }
-                return newSnapshotResponse(identifier);
-            } catch (FlightRecorderException fre) {
-                fre.printStackTrace();
-                return newCouldNotBeOpenedResponse(identifier);
             }
         }
 
@@ -193,18 +154,5 @@ public class RecordingExporter implements ConnectionListener {
             };
         }
 
-        private Response newSnapshotResponse(String identifier) throws FlightRecorderException {
-            return new Response(Status.OK, "application/octet-stream",
-                    service.openStream(recordings.get(identifier), false), -1) {
-                @Override
-                public void close() throws IOException {
-                    try {
-                        super.close();
-                    } finally {
-                        downloadCounts.put(identifier, downloadCounts.getOrDefault(identifier, 0) + 1);
-                    }
-                }
-            };
-        }
     }
 }
