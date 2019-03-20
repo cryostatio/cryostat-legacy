@@ -14,7 +14,8 @@ class JMXClient {
     public static void main(String[] args) throws Exception {
         LogManager.getLogManager().reset();
 
-        System.out.println(String.format("JMXClient started. args: %s", Arrays.asList(args).toString()));
+        System.out.println(String.format("%s started. args: %s",
+                System.getProperty("java.rmi.server.hostname", "cjfr-client"), Arrays.asList(args).toString()));
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
         Thread t = new Thread(new Runnable() {
