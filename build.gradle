@@ -21,6 +21,10 @@ dependencies {
     implementation "org.nanohttpd:nanohttpd:2.3.1+"
     compile 'com.google.dagger:dagger:2.21'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.21'
+
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.1'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.1'
+    testCompile 'org.hamcrest:hamcrest:2.1'
 }
 
 mainClassName = 'es.andrewazor.containertest.JMXClient'
@@ -46,6 +50,10 @@ jib {
             '-Djava.rmi.server.hostname=jmx-client'
         ]
     }
+}
+
+test {
+    useJUnitPlatform()
 }
 
 tasks.build.dependsOn tasks.jib
