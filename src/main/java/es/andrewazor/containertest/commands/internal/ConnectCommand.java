@@ -58,6 +58,7 @@ class ConnectCommand implements Command {
         if (port == null) {
             port = "9091";
         }
+        // TODO refactor for testability
         RJMXConnection rjmxConnection = attemptConnect(host, Integer.parseInt(port));
         JMCConnection connection = new JMCConnection(rjmxConnection,
                 new DefaultConnectionHandle(rjmxConnection, "RJMX Connection", new IConnectionListener[0]));
