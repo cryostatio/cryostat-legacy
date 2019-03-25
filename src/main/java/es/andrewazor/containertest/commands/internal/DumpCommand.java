@@ -38,6 +38,7 @@ class DumpCommand extends AbstractRecordingCommand {
             return;
         }
 
+        // TODO loosen coupling on RecordingOptionsBuilder for testability
         IConstrainedMap<String> recordingOptions = new RecordingOptionsBuilder(getService())
             .name(name)
             .duration(1000 * seconds)
