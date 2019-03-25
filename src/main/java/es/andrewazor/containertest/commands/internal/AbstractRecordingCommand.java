@@ -11,6 +11,7 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
     private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");
 
     protected IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {
+        // TODO loosen coupling on EventOptionsBuilder for testability
         EventOptionsBuilder builder = new EventOptionsBuilder(this.connection);
 
         Matcher matcher = EVENTS_PATTERN.matcher(events);
