@@ -7,10 +7,13 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -20,10 +23,20 @@ public class CommandRegistryTest {
 
     static class WithEmptySetCommands {
         private CommandRegistry registry;
+        private PrintStream origOut;
+        private ByteArrayOutputStream stdout;
 
         @BeforeEach
         public void setup() {
             registry = new CommandRegistry(Collections.emptySet());
+            origOut = System.out;
+            stdout = new ByteArrayOutputStream();
+            System.setOut(new PrintStream(stdout));
+        }
+
+        @AfterEach
+        void resetOut() {
+            System.setOut(origOut);
         }
 
         @Test
@@ -41,11 +54,14 @@ public class CommandRegistryTest {
         @Test
         public void shouldNoOpOnExecute() throws Exception {
             registry.execute("foo", new String[] {});
+            assertThat(stdout.toString(), equalTo("Command \"foo\" not recognized\n"));
         }
     }
 
     static class WithCommandDefinitions {
         private CommandRegistry registry;
+        private PrintStream origOut;
+        private ByteArrayOutputStream stdout;
 
         private FooCommand fooCommand = new FooCommand();
         private BarCommand barCommand = new BarCommand();
@@ -55,6 +71,14 @@ public class CommandRegistryTest {
         @BeforeEach
         public void setup() {
             registry = new CommandRegistry(new HashSet<Command>(Arrays.asList(commands)));
+            origOut = System.out;
+            stdout = new ByteArrayOutputStream();
+            System.setOut(new PrintStream(stdout));
+        }
+
+        @AfterEach
+        void resetOut() {
+            System.setOut(origOut);
         }
 
         @Test
@@ -90,6 +114,7 @@ public class CommandRegistryTest {
             registry.execute("baz", new String[] { "arg" });
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
+            assertThat(stdout.toString(), equalTo("Command \"baz\" not recognized\n"));
         }
     }
 

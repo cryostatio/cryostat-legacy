@@ -1,5 +1,7 @@
 package es.andrewazor.containertest.commands.internal;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -7,10 +9,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.PrintStream;
 import java.util.Collections;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,11 +33,21 @@ class DeleteCommandTest {
     private DeleteCommand command;
     @Mock private IRecordingDescriptor recordingDescriptor;
     @Mock private JMCConnection connection;
+    private PrintStream origOut;
+    private ByteArrayOutputStream stdout;
 
     @BeforeEach
     void setup() throws FlightRecorderException {
         command = new DeleteCommand();
         command.connectionChanged(connection);
+        origOut = System.out;
+        stdout = new ByteArrayOutputStream();
+        System.setOut(new PrintStream(stdout));
+    }
+
+    @AfterEach
+    void resetOut() {
+        System.setOut(origOut);
     }
 
     @Test
@@ -60,6 +75,7 @@ class DeleteCommandTest {
         
         command.execute(new String[]{"bar-recording"});
         verify(connection.getService(), never()).close(recordingDescriptor);
+        assertThat(stdout.toString(), equalTo("No recording with name \"bar-recording\" found\n"));
     }
 
     @Test
