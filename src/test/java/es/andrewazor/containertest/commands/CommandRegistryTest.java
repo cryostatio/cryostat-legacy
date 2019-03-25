@@ -1,8 +1,10 @@
 package es.andrewazor.containertest.commands;
 
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
@@ -98,8 +100,14 @@ public class CommandRegistryTest {
                     () -> new CommandRegistry(
                             new HashSet<Command>(Arrays.asList(new FooCommand(), new DuplicateFooCommand()))),
                     "should throw CommandDefinitionException for duplicate definitions");
-            assertThat(thrown.getMessage(), equalTo(
-                    "\"foo\" command definitions provided by class es.andrewazor.containertest.commands.CommandRegistryTest.DuplicateFooCommand AND class es.andrewazor.containertest.commands.CommandRegistryTest.FooCommand"));
+            assertThat(thrown.getMessage(),
+                allOf(
+                    containsString("\"foo\" command definitions provided by class"),
+                    containsString("es.andrewazor.containertest.commands.CommandRegistryTest.DuplicateFooCommand"),
+                    containsString("AND class"),
+                    containsString("es.andrewazor.containertest.commands.CommandRegistryTest.FooCommand")
+                )
+            );
         }
     }
 
