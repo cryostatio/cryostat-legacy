@@ -7,7 +7,11 @@ import es.andrewazor.containertest.commands.Command;
 
 class IpCommand implements Command {
 
-    @Inject IpCommand() { }
+    private final NetworkResolver resolver;
+
+    @Inject IpCommand(NetworkResolver resolver) {
+        this.resolver = resolver;
+    }
 
     @Override
     public String getName() {
@@ -26,6 +30,6 @@ class IpCommand implements Command {
 
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println(String.format("\t%s", new NetworkResolver().getHostAddress()));
+        System.out.println(String.format("\t%s", resolver.getHostAddress()));
     }
 }

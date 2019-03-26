@@ -7,7 +7,11 @@ import es.andrewazor.containertest.commands.Command;
 
 class HostnameCommand implements Command {
 
-    @Inject HostnameCommand() { }
+    private final NetworkResolver resolver;
+
+    @Inject HostnameCommand(NetworkResolver resolver) {
+        this.resolver = resolver;
+    }
 
     @Override
     public String getName() {
@@ -26,6 +30,6 @@ class HostnameCommand implements Command {
 
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println(String.format("\t%s", new NetworkResolver().getHostName()));
+        System.out.println(String.format("\t%s", resolver.getHostName()));
     }
 }

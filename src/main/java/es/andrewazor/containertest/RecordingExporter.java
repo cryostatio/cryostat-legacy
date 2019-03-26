@@ -7,7 +7,6 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -31,8 +30,9 @@ public class RecordingExporter implements ConnectionListener {
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    @Inject public RecordingExporter() {
-        this.resolver = new NetworkResolver();
+    @Inject
+    public RecordingExporter(NetworkResolver resolver) {
+        this.resolver = resolver;
         try {
             this.server = new ServerImpl();
         } catch (Exception e) {

@@ -2,6 +2,7 @@ package es.andrewazor.containertest;
 
 import dagger.Binds;
 import dagger.Module;
+import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import es.andrewazor.containertest.commands.CommandsModule;
 
@@ -12,4 +13,8 @@ import es.andrewazor.containertest.commands.CommandsModule;
 abstract class MainModule {
     @Binds @IntoSet abstract ConnectionListener bindRecordingExporter(RecordingExporter exporter);
     @Binds @IntoSet abstract ConnectionListener bindShell(Shell shell);
+    @Provides
+    public static NetworkResolver createNetworkResolver() {
+        return new NetworkResolver();
+    }
 }
