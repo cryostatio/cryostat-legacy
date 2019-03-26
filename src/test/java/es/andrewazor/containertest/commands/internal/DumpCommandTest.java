@@ -3,12 +3,8 @@ package es.andrewazor.containertest.commands.internal;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,29 +13,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.RecordingExporter;
+import es.andrewazor.containertest.StdoutTest;
 
 @ExtendWith(MockitoExtension.class)
-class DumpCommandTest {
+class DumpCommandTest extends StdoutTest {
 
     private DumpCommand command;
     @Mock private RecordingExporter exporter;
     @Mock private JMCConnection connection;
 
-    private PrintStream origOut;
-    private ByteArrayOutputStream stdout;
-
     @BeforeEach
     void setup() {
         command = new DumpCommand(exporter);
         command.connectionChanged(connection);
-        origOut = System.out;
-        stdout = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(stdout));
-    }
-
-    @AfterEach
-    void resetOut() {
-        System.setOut(origOut);
     }
 
     @Test

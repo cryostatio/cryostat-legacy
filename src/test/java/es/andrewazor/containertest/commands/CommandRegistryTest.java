@@ -7,36 +7,24 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import es.andrewazor.containertest.StdoutTest;
 import es.andrewazor.containertest.commands.CommandRegistry.CommandDefinitionException;
 
 public class CommandRegistryTest {
 
-    static class WithEmptySetCommands {
+    static class WithEmptySetCommands extends StdoutTest {
         private CommandRegistry registry;
-        private PrintStream origOut;
-        private ByteArrayOutputStream stdout;
 
         @BeforeEach
         public void setup() {
             registry = new CommandRegistry(Collections.emptySet());
-            origOut = System.out;
-            stdout = new ByteArrayOutputStream();
-            System.setOut(new PrintStream(stdout));
-        }
-
-        @AfterEach
-        void resetOut() {
-            System.setOut(origOut);
         }
 
         @Test
@@ -58,10 +46,8 @@ public class CommandRegistryTest {
         }
     }
 
-    static class WithCommandDefinitions {
+    static class WithCommandDefinitions extends StdoutTest {
         private CommandRegistry registry;
-        private PrintStream origOut;
-        private ByteArrayOutputStream stdout;
 
         private FooCommand fooCommand = new FooCommand();
         private BarCommand barCommand = new BarCommand();
@@ -71,14 +57,6 @@ public class CommandRegistryTest {
         @BeforeEach
         public void setup() {
             registry = new CommandRegistry(new HashSet<Command>(Arrays.asList(commands)));
-            origOut = System.out;
-            stdout = new ByteArrayOutputStream();
-            System.setOut(new PrintStream(stdout));
-        }
-
-        @AfterEach
-        void resetOut() {
-            System.setOut(origOut);
         }
 
         @Test

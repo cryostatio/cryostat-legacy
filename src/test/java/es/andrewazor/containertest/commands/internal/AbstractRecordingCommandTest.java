@@ -1,37 +1,25 @@
 package es.andrewazor.containertest.commands.internal;
 
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
-
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import es.andrewazor.containertest.StdoutTest;
+
 @ExtendWith(MockitoExtension.class)
-class AbstractRecordingCommandTest {
+class AbstractRecordingCommandTest extends StdoutTest {
 
     private AbstractRecordingCommand command;
-    private PrintStream origOut;
-    private ByteArrayOutputStream stdout;
 
     @BeforeEach
     void setup() {
         command = new BaseRecordingCommand();
-        origOut = System.out;
-        stdout = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(stdout));
-    }
-
-    @AfterEach
-    void resetOut() {
-        System.setOut(origOut);
     }
 
     @Test

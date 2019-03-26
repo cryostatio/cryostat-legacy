@@ -9,13 +9,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayOutputStream;
-import java.io.PrintStream;
 import java.util.Collections;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,28 +23,19 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.StdoutTest;
 
 @ExtendWith(MockitoExtension.class)
-class DeleteCommandTest {
+class DeleteCommandTest extends StdoutTest {
 
     private DeleteCommand command;
     @Mock private IRecordingDescriptor recordingDescriptor;
     @Mock private JMCConnection connection;
-    private PrintStream origOut;
-    private ByteArrayOutputStream stdout;
 
     @BeforeEach
     void setup() throws FlightRecorderException {
         command = new DeleteCommand();
         command.connectionChanged(connection);
-        origOut = System.out;
-        stdout = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(stdout));
-    }
-
-    @AfterEach
-    void resetOut() {
-        System.setOut(origOut);
     }
 
     @Test
