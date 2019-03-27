@@ -83,6 +83,7 @@ public class CommandRegistryTest {
             assertThat("command should not have been executed", barCommand.value, nullValue());
             registry.execute("bar", new String[] { "arg" });
             assertThat("command should not have been executed", barCommand.value, nullValue());
+            assertThat(stdout.toString(), equalTo("Command \"bar\" not available\n"));
         }
 
         @Test
