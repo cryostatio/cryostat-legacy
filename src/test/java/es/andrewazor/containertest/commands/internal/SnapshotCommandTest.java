@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -53,11 +54,14 @@ class SnapshotCommandTest extends StdoutTest {
     }
 
     @Test
-    @Disabled("RecordingOptionsBuilder needs refactoring so mock IFlightRecorderServices can be used")
     void shouldRenameAndExportSnapshot() throws Exception {
         IRecordingDescriptor snapshot = mock(IRecordingDescriptor.class);
         when(connection.getService()).thenReturn(service);
         when(service.getSnapshotRecording()).thenReturn(snapshot);
+        RecordingOptionsBuilder recordingOptionsBuilder = mock(RecordingOptionsBuilder.class);
+        when(recordingOptionsBuilderFactory.create(Mockito.any())).thenReturn(recordingOptionsBuilder);
+        IConstrainedMap<String> builtMap = mock(IConstrainedMap.class);
+        when(recordingOptionsBuilder.build()).thenReturn(builtMap);
 
         when(snapshot.getName()).thenReturn("Snapshot");
         when(snapshot.getId()).thenReturn(1L);
@@ -71,7 +75,7 @@ class SnapshotCommandTest extends StdoutTest {
 
         MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Latest snapshot: \"snapshot-1\"\n"));
         verify(service).getSnapshotRecording();
-        verify(service).updateRecordingOptions(snapshot, Mockito.any(IConstrainedMap.class));
+        verify(service).updateRecordingOptions(Mockito.same(snapshot), Mockito.same(builtMap));
 
         ArgumentCaptor<IRecordingDescriptor> captor = ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(exporter).addRecording(captor.capture());
