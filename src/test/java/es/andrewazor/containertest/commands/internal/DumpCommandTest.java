@@ -21,10 +21,11 @@ class DumpCommandTest extends StdoutTest {
     private DumpCommand command;
     @Mock private RecordingExporter exporter;
     @Mock private JMCConnection connection;
+    @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new DumpCommand(exporter);
+        command = new DumpCommand(exporter, eventOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 

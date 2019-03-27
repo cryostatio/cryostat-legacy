@@ -4,22 +4,33 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.StdoutTest;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractRecordingCommandTest extends StdoutTest {
 
     private AbstractRecordingCommand command;
+    @Mock private JMCConnection connection;
+    @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new BaseRecordingCommand();
+        command = new BaseRecordingCommand(eventOptionsBuilderFactory);
     }
 
     @Test
@@ -50,7 +61,33 @@ class AbstractRecordingCommandTest extends StdoutTest {
         assertTrue(command.validateEvents("foo.Event:prop=val,bar.Event:thing=1"));
     }
 
+    @Test
+    void shouldBuildEventMap() throws Exception {
+        verifyZeroInteractions(eventOptionsBuilderFactory);
+
+        EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
+        when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
+
+        command.enableEvents("foo.Bar:prop=val");
+
+        ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> optionCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
+        verify(builder).addEvent(eventCaptor.capture(), optionCaptor.capture(), valueCaptor.capture());
+        verify(builder).build();
+
+        assertThat(eventCaptor.getValue(), equalTo("foo.Bar"));
+        assertThat(optionCaptor.getValue(), equalTo("prop"));
+        assertThat(valueCaptor.getValue(), equalTo("val"));
+
+        verifyNoMoreInteractions(eventOptionsBuilderFactory);
+    }
+
     private static class BaseRecordingCommand extends AbstractRecordingCommand {
+        BaseRecordingCommand(EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
+            super(eventOptionsBuilderFactory);
+        }
+
         @Override
         public String getName() {
             return "base";

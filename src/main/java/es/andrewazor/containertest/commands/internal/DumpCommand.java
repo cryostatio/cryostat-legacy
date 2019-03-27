@@ -13,7 +13,8 @@ class DumpCommand extends AbstractRecordingCommand {
 
     private final RecordingExporter exporter;
 
-    @Inject DumpCommand(RecordingExporter exporter) {
+    @Inject DumpCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
+        super(eventOptionsBuilderFactory);
         this.exporter = exporter;
     }
 

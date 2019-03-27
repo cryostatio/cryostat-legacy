@@ -37,10 +37,11 @@ class StartRecordingCommandTest extends StdoutTest {
     @Mock private JMCConnection connection;
     @Mock private IFlightRecorderService service;
     @Mock private RecordingExporter exporter;
+    @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new StartRecordingCommand(exporter);
+        command = new StartRecordingCommand(exporter, eventOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 

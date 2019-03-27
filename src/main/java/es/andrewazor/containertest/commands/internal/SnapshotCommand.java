@@ -14,7 +14,8 @@ class SnapshotCommand extends AbstractRecordingCommand {
 
     private final RecordingExporter exporter;
 
-    @Inject SnapshotCommand(RecordingExporter exporter) {
+    @Inject SnapshotCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
+        super(eventOptionsBuilderFactory);
         this.exporter = exporter;
     }
 

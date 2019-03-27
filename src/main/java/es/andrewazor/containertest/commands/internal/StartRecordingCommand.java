@@ -13,7 +13,8 @@ class StartRecordingCommand extends AbstractRecordingCommand {
 
     private final RecordingExporter exporter;
 
-    @Inject StartRecordingCommand(RecordingExporter exporter) {
+    @Inject StartRecordingCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
+        super(eventOptionsBuilderFactory);
         this.exporter = exporter;
     }
 

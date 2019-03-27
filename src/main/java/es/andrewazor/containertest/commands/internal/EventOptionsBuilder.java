@@ -23,7 +23,7 @@ class EventOptionsBuilder {
     private final boolean isV2;
     private final IMutableConstrainedMap<EventOptionID> map;
 
-    EventOptionsBuilder(JMCConnection connection) throws FlightRecorderException {
+    private EventOptionsBuilder(JMCConnection connection) throws FlightRecorderException {
         this.isV2 = FlightRecorderServiceV2.isAvailable(connection.getHandle());
         this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
 
@@ -79,6 +79,12 @@ class EventOptionsBuilder {
     static class EventOptionException extends Exception {
         EventOptionException(String eventType, String option) {
             super(String.format("Unknown option \"%s\" for event \"%s\"", option, eventType));
+        }
+    }
+
+    public static class Factory {
+        public EventOptionsBuilder create(JMCConnection connection) throws FlightRecorderException {
+            return new EventOptionsBuilder(connection);
         }
     }
 }
