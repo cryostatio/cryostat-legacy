@@ -11,9 +11,12 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
     private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");
 
     protected final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    protected final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
-    protected AbstractRecordingCommand(EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
+    protected AbstractRecordingCommand(EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
+        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
     }
 
     protected IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {

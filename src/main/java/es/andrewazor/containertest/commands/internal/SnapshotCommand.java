@@ -14,8 +14,10 @@ class SnapshotCommand extends AbstractRecordingCommand {
 
     private final RecordingExporter exporter;
 
-    @Inject SnapshotCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
-        super(eventOptionsBuilderFactory);
+    @Inject
+    SnapshotCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+        super(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 
@@ -31,7 +33,7 @@ class SnapshotCommand extends AbstractRecordingCommand {
         String rename = String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
         System.out.println(String.format("Latest snapshot: \"%s\"", rename));
 
-        RecordingOptionsBuilder recordingOptionsBuilder = new RecordingOptionsBuilder(getService());
+        RecordingOptionsBuilder recordingOptionsBuilder = recordingOptionsBuilderFactory.create(getService());
             recordingOptionsBuilder.name(rename);
 
         getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());

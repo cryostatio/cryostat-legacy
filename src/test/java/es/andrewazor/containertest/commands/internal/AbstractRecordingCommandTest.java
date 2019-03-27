@@ -27,10 +27,11 @@ class AbstractRecordingCommandTest extends StdoutTest {
     private AbstractRecordingCommand command;
     @Mock private JMCConnection connection;
     @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    @Mock private RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new BaseRecordingCommand(eventOptionsBuilderFactory);
+        command = new BaseRecordingCommand(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
     }
 
     @Test
@@ -84,8 +85,8 @@ class AbstractRecordingCommandTest extends StdoutTest {
     }
 
     private static class BaseRecordingCommand extends AbstractRecordingCommand {
-        BaseRecordingCommand(EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
-            super(eventOptionsBuilderFactory);
+        BaseRecordingCommand(EventOptionsBuilder.Factory eventOptionsBuilderFactory, RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+            super(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         }
 
         @Override

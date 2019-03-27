@@ -4,7 +4,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import es.andrewazor.containertest.RecordingExporter;
 
@@ -13,8 +12,10 @@ class StartRecordingCommand extends AbstractRecordingCommand {
 
     private final RecordingExporter exporter;
 
-    @Inject StartRecordingCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory) {
-        super(eventOptionsBuilderFactory);
+    @Inject
+    StartRecordingCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+        super(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 
@@ -38,7 +39,7 @@ class StartRecordingCommand extends AbstractRecordingCommand {
             return;
         }
 
-        IConstrainedMap<String> recordingOptions = new RecordingOptionsBuilder(getService())
+        IConstrainedMap<String> recordingOptions = recordingOptionsBuilderFactory.create(getService())
             .name(name)
             .build();
         this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));

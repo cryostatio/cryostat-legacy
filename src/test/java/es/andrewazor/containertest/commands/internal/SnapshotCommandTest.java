@@ -33,10 +33,11 @@ class SnapshotCommandTest extends StdoutTest {
     @Mock private IFlightRecorderService service;
     @Mock private RecordingExporter exporter;
     @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    @Mock private RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new SnapshotCommand(exporter, eventOptionsBuilderFactory);
+        command = new SnapshotCommand(exporter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 

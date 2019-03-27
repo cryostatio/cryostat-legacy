@@ -1,5 +1,7 @@
 package es.andrewazor.containertest.commands.internal;
 
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -28,5 +30,8 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindWaitForDownloadCommand(WaitForDownloadCommand command);
     @Provides public static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory() {
         return new EventOptionsBuilder.Factory();
+    }
+    @Provides public static RecordingOptionsBuilderFactory provideRecordingOptionsBuilderFactory() {
+        return service -> new RecordingOptionsBuilder(service);
     }
 }
