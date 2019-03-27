@@ -1,7 +1,5 @@
 package es.andrewazor.containertest.commands.internal;
 
-import java.util.concurrent.TimeUnit;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
