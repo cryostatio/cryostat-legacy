@@ -66,6 +66,7 @@ public class CommandRegistry {
         return available;
     }
 
+    @SuppressWarnings("serial")
     public static class CommandDefinitionException extends RuntimeException {
         public CommandDefinitionException(String commandName, Class<? extends Command> cmd1, Class<? extends Command> cmd2) {
             super(String.format("\"%s\" command definitions provided by class %s AND class %s",

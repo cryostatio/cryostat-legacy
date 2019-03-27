@@ -70,12 +70,14 @@ class EventOptionsBuilder {
         return map;
     }
 
+    @SuppressWarnings("serial")
     static class EventTypeException extends Exception {
         EventTypeException(String eventType) {
             super(String.format("Unknown event type \"%s\"", eventType));
         }
     }
 
+    @SuppressWarnings("serial")
     static class EventOptionException extends Exception {
         EventOptionException(String eventType, String option) {
             super(String.format("Unknown option \"%s\" for event \"%s\"", option, eventType));

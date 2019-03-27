@@ -36,6 +36,7 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
         }
     }
 
+    @SuppressWarnings("serial")
     static class JMXConnectionException extends Exception {
         JMXConnectionException() {
             super("No active JMX connection");
