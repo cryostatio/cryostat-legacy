@@ -14,7 +14,6 @@ import java.util.Collections;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -23,6 +22,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -88,10 +88,18 @@ class StartRecordingCommandTest extends StdoutTest {
     }
 
     @Test
-    @Disabled
     void shouldStartRecordingOnExecute() throws Exception {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
+        IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
+        RecordingOptionsBuilder recordingOptionsBuilder = mock(RecordingOptionsBuilder.class);
+        when(recordingOptionsBuilderFactory.create(Mockito.any())).thenReturn(recordingOptionsBuilder);
+        when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
+        when(recordingOptionsBuilder.name(Mockito.any())).thenReturn(recordingOptionsBuilder);
+        EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
+        when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
+        IConstrainedMap<EventOptionID> events = mock(IConstrainedMap.class);
+        when(builder.build()).thenReturn(events);
 
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
         when(service.start(Mockito.any(), Mockito.any())).thenReturn(descriptor);
@@ -102,18 +110,33 @@ class StartRecordingCommandTest extends StdoutTest {
 
         command.execute(new String[]{ "foo", "foo.Bar:enabled=true" });
 
+        ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor = ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor = ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IRecordingDescriptor> descriptorCaptor = ArgumentCaptor.forClass(IRecordingDescriptor.class);
+        verify(recordingOptionsBuilder).name(nameCaptor.capture());
         verify(service).getAvailableRecordings();
         verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
         verify(exporter).addRecording(descriptorCaptor.capture());
 
-        IConstrainedMap<String> recordingOptions = recordingOptionsCaptor.getValue();
-        IConstrainedMap<EventOptionID> events = eventsCaptor.getValue();
+        String actualName = nameCaptor.getValue();
+        IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
+        IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
         IRecordingDescriptor recordingDescriptor = descriptorCaptor.getValue();
 
-        // TODO assertions on above
+        MatcherAssert.assertThat(actualName, Matchers.equalTo("foo"));
+        MatcherAssert.assertThat(recordingDescriptor, Matchers.sameInstance(descriptor));
+        MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
+        MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
+        ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> optionCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
+        verify(builder).addEvent(eventCaptor.capture(), optionCaptor.capture(), valueCaptor.capture());
+        verify(builder).build();
+
+        MatcherAssert.assertThat(eventCaptor.getValue(), Matchers.equalTo("foo.Bar"));
+        MatcherAssert.assertThat(optionCaptor.getValue(),Matchers.equalTo("enabled"));
+        MatcherAssert.assertThat(valueCaptor.getValue(), Matchers.equalTo("true"));
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
@@ -121,7 +144,6 @@ class StartRecordingCommandTest extends StdoutTest {
     }
 
     @Test
-    @Disabled
     void shouldHandleNameCollisionOnExecute() throws Exception {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
