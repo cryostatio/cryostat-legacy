@@ -11,7 +11,7 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
     protected JMCConnection connection;
 
     @Override
-    public final void connectionChanged(JMCConnection connection) {
+    public void connectionChanged(JMCConnection connection) {
         this.connection = connection;
     }
 

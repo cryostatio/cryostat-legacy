@@ -7,6 +7,7 @@ import javax.inject.Singleton;
 
 import dagger.Lazy;
 import es.andrewazor.containertest.ConnectionListener;
+import es.andrewazor.containertest.JMCConnection;
 
 @Singleton
 class DisconnectCommand extends AbstractConnectedCommand {
@@ -29,8 +30,23 @@ class DisconnectCommand extends AbstractConnectedCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        getConnection().disconnect();
+        disconnectPreviousConnection();
         connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
+    }
+
+    @Override
+    public void connectionChanged(JMCConnection connection) {
+        disconnectPreviousConnection();
+        super.connectionChanged(connection);
+    }
+
+    private void disconnectPreviousConnection() {
+        try {
+            JMCConnection previous = getConnection();
+            if (previous != null) {
+                previous.disconnect();
+            }
+        } catch (Exception e) { }
     }
 
 }
