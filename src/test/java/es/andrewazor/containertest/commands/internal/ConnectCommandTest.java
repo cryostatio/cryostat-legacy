@@ -30,11 +30,12 @@ class ConnectCommandTest {
 
     private ConnectCommand command;
     @Mock private ConnectionListener listener;
+    @Mock private DisconnectCommand disconnect;
     @Mock private JMCConnectionToolkit connectionToolkit;
 
     @BeforeEach
     void setup() {
-        command = new ConnectCommand(Collections.singleton(listener), connectionToolkit);
+        command = new ConnectCommand(Collections.singleton(listener), disconnect, connectionToolkit);
     }
 
     @Test
@@ -71,6 +72,7 @@ class ConnectCommandTest {
     void shouldConnectViaConnectionToolkit() throws Exception {
         verifyZeroInteractions(listener);
         verifyZeroInteractions(connectionToolkit);
+        verifyZeroInteractions(disconnect);
 
         JMCConnection mockConnection = mock(JMCConnection.class);
         when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
@@ -83,6 +85,7 @@ class ConnectCommandTest {
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
+        verify(disconnect).execute(Mockito.any());
 
         assertThat(hostCaptor.getValue(), equalTo("foo"));
         assertThat(portCaptor.getValue(), equalTo(5));
@@ -93,6 +96,7 @@ class ConnectCommandTest {
     void shouldUseDefaultPortIfUnspecified() throws Exception {
         verifyZeroInteractions(listener);
         verifyZeroInteractions(connectionToolkit);
+        verifyZeroInteractions(disconnect);
 
         JMCConnection mockConnection = mock(JMCConnection.class);
         when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
@@ -105,6 +109,7 @@ class ConnectCommandTest {
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
+        verify(disconnect).execute(Mockito.any());
 
         assertThat(hostCaptor.getValue(), equalTo("foo"));
         assertThat(portCaptor.getValue(), equalTo(JMCConnection.DEFAULT_PORT));

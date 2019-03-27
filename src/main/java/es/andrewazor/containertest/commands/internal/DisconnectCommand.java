@@ -34,12 +34,6 @@ class DisconnectCommand extends AbstractConnectedCommand {
         connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
     }
 
-    @Override
-    public void connectionChanged(JMCConnection connection) {
-        disconnectPreviousConnection();
-        super.connectionChanged(connection);
-    }
-
     private void disconnectPreviousConnection() {
         try {
             JMCConnection previous = getConnection();

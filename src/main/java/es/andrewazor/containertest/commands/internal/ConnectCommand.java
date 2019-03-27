@@ -18,11 +18,14 @@ class ConnectCommand implements Command {
     private static final Pattern HOST_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private final Set<ConnectionListener> connectionListeners;
+    private final DisconnectCommand disconnect;
     private final JMCConnectionToolkit connectionToolkit;
 
     @Inject
-    ConnectCommand(Set<ConnectionListener> connectionListeners, JMCConnectionToolkit connectionToolkit) {
+    ConnectCommand(Set<ConnectionListener> connectionListeners, DisconnectCommand disconnect,
+            JMCConnectionToolkit connectionToolkit) {
         this.connectionListeners = connectionListeners;
+        this.disconnect = disconnect;
         this.connectionToolkit = connectionToolkit;
     }
 
@@ -53,6 +56,7 @@ class ConnectCommand implements Command {
         if (port == null) {
             port = "9091";
         }
+        this.disconnect.execute(new String[0]);
         JMCConnection connection = connectionToolkit.connect(host, Integer.parseInt(port));
         connectionListeners.forEach(listener -> listener.connectionChanged(connection));
     }
