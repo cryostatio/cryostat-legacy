@@ -17,7 +17,6 @@ class DeleteCommand extends AbstractConnectedCommand {
 
     /**
      * One arg expected. Deletes recordings in target JVM by recording name.
-     * TODO: handle snapshots, since those all have the same name and must be differentiated by ID
      */
     @Override
     public void execute(String[] args) throws Exception {
