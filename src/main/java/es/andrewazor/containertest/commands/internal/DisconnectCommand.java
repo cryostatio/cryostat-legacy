@@ -29,6 +29,7 @@ class DisconnectCommand extends AbstractConnectedCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
+        getConnection().disconnect();
         connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
     }
 

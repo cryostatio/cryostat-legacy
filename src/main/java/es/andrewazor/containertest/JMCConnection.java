@@ -43,6 +43,10 @@ public class JMCConnection {
         return rjmxConnection.getApproximateServerTime(System.currentTimeMillis());
     }
 
+    public void disconnect() {
+        this.rjmxConnection.close();
+    }
+
     private RJMXConnection attemptConnect(String host, int port, int maxRetry) throws Exception {
         JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
                 new JMXServiceURL(String.format(URL_FORMAT, host, port)),

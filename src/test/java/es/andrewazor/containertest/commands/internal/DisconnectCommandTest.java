@@ -18,16 +18,19 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.ConnectionListener;
+import es.andrewazor.containertest.JMCConnection;
 
 @ExtendWith(MockitoExtension.class)
 class DisconnectCommandTest {
 
     private DisconnectCommand command;
     @Mock private ConnectionListener listener;
+    @Mock private JMCConnection connection;
 
     @BeforeEach
     void setup() {
         command = new DisconnectCommand(() -> Collections.singleton(listener));
+        command.connectionChanged(connection);
     }
 
     @Test
@@ -48,9 +51,12 @@ class DisconnectCommandTest {
     @Test
     void shouldNotifyListeners() throws Exception {
         verify(listener, never()).connectionChanged(Mockito.any());
+        verify(connection, never()).disconnect();
         command.execute(new String[0]);
         verify(listener).connectionChanged(null);
+        verify(connection).disconnect();
         verifyNoMoreInteractions(listener);
+        verifyNoMoreInteractions(connection);
     }
 
 }
