@@ -23,10 +23,18 @@ class WaitCommand implements Command {
     @Override
     public void execute(String[] args) throws Exception {
         int seconds = Integer.parseInt(args[0]);
-        try {
-            Thread.sleep(TimeUnit.SECONDS.toMillis(seconds));
-        } catch (InterruptedException ignored) {
+        long startTime = System.currentTimeMillis();
+        long currentTime = System.currentTimeMillis();
+        long targetTime = startTime + 1000 * seconds;
+
+        while (currentTime < targetTime) {
+            System.out.print(". ");
+            currentTime = System.currentTimeMillis();
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException ignored) { }
         }
+        System.out.println();
     }
 
     @Override
