@@ -1,19 +1,33 @@
 package es.andrewazor.containertest;
 
+import javax.management.remote.JMXServiceURL;
+
 import org.openjdk.jmc.rjmx.IConnectionHandle;
+import org.openjdk.jmc.rjmx.IConnectionListener;
+import org.openjdk.jmc.rjmx.internal.DefaultConnectionHandle;
+import org.openjdk.jmc.rjmx.internal.JMXConnectionDescriptor;
 import org.openjdk.jmc.rjmx.internal.RJMXConnection;
+import org.openjdk.jmc.rjmx.internal.ServerDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceFactory;
+import org.openjdk.jmc.ui.common.security.InMemoryCredentials;
 
 public class JMCConnection {
 
-    private final RJMXConnection rjmxConnection;
-    private final IConnectionHandle handle;
-    private final IFlightRecorderService service;
+    static final String URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
+    public static final int DEFAULT_PORT = 9091;
 
-    public JMCConnection(RJMXConnection rjmxConnection, IConnectionHandle handle) throws Exception {
-        this.rjmxConnection = rjmxConnection;
-        this.handle = handle;
+    protected final RJMXConnection rjmxConnection;
+    protected final IConnectionHandle handle;
+    protected final IFlightRecorderService service;
+
+    protected JMCConnection(String host) throws Exception {
+        this(host, DEFAULT_PORT);
+    }
+
+    protected JMCConnection(String host, int port) throws Exception {
+        this.rjmxConnection = attemptConnect(host, port, 0);
+        this.handle = new DefaultConnectionHandle(rjmxConnection, "RJMX Connection", new IConnectionListener[0]);
         this.service = new FlightRecorderServiceFactory().getServiceInstance(handle);
     }
 
@@ -27,5 +41,40 @@ public class JMCConnection {
 
     public long getApproximateServerTime() {
         return rjmxConnection.getApproximateServerTime(System.currentTimeMillis());
+    }
+
+    private RJMXConnection attemptConnect(String host, int port, int maxRetry) throws Exception {
+        JMXConnectionDescriptor cd = new JMXConnectionDescriptor(
+                new JMXServiceURL(String.format(URL_FORMAT, host, port)),
+                new InMemoryCredentials(null, null));
+        ServerDescriptor sd = new ServerDescriptor(null, "Container", null);
+
+        int attempts = 0;
+        while (true) {
+            try {
+                RJMXConnection conn = new RJMXConnection(cd, sd, JMCConnection::failConnection);
+                if (!conn.connect()) {
+                    failConnection();
+                }
+                return conn;
+            } catch (Exception e) {
+                attempts++;
+                System.out.println(String.format("Connection attempt #%s failed", attempts));
+                if (attempts >= maxRetry) {
+                    System.out.println("Aborting...");
+                    throw e;
+                } else {
+                    e.printStackTrace();
+                }
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException ignored) {
+                }
+            }
+        }
+    }
+
+    private static void failConnection() {
+        throw new RuntimeException("Connection Failed");
     }
 }

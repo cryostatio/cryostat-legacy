@@ -13,8 +13,10 @@ import es.andrewazor.containertest.commands.CommandsModule;
 abstract class MainModule {
     @Binds @IntoSet abstract ConnectionListener bindRecordingExporter(RecordingExporter exporter);
     @Binds @IntoSet abstract ConnectionListener bindShell(Shell shell);
-    @Provides
-    public static NetworkResolver createNetworkResolver() {
+    @Provides public static NetworkResolver provideNetworkResolver() {
         return new NetworkResolver();
+    }
+    @Provides public static JMCConnectionToolkit provideJMCConnectionToolkit() {
+        return new JMCConnectionToolkit();
     }
 }
