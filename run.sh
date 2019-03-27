@@ -19,7 +19,7 @@ set -e
 docker run \
     --net jmx-test \
     --name jmx-client \
-    --memory 64M \
+    --memory 80M \
     -e CONTAINER_DOWNLOAD_HOST=$CONTAINER_DOWNLOAD_HOST \
     -e CONTAINER_DOWNLOAD_PORT=$CONTAINER_DOWNLOAD_PORT \
     --rm -it andrewazores/container-jmx-client "$@"
