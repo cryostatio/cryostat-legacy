@@ -44,6 +44,7 @@ class WaitCommand implements Command {
 
         if (!args[0].matches("\\d+")) {
             System.out.println(String.format("%s is an invalid integer", args[0]));
+            return false;
         }
 
         return true;
