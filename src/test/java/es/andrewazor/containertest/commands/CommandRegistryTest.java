@@ -5,7 +5,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -42,6 +44,12 @@ public class CommandRegistryTest {
         @Test
         public void shouldNoOpOnExecute() throws Exception {
             registry.execute("foo", new String[] {});
+            assertThat(stdout.toString(), equalTo("Command \"foo\" not recognized\n"));
+        }
+
+        @Test
+        public void shouldNotValidateCommands() throws Exception {
+            assertFalse(registry.validate("foo", new String[0]));
             assertThat(stdout.toString(), equalTo("Command \"foo\" not recognized\n"));
         }
     }
@@ -94,6 +102,22 @@ public class CommandRegistryTest {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
             assertThat(stdout.toString(), equalTo("Command \"baz\" not recognized\n"));
+        }
+
+        @Test
+        public void shouldNotValidateUnknownCommands() throws Exception {
+            assertFalse(registry.validate("baz", new String[0]));
+            assertThat(stdout.toString(), equalTo("Command \"baz\" not recognized\n"));
+        }
+
+        @Test
+        public void shouldNotValidateInvalidCommands() throws Exception {
+            assertFalse(registry.validate("bar", new String[0]));
+        }
+
+        @Test
+        public void shouldValidateCommands() throws Exception {
+            assertTrue(registry.validate("foo", new String[0]));
         }
     }
 
