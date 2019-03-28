@@ -78,7 +78,8 @@ jacocoTestReport {
                         '**/*_Factory*/**',
                         '**/*_Provide*/**',
                         '**/*_MembersInjector.class',
-                        'es/andrewazor/containertest/jmc/**'
+                        'es/andrewazor/containertest/jmc/**',
+                        'es/andrewazor/containertest/**/*Module.class'
                     ])
             })
     }
