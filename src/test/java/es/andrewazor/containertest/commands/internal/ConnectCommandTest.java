@@ -49,6 +49,13 @@ class ConnectCommandTest {
     }
 
     @Test
+    void shouldExpectOneArg() {
+        assertFalse(command.validate(new String[0]));
+        assertTrue(command.validate(new String[]{ "foo" }));
+        assertFalse(command.validate(new String[2]));
+    }
+
+    @Test
     void emptyStringIsInvalid() {
         assertFalse(command.validate(new String[]{""}));
     }
