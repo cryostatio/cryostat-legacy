@@ -59,4 +59,27 @@ class DisconnectCommandTest {
         verifyNoMoreInteractions(connection);
     }
 
+    @Test
+    void shouldHandleNoPreviousConnection() throws Exception {
+        verify(listener, never()).connectionChanged(Mockito.any());
+        verify(connection, never()).disconnect();
+        command.connectionChanged(null);
+        command.execute(new String[0]);
+        verify(listener).connectionChanged(null);
+        verifyNoMoreInteractions(listener);
+        verifyNoMoreInteractions(connection);
+    }
+
+    @Test
+    void shouldHandleDoubleDisconnect() throws Exception {
+        verify(listener, never()).connectionChanged(Mockito.any());
+        verify(connection, never()).disconnect();
+        command.execute(new String[0]);
+        command.execute(new String[0]);
+        verify(listener, Mockito.times(2)).connectionChanged(null);
+        verify(connection, Mockito.times(2)).disconnect();
+        verifyNoMoreInteractions(listener);
+        verifyNoMoreInteractions(connection);
+    }
+
 }
