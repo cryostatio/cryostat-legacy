@@ -28,9 +28,7 @@ class WaitCommand implements Command {
         while (currentTime < targetTime) {
             System.out.print(". ");
             currentTime = System.currentTimeMillis();
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored) { }
+            Thread.sleep(1000);
         }
         System.out.println();
     }
