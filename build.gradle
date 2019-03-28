@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'jacoco'
     id 'com.google.cloud.tools.jib' version '1.0.1'
     id 'net.ltgt.apt' version '0.21'
 }
@@ -53,8 +54,34 @@ jib {
     }
 }
 
+tasks.build.dependsOn tasks.jib
+
 test {
     useJUnitPlatform()
 }
 
-tasks.build.dependsOn tasks.jib
+jacoco {
+    toolVersion = '0.8.3'
+}
+
+jacocoTestReport {
+    reports {
+        xml.enabled false
+        csv.enabled false
+        html.destination file("${buildDir}/jacocoHtml")
+    }
+    afterEvaluate {
+        classDirectories = files(classDirectories.files.collect {
+            fileTree(dir: it,
+                    excludes: [
+                        '**/*Dagger*',
+                        '**/*_Factory*/**',
+                        '**/*_Provide*/**',
+                        '**/*_MembersInjector.class',
+                        'es/andrewazor/containertest/jmc/**'
+                    ])
+            })
+    }
+}
+
+test.finalizedBy jacocoTestReport
