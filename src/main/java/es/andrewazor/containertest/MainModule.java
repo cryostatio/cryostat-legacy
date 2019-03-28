@@ -1,5 +1,7 @@
 package es.andrewazor.containertest;
 
+import javax.inject.Singleton;
+
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
@@ -13,10 +15,10 @@ import es.andrewazor.containertest.commands.CommandsModule;
 abstract class MainModule {
     @Binds @IntoSet abstract ConnectionListener bindRecordingExporter(RecordingExporter exporter);
     @Binds @IntoSet abstract ConnectionListener bindShell(Shell shell);
-    @Provides public static NetworkResolver provideNetworkResolver() {
+    @Provides @Singleton public static NetworkResolver provideNetworkResolver() {
         return new NetworkResolver();
     }
-    @Provides public static JMCConnectionToolkit provideJMCConnectionToolkit() {
+    @Provides @Singleton  static JMCConnectionToolkit provideJMCConnectionToolkit() {
         return new JMCConnectionToolkit();
     }
 }
