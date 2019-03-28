@@ -35,9 +35,7 @@ class WaitForDownloadCommand extends WaitForCommand {
 
         System.out.println(String.format("Waiting for download of recording \"%s\" at %s", name, this.exporter.getDownloadURL(name)));
         while (this.exporter.getDownloadCount(name) < 1) {
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored) { }
+            Thread.sleep(1000);
         }
     }
 }
