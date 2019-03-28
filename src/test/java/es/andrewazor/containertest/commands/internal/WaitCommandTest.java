@@ -1,7 +1,11 @@
 package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.time.Duration;
+import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -54,6 +58,18 @@ class WaitCommandTest extends StdoutTest {
     @Test
     void shouldBeAvailable() {
         assertTrue(command.isAvailable());
+    }
+
+    @Test
+    void testShortExecution() throws Exception {
+        assertTimeout(Duration.ofSeconds(10), () -> {
+            long start = System.nanoTime();
+            command.execute(new String[]{ "1" });
+            long end = System.nanoTime();
+            long elapsed = end - start;
+            MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(". . \n"));
+            MatcherAssert.assertThat(elapsed, Matchers.greaterThan(TimeUnit.SECONDS.toNanos(1)));
+        });
     }
 
 }
