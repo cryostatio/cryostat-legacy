@@ -2,6 +2,7 @@ package es.andrewazor.containertest.commands.internal;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IConstraint;
@@ -24,7 +25,11 @@ class EventOptionsBuilder {
     private final IMutableConstrainedMap<EventOptionID> map;
 
     private EventOptionsBuilder(JMCConnection connection) throws FlightRecorderException {
-        this.isV2 = FlightRecorderServiceV2.isAvailable(connection.getHandle());
+        this(connection, () -> FlightRecorderServiceV2.isAvailable(connection.getHandle()));
+    }
+
+    EventOptionsBuilder(JMCConnection connection, Supplier<Boolean> v2) throws FlightRecorderException {
+        this.isV2 = v2.get();
         this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
 
         if (!isV2) {
