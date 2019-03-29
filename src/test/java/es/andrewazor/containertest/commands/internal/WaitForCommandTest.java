@@ -116,6 +116,8 @@ class WaitForCommandTest extends StdoutTest {
         when(descriptorA.getState())
             .thenReturn(RecordingState.RUNNING)
             .thenReturn(RecordingState.RUNNING)
+            .thenReturn(RecordingState.RUNNING)
+            .thenReturn(RecordingState.RUNNING)
             .thenReturn(RecordingState.STOPPED);
         when(descriptorA.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptorA.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
@@ -125,17 +127,23 @@ class WaitForCommandTest extends StdoutTest {
 
         when(descriptorA.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptorA.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
-        when(connection.getApproximateServerTime()).thenReturn(5_000L);
+        when(connection.getApproximateServerTime())
+            .thenReturn(5_000L)
+            .thenReturn(5_001L)
+            .thenReturn(6_000L);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
         assertTimeout(Duration.ofSeconds(10), () -> {
             command.execute(new String[] { "foo" });
 
-            verify(connection, Mockito.times(3)).getService();
-            verify(service, Mockito.times(3)).getAvailableRecordings();
+            verify(connection, Mockito.times(5)).getService();
+            verify(service, Mockito.times(5)).getAvailableRecordings();
             // Use byte array constructor due to \b control characters in output
-            String s = new String(new byte[]{ 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 10 });
+            String s = new String(
+                    new byte[] { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 8, 8, 8, 8, 8, 8,
+                            8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 46, 10 }
+                            );
             MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(s));
 
             verifyNoMoreInteractions(connection);
