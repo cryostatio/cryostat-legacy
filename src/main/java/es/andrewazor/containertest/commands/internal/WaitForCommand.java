@@ -60,9 +60,7 @@ class WaitForCommand extends AbstractConnectedCommand {
                     System.out.print('.');
                 }
             }
-            try {
-                Thread.sleep(1000);
-            } catch (InterruptedException ignored) { }
+            Thread.sleep(1000);
             descriptor = getByName(name);
         }
         System.out.println();
