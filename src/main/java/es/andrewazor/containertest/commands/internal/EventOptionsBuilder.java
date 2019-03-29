@@ -18,47 +18,45 @@ import es.andrewazor.containertest.JMCConnection;
 
 class EventOptionsBuilder {
 
-    private static Map<IEventTypeID, Map<String, IOptionDescriptor<?>>> KNOWN_TYPES = null;
-    private static Map<String, IEventTypeID> EVENT_IDS = null;
 
     private final boolean isV2;
     private final IMutableConstrainedMap<EventOptionID> map;
+    private Map<IEventTypeID, Map<String, IOptionDescriptor<?>>> knownTypes;
+    private Map<String, IEventTypeID> eventIds;
 
     private EventOptionsBuilder(JMCConnection connection) throws FlightRecorderException {
         this(connection, () -> FlightRecorderServiceV2.isAvailable(connection.getHandle()));
     }
 
+    // Testing only
     EventOptionsBuilder(JMCConnection connection, Supplier<Boolean> v2) throws FlightRecorderException {
         this.isV2 = v2.get();
         this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
+        knownTypes = new HashMap<>();
+        eventIds = new HashMap<>();
 
         if (!isV2) {
             System.out.println("Flight Recorder V1 is not yet supported");
         }
 
-        if (KNOWN_TYPES == null) {
-            KNOWN_TYPES = new HashMap<>();
-            EVENT_IDS = new HashMap<>();
-
-            for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
-                EVENT_IDS.put(eventTypeInfo.getEventTypeID().getFullKey(), eventTypeInfo.getEventTypeID());
-                KNOWN_TYPES.putIfAbsent(eventTypeInfo.getEventTypeID(), new HashMap<>(eventTypeInfo.getOptionDescriptors()));
-            }
+        for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
+            eventIds.put(eventTypeInfo.getEventTypeID().getFullKey(), eventTypeInfo.getEventTypeID());
+            knownTypes.putIfAbsent(eventTypeInfo.getEventTypeID(), new HashMap<>(eventTypeInfo.getOptionDescriptors()));
         }
     }
 
     EventOptionsBuilder addEvent(String typeId, String option, String value) throws Exception {
-        if (!EVENT_IDS.containsKey(typeId)) {
+        if (!eventIds.containsKey(typeId)) {
             throw new EventTypeException(typeId);
         }
-        Map<String, IOptionDescriptor<?>> optionDescriptors = KNOWN_TYPES.get(EVENT_IDS.get(typeId));
+        Map<String, IOptionDescriptor<?>> optionDescriptors = knownTypes.get(eventIds.get(typeId));
         if (!optionDescriptors.containsKey(option)) {
             throw new EventOptionException(typeId, option);
         }
         IConstraint<?> constraint = optionDescriptors.get(option).getConstraint();
         Object parsedValue = constraint.parseInteractive(value);
         constraint.validate(capture(parsedValue));
-        this.map.put(new EventOptionID(EVENT_IDS.get(typeId), option), parsedValue);
+        this.map.put(new EventOptionID(eventIds.get(typeId), option), parsedValue);
 
         return this;
     }
