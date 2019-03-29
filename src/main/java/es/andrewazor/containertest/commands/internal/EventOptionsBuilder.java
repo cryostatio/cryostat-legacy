@@ -61,7 +61,7 @@ class EventOptionsBuilder {
         return this;
     }
 
-    private static <T, V> V capture(T t) {
+    static <T, V> V capture(T t) {
         // TODO clean up this generics hack
         return (V) t;
     }

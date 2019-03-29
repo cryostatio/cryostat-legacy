@@ -1,5 +1,6 @@
 package es.andrewazor.containertest.commands.internal;
 
+import static es.andrewazor.containertest.commands.internal.EventOptionsBuilder.capture;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -64,11 +65,6 @@ class EventOptionsBuilderTest extends StdoutTest {
         when(constraint.validate(Mockito.any())).thenReturn(true);
 
         builder = new EventOptionsBuilder(connection, () -> true);
-    }
-
-    private static <T, V> V capture(T t) {
-        // TODO clean up this generics hack
-        return (V) t;
     }
 
     @Test
