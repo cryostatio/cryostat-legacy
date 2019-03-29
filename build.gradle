@@ -28,6 +28,7 @@ dependencies {
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.1'
     testCompile 'org.hamcrest:hamcrest:2.1'
     testCompile 'org.mockito:mockito-junit-jupiter:2.25.1'
+    testCompile 'org.mockito:mockito-inline:2.25.1'
 }
 
 mainClassName = 'es.andrewazor.containertest.JMXClient'
