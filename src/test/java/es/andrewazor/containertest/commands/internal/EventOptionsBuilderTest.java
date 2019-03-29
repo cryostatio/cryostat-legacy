@@ -78,6 +78,12 @@ class EventOptionsBuilderTest extends StdoutTest {
     }
 
     @Test
+    void shouldWarnV1Unsupported2() throws FlightRecorderException {
+        new EventOptionsBuilder(connection, () -> false);
+        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+    }
+
+    @Test
     void shouldBuildNullMapWhenV1Detected() throws FlightRecorderException {
         MatcherAssert.assertThat(new EventOptionsBuilder(connection, () -> false).build(), Matchers.nullValue());
     }
@@ -112,6 +118,31 @@ class EventOptionsBuilderTest extends StdoutTest {
             builder.addEvent("jdk.Foo", "opt", "val");
         });
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("Unknown option \"opt\" for event \"jdk.Foo\""));
+    }
+
+    @ExtendWith(MockitoExtension.class)
+    static class FactoryTest extends StdoutTest {
+
+        private EventOptionsBuilder.Factory factory;
+        @Mock private JMCConnection connection;
+        @Mock private IFlightRecorderService service;
+        @Mock private IDescribedMap map;
+        @Mock private IMutableConstrainedMap mutableMap;
+
+        @BeforeEach
+        void setup() {
+            factory = new EventOptionsBuilder.Factory();
+        }
+
+        @Test
+        void shouldCreateBuilder() throws Exception {
+            when(connection.getService()).thenReturn(service);
+            when(service.getDefaultEventOptions()).thenReturn(map);
+            when(map.emptyWithSameConstraints()).thenReturn(mutableMap);
+            EventOptionsBuilder result = factory.create(connection);
+            MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+        }
+
     }
 
 }
