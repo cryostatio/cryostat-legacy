@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Collections;
 
 import org.hamcrest.MatcherAssert;
@@ -109,18 +110,24 @@ class WaitForCommandTest extends StdoutTest {
 
     @Test
     void shouldWaitForRecordingToStop() throws Exception {
-        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
-        when(descriptor.getName()).thenReturn("foo");
-        when(descriptor.isContinuous()).thenReturn(false);
-        when(descriptor.getState())
+        IRecordingDescriptor descriptorA = mock(IRecordingDescriptor.class);
+        when(descriptorA.getName()).thenReturn("foo");
+        when(descriptorA.isContinuous()).thenReturn(false);
+        when(descriptorA.getState())
             .thenReturn(RecordingState.RUNNING)
             .thenReturn(RecordingState.RUNNING)
             .thenReturn(RecordingState.STOPPED);
-        when(descriptor.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
-        when(descriptor.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
+        when(descriptorA.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
+        when(descriptorA.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
+
+        IRecordingDescriptor descriptorB = mock(IRecordingDescriptor.class);
+        when(descriptorB.getName()).thenReturn("bar");
+
+        when(descriptorA.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
+        when(descriptorA.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
         when(connection.getApproximateServerTime()).thenReturn(5_000L);
         when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
+        when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
         assertTimeout(Duration.ofSeconds(10), () -> {
             command.execute(new String[] { "foo" });
