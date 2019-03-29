@@ -26,18 +26,20 @@ public class RecordingExporter implements ConnectionListener {
 
     private IFlightRecorderService service;
     private final NetworkResolver resolver;
-    private final ServerImpl server;
+    private final NanoHTTPD server;
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
     @Inject
     public RecordingExporter(NetworkResolver resolver) {
         this.resolver = resolver;
-        try {
-            this.server = new ServerImpl();
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        this.server = new ServerImpl();
+    }
+
+    // Testing-only constructor
+    RecordingExporter(NetworkResolver resolver, NanoHTTPD server) {
+        this.resolver = resolver;
+        this.server = server;
     }
 
     @Override
@@ -107,7 +109,7 @@ public class RecordingExporter implements ConnectionListener {
 
     private class ServerImpl extends NanoHTTPD {
 
-        private ServerImpl() throws IOException {
+        private ServerImpl() {
             super(8080);
         }
 
