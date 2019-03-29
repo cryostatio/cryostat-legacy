@@ -151,4 +151,25 @@ class WaitForCommandTest extends StdoutTest {
         });
     }
 
+    @Test
+    void shouldExitEarlyForAlreadyStoppedRecordings() throws Exception {
+        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
+        when(descriptor.getName()).thenReturn("foo");
+        when(descriptor.isContinuous()).thenReturn(true);
+        when(descriptor.getState()).thenReturn(RecordingState.STOPPED);
+        when(descriptor.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
+        when(descriptor.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
+
+        command.execute(new String[] { "foo" });
+
+        verify(connection).getService();
+        verify(service).getAvailableRecordings();
+        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("\n"));
+
+        verifyNoMoreInteractions(connection);
+        verifyNoMoreInteractions(service);
+    }
+
 }
