@@ -1,5 +1,8 @@
 package es.andrewazor.containertest;
 
+import java.io.IOException;
+import java.util.Scanner;
+
 import javax.inject.Singleton;
 
 import dagger.Binds;
@@ -21,6 +24,21 @@ abstract class MainModule {
     @Provides @Singleton static JMCConnectionToolkit provideJMCConnectionToolkit() {
         return new JMCConnectionToolkit();
     }
+    @Provides @Singleton static ClientReader provideClientReader() {
+        return new ClientReader() {
+            private final Scanner scanner = new Scanner(System.in);
+
+            @Override
+            public void close() throws IOException {
+                scanner.close();
+            }
+
+            @Override
+            public String readLine() {
+                return scanner.nextLine();
+            }
+        };
+    };
     @Provides @Singleton static ClientWriter provideClientWriter() {
         return new ClientWriter() {
             @Override

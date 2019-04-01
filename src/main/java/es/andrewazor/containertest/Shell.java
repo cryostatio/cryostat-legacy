@@ -9,7 +9,10 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 import javax.inject.Singleton;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import dagger.Lazy;
 import dagger.Module;
@@ -20,17 +23,21 @@ import es.andrewazor.containertest.commands.internal.ExitCommand;
 @Module
 class Shell implements ConnectionListener {
 
+    private final ClientReader cr;
     private final ClientWriter cw;
     private final Lazy<CommandRegistry> commandRegistry;
     private boolean connected = false;
 
-    @Inject Shell(ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    @Inject Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+        this.cr = cr;
         this.cw = cw;
         this.commandRegistry = commandRegistry;
     }
 
-    @Provides @Singleton static Shell provideShell(ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
-        return new Shell(cw, commandRegistry);
+    @Provides
+    @Singleton
+    static Shell provideShell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+        return new Shell(cr, cw, commandRegistry);
     }
 
     @Override
@@ -57,17 +64,19 @@ class Shell implements ConnectionListener {
     }
 
     private void runInteractive() {
-        try (Scanner scanner = new Scanner(System.in)) {
+        try (cr) {
             String in;
             do {
                 cw.print(this.connected ? "> " : "- ");
                 try {
-                    in = scanner.nextLine().trim();
+                    in = cr.readLine().trim();
                 } catch (NoSuchElementException e) {
                     in = ExitCommand.NAME;
                 }
                 executeCommandLine(in);
             } while (!in.toLowerCase().equals(ExitCommand.NAME.toLowerCase()));
+        } catch (Exception e) {
+            cw.println(ExceptionUtils.getStackTrace(e));
         }
     }
 
