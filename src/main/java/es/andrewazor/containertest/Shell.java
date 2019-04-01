@@ -20,15 +20,17 @@ import es.andrewazor.containertest.commands.internal.ExitCommand;
 @Module
 class Shell implements ConnectionListener {
 
+    private final ClientWriter cw;
     private final Lazy<CommandRegistry> commandRegistry;
     private boolean connected = false;
 
-    @Inject Shell(Lazy<CommandRegistry> commandRegistry) {
+    @Inject Shell(ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+        this.cw = cw;
         this.commandRegistry = commandRegistry;
     }
 
-    @Provides @Singleton static Shell provideShell(Lazy<CommandRegistry> commandRegistry) {
-        return new Shell(commandRegistry);
+    @Provides @Singleton static Shell provideShell(ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+        return new Shell(cw, commandRegistry);
     }
 
     @Override
@@ -58,7 +60,7 @@ class Shell implements ConnectionListener {
         try (Scanner scanner = new Scanner(System.in)) {
             String in;
             do {
-                System.out.print(this.connected ? "> " : "- ");
+                cw.print(this.connected ? "> " : "- ");
                 try {
                     in = scanner.nextLine().trim();
                 } catch (NoSuchElementException e) {
@@ -84,7 +86,7 @@ class Shell implements ConnectionListener {
             try {
                 boolean valid = this.commandRegistry.get().validate(commandLine.command, commandLine.args);
                 if (!valid) {
-                    System.out.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
+                    cw.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
                 }
                 allValid &= valid;
             } catch (Exception e) {
@@ -99,13 +101,13 @@ class Shell implements ConnectionListener {
 
         for (CommandLine commandLine : commandLines) {
             try {
-                System.out.println(String.format("\n\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
+                cw.println(String.format("\n\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
                 this.commandRegistry.get().execute(commandLine.command, commandLine.args);
                 if (commandLine.command.toLowerCase().equals(ExitCommand.NAME.toLowerCase())) {
                     break;
                 }
             } catch (Exception e) {
-                System.err.println(String.format("%s operation failed due to %s", commandLine, e.getMessage()));
+                cw.println(String.format("%s operation failed due to %s", commandLine, e.getMessage()));
                 e.printStackTrace();
             }
         }
