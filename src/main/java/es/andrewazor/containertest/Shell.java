@@ -100,7 +100,7 @@ class Shell implements ConnectionListener {
                 allValid &= valid;
             } catch (Exception e) {
                 allValid = false;
-                e.printStackTrace();
+                cw.println(ExceptionUtils.getStackTrace(e));
             }
         }
 
@@ -117,7 +117,7 @@ class Shell implements ConnectionListener {
                 }
             } catch (Exception e) {
                 cw.println(String.format("%s operation failed due to %s", commandLine, e.getMessage()));
-                e.printStackTrace();
+                cw.println(ExceptionUtils.getStackTrace(e));
             }
         }
     }

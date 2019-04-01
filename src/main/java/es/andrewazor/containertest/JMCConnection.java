@@ -66,6 +66,7 @@ public class JMCConnection {
                 if (attempts >= maxRetry) {
                     throw e;
                 } else {
+                    // TODO: print this to contextual ClientWriter
                     e.printStackTrace();
                 }
                 try {

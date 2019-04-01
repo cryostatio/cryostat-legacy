@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -125,7 +126,7 @@ public class RecordingExporter implements ConnectionListener {
             try {
                 return newFlightRecorderResponse(recordingName);
             } catch (FlightRecorderException fre) {
-                fre.printStackTrace();
+                cw.println(ExceptionUtils.getStackTrace(fre));
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }
