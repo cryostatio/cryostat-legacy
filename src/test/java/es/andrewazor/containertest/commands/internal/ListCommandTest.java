@@ -8,9 +8,6 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-
-import javax.management.ObjectName;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -19,15 +16,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class ListCommandTest extends StdoutTest {
+class ListCommandTest extends TestBase {
 
     private ListCommand command;
     @Mock private JMCConnection connection;

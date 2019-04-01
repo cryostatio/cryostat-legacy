@@ -26,10 +26,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class WaitForCommandTest extends StdoutTest {
+class WaitForCommandTest extends TestBase {
 
     private WaitForCommand command;
     @Mock

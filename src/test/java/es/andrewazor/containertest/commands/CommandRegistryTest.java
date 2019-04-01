@@ -16,12 +16,12 @@ import java.util.HashSet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.CommandRegistry.CommandDefinitionException;
 
 public class CommandRegistryTest {
 
-    static class WithEmptySetCommands extends StdoutTest {
+    static class WithEmptySetCommands extends TestBase {
         private CommandRegistry registry;
 
         @BeforeEach
@@ -54,7 +54,7 @@ public class CommandRegistryTest {
         }
     }
 
-    static class WithCommandDefinitions extends StdoutTest {
+    static class WithCommandDefinitions extends TestBase {
         private CommandRegistry registry;
 
         private FooCommand fooCommand = new FooCommand();

@@ -30,13 +30,13 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.internal.EventOptionsBuilder.EventOptionException;
 import es.andrewazor.containertest.commands.internal.EventOptionsBuilder.EventTypeException;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
-class EventOptionsBuilderTest extends StdoutTest {
+class EventOptionsBuilderTest extends TestBase {
 
     private EventOptionsBuilder builder;
     @Mock private JMCConnection connection;
@@ -117,7 +117,7 @@ class EventOptionsBuilderTest extends StdoutTest {
     }
 
     @ExtendWith(MockitoExtension.class)
-    static class FactoryTest extends StdoutTest {
+    static class FactoryTest extends TestBase {
 
         private EventOptionsBuilder.Factory factory;
         @Mock private JMCConnection connection;

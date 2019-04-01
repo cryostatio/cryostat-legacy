@@ -19,10 +19,10 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class AbstractRecordingCommandTest extends StdoutTest {
+class AbstractRecordingCommandTest extends TestBase {
 
     private AbstractRecordingCommand command;
     @Mock private JMCConnection connection;

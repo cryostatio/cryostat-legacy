@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -22,10 +21,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class SearchEventsCommandTest extends StdoutTest {
+class SearchEventsCommandTest extends TestBase {
 
     private SearchEventsCommand command;
     @Mock private JMCConnection connection;

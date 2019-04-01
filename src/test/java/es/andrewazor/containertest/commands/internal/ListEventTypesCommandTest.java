@@ -19,10 +19,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class ListEventTypesCommandTest extends StdoutTest {
+class ListEventTypesCommandTest extends TestBase {
 
     private ListEventTypesCommand command;
     @Mock private JMCConnection connection;

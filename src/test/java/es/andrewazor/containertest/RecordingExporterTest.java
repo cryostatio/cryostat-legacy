@@ -26,7 +26,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import fi.iki.elonen.NanoHTTPD;
 
 @ExtendWith(MockitoExtension.class)
-class RecordingExporterTest extends StdoutTest {
+class RecordingExporterTest extends TestBase {
 
     RecordingExporter exporter;
     @Mock JMCConnection connection;

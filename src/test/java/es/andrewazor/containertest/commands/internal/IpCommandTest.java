@@ -13,10 +13,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.NetworkResolver;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class IpCommandTest extends StdoutTest {
+class IpCommandTest extends TestBase {
 
     private IpCommand command;
     @Mock private NetworkResolver resolver;

@@ -16,11 +16,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.CommandRegistry;
 
 @ExtendWith(MockitoExtension.class)
-class HelpCommandTest extends StdoutTest {
+class HelpCommandTest extends TestBase {
 
     private HelpCommand command;
     @Mock private CommandRegistry registry;

@@ -28,10 +28,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.RecordingExporter;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class DumpCommandTest extends StdoutTest {
+class DumpCommandTest extends TestBase {
 
     private DumpCommand command;
     @Mock private RecordingExporter exporter;

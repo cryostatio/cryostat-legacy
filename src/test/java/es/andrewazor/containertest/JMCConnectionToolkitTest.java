@@ -11,7 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.internal.WrappedConnectionException;
 
 @ExtendWith(MockitoExtension.class)
-class JMCConnectionToolkitTest extends StdoutTest {
+class JMCConnectionToolkitTest extends TestBase {
 
     JMCConnectionToolkit toolkit;
 

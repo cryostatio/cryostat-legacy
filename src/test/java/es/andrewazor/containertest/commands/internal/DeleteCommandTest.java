@@ -23,10 +23,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.StdoutTest;
+import es.andrewazor.containertest.TestBase;
 
 @ExtendWith(MockitoExtension.class)
-class DeleteCommandTest extends StdoutTest {
+class DeleteCommandTest extends TestBase {
 
     private DeleteCommand command;
     @Mock private IRecordingDescriptor recordingDescriptor;

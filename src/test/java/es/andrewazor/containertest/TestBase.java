@@ -6,7 +6,7 @@ import java.io.PrintStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-public class StdoutTest {
+public class TestBase {
     protected PrintStream origOut;
     protected ByteArrayOutputStream stdout;
     protected boolean echoStdout = false;
