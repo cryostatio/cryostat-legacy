@@ -32,7 +32,7 @@ class SearchEventsCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new SearchEventsCommand();
+        command = new SearchEventsCommand(mockClientWriter);
         command.connectionChanged(connection);
     }
 
@@ -55,7 +55,7 @@ class SearchEventsCommandTest extends TestBase {
 
         command.execute(new String[] { "foo" });
 
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("\tNo matches\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("\tNo matches\n"));
     }
 
     @Test
@@ -101,7 +101,7 @@ class SearchEventsCommandTest extends TestBase {
 
         command.execute(new String[] { "foo" });
 
-        String out = stdout.toString();
+        String out = stdout();
         MatcherAssert.assertThat(out, Matchers.allOf(
             Matchers.containsString("\tcom.example.A\toptions: []"),
             Matchers.containsString("\tcom.example.B\toptions: []"),

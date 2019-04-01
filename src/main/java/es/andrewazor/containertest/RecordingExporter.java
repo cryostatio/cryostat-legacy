@@ -24,6 +24,7 @@ public class RecordingExporter implements ConnectionListener {
     private static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
     private static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
 
+    private final ClientWriter cw;
     private IFlightRecorderService service;
     private final NetworkResolver resolver;
     private final NanoHTTPD server;
@@ -31,13 +32,15 @@ public class RecordingExporter implements ConnectionListener {
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
     @Inject
-    public RecordingExporter(NetworkResolver resolver) {
+    public RecordingExporter(ClientWriter cw, NetworkResolver resolver) {
+        this.cw = cw;
         this.resolver = resolver;
         this.server = new ServerImpl();
     }
 
     // Testing-only constructor
-    RecordingExporter(NetworkResolver resolver, NanoHTTPD server) {
+    RecordingExporter(ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+        this.cw = cw;
         this.resolver = resolver;
         this.server = server;
     }
@@ -63,7 +66,7 @@ public class RecordingExporter implements ConnectionListener {
             this.server.start();
             this.service.getAvailableRecordings().forEach(this::addRecording);
 
-            System.out.println(String.format("Recordings available at %s", this.getDownloadURL("$RECORDING_NAME")));
+            cw.println(String.format("Recordings available at %s", this.getDownloadURL("$RECORDING_NAME")));
         }
     }
 

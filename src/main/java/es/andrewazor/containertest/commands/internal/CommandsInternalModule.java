@@ -6,6 +6,7 @@ import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.Command;
 
 @Module
@@ -28,8 +29,8 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindWaitCommand(WaitCommand command);
     @Binds @IntoSet abstract Command bindWaitForCommand(WaitForCommand command);
     @Binds @IntoSet abstract Command bindWaitForDownloadCommand(WaitForDownloadCommand command);
-    @Provides public static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory() {
-        return new EventOptionsBuilder.Factory();
+    @Provides public static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {
+        return new EventOptionsBuilder.Factory(cw);
     }
     @Provides public static RecordingOptionsBuilderFactory provideRecordingOptionsBuilderFactory() {
         return service -> new RecordingOptionsBuilder(service);

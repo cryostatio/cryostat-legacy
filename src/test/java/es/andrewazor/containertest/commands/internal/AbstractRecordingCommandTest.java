@@ -18,6 +18,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.TestBase;
 
@@ -31,25 +32,25 @@ class AbstractRecordingCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new BaseRecordingCommand(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        command = new BaseRecordingCommand(mockClientWriter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
     }
 
     @Test
     void emptyStringIsInvalidEventString() {
         assertFalse(command.validateEvents(""));
-        assertThat(stdout.toString(), equalTo(" is an invalid events pattern\n"));
+        assertThat(stdout(), equalTo(" is an invalid events pattern\n"));
     }
 
     @Test
     void corruptStringIsInvalidEventString() {
         assertFalse(command.validateEvents("jdk:bar:baz"));
-        assertThat(stdout.toString(), equalTo("jdk:bar:baz is an invalid events pattern\n"));
+        assertThat(stdout(), equalTo("jdk:bar:baz is an invalid events pattern\n"));
     }
 
     @Test
     void eventWithoutPropertyIsInvalid() {
         assertFalse(command.validateEvents("jdk.Event"));
-        assertThat(stdout.toString(), equalTo("jdk.Event is an invalid events pattern\n"));
+        assertThat(stdout(), equalTo("jdk.Event is an invalid events pattern\n"));
     }
 
     @Test
@@ -85,8 +86,9 @@ class AbstractRecordingCommandTest extends TestBase {
     }
 
     private static class BaseRecordingCommand extends AbstractRecordingCommand {
-        BaseRecordingCommand(EventOptionsBuilder.Factory eventOptionsBuilderFactory, RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-            super(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        BaseRecordingCommand(ClientWriter cw, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+                RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+            super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         }
 
         @Override

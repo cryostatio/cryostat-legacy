@@ -32,14 +32,12 @@ import es.andrewazor.containertest.TestBase;
 class WaitForCommandTest extends TestBase {
 
     private WaitForCommand command;
-    @Mock
-    private JMCConnection connection;
-    @Mock
-    private IFlightRecorderService service;
+    @Mock private JMCConnection connection;
+    @Mock private IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        command = new WaitForCommand();
+        command = new WaitForCommand(mockClientWriter);
         command.connectionChanged(connection);
     }
 
@@ -51,25 +49,25 @@ class WaitForCommandTest extends TestBase {
     @Test
     void shouldNotExpectZeroArgs() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected one argument\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldNotExpectTooManyArgs() {
         assertFalse(command.validate(new String[2]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected one argument\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldNotValidateMalformedRecordingName() {
         assertFalse(command.validate(new String[] { "." }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(". is an invalid recording name\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
     }
 
     @Test
     void shouldValidateArgs() {
         assertTrue(command.validate(new String[] { "foo" }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.emptyString());
+        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
@@ -81,7 +79,7 @@ class WaitForCommandTest extends TestBase {
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout.toString(),
+        MatcherAssert.assertThat(stdout(),
                 Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
 
         verifyNoMoreInteractions(connection);
@@ -101,7 +99,7 @@ class WaitForCommandTest extends TestBase {
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout.toString(),
+        MatcherAssert.assertThat(stdout(),
                 Matchers.equalTo("Recording \"foo\" is continuous, refusing to wait\n"));
 
         verifyNoMoreInteractions(connection);
@@ -144,7 +142,7 @@ class WaitForCommandTest extends TestBase {
                     new byte[] { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 8, 8, 8, 8, 8, 8,
                             8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 46, 10 }
                             );
-            MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(s));
+            MatcherAssert.assertThat(stdout(), Matchers.equalTo(s));
 
             verifyNoMoreInteractions(connection);
             verifyNoMoreInteractions(service);
@@ -166,7 +164,7 @@ class WaitForCommandTest extends TestBase {
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("\n"));
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);

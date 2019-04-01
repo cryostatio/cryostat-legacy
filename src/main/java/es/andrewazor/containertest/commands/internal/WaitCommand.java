@@ -3,12 +3,17 @@ package es.andrewazor.containertest.commands.internal;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.Command;
 
 @Singleton
 class WaitCommand implements Command {
 
-    @Inject WaitCommand() { }
+    private final ClientWriter cw;
+
+    @Inject WaitCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -26,22 +31,22 @@ class WaitCommand implements Command {
         long targetTime = startTime + 1000 * seconds;
 
         while (currentTime < targetTime) {
-            System.out.print(". ");
+            cw.print(". ");
             currentTime = System.currentTimeMillis();
             Thread.sleep(1000);
         }
-        System.out.println();
+        cw.println();
     }
 
     @Override
     public boolean validate(String[] args) {
         if (args.length != 1) {
-            System.out.println("Expected one argument");
+            cw.println("Expected one argument");
             return false;
         }
 
         if (!args[0].matches("\\d+")) {
-            System.out.println(String.format("%s is an invalid integer", args[0]));
+            cw.println(String.format("%s is an invalid integer", args[0]));
             return false;
         }
 

@@ -7,9 +7,10 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 public class TestBase {
-    protected PrintStream origOut;
-    protected ByteArrayOutputStream stdout;
-    protected boolean echoStdout = false;
+    protected PrintStream mockStdout;
+    protected ClientWriter mockClientWriter;
+    private ByteArrayOutputStream baos;
+    private boolean echoStdout = false;
 
     protected void setEcho(boolean echo) {
         this.echoStdout = echo;
@@ -17,24 +18,27 @@ public class TestBase {
 
     @BeforeEach
     void stdoutSetup() {
-        origOut = System.out;
-        stdout = new ByteArrayOutputStream();
-        System.setOut(new PrintStream(stdout));
+        baos = new ByteArrayOutputStream();
+        mockStdout = new PrintStream(baos);
+        mockClientWriter = mockStdout::print;
     }
 
     @AfterEach
-    void stdoutReset() {
+    void echoStdout() {
         if (echoStdout) {
-            origOut.println(stdout.toString());
+            System.out.println(mockStdout.toString());
         }
-        System.setOut(origOut);
     }
 
-    public void testLog(String tag, String msg) {
-        origOut.println(String.format("[%s] %s", tag, msg));
+    protected String stdout() {
+        return baos.toString();
     }
 
-    public void testLog(String msg) {
-        origOut.println(msg);
+    protected void testLog(String tag, String msg) {
+        System.out.println(String.format("[%s] %s", tag, msg));
+    }
+
+    protected void testLog(String msg) {
+        System.out.println(msg);
     }
 }

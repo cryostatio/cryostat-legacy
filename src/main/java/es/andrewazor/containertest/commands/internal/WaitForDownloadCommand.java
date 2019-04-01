@@ -5,6 +5,7 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.RecordingExporter;
 
 @Singleton
@@ -12,7 +13,8 @@ class WaitForDownloadCommand extends WaitForCommand {
 
     private final RecordingExporter exporter;
 
-    @Inject WaitForDownloadCommand(RecordingExporter exporter) {
+    @Inject WaitForDownloadCommand(ClientWriter cw, RecordingExporter exporter) {
+        super(cw);
         this.exporter = exporter;
     }
 
@@ -29,11 +31,11 @@ class WaitForDownloadCommand extends WaitForCommand {
         String name = args[0];
         IRecordingDescriptor descriptor = getByName(name);
         if (descriptor == null) {
-            System.out.println(String.format("Recording with name \"%s\" not found in target JVM", name));
+            cw.println(String.format("Recording with name \"%s\" not found in target JVM", name));
             return;
         }
 
-        System.out.println(String.format("Waiting for download of recording \"%s\" at %s", name, this.exporter.getDownloadURL(name)));
+        cw.println(String.format("Waiting for download of recording \"%s\" at %s", name, this.exporter.getDownloadURL(name)));
         while (this.exporter.getDownloadCount(name) < 1) {
             Thread.sleep(1000);
         }

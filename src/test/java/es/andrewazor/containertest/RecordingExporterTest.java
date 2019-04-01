@@ -36,7 +36,7 @@ class RecordingExporterTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        exporter = new RecordingExporter(resolver, server);
+        exporter = new RecordingExporter(mockClientWriter, resolver, server);
     }
 
     @Test
@@ -49,7 +49,7 @@ class RecordingExporterTest extends TestBase {
 
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
-        assertDoesNotThrow(() -> new RecordingExporter(resolver));
+        assertDoesNotThrow(() -> new RecordingExporter(mockClientWriter, resolver));
     }
 
     @Test
@@ -70,7 +70,7 @@ class RecordingExporterTest extends TestBase {
         inOrder.verify(server).isAlive();
         inOrder.verify(server).start();
 
-        MatcherAssert.assertThat(stdout.toString(),
+        MatcherAssert.assertThat(stdout(),
                 Matchers.equalTo("Recordings available at http://host-address:8080/$RECORDING_NAME\n"));
 
         verifyNoMoreInteractions(server);
@@ -124,7 +124,7 @@ class RecordingExporterTest extends TestBase {
         inOrder.verify(server).isAlive();
         inOrder.verify(server).start();
 
-        MatcherAssert.assertThat(stdout.toString(),
+        MatcherAssert.assertThat(stdout(),
                 Matchers.equalTo("Recordings available at http://host-address:8080/$RECORDING_NAME\n"));
 
         verifyNoMoreInteractions(server);

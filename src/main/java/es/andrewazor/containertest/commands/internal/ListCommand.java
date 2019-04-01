@@ -8,10 +8,16 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.ClientWriter;
+
 @Singleton
 class ListCommand extends AbstractConnectedCommand {
 
-    @Inject ListCommand() { }
+    private final ClientWriter cw;
+
+    @Inject ListCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -23,13 +29,13 @@ class ListCommand extends AbstractConnectedCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println("Available recordings:");
+        cw.println("Available recordings:");
         Collection<IRecordingDescriptor> recordings = getService().getAvailableRecordings();
         if (recordings.isEmpty()) {
-            System.out.println("\tNone");
+            cw.println("\tNone");
         }
         for (IRecordingDescriptor recording : recordings) {
-            System.out.println(toString(recording));
+            cw.println(toString(recording));
         }
     }
 

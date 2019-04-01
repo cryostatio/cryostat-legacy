@@ -6,6 +6,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.RecordingExporter;
 import es.andrewazor.containertest.jmc.CopyRecordingDescriptor;
 
@@ -15,9 +16,9 @@ class SnapshotCommand extends AbstractRecordingCommand {
     private final RecordingExporter exporter;
 
     @Inject
-    SnapshotCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    SnapshotCommand(ClientWriter cw, RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 
@@ -31,7 +32,7 @@ class SnapshotCommand extends AbstractRecordingCommand {
         IRecordingDescriptor descriptor = getService().getSnapshotRecording();
 
         String rename = String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
-        System.out.println(String.format("Latest snapshot: \"%s\"", rename));
+        cw.println(String.format("Latest snapshot: \"%s\"", rename));
 
         RecordingOptionsBuilder recordingOptionsBuilder = recordingOptionsBuilderFactory.create(getService());
             recordingOptionsBuilder.name(rename);

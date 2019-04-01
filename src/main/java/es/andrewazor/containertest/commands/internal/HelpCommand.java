@@ -4,15 +4,18 @@ import javax.inject.Inject;
 
 import dagger.Lazy;
 import dagger.Module;
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.commands.CommandRegistry;
 
 @Module
 class HelpCommand implements Command {
 
+    private final ClientWriter cw;
     private final Lazy<CommandRegistry> registry;
 
-    @Inject HelpCommand(Lazy<CommandRegistry> commandRegistry) {
+    @Inject HelpCommand(ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+        this.cw = cw;
         this.registry = commandRegistry;
     }
 
@@ -26,9 +29,9 @@ class HelpCommand implements Command {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println("Available commands:");
+        cw.println("Available commands:");
         registry.get().getAvailableCommandNames()
-            .forEach(name -> System.out.println(String.format("\t%s", name)));
+            .forEach(name -> cw.println(String.format("\t%s", name)));
     }
 
     @Override

@@ -6,10 +6,16 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.ClientWriter;
+
 @Singleton
 class WaitForCommand extends AbstractConnectedCommand {
 
-    @Inject WaitForCommand() { }
+    protected final ClientWriter cw;
+
+    @Inject WaitForCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -24,12 +30,12 @@ class WaitForCommand extends AbstractConnectedCommand {
         String name = args[0];
         IRecordingDescriptor descriptor = getByName(name);
         if (descriptor == null) {
-            System.out.println(String.format("Recording with name \"%s\" not found in target JVM", name));
+            cw.println(String.format("Recording with name \"%s\" not found in target JVM", name));
             return;
         }
 
         if (descriptor.isContinuous() && !descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
-            System.out.println(String.format("Recording \"%s\" is continuous, refusing to wait", name));
+            cw.println(String.format("Recording \"%s\" is continuous, refusing to wait", name));
             return;
         }
 
@@ -44,37 +50,37 @@ class WaitForCommand extends AbstractConnectedCommand {
             int currentDots = (int) Math.ceil(10 * elapsedProportion);
             if (currentDots > lastDots) {
                 for (int i = 0; i < 2 * currentDots; i++) {
-                    System.out.print('\b');
+                    cw.print('\b');
                 }
                 StringBuilder sb = new StringBuilder();
                 for (int i = 0; i < currentDots; i++) {
                     sb.append(". ");
                 }
-                System.out.print(sb.toString().trim());
+                cw.print(sb.toString().trim());
                 lastDots = currentDots;
             } else {
                 progressFlag = !progressFlag;
                 if (progressFlag) {
-                    System.out.print('\b');
+                    cw.print('\b');
                 } else {
-                    System.out.print('.');
+                    cw.print('.');
                 }
             }
             Thread.sleep(1000);
             descriptor = getByName(name);
         }
-        System.out.println();
+        cw.println();
     }
 
     @Override
     public boolean validate(String[] args) {
         if (args.length != 1) {
-            System.out.println("Expected one argument");
+            cw.println("Expected one argument");
             return false;
         }
 
         if (!args[0].matches("[\\w-_]+")) {
-            System.out.println(String.format("%s is an invalid recording name", args[0]));
+            cw.println(String.format("%s is an invalid recording name", args[0]));
             return false;
         }
 

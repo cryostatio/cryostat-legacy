@@ -30,7 +30,7 @@ class ListRecordingOptionsCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new ListRecordingOptionsCommand();
+        command = new ListRecordingOptionsCommand(mockClientWriter);
         command.connectionChanged(connection);
     }
 
@@ -61,7 +61,7 @@ class ListRecordingOptionsCommandTest extends TestBase {
         when(service.getAvailableRecordingOptions()).thenReturn(options);
 
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.allOf(
+        MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("Available recording options:\n"),
             Matchers.containsString("\tfoo-option : foo-option-toString\n")
         ));

@@ -2,14 +2,17 @@ package es.andrewazor.containertest.commands.internal;
 
 import javax.inject.Inject;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.NetworkResolver;
 import es.andrewazor.containertest.commands.Command;
 
 class HostnameCommand implements Command {
 
+    private final ClientWriter cw;
     private final NetworkResolver resolver;
 
-    @Inject HostnameCommand(NetworkResolver resolver) {
+    @Inject HostnameCommand(ClientWriter cw, NetworkResolver resolver) {
+        this.cw = cw;
         this.resolver = resolver;
     }
 
@@ -30,6 +33,6 @@ class HostnameCommand implements Command {
 
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println(String.format("\t%s", resolver.getHostName()));
+        cw.println(String.format("\t%s", resolver.getHostName()));
     }
 }

@@ -34,7 +34,7 @@ class DeleteCommandTest extends TestBase {
 
     @BeforeEach
     void setup() throws FlightRecorderException {
-        command = new DeleteCommand();
+        command = new DeleteCommand(mockClientWriter);
         command.connectionChanged(connection);
     }
 
@@ -63,7 +63,7 @@ class DeleteCommandTest extends TestBase {
         
         command.execute(new String[]{"bar-recording"});
         verify(connection.getService(), never()).close(recordingDescriptor);
-        assertThat(stdout.toString(), equalTo("No recording with name \"bar-recording\" found\n"));
+        assertThat(stdout(), equalTo("No recording with name \"bar-recording\" found\n"));
     }
 
     @Test

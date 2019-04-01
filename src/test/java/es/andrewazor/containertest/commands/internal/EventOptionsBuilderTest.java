@@ -64,24 +64,24 @@ class EventOptionsBuilderTest extends TestBase {
         when(constraint.parseInteractive(Mockito.any())).thenReturn("val");
         when(constraint.validate(Mockito.any())).thenReturn(true);
 
-        builder = new EventOptionsBuilder(connection, () -> true);
+        builder = new EventOptionsBuilder(mockClientWriter, connection, () -> true);
     }
 
     @Test
     void shouldWarnV1Unsupported() throws FlightRecorderException {
-        new EventOptionsBuilder(connection, () -> false);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+        new EventOptionsBuilder(mockClientWriter, connection, () -> false);
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
     }
 
     @Test
     void shouldWarnV1Unsupported2() throws FlightRecorderException {
-        new EventOptionsBuilder(connection, () -> false);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+        new EventOptionsBuilder(mockClientWriter, connection, () -> false);
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
     }
 
     @Test
     void shouldBuildNullMapWhenV1Detected() throws FlightRecorderException {
-        MatcherAssert.assertThat(new EventOptionsBuilder(connection, () -> false).build(), Matchers.nullValue());
+        MatcherAssert.assertThat(new EventOptionsBuilder(mockClientWriter, connection, () -> false).build(), Matchers.nullValue());
     }
 
     @Test
@@ -127,7 +127,7 @@ class EventOptionsBuilderTest extends TestBase {
 
         @BeforeEach
         void setup() {
-            factory = new EventOptionsBuilder.Factory();
+            factory = new EventOptionsBuilder.Factory(mockClientWriter);
         }
 
         @Test
@@ -136,7 +136,7 @@ class EventOptionsBuilderTest extends TestBase {
             when(service.getDefaultEventOptions()).thenReturn(map);
             when(map.emptyWithSameConstraints()).thenReturn(mutableMap);
             EventOptionsBuilder result = factory.create(connection);
-            MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+            MatcherAssert.assertThat(stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
         }
 
     }

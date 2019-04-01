@@ -63,9 +63,7 @@ public class JMCConnection {
                 return conn;
             } catch (Exception e) {
                 attempts++;
-                System.out.println(String.format("Connection attempt #%s failed", attempts));
                 if (attempts >= maxRetry) {
-                    System.out.println("Aborting...");
                     throw e;
                 } else {
                     e.printStackTrace();

@@ -26,7 +26,7 @@ public class CommandRegistryTest {
 
         @BeforeEach
         public void setup() {
-            registry = new CommandRegistry(Collections.emptySet());
+            registry = new CommandRegistry(mockClientWriter, Collections.emptySet());
         }
 
         @Test
@@ -44,13 +44,13 @@ public class CommandRegistryTest {
         @Test
         public void shouldNoOpOnExecute() throws Exception {
             registry.execute("foo", new String[] {});
-            assertThat(stdout.toString(), equalTo("Command \"foo\" not recognized\n"));
+            assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
         }
 
         @Test
         public void shouldNotValidateCommands() throws Exception {
             assertFalse(registry.validate("foo", new String[0]));
-            assertThat(stdout.toString(), equalTo("Command \"foo\" not recognized\n"));
+            assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
         }
     }
 
@@ -64,7 +64,7 @@ public class CommandRegistryTest {
 
         @BeforeEach
         public void setup() {
-            registry = new CommandRegistry(new HashSet<Command>(Arrays.asList(commands)));
+            registry = new CommandRegistry(mockClientWriter, new HashSet<Command>(Arrays.asList(commands)));
         }
 
         @Test
@@ -91,7 +91,7 @@ public class CommandRegistryTest {
             assertThat("command should not have been executed", barCommand.value, nullValue());
             registry.execute("bar", new String[] { "arg" });
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            assertThat(stdout.toString(), equalTo("Command \"bar\" not available\n"));
+            assertThat(stdout(), equalTo("Command \"bar\" not available\n"));
         }
 
         @Test
@@ -101,13 +101,13 @@ public class CommandRegistryTest {
             registry.execute("baz", new String[] { "arg" });
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            assertThat(stdout.toString(), equalTo("Command \"baz\" not recognized\n"));
+            assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
         }
 
         @Test
         public void shouldNotValidateUnknownCommands() throws Exception {
             assertFalse(registry.validate("baz", new String[0]));
-            assertThat(stdout.toString(), equalTo("Command \"baz\" not recognized\n"));
+            assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
         }
 
         @Test
@@ -121,11 +121,11 @@ public class CommandRegistryTest {
         }
     }
 
-    static class WithConflictingCommandDefinitions {
+    static class WithConflictingCommandDefinitions extends TestBase {
         @Test
         public void shouldThrowCommandDefinitionException() {
             CommandDefinitionException thrown = assertThrows(CommandDefinitionException.class,
-                    () -> new CommandRegistry(
+                    () -> new CommandRegistry(mockClientWriter,
                             new HashSet<Command>(Arrays.asList(new FooCommand(), new DuplicateFooCommand()))),
                     "should throw CommandDefinitionException for duplicate definitions");
             assertThat(thrown.getMessage(),

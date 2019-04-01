@@ -11,10 +11,16 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import es.andrewazor.containertest.ClientWriter;
+
 @Singleton
 class SearchEventsCommand extends AbstractConnectedCommand {
 
-    @Inject SearchEventsCommand() { }
+    private final ClientWriter cw;
+
+    @Inject SearchEventsCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -35,13 +41,13 @@ class SearchEventsCommand extends AbstractConnectedCommand {
             .collect(Collectors.toList());
 
         if (matchingEvents.isEmpty()) {
-            System.out.println("\tNo matches");
+            cw.println("\tNo matches");
         }
         matchingEvents.forEach(this::printEvent);
     }
 
     private void printEvent(IEventTypeInfo event) {
-        System.out.println(String.format("\t%s\toptions: %s", event.getEventTypeID().getFullKey(), event.getOptionDescriptors().keySet().toString()));
+        cw.println(String.format("\t%s\toptions: %s", event.getEventTypeID().getFullKey(), event.getOptionDescriptors().keySet().toString()));
     }
 
     private boolean eventMatchesSearchTerm(IEventTypeInfo event, String term) {

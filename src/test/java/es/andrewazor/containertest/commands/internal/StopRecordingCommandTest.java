@@ -34,7 +34,7 @@ class StopRecordingCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new StopRecordingCommand();
+        command = new StopRecordingCommand(mockClientWriter);
         command.connectionChanged(connection);
     }
 
@@ -46,19 +46,19 @@ class StopRecordingCommandTest extends TestBase {
     @Test
     void shouldNotExpectNoArg() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected one argument: recording name.\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument: recording name.\n"));
     }
 
     @Test
     void shouldNotExpectMalformedArg() {
         assertFalse(command.validate(new String[]{ "." }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(". is an invalid recording name\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
     }
 
     @Test
     void shouldExpectRecordingNameArg() {
         assertTrue(command.validate(new String[]{ "foo" }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.emptyString());
+        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
@@ -73,7 +73,7 @@ class StopRecordingCommandTest extends TestBase {
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Recording with name \"foo\" not found\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Recording with name \"foo\" not found\n"));
     }
 
     @Test
@@ -98,7 +98,7 @@ class StopRecordingCommandTest extends TestBase {
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.emptyString());
+        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
 }

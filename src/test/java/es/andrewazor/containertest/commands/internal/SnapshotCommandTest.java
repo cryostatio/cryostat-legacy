@@ -37,7 +37,8 @@ class SnapshotCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new SnapshotCommand(exporter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        command = new SnapshotCommand(mockClientWriter, exporter, eventOptionsBuilderFactory,
+                recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 
@@ -68,11 +69,11 @@ class SnapshotCommandTest extends TestBase {
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
         verifyZeroInteractions(exporter);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.emptyString());
+        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
 
         command.execute(new String[0]);
 
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Latest snapshot: \"snapshot-1\"\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Latest snapshot: \"snapshot-1\"\n"));
         verify(service).getSnapshotRecording();
         verify(service).updateRecordingOptions(Mockito.same(snapshot), Mockito.same(builtMap));
 

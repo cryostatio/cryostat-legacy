@@ -5,10 +5,16 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import es.andrewazor.containertest.ClientWriter;
+
 @Singleton
 class ListEventTypesCommand extends AbstractConnectedCommand {
 
-    @Inject ListEventTypesCommand() { }
+    private final ClientWriter cw;
+
+    @Inject ListEventTypesCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -20,7 +26,7 @@ class ListEventTypesCommand extends AbstractConnectedCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println("Available event types");
+        cw.println("Available event types");
         getService().getAvailableEventTypes().forEach(this::printEvent);
     }
 
@@ -30,6 +36,6 @@ class ListEventTypesCommand extends AbstractConnectedCommand {
     }
 
     private void printEvent(IEventTypeInfo event) {
-        System.out.println(String.format("\t%s", event));
+        cw.println(String.format("\t%s", event));
     }
 }

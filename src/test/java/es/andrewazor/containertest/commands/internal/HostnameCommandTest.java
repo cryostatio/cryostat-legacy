@@ -23,7 +23,7 @@ class HostnameCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new HostnameCommand(resolver);
+        command = new HostnameCommand(mockClientWriter, resolver);
     }
 
     @Test
@@ -50,7 +50,7 @@ class HostnameCommandTest extends TestBase {
     void shouldPrintResolverHostname() throws Exception {
         when(resolver.getHostName()).thenReturn("foo-host");
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("\tfoo-host\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("\tfoo-host\n"));
     }
 
 }

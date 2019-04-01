@@ -7,10 +7,16 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
+import es.andrewazor.containertest.ClientWriter;
+
 @Singleton
 class ListRecordingOptionsCommand extends AbstractConnectedCommand {
 
-    @Inject ListRecordingOptionsCommand() { }
+    private final ClientWriter cw;
+
+    @Inject ListRecordingOptionsCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -22,7 +28,7 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        System.out.println("Available recording options:");
+        cw.println("Available recording options:");
         getService().getAvailableRecordingOptions().entrySet().forEach(this::printOptions);
     }
 
@@ -32,6 +38,6 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand {
     }
 
     private void printOptions(Map.Entry<String, IOptionDescriptor<?>> entry) {
-        System.out.println(String.format("\t%s : %s", entry.getKey(), entry.getValue()));
+        cw.println(String.format("\t%s : %s", entry.getKey(), entry.getValue()));
     }
 }

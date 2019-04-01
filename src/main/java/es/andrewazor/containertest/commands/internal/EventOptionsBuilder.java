@@ -14,29 +14,31 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceV2;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.JMCConnection;
 
 class EventOptionsBuilder {
 
-
+    private final ClientWriter cw;
     private final boolean isV2;
     private final IMutableConstrainedMap<EventOptionID> map;
     private Map<IEventTypeID, Map<String, IOptionDescriptor<?>>> knownTypes;
     private Map<String, IEventTypeID> eventIds;
 
-    private EventOptionsBuilder(JMCConnection connection) throws FlightRecorderException {
-        this(connection, () -> FlightRecorderServiceV2.isAvailable(connection.getHandle()));
+    private EventOptionsBuilder(ClientWriter cw, JMCConnection connection) throws FlightRecorderException {
+        this(cw, connection, () -> FlightRecorderServiceV2.isAvailable(connection.getHandle()));
     }
 
     // Testing only
-    EventOptionsBuilder(JMCConnection connection, Supplier<Boolean> v2) throws FlightRecorderException {
+    EventOptionsBuilder(ClientWriter cw, JMCConnection connection, Supplier<Boolean> v2) throws FlightRecorderException {
+        this.cw = cw;
         this.isV2 = v2.get();
         this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
         knownTypes = new HashMap<>();
         eventIds = new HashMap<>();
 
         if (!isV2) {
-            System.out.println("Flight Recorder V1 is not yet supported");
+            cw.println("Flight Recorder V1 is not yet supported");
         }
 
         for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
@@ -88,8 +90,14 @@ class EventOptionsBuilder {
     }
 
     public static class Factory {
+        private final ClientWriter cw;
+
+        public Factory(ClientWriter cw) {
+            this.cw = cw;
+        }
+
         public EventOptionsBuilder create(JMCConnection connection) throws FlightRecorderException {
-            return new EventOptionsBuilder(connection);
+            return new EventOptionsBuilder(cw, connection);
         }
     }
 }

@@ -42,7 +42,8 @@ class DumpCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new DumpCommand(exporter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        command = new DumpCommand(mockClientWriter, exporter, eventOptionsBuilderFactory,
+                recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 
@@ -54,31 +55,31 @@ class DumpCommandTest extends TestBase {
     @Test
     void shouldPrintArgMessageWhenArgcInvalid() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected three arguments: recording name, recording length, and event types.\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected three arguments: recording name, recording length, and event types.\n"));
     }
 
     @Test
     void shouldPrintMessageWhenRecordingNameInvalid() {
         assertFalse(command.validate(new String[]{".", "30", "foo.Bar:enabled=true"}));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(". is an invalid recording name\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
     }
 
     @Test
     void shouldPrintMessageWhenRecordingLengthInvalid() {
         assertFalse(command.validate(new String[]{"recording", "nine", "foo.Bar:enabled=true"}));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("nine is an invalid recording length\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("nine is an invalid recording length\n"));
     }
 
     @Test
     void shouldPrintMessageWhenEventStringInvalid() {
         assertFalse(command.validate(new String[]{"recording", "30", "foo.Bar:=true"}));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("foo.Bar:=true is an invalid events pattern\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("foo.Bar:=true is an invalid events pattern\n"));
     }
 
     @Test
     void shouldValidateCorrectArgs() {
         assertTrue(command.validate(new String[]{"recording", "30", "foo.Bar:enabled=true"}));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.emptyString());
+        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
@@ -157,7 +158,7 @@ class DumpCommandTest extends TestBase {
         command.execute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
 
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Recording with name \"foo\" already exists\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Recording with name \"foo\" already exists\n"));
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);

@@ -5,10 +5,16 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.ClientWriter;
+
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand {
 
-    @Inject DeleteCommand() { }
+    private final ClientWriter cw;
+
+    @Inject DeleteCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -27,7 +33,7 @@ class DeleteCommand extends AbstractConnectedCommand {
                 return;
             }
         }
-        System.out.println(String.format("No recording with name \"%s\" found", recordingName));
+        cw.println(String.format("No recording with name \"%s\" found", recordingName));
     }
 
     @Override

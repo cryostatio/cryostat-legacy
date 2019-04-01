@@ -38,7 +38,7 @@ class WaitForDownloadCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new WaitForDownloadCommand(exporter);
+        command = new WaitForDownloadCommand(mockClientWriter, exporter);
         command.connectionChanged(connection);
     }
 
@@ -55,25 +55,25 @@ class WaitForDownloadCommandTest extends TestBase {
     @Test
     void shouldNotExpectNoArgs() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected one argument\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldNotExpectTwoArgs() {
         assertFalse(command.validate(new String[2]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected one argument\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldNotExpectMalformedRecordingNameArg() {
         assertFalse(command.validate(new String[]{ "." }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(". is an invalid recording name\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
     }
 
     @Test
     void shouldValidateRecordingNameArg() {
         assertTrue(command.validate(new String[]{ "foo" }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.emptyString());
+        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
@@ -88,7 +88,7 @@ class WaitForDownloadCommandTest extends TestBase {
         command.execute(new String[]{ "foo" });
 
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
@@ -116,7 +116,7 @@ class WaitForDownloadCommandTest extends TestBase {
 
             verify(service).getAvailableRecordings();
 
-            MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Waiting for download of recording \"foo\" at download-url\n"));
+            MatcherAssert.assertThat(stdout(), Matchers.equalTo("Waiting for download of recording \"foo\" at download-url\n"));
 
             ArgumentCaptor<String> downloadCaptor = ArgumentCaptor.forClass(String.class);
             verify(exporter, Mockito.times(2)).getDownloadCount(downloadCaptor.capture());

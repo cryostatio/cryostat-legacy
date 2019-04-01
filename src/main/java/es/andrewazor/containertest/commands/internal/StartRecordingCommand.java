@@ -5,6 +5,7 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.RecordingExporter;
 
 @Singleton
@@ -13,9 +14,9 @@ class StartRecordingCommand extends AbstractRecordingCommand {
     private final RecordingExporter exporter;
 
     @Inject
-    StartRecordingCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    StartRecordingCommand(ClientWriter cw, RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 
@@ -35,7 +36,7 @@ class StartRecordingCommand extends AbstractRecordingCommand {
         String events = args[1];
 
         if (getService().getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
-            System.out.println(String.format("Recording with name \"%s\" already exists", name));
+            cw.println(String.format("Recording with name \"%s\" already exists", name));
             return;
         }
 
@@ -48,7 +49,7 @@ class StartRecordingCommand extends AbstractRecordingCommand {
     @Override
     public boolean validate(String[] args) {
         if (args.length != 2) {
-            System.out.println("Expected two arguments: recording name and event types.");
+            cw.println("Expected two arguments: recording name and event types.");
             return false;
         }
 
@@ -56,7 +57,7 @@ class StartRecordingCommand extends AbstractRecordingCommand {
         String events = args[1];
 
         if (!name.matches("[\\w-_]+")) {
-            System.out.println(String.format("%s is an invalid recording name", name));
+            cw.println(String.format("%s is an invalid recording name", name));
             return false;
         }
 

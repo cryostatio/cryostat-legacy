@@ -23,7 +23,7 @@ class WaitCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new WaitCommand();
+        command = new WaitCommand(mockClientWriter);
     }
 
     @Test
@@ -34,25 +34,25 @@ class WaitCommandTest extends TestBase {
     @Test
     void shouldNotExpectZeroArgs() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected one argument\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldNotExpectTwoArgs() {
         assertFalse(command.validate(new String[2]));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Expected one argument\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldExpectIntegerFormattedArg() {
         assertFalse(command.validate(new String[]{ "f" }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("f is an invalid integer\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("f is an invalid integer\n"));
     }
 
     @Test
     void shouldValidateArgs() {
         assertTrue(command.validate(new String[]{ "10" }));
-        MatcherAssert.assertThat(stdout.toString(), Matchers.emptyString());
+        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
@@ -67,7 +67,7 @@ class WaitCommandTest extends TestBase {
             command.execute(new String[]{ "1" });
             long end = System.nanoTime();
             long elapsed = end - start;
-            MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo(". . \n"));
+            MatcherAssert.assertThat(stdout(), Matchers.equalTo(". . \n"));
             MatcherAssert.assertThat(elapsed, Matchers.greaterThan(TimeUnit.SECONDS.toNanos(1)));
         });
     }

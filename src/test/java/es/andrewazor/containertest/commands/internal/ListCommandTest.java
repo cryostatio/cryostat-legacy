@@ -31,7 +31,7 @@ class ListCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new ListCommand();
+        command = new ListCommand(mockClientWriter);
         command.connectionChanged(connection);
     }
 
@@ -55,7 +55,7 @@ class ListCommandTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("Available recordings:\n\tNone\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Available recordings:\n\tNone\n"));
     }
 
     @Test
@@ -67,7 +67,7 @@ class ListCommandTest extends TestBase {
         );
         when(service.getAvailableRecordings()).thenReturn(descriptors);
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.allOf(
+        MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("Available recordings:\n"),
             Matchers.containsString("getName\t\tfoo\n"),
             Matchers.containsString("getName\t\tbar\n")

@@ -5,6 +5,7 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.RecordingExporter;
 
 @Singleton
@@ -13,9 +14,9 @@ class DumpCommand extends AbstractRecordingCommand {
     private final RecordingExporter exporter;
 
     @Inject
-    DumpCommand(RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    DumpCommand(ClientWriter cw, RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 
@@ -36,7 +37,7 @@ class DumpCommand extends AbstractRecordingCommand {
         String events = args[2];
 
         if (getService().getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
-            System.out.println(String.format("Recording with name \"%s\" already exists", name));
+            cw.println(String.format("Recording with name \"%s\" already exists", name));
             return;
         }
 
@@ -50,7 +51,7 @@ class DumpCommand extends AbstractRecordingCommand {
     @Override
     public boolean validate(String[] args) {
         if (args.length != 3) {
-            System.out.println("Expected three arguments: recording name, recording length, and event types.");
+            cw.println("Expected three arguments: recording name, recording length, and event types.");
             return false;
         }
 
@@ -59,12 +60,12 @@ class DumpCommand extends AbstractRecordingCommand {
         String events = args[2];
 
         if (!name.matches("[\\w-_]+")) {
-            System.out.println(String.format("%s is an invalid recording name", name));
+            cw.println(String.format("%s is an invalid recording name", name));
             return false;
         }
 
         if (!seconds.matches("\\d+")) {
-            System.out.println(String.format("%s is an invalid recording length", seconds));
+            cw.println(String.format("%s is an invalid recording length", seconds));
             return false;
         }
 

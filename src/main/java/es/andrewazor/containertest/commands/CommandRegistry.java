@@ -7,15 +7,18 @@ import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
+import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.commands.CommandRegistry;
 
 @Singleton
 public class CommandRegistry {
 
+    private final ClientWriter cw;
     private final Map<String, Command> commandMap = new TreeMap<>();
 
-    CommandRegistry(Set<Command> commands) {
+    CommandRegistry(ClientWriter cw, Set<Command> commands) {
+        this.cw = cw;
         for (Command command : commands) {
             String commandName = command.getName();
             if (commandMap.containsKey(commandName)) {
@@ -53,7 +56,7 @@ public class CommandRegistry {
     private boolean isCommandRegistered(String commandName) {
         boolean registered = getRegisteredCommandNames().contains(commandName);
         if (!registered) {
-            System.out.println(String.format("Command \"%s\" not recognized", commandName));
+            cw.println(String.format("Command \"%s\" not recognized", commandName));
         }
         return registered;
     }
@@ -61,7 +64,7 @@ public class CommandRegistry {
     private boolean isCommandAvailable(String commandName) {
         boolean available = getAvailableCommandNames().contains(commandName);
         if (!available) {
-            System.out.println(String.format("Command \"%s\" not available", commandName));
+            cw.println(String.format("Command \"%s\" not available", commandName));
         }
         return available;
     }

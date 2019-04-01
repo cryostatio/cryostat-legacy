@@ -5,10 +5,16 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.ClientWriter;
+
 @Singleton
 class StopRecordingCommand extends AbstractConnectedCommand {
 
-    @Inject StopRecordingCommand() { }
+    private final ClientWriter cw;
+
+    @Inject StopRecordingCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -31,7 +37,7 @@ class StopRecordingCommand extends AbstractConnectedCommand {
         }
 
         if (descriptor == null) {
-            System.out.println(String.format("Recording with name \"%s\" not found", name));
+            cw.println(String.format("Recording with name \"%s\" not found", name));
             return;
         }
 
@@ -41,14 +47,14 @@ class StopRecordingCommand extends AbstractConnectedCommand {
     @Override
     public boolean validate(String[] args) {
         if (args.length != 1) {
-            System.out.println("Expected one argument: recording name.");
+            cw.println("Expected one argument: recording name.");
             return false;
         }
 
         String name = args[0];
 
         if (!name.matches("[\\w-_]+")) {
-            System.out.println(String.format("%s is an invalid recording name", name));
+            cw.println(String.format("%s is an invalid recording name", name));
             return false;
         }
 

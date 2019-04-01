@@ -23,7 +23,7 @@ class IpCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new IpCommand(resolver);
+        command = new IpCommand(mockClientWriter, resolver);
     }
 
     @Test
@@ -50,7 +50,7 @@ class IpCommandTest extends TestBase {
     void shouldPrintResolverIp() throws Exception {
         when(resolver.getHostAddress()).thenReturn("192.168.2.1");
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.equalTo("\t192.168.2.1\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("\t192.168.2.1\n"));
     }
 
 }

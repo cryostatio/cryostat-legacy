@@ -27,7 +27,7 @@ class HelpCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new HelpCommand(() -> registry);
+        command = new HelpCommand(mockClientWriter, () -> registry);
     }
 
     @Test
@@ -59,7 +59,8 @@ class HelpCommandTest extends TestBase {
 
         when(registry.getAvailableCommandNames()).thenReturn(names);
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.allOf(
+
+        MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("Available commands:\n"),
             Matchers.containsString("\tbar\n"),
             Matchers.containsString("\tfoo\n")

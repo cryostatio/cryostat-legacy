@@ -30,7 +30,7 @@ class ListEventTypesCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new ListEventTypesCommand();
+        command = new ListEventTypesCommand(mockClientWriter);
         command.connectionChanged(connection);
     }
 
@@ -61,7 +61,7 @@ class ListEventTypesCommandTest extends TestBase {
         when(service.getAvailableEventTypes()).thenReturn(eventTypes);
 
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout.toString(), Matchers.allOf(
+        MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("Available event types\n"),
             Matchers.containsString("\tmocked toString: foo\n"),
             Matchers.containsString("\tmocked toString: bar\n")
