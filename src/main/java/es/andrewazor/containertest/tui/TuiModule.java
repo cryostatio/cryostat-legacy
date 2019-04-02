@@ -31,4 +31,30 @@ public abstract class TuiModule {
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
     }
+
+    @Provides
+    @Singleton
+    static ClientReader provideClientReader(@ExecutionMode Mode mode) {
+        switch (mode) {
+        case BATCH:
+            return new TtyClientReader();
+        case INTERACTIVE:
+            return new TtyClientReader();
+        default:
+            throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
+        }
+    }
+
+    @Provides
+    @Singleton
+    static ClientWriter provideClientWriter(@ExecutionMode Mode mode) {
+        switch (mode) {
+        case BATCH:
+            return new TtyClientWriter();
+        case INTERACTIVE:
+            return new TtyClientWriter();
+        default:
+            throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
+        }
+    }
 }
