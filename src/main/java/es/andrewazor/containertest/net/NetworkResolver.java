@@ -10,7 +10,7 @@ public class NetworkResolver {
 
     private final CheckedSupplier<DatagramSocket, SocketException> socketSupplier;
 
-    public NetworkResolver() {
+    NetworkResolver() {
         this(DatagramSocket::new);
     }
 

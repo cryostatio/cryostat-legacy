@@ -34,7 +34,7 @@ public class RecordingExporter implements ConnectionListener {
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
     @Inject
-    public RecordingExporter(ClientWriter cw, NetworkResolver resolver) {
+    RecordingExporter(ClientWriter cw, NetworkResolver resolver) {
         this.cw = cw;
         this.resolver = resolver;
         this.server = new ServerImpl();

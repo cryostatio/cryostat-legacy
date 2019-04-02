@@ -17,15 +17,15 @@ public class JMCConnection {
     static final String URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     public static final int DEFAULT_PORT = 9091;
 
-    protected final RJMXConnection rjmxConnection;
-    protected final IConnectionHandle handle;
-    protected final IFlightRecorderService service;
+    private final RJMXConnection rjmxConnection;
+    private final IConnectionHandle handle;
+    private final IFlightRecorderService service;
 
-    protected JMCConnection(String host) throws Exception {
+    JMCConnection(String host) throws Exception {
         this(host, DEFAULT_PORT);
     }
 
-    protected JMCConnection(String host, int port) throws Exception {
+    JMCConnection(String host, int port) throws Exception {
         this.rjmxConnection = attemptConnect(host, port, 0);
         this.handle = new DefaultConnectionHandle(rjmxConnection, "RJMX Connection", new IConnectionListener[0]);
         this.service = new FlightRecorderServiceFactory().getServiceInstance(handle);
