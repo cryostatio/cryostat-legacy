@@ -30,7 +30,7 @@ import es.andrewazor.containertest.commands.CommandRegistry;
 @ExtendWith(MockitoExtension.class)
 class InteractiveShellExecutorTest extends TestBase {
 
-    InteractiveShellExecutor executor;
+    CommandExecutor executor;
     @Mock ClientReader mockClientReader;
     @Mock CommandRegistry mockRegistry;
     @Mock JMCConnection mockConnection;
