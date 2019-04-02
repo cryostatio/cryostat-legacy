@@ -14,14 +14,14 @@ import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
-public class Shell implements CommandExecutor {
+class Shell implements CommandExecutor {
 
     private final ClientReader cr;
     private final ClientWriter cw;
     private final Lazy<CommandRegistry> commandRegistry;
     private boolean connected = false;
 
-    public Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         this.cr = cr;
         this.cw = cw;
         this.commandRegistry = commandRegistry;
