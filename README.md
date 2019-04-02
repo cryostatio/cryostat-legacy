@@ -1,24 +1,29 @@
-== SEE ALSO
-See https://github.com/andrewazores/container-jmc-pubsub-demo and
-https://github.com/andrewazores/container-jmc-simple-demo for multi-container
-demos of this project.
+# Container-JMC
 
-== REQUIREMENTS
+## SEE ALSO
+See
+[container-jmc-pubsub-demo](https://github.com/andrewazores/container-jmc-pubsub-demo)
+and
+[container-jmc-simple-demo](https://github.com/andrewazores/container-jmc-simple-demo)
+for multi-container demos of this project.
+
+## REQUIREMENTS
 Build:
-JDK11+
-JMC
-Gradle
+- JDK11+
+- JMC
+- Gradle
 
 Run:
-Podman/Docker
+- Podman/Docker
 
-== BUILD
+## BUILD
 The gradle build expects to be able to find Java Mission Control (JMC) 7
 artefacts in the local Maven repository. To ensure these are available, clone
-the JMC project at https://hg.openjdk.java.net/jmc/jmc7/ and follow its build
-instructions. Run "mvn install" in the jmc project root to install its artefacts
-to the local repository. After this is complete, the project in this repository
-may be built locally. This can be done with `./gradlew build`.
+the JMC project at the [JMC homepage](https://hg.openjdk.java.net/jmc/jmc7)
+and follow its build instructions. Run `mvn install` in the jmc project root to
+install its artefacts to the local repository. After this is complete, the
+project in this repository may be built locally. This can be done with
+`./gradlew build`.
 
 Tests can be run with `./gradlew test`, or for an interactive watch mode,
 `./gradlew -it test`.
@@ -27,7 +32,7 @@ A Docker image can be built to your local Docker image registry using
 `./gradlew jibDockerBuild`. Take note that the standard `./gradlew build`
 will not only build the image but will attempt to publish it to Dockerhub.
 
-== RUN
+## RUN
 For a basic development non-containerized smoketest, use `./gradlew run`, or
 `./gradlew run --args="client-args-here"`.
 
