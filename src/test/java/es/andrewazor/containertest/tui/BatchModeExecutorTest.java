@@ -56,6 +56,25 @@ class BatchModeExecutorTest extends TestBase {
     }
 
     @Test
+    void shouldValidateAndExitWhenPassedOnlyComment() throws Exception {
+        verifyZeroInteractions(mockClientReader);
+        verifyZeroInteractions(mockRegistry);
+
+        when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
+
+        executor.run(new String[]{ "# This should be a comment ;" });
+
+        MatcherAssert.assertThat(stdout(), Matchers.containsString("\"exit\" \"[]\""));
+
+        InOrder inOrder = inOrder(mockRegistry);
+        inOrder.verify(mockRegistry).validate("exit", new String[0]);
+        inOrder.verify(mockRegistry).execute("exit", new String[0]);
+
+        verifyNoMoreInteractions(mockClientReader);
+        verifyNoMoreInteractions(mockRegistry);
+    }
+
+    @Test
     void shouldValidateAndExecuteSingleCommand() throws Exception {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
