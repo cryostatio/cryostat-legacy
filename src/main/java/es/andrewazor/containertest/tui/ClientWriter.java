@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.tui;
 
 public interface ClientWriter {
     void print(String s);

@@ -1,6 +1,7 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.tui;
 
-class TtyClientWriter implements ClientWriter {
+public class TtyClientWriter implements ClientWriter {
+
     @Override
     public void print(String s) {
         System.out.print(s);

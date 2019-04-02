@@ -5,7 +5,7 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import es.andrewazor.containertest.ClientWriter;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class ListEventTypesCommand extends AbstractConnectedCommand {

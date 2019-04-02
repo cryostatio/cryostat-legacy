@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.tui;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -10,17 +10,18 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import dagger.Lazy;
+import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
-class Shell implements CommandExecutor {
+public class Shell implements CommandExecutor {
 
     private final ClientReader cr;
     private final ClientWriter cw;
     private final Lazy<CommandRegistry> commandRegistry;
     private boolean connected = false;
 
-    Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    public Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         this.cr = cr;
         this.cw = cw;
         this.commandRegistry = commandRegistry;

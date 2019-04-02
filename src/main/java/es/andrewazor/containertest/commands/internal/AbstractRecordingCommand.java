@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 
-import es.andrewazor.containertest.ClientWriter;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 

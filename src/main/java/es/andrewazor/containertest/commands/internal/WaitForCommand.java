@@ -6,7 +6,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.ClientWriter;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class WaitForCommand extends AbstractConnectedCommand {

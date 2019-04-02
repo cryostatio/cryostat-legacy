@@ -7,10 +7,14 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
-import es.andrewazor.containertest.CommandExecutor.ExecutionMode;
-import es.andrewazor.containertest.CommandExecutor.Mode;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.CommandsModule;
+import es.andrewazor.containertest.tui.ClientReader;
+import es.andrewazor.containertest.tui.ClientWriter;
+import es.andrewazor.containertest.tui.CommandExecutor;
+import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
+import es.andrewazor.containertest.tui.CommandExecutor.Mode;
+import es.andrewazor.containertest.tui.Shell;
 
 @Module(includes = { CommandsModule.class })
 abstract class MainModule {

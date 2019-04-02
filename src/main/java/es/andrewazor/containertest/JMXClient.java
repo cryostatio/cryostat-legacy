@@ -9,9 +9,14 @@ import org.eclipse.core.runtime.RegistryFactory;
 
 import dagger.BindsInstance;
 import dagger.Component;
-import es.andrewazor.containertest.CommandExecutor.ExecutionMode;
-import es.andrewazor.containertest.CommandExecutor.Mode;
 import es.andrewazor.containertest.jmc.RegistryProvider;
+import es.andrewazor.containertest.tui.ClientReader;
+import es.andrewazor.containertest.tui.ClientWriter;
+import es.andrewazor.containertest.tui.CommandExecutor;
+import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
+import es.andrewazor.containertest.tui.CommandExecutor.Mode;
+import es.andrewazor.containertest.tui.TtyClientReader;
+import es.andrewazor.containertest.tui.TtyClientWriter;
 
 class JMXClient {
     public static void main(String[] args) throws Exception {

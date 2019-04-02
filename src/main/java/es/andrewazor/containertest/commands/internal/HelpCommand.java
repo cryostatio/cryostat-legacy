@@ -4,9 +4,9 @@ import javax.inject.Inject;
 
 import dagger.Lazy;
 import dagger.Module;
-import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Module
 class HelpCommand implements Command {

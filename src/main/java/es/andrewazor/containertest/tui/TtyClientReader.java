@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.tui;
 
 import java.io.IOException;
 import java.util.Scanner;

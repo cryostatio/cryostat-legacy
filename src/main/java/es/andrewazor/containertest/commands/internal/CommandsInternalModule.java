@@ -6,8 +6,8 @@ import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
-import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Module
 public abstract class CommandsInternalModule {

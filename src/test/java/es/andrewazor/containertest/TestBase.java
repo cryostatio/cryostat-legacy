@@ -6,6 +6,8 @@ import java.io.PrintStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
+import es.andrewazor.containertest.tui.ClientWriter;
+
 public class TestBase {
     protected PrintStream mockStdout;
     protected ClientWriter mockClientWriter;

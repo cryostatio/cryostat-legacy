@@ -3,8 +3,8 @@ package es.andrewazor.containertest.commands.internal;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class WaitCommand implements Command {

@@ -7,9 +7,7 @@ import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
-import es.andrewazor.containertest.ClientWriter;
-import es.andrewazor.containertest.commands.Command;
-import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 public class CommandRegistry {

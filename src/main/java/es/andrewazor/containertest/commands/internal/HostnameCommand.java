@@ -2,9 +2,9 @@ package es.andrewazor.containertest.commands.internal;
 
 import javax.inject.Inject;
 
-import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.NetworkResolver;
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 class HostnameCommand implements Command {
 

@@ -4,9 +4,9 @@ import java.util.Set;
 
 import dagger.Module;
 import dagger.Provides;
-import es.andrewazor.containertest.ClientWriter;
 import es.andrewazor.containertest.commands.internal.CommandsInternalModule;
 import es.andrewazor.containertest.commands.internal.ConnectionListenerModule;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Module(includes = { CommandsInternalModule.class, ConnectionListenerModule.class })
 public class CommandsModule {

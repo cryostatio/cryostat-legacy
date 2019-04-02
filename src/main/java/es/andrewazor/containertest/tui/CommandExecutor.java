@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.tui;
 
 import java.lang.annotation.Documented;
 import java.lang.annotation.Retention;
@@ -6,15 +6,17 @@ import java.lang.annotation.RetentionPolicy;
 
 import javax.inject.Qualifier;
 
-interface CommandExecutor extends ConnectionListener {
+import es.andrewazor.containertest.ConnectionListener;
+
+public interface CommandExecutor extends ConnectionListener {
     void run(String[] args);
 
     @Qualifier
     @Documented
     @Retention(RetentionPolicy.RUNTIME)
-    @interface ExecutionMode { }
+    public @interface ExecutionMode { }
 
-    enum Mode {
+    public enum Mode {
         INTERACTIVE,
         BATCH
     }
