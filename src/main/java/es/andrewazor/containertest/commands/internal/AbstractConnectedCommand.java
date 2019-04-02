@@ -2,9 +2,9 @@ package es.andrewazor.containertest.commands.internal;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
-import es.andrewazor.containertest.ConnectionListener;
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.net.ConnectionListener;
+import es.andrewazor.containertest.net.JMCConnection;
 
 abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 

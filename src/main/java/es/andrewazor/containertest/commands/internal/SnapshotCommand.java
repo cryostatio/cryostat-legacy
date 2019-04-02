@@ -6,8 +6,8 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.RecordingExporter;
 import es.andrewazor.containertest.jmc.CopyRecordingDescriptor;
+import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton

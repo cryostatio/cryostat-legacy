@@ -14,7 +14,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceV2;
 
-import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 class EventOptionsBuilder {

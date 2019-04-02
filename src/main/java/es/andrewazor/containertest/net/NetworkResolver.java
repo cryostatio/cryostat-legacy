@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.net;
 
 import java.net.DatagramSocket;
 import java.net.InetAddress;

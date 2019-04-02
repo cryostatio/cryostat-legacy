@@ -19,8 +19,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.internal.AbstractConnectedCommand.JMXConnectionException;
+import es.andrewazor.containertest.net.JMCConnection;
 
 class AbstractConnectedCommandTest {
 

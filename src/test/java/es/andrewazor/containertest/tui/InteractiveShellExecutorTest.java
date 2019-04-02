@@ -23,9 +23,9 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.net.JMCConnection;
 
 @ExtendWith(MockitoExtension.class)
 class InteractiveShellExecutorTest extends TestBase {

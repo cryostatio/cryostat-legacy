@@ -29,10 +29,10 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.internal.EventOptionsBuilder.EventOptionException;
 import es.andrewazor.containertest.commands.internal.EventOptionsBuilder.EventTypeException;
+import es.andrewazor.containertest.net.JMCConnection;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)

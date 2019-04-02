@@ -18,8 +18,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.TestBase;
+import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)

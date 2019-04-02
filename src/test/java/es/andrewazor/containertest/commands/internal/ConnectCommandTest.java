@@ -21,9 +21,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.ConnectionListener;
-import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.JMCConnectionToolkit;
+import es.andrewazor.containertest.net.ConnectionListener;
+import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.net.JMCConnectionToolkit;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectCommandTest {

@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.net;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 

@@ -2,8 +2,8 @@ package es.andrewazor.containertest.commands.internal;
 
 import javax.inject.Inject;
 
-import es.andrewazor.containertest.NetworkResolver;
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.net.NetworkResolver;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 class IpCommand implements Command {

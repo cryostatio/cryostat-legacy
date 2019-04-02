@@ -8,9 +8,9 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import dagger.Lazy;
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
+import es.andrewazor.containertest.net.JMCConnection;
 
 abstract class AbstractCommandExecutor implements CommandExecutor {
 

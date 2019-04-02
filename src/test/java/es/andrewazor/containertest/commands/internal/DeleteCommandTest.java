@@ -22,8 +22,8 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.TestBase;
+import es.andrewazor.containertest.net.JMCConnection;
 
 @ExtendWith(MockitoExtension.class)
 class DeleteCommandTest extends TestBase {

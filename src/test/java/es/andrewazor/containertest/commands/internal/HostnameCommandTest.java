@@ -12,8 +12,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.NetworkResolver;
 import es.andrewazor.containertest.TestBase;
+import es.andrewazor.containertest.net.NetworkResolver;
 
 @ExtendWith(MockitoExtension.class)
 class HostnameCommandTest extends TestBase {

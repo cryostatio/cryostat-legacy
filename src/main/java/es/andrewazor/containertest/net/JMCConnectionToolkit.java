@@ -1,4 +1,4 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.net;
 
 public class JMCConnectionToolkit {
     public JMCConnection connect(String host) throws Exception {

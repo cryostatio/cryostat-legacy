@@ -6,7 +6,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import dagger.Lazy;
-import es.andrewazor.containertest.ConnectionListener;
+import es.andrewazor.containertest.net.ConnectionListener;
 
 @Singleton
 class DisconnectCommand extends AbstractConnectedCommand {

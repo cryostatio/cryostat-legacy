@@ -17,8 +17,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.ConnectionListener;
-import es.andrewazor.containertest.JMCConnection;
+import es.andrewazor.containertest.net.ConnectionListener;
+import es.andrewazor.containertest.net.JMCConnection;
 
 @ExtendWith(MockitoExtension.class)
 class DisconnectCommandTest {

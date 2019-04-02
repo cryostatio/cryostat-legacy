@@ -3,7 +3,7 @@ package es.andrewazor.containertest.commands.internal;
 import dagger.Binds;
 import dagger.Module;
 import dagger.multibindings.IntoSet;
-import es.andrewazor.containertest.ConnectionListener;
+import es.andrewazor.containertest.net.ConnectionListener;
 
 @Module
 public abstract class ConnectionListenerModule {

@@ -1,7 +1,5 @@
-package es.andrewazor.containertest;
+package es.andrewazor.containertest.net;
 
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.DatagramSocket;

@@ -24,9 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.RecordingExporter;
 import es.andrewazor.containertest.TestBase;
+import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.net.RecordingExporter;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForDownloadCommandTest extends TestBase {

@@ -7,10 +7,10 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import es.andrewazor.containertest.ConnectionListener;
-import es.andrewazor.containertest.JMCConnection;
-import es.andrewazor.containertest.JMCConnectionToolkit;
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.net.ConnectionListener;
+import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.net.JMCConnectionToolkit;
 
 @Singleton 
 class ConnectCommand implements Command {
