@@ -7,35 +7,23 @@ import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
-@Module
-class Shell implements ConnectionListener {
+class Shell implements CommandExecutor {
 
     private final ClientReader cr;
     private final ClientWriter cw;
     private final Lazy<CommandRegistry> commandRegistry;
     private boolean connected = false;
 
-    @Inject Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         this.cr = cr;
         this.cw = cw;
         this.commandRegistry = commandRegistry;
-    }
-
-    @Provides
-    @Singleton
-    static Shell provideShell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
-        return new Shell(cr, cw, commandRegistry);
     }
 
     @Override
@@ -43,6 +31,7 @@ class Shell implements ConnectionListener {
         this.connected = connection != null;
     }
 
+    @Override
     public void run(String[] args) {
         try {
             if (args.length == 0) {

@@ -9,7 +9,8 @@ import org.eclipse.core.runtime.RegistryFactory;
 
 import dagger.BindsInstance;
 import dagger.Component;
-import dagger.Component.Builder;
+import es.andrewazor.containertest.CommandExecutor.ExecutionMode;
+import es.andrewazor.containertest.CommandExecutor.Mode;
 import es.andrewazor.containertest.jmc.RegistryProvider;
 
 class JMXClient {
@@ -25,10 +26,11 @@ class JMXClient {
             public void run() {
                 Client client = DaggerJMXClient_Client
                     .builder()
+                    .mode(args.length == 0 ? Mode.INTERACTIVE : Mode.BATCH)
                     .clientReader(new TtyClientReader())
                     .clientWriter(new TtyClientWriter())
                     .build();
-                client.shell().run(args);
+                client.commandExecutor().run(args);
             }
         });
         t.run();
@@ -38,10 +40,11 @@ class JMXClient {
     @Singleton
     @Component(modules = { MainModule.class })
     interface Client {
-        Shell shell();
+        CommandExecutor commandExecutor();
 
         @Component.Builder
         interface Builder {
+            @BindsInstance Builder mode(@ExecutionMode Mode mode);
             @BindsInstance Builder clientReader(ClientReader cr);
             @BindsInstance Builder clientWriter(ClientWriter cw);
             Client build();
