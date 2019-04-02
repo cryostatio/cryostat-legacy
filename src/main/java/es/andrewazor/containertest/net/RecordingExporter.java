@@ -8,9 +8,6 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -20,7 +17,6 @@ import es.andrewazor.containertest.tui.ClientWriter;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
-@Singleton
 public class RecordingExporter implements ConnectionListener {
 
     private static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
@@ -33,7 +29,6 @@ public class RecordingExporter implements ConnectionListener {
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    @Inject
     RecordingExporter(ClientWriter cw, NetworkResolver resolver) {
         this.cw = cw;
         this.resolver = resolver;
