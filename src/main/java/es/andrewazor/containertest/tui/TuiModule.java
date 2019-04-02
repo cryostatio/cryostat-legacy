@@ -24,9 +24,9 @@ public abstract class TuiModule {
             Lazy<CommandRegistry> commandRegistry, @ExecutionMode Mode mode) {
         switch (mode) {
         case BATCH:
-            return new Shell(cr, cw, commandRegistry);
+            return new BatchModeExecutor(cr, cw, commandRegistry);
         case INTERACTIVE:
-            return new Shell(cr, cw, commandRegistry);
+            return new InteractiveShellExecutor(cr, cw, commandRegistry);
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
@@ -37,7 +37,7 @@ public abstract class TuiModule {
     static ClientReader provideClientReader(@ExecutionMode Mode mode) {
         switch (mode) {
         case BATCH:
-            return new TtyClientReader();
+            return new NoOpClientReader();
         case INTERACTIVE:
             return new TtyClientReader();
         default:
@@ -50,7 +50,7 @@ public abstract class TuiModule {
     static ClientWriter provideClientWriter(@ExecutionMode Mode mode) {
         switch (mode) {
         case BATCH:
-            return new TtyClientWriter();
+            // fall through
         case INTERACTIVE:
             return new TtyClientWriter();
         default:

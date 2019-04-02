@@ -1,10 +1,8 @@
 package es.andrewazor.containertest.tui;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -14,14 +12,14 @@ import es.andrewazor.containertest.JMCConnection;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
-class Shell implements CommandExecutor {
+abstract class AbstractCommandExecutor implements CommandExecutor {
 
-    private final ClientReader cr;
-    private final ClientWriter cw;
-    private final Lazy<CommandRegistry> commandRegistry;
-    private boolean connected = false;
+    protected final ClientReader cr;
+    protected final ClientWriter cw;
+    protected final Lazy<CommandRegistry> commandRegistry;
+    protected JMCConnection connection;
 
-    Shell(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    AbstractCommandExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         this.cr = cr;
         this.cw = cw;
         this.commandRegistry = commandRegistry;
@@ -29,46 +27,10 @@ class Shell implements CommandExecutor {
 
     @Override
     public void connectionChanged(JMCConnection connection) {
-        this.connected = connection != null;
+        this.connection = connection;
     }
 
-    @Override
-    public void run(String[] args) {
-        try {
-            if (args.length == 0) {
-                runInteractive();
-            } else {
-                runScripted(args);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private void runScripted(String[] args) {
-        List<String> commands = new ArrayList<>(Arrays.asList(args[0].split(";")));
-        commands.add(ExitCommand.NAME);
-        executeCommands(commands);
-    }
-
-    private void runInteractive() {
-        try (cr) {
-            String in;
-            do {
-                cw.print(this.connected ? "> " : "- ");
-                try {
-                    in = cr.readLine().trim();
-                } catch (NoSuchElementException e) {
-                    in = ExitCommand.NAME;
-                }
-                executeCommandLine(in);
-            } while (!in.toLowerCase().equals(ExitCommand.NAME.toLowerCase()));
-        } catch (Exception e) {
-            cw.println(ExceptionUtils.getStackTrace(e));
-        }
-    }
-
-    private void executeCommands(List<String> lines) {
+    protected void executeCommands(List<String> lines) {
         List<CommandLine> commandLines = lines
             .stream()
             .map(String::trim)
@@ -110,11 +72,11 @@ class Shell implements CommandExecutor {
         }
     }
 
-    private void executeCommandLine(String line) {
+    protected void executeCommandLine(String line) {
         executeCommands(Collections.singletonList(line));
     }
 
-    private static class CommandLine {
+    protected static class CommandLine {
         final String command;
         final String[] args;
 
