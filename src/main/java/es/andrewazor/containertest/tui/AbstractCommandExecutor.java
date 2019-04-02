@@ -42,16 +42,11 @@ abstract class AbstractCommandExecutor implements CommandExecutor {
 
         boolean allValid = true;
         for (CommandLine commandLine : commandLines) {
-            try {
-                boolean valid = this.commandRegistry.get().validate(commandLine.command, commandLine.args);
-                if (!valid) {
-                    cw.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
-                }
-                allValid &= valid;
-            } catch (Exception e) {
-                allValid = false;
-                cw.println(ExceptionUtils.getStackTrace(e));
+            boolean valid = this.commandRegistry.get().validate(commandLine.command, commandLine.args);
+            if (!valid) {
+                cw.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
             }
+            allValid &= valid;
         }
 
         if (!allValid) {

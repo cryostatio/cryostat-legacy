@@ -47,7 +47,7 @@ public class CommandRegistry {
         commandMap.get(commandName).execute(args);
     }
 
-    public boolean validate(String commandName, String[] args) throws Exception {
+    public boolean validate(String commandName, String[] args) {
         return isCommandRegistered(commandName) && commandMap.get(commandName).validate(args);
     }
 
