@@ -25,7 +25,7 @@ install its artefacts to the local repository. After this is complete, the
 project in this repository may be built locally. This can be done with
 `./gradlew build`.
 
-Tests can be run with `./gradlew test`, or for an interactive watch mode,
+Tests can be run with `./gradlew check`, or for an interactive watch mode,
 `./gradlew -it test`.
 
 A Docker image can be built to your local Docker image registry using

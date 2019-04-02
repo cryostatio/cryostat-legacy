@@ -4,6 +4,7 @@ plugins {
     id 'jacoco'
     id 'com.google.cloud.tools.jib' version '1.0.1'
     id 'net.ltgt.apt' version '0.21'
+    id 'com.github.ksoichiro.console.reporter' version '0.6.2'
 }
 
 repositories {
