@@ -7,7 +7,7 @@ import es.andrewazor.containertest.tui.ClientReader;
 class NoOpClientReader implements ClientReader {
     @Override
     public String readLine() {
-        throw new UnsupportedOperationException();
+        throw new UnsupportedOperationException("NoOpClientReader does not support readLine");
     }
 
     @Override
