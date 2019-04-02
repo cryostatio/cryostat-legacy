@@ -5,7 +5,7 @@ demos of this project.
 
 == REQUIREMENTS
 Build:
-JDK
+JDK11+
 JMC
 Gradle
 
