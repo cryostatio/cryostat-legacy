@@ -101,13 +101,13 @@ class BatchModeExecutorTest extends TestBase {
     }
 
     @Test
-    void shouldValidateAndExecuteSingleCommandWithSemicolon() throws Exception {
+    void shouldValidateAndExecuteSingleCommandWithSpuriousSemicolons() throws Exception {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
         when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
 
-        executor.run(new String[]{ "help;" });
+        executor.run(new String[]{ "; ;; help;; " });
 
         MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("\"help\" \"[]\""),
