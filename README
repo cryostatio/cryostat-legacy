@@ -20,7 +20,17 @@ instructions. Run "mvn install" in the jmc project root to install its artefacts
 to the local repository. After this is complete, the project in this repository
 may be built locally. This can be done with `./gradlew build`.
 
+Tests can be run with `./gradlew test`, or for an interactive watch mode,
+`./gradlew -it test`.
+
+A Docker image can be built to your local Docker image registry using
+`./gradlew jibDockerBuild`. Take note that the standard `./gradlew build`
+will not only build the image but will attempt to publish it to Dockerhub.
+
 == RUN
+For a basic development non-containerized smoketest, use `./gradlew run`, or
+`./gradlew run --args="client-args-here"`.
+
 The `run.sh` script can be used to spin up a Docker container of the JMXClient,
 running alone but set up so that it is able to introspect itself with JFR. This
 can be achieved by doing `sh run.sh` and then typing `connect jmx-client:9091`
