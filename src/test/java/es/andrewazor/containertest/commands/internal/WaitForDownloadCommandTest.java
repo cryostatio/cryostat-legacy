@@ -1,7 +1,6 @@
 package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -9,7 +8,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.time.Duration;
 import java.util.Collections;
 
 import org.hamcrest.MatcherAssert;
@@ -27,18 +25,20 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.RecordingExporter;
+import es.andrewazor.containertest.sys.Clock;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForDownloadCommandTest extends TestBase {
 
-    private WaitForDownloadCommand command;
-    @Mock private RecordingExporter exporter;
-    @Mock private JMCConnection connection;
-    @Mock private IFlightRecorderService service;
+    WaitForDownloadCommand command;
+    @Mock RecordingExporter exporter;
+    @Mock JMCConnection connection;
+    @Mock IFlightRecorderService service;
+    @Mock Clock clock;
 
     @BeforeEach
     void setup() {
-        command = new WaitForDownloadCommand(mockClientWriter, exporter);
+        command = new WaitForDownloadCommand(mockClientWriter, clock, exporter);
         command.connectionChanged(connection);
     }
 
@@ -111,25 +111,23 @@ class WaitForDownloadCommandTest extends TestBase {
                 .thenReturn(1);
         when(exporter.getDownloadURL(Mockito.anyString())).thenReturn("download-url");
 
-        assertTimeout(Duration.ofSeconds(2), () -> {
-            command.execute(new String[]{ "foo" });
+        command.execute(new String[]{ "foo" });
 
-            verify(service).getAvailableRecordings();
+        verify(service).getAvailableRecordings();
 
-            MatcherAssert.assertThat(stdout(), Matchers.equalTo("Waiting for download of recording \"foo\" at download-url\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Waiting for download of recording \"foo\" at download-url\n"));
 
-            ArgumentCaptor<String> downloadCaptor = ArgumentCaptor.forClass(String.class);
-            verify(exporter, Mockito.times(2)).getDownloadCount(downloadCaptor.capture());
-            MatcherAssert.assertThat(downloadCaptor.getValue(), Matchers.equalTo("foo"));
+        ArgumentCaptor<String> downloadCaptor = ArgumentCaptor.forClass(String.class);
+        verify(exporter, Mockito.times(2)).getDownloadCount(downloadCaptor.capture());
+        MatcherAssert.assertThat(downloadCaptor.getValue(), Matchers.equalTo("foo"));
 
-            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
-            verify(exporter).getDownloadURL(urlCaptor.capture());
-            MatcherAssert.assertThat(urlCaptor.getValue(), Matchers.equalTo("foo"));
+        ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+        verify(exporter).getDownloadURL(urlCaptor.capture());
+        MatcherAssert.assertThat(urlCaptor.getValue(), Matchers.equalTo("foo"));
 
-            verifyNoMoreInteractions(service);
-            verifyNoMoreInteractions(connection);
-            verifyNoMoreInteractions(exporter);
-        });
+        verifyNoMoreInteractions(service);
+        verifyNoMoreInteractions(connection);
+        verifyNoMoreInteractions(exporter);
     }
 
 }

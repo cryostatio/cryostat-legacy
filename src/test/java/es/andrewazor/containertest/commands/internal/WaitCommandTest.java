@@ -1,10 +1,10 @@
 package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTimeout;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
@@ -12,18 +12,22 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.TestBase;
+import es.andrewazor.containertest.sys.Clock;
 
 @ExtendWith(MockitoExtension.class)
 class WaitCommandTest extends TestBase {
 
-    private WaitCommand command;
+    WaitCommand command;
+    @Mock Clock clock;
 
     @BeforeEach
     void setup() {
-        command = new WaitCommand(mockClientWriter);
+        command = new WaitCommand(mockClientWriter, clock);
     }
 
     @Test
@@ -61,15 +65,12 @@ class WaitCommandTest extends TestBase {
     }
 
     @Test
-    void testShortExecution() throws Exception {
-        assertTimeout(Duration.ofSeconds(10), () -> {
-            long start = System.nanoTime();
-            command.execute(new String[]{ "1" });
-            long end = System.nanoTime();
-            long elapsed = end - start;
-            MatcherAssert.assertThat(stdout(), Matchers.equalTo(". . \n"));
-            MatcherAssert.assertThat(elapsed, Matchers.greaterThan(TimeUnit.SECONDS.toNanos(1)));
-        });
+    void testExecution() throws Exception {
+        when(clock.getWallTime()).thenReturn(0L).thenReturn(1_000L).thenReturn(2_000L);
+        command.execute(new String[]{ "1" });
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". \n"));
+        verify(clock, Mockito.times(2)).getWallTime();
+        verify(clock).sleep(TimeUnit.SECONDS, 1);
     }
 
 }

@@ -12,6 +12,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceFactory;
 import org.openjdk.jmc.ui.common.security.InMemoryCredentials;
 
+import es.andrewazor.containertest.sys.Clock;
+
 public class JMCConnection {
 
     static final String URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
@@ -39,8 +41,8 @@ public class JMCConnection {
         return this.service;
     }
 
-    public long getApproximateServerTime() {
-        return rjmxConnection.getApproximateServerTime(System.currentTimeMillis());
+    public long getApproximateServerTime(Clock clock) {
+        return rjmxConnection.getApproximateServerTime(clock.getWallTime());
     }
 
     public void disconnect() {

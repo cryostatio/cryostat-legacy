@@ -15,6 +15,7 @@ import java.util.Collections;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -27,17 +28,19 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.sys.Clock;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForCommandTest extends TestBase {
 
-    private WaitForCommand command;
-    @Mock private JMCConnection connection;
-    @Mock private IFlightRecorderService service;
+    WaitForCommand command;
+    @Mock JMCConnection connection;
+    @Mock IFlightRecorderService service;
+    @Mock Clock clock;
 
     @BeforeEach
     void setup() {
-        command = new WaitForCommand(mockClientWriter);
+        command = new WaitForCommand(mockClientWriter, clock);
         command.connectionChanged(connection);
     }
 
@@ -125,28 +128,26 @@ class WaitForCommandTest extends TestBase {
 
         when(descriptorA.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptorA.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
-        when(connection.getApproximateServerTime())
+        when(connection.getApproximateServerTime(clock))
             .thenReturn(5_000L)
             .thenReturn(5_001L)
             .thenReturn(6_000L);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
-        assertTimeout(Duration.ofSeconds(10), () -> {
-            command.execute(new String[] { "foo" });
+        command.execute(new String[] { "foo" });
 
-            verify(connection, Mockito.times(5)).getService();
-            verify(service, Mockito.times(5)).getAvailableRecordings();
-            // Use byte array constructor due to \b control characters in output
-            String s = new String(
-                    new byte[] { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 8, 8, 8, 8, 8, 8,
-                            8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 46, 10 }
-                            );
-            MatcherAssert.assertThat(stdout(), Matchers.equalTo(s));
+        verify(connection, Mockito.times(5)).getService();
+        verify(service, Mockito.times(5)).getAvailableRecordings();
+        // Use byte array constructor due to \b control characters in output
+        String s = new String(
+                new byte[] { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 8, 8, 8, 8, 8, 8,
+                        8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 46, 10 }
+                        );
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(s));
 
-            verifyNoMoreInteractions(connection);
-            verifyNoMoreInteractions(service);
-        });
+        verifyNoMoreInteractions(connection);
+        verifyNoMoreInteractions(service);
     }
 
     @Test

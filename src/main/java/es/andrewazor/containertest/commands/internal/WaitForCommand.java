@@ -1,20 +1,25 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.sys.Clock;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class WaitForCommand extends AbstractConnectedCommand {
 
     protected final ClientWriter cw;
+    protected final Clock clock;
 
-    @Inject WaitForCommand(ClientWriter cw) {
+    @Inject WaitForCommand(ClientWriter cw, Clock clock) {
         this.cw = cw;
+        this.clock = clock;
     }
 
     @Override
@@ -45,7 +50,7 @@ class WaitForCommand extends AbstractConnectedCommand {
         int lastDots = 0;
         boolean progressFlag = false;
         while (!descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
-            long recordingElapsed = getConnection().getApproximateServerTime() - recordingStart;
+            long recordingElapsed = getConnection().getApproximateServerTime(clock) - recordingStart;
             double elapsedProportion = ((double) recordingElapsed) / ((double) recordingLength);
             int currentDots = (int) Math.ceil(10 * elapsedProportion);
             if (currentDots > lastDots) {
@@ -66,7 +71,7 @@ class WaitForCommand extends AbstractConnectedCommand {
                     cw.print('.');
                 }
             }
-            Thread.sleep(1000);
+            clock.sleep(TimeUnit.SECONDS, 1);
             descriptor = getByName(name);
         }
         cw.println();

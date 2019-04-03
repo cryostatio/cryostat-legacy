@@ -1,18 +1,23 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.concurrent.TimeUnit;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.sys.Clock;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class WaitCommand implements Command {
 
     private final ClientWriter cw;
+    private final Clock clock;
 
-    @Inject WaitCommand(ClientWriter cw) {
+    @Inject WaitCommand(ClientWriter cw, Clock clock) {
         this.cw = cw;
+        this.clock = clock;
     }
 
     @Override
@@ -26,14 +31,14 @@ class WaitCommand implements Command {
     @Override
     public void execute(String[] args) throws Exception {
         int seconds = Integer.parseInt(args[0]);
-        long startTime = System.currentTimeMillis();
-        long currentTime = System.currentTimeMillis();
-        long targetTime = startTime + 1000 * seconds;
+        long startTime = clock.getWallTime();
+        long currentTime = startTime;
+        long targetTime = startTime + TimeUnit.SECONDS.toMillis(seconds);
 
         while (currentTime < targetTime) {
             cw.print(". ");
-            currentTime = System.currentTimeMillis();
-            Thread.sleep(1000);
+            currentTime = clock.getWallTime();
+            clock.sleep(TimeUnit.SECONDS, 1);
         }
         cw.println();
     }
