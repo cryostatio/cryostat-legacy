@@ -27,10 +27,6 @@ public class JMCConnection {
     private final IConnectionHandle handle;
     private final IFlightRecorderService service;
 
-    JMCConnection(ClientWriter cw, Clock clock, String host) throws Exception {
-        this(cw, clock, host, DEFAULT_PORT);
-    }
-
     JMCConnection(ClientWriter cw, Clock clock, String host, int port) throws Exception {
         this.cw = cw;
         this.clock = clock;
