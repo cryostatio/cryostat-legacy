@@ -22,16 +22,18 @@ public class JMCConnection {
     public static final int DEFAULT_PORT = 9091;
 
     private final ClientWriter cw;
+    private final Clock clock;
     private final RJMXConnection rjmxConnection;
     private final IConnectionHandle handle;
     private final IFlightRecorderService service;
 
-    JMCConnection(ClientWriter cw, String host) throws Exception {
-        this(cw, host, DEFAULT_PORT);
+    JMCConnection(ClientWriter cw, Clock clock, String host) throws Exception {
+        this(cw, clock, host, DEFAULT_PORT);
     }
 
-    JMCConnection(ClientWriter cw, String host, int port) throws Exception {
+    JMCConnection(ClientWriter cw, Clock clock, String host, int port) throws Exception {
         this.cw = cw;
+        this.clock = clock;
         this.rjmxConnection = attemptConnect(host, port, 0);
         this.handle = new DefaultConnectionHandle(rjmxConnection, "RJMX Connection", new IConnectionListener[0]);
         this.service = new FlightRecorderServiceFactory().getServiceInstance(handle);
@@ -76,7 +78,7 @@ public class JMCConnection {
                 } else {
                     cw.println(ExceptionUtils.getStackTrace(e));
                 }
-                Thread.sleep(500);
+                clock.sleep(500);
             }
         }
     }

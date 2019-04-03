@@ -6,6 +6,7 @@ import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import es.andrewazor.containertest.sys.Clock;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Module
@@ -28,7 +29,7 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static JMCConnectionToolkit provideJMCConnectionToolkit(ClientWriter cw) {
-        return new JMCConnectionToolkit(cw);
+    static JMCConnectionToolkit provideJMCConnectionToolkit(ClientWriter cw, Clock clock) {
+        return new JMCConnectionToolkit(cw, clock);
     }
 }

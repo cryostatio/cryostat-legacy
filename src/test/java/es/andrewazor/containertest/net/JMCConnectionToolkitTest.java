@@ -9,6 +9,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.internal.WrappedConnectionException;
 
+import es.andrewazor.containertest.sys.Clock;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -16,10 +17,11 @@ class JMCConnectionToolkitTest {
 
     JMCConnectionToolkit toolkit;
     @Mock ClientWriter cw;
+    @Mock Clock clock;
 
     @BeforeEach
     void setup() {
-        toolkit = new JMCConnectionToolkit(cw);
+        toolkit = new JMCConnectionToolkit(cw, clock);
     }
 
     @Test
