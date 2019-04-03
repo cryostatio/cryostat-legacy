@@ -24,16 +24,6 @@ class HelpCommand implements Command {
         return "help";
     }
 
-    /**
-     * No args expected.
-     */
-    @Override
-    public void execute(String[] args) throws Exception {
-        cw.println("Available commands:");
-        registry.get().getAvailableCommandNames()
-            .forEach(name -> cw.println(String.format("\t%s", name)));
-    }
-
     @Override
     public boolean validate(String[] args) {
         return args.length == 0;
@@ -42,6 +32,19 @@ class HelpCommand implements Command {
     @Override
     public boolean isAvailable() {
         return true;
+    }
+
+    /**
+     * No args expected.
+     */
+    @Override
+    public void execute(String[] args) throws Exception {
+        cw.println("Available commands:");
+        registry.get().getAvailableCommandNames().forEach(this::printCommand);
+    }
+
+    private void printCommand(String cmd) {
+        cw.println(String.format("\t%s", cmd));
     }
 }
 
