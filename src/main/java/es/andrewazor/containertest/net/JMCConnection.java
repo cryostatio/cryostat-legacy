@@ -76,10 +76,7 @@ public class JMCConnection {
                 } else {
                     cw.println(ExceptionUtils.getStackTrace(e));
                 }
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException ignored) {
-                }
+                Thread.sleep(500);
             }
         }
     }
