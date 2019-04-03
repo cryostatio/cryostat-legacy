@@ -1,5 +1,6 @@
 package es.andrewazor.containertest.net;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.Mockito.when;
 
 import java.net.DatagramSocket;
@@ -23,6 +24,11 @@ class NetworkResolverTest {
     @BeforeEach
     void setup() {
         resolver = new NetworkResolver(() -> socket);
+    }
+
+    @Test
+    void smokeTestNoArgsConstructor() {
+        assertDoesNotThrow(() -> new NetworkResolver());
     }
 
     @Test
