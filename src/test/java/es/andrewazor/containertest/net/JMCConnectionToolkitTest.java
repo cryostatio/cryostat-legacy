@@ -5,17 +5,21 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.internal.WrappedConnectionException;
+
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class JMCConnectionToolkitTest {
 
     JMCConnectionToolkit toolkit;
+    @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
-        toolkit = new JMCConnectionToolkit();
+        toolkit = new JMCConnectionToolkit(cw);
     }
 
     @Test

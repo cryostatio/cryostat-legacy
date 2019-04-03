@@ -28,7 +28,7 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static JMCConnectionToolkit provideJMCConnectionToolkit() {
-        return new JMCConnectionToolkit();
+    static JMCConnectionToolkit provideJMCConnectionToolkit(ClientWriter cw) {
+        return new JMCConnectionToolkit(cw);
     }
 }

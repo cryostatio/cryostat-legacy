@@ -2,6 +2,7 @@ package es.andrewazor.containertest.net;
 
 import javax.management.remote.JMXServiceURL;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.IConnectionListener;
 import org.openjdk.jmc.rjmx.internal.DefaultConnectionHandle;
@@ -13,21 +14,24 @@ import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceFactory;
 import org.openjdk.jmc.ui.common.security.InMemoryCredentials;
 
 import es.andrewazor.containertest.sys.Clock;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 public class JMCConnection {
 
     static final String URL_FORMAT = "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi";
     public static final int DEFAULT_PORT = 9091;
 
+    private final ClientWriter cw;
     private final RJMXConnection rjmxConnection;
     private final IConnectionHandle handle;
     private final IFlightRecorderService service;
 
-    JMCConnection(String host) throws Exception {
-        this(host, DEFAULT_PORT);
+    JMCConnection(ClientWriter cw, String host) throws Exception {
+        this(cw, host, DEFAULT_PORT);
     }
 
-    JMCConnection(String host, int port) throws Exception {
+    JMCConnection(ClientWriter cw, String host, int port) throws Exception {
+        this.cw = cw;
         this.rjmxConnection = attemptConnect(host, port, 0);
         this.handle = new DefaultConnectionHandle(rjmxConnection, "RJMX Connection", new IConnectionListener[0]);
         this.service = new FlightRecorderServiceFactory().getServiceInstance(handle);
@@ -65,11 +69,12 @@ public class JMCConnection {
                 return conn;
             } catch (Exception e) {
                 attempts++;
+                cw.println(String.format("Connection attempt %d failed.", attempts));
                 if (attempts >= maxRetry) {
+                    cw.println("Too many failed connections. Aborting.");
                     throw e;
                 } else {
-                    // TODO: print this to contextual ClientWriter
-                    e.printStackTrace();
+                    cw.println(ExceptionUtils.getStackTrace(e));
                 }
                 try {
                     Thread.sleep(500);
