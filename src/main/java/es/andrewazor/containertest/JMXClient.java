@@ -12,7 +12,6 @@ import dagger.Component;
 import es.andrewazor.containertest.jmc.RegistryProvider;
 import es.andrewazor.containertest.tui.CommandExecutor;
 import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
-import es.andrewazor.containertest.tui.CommandExecutor.Mode;
 
 class JMXClient {
     public static void main(String[] args) throws Exception {
@@ -27,7 +26,7 @@ class JMXClient {
             public void run() {
                 Client client = DaggerJMXClient_Client
                     .builder()
-                    .mode(args.length == 0 ? Mode.INTERACTIVE : Mode.BATCH)
+                    .mode(args.length == 0 ? ExecutionMode.INTERACTIVE : ExecutionMode.BATCH)
                     .build();
                 client.commandExecutor().run(args);
             }
@@ -43,7 +42,7 @@ class JMXClient {
 
         @Component.Builder
         interface Builder {
-            @BindsInstance Builder mode(@ExecutionMode Mode mode);
+            @BindsInstance Builder mode(ExecutionMode mode);
             Client build();
         }
     }

@@ -10,7 +10,6 @@ import dagger.multibindings.IntoSet;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
-import es.andrewazor.containertest.tui.CommandExecutor.Mode;
 
 @Module
 public abstract class TuiModule {
@@ -21,7 +20,7 @@ public abstract class TuiModule {
     @Provides
     @Singleton
     static CommandExecutor provideCommandExecutor(ClientReader cr, ClientWriter cw,
-            Lazy<CommandRegistry> commandRegistry, @ExecutionMode Mode mode) {
+            Lazy<CommandRegistry> commandRegistry, ExecutionMode mode) {
         switch (mode) {
         case BATCH:
             return new BatchModeExecutor(cr, cw, commandRegistry);
@@ -34,7 +33,7 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientReader provideClientReader(@ExecutionMode Mode mode) {
+    static ClientReader provideClientReader(ExecutionMode mode) {
         switch (mode) {
         case BATCH:
             return new NoOpClientReader();
@@ -47,7 +46,7 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientWriter provideClientWriter(@ExecutionMode Mode mode) {
+    static ClientWriter provideClientWriter(ExecutionMode mode) {
         switch (mode) {
         case BATCH:
             // fall through
