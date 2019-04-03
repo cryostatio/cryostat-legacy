@@ -19,7 +19,6 @@ import es.andrewazor.containertest.tui.ClientWriter;
 
 class EventOptionsBuilder {
 
-    private final ClientWriter cw;
     private final boolean isV2;
     private final IMutableConstrainedMap<EventOptionID> map;
     private Map<IEventTypeID, Map<String, IOptionDescriptor<?>>> knownTypes;
@@ -31,7 +30,6 @@ class EventOptionsBuilder {
 
     // Testing only
     EventOptionsBuilder(ClientWriter cw, JMCConnection connection, Supplier<Boolean> v2) throws FlightRecorderException {
-        this.cw = cw;
         this.isV2 = v2.get();
         this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
         knownTypes = new HashMap<>();
