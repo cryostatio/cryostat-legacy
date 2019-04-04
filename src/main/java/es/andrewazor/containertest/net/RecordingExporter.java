@@ -13,15 +13,17 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.sys.Environment;
 import es.andrewazor.containertest.tui.ClientWriter;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class RecordingExporter implements ConnectionListener {
 
-    private static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
-    private static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
+    static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
+    static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
 
+    private final Environment env;
     private final ClientWriter cw;
     private IFlightRecorderService service;
     private final NetworkResolver resolver;
@@ -29,14 +31,16 @@ public class RecordingExporter implements ConnectionListener {
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    RecordingExporter(ClientWriter cw, NetworkResolver resolver) {
+    RecordingExporter(Environment env, ClientWriter cw, NetworkResolver resolver) {
+        this.env = env;
         this.cw = cw;
         this.resolver = resolver;
         this.server = new ServerImpl();
     }
 
     // Testing-only constructor
-    RecordingExporter(ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+    RecordingExporter(Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+        this.env = env;
         this.cw = cw;
         this.resolver = resolver;
         this.server = server;
@@ -89,16 +93,8 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
-        String hostname = System.getenv(HOST_VAR);
-        if (hostname == null || hostname.isEmpty()) {
-            hostname = resolver.getHostAddress();
-        }
-
-        int port = 8080;
-        String portProperty = System.getenv(PORT_VAR);
-        if (portProperty != null && !portProperty.isEmpty()) {
-            port = Integer.valueOf(portProperty);
-        }
+        String hostname = env.getEnv(HOST_VAR, resolver.getHostAddress());
+        int port = Integer.valueOf(env.getEnv(PORT_VAR, "8080"));
 
         return new URL("http", hostname, port, "");
     }

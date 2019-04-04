@@ -12,4 +12,10 @@ public abstract class SystemModule {
     static Clock provideClock() {
         return new Clock();
     }
+
+    @Provides
+    @Singleton
+    static Environment provideEnvironment() {
+        return new Environment();
+    }
 }

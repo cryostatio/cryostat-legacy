@@ -7,6 +7,7 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import es.andrewazor.containertest.sys.Clock;
+import es.andrewazor.containertest.sys.Environment;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Module
@@ -17,8 +18,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static RecordingExporter provideRecordingExporter(ClientWriter cw, NetworkResolver resolver) {
-        return new RecordingExporter(cw, resolver);
+    static RecordingExporter provideRecordingExporter(Environment env, ClientWriter cw, NetworkResolver resolver) {
+        return new RecordingExporter(env, cw, resolver);
     }
 
     @Provides
