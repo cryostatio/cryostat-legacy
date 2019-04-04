@@ -22,14 +22,14 @@ dependencies {
     implementation 'org.apache.commons:commons-lang3:3.8.1+'
     implementation 'org.eclipse.core:runtime:3.10.0+'
     implementation 'org.nanohttpd:nanohttpd:2.3.1+'
-    compile 'com.google.dagger:dagger:2.21'
+    implementation 'com.google.dagger:dagger:2.21'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.21'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.1'
     testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.1'
-    testCompile 'org.hamcrest:hamcrest:2.1'
-    testCompile 'org.mockito:mockito-junit-jupiter:2.25.1'
-    testCompile 'org.mockito:mockito-inline:2.25.1'
+    testImplementation 'org.hamcrest:hamcrest:2.1'
+    testImplementation 'org.mockito:mockito-junit-jupiter:2.25.1'
+    testImplementation 'org.mockito:mockito-inline:2.25.1'
 }
 
 mainClassName = 'es.andrewazor.containertest.JMXClient'
