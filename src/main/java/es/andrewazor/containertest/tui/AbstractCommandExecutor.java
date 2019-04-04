@@ -1,6 +1,7 @@
 package es.andrewazor.containertest.tui;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -40,16 +41,7 @@ abstract class AbstractCommandExecutor implements CommandExecutor {
             .map(words -> new CommandLine(words[0], Arrays.copyOfRange(words, 1, words.length)))
             .collect(Collectors.toList());
 
-        boolean allValid = true;
-        for (CommandLine commandLine : commandLines) {
-            boolean valid = this.commandRegistry.get().validate(commandLine.command, commandLine.args);
-            if (!valid) {
-                cw.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
-            }
-            allValid &= valid;
-        }
-
-        if (!allValid) {
+        if (!validateCommands(commandLines)) {
             return;
         }
 
@@ -65,6 +57,18 @@ abstract class AbstractCommandExecutor implements CommandExecutor {
                 cw.println(ExceptionUtils.getStackTrace(e));
             }
         }
+    }
+
+    private boolean validateCommands(Collection<CommandLine> commandLines) {
+        boolean allValid = true;
+        for (CommandLine commandLine : commandLines) {
+            boolean valid = this.commandRegistry.get().validate(commandLine.command, commandLine.args);
+            if (!valid) {
+                cw.println(String.format("\t\"%s\" are invalid arguments to %s", Arrays.asList(commandLine.args), commandLine.command));
+            }
+            allValid &= valid;
+        }
+        return allValid;
     }
 
     protected void executeCommandLine(String line) {
