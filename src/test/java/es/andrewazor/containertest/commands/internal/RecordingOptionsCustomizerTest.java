@@ -2,10 +2,13 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
@@ -32,6 +35,7 @@ class RecordingOptionsCustomizerTest {
         customizer.apply(builder);
         verify(builder).toDisk(false);
         verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -40,6 +44,7 @@ class RecordingOptionsCustomizerTest {
         customizer.apply(builder);
         verify(builder).toDisk(true);
         verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -49,6 +54,7 @@ class RecordingOptionsCustomizerTest {
         verifyDefaults();
         verify(builder).maxAge(123);
         verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -59,6 +65,7 @@ class RecordingOptionsCustomizerTest {
         verifyDefaults();
         verify(builder).maxAge(456);
         verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -68,6 +75,7 @@ class RecordingOptionsCustomizerTest {
         verifyDefaults();
         verify(builder).maxSize(123);
         verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -77,6 +85,16 @@ class RecordingOptionsCustomizerTest {
         verifyDefaults();
         verify(builder).destinationCompressed(true);
         verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
+    }
+
+    @Test
+    void shouldPrintExceptions() throws QuantityConversionException {
+        when(builder.destinationCompressed(ArgumentMatchers.anyBoolean())).thenThrow(NullPointerException.class);
+        customizer.destinationCompressed(true);
+        customizer.apply(builder);
+        verify(cw).println("java.lang.NullPointerException\n");
+        verifyNoMoreInteractions(cw);
     }
 
     private void verifyDefaults() throws QuantityConversionException {

@@ -1,15 +1,14 @@
 package es.andrewazor.containertest.commands.internal;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import es.andrewazor.containertest.tui.ClientWriter;
+import es.andrewazor.containertest.util.CheckedConsumer;
 
 class RecordingOptionsCustomizer {
 
@@ -29,42 +28,37 @@ class RecordingOptionsCustomizer {
     }
 
     void toDisk(boolean toDisk) {
-        customizers.put(OptionKey.TO_DISK, b -> {
-            try {
+        customizers.put(OptionKey.TO_DISK, new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
                 b.toDisk(toDisk);
-            } catch (QuantityConversionException e) {
-                // TODO add a printException method to ClientWriter for this
-                cw.println(ExceptionUtils.getStackTrace(e));
             }
         });
     }
 
     void maxAge(long seconds) {
-        customizers.put(OptionKey.MAX_AGE, b -> {
-            try {
+        customizers.put(OptionKey.MAX_AGE, new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
                 b.maxAge(seconds);
-            } catch (QuantityConversionException e) {
-                cw.println(ExceptionUtils.getStackTrace(e));
             }
         });
     }
 
     void maxSize(long bytes) {
-        customizers.put(OptionKey.MAX_SIZE, b -> {
-            try {
+        customizers.put(OptionKey.MAX_SIZE, new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
                 b.maxSize(bytes);
-            } catch (QuantityConversionException e) {
-                cw.println(ExceptionUtils.getStackTrace(e));
             }
         });
     }
 
     void destinationCompressed(boolean compressed) {
-        customizers.put(OptionKey.DESTINATION_COMPRESSED, b -> {
-            try {
+        customizers.put(OptionKey.DESTINATION_COMPRESSED, new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
                 b.destinationCompressed(compressed);
-            } catch (QuantityConversionException e) {
-                cw.println(ExceptionUtils.getStackTrace(e));
             }
         });
     }
@@ -75,6 +69,16 @@ class RecordingOptionsCustomizer {
         MAX_SIZE,
         TO_DISK,
         ;
+    }
+
+    private abstract class CustomizerConsumer implements CheckedConsumer<RecordingOptionsBuilder> {
+        @Override
+        public void handleException(Exception e) {
+            // TODO add a printException method to ClientWriter for this
+            // or a project-specific ExceptionUtils that prints to the
+            // context ClientWriter by default
+            cw.println(ExceptionUtils.getStackTrace(e));
+        }
     }
 
 }
