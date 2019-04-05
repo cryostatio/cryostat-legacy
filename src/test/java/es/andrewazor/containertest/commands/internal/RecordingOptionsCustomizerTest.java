@@ -93,7 +93,7 @@ class RecordingOptionsCustomizerTest {
         when(builder.destinationCompressed(ArgumentMatchers.anyBoolean())).thenThrow(NullPointerException.class);
         customizer.destinationCompressed(true);
         customizer.apply(builder);
-        verify(cw).println("java.lang.NullPointerException\n");
+        verify(cw).println(ArgumentMatchers.any(NullPointerException.class));
         verifyNoMoreInteractions(cw);
     }
 

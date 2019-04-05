@@ -2,8 +2,6 @@ package es.andrewazor.containertest.tui;
 
 import java.util.NoSuchElementException;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import dagger.Lazy;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
@@ -27,7 +25,7 @@ class InteractiveShellExecutor extends AbstractCommandExecutor {
                 executeCommandLine(in);
             } while (!in.toLowerCase().equals(ExitCommand.NAME.toLowerCase()));
         } catch (Exception e) {
-            cw.println(ExceptionUtils.getStackTrace(e));
+            cw.println(e);
         }
     }
 

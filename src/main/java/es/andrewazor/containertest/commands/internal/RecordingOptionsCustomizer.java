@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import es.andrewazor.containertest.tui.ClientWriter;
@@ -74,10 +73,7 @@ class RecordingOptionsCustomizer {
     private abstract class CustomizerConsumer implements CheckedConsumer<RecordingOptionsBuilder> {
         @Override
         public void handleException(Exception e) {
-            // TODO add a printException method to ClientWriter for this
-            // or a project-specific ExceptionUtils that prints to the
-            // context ClientWriter by default
-            cw.println(ExceptionUtils.getStackTrace(e));
+            cw.println(e);
         }
     }
 

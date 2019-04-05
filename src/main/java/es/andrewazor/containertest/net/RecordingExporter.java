@@ -8,7 +8,6 @@ import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -118,7 +117,7 @@ public class RecordingExporter implements ConnectionListener {
             try {
                 return newFlightRecorderResponse(recordingName);
             } catch (FlightRecorderException fre) {
-                cw.println(ExceptionUtils.getStackTrace(fre));
+                cw.println(fre);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }

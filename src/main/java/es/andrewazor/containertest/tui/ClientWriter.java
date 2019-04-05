@@ -1,5 +1,7 @@
 package es.andrewazor.containertest.tui;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 public interface ClientWriter {
     void print(String s);
     default void print(char c) {
@@ -10,5 +12,8 @@ public interface ClientWriter {
     }
     default void println() {
         print("\n");
+    }
+    default void println(Exception e) {
+        println(ExceptionUtils.getStackTrace(e));
     }
 }

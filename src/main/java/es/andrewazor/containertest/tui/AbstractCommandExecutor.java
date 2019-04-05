@@ -6,8 +6,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import dagger.Lazy;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
@@ -54,7 +52,7 @@ abstract class AbstractCommandExecutor implements CommandExecutor {
                 }
             } catch (Exception e) {
                 cw.println(String.format("%s operation failed due to %s", commandLine, e.getMessage()));
-                cw.println(ExceptionUtils.getStackTrace(e));
+                cw.println(e);
             }
         }
     }

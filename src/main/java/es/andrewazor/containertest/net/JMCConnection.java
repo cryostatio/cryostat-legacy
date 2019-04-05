@@ -2,7 +2,6 @@ package es.andrewazor.containertest.net;
 
 import javax.management.remote.JMXServiceURL;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.rjmx.IConnectionHandle;
 import org.openjdk.jmc.rjmx.IConnectionListener;
 import org.openjdk.jmc.rjmx.internal.DefaultConnectionHandle;
@@ -72,7 +71,7 @@ public class JMCConnection {
                     cw.println("Too many failed connections. Aborting.");
                     throw e;
                 } else {
-                    cw.println(ExceptionUtils.getStackTrace(e));
+                    cw.println(e);
                 }
                 clock.sleep(500);
             }
