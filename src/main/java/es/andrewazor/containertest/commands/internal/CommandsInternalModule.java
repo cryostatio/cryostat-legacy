@@ -24,6 +24,7 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindListCommand(ListCommand command);
     @Binds @IntoSet abstract Command bindListEventTypesCommand(ListEventTypesCommand command);
     @Binds @IntoSet abstract Command bindListRecordingOptionsCommand(ListRecordingOptionsCommand command);
+    @Binds @IntoSet abstract Command bindPrintUrlCommand(PrintUrlCommand command);
     @Binds @IntoSet abstract Command bindRecordingOptionsCustomizerCommand(RecordingOptionsCustomizerCommand command);
     @Binds @IntoSet abstract Command bindSearchEventsCommand(SearchEventsCommand command);
     @Binds @IntoSet abstract Command bindSnapshotCommand(SnapshotCommand command);

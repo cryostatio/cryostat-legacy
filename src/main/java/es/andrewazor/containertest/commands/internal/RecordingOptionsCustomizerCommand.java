@@ -13,8 +13,8 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
 
     private static final Pattern OPTIONS_PATTERN = Pattern.compile("^([\\w]+)=([\\w]+)$", Pattern.MULTILINE);
 
-    private ClientWriter cw;
-    private RecordingOptionsCustomizer customizer;
+    private final ClientWriter cw;
+    private final RecordingOptionsCustomizer customizer;
 
     @Inject RecordingOptionsCustomizerCommand(ClientWriter cw, RecordingOptionsCustomizer customizer) {
         this.cw = cw;

@@ -52,7 +52,8 @@ client, including a short synopsis of any expected arguments.
     ###### synopsis
     Prints the IP address of the client container.
     ###### see also
-    [`hostname`](#hostname)
+    * [`hostname`](#hostname)
+    * [`url`](#url)
 
 * #### `hostname`
     ###### usage
@@ -60,7 +61,21 @@ client, including a short synopsis of any expected arguments.
     ###### synopsis
     Prints the Hostname of the client container.
     ###### see also
-    [`ip`](#ip)
+    * [`ip`](#ip)
+    * [`url](#url)
+
+* #### `url`
+    ###### usage
+    `url`
+    ###### synopsis
+    Prints the embedded webserver download URL for the client. Recordings can
+    be downloaded from `$URL/$RECORDING`, where `$URL` is the output from this
+    command and `$RECORDING` is the name of a recording in the target JVM.
+    This information is also printed upon any successful connection to a target
+    JVM.
+    ###### see also
+    * [`wait-for-download`](#wait-for-download)
+    * [`list`](#list)
 
 * #### `wait`
     ###### usage
@@ -185,3 +200,5 @@ client, including a short synopsis of any expected arguments.
     non-fixed recording may be actively running. This command is mostly useful
     for non-interactive client usage, ex. shell scripting. Once this command
     has begun awaiting download of the recording it cannot be interrupted.
+    ###### see also
+    [`url](#url)
