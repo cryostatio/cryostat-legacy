@@ -49,3 +49,6 @@ available for export (download). These may be set by setting the environment
 variable before invoking the `run.sh` shell script, or if this script is not
 used, by using the `-e` environment variable flag in the `docker` or `podman`
 command invocation.
+
+For an overview of the available commands and their functionalities, see
+[this document](COMMANDS.md).
