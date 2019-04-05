@@ -29,10 +29,13 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindWaitCommand(WaitCommand command);
     @Binds @IntoSet abstract Command bindWaitForCommand(WaitForCommand command);
     @Binds @IntoSet abstract Command bindWaitForDownloadCommand(WaitForDownloadCommand command);
-    @Provides public static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {
+    @Provides static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {
         return new EventOptionsBuilder.Factory(cw);
     }
-    @Provides public static RecordingOptionsBuilderFactory provideRecordingOptionsBuilderFactory() {
-        return service -> new RecordingOptionsBuilder(service);
+    @Provides static RecordingOptionsBuilderFactory provideRecordingOptionsBuilderFactory(RecordingOptionsCustomizer customizer) {
+        return service -> customizer.apply(new RecordingOptionsBuilder(service));
+    }
+    @Provides static RecordingOptionsCustomizer provideRecordingOptionsCustomizer(ClientWriter cw) {
+        return new RecordingOptionsCustomizer(cw);
     }
 }
