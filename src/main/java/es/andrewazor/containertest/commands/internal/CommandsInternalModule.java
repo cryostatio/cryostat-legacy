@@ -1,5 +1,7 @@
 package es.andrewazor.containertest.commands.internal;
 
+import javax.inject.Singleton;
+
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import dagger.Binds;
@@ -22,6 +24,7 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindListCommand(ListCommand command);
     @Binds @IntoSet abstract Command bindListEventTypesCommand(ListEventTypesCommand command);
     @Binds @IntoSet abstract Command bindListRecordingOptionsCommand(ListRecordingOptionsCommand command);
+    @Binds @IntoSet abstract Command bindRecordingOptionsCustomizerCommand(RecordingOptionsCustomizerCommand command);
     @Binds @IntoSet abstract Command bindSearchEventsCommand(SearchEventsCommand command);
     @Binds @IntoSet abstract Command bindSnapshotCommand(SnapshotCommand command);
     @Binds @IntoSet abstract Command bindStartRecordingCommand(StartRecordingCommand command);
@@ -35,7 +38,7 @@ public abstract class CommandsInternalModule {
     @Provides static RecordingOptionsBuilderFactory provideRecordingOptionsBuilderFactory(RecordingOptionsCustomizer customizer) {
         return service -> customizer.apply(new RecordingOptionsBuilder(service));
     }
-    @Provides static RecordingOptionsCustomizer provideRecordingOptionsCustomizer(ClientWriter cw) {
+    @Provides @Singleton static RecordingOptionsCustomizer provideRecordingOptionsCustomizer(ClientWriter cw) {
         return new RecordingOptionsCustomizer(cw);
     }
 }
