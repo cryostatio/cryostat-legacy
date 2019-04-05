@@ -13,5 +13,5 @@ public interface CheckedConsumer<T> extends Consumer<T> {
 
     void acceptThrows(T t) throws Exception;
 
-    default void handleException(Exception e) {}
+    void handleException(Exception e);
 }
