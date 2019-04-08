@@ -7,9 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
-import java.util.Arrays;
-import java.util.List;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,7 +15,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.commands.internal.RecordingOptionsCustomizer.OptionKey;
@@ -63,9 +59,14 @@ class RecordingOptionsCustomizerCommandTest {
         verify(cw).println(arg + " is an invalid option string");
     }
 
-    @Test
-    void shouldExpectKeyValueArg() {
-        assertTrue(command.validate(new String[]{ "foo=bar" }));
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "foo=bar",
+        "toDisk=true",
+        "destinationFile=recording.jfr"
+    })
+    void shouldExpectKeyValueArg(String arg) {
+        assertTrue(command.validate(new String[]{ arg }));
     }
 
     @Test
