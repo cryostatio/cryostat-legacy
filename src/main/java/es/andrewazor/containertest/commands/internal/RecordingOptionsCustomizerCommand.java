@@ -1,5 +1,6 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -47,43 +48,30 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
     }
 
     private void setOption(String option, String value) {
-        // TODO Implement a programmatic switch over the OptionKey type, rather than this manual branching
-        if (option.equals("destinationCompressed")) {
-            customizer.destinationCompressed(Boolean.parseBoolean(value));
-        } else if (option.equals("maxAge")) {
-            // TODO allow specification of unit suffixes (ex 30 is 30s, but also 5m, 1h, 2d, etc)
-            customizer.maxAge(Long.parseLong(value));
-        } else if (option.equals("maxSize")) {
-            // TODO allow specification of unit suffixes (ex 512k, 4M, etc)
-            customizer.maxSize(Long.parseLong(value));
-        } else if (option.equals("toDisk")) {
-            customizer.toDisk(Boolean.parseBoolean(value));
-        } else if (option.equals("destinationFile")) {
-            // TODO validation of file path
-            customizer.destinationFile(value);
-        } else {
-            throw new UnsupportedOperationException(option);
-        }
+        Optional<OptionKey> key = OptionKey.fromOptionName(option);
+        key.ifPresent(k -> {
+            // TODO Implement a programmatic switch over the OptionKey type, rather than
+            // this manual branching
+            if (k.equals(OptionKey.DESTINATION_COMPRESSED)) {
+                customizer.destinationCompressed(Boolean.parseBoolean(value));
+            } else if (k.equals(OptionKey.MAX_AGE)) {
+                // TODO allow specification of unit suffixes (ex 30 is 30s, but also 5m, 1h, 2d,
+                // etc)
+                customizer.maxAge(Long.parseLong(value));
+            } else if (k.equals(OptionKey.MAX_SIZE)) {
+                // TODO allow specification of unit suffixes (ex 512k, 4M, etc)
+                customizer.maxSize(Long.parseLong(value));
+            } else if (k.equals(OptionKey.TO_DISK)) {
+                customizer.toDisk(Boolean.parseBoolean(value));
+            }
+        });
+        key.orElseThrow(() -> new UnsupportedOperationException(option));
     }
 
     private void unsetOption(String option) {
-        // TODO Implement a programmatic switch over the OptionKey type, rather than this manual branching
-        if (option.equals("destinationCompressed")) {
-            customizer.unset(OptionKey.DESTINATION_COMPRESSED);
-        } else if (option.equals("maxAge")) {
-            // TODO allow specification of unit suffixes (ex 30 is 30s, but also 5m, 1h, 2d, etc)
-            customizer.unset(OptionKey.MAX_AGE);
-        } else if (option.equals("maxSize")) {
-            // TODO allow specification of unit suffixes (ex 512k, 4M, etc)
-            customizer.unset(OptionKey.MAX_SIZE);
-        } else if (option.equals("toDisk")) {
-            customizer.unset(OptionKey.TO_DISK);
-        } else if (option.equals("destinationFile")) {
-            // TODO validation of file path
-            customizer.unset(OptionKey.DESTINATION_FILE);
-        } else {
-            throw new UnsupportedOperationException(option);
-        }
+        Optional<OptionKey> key = OptionKey.fromOptionName(option);
+        key.ifPresent(customizer::unset);
+        key.orElseThrow(() -> new UnsupportedOperationException(option));
     }
 
     @Override

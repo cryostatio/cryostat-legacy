@@ -111,15 +111,6 @@ class RecordingOptionsCustomizerCommandTest {
     }
 
     @Test
-    void shouldSetDestinationFile() throws Exception {
-        verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "destinationFile=foo" });
-        verify(customizer).destinationFile("foo");
-        verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
     void shouldUnsetCompression() throws Exception {
         verifyZeroInteractions(customizer);
         command.execute(new String[]{ "-destinationCompressed" });
@@ -151,15 +142,6 @@ class RecordingOptionsCustomizerCommandTest {
         verifyZeroInteractions(customizer);
         command.execute(new String[]{ "-toDisk" });
         verify(customizer).unset(OptionKey.TO_DISK);
-        verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
-    void shouldUnsetDestinationFile() throws Exception {
-        verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "-destinationFile" });
-        verify(customizer).unset(OptionKey.DESTINATION_FILE);
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
     }

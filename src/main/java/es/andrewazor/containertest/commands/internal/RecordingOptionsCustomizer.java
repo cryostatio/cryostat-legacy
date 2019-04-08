@@ -2,6 +2,7 @@ package es.andrewazor.containertest.commands.internal;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -66,22 +67,28 @@ class RecordingOptionsCustomizer {
         });
     }
 
-    void destinationFile(String file) {
-        customizers.put(OptionKey.DESTINATION_FILE, new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
-                b.destinationFile(file);
-            }
-        });
-    }
-
     enum OptionKey {
-        DESTINATION_COMPRESSED,
-        DESTINATION_FILE,
-        MAX_AGE,
-        MAX_SIZE,
-        TO_DISK,
+        DESTINATION_COMPRESSED("destinationCompressed"),
+        MAX_AGE("maxAge"),
+        MAX_SIZE("maxSize"),
+        TO_DISK("toDisk"),
         ;
+
+        private final String optionName;
+
+        OptionKey(String optionName) {
+            this.optionName = optionName;
+        }
+
+        static Optional<OptionKey> fromOptionName(String optionName) {
+            OptionKey key = null;
+            for (OptionKey k : OptionKey.values()) {
+                if (k.optionName.equals(optionName)) {
+                    key = k;
+                }
+            }
+            return Optional.ofNullable(key);
+        }
     }
 
     private abstract class CustomizerConsumer implements CheckedConsumer<RecordingOptionsBuilder> {

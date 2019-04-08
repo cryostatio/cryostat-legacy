@@ -90,26 +90,6 @@ class RecordingOptionsCustomizerTest {
     }
 
     @Test
-    void shouldApplyDestinationFile() throws QuantityConversionException {
-        customizer.destinationFile("foo");
-        customizer.apply(builder);
-        verifyDefaults();
-        verify(builder).destinationFile("foo");
-        verifyNoMoreInteractions(builder);
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
-    void shouldUnsetOptions() throws QuantityConversionException {
-        customizer.destinationFile("foo");
-        customizer.unset(OptionKey.DESTINATION_FILE);
-        customizer.apply(builder);
-        verifyDefaults();
-        verifyNoMoreInteractions(builder);
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
     void shouldPrintExceptions() throws QuantityConversionException {
         when(builder.destinationCompressed(ArgumentMatchers.anyBoolean())).thenThrow(NullPointerException.class);
         customizer.destinationCompressed(true);
