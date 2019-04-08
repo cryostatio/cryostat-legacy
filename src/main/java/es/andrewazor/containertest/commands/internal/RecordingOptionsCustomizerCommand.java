@@ -81,9 +81,20 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
         }
         String options = args[0];
 
-        // TODO validation should check known OptionKeys
-        if (!OPTIONS_PATTERN.matcher(options).find() && !UNSET_PATTERN.matcher(options).find()) {
+        Matcher optionsMatcher = OPTIONS_PATTERN.matcher(options);
+        boolean optionsMatch = optionsMatcher.find();
+        Matcher unsetMatcher = UNSET_PATTERN.matcher(options);
+        boolean unsetMatch = unsetMatcher.find();
+        if (!optionsMatch && !unsetMatch) {
             cw.println(String.format("%s is an invalid option string", options));
+            return false;
+        }
+
+        String option = (optionsMatch ? optionsMatcher : unsetMatcher).group(1);
+        boolean recognizedOption = OptionKey.fromOptionName(option)
+            .isPresent();
+        if (!recognizedOption) {
+            cw.println(String.format("%s is an unrecognized or unsupported option", option));
             return false;
         }
 

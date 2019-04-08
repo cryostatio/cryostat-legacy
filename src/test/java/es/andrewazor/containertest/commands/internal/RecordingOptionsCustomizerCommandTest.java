@@ -61,9 +61,10 @@ class RecordingOptionsCustomizerCommandTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-        "foo=bar",
         "toDisk=true",
-        "destinationFile=recording.jfr"
+        "maxAge=10",
+        "maxSize=512",
+        "destinationCompressed=true",
     })
     void shouldExpectKeyValueArg(String arg) {
         assertTrue(command.validate(new String[]{ arg }));
@@ -71,7 +72,7 @@ class RecordingOptionsCustomizerCommandTest {
 
     @Test
     void shouldExpectUnsetArg() {
-        assertTrue(command.validate(new String[]{ "-foo" }));
+        assertTrue(command.validate(new String[]{ "-toDisk" }));
     }
 
     @Test
