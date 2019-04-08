@@ -26,6 +26,10 @@ class RecordingOptionsCustomizer {
         return builder;
     }
 
+    void unset(OptionKey key) {
+        customizers.remove(key);
+    }
+
     void toDisk(boolean toDisk) {
         customizers.put(OptionKey.TO_DISK, new CustomizerConsumer() {
             @Override
@@ -71,7 +75,7 @@ class RecordingOptionsCustomizer {
         });
     }
 
-    private enum OptionKey {
+    enum OptionKey {
         DESTINATION_COMPRESSED,
         DESTINATION_FILE,
         MAX_AGE,

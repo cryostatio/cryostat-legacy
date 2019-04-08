@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
+import es.andrewazor.containertest.commands.internal.RecordingOptionsCustomizer.OptionKey;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -94,6 +95,16 @@ class RecordingOptionsCustomizerTest {
         customizer.apply(builder);
         verifyDefaults();
         verify(builder).destinationFile("foo");
+        verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
+    }
+
+    @Test
+    void shouldUnsetOptions() throws QuantityConversionException {
+        customizer.destinationFile("foo");
+        customizer.unset(OptionKey.DESTINATION_FILE);
+        customizer.apply(builder);
+        verifyDefaults();
         verifyNoMoreInteractions(builder);
         verifyZeroInteractions(cw);
     }
