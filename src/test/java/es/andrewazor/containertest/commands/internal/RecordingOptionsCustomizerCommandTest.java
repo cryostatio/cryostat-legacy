@@ -64,7 +64,6 @@ class RecordingOptionsCustomizerCommandTest {
         "toDisk=true",
         "maxAge=10",
         "maxSize=512",
-        "destinationCompressed=true",
     })
     void shouldExpectKeyValueArg(String arg) {
         assertTrue(command.validate(new String[]{ arg }));
@@ -73,15 +72,6 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldExpectUnsetArg() {
         assertTrue(command.validate(new String[]{ "-toDisk" }));
-    }
-
-    @Test
-    void shouldSetCompression() throws Exception {
-        verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "destinationCompressed=true" });
-        verify(customizer).destinationCompressed(true);
-        verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -107,15 +97,6 @@ class RecordingOptionsCustomizerCommandTest {
         verifyZeroInteractions(customizer);
         command.execute(new String[]{ "toDisk=true" });
         verify(customizer).toDisk(true);
-        verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
-    void shouldUnsetCompression() throws Exception {
-        verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "-destinationCompressed" });
-        verify(customizer).unset(OptionKey.DESTINATION_COMPRESSED);
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
     }

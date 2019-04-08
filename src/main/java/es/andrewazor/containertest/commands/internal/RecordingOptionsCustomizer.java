@@ -58,17 +58,7 @@ class RecordingOptionsCustomizer {
         });
     }
 
-    void destinationCompressed(boolean compressed) {
-        customizers.put(OptionKey.DESTINATION_COMPRESSED, new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
-                b.destinationCompressed(compressed);
-            }
-        });
-    }
-
     enum OptionKey {
-        DESTINATION_COMPRESSED("destinationCompressed"),
         MAX_AGE("maxAge"),
         MAX_SIZE("maxSize"),
         TO_DISK("toDisk"),

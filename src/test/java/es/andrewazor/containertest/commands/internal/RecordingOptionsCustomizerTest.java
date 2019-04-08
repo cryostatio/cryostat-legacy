@@ -79,25 +79,6 @@ class RecordingOptionsCustomizerTest {
         verifyZeroInteractions(cw);
     }
 
-    @Test
-    void shouldApplyDestinationCompressed() throws QuantityConversionException {
-        customizer.destinationCompressed(true);
-        customizer.apply(builder);
-        verifyDefaults();
-        verify(builder).destinationCompressed(true);
-        verifyNoMoreInteractions(builder);
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
-    void shouldPrintExceptions() throws QuantityConversionException {
-        when(builder.destinationCompressed(ArgumentMatchers.anyBoolean())).thenThrow(NullPointerException.class);
-        customizer.destinationCompressed(true);
-        customizer.apply(builder);
-        verify(cw).println(ArgumentMatchers.any(NullPointerException.class));
-        verifyNoMoreInteractions(cw);
-    }
-
     private void verifyDefaults() throws QuantityConversionException {
         verify(builder).toDisk(false);
     }
