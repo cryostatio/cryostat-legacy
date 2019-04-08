@@ -149,11 +149,13 @@ client, including a short synopsis of any expected arguments.
 
 * #### `recording-option`
     ###### usage
-    `recording-option toDisk=true`
+    `recording-option toDisk=true` | `recording-option -toDisk`
     ###### synopsis
-    Sets the given option (`toDisk`) to the specified value (`true`). The
-    currently supported options are toDisk (boolean), maxAge (seconds),
-    maxSize (bytes), and destinationCompressed (boolean).
+    Sets the given option (`toDisk`) to the specified value (`true`), or unsets
+    the option and restores the target JVM default.
+    The currently supported options are toDisk (boolean), maxAge (seconds),
+    maxSize (bytes), destinationCompressed (boolean), and destinationFile
+    (string) .
 
     These recording options are local to the client session, not the connected
     target JVM. In practical terms this means, for example, that setting
