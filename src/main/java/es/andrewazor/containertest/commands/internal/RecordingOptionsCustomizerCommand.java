@@ -38,11 +38,16 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
         if (option.equals("destinationCompressed")) {
             customizer.destinationCompressed(Boolean.parseBoolean(value));
         } else if (option.equals("maxAge")) {
+            // TODO allow specification of unit suffixes (ex 30 is 30s, but also 5m, 1h, 2d, etc)
             customizer.maxAge(Long.parseLong(value));
         } else if (option.equals("maxSize")) {
+            // TODO allow specification of unit suffixes (ex 512k, 4M, etc)
             customizer.maxSize(Long.parseLong(value));
         } else if (option.equals("toDisk")) {
             customizer.toDisk(Boolean.parseBoolean(value));
+        } else if (option.equals("destinationFile")) {
+            // TODO validation of file path
+            customizer.destinationFile(value);
         } else {
             throw new UnsupportedOperationException(option);
         }

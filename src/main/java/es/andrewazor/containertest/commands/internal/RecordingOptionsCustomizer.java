@@ -62,8 +62,18 @@ class RecordingOptionsCustomizer {
         });
     }
 
+    void destinationFile(String file) {
+        customizers.put(OptionKey.DESTINATION_FILE, new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
+                b.destinationFile(file);
+            }
+        });
+    }
+
     private enum OptionKey {
         DESTINATION_COMPRESSED,
+        DESTINATION_FILE,
         MAX_AGE,
         MAX_SIZE,
         TO_DISK,

@@ -92,6 +92,15 @@ class RecordingOptionsCustomizerCommandTest {
     }
 
     @Test
+    void shouldSetDestinationFile() throws Exception {
+        verifyZeroInteractions(customizer);
+        command.execute(new String[]{ "destinationFile=foo" });
+        verify(customizer).destinationFile("foo");
+        verifyNoMoreInteractions(customizer);
+        verifyZeroInteractions(cw);
+    }
+
+    @Test
     void shouldThrowOnUnrecognizedOption() throws Exception {
         Exception e = assertThrows(UnsupportedOperationException.class,
                 () -> command.execute(new String[] { "foo=true" }));
