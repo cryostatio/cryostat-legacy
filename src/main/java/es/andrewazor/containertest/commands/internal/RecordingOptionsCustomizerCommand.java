@@ -11,7 +11,7 @@ import es.andrewazor.containertest.tui.ClientWriter;
 @Singleton
 class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
 
-    private static final Pattern OPTIONS_PATTERN = Pattern.compile("^([\\w]+)=([\\w]+)$", Pattern.MULTILINE);
+    private static final Pattern OPTIONS_PATTERN = Pattern.compile("^([\\w]+)=([\\w\\.-_]+)$", Pattern.MULTILINE);
 
     private final ClientWriter cw;
     private final RecordingOptionsCustomizer customizer;
@@ -61,7 +61,7 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
         String options = args[0];
 
         if (!OPTIONS_PATTERN.matcher(options).find()) {
-            cw.println(String.format("%s is an invalid events pattern", options));
+            cw.println(String.format("%s is an invalid option", options));
             return false;
         }
 

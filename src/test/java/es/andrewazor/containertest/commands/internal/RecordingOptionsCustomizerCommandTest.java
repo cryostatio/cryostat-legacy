@@ -47,7 +47,7 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldNotExpectMalformedArgs() {
         assertFalse(command.validate(new String[]{ "foo" }));
-        verify(cw).println("foo is an invalid events pattern");
+        verify(cw).println("foo is an invalid option");
     }
 
     @Test
