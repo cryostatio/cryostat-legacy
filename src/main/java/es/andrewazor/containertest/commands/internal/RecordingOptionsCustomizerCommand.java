@@ -34,7 +34,7 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
         String option = m.group(1);
         String value = m.group(2);
 
-        // Implement a programmatic switch over the OptionKey type, rather than this manual branching
+        // TODO Implement a programmatic switch over the OptionKey type, rather than this manual branching
         if (option.equals("destinationCompressed")) {
             customizer.destinationCompressed(Boolean.parseBoolean(value));
         } else if (option.equals("maxAge")) {
