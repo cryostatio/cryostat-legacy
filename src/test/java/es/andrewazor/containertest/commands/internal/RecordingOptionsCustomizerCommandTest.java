@@ -15,6 +15,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -49,16 +51,16 @@ class RecordingOptionsCustomizerCommandTest {
         assertFalse(command.validate(new String[2]));
     }
 
-    @Test
-    void shouldNotExpectMalformedArgs() {
-        List<String> invalidArgs = Arrays.asList(
-            "foo",
-            "+foo",
-            "foo=",
-            "-foo=bar"
-        );
-        invalidArgs.forEach(arg -> assertFalse(command.validate(new String[]{ arg })));
-        verify(cw).println("foo is an invalid option string");
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "foo",
+        "+foo",
+        "foo=",
+        "-foo=bar",
+    })
+    void shouldNotExpectMalformedArgs(String arg) {
+        assertFalse(command.validate(new String[]{ arg }));
+        verify(cw).println(arg + " is an invalid option string");
     }
 
     @Test
