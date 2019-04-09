@@ -84,7 +84,7 @@ class RecordingOptionsCustomizerCommandTest {
     void shouldSetMaxAge() throws Exception {
         verifyZeroInteractions(customizer);
         command.execute(new String[]{ "maxAge=123" });
-        verify(customizer).maxAge(123);
+        verify(customizer).set(OptionKey.MAX_AGE, "123");
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
     }
@@ -93,7 +93,7 @@ class RecordingOptionsCustomizerCommandTest {
     void shouldSetMaxSize() throws Exception {
         verifyZeroInteractions(customizer);
         command.execute(new String[]{ "maxSize=123" });
-        verify(customizer).maxSize(123);
+        verify(customizer).set(OptionKey.MAX_SIZE, "123");
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
     }
@@ -102,7 +102,7 @@ class RecordingOptionsCustomizerCommandTest {
     void shouldSetToDisk() throws Exception {
         verifyZeroInteractions(customizer);
         command.execute(new String[]{ "toDisk=true" });
-        verify(customizer).toDisk(true);
+        verify(customizer).set(OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
     }

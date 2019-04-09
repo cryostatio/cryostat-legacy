@@ -42,7 +42,7 @@ class RecordingOptionsCustomizerTest {
 
     @Test
     void shouldApplyToDisk() throws QuantityConversionException {
-        customizer.toDisk(true);
+        customizer.set(OptionKey.TO_DISK, "true");
         customizer.apply(builder);
         verify(builder).toDisk(true);
         verifyNoMoreInteractions(builder);
@@ -51,7 +51,7 @@ class RecordingOptionsCustomizerTest {
 
     @Test
     void shouldApplyMaxAge() throws QuantityConversionException {
-        customizer.maxAge(123);
+        customizer.set(OptionKey.MAX_AGE, "123");
         customizer.apply(builder);
         verifyDefaults();
         verify(builder).maxAge(123);
@@ -61,8 +61,8 @@ class RecordingOptionsCustomizerTest {
 
     @Test
     void shouldMutateAndUndoChangesInternally() throws QuantityConversionException {
-        customizer.maxAge(123);
-        customizer.maxAge(456);
+        customizer.set(OptionKey.MAX_AGE, "123");
+        customizer.set(OptionKey.MAX_AGE, "456");
         customizer.apply(builder);
         verifyDefaults();
         verify(builder).maxAge(456);
@@ -72,7 +72,7 @@ class RecordingOptionsCustomizerTest {
 
     @Test
     void shouldApplyMaxSize() throws QuantityConversionException {
-        customizer.maxSize(123);
+        customizer.set(OptionKey.MAX_SIZE, "123");
         customizer.apply(builder);
         verifyDefaults();
         verify(builder).maxSize(123);
@@ -82,7 +82,7 @@ class RecordingOptionsCustomizerTest {
 
     @Test
     void shouldUnset() throws QuantityConversionException {
-        customizer.maxSize(123);
+        customizer.set(OptionKey.MAX_SIZE, "123");
         customizer.unset(OptionKey.MAX_SIZE);
         customizer.apply(builder);
         verifyDefaults();
@@ -93,7 +93,7 @@ class RecordingOptionsCustomizerTest {
     @Test
     void shouldPrintExceptions() throws QuantityConversionException {
         when(builder.maxSize(Mockito.anyLong())).thenThrow(UnsupportedOperationException.class);
-        customizer.maxSize(123);
+        customizer.set(OptionKey.MAX_SIZE, "123");
         customizer.apply(builder);
         verifyDefaults();
         verify(cw).println(ArgumentMatchers.any(UnsupportedOperationException.class));

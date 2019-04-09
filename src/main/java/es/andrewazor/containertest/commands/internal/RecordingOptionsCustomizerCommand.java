@@ -48,20 +48,7 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
 
     private void setOption(String option, String value) {
         Optional<OptionKey> key = OptionKey.fromOptionName(option);
-        key.ifPresent(k -> {
-            // TODO Implement a programmatic switch over the OptionKey type, rather than
-            // this manual branching
-            if (k.equals(OptionKey.MAX_AGE)) {
-                // TODO allow specification of unit suffixes (ex 30 is 30s, but also 5m, 1h, 2d,
-                // etc)
-                customizer.maxAge(Long.parseLong(value));
-            } else if (k.equals(OptionKey.MAX_SIZE)) {
-                // TODO allow specification of unit suffixes (ex 512k, 4M, etc)
-                customizer.maxSize(Long.parseLong(value));
-            } else { // toDisk
-                customizer.toDisk(Boolean.parseBoolean(value));
-            }
-        });
+        key.ifPresent(k -> customizer.set(k, value));
     }
 
     private void unsetOption(String option) {

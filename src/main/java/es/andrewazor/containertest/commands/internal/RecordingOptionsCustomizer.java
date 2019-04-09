@@ -3,7 +3,7 @@ package es.andrewazor.containertest.commands.internal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
@@ -12,62 +12,59 @@ import es.andrewazor.containertest.util.CheckedConsumer;
 
 class RecordingOptionsCustomizer {
 
-    private final Map<OptionKey, Consumer<RecordingOptionsBuilder>> customizers;
+    private final Map<OptionKey, CustomizerConsumer> customizers;
     private final ClientWriter cw;
 
     RecordingOptionsCustomizer(ClientWriter cw) {
         this.customizers = new HashMap<>();
         this.cw = cw;
 
-        toDisk(false);
+        set(OptionKey.TO_DISK, Boolean.toString(false));
     }
 
     RecordingOptionsBuilder apply(RecordingOptionsBuilder builder) {
-        this.customizers.values().forEach(c -> c.accept(builder));
+        this.customizers.values().forEach(c -> {
+            c.setClientWriter(cw);
+            c.accept(builder);
+        });
         return builder;
+    }
+
+    void set(OptionKey key, String value) {
+        customizers.put(key, key.mapper.apply(value));
     }
 
     void unset(OptionKey key) {
         customizers.remove(key);
     }
 
-    void toDisk(boolean toDisk) {
-        customizers.put(OptionKey.TO_DISK, new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
-                b.toDisk(toDisk);
-            }
-        });
-    }
-
-    void maxAge(long seconds) {
-        customizers.put(OptionKey.MAX_AGE, new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
-                b.maxAge(seconds);
-            }
-        });
-    }
-
-    void maxSize(long bytes) {
-        customizers.put(OptionKey.MAX_SIZE, new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder b) throws Exception {
-                b.maxSize(bytes);
-            }
-        });
-    }
-
     enum OptionKey {
-        MAX_AGE("maxAge"),
-        MAX_SIZE("maxSize"),
-        TO_DISK("toDisk"),
+        MAX_AGE("maxAge", v -> new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
+                t.maxAge(Long.parseLong(v));
+            }
+        }),
+        MAX_SIZE("maxSize", v -> new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
+                t.maxSize(Long.parseLong(v));
+            }
+        }),
+        TO_DISK("toDisk", v -> new CustomizerConsumer() {
+            @Override
+            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
+                t.toDisk(Boolean.parseBoolean(v));
+            }
+        }),
         ;
 
         private final String name;
+        private final Function<String, CustomizerConsumer> mapper;
 
-        OptionKey(String name) {
+        OptionKey(String name, Function<String, CustomizerConsumer> mapper) {
             this.name = name;
+            this.mapper = mapper;
         }
 
         static Optional<OptionKey> fromOptionName(String optionName) {
@@ -81,10 +78,16 @@ class RecordingOptionsCustomizer {
         }
     }
 
-    private abstract class CustomizerConsumer implements CheckedConsumer<RecordingOptionsBuilder> {
+    private static abstract class CustomizerConsumer implements CheckedConsumer<RecordingOptionsBuilder> {
+        private Optional<ClientWriter> cw = Optional.empty();
+
+        void setClientWriter(ClientWriter cw) {
+            this.cw = Optional.of(cw);
+        }
+
         @Override
         public void handleException(Exception e) {
-            cw.println(e);
+            cw.ifPresent(w -> w.println(e));
         }
     }
 
