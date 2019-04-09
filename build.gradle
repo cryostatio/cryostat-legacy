@@ -76,7 +76,7 @@ jacocoTestReport {
         html.destination file("${buildDir}/jacocoHtml")
     }
     afterEvaluate {
-        classDirectories = files(classDirectories.files.collect {
+        getClassDirectories().setFrom(files(classDirectories.files.collect {
             fileTree(dir: it,
                     excludes: [
                         '**/*Dagger*',
@@ -86,7 +86,7 @@ jacocoTestReport {
                         'es/andrewazor/containertest/jmc/**',
                         'es/andrewazor/containertest/**/*Module.class'
                     ])
-            })
+            }))
     }
 }
 
