@@ -37,23 +37,13 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
         if (optionsMatcher.find()) {
             String option = optionsMatcher.group(1);
             String value = optionsMatcher.group(2);
-            setOption(option, value);
+            OptionKey.fromOptionName(option).ifPresent(k -> customizer.set(k, value));
             return;
         }
 
         Matcher unsetMatcher = UNSET_PATTERN.matcher(options);
         unsetMatcher.find();
-        unsetOption(unsetMatcher.group(1));
-    }
-
-    private void setOption(String option, String value) {
-        Optional<OptionKey> key = OptionKey.fromOptionName(option);
-        key.ifPresent(k -> customizer.set(k, value));
-    }
-
-    private void unsetOption(String option) {
-        Optional<OptionKey> key = OptionKey.fromOptionName(option);
-        key.ifPresent(customizer::unset);
+        OptionKey.fromOptionName(unsetMatcher.group(1)).ifPresent(customizer::unset);
     }
 
     @Override
