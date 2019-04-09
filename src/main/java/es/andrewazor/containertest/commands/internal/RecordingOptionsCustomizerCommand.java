@@ -42,9 +42,8 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
         }
 
         Matcher unsetMatcher = UNSET_PATTERN.matcher(options);
-        if (unsetMatcher.find()) {
-            unsetOption(unsetMatcher.group(1));
-        }
+        unsetMatcher.find();
+        unsetOption(unsetMatcher.group(1));
     }
 
     private void setOption(String option, String value) {
@@ -59,17 +58,15 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
             } else if (k.equals(OptionKey.MAX_SIZE)) {
                 // TODO allow specification of unit suffixes (ex 512k, 4M, etc)
                 customizer.maxSize(Long.parseLong(value));
-            } else if (k.equals(OptionKey.TO_DISK)) {
+            } else { // toDisk
                 customizer.toDisk(Boolean.parseBoolean(value));
             }
         });
-        key.orElseThrow(() -> new UnsupportedOperationException(option));
     }
 
     private void unsetOption(String option) {
         Optional<OptionKey> key = OptionKey.fromOptionName(option);
         key.ifPresent(customizer::unset);
-        key.orElseThrow(() -> new UnsupportedOperationException(option));
     }
 
     @Override

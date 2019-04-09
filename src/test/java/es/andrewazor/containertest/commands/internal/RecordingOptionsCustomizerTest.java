@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -77,6 +78,27 @@ class RecordingOptionsCustomizerTest {
         verify(builder).maxSize(123);
         verifyNoMoreInteractions(builder);
         verifyZeroInteractions(cw);
+    }
+
+    @Test
+    void shouldUnset() throws QuantityConversionException {
+        customizer.maxSize(123);
+        customizer.unset(OptionKey.MAX_SIZE);
+        customizer.apply(builder);
+        verifyDefaults();
+        verifyNoMoreInteractions(builder);
+        verifyZeroInteractions(cw);
+    }
+
+    @Test
+    void shouldPrintExceptions() throws QuantityConversionException {
+        when(builder.maxSize(Mockito.anyLong())).thenThrow(UnsupportedOperationException.class);
+        customizer.maxSize(123);
+        customizer.apply(builder);
+        verifyDefaults();
+        verify(cw).println(ArgumentMatchers.any(UnsupportedOperationException.class));
+        verifyNoMoreInteractions(builder);
+        verifyNoMoreInteractions(cw);
     }
 
     private void verifyDefaults() throws QuantityConversionException {

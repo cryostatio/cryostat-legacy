@@ -64,16 +64,16 @@ class RecordingOptionsCustomizer {
         TO_DISK("toDisk"),
         ;
 
-        private final String optionName;
+        private final String name;
 
-        OptionKey(String optionName) {
-            this.optionName = optionName;
+        OptionKey(String name) {
+            this.name = name;
         }
 
         static Optional<OptionKey> fromOptionName(String optionName) {
             OptionKey key = null;
             for (OptionKey k : OptionKey.values()) {
-                if (k.optionName.equals(optionName)) {
+                if (k.name.equals(optionName)) {
                     key = k;
                 }
             }

@@ -54,9 +54,15 @@ class RecordingOptionsCustomizerCommandTest {
         "foo=",
         "-foo=bar",
     })
-    void shouldNotExpectMalformedArgs(String arg) {
+    void shouldNotValidateMalformedArg(String arg) {
         assertFalse(command.validate(new String[]{ arg }));
         verify(cw).println(arg + " is an invalid option string");
+    }
+
+    @Test
+    void shouldNotValidateUnrecognizedOption() {
+        assertFalse(command.validate(new String[] { "someUnknownOption=value" }));
+        verify(cw).println("someUnknownOption is an unrecognized or unsupported option");
     }
 
     @ParameterizedTest
@@ -65,7 +71,7 @@ class RecordingOptionsCustomizerCommandTest {
         "maxAge=10",
         "maxSize=512",
     })
-    void shouldExpectKeyValueArg(String arg) {
+    void shouldKnownValidateKeyValueArg(String arg) {
         assertTrue(command.validate(new String[]{ arg }));
     }
 
@@ -126,13 +132,6 @@ class RecordingOptionsCustomizerCommandTest {
         verify(customizer).unset(OptionKey.TO_DISK);
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
-    }
-
-    @Test
-    void shouldThrowOnUnrecognizedOption() throws Exception {
-        Exception e = assertThrows(UnsupportedOperationException.class,
-                () -> command.execute(new String[] { "foo=true" }));
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("foo"));
     }
 
 }
