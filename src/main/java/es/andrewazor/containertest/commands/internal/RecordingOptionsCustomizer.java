@@ -10,7 +10,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import es.andrewazor.containertest.tui.ClientWriter;
 import es.andrewazor.containertest.util.CheckedConsumer;
 
-class RecordingOptionsCustomizer {
+class RecordingOptionsCustomizer implements Function<RecordingOptionsBuilder, RecordingOptionsBuilder> {
 
     private final Map<OptionKey, CustomizerConsumer> customizers;
     private final ClientWriter cw;
@@ -22,16 +22,16 @@ class RecordingOptionsCustomizer {
         set(OptionKey.TO_DISK, Boolean.toString(false));
     }
 
-    RecordingOptionsBuilder apply(RecordingOptionsBuilder builder) {
-        this.customizers.values().forEach(c -> {
-            c.setClientWriter(cw);
-            c.accept(builder);
-        });
+    @Override
+    public RecordingOptionsBuilder apply(RecordingOptionsBuilder builder) {
+        this.customizers.values().forEach(c -> c.accept(builder));
         return builder;
     }
 
     void set(OptionKey key, String value) {
-        customizers.put(key, key.mapper.apply(value));
+        CustomizerConsumer consumer = key.mapper.apply(value);
+        consumer.setClientWriter(cw);
+        customizers.put(key, consumer);
     }
 
     void unset(OptionKey key) {
