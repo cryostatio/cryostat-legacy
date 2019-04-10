@@ -14,15 +14,21 @@ import java.util.Collections;
 import java.util.HashSet;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.CommandRegistry.CommandDefinitionException;
 
-public class CommandRegistryTest {
+@ExtendWith(MockitoExtension.class)
+public class CommandRegistryTest extends TestBase {
 
-    static class WithEmptySetCommands extends TestBase {
-        private CommandRegistry registry;
+    CommandRegistry registry;
+
+    @Nested
+    class WithEmptySetCommands {
 
         @BeforeEach
         public void setup() {
@@ -54,13 +60,13 @@ public class CommandRegistryTest {
         }
     }
 
-    static class WithCommandDefinitions extends TestBase {
-        private CommandRegistry registry;
+    @Nested
+    class WithCommandDefinitions {
 
-        private FooCommand fooCommand = new FooCommand();
-        private BarCommand barCommand = new BarCommand();
+        FooCommand fooCommand = new FooCommand();
+        BarCommand barCommand = new BarCommand();
 
-        private Command[] commands = new Command[] { fooCommand, barCommand };
+        Command[] commands = new Command[] { fooCommand, barCommand };
 
         @BeforeEach
         public void setup() {
@@ -121,7 +127,8 @@ public class CommandRegistryTest {
         }
     }
 
-    static class WithConflictingCommandDefinitions extends TestBase {
+    @Nested
+    class WithConflictingCommandDefinitions {
         @Test
         public void shouldThrowCommandDefinitionException() {
             CommandDefinitionException thrown = assertThrows(CommandDefinitionException.class,
