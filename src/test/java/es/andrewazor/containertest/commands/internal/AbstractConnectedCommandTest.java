@@ -18,6 +18,7 @@ import java.util.Optional;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,17 +31,23 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import es.andrewazor.containertest.commands.internal.AbstractConnectedCommand.JMXConnectionException;
 import es.andrewazor.containertest.net.JMCConnection;
 
+@ExtendWith(MockitoExtension.class)
 class AbstractConnectedCommandTest {
 
-    @ExtendWith(MockitoExtension.class)
-    static class WithConnection {
+    AbstractConnectedCommand command;
 
-        private AbstractConnectedCommand command;
-        @Mock private JMCConnection mockConnection;
+    @BeforeEach
+    void setup() {
+        this.command = new BaseConnectedCommand();
+    }
+
+    @Nested
+    class WithConnection {
+
+        @Mock JMCConnection mockConnection;
 
         @BeforeEach
         void setup() {
-            this.command = new BaseConnectedCommand();
             command.connectionChanged(mockConnection);
         }
 
@@ -88,15 +95,8 @@ class AbstractConnectedCommandTest {
         }
     }
 
-    @ExtendWith(MockitoExtension.class)
-    static class WithoutConnection {
-
-        private AbstractConnectedCommand command;
-
-        @BeforeEach
-        void setup() {
-            this.command = new BaseConnectedCommand();
-        }
+    @Nested
+    class WithoutConnection {
 
         @Test
         void shouldNotBeAvailable() {
@@ -145,7 +145,7 @@ class AbstractConnectedCommandTest {
         }
     }
 
-    private static class BaseConnectedCommand extends AbstractConnectedCommand {
+    static class BaseConnectedCommand extends AbstractConnectedCommand {
 
         @Override
         public String getName() {
