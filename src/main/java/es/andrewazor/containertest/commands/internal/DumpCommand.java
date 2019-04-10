@@ -59,7 +59,7 @@ class DumpCommand extends AbstractRecordingCommand {
         String seconds = args[1];
         String events = args[2];
 
-        if (!name.matches("[\\w-_]+")) {
+        if (!validateRecordingName(name)) {
             cw.println(String.format("%s is an invalid recording name", name));
             return false;
         }

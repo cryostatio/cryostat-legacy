@@ -14,7 +14,10 @@ import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -82,6 +85,30 @@ class AbstractConnectedCommandTest {
         void shouldThrowOnGetService() {
             JMXConnectionException ex = assertThrows(JMXConnectionException.class, command::getService);
             assertThat(ex.getMessage(), equalTo("No active JMX connection"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            ".",
+            "extension.jfr",
+            "/",
+            "/a/path",
+            " ",
+            "two words",
+        })
+        void shouldNotValidateMalformedRecordingNames(String name) {
+            assertFalse(command.validateRecordingName(name));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "foo",
+            "recording",
+            "Capitalized",
+            "4lphanum3r1c"
+        })
+        void shouldValidateRecordingNames(String name) {
+            assertTrue(command.validateRecordingName(name));
         }
     }
 

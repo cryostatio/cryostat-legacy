@@ -30,6 +30,10 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
         return this.connection.getService();
     }
 
+    protected boolean validateRecordingName(String name) {
+        return name.matches("[\\w-_]+");
+    }
+
     private void validateConnection() throws JMXConnectionException {
         if (this.connection == null) {
             throw new JMXConnectionException();

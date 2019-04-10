@@ -53,7 +53,7 @@ class StopRecordingCommand extends AbstractConnectedCommand {
 
         String name = args[0];
 
-        if (!name.matches("[\\w-_]+")) {
+        if (!validateRecordingName(name)) {
             cw.println(String.format("%s is an invalid recording name", name));
             return false;
         }

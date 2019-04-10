@@ -84,7 +84,7 @@ class WaitForCommand extends AbstractConnectedCommand {
             return false;
         }
 
-        if (!args[0].matches("[\\w-_]+")) {
+        if (!validateRecordingName(args[0])) {
             cw.println(String.format("%s is an invalid recording name", args[0]));
             return false;
         }

@@ -56,7 +56,7 @@ class StartRecordingCommand extends AbstractRecordingCommand {
         String name = args[0];
         String events = args[1];
 
-        if (!name.matches("[\\w-_]+")) {
+        if (!validateRecordingName(name)) {
             cw.println(String.format("%s is an invalid recording name", name));
             return false;
         }
