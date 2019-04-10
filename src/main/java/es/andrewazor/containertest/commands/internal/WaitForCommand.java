@@ -1,11 +1,11 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.sys.Clock;
@@ -33,11 +33,12 @@ class WaitForCommand extends AbstractConnectedCommand {
     @Override
     public void execute(String[] args) throws Exception {
         String name = args[0];
-        IRecordingDescriptor descriptor = getByName(name);
-        if (descriptor == null) {
+        Optional<IRecordingDescriptor> d = getDescriptorByName(name);
+        if (!d.isPresent()) {
             cw.println(String.format("Recording with name \"%s\" not found in target JVM", name));
             return;
         }
+        IRecordingDescriptor descriptor = d.get();
 
         if (descriptor.isContinuous() && !descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
             cw.println(String.format("Recording \"%s\" is continuous, refusing to wait", name));
@@ -72,7 +73,7 @@ class WaitForCommand extends AbstractConnectedCommand {
                 }
             }
             clock.sleep(TimeUnit.SECONDS, 1);
-            descriptor = getByName(name);
+            descriptor = getDescriptorByName(name).get();
         }
         cw.println();
     }
@@ -90,14 +91,5 @@ class WaitForCommand extends AbstractConnectedCommand {
         }
 
         return true;
-    }
-
-    protected IRecordingDescriptor getByName(String name) throws FlightRecorderException, JMXConnectionException {
-        for (IRecordingDescriptor descriptor : getService().getAvailableRecordings()) {
-            if (descriptor.getName().equals(name)) {
-                return descriptor;
-            }
-        }
-        return null;
     }
 }

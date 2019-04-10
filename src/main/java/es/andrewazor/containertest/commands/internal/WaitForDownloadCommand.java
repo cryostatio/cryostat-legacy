@@ -5,8 +5,6 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.sys.Clock;
 import es.andrewazor.containertest.tui.ClientWriter;
@@ -32,8 +30,7 @@ class WaitForDownloadCommand extends WaitForCommand {
     @Override
     public void execute(String[] args) throws Exception {
         String name = args[0];
-        IRecordingDescriptor descriptor = getByName(name);
-        if (descriptor == null) {
+        if (!getDescriptorByName(name).isPresent()) {
             cw.println(String.format("Recording with name \"%s\" not found in target JVM", name));
             return;
         }

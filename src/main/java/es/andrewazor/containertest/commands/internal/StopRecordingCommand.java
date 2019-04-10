@@ -1,5 +1,7 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Optional;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -28,20 +30,13 @@ class StopRecordingCommand extends AbstractConnectedCommand {
     public void execute(String[] args) throws Exception {
         String name = args[0];
 
-        IRecordingDescriptor descriptor = null;
-        for (IRecordingDescriptor d : getService().getAvailableRecordings()) {
-            if (name.equals(d.getName())) {
-                descriptor = d;
-                break;
-            }
-        }
-
-        if (descriptor == null) {
+        Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
+        if (descriptor.isPresent()) {
+            getService().stop(descriptor.get());
+        } else {
             cw.println(String.format("Recording with name \"%s\" not found", name));
             return;
         }
-
-        getService().stop(descriptor);
     }
 
     @Override

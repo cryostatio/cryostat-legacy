@@ -35,7 +35,7 @@ class StartRecordingCommand extends AbstractRecordingCommand {
         String name = args[0];
         String events = args[1];
 
-        if (getService().getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
+        if (getDescriptorByName(name).isPresent()) {
             cw.println(String.format("Recording with name \"%s\" already exists", name));
             return;
         }

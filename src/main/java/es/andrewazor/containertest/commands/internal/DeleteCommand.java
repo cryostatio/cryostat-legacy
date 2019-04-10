@@ -1,5 +1,7 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Optional;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -27,13 +29,13 @@ class DeleteCommand extends AbstractConnectedCommand {
     @Override
     public void execute(String[] args) throws Exception {
         final String recordingName = args[0];
-        for (IRecordingDescriptor recording : getService().getAvailableRecordings()) {
-            if (recording.getName().equals(recordingName)) {
-                getService().close(recording);
-                return;
-            }
+        Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);
+        if (descriptor.isPresent()) {
+            getService().close(descriptor.get());
+        } else {
+            cw.println(String.format("No recording with name \"%s\" found", recordingName));
+            return;
         }
-        cw.println(String.format("No recording with name \"%s\" found", recordingName));
     }
 
     @Override

@@ -1,6 +1,10 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Optional;
+
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.net.ConnectionListener;
@@ -32,6 +36,13 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 
     protected boolean validateRecordingName(String name) {
         return name.matches("[\\w-_]+");
+    }
+
+    protected Optional<IRecordingDescriptor> getDescriptorByName(String name)
+            throws FlightRecorderException, JMXConnectionException {
+        return getService().getAvailableRecordings().stream()
+            .filter(recording -> recording.getName().equals(name))
+            .findFirst();
     }
 
     private void validateConnection() throws JMXConnectionException {

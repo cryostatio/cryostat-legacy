@@ -12,15 +12,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collections;
+import java.util.Optional;
+
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.commands.internal.AbstractConnectedCommand.JMXConnectionException;
 import es.andrewazor.containertest.net.JMCConnection;
@@ -57,6 +62,29 @@ class AbstractConnectedCommandTest {
             assertThat(command.getService(), is(mockService));
             verify(mockConnection).getService();
             verifyNoMoreInteractions(mockConnection);
+        }
+
+        @Test
+        void shouldGetMatchingDescriptorByName() throws Exception {
+            IFlightRecorderService mockService = mock(IFlightRecorderService.class);
+            IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
+            when(mockConnection.getService()).thenReturn(mockService);
+            when(mockService.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+            when(recording.getName()).thenReturn("foo");
+            Optional<IRecordingDescriptor> descriptor = command.getDescriptorByName("foo");
+            assertTrue(descriptor.isPresent());
+            MatcherAssert.assertThat(descriptor.get(), Matchers.sameInstance(recording));
+        }
+
+        @Test
+        void shouldReturnEmptyOptionalIfNoMatchingDescriptorFound() throws Exception {
+            IFlightRecorderService mockService = mock(IFlightRecorderService.class);
+            IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
+            when(mockConnection.getService()).thenReturn(mockService);
+            when(mockService.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+            when(recording.getName()).thenReturn("foo");
+            Optional<IRecordingDescriptor> descriptor = command.getDescriptorByName("bar");
+            assertFalse(descriptor.isPresent());
         }
     }
 
@@ -109,6 +137,11 @@ class AbstractConnectedCommandTest {
         })
         void shouldValidateRecordingNames(String name) {
             assertTrue(command.validateRecordingName(name));
+        }
+
+        @Test
+        void getDescriptorByNameShouldThrow() throws Exception {
+            assertThrows(JMXConnectionException.class, () -> command.getDescriptorByName("someRecording"));
         }
     }
 

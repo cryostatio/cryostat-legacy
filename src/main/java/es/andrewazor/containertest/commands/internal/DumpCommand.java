@@ -36,7 +36,7 @@ class DumpCommand extends AbstractRecordingCommand {
         int seconds = Integer.parseInt(args[1]);
         String events = args[2];
 
-        if (getService().getAvailableRecordings().stream().anyMatch(recording -> recording.getName().equals(name))) {
+        if (getDescriptorByName(name).isPresent()) {
             cw.println(String.format("Recording with name \"%s\" already exists", name));
             return;
         }
