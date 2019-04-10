@@ -16,6 +16,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -52,21 +54,14 @@ class StartRecordingCommandTest extends TestBase {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("start"));
     }
 
-    @Test
-    void shouldNotValidateZeroArgs() {
-        assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected two arguments: recording name and event types.\n"));
-    }
-
-    @Test
-    void shouldNotValidateOneArg() {
-        assertFalse(command.validate(new String[1]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected two arguments: recording name and event types.\n"));
-    }
-
-    @Test
-    void shouldNotValidateTooManyArgs() {
-        assertFalse(command.validate(new String[3]));
+    @ParameterizedTest
+    @ValueSource(ints = {
+        0,
+        1,
+        3,
+    })
+    void shouldNotValidateWithIncorrectArgc(int argc) {
+        assertFalse(command.validate(new String[argc]));
         MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected two arguments: recording name and event types.\n"));
     }
 

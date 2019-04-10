@@ -2,6 +2,7 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.emptyString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -13,6 +14,8 @@ import static org.mockito.Mockito.when;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -25,42 +28,36 @@ import es.andrewazor.containertest.tui.ClientWriter;
 @ExtendWith(MockitoExtension.class)
 class AbstractRecordingCommandTest extends TestBase {
 
-    private AbstractRecordingCommand command;
-    @Mock private JMCConnection connection;
-    @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
-    @Mock private RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    AbstractRecordingCommand command;
+    @Mock JMCConnection connection;
+    @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
         command = new BaseRecordingCommand(mockClientWriter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
     }
 
-    @Test
-    void emptyStringIsInvalidEventString() {
-        assertFalse(command.validateEvents(""));
-        assertThat(stdout(), equalTo(" is an invalid events pattern\n"));
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "",
+        "jdk:bar:baz",
+        "jdk.Event",
+        "Event",
+    })
+    void shouldNotValidateInvalidEventString(String events) {
+        assertFalse(command.validateEvents(events));
+        assertThat(stdout(), equalTo(events + " is an invalid events pattern\n"));
     }
 
-    @Test
-    void corruptStringIsInvalidEventString() {
-        assertFalse(command.validateEvents("jdk:bar:baz"));
-        assertThat(stdout(), equalTo("jdk:bar:baz is an invalid events pattern\n"));
-    }
-
-    @Test
-    void eventWithoutPropertyIsInvalid() {
-        assertFalse(command.validateEvents("jdk.Event"));
-        assertThat(stdout(), equalTo("jdk.Event is an invalid events pattern\n"));
-    }
-
-    @Test
-    void singleEventStringIsValid() {
-        assertTrue(command.validateEvents("foo.Event:prop=val"));
-    }
-
-    @Test
-    void multipleEventStringIsValid() {
-        assertTrue(command.validateEvents("foo.Event:prop=val,bar.Event:thing=1"));
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "foo.Event:prop=val",
+        "foo.Event:prop=val,bar.Event:thing=1"
+    })
+    void shouldValidateValidEventString(String events) {
+        assertTrue(command.validateEvents(events));
+        assertThat(stdout(), emptyString());
     }
 
     @Test
@@ -85,7 +82,7 @@ class AbstractRecordingCommandTest extends TestBase {
         verifyNoMoreInteractions(eventOptionsBuilderFactory);
     }
 
-    private static class BaseRecordingCommand extends AbstractRecordingCommand {
+    static class BaseRecordingCommand extends AbstractRecordingCommand {
         BaseRecordingCommand(ClientWriter cw, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
                 RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
             super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);

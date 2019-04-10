@@ -16,6 +16,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -55,24 +57,22 @@ class ConnectCommandTest {
         assertFalse(command.validate(new String[2]));
     }
 
-    @Test
-    void emptyStringIsInvalid() {
-        assertFalse(command.validate(new String[]{""}));
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "",
+        "some.host:",
+    })
+    void shouldNotValidateInvalidIdentifiers(String id) {
+        assertFalse(command.validate(new String[] { id }));
     }
 
-    @Test
-    void hostnameIsValid() {
-        assertTrue(command.validate(new String[]{"some.host"}));
-    }
-
-    @Test
-    void hostnameWithPortIsValid() {
-        assertTrue(command.validate(new String[]{"some.host:8080"}));
-    }
-
-    @Test
-    void hostnameWithDelimiterButNoPortIsInvalid() {
-        assertFalse(command.validate(new String[]{"some.host:"}));
+    @ParameterizedTest
+    @ValueSource(strings = {
+        "some.host",
+        "some.host:8080",
+    })
+    void shouldValidateValidIdentifiers(String id) {
+        assertTrue(command.validate(new String[] { id }));
     }
 
     @Test
