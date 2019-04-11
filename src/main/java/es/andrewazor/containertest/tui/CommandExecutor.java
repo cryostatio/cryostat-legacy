@@ -7,6 +7,7 @@ public interface CommandExecutor extends ConnectionListener {
 
     public enum ExecutionMode {
         INTERACTIVE,
-        BATCH
+        BATCH,
+        SOCKET
     }
 }
