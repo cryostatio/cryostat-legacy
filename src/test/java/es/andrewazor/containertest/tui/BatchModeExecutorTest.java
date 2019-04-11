@@ -43,7 +43,7 @@ class BatchModeExecutorTest extends TestBase {
 
         when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
 
-        executor.run(new String[]{ "" });
+        executor.run("");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("\"exit\" \"[]\""));
 
@@ -62,7 +62,7 @@ class BatchModeExecutorTest extends TestBase {
 
         when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
 
-        executor.run(new String[]{ "# This should be a comment ;" });
+        executor.run("# This should be a comment ;");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("\"exit\" \"[]\""));
 
@@ -82,7 +82,7 @@ class BatchModeExecutorTest extends TestBase {
         when(mockRegistry.validate(eq("help"), any(String[].class))).thenReturn(true);
         when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
 
-        executor.run(new String[]{ "help" });
+        executor.run("help");
 
         MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("\"help\" \"[]\""),
@@ -107,7 +107,7 @@ class BatchModeExecutorTest extends TestBase {
 
         when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
 
-        executor.run(new String[]{ "; ;; help;; " });
+        executor.run("; ;; help;; ");
 
         MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("\"help\" \"[]\""),
@@ -132,7 +132,7 @@ class BatchModeExecutorTest extends TestBase {
 
         when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
 
-        executor.run(new String[]{ "help; connect foo; disconnect;" });
+        executor.run("help; connect foo; disconnect;");
 
         MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("\"help\" \"[]\""),
@@ -163,7 +163,7 @@ class BatchModeExecutorTest extends TestBase {
 
         when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
 
-        executor.run(new String[]{ "help;\n# Connect to foo-host;\nconnect foo;\ndisconnect;" });
+        executor.run("help;\n# Connect to foo-host;\nconnect foo;\ndisconnect;");
 
         MatcherAssert.assertThat(stdout(), Matchers.allOf(
             Matchers.containsString("\"help\" \"[]\""),
@@ -200,7 +200,7 @@ class BatchModeExecutorTest extends TestBase {
             }
         });
 
-        executor.run(new String[]{ "help; connect foo; disconnect;" });
+        executor.run("help; connect foo; disconnect;");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("\"[foo]\" are invalid arguments to connect"));
 
@@ -231,7 +231,7 @@ class BatchModeExecutorTest extends TestBase {
             }
         }).when(mockRegistry).execute(anyString(), any(String[].class));
 
-        executor.run(new String[]{ "help; connect foo; disconnect;" });
+        executor.run("help; connect foo; disconnect;");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("connect foo operation failed due to SomeException\njava.lang.NullPointerException: SomeException"));
 

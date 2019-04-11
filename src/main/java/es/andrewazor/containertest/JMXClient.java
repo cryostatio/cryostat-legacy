@@ -25,7 +25,7 @@ class JMXClient {
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
         final ExecutionMode mode;
-        final String[] clientArgs;
+        final String clientArgs;
         if (args.length == 0 || args[0].equals("-it") || StringUtils.isBlank(args[0])) {
             mode = ExecutionMode.INTERACTIVE;
             clientArgs = null;
@@ -34,7 +34,7 @@ class JMXClient {
             clientArgs = null;
         } else {
             mode = ExecutionMode.BATCH;
-            clientArgs = new String[] { args[0] };
+            clientArgs = args[0];
         }
 
         DaggerJMXClient_Client

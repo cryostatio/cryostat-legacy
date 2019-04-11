@@ -12,7 +12,7 @@ class InteractiveShellExecutor extends AbstractCommandExecutor {
     }
 
     @Override
-    public void run(String[] unused) {
+    public void run(String unused) {
         try (cr) {
             String in;
             do {

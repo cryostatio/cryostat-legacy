@@ -14,8 +14,8 @@ class BatchModeExecutor extends AbstractCommandExecutor {
     }
 
     @Override
-    public void run(String[] args) {
-        List<String> commands = new ArrayList<>(Arrays.asList(args[0].split(";")));
+    public void run(String clientArgString) {
+        List<String> commands = new ArrayList<>(Arrays.asList(clientArgString.split(";")));
         commands.add(ExitCommand.NAME);
         executeCommands(commands);
     }
