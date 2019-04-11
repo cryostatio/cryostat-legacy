@@ -21,18 +21,12 @@ class JMXClient {
                 System.getProperty("java.rmi.server.hostname", "cjfr-client"), Arrays.asList(args).toString()));
         RegistryFactory.setDefaultRegistryProvider(new RegistryProvider());
 
-        Thread t = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                Client client = DaggerJMXClient_Client
-                    .builder()
-                    .mode(args.length == 0 ? ExecutionMode.INTERACTIVE : ExecutionMode.BATCH)
-                    .build();
-                client.commandExecutor().run(args);
-            }
-        });
-        t.start();
-        t.join();
+        DaggerJMXClient_Client
+            .builder()
+            .mode(args.length == 0 ? ExecutionMode.INTERACTIVE : ExecutionMode.BATCH)
+            .build()
+            .commandExecutor()
+            .run(args);
     }
 
     @Singleton
