@@ -18,7 +18,11 @@ class InteractiveShellExecutor extends AbstractCommandExecutor {
             do {
                 cw.print(connected() ? "> " : "- ");
                 try {
-                    in = cr.readLine().trim();
+                    in = cr.readLine();
+                    if (in == null) {
+                        in = ExitCommand.NAME;
+                    }
+                    in = in.trim();
                 } catch (NoSuchElementException e) {
                     in = ExitCommand.NAME;
                 }

@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.util.Scanner;
 
 class TtyClientReader implements ClientReader {
-    private final Scanner scanner = new Scanner(System.in);
+    private final Scanner scanner = new Scanner(System.in, "utf-8");
 
     @Override
     public void close() throws IOException {

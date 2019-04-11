@@ -45,7 +45,7 @@ abstract class AbstractCommandExecutor implements CommandExecutor {
 
         for (CommandLine commandLine : commandLines) {
             try {
-                cw.println(String.format("\n\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
+                cw.println(String.format("%n\"%s\" \"%s\"", commandLine.command, Arrays.asList(commandLine.args)));
                 this.commandRegistry.get().execute(commandLine.command, commandLine.args);
                 if (commandLine.command.toLowerCase().equals(ExitCommand.NAME.toLowerCase())) {
                     break;

@@ -93,7 +93,7 @@ public class RecordingExporter implements ConnectionListener {
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
         String hostname = env.getEnv(HOST_VAR, resolver.getHostAddress());
-        int port = Integer.valueOf(env.getEnv(PORT_VAR, "8080"));
+        int port = Integer.parseInt(env.getEnv(PORT_VAR, "8080"));
 
         return new URL("http", hostname, port, "");
     }

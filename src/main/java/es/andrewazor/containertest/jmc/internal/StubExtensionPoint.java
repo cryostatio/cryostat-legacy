@@ -65,8 +65,8 @@ public class StubExtensionPoint implements IExtensionPoint {
     }
 
     @Override
-    public String getUniqueIdentifier() throws InvalidRegistryObjectException {
-        return "stubId" + ID++;
+    public synchronized String getUniqueIdentifier() throws InvalidRegistryObjectException {
+        return "stubId" + StubExtensionPoint.ID++;
     }
 
     @Override

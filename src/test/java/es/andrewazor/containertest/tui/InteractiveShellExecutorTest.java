@@ -136,4 +136,25 @@ class InteractiveShellExecutorTest extends TestBase {
         verifyNoMoreInteractions(mockRegistry);
     }
 
+    @Test
+    void shouldHandleClientReaderReturnsNull() throws Exception {
+        verifyZeroInteractions(mockClientReader);
+        verifyZeroInteractions(mockRegistry);
+
+        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
+        when(mockClientReader.readLine()).thenReturn(null);
+
+        executor.run(null);
+
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("- \n\"exit\" \"[]\"\n"));
+
+        verify(mockClientReader).readLine();
+        verify(mockRegistry).validate("exit", new String[0]);
+        verify(mockRegistry).execute("exit", new String[0]);
+        verify(mockClientReader).close();
+
+        verifyNoMoreInteractions(mockClientReader);
+        verifyNoMoreInteractions(mockRegistry);
+    }
+
 }

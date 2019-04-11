@@ -7,14 +7,17 @@ import javax.inject.Singleton;
 
 import dagger.Lazy;
 import es.andrewazor.containertest.net.ConnectionListener;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class DisconnectCommand extends AbstractConnectedCommand {
 
     private final Lazy<Set<ConnectionListener>> connectionListeners;
+    private final ClientWriter cw;
 
-    @Inject DisconnectCommand(Lazy<Set<ConnectionListener>> connectionListeners) {
+    @Inject DisconnectCommand(Lazy<Set<ConnectionListener>> connectionListeners, ClientWriter cw) {
         this.connectionListeners = connectionListeners;
+        this.cw = cw;
     }
 
     @Override
@@ -36,7 +39,9 @@ class DisconnectCommand extends AbstractConnectedCommand {
     private void disconnectPreviousConnection() {
         try {
             getConnection().disconnect();
-        } catch (Exception e) { }
+        } catch (Exception e) {
+            cw.println("No active connection");
+        }
     }
 
 }

@@ -31,7 +31,7 @@ class JMXClient {
                 client.commandExecutor().run(args);
             }
         });
-        t.run();
+        t.start();
         t.join();
     }
 

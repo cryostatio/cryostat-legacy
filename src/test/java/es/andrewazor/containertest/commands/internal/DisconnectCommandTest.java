@@ -19,17 +19,19 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class DisconnectCommandTest {
 
-    private DisconnectCommand command;
-    @Mock private ConnectionListener listener;
-    @Mock private JMCConnection connection;
+    DisconnectCommand command;
+    @Mock ConnectionListener listener;
+    @Mock JMCConnection connection;
+    @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
-        command = new DisconnectCommand(() -> Collections.singleton(listener));
+        command = new DisconnectCommand(() -> Collections.singleton(listener), cw);
         command.connectionChanged(connection);
     }
 
@@ -75,9 +77,11 @@ class DisconnectCommandTest {
         verify(listener, never()).connectionChanged(Mockito.any());
         verify(connection, never()).disconnect();
         command.execute(new String[0]);
+        command.connectionChanged(null);
         command.execute(new String[0]);
         verify(listener, Mockito.times(2)).connectionChanged(null);
-        verify(connection, Mockito.times(2)).disconnect();
+        verify(connection, Mockito.times(1)).disconnect();
+        verify(cw).println("No active connection");
         verifyNoMoreInteractions(listener);
         verifyNoMoreInteractions(connection);
     }
