@@ -13,6 +13,7 @@ import org.eclipse.core.runtime.RegistryFactory;
 import dagger.BindsInstance;
 import dagger.Component;
 import es.andrewazor.containertest.jmc.RegistryProvider;
+import es.andrewazor.containertest.sys.Environment;
 import es.andrewazor.containertest.tui.CommandExecutor;
 import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
 
@@ -35,12 +36,7 @@ class JMXClient {
         } else if (args[0].equals("-d")) {
             mode = ExecutionMode.SOCKET;
             clientArgs = null;
-            String portStr = System.getenv("LISTEN_PORT");
-            if (portStr == null || StringUtils.isBlank(portStr)) {
-                port = 9090;
-            } else {
-                port = Integer.parseInt(portStr);
-            }
+            port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
         } else {
             mode = ExecutionMode.BATCH;
             clientArgs = args[0];
