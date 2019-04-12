@@ -1,5 +1,8 @@
 package es.andrewazor.containertest.tui;
 
+import java.io.IOException;
+
+import javax.annotation.Nullable;
 import javax.inject.Singleton;
 
 import dagger.Binds;
@@ -24,6 +27,7 @@ public abstract class TuiModule {
         switch (mode) {
         case BATCH:
             return new BatchModeExecutor(cr, cw, commandRegistry);
+        case SOCKET:
         case INTERACTIVE:
             return new InteractiveShellExecutor(cr, cw, commandRegistry);
         default:
@@ -33,12 +37,14 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientReader provideClientReader(ExecutionMode mode) {
+    static ClientReader provideClientReader(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter) {
         switch (mode) {
         case BATCH:
             return new NoOpClientReader();
         case INTERACTIVE:
             return new TtyClientReader();
+        case SOCKET:
+            return socketReaderWriter;
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
@@ -46,14 +52,29 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientWriter provideClientWriter(ExecutionMode mode) {
+    static ClientWriter provideClientWriter(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter) {
         switch (mode) {
         case BATCH:
-            // fall through
         case INTERACTIVE:
             return new TtyClientWriter();
+        case SOCKET:
+            return socketReaderWriter;
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
+        }
+    }
+
+    @Provides
+    @Nullable
+    @Singleton
+    static SocketClientReaderWriter provideSocketClientReaderWriter(ExecutionMode mode) {
+        if (!mode.equals(ExecutionMode.SOCKET)) {
+            return null;
+        }
+        try {
+            return new SocketClientReaderWriter(9090);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
