@@ -36,19 +36,32 @@ will not only build the image but will attempt to publish it to Dockerhub.
 For a basic development non-containerized smoketest, use `./gradlew run`, or
 `./gradlew run --args="client-args-here"`.
 
+The client can operate in three different command execution modes. These are
+batch (scripted), interactive TTY, and interactive socket. To use batch mode,
+simply pass a single argument string to the client at runtime, ex.
+`./gradlew run --args="'help; ip; hostname'"`. For interactive TTY mode, either
+invoke the client with no args (`./gradlew run --args="''"`) or with the flag
+`-it`: `./gradlew run --args="-it"`. And for interactive socket mode, pass the
+flag `-d`: `./gradlew run --args="-d"`.
+
 The `run.sh` script can be used to spin up a Docker container of the JMXClient,
 running alone but set up so that it is able to introspect itself with JFR. This
-can be achieved by doing `sh run.sh` and then typing `connect jmx-client:9091`
-into the client shell that appears. Some client shell demo scripts are also
-available in the `demos` directory. These can be used with ex.
-`sh run.sh "$(more demos/print_help)"`. There are two environment variables
-that the client checks during its runtime: `CONTAINER_DOWNLOAD_HOST` and
-`CONTAINER_DOWNLOAD_PORT`. These are used by the embedded webserver for
+can be achieved by doing `sh run.sh -it` and then typing
+`connect jmx-client:9091` into the client shell that appears. When running in
+this container, all three execution modes described above are still available
+and accessible using the same mthods. Some client shell demo scripts are also
+available in the `demos` directory. These can be used with batch mode, ex.
+`sh run.sh "$(more demos/print_help)"`.
+
+There are three environment variables that the client checks during its
+runtime: `CONTAINER_DOWNLOAD_HOST`, `CONTAINER_DOWNLOAD_PORT`, and
+`LISTEN_PORT`. The former two are used by the embedded webserver for
 controlling the port and hostname used and displayed when making recordings
-available for export (download). These may be set by setting the environment
-variable before invoking the `run.sh` shell script, or if this script is not
-used, by using the `-e` environment variable flag in the `docker` or `podman`
-command invocation.
+available for export (download). The latter is used when running the client in
+daemon/socket mode and controls the port that the client listens for
+connections on. These may be set by setting the environment variable before
+invoking the `run.sh` shell script, or if this script is not used, by using the
+`-e` environment variable flag in the `docker` or `podman` command invocation.
 
 For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).
