@@ -20,6 +20,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     SocketClientReaderWriter(int port) throws IOException {
         ss = new ServerSocket(port);
         listenerThread = new Thread(() -> {
+            System.out.println(String.format("Listening on port %d", port));
             while (true) {
                 try {
                     Socket sock = ss.accept();
@@ -28,7 +29,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
-                    System.out.println("Connected: " + sock.getRemoteSocketAddress().toString());
+                    System.out.println(String.format("Connected: %s", sock.getRemoteSocketAddress().toString()));
                     try {
                         s = sock;
                         scanner = new Scanner(sock.getInputStream(), "utf-8");

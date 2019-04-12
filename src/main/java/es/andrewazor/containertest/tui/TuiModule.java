@@ -3,6 +3,7 @@ package es.andrewazor.containertest.tui;
 import java.io.IOException;
 
 import javax.annotation.Nullable;
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import dagger.Binds;
@@ -68,12 +69,12 @@ public abstract class TuiModule {
     @Provides
     @Nullable
     @Singleton
-    static SocketClientReaderWriter provideSocketClientReaderWriter(ExecutionMode mode) {
+    static SocketClientReaderWriter provideSocketClientReaderWriter(ExecutionMode mode, @Named("LISTEN_PORT") int port) {
         if (!mode.equals(ExecutionMode.SOCKET)) {
             return null;
         }
         try {
-            return new SocketClientReaderWriter(9090);
+            return new SocketClientReaderWriter(port);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
