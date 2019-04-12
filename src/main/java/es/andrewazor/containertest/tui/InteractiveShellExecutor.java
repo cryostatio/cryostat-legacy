@@ -7,6 +7,9 @@ import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
 class InteractiveShellExecutor extends AbstractCommandExecutor {
+
+    private boolean running = true;
+
     InteractiveShellExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         super(cr, cw, commandRegistry);
     }
@@ -22,15 +25,25 @@ class InteractiveShellExecutor extends AbstractCommandExecutor {
                     if (in == null) {
                         in = ExitCommand.NAME;
                     }
-                    in = in.trim();
                 } catch (NoSuchElementException e) {
                     in = ExitCommand.NAME;
                 }
-                executeCommandLine(in);
-            } while (!in.toLowerCase().equals(ExitCommand.NAME.toLowerCase()));
+                handleCommand(in.trim());
+            } while (running);
         } catch (Exception e) {
             cw.println(e);
         }
+    }
+
+    protected void handleCommand(String cmd) throws Exception {
+        if (cmd.toLowerCase().equals(ExitCommand.NAME.toLowerCase())) {
+            handleExit();
+        }
+        executeCommandLine(cmd);
+    }
+
+    protected void handleExit() throws Exception {
+        running = false;
     }
 
     private boolean connected() {

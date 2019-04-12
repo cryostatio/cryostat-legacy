@@ -28,6 +28,7 @@ public abstract class TuiModule {
         case BATCH:
             return new BatchModeExecutor(cr, cw, commandRegistry);
         case SOCKET:
+            return new SocketInteractiveShellExecutor(cr, cw, commandRegistry);
         case INTERACTIVE:
             return new InteractiveShellExecutor(cr, cw, commandRegistry);
         default:

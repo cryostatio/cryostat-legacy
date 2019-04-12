@@ -4,46 +4,43 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Scanner;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.locks.ReentrantLock;
+import java.util.concurrent.Semaphore;
 
 class SocketClientReaderWriter implements ClientReader, ClientWriter {
 
     private final Thread listenerThread;
     private final ServerSocket ss;
-    private final ReentrantLock writeLock = new ReentrantLock();
-    private final ReentrantLock readLock = new ReentrantLock();
-    private final CountDownLatch socketLatch = new CountDownLatch(1);
+    private final Semaphore semaphore = new Semaphore(0, true);
     private volatile Socket s;
-    private volatile boolean running = true;
     private volatile Scanner scanner;
     private volatile OutputStreamWriter writer;
 
     SocketClientReaderWriter(int port) throws IOException {
         ss = new ServerSocket(port);
         listenerThread = new Thread(() -> {
-            try {
-                while (running) {
+            while (true) {
+                try {
                     Socket sock = ss.accept();
-                    System.out.println("Connected: " + sock.getRemoteSocketAddress().toString());
-                    readLock.lock();
                     try {
-                        writeLock.lock();
-                        try {
-                            s = sock;
-                            scanner = new Scanner(sock.getInputStream(), "utf-8");
-                            writer = new OutputStreamWriter(sock.getOutputStream(), "utf-8");
-                        } finally {
-                            writeLock.unlock();
-                        }
-                    } finally {
-                        readLock.unlock();
-                        socketLatch.countDown();
+                        close();
+                    } catch (IOException e) {
+                        e.printStackTrace();
                     }
+                    System.out.println("Connected: " + sock.getRemoteSocketAddress().toString());
+                    try {
+                        s = sock;
+                        scanner = new Scanner(sock.getInputStream(), "utf-8");
+                        writer = new OutputStreamWriter(sock.getOutputStream(), "utf-8");
+                    } finally {
+                        semaphore.release();
+                    }
+                } catch (SocketException e) {
+                    semaphore.drainPermits();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
-            } catch (IOException e) {
-                e.printStackTrace();
             }
         });
         listenerThread.start();
@@ -51,11 +48,13 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
 
     @Override
     public void close() throws IOException {
-        running = false;
-        scanner.close();
-        writer.close();
-        listenerThread.interrupt();
-        ss.close();
+        semaphore.drainPermits();
+        if (scanner != null) {
+            scanner.close();
+        }
+        if (writer != null) {
+            writer.close();
+        }
         if (s != null) {
             s.close();
         }
@@ -64,12 +63,11 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     @Override
     public String readLine() {
         try {
-            socketLatch.await();
-            readLock.lock();
+            semaphore.acquire();
             try {
                 return scanner.nextLine();
             } finally {
-                readLock.unlock();
+                semaphore.release();
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -80,13 +78,12 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     @Override
     public void print(String s) {
         try {
-            socketLatch.await();
-            writeLock.lock();
+            semaphore.acquire();
             try {
                 writer.write(s);
                 writer.flush();
             } finally {
-                writeLock.unlock();
+                semaphore.release();
             }
         } catch (InterruptedException | IOException e) {
             e.printStackTrace();
