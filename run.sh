@@ -20,6 +20,7 @@ docker run \
     --net jmx-test \
     --name jmx-client \
     --memory 80M \
+    --cpus 1.0 \
     -p 9090:9090 \
     -e CONTAINER_DOWNLOAD_HOST=$CONTAINER_DOWNLOAD_HOST \
     -e CONTAINER_DOWNLOAD_PORT=$CONTAINER_DOWNLOAD_PORT \
