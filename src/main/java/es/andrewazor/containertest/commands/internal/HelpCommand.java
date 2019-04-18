@@ -3,12 +3,10 @@ package es.andrewazor.containertest.commands.internal;
 import javax.inject.Inject;
 
 import dagger.Lazy;
-import dagger.Module;
 import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.tui.ClientWriter;
 
-@Module
 class HelpCommand implements Command {
 
     private final ClientWriter cw;
