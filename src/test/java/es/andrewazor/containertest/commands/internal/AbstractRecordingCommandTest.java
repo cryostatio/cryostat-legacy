@@ -53,7 +53,8 @@ class AbstractRecordingCommandTest extends TestBase {
     @ParameterizedTest
     @ValueSource(strings = {
         "foo.Event:prop=val",
-        "foo.Event:prop=val,bar.Event:thing=1"
+        "foo.Event:prop=val,bar.Event:thing=1",
+        "foo.class$Inner:prop=val"
     })
     void shouldValidateValidEventString(String events) {
         assertTrue(command.validateEvents(events));
@@ -67,7 +68,7 @@ class AbstractRecordingCommandTest extends TestBase {
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
 
-        command.enableEvents("foo.Bar:prop=val");
+        command.enableEvents("foo.Bar$Inner:prop=val");
 
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<String> optionCaptor = ArgumentCaptor.forClass(String.class);
@@ -75,7 +76,7 @@ class AbstractRecordingCommandTest extends TestBase {
         verify(builder).addEvent(eventCaptor.capture(), optionCaptor.capture(), valueCaptor.capture());
         verify(builder).build();
 
-        assertThat(eventCaptor.getValue(), equalTo("foo.Bar"));
+        assertThat(eventCaptor.getValue(), equalTo("foo.Bar$Inner"));
         assertThat(optionCaptor.getValue(), equalTo("prop"));
         assertThat(valueCaptor.getValue(), equalTo("val"));
 
