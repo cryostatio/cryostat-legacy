@@ -10,7 +10,7 @@ import es.andrewazor.containertest.tui.ClientWriter;
 
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
-    private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.]+):([\\w]+)=([\\w\\d\\.]+)");
+    private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
     protected final ClientWriter cw;
     protected final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
