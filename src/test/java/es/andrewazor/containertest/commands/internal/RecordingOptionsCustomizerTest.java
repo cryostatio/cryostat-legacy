@@ -33,14 +33,6 @@ class RecordingOptionsCustomizerTest {
     }
 
     @Test
-    void shouldDisableToDiskByDefault() throws QuantityConversionException {
-        customizer.apply(builder);
-        verify(builder).toDisk(false);
-        verifyNoMoreInteractions(builder);
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
     void shouldApplyToDisk() throws QuantityConversionException {
         customizer.set(OptionKey.TO_DISK, "true");
         customizer.apply(builder);
@@ -53,7 +45,6 @@ class RecordingOptionsCustomizerTest {
     void shouldApplyMaxAge() throws QuantityConversionException {
         customizer.set(OptionKey.MAX_AGE, "123");
         customizer.apply(builder);
-        verifyDefaults();
         verify(builder).maxAge(123);
         verifyNoMoreInteractions(builder);
         verifyZeroInteractions(cw);
@@ -64,7 +55,6 @@ class RecordingOptionsCustomizerTest {
         customizer.set(OptionKey.MAX_AGE, "123");
         customizer.set(OptionKey.MAX_AGE, "456");
         customizer.apply(builder);
-        verifyDefaults();
         verify(builder).maxAge(456);
         verifyNoMoreInteractions(builder);
         verifyZeroInteractions(cw);
@@ -74,7 +64,6 @@ class RecordingOptionsCustomizerTest {
     void shouldApplyMaxSize() throws QuantityConversionException {
         customizer.set(OptionKey.MAX_SIZE, "123");
         customizer.apply(builder);
-        verifyDefaults();
         verify(builder).maxSize(123);
         verifyNoMoreInteractions(builder);
         verifyZeroInteractions(cw);
@@ -85,7 +74,6 @@ class RecordingOptionsCustomizerTest {
         customizer.set(OptionKey.MAX_SIZE, "123");
         customizer.unset(OptionKey.MAX_SIZE);
         customizer.apply(builder);
-        verifyDefaults();
         verifyNoMoreInteractions(builder);
         verifyZeroInteractions(cw);
     }
@@ -95,14 +83,9 @@ class RecordingOptionsCustomizerTest {
         when(builder.maxSize(Mockito.anyLong())).thenThrow(UnsupportedOperationException.class);
         customizer.set(OptionKey.MAX_SIZE, "123");
         customizer.apply(builder);
-        verifyDefaults();
         verify(cw).println(ArgumentMatchers.any(UnsupportedOperationException.class));
         verifyNoMoreInteractions(builder);
         verifyNoMoreInteractions(cw);
-    }
-
-    private void verifyDefaults() throws QuantityConversionException {
-        verify(builder).toDisk(false);
     }
 
 }

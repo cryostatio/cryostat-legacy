@@ -18,8 +18,6 @@ class RecordingOptionsCustomizer implements Function<RecordingOptionsBuilder, Re
     RecordingOptionsCustomizer(ClientWriter cw) {
         this.customizers = new HashMap<>();
         this.cw = cw;
-
-        set(OptionKey.TO_DISK, Boolean.toString(false));
     }
 
     @Override
