@@ -68,18 +68,14 @@ class AbstractRecordingCommandTest extends TestBase {
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
 
-        command.enableEvents("foo.Bar$Inner:prop=val");
+        command.enableEvents("foo.Bar$Inner:prop=some,bar.Baz$Inner2:key=val,jdk.CPULoad:enabled=true");
 
-        ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> optionCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
-        verify(builder).addEvent(eventCaptor.capture(), optionCaptor.capture(), valueCaptor.capture());
+        verify(builder).addEvent("foo.Bar$Inner", "prop", "some");
+        verify(builder).addEvent("bar.Baz$Inner2", "key", "val");
+        verify(builder).addEvent("jdk.CPULoad", "enabled", "true");
         verify(builder).build();
 
-        assertThat(eventCaptor.getValue(), equalTo("foo.Bar$Inner"));
-        assertThat(optionCaptor.getValue(), equalTo("prop"));
-        assertThat(valueCaptor.getValue(), equalTo("val"));
-
+        verifyNoMoreInteractions(builder);
         verifyNoMoreInteractions(eventOptionsBuilderFactory);
     }
 
