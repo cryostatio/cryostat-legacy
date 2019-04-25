@@ -7,15 +7,18 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand {
 
     private final ClientWriter cw;
+    private final RecordingExporter exporter;
 
-    @Inject DeleteCommand(ClientWriter cw) {
+    @Inject DeleteCommand(ClientWriter cw, RecordingExporter exporter) {
         this.cw = cw;
+        this.exporter = exporter;
     }
 
     @Override
@@ -32,6 +35,7 @@ class DeleteCommand extends AbstractConnectedCommand {
         Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);
         if (descriptor.isPresent()) {
             getService().close(descriptor.get());
+            exporter.removeRecording(descriptor.get());
         } else {
             cw.println(String.format("No recording with name \"%s\" found", recordingName));
             return;

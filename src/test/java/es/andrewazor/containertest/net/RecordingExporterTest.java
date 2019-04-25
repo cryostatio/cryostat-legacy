@@ -172,13 +172,13 @@ class RecordingExporterTest extends TestBase {
     }
 
     @Test
-    void shouldInitializeDownloadCountsNegative() throws Exception {
+    void shouldInitializeDownloadCountsToZero() throws Exception {
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
         when(descriptor.getName()).thenReturn("foo");
 
         exporter.addRecording(descriptor);
 
-        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
+        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.equalTo(0));
 
         verifyZeroInteractions(server);
         verifyZeroInteractions(connection);
@@ -187,6 +187,22 @@ class RecordingExporterTest extends TestBase {
 
     @Test
     void shouldReportNegativeDownloadsForUnknownRecordings() throws Exception {
+        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
+
+        verifyZeroInteractions(server);
+        verifyZeroInteractions(connection);
+        verifyZeroInteractions(service);
+    }
+
+    @Test
+    void shouldAllowRemovingRecordings() throws Exception {
+        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
+        when(descriptor.getName()).thenReturn("foo");
+
+        exporter.addRecording(descriptor);
+        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.equalTo(0));
+
+        exporter.removeRecording(descriptor);
         MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
 
         verifyZeroInteractions(server);

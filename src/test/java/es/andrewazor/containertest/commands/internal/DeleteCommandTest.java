@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -24,17 +25,19 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.net.RecordingExporter;
 
 @ExtendWith(MockitoExtension.class)
 class DeleteCommandTest extends TestBase {
 
-    private DeleteCommand command;
-    @Mock private IRecordingDescriptor recordingDescriptor;
-    @Mock private JMCConnection connection;
+    DeleteCommand command;
+    @Mock IRecordingDescriptor recordingDescriptor;
+    @Mock JMCConnection connection;
+    @Mock RecordingExporter exporter;
 
     @BeforeEach
     void setup() throws FlightRecorderException {
-        command = new DeleteCommand(mockClientWriter);
+        command = new DeleteCommand(mockClientWriter, exporter);
         command.connectionChanged(connection);
     }
 
@@ -52,6 +55,7 @@ class DeleteCommandTest extends TestBase {
         
         command.execute(new String[]{"foo-recording"});
         verify(connection.getService()).close(recordingDescriptor);
+        verify(exporter).removeRecording(recordingDescriptor);
     }
 
     @Test
@@ -63,6 +67,7 @@ class DeleteCommandTest extends TestBase {
         
         command.execute(new String[]{"bar-recording"});
         verify(connection.getService(), never()).close(recordingDescriptor);
+        verifyZeroInteractions(exporter);
         assertThat(stdout(), equalTo("No recording with name \"bar-recording\" found\n"));
     }
 

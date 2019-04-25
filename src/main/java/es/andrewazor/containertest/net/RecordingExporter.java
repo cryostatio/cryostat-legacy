@@ -85,6 +85,12 @@ public class RecordingExporter implements ConnectionListener {
 
     public void addRecording(IRecordingDescriptor descriptor) {
         recordings.put(descriptor.getName(), descriptor);
+        downloadCounts.put(descriptor.getName(), 0);
+    }
+
+    public void removeRecording(IRecordingDescriptor descriptor) {
+        recordings.remove(descriptor.getName());
+        downloadCounts.remove(descriptor.getName());
     }
 
     public int getDownloadCount(String recordingName) {
