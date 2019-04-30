@@ -14,6 +14,7 @@ import dagger.multibindings.IntoSet;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
+import es.andrewazor.containertest.tui.ws.MessagingServer;
 
 @Module
 public abstract class TuiModule {
@@ -28,10 +29,12 @@ public abstract class TuiModule {
         switch (mode) {
         case BATCH:
             return new BatchModeExecutor(cr, cw, commandRegistry);
-        case SOCKET:
-            return new SocketInteractiveShellExecutor(cr, cw, commandRegistry);
         case INTERACTIVE:
             return new InteractiveShellExecutor(cr, cw, commandRegistry);
+        case WEBSOCKET:
+            // fall-through
+        case SOCKET:
+            return new SocketInteractiveShellExecutor(cr, cw, commandRegistry);
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
@@ -39,7 +42,8 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientReader provideClientReader(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter) {
+    static ClientReader provideClientReader(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter,
+            @Nullable MessagingServer webSocketMessagingServer) {
         switch (mode) {
         case BATCH:
             return new NoOpClientReader();
@@ -47,6 +51,8 @@ public abstract class TuiModule {
             return new TtyClientReader();
         case SOCKET:
             return socketReaderWriter;
+        case WEBSOCKET:
+            return webSocketMessagingServer.getClientReader();
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
@@ -54,13 +60,16 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientWriter provideClientWriter(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter) {
+    static ClientWriter provideClientWriter(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter,
+            @Nullable MessagingServer webSocketMessagingServer) {
         switch (mode) {
         case BATCH:
         case INTERACTIVE:
             return new TtyClientWriter();
         case SOCKET:
             return socketReaderWriter;
+        case WEBSOCKET:
+            return webSocketMessagingServer.getClientWriter();
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
@@ -77,6 +86,23 @@ public abstract class TuiModule {
             return new SocketClientReaderWriter(port);
         } catch (IOException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    @Provides
+    @Nullable
+    @Singleton
+    static MessagingServer provideWebSocketMessagingServer(ExecutionMode mode, @Named("LISTEN_PORT") int port) {
+        if (!mode.equals(ExecutionMode.WEBSOCKET)) {
+            return null;
+        }
+        MessagingServer messagingServer = new MessagingServer(port);
+        try {
+            messagingServer.start();
+            return messagingServer;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
         }
     }
 }

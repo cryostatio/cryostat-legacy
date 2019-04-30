@@ -37,6 +37,10 @@ class JMXClient {
             mode = ExecutionMode.SOCKET;
             clientArgs = null;
             port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
+        } else if (args[0].equals("-w")) {
+            mode = ExecutionMode.WEBSOCKET;
+            clientArgs = null;
+            port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
         } else {
             mode = ExecutionMode.BATCH;
             clientArgs = args[0];
