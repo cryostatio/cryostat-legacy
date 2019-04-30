@@ -5,7 +5,7 @@ import java.util.Scanner;
 
 import es.andrewazor.containertest.tui.ClientReader;
 
-public class TtyClientReader implements ClientReader {
+class TtyClientReader implements ClientReader {
     private final Scanner scanner = new Scanner(System.in, "utf-8");
 
     @Override

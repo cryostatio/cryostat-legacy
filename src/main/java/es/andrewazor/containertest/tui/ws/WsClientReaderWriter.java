@@ -11,14 +11,14 @@ import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 
-public class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, ClientWriter {
+class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, ClientWriter {
 
     private final Semaphore semaphore = new Semaphore(0, true);
     private final MessagingServer server;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private volatile Thread readingThread;
 
-    public WsClientReaderWriter(MessagingServer server) {
+    WsClientReaderWriter(MessagingServer server) {
         this.server = server;
         this.server.setConnection(this);
     }

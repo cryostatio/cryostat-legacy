@@ -11,7 +11,7 @@ import java.util.concurrent.Semaphore;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 
-public class SocketClientReaderWriter implements ClientReader, ClientWriter {
+class SocketClientReaderWriter implements ClientReader, ClientWriter {
 
     private final Thread listenerThread;
     private final ServerSocket ss;
@@ -20,7 +20,7 @@ public class SocketClientReaderWriter implements ClientReader, ClientWriter {
     private volatile Scanner scanner;
     private volatile OutputStreamWriter writer;
 
-    public SocketClientReaderWriter(int port) throws IOException {
+    SocketClientReaderWriter(int port) throws IOException {
         ss = new ServerSocket(port);
         listenerThread = new Thread(() -> {
             System.out.println(String.format("Listening on port %d", port));

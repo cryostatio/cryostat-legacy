@@ -11,14 +11,14 @@ import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 import es.andrewazor.containertest.net.JMCConnection;
 
-abstract class AbstractCommandExecutor implements CommandExecutor {
+public abstract class AbstractCommandExecutor implements CommandExecutor {
 
     protected final ClientReader cr;
     protected final ClientWriter cw;
     protected final Lazy<CommandRegistry> commandRegistry;
     protected JMCConnection connection;
 
-    AbstractCommandExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    protected AbstractCommandExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         this.cr = cr;
         this.cw = cw;
         this.commandRegistry = commandRegistry;

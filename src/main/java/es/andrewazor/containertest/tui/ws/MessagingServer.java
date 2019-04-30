@@ -10,13 +10,13 @@ import org.eclipse.jetty.servlet.ServletHolder;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 
-public class MessagingServer {
+class MessagingServer {
 
     private final Server server;
     private final Semaphore semaphore = new Semaphore(0, true);
     private WsClientReaderWriter connection;
 
-    public MessagingServer(int listenPort) {
+    MessagingServer(int listenPort) {
         this.server = new Server();
         ServerConnector connector = new ServerConnector(server);
         connector.setPort(listenPort);
@@ -33,7 +33,7 @@ public class MessagingServer {
         this.server = server;
     }
 
-    public void start() throws Exception {
+    void start() throws Exception {
         server.start();
         server.dump(System.err);
     }
@@ -51,7 +51,7 @@ public class MessagingServer {
         semaphore.release();
     }
 
-    public ClientReader getClientReader() {
+    ClientReader getClientReader() {
         return new ClientReader() {
             @Override
             public void close() {
@@ -70,7 +70,7 @@ public class MessagingServer {
         };
     }
 
-    public ClientWriter getClientWriter() {
+    ClientWriter getClientWriter() {
         return new ClientWriter() {
             @Override
             public void print(String s) {
