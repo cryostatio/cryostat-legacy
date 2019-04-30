@@ -100,13 +100,12 @@ public abstract class TuiModule {
         if (!mode.equals(ExecutionMode.WEBSOCKET)) {
             return null;
         }
-        MessagingServer messagingServer = new MessagingServer(port);
         try {
+            MessagingServer messagingServer = new MessagingServer(port);
             messagingServer.start();
             return messagingServer;
         } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+            throw new RuntimeException(e);
         }
     }
 }
