@@ -1,4 +1,4 @@
-package es.andrewazor.containertest.tui;
+package es.andrewazor.containertest.tui.tcp;
 
 import java.io.IOException;
 import java.io.OutputStreamWriter;
@@ -8,7 +8,10 @@ import java.net.SocketException;
 import java.util.Scanner;
 import java.util.concurrent.Semaphore;
 
-class SocketClientReaderWriter implements ClientReader, ClientWriter {
+import es.andrewazor.containertest.tui.ClientReader;
+import es.andrewazor.containertest.tui.ClientWriter;
+
+public class SocketClientReaderWriter implements ClientReader, ClientWriter {
 
     private final Thread listenerThread;
     private final ServerSocket ss;
@@ -17,7 +20,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     private volatile Scanner scanner;
     private volatile OutputStreamWriter writer;
 
-    SocketClientReaderWriter(int port) throws IOException {
+    public SocketClientReaderWriter(int port) throws IOException {
         ss = new ServerSocket(port);
         listenerThread = new Thread(() -> {
             System.out.println(String.format("Listening on port %d", port));

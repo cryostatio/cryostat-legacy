@@ -1,4 +1,4 @@
-package es.andrewazor.containertest.tui;
+package es.andrewazor.containertest.tui.tty;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -23,6 +23,8 @@ import org.mockito.stubbing.Answer;
 
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.tui.ClientReader;
+import es.andrewazor.containertest.tui.CommandExecutor;
 
 @ExtendWith(MockitoExtension.class)
 class BatchModeExecutorTest extends TestBase {

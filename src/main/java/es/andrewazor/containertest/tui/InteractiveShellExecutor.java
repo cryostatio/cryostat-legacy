@@ -6,11 +6,11 @@ import dagger.Lazy;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
 
-class InteractiveShellExecutor extends AbstractCommandExecutor {
+public class InteractiveShellExecutor extends AbstractCommandExecutor {
 
     private boolean running = true;
 
-    InteractiveShellExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    public InteractiveShellExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         super(cr, cw, commandRegistry);
     }
 

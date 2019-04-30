@@ -1,4 +1,4 @@
-package es.andrewazor.containertest.tui;
+package es.andrewazor.containertest.tui.tty;
 
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -12,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import es.andrewazor.containertest.tui.tty.TtyClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class TtyClientWriterTest {

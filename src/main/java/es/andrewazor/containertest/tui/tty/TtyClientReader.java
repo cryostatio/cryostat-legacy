@@ -1,9 +1,11 @@
-package es.andrewazor.containertest.tui;
+package es.andrewazor.containertest.tui.tty;
 
 import java.io.IOException;
 import java.util.Scanner;
 
-class TtyClientReader implements ClientReader {
+import es.andrewazor.containertest.tui.ClientReader;
+
+public class TtyClientReader implements ClientReader {
     private final Scanner scanner = new Scanner(System.in, "utf-8");
 
     @Override

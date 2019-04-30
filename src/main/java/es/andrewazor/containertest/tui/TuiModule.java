@@ -14,6 +14,10 @@ import dagger.multibindings.IntoSet;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
+import es.andrewazor.containertest.tui.tcp.SocketClientReaderWriter;
+import es.andrewazor.containertest.tui.tcp.SocketInteractiveShellExecutor;
+import es.andrewazor.containertest.tui.tty.TtyClientReader;
+import es.andrewazor.containertest.tui.tty.TtyClientWriter;
 import es.andrewazor.containertest.tui.ws.MessagingServer;
 
 @Module

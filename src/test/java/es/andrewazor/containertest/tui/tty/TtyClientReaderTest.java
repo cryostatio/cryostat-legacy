@@ -1,4 +1,4 @@
-package es.andrewazor.containertest.tui;
+package es.andrewazor.containertest.tui.tty;
 
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -16,6 +16,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import es.andrewazor.containertest.tui.tty.TtyClientReader;
 
 @ExtendWith(MockitoExtension.class)
 class TtyClientReaderTest {
