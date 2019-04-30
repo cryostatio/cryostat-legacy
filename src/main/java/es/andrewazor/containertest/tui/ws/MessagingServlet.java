@@ -3,10 +3,10 @@ package es.andrewazor.containertest.tui.ws;
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
 
-@SuppressWarnings("serial")
 class MessagingServlet extends WebSocketServlet {
 
-    private final MessagingServer server;
+    private static final long serialVersionUID = 1L;
+    private transient final MessagingServer server;
 
     MessagingServlet(MessagingServer server) {
         this.server = server;
