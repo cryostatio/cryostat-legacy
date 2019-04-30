@@ -2,7 +2,6 @@ package es.andrewazor.containertest.tui;
 
 import java.io.IOException;
 
-import javax.annotation.Nullable;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
@@ -46,17 +45,17 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientReader provideClientReader(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter,
-            @Nullable MessagingServer webSocketMessagingServer) {
+    static ClientReader provideClientReader(ExecutionMode mode, Lazy<SocketClientReaderWriter> socketReaderWriter,
+            Lazy<MessagingServer> webSocketMessagingServer) {
         switch (mode) {
         case BATCH:
             return new NoOpClientReader();
         case INTERACTIVE:
             return new TtyClientReader();
         case SOCKET:
-            return socketReaderWriter;
+            return socketReaderWriter.get();
         case WEBSOCKET:
-            return webSocketMessagingServer.getClientReader();
+            return webSocketMessagingServer.get().getClientReader();
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
@@ -64,28 +63,24 @@ public abstract class TuiModule {
 
     @Provides
     @Singleton
-    static ClientWriter provideClientWriter(ExecutionMode mode, @Nullable SocketClientReaderWriter socketReaderWriter,
-            @Nullable MessagingServer webSocketMessagingServer) {
+    static ClientWriter provideClientWriter(ExecutionMode mode, Lazy<SocketClientReaderWriter> socketReaderWriter,
+            Lazy<MessagingServer> webSocketMessagingServer) {
         switch (mode) {
         case BATCH:
         case INTERACTIVE:
             return new TtyClientWriter();
         case SOCKET:
-            return socketReaderWriter;
+            return socketReaderWriter.get();
         case WEBSOCKET:
-            return webSocketMessagingServer.getClientWriter();
+            return webSocketMessagingServer.get().getClientWriter();
         default:
             throw new RuntimeException(String.format("Unknown execution mode: %s", mode.toString()));
         }
     }
 
     @Provides
-    @Nullable
     @Singleton
-    static SocketClientReaderWriter provideSocketClientReaderWriter(ExecutionMode mode, @Named("LISTEN_PORT") int port) {
-        if (!mode.equals(ExecutionMode.SOCKET)) {
-            return null;
-        }
+    static SocketClientReaderWriter provideSocketClientReaderWriter(@Named("LISTEN_PORT") int port) {
         try {
             return new SocketClientReaderWriter(port);
         } catch (IOException e) {
@@ -94,12 +89,8 @@ public abstract class TuiModule {
     }
 
     @Provides
-    @Nullable
     @Singleton
-    static MessagingServer provideWebSocketMessagingServer(ExecutionMode mode, @Named("LISTEN_PORT") int port) {
-        if (!mode.equals(ExecutionMode.WEBSOCKET)) {
-            return null;
-        }
+    static MessagingServer provideWebSocketMessagingServer(@Named("LISTEN_PORT") int port) {
         try {
             MessagingServer messagingServer = new MessagingServer(port);
             messagingServer.start();
