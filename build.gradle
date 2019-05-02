@@ -70,7 +70,7 @@ tasks.build.dependsOn tasks.jib
 
 test {
     useJUnitPlatform()
-    maxParallelForks = 4
+    maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
 }
 
 spotbugs {
