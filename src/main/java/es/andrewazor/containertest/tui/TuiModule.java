@@ -2,12 +2,9 @@ package es.andrewazor.containertest.tui;
 
 import javax.inject.Singleton;
 
-import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import dagger.multibindings.IntoSet;
-import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
 import es.andrewazor.containertest.tui.tcp.TcpModule;
 import es.andrewazor.containertest.tui.tty.TtyModule;
@@ -19,10 +16,6 @@ import es.andrewazor.containertest.tui.ws.WsModule;
     WsModule.class
 })
 public abstract class TuiModule {
-    @Binds
-    @IntoSet
-    abstract ConnectionListener bindCommandExecutor(CommandExecutor commandExecutor);
-
     @Provides
     @Singleton
     static CommandExecutor provideCommandExecutor(ExecutionMode mode,

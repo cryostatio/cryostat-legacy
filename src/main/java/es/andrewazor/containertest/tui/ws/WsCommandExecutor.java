@@ -30,9 +30,6 @@ class WsCommandExecutor implements CommandExecutor {
     }
 
     @Override
-    public void connectionChanged(JMCConnection connection) { }
-
-    @Override
     public void run(String unused) {
         try (cr) {
             while (true) {

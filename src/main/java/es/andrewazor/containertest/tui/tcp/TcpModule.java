@@ -5,10 +5,13 @@ import java.io.IOException;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 import es.andrewazor.containertest.tui.CommandExecutor;
@@ -16,14 +19,23 @@ import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
 import es.andrewazor.containertest.tui.ConnectionMode;
 
 @Module
-public class TcpModule {
+public abstract class TcpModule {
     @Provides
     @Singleton
-    @ConnectionMode(ExecutionMode.SOCKET)
-    static CommandExecutor provideCommandExecutor(ClientReader cr, ClientWriter cw,
+    static SocketInteractiveShellExecutor provideSocketInteractiveShellExecutor(ClientReader cr, ClientWriter cw,
             Lazy<CommandRegistry> commandRegistry) {
         return new SocketInteractiveShellExecutor(cr, cw, commandRegistry);
     }
+
+    @Provides
+    @ConnectionMode(ExecutionMode.SOCKET)
+    static CommandExecutor provideCommandExecutor(SocketInteractiveShellExecutor executor) {
+        return executor;
+    }
+
+    @Binds
+    @IntoSet
+    abstract ConnectionListener bindConnectionListener(SocketInteractiveShellExecutor commandExecutor);
 
     @Provides
     @Singleton

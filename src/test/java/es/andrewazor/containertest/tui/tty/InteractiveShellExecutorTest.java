@@ -1,4 +1,4 @@
-package es.andrewazor.containertest.tui;
+package es.andrewazor.containertest.tui.tty;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -26,11 +26,12 @@ import org.mockito.stubbing.Answer;
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.tui.ClientReader;
 
 @ExtendWith(MockitoExtension.class)
 class InteractiveShellExecutorTest extends TestBase {
 
-    CommandExecutor executor;
+    InteractiveShellExecutor executor;
     @Mock ClientReader mockClientReader;
     @Mock CommandRegistry mockRegistry;
     @Mock JMCConnection mockConnection;

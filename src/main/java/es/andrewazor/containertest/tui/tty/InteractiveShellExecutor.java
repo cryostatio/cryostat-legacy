@@ -1,17 +1,28 @@
-package es.andrewazor.containertest.tui;
+package es.andrewazor.containertest.tui.tty;
 
 import java.util.NoSuchElementException;
 
 import dagger.Lazy;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.commands.internal.ExitCommand;
+import es.andrewazor.containertest.net.ConnectionListener;
+import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.tui.AbstractCommandExecutor;
+import es.andrewazor.containertest.tui.ClientReader;
+import es.andrewazor.containertest.tui.ClientWriter;
 
-public class InteractiveShellExecutor extends AbstractCommandExecutor {
+public class InteractiveShellExecutor extends AbstractCommandExecutor implements ConnectionListener {
 
     private boolean running = true;
+    private boolean connected = false;
 
     public InteractiveShellExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         super(cr, cw, commandRegistry);
+    }
+
+    @Override
+    public void connectionChanged(JMCConnection connection) {
+        this.connected = connection != null;
     }
 
     @Override
@@ -19,7 +30,7 @@ public class InteractiveShellExecutor extends AbstractCommandExecutor {
         try (cr) {
             String in;
             do {
-                cw.print(connected() ? "> " : "- ");
+                cw.print(connected ? "> " : "- ");
                 try {
                     in = cr.readLine();
                     if (in == null) {
@@ -44,9 +55,5 @@ public class InteractiveShellExecutor extends AbstractCommandExecutor {
 
     protected void handleExit() throws Exception {
         running = false;
-    }
-
-    private boolean connected() {
-        return this.connection != null;
     }
 }

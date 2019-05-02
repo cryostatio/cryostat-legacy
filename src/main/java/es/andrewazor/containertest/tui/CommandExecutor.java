@@ -1,8 +1,6 @@
 package es.andrewazor.containertest.tui;
 
-import es.andrewazor.containertest.net.ConnectionListener;
-
-public interface CommandExecutor extends ConnectionListener {
+public interface CommandExecutor {
     void run(String clientArgString);
 
     public enum ExecutionMode {
