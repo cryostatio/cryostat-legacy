@@ -3,6 +3,8 @@ package es.andrewazor.containertest.tui.ws;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.gson.Gson;
+
 import org.eclipse.jetty.websocket.api.WebSocketPolicy;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;
@@ -20,17 +22,18 @@ class MessagingServletTest {
     @Mock MessagingServer server;
     @Mock WebSocketServletFactory factory;
     @Mock WebSocketPolicy policy;
+    @Mock Gson gson;
 
     @BeforeEach
     void setup() {
-        servlet = new MessagingServlet(server);
+        servlet = new MessagingServlet(server, gson);
     }
 
     @Test
     void testConfigure() {
         when(factory.getPolicy()).thenReturn(policy);
         servlet.configure(factory);
-        verify(policy).setIdleTimeout(10_000);
+        verify(policy).setIdleTimeout(120_000);
 
         ArgumentCaptor<WebSocketCreator> creatorCaptor = ArgumentCaptor.forClass(WebSocketCreator.class);
         verify(factory).setCreator(creatorCaptor.capture());

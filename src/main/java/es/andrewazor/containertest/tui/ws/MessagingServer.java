@@ -2,6 +2,8 @@ package es.andrewazor.containertest.tui.ws;
 
 import java.util.concurrent.Semaphore;
 
+import com.google.gson.Gson;
+
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -16,7 +18,7 @@ class MessagingServer {
     private final Semaphore semaphore = new Semaphore(0, true);
     private WsClientReaderWriter connection;
 
-    MessagingServer(int listenPort) {
+    MessagingServer(int listenPort, Gson gson) {
         this.server = new Server();
         ServerConnector connector = new ServerConnector(server);
         connector.setPort(listenPort);
@@ -25,7 +27,7 @@ class MessagingServer {
         ServletContextHandler contextHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
         contextHandler.setContextPath("/");
         server.setHandler(contextHandler);
-        contextHandler.addServlet(new ServletHolder(new MessagingServlet(this)), "/command");
+        contextHandler.addServlet(new ServletHolder(new MessagingServlet(this, gson)), "/command");
     }
 
     // testing-only constructor
@@ -43,6 +45,10 @@ class MessagingServer {
             semaphore.drainPermits();
             connection.close();
         }
+    }
+
+    WsClientReaderWriter getConnection() {
+        return connection;
     }
 
     void setConnection(WsClientReaderWriter crw) {

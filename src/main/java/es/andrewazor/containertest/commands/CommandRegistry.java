@@ -59,7 +59,7 @@ public class CommandRegistry {
         return registered;
     }
 
-    private boolean isCommandAvailable(String commandName) {
+    public boolean isCommandAvailable(String commandName) {
         boolean available = getAvailableCommandNames().contains(commandName);
         if (!available) {
             cw.println(String.format("Command \"%s\" not available", commandName));

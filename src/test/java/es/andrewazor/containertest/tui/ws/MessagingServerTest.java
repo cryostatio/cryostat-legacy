@@ -24,12 +24,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MessagingServerTest {
 
     MessagingServer server;
-    @Mock
-    Server jettyServer;
-    @Mock
-    WsClientReaderWriter crw1;
-    @Mock
-    WsClientReaderWriter crw2;
+    @Mock Server jettyServer;
+    @Mock WsClientReaderWriter crw1;
+    @Mock WsClientReaderWriter crw2;
 
     @BeforeEach
     void setup() {
@@ -53,6 +50,13 @@ class MessagingServerTest {
         server.setConnection(crw2);
         verify(crw1).close();
         verifyZeroInteractions(crw2);
+    }
+
+    @Test
+    void testGetConnection() {
+        MatcherAssert.assertThat(server.getConnection(), Matchers.nullValue());
+        server.setConnection(crw1);
+        MatcherAssert.assertThat(server.getConnection(), Matchers.sameInstance(crw1));
     }
 
     @Test

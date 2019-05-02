@@ -57,7 +57,7 @@ public abstract class AbstractCommandExecutor implements CommandExecutor {
         }
     }
 
-    private boolean validateCommands(Collection<CommandLine> commandLines) {
+    protected boolean validateCommands(Collection<CommandLine> commandLines) {
         boolean allValid = true;
         for (CommandLine commandLine : commandLines) {
             boolean valid = this.commandRegistry.get().validate(commandLine.command, commandLine.args);
@@ -74,10 +74,10 @@ public abstract class AbstractCommandExecutor implements CommandExecutor {
     }
 
     protected static class CommandLine {
-        final String command;
-        final String[] args;
+        public final String command;
+        public final String[] args;
 
-        CommandLine(String command, String[] args) {
+        public CommandLine(String command, String[] args) {
             this.command = command;
             this.args = args;
         }

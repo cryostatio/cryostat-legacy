@@ -3,6 +3,9 @@ package es.andrewazor.containertest.tui.ws;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
@@ -12,16 +15,15 @@ import es.andrewazor.containertest.tui.ClientWriter;
 import es.andrewazor.containertest.tui.CommandExecutor;
 import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
 import es.andrewazor.containertest.tui.ConnectionMode;
-import es.andrewazor.containertest.tui.tcp.SocketInteractiveShellExecutor;
 
 @Module
 public class WsModule {
     @Provides
     @Singleton
     @ConnectionMode(ExecutionMode.WEBSOCKET)
-    static CommandExecutor provideCommandExecutor(ClientReader cr, ClientWriter cw,
-            Lazy<CommandRegistry> commandRegistry) {
-        return new SocketInteractiveShellExecutor(cr, cw, commandRegistry);
+    static CommandExecutor provideCommandExecutor(MessagingServer server, ClientReader cr, ClientWriter cw,
+            Lazy<CommandRegistry> commandRegistry, Gson gson) {
+        return new WsCommandExecutor(server, cr, cw, commandRegistry, gson);
     }
 
     @Provides
@@ -40,13 +42,21 @@ public class WsModule {
 
     @Provides
     @Singleton
-    static MessagingServer provideWebSocketMessagingServer(@Named("LISTEN_PORT") int port) {
+    static MessagingServer provideWebSocketMessagingServer(@Named("LISTEN_PORT") int port, Gson gson) {
         try {
-            MessagingServer messagingServer = new MessagingServer(port);
+            MessagingServer messagingServer = new MessagingServer(port, gson);
             messagingServer.start();
             return messagingServer;
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Provides
+    @Singleton
+    static Gson provideGson() {
+        return new GsonBuilder()
+            .serializeNulls()
+            .create();
     }
 }

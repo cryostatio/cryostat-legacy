@@ -5,6 +5,8 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
 
+import com.google.gson.Gson;
+
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 
@@ -15,17 +17,21 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
 
     private final Semaphore semaphore = new Semaphore(0, true);
     private final MessagingServer server;
+    private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private volatile Thread readingThread;
+    private StringBuilder sb;
 
-    WsClientReaderWriter(MessagingServer server) {
+    WsClientReaderWriter(MessagingServer server, Gson gson) {
         this.server = server;
+        this.gson = gson;
         this.server.setConnection(this);
     }
 
     @Override
     public void onWebSocketConnect(Session session) {
         super.onWebSocketConnect(session);
+        clearBuffer();
         semaphore.release();
     }
 
@@ -47,6 +53,7 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
         if (isConnected()) {
             getSession().close();
         }
+        sb = null;
         if (readingThread != null) {
             readingThread.interrupt();
         }
@@ -54,10 +61,24 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
 
     @Override
     public void print(String s) {
+        if (sb != null) {
+            sb.append(s);
+        }
+    }
+
+    void clearBuffer() {
+        sb = new StringBuilder();
+    }
+
+    void flush(ResponseMessage message) {
         try {
             semaphore.acquireUninterruptibly();
+            if (message.message == null || message.message.isEmpty()) {
+                message.message = sb.toString();
+            }
+            clearBuffer();
             try {
-                getRemote().sendString(s);
+                getRemote().sendString(gson.toJson(message));
                 getRemote().flush();
             } catch (IOException e) {
                 e.printStackTrace();

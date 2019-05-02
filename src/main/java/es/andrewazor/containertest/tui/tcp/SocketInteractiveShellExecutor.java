@@ -6,8 +6,8 @@ import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 import es.andrewazor.containertest.tui.InteractiveShellExecutor;
 
-public class SocketInteractiveShellExecutor extends InteractiveShellExecutor {
-    public SocketInteractiveShellExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+class SocketInteractiveShellExecutor extends InteractiveShellExecutor {
+    SocketInteractiveShellExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         super(cr, cw, commandRegistry);
     }
 
