@@ -83,7 +83,6 @@ class WsClientReaderWriterTest extends TestBase {
         crw.close();
         verify(session, Mockito.times(1)).close();
 
-        when(session.isOpen()).thenReturn(false);
         crw.close();
         verify(session, Mockito.times(1)).close();
     }

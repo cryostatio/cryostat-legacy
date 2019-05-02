@@ -44,7 +44,6 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
     @Override
     public void onWebSocketClose(int statusCode, String reason) {
         close();
-        super.onWebSocketClose(statusCode, reason);
     }
 
     @Override
@@ -53,6 +52,7 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
         if (isConnected()) {
             getSession().close();
         }
+        super.onWebSocketClose(0, null);
         sb = null;
         if (readingThread != null) {
             readingThread.interrupt();
