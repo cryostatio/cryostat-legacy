@@ -135,6 +135,18 @@ class WsClientReaderWriterTest extends TestBase {
     }
 
     @Test
+    void flushShouldTrimBufferedPrintMessages() throws IOException {
+        crw.print("disconnected message is discarded");
+        when(session.getRemote()).thenReturn(remote);
+        crw.onWebSocketConnect(session);
+        crw.println("hello world ");
+        ResponseMessage message = new InvalidCommandResponseMessage();
+        crw.flush(message);
+        verify(remote).sendString("{\"status\":-1,\"message\":\"hello world\"}");
+        verify(remote).flush();
+    }
+
+    @Test
     void flushShouldHandleIOExceptions() throws IOException {
         PrintStream origErr = System.err;
         try {

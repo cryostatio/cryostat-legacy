@@ -74,7 +74,7 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
         try {
             semaphore.acquireUninterruptibly();
             if (message.message == null || message.message.isEmpty()) {
-                message.message = sb.toString();
+                message.message = sb.toString().trim();
             }
             clearBuffer();
             try {
