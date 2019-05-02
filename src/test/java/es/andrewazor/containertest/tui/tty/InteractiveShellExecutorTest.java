@@ -47,13 +47,22 @@ class InteractiveShellExecutorTest extends TestBase {
         verifyZeroInteractions(mockRegistry);
 
         when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
-        when(mockClientReader.readLine()).thenReturn("connect foo").thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) {
-                executor.connectionChanged(mockConnection);
-                return "disconnect";
-            }
-        }).thenReturn("exit");
+        when(mockClientReader.readLine())
+            .thenReturn("connect foo")
+            .thenAnswer(new Answer<String>() {
+                @Override
+                public String answer(InvocationOnMock invocation) {
+                    executor.connectionChanged(mockConnection);
+                    return "disconnect";
+                }
+            })
+            .thenAnswer(new Answer<String>() {
+                @Override
+                public String answer(InvocationOnMock invocation) throws Throwable {
+                    executor.connectionChanged(null);
+                    return "exit";
+                }
+            });
 
         executor.run(null);
 
