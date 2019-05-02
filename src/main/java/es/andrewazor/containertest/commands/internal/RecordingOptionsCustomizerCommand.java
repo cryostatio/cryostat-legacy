@@ -48,6 +48,7 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
     @Override
     public boolean validate(String[] args) {
         if (args.length != 1) {
+            cw.println("Expected one argument: recording option name");
             return false;
         }
         String options = args[0];

@@ -11,19 +11,22 @@ import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.JMCConnectionToolkit;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton 
 class ConnectCommand implements Command {
 
     private static final Pattern HOST_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
+    private final ClientWriter cw;
     private final Set<ConnectionListener> connectionListeners;
     private final DisconnectCommand disconnect;
     private final JMCConnectionToolkit connectionToolkit;
 
     @Inject
-    ConnectCommand(Set<ConnectionListener> connectionListeners, DisconnectCommand disconnect,
+    ConnectCommand(ClientWriter cw, Set<ConnectionListener> connectionListeners, DisconnectCommand disconnect,
             JMCConnectionToolkit connectionToolkit) {
+        this.cw = cw;
         this.connectionListeners = connectionListeners;
         this.disconnect = disconnect;
         this.connectionToolkit = connectionToolkit;
@@ -37,9 +40,14 @@ class ConnectCommand implements Command {
     @Override
     public boolean validate(String[] args) {
         if (args.length != 1) {
+            cw.println("Expected one argument: host name/URL");
             return false;
         }
-        return HOST_PATTERN.matcher(args[0]).matches();
+        boolean hostPatternMatch = HOST_PATTERN.matcher(args[0]).matches();
+        if (!hostPatternMatch) {
+            cw.println(String.format("%s is an invalid host name/URL", args[0]));
+        }
+        return hostPatternMatch;
     }
 
     @Override

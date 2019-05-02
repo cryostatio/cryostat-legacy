@@ -3,6 +3,8 @@ package es.andrewazor.containertest.commands.internal;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -14,25 +16,30 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
-import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class SearchEventsCommandTest extends TestBase {
+class SearchEventsCommandTest {
 
-    private SearchEventsCommand command;
-    @Mock private JMCConnection connection;
+    SearchEventsCommand command;
+    @Mock ClientWriter cw;
+    @Mock JMCConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        command = new SearchEventsCommand(mockClientWriter);
+        command = new SearchEventsCommand(cw);
         command.connectionChanged(connection);
     }
 
@@ -42,10 +49,19 @@ class SearchEventsCommandTest extends TestBase {
     }
 
     @Test
-    void shouldExpectOneArg() {
+    void shouldValidateCorrectArgc() {
         assertTrue(command.validate(new String[1]));
-        assertFalse(command.validate(new String[0]));
-        assertFalse(command.validate(new String[2]));
+        verifyZeroInteractions(cw);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints={
+        0,
+        2,
+    })
+    void shouldNotValidateIncorrectArgc(int c) {
+        assertFalse(command.validate(new String[c]));
+        verify(cw).println("Expected one argument: search term string");
     }
 
     @Test
@@ -55,7 +71,7 @@ class SearchEventsCommandTest extends TestBase {
 
         command.execute(new String[] { "foo" });
 
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("\tNo matches\n"));
+        verify(cw).println("\tNo matches");
     }
 
     @Test
@@ -101,7 +117,13 @@ class SearchEventsCommandTest extends TestBase {
 
         command.execute(new String[] { "foo" });
 
-        String out = stdout();
+        StringBuilder sb = new StringBuilder();
+        ArgumentCaptor<String> outCaptor = ArgumentCaptor.forClass(String.class);
+        verify(cw, Mockito.atLeastOnce()).println(outCaptor.capture());
+        for (String s : outCaptor.getAllValues()) {
+            sb.append(s).append('\n');
+        }
+        String out = sb.toString();
         MatcherAssert.assertThat(out, Matchers.allOf(
             Matchers.containsString("\tcom.example.A\toptions: []"),
             Matchers.containsString("\tcom.example.B\toptions: []"),

@@ -1,7 +1,6 @@
 package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -40,11 +39,13 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldNotExpectNoArgs() {
         assertFalse(command.validate(new String[0]));
+        verify(cw).println("Expected one argument: recording option name");
     }
 
     @Test
     void shouldNotExpectTooManyArgs() {
         assertFalse(command.validate(new String[2]));
+        verify(cw).println("Expected one argument: recording option name");
     }
 
     @ParameterizedTest
@@ -73,11 +74,13 @@ class RecordingOptionsCustomizerCommandTest {
     })
     void shouldKnownValidateKeyValueArg(String arg) {
         assertTrue(command.validate(new String[]{ arg }));
+        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldExpectUnsetArg() {
         assertTrue(command.validate(new String[]{ "-toDisk" }));
+        verifyZeroInteractions(cw);
     }
 
     @Test

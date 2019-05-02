@@ -2,6 +2,9 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -13,21 +16,23 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class HelpCommandTest extends TestBase {
+class HelpCommandTest {
 
-    private HelpCommand command;
-    @Mock private CommandRegistry registry;
+    HelpCommand command;
+    @Mock ClientWriter cw;
+    @Mock CommandRegistry registry;
 
     @BeforeEach
     void setup() {
-        command = new HelpCommand(mockClientWriter, () -> registry);
+        command = new HelpCommand(cw, () -> registry);
     }
 
     @Test
@@ -38,11 +43,13 @@ class HelpCommandTest extends TestBase {
     @Test
     void shouldExpectNoArgs() {
         assertTrue(command.validate(new String[0]));
+        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldNotExpectArgs() {
         assertFalse(command.validate(new String[1]));
+        verify(cw).println("No arguments expected");
     }
 
     @Test
@@ -60,11 +67,10 @@ class HelpCommandTest extends TestBase {
         when(registry.getAvailableCommandNames()).thenReturn(names);
         command.execute(new String[0]);
 
-        MatcherAssert.assertThat(stdout(), Matchers.allOf(
-            Matchers.containsString("Available commands:\n"),
-            Matchers.containsString("\tbar\n"),
-            Matchers.containsString("\tfoo\n")
-        ));
+        InOrder inOrder = inOrder(cw);
+        inOrder.verify(cw).println("Available commands:");
+        inOrder.verify(cw).println("\tbar");
+        inOrder.verify(cw).println("\tfoo");
     }
 
 }

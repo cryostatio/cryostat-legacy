@@ -24,17 +24,19 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class StopRecordingCommandTest extends TestBase {
+class StopRecordingCommandTest {
 
-    private StopRecordingCommand command;
-    @Mock private JMCConnection connection;
-    @Mock private IFlightRecorderService service;
+    StopRecordingCommand command;
+    @Mock ClientWriter cw;
+    @Mock JMCConnection connection;
+    @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        command = new StopRecordingCommand(mockClientWriter);
+        command = new StopRecordingCommand(cw);
         command.connectionChanged(connection);
     }
 
@@ -46,19 +48,19 @@ class StopRecordingCommandTest extends TestBase {
     @Test
     void shouldNotExpectNoArg() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument: recording name.\n"));
+        verify(cw).println("Expected one argument: recording name");
     }
 
     @Test
     void shouldNotExpectMalformedArg() {
         assertFalse(command.validate(new String[]{ "." }));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
+        verify(cw).println(". is an invalid recording name");
     }
 
     @Test
     void shouldExpectRecordingNameArg() {
         assertTrue(command.validate(new String[]{ "foo" }));
-        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -73,7 +75,7 @@ class StopRecordingCommandTest extends TestBase {
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Recording with name \"foo\" not found\n"));
+        verify(cw).println("Recording with name \"foo\" not found");
     }
 
     @Test
@@ -98,7 +100,7 @@ class StopRecordingCommandTest extends TestBase {
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
-        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
+        verifyZeroInteractions(cw);
     }
 
 }

@@ -22,10 +22,8 @@ import es.andrewazor.containertest.tui.ClientWriter;
 class RecordingOptionsCustomizerTest {
 
     RecordingOptionsCustomizer customizer;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    RecordingOptionsBuilder builder;
+    @Mock ClientWriter cw;
+    @Mock RecordingOptionsBuilder builder;
 
     @BeforeEach
     void setup() {

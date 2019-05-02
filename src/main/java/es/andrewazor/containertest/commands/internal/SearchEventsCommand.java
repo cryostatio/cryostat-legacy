@@ -30,7 +30,11 @@ class SearchEventsCommand extends AbstractConnectedCommand {
     @Override
     public boolean validate(String[] args) {
         // TODO better validation of search term string
-        return args.length == 1;
+        if (args.length != 1) {
+            cw.println("Expected one argument: search term string");
+            return false;
+        }
+        return true;
     }
 
     @Override

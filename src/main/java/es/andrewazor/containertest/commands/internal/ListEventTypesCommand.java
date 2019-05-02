@@ -26,13 +26,17 @@ class ListEventTypesCommand extends AbstractConnectedCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("Available event types");
+        cw.println("Available event types:");
         getService().getAvailableEventTypes().forEach(this::printEvent);
     }
 
     @Override
     public boolean validate(String[] args) {
-        return args.length == 0;
+        if (args.length != 0) {
+            cw.println("No arguments expected");
+            return false;
+        }
+        return true;
     }
 
     private void printEvent(IEventTypeInfo event) {

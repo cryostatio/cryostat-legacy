@@ -49,7 +49,7 @@ class StartRecordingCommand extends AbstractRecordingCommand {
     @Override
     public boolean validate(String[] args) {
         if (args.length != 2) {
-            cw.println("Expected two arguments: recording name and event types.");
+            cw.println("Expected two arguments: recording name and event types");
             return false;
         }
 

@@ -12,6 +12,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -21,23 +23,24 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.RecordingExporter;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class SnapshotCommandTest extends TestBase {
+class SnapshotCommandTest {
 
-    private SnapshotCommand command;
-    @Mock private JMCConnection connection;
-    @Mock private IFlightRecorderService service;
-    @Mock private RecordingExporter exporter;
-    @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
-    @Mock private RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    SnapshotCommand command;
+    @Mock ClientWriter cw;
+    @Mock JMCConnection connection;
+    @Mock IFlightRecorderService service;
+    @Mock RecordingExporter exporter;
+    @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new SnapshotCommand(mockClientWriter, exporter, eventOptionsBuilderFactory,
+        command = new SnapshotCommand(cw, exporter, eventOptionsBuilderFactory,
                 recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
@@ -48,9 +51,19 @@ class SnapshotCommandTest extends TestBase {
     }
 
     @Test
-    void shouldExpectNoArgs() {
+    void shouldValidateCorrectArgc() {
         assertTrue(command.validate(new String[0]));
-        assertFalse(command.validate(new String[1]));
+        verifyZeroInteractions(cw);
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints={
+        1,
+        2,
+    })
+    void shouldInvalidateIncorrectArgc(int c) {
+        assertFalse(command.validate(new String[c]));
+        verify(cw).println("No arguments expected");
     }
 
     @Test
@@ -69,11 +82,11 @@ class SnapshotCommandTest extends TestBase {
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
         verifyZeroInteractions(exporter);
-        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
+        verifyZeroInteractions(cw);
 
         command.execute(new String[0]);
 
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Latest snapshot: \"snapshot-1\"\n"));
+        verify(cw).println("Latest snapshot: \"snapshot-1\"");
         verify(service).getSnapshotRecording();
         verify(service).updateRecordingOptions(Mockito.same(snapshot), Mockito.same(builtMap));
 

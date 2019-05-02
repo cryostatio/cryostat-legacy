@@ -28,23 +28,24 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.RecordingExporter;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class StartRecordingCommandTest extends TestBase {
+class StartRecordingCommandTest {
 
-    private StartRecordingCommand command;
-    @Mock private JMCConnection connection;
-    @Mock private IFlightRecorderService service;
-    @Mock private RecordingExporter exporter;
-    @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
-    @Mock private RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    StartRecordingCommand command;
+    @Mock ClientWriter cw;
+    @Mock JMCConnection connection;
+    @Mock IFlightRecorderService service;
+    @Mock RecordingExporter exporter;
+    @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new StartRecordingCommand(mockClientWriter, exporter, eventOptionsBuilderFactory,
+        command = new StartRecordingCommand(cw, exporter, eventOptionsBuilderFactory,
                 recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
@@ -62,25 +63,25 @@ class StartRecordingCommandTest extends TestBase {
     })
     void shouldNotValidateWithIncorrectArgc(int argc) {
         assertFalse(command.validate(new String[argc]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected two arguments: recording name and event types.\n"));
+        verify(cw).println("Expected two arguments: recording name and event types");
     }
 
     @Test
     void shouldNotValidateBadRecordingName() {
         assertFalse(command.validate(new String[]{ ".", "foo.Bar:enabled=true" }));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
+        verify(cw).println(". is an invalid recording name");
     }
 
     @Test
     void shouldNotValidateBadEventString() {
         assertFalse(command.validate(new String[]{ "foo", "foo.Bar:=true" }));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("foo.Bar:=true is an invalid events pattern\n"));
+        verify(cw).println("foo.Bar:=true is an invalid events pattern");
     }
 
     @Test
     void shouldValidateArgs() {
         assertTrue(command.validate(new String[]{ "foo", "foo.Bar:enabled=true" }));
-        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -154,7 +155,7 @@ class StartRecordingCommandTest extends TestBase {
         command.execute(new String[]{ "foo", "foo.Bar:enabled=true" });
 
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Recording with name \"foo\" already exists\n"));
+        verify(cw).println("Recording with name \"foo\" already exists");
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);

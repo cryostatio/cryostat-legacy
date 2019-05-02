@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
 
 import java.util.Collections;
 
@@ -43,11 +44,13 @@ class DisconnectCommandTest {
     @Test
     void shouldExpectZeroArgs() {
         assertTrue(command.validate(new String[0]));
+        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldNotExpectArgs() {
         assertFalse(command.validate(new String[1]));
+        verify(cw).println("No arguments expected");
     }
 
     @Test

@@ -2,6 +2,8 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import org.hamcrest.MatcherAssert;
@@ -12,18 +14,19 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.NetworkResolver;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class HostnameCommandTest extends TestBase {
+class HostnameCommandTest {
 
-    private HostnameCommand command;
-    @Mock private NetworkResolver resolver;
+    HostnameCommand command;
+    @Mock ClientWriter cw;
+    @Mock NetworkResolver resolver;
 
     @BeforeEach
     void setup() {
-        command = new HostnameCommand(mockClientWriter, resolver);
+        command = new HostnameCommand(cw, resolver);
     }
 
     @Test
@@ -34,11 +37,13 @@ class HostnameCommandTest extends TestBase {
     @Test
     void shouldExpectNoArgs() {
         assertTrue(command.validate(new String[0]));
+        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldNotExpectArgs() {
         assertFalse(command.validate(new String[1]));
+        verify(cw).println("No arguments expected");
     }
 
     @Test
@@ -50,7 +55,7 @@ class HostnameCommandTest extends TestBase {
     void shouldPrintResolverHostname() throws Exception {
         when(resolver.getHostName()).thenReturn("foo-host");
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("\tfoo-host\n"));
+        verify(cw).println("\tfoo-host");
     }
 
 }

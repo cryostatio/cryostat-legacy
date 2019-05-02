@@ -26,18 +26,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.JMCConnectionToolkit;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class ConnectCommandTest {
 
-    private ConnectCommand command;
-    @Mock private ConnectionListener listener;
-    @Mock private DisconnectCommand disconnect;
-    @Mock private JMCConnectionToolkit connectionToolkit;
+    ConnectCommand command;
+    @Mock ClientWriter cw;
+    @Mock ConnectionListener listener;
+    @Mock DisconnectCommand disconnect;
+    @Mock JMCConnectionToolkit connectionToolkit;
 
     @BeforeEach
     void setup() {
-        command = new ConnectCommand(Collections.singleton(listener), disconnect, connectionToolkit);
+        command = new ConnectCommand(cw, Collections.singleton(listener), disconnect, connectionToolkit);
     }
 
     @Test
@@ -55,6 +57,7 @@ class ConnectCommandTest {
         assertFalse(command.validate(new String[0]));
         assertTrue(command.validate(new String[]{ "foo" }));
         assertFalse(command.validate(new String[2]));
+        verify(cw, Mockito.times(2)).println("Expected one argument: host name/URL");
     }
 
     @ParameterizedTest
@@ -64,6 +67,7 @@ class ConnectCommandTest {
     })
     void shouldNotValidateInvalidIdentifiers(String id) {
         assertFalse(command.validate(new String[] { id }));
+        verify(cw).println(id + " is an invalid host name/URL");
     }
 
     @ParameterizedTest

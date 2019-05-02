@@ -34,7 +34,11 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand {
 
     @Override
     public boolean validate(String[] args) {
-        return args.length == 0;
+        if (args.length != 0) {
+            cw.println("No arguments expected");
+            return false;
+        }
+        return true;
     }
 
     private void printOptions(Map.Entry<String, IOptionDescriptor<?>> entry) {

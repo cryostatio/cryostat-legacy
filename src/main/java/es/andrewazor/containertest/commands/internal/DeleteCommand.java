@@ -44,6 +44,10 @@ class DeleteCommand extends AbstractConnectedCommand {
 
     @Override
     public boolean validate(String[] args) {
-        return args.length == 1;
+        if (args.length != 1) {
+            cw.println("Expected one argument: recording name");
+            return false;
+        }
+        return true;
     }
 }

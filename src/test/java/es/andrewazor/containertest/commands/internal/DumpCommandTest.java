@@ -26,23 +26,24 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.RecordingExporter;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class DumpCommandTest extends TestBase {
+class DumpCommandTest {
 
-    private DumpCommand command;
-    @Mock private RecordingExporter exporter;
-    @Mock private JMCConnection connection;
-    @Mock private IFlightRecorderService service;
-    @Mock private EventOptionsBuilder.Factory eventOptionsBuilderFactory;
-    @Mock private RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    DumpCommand command;
+    @Mock ClientWriter cw;
+    @Mock RecordingExporter exporter;
+    @Mock JMCConnection connection;
+    @Mock IFlightRecorderService service;
+    @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
-        command = new DumpCommand(mockClientWriter, exporter, eventOptionsBuilderFactory,
+        command = new DumpCommand(cw, exporter, eventOptionsBuilderFactory,
                 recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
@@ -55,31 +56,31 @@ class DumpCommandTest extends TestBase {
     @Test
     void shouldPrintArgMessageWhenArgcInvalid() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected three arguments: recording name, recording length, and event types.\n"));
+        verify(cw).println("Expected three arguments: recording name, recording length, and event types");
     }
 
     @Test
     void shouldPrintMessageWhenRecordingNameInvalid() {
         assertFalse(command.validate(new String[]{".", "30", "foo.Bar:enabled=true"}));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
+        verify(cw).println(". is an invalid recording name");
     }
 
     @Test
     void shouldPrintMessageWhenRecordingLengthInvalid() {
         assertFalse(command.validate(new String[]{"recording", "nine", "foo.Bar:enabled=true"}));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("nine is an invalid recording length\n"));
+        verify(cw).println("nine is an invalid recording length");
     }
 
     @Test
     void shouldPrintMessageWhenEventStringInvalid() {
         assertFalse(command.validate(new String[]{"recording", "30", "foo.Bar:=true"}));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("foo.Bar:=true is an invalid events pattern\n"));
+        verify(cw).println("foo.Bar:=true is an invalid events pattern");
     }
 
     @Test
     void shouldValidateCorrectArgs() {
         assertTrue(command.validate(new String[]{"recording", "30", "foo.Bar:enabled=true"}));
-        MatcherAssert.assertThat(stdout(), Matchers.emptyString());
+        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -158,7 +159,7 @@ class DumpCommandTest extends TestBase {
         command.execute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
 
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Recording with name \"foo\" already exists\n"));
+        verify(cw).println("Recording with name \"foo\" already exists");
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);

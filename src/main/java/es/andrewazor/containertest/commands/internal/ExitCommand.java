@@ -3,12 +3,17 @@ package es.andrewazor.containertest.commands.internal;
 import javax.inject.Inject;
 
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 public class ExitCommand implements Command {
 
     public static final String NAME = "exit";
 
-    @Inject ExitCommand() { }
+    private final ClientWriter cw;
+
+    @Inject ExitCommand(ClientWriter cw) {
+        this.cw = cw;
+    }
 
     @Override
     public String getName() {
@@ -17,7 +22,11 @@ public class ExitCommand implements Command {
 
     @Override
     public boolean validate(String[] args) {
-        return args.length == 0;
+        if (args.length != 0) {
+            cw.println("No arguments expected");
+            return false;
+        }
+        return true;
     }
 
     @Override
@@ -26,7 +35,6 @@ public class ExitCommand implements Command {
     }
 
     @Override
-    public void execute(String[] args) {
-    };
+    public void execute(String[] args) { };
 
 }

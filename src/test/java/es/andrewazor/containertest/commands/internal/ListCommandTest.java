@@ -2,6 +2,7 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -14,24 +15,27 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class ListCommandTest extends TestBase {
+class ListCommandTest {
 
-    private ListCommand command;
-    @Mock private JMCConnection connection;
-    @Mock private IFlightRecorderService service;
+    ListCommand command;
+    @Mock ClientWriter cw;
+    @Mock JMCConnection connection;
+    @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        command = new ListCommand(mockClientWriter);
+        command = new ListCommand(cw);
         command.connectionChanged(connection);
     }
 
@@ -55,7 +59,9 @@ class ListCommandTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Available recordings:\n\tNone\n"));
+        InOrder inOrder = inOrder(cw);
+        inOrder.verify(cw).println("Available recordings:");
+        inOrder.verify(cw).println("\tNone");
     }
 
     @Test
@@ -67,11 +73,10 @@ class ListCommandTest extends TestBase {
         );
         when(service.getAvailableRecordings()).thenReturn(descriptors);
         command.execute(new String[0]);
-        MatcherAssert.assertThat(stdout(), Matchers.allOf(
-            Matchers.containsString("Available recordings:\n"),
-            Matchers.containsString("getName\t\tfoo\n"),
-            Matchers.containsString("getName\t\tbar\n")
-        ));
+        InOrder inOrder = inOrder(cw);
+        inOrder.verify(cw).println("Available recordings:");
+        inOrder.verify(cw).println(Mockito.contains("getName\t\tfoo"));
+        inOrder.verify(cw).println(Mockito.contains("getName\t\tbar"));
     }
 
     private static IRecordingDescriptor createDescriptor(String name) {

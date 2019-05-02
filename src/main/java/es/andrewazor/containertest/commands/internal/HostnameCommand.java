@@ -23,7 +23,11 @@ class HostnameCommand implements Command {
 
     @Override
     public boolean validate(String[] args) {
-        return args.length == 0;
+        if (args.length != 0) {
+            cw.println("No arguments expected");
+            return false;
+        }
+        return true;
     }
 
     @Override

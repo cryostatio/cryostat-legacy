@@ -51,7 +51,7 @@ class DumpCommand extends AbstractRecordingCommand {
     @Override
     public boolean validate(String[] args) {
         if (args.length != 3) {
-            cw.println("Expected three arguments: recording name, recording length, and event types.");
+            cw.println("Expected three arguments: recording name, recording length, and event types");
             return false;
         }
 

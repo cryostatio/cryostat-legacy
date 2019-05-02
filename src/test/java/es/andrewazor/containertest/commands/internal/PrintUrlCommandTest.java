@@ -53,11 +53,13 @@ class PrintUrlCommandTest {
     @Test
     void shouldExpectNoArgs() {
         assertTrue(command.validate(new String[0]));
+        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldNotExpectArgs() {
         assertFalse(command.validate(new String[1]));
+        verify(cw).println("No arguments expected");
     }
 
     @Test
