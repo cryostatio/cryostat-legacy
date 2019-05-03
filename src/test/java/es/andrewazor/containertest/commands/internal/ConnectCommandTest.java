@@ -62,12 +62,25 @@ class ConnectCommandTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-        "",
         "some.host:",
+        ":",
+        "some.host:abc"
     })
     void shouldNotValidateInvalidIdentifiers(String id) {
-        assertFalse(command.validate(new String[] { id }));
+        assertFalse(command.validate(new String[] { id }), id);
         verify(cw).println(id + " is an invalid host name/URL");
+    }
+
+    @Test
+    void shouldNotValidateNull() {
+        assertFalse(command.validate(new String[] { null }));
+        verify(cw).println("Expected one argument: host name/URL");
+    }
+
+    @Test
+    void shouldNotValidateEmptyString() {
+        assertFalse(command.validate(new String[] { " " }));
+        verify(cw).println("Expected one argument: host name/URL");
     }
 
     @ParameterizedTest

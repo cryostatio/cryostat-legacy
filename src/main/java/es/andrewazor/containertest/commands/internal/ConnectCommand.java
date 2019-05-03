@@ -1,11 +1,14 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+
+import org.apache.commons.lang3.StringUtils;
 
 import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.net.ConnectionListener;
@@ -39,7 +42,7 @@ class ConnectCommand implements Command {
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 1) {
+        if (args.length != 1 || StringUtils.isBlank(args[0])) {
             cw.println("Expected one argument: host name/URL");
             return false;
         }
