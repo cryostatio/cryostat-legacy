@@ -7,6 +7,8 @@ import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
+
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
@@ -52,6 +54,9 @@ public class CommandRegistry {
     }
 
     private boolean isCommandRegistered(String commandName) {
+        if (StringUtils.isBlank(commandName)) {
+            return false;
+        }
         boolean registered = getRegisteredCommandNames().contains(commandName);
         if (!registered) {
             cw.println(String.format("Command \"%s\" not recognized", commandName));
@@ -60,6 +65,9 @@ public class CommandRegistry {
     }
 
     public boolean isCommandAvailable(String commandName) {
+        if (StringUtils.isBlank(commandName)) {
+            return false;
+        }
         boolean available = getAvailableCommandNames().contains(commandName);
         if (!available) {
             cw.println(String.format("Command \"%s\" not available", commandName));

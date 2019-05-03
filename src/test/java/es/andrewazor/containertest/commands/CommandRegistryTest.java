@@ -119,11 +119,29 @@ public class CommandRegistryTest extends TestBase {
         @Test
         public void shouldNotValidateInvalidCommands() throws Exception {
             assertFalse(registry.validate("bar", new String[0]));
+            assertFalse(registry.validate(null, new String[0]));
+            assertFalse(registry.validate("", new String[0]));
+            assertFalse(registry.validate("  ", new String[0]));
         }
 
         @Test
         public void shouldValidateCommands() throws Exception {
             assertTrue(registry.validate("foo", new String[0]));
+        }
+
+        @Test
+        public void shouldHandleNullCommandAvailability() throws Exception {
+            assertFalse(registry.isCommandAvailable(null));
+        }
+
+        @Test
+        public void shouldHandleEmptyCommandAvailability() throws Exception {
+            assertFalse(registry.isCommandAvailable(""));
+        }
+
+        @Test
+        public void shouldHandleBlankCommandAvailability() throws Exception {
+            assertFalse(registry.isCommandAvailable("  "));
         }
     }
 
