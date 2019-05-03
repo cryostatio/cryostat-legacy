@@ -18,6 +18,7 @@ set -e
 
 docker run \
     --net jmx-test \
+    --hostname jmx-client \
     --name jmx-client \
     --memory 80M \
     --cpus 1.0 \
