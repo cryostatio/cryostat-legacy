@@ -8,6 +8,7 @@ function cleanup() {
     docker kill $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-client)
     docker rm $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-client)
     docker kill $(docker ps -a -q --filter ancestor=defreitas/dns-proxy-server)
+    docker rm $(docker ps -a -q --filter ancestor=defreitas/dns-proxy-server)
 }
 
 cleanup
