@@ -10,12 +10,12 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import es.andrewazor.containertest.ExecutionMode;
 import es.andrewazor.containertest.commands.CommandRegistry;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 import es.andrewazor.containertest.tui.CommandExecutor;
-import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
 import es.andrewazor.containertest.tui.ConnectionMode;
 
 @Module

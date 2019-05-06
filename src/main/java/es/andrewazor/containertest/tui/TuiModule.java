@@ -5,7 +5,7 @@ import javax.inject.Singleton;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
+import es.andrewazor.containertest.ExecutionMode;
 import es.andrewazor.containertest.tui.tcp.TcpModule;
 import es.andrewazor.containertest.tui.tty.TtyModule;
 import es.andrewazor.containertest.tui.ws.WsModule;

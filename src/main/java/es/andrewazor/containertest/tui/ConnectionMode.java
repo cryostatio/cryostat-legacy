@@ -6,7 +6,7 @@ import java.lang.annotation.RetentionPolicy;
 
 import javax.inject.Qualifier;
 
-import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
+import es.andrewazor.containertest.ExecutionMode;
 
 @Qualifier
 @Documented

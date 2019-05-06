@@ -15,7 +15,6 @@ import dagger.Component;
 import es.andrewazor.containertest.jmc.RegistryProvider;
 import es.andrewazor.containertest.sys.Environment;
 import es.andrewazor.containertest.tui.CommandExecutor;
-import es.andrewazor.containertest.tui.CommandExecutor.ExecutionMode;
 
 class JMXClient {
     public static void main(String[] args) throws Exception {
