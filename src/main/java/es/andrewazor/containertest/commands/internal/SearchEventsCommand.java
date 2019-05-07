@@ -1,8 +1,10 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -11,10 +13,12 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.jmc.serialization.SerializableEventTypeInfo;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class SearchEventsCommand extends AbstractConnectedCommand {
+class SearchEventsCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
 
@@ -48,6 +52,23 @@ class SearchEventsCommand extends AbstractConnectedCommand {
             cw.println("\tNo matches");
         }
         matchingEvents.forEach(this::printEvent);
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            Collection<? extends IEventTypeInfo> matchingEvents = getService().getAvailableEventTypes()
+                .stream()
+                .filter(event -> eventMatchesSearchTerm(event, args[0].toLowerCase()))
+                .collect(Collectors.toList());
+            List<SerializableEventTypeInfo> events = new ArrayList<>(matchingEvents.size());
+            for (IEventTypeInfo info : matchingEvents) {
+                events.add(new SerializableEventTypeInfo(info));
+            }
+            return new ListOutput<>(events);
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     private void printEvent(IEventTypeInfo event) {

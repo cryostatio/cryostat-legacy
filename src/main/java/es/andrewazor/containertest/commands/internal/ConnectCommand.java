@@ -1,6 +1,5 @@
 package es.andrewazor.containertest.commands.internal;
 
-import java.util.Arrays;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,14 +9,14 @@ import javax.inject.Singleton;
 
 import org.apache.commons.lang3.StringUtils;
 
-import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.commands.SerializableCommand;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.JMCConnectionToolkit;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton 
-class ConnectCommand implements Command {
+class ConnectCommand implements SerializableCommand {
 
     private static final Pattern HOST_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
@@ -70,6 +69,16 @@ class ConnectCommand implements Command {
         this.disconnect.execute(new String[0]);
         JMCConnection connection = connectionToolkit.connect(host, Integer.parseInt(port));
         connectionListeners.forEach(listener -> listener.connectionChanged(connection));
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            execute(args);
+            return new SuccessOutput();
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
 }

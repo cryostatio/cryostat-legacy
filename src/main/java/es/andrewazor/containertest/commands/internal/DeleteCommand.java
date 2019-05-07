@@ -7,11 +7,12 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
 import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class DeleteCommand extends AbstractConnectedCommand {
+class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
     private final RecordingExporter exporter;
@@ -39,6 +40,23 @@ class DeleteCommand extends AbstractConnectedCommand {
         } else {
             cw.println(String.format("No recording with name \"%s\" found", recordingName));
             return;
+        }
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            final String recordingName = args[0];
+            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);
+            if (descriptor.isPresent()) {
+                getService().close(descriptor.get());
+                exporter.removeRecording(descriptor.get());
+                return new SuccessOutput();
+            } else {
+                return new FailureOutput(String.format("No recording with name \"%s\" found", recordingName));
+            }
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
         }
     }
 

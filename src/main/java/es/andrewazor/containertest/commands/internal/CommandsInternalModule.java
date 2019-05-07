@@ -1,5 +1,8 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.Set;
+
+import javax.annotation.Nullable;
 import javax.inject.Singleton;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -8,7 +11,10 @@ import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import es.andrewazor.containertest.ExecutionMode;
 import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Module
@@ -24,6 +30,7 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindListCommand(ListCommand command);
     @Binds @IntoSet abstract Command bindListEventTypesCommand(ListEventTypesCommand command);
     @Binds @IntoSet abstract Command bindListRecordingOptionsCommand(ListRecordingOptionsCommand command);
+    @Binds @IntoSet abstract Command bindPingCommand(PingCommand command);
     @Binds @IntoSet abstract Command bindPrintUrlCommand(PrintUrlCommand command);
     @Binds @IntoSet abstract Command bindRecordingOptionsCustomizerCommand(RecordingOptionsCustomizerCommand command);
     @Binds @IntoSet abstract Command bindSearchEventsCommand(SearchEventsCommand command);
@@ -41,5 +48,19 @@ public abstract class CommandsInternalModule {
     }
     @Provides @Singleton static RecordingOptionsCustomizer provideRecordingOptionsCustomizer(ClientWriter cw) {
         return new RecordingOptionsCustomizer(cw);
+    }
+    @Provides @Nullable @Singleton static CommandRegistry provideCommandRegistry(ExecutionMode mode, ClientWriter cw, Set<Command> commands) {
+        if (mode.equals(ExecutionMode.WEBSOCKET)) {
+            return null;
+        } else {
+            return new CommandRegistryImpl(cw, commands);
+        }
+    }
+    @Provides @Nullable @Singleton static SerializableCommandRegistry provideSerializableCommandRegistry(ExecutionMode mode, Set<Command> commands) {
+        if (mode.equals(ExecutionMode.WEBSOCKET)) {
+            return new SerializableCommandRegistryImpl(commands);
+        } else {
+            return null;
+        }
     }
 }

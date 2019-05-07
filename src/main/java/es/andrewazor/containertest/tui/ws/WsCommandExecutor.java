@@ -6,7 +6,9 @@ import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
 import dagger.Lazy;
-import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 import es.andrewazor.containertest.tui.CommandExecutor;
@@ -17,9 +19,9 @@ class WsCommandExecutor implements CommandExecutor {
     private final MessagingServer server;
     private final ClientReader cr;
     private final ClientWriter cw;
-    private final Lazy<CommandRegistry> registry;
+    private final Lazy<SerializableCommandRegistry> registry;
 
-    WsCommandExecutor(MessagingServer server, ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry, Gson gson) {
+    WsCommandExecutor(MessagingServer server, ClientReader cr, ClientWriter cw, Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
         this.gson = gson;
         this.server = server;
         this.cr = cr;
@@ -40,23 +42,40 @@ class WsCommandExecutor implements CommandExecutor {
                     if (commandMessage.args == null) {
                         commandMessage.args = Collections.emptyList();
                     }
-                    if (!registry.get().validate(commandMessage.command, commandMessage.args.toArray(new String[0]))) {
-                        flush(new InvalidCommandResponseMessage());
+                    String commandName = commandMessage.command;
+                    String[] args = commandMessage.args.toArray(new String[0]);
+                    if (!registry.get().getRegisteredCommandNames().contains(commandName)) {
+                        flush(new InvalidCommandResponseMessage(commandName));
+                    }
+                    if (!registry.get().validate(commandName, args)) {
+                        flush(new InvalidCommandArgumentsResponseMessage(commandName, args));
                         continue;
                     }
-                    if (!registry.get().isCommandAvailable(commandMessage.command)) {
-                        flush(new CommandUnavailableMessage());
+                    if (!registry.get().isCommandAvailable(commandName)) {
+                        flush(new CommandUnavailableMessage(commandName));
                         continue;
                     }
-                    server.getConnection().clearBuffer();
-                    try {
-                        registry.get().execute(commandMessage.command, commandMessage.args.toArray(new String[0]));
-                        flush(new SuccessResponseMessage());
-                    } catch (Exception e) {
-                        reportException(e);
+                    SerializableCommand.Output out = registry.get().execute(commandName, args);
+                    if (out.success()) {
+                        if (out instanceof SerializableCommand.SuccessOutput) {
+                            flush(new SuccessResponseMessage<Void>(commandName, null));
+                        } else if (out instanceof SerializableCommand.FailureOutput) {
+                            flush(new FailureResponseMessage(commandName, ((SerializableCommand.FailureOutput) out).getMessage()));
+                        } else if (out instanceof SerializableCommand.StringOutput) {
+                            flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.StringOutput) out).getMessage()));
+                        } else if (out instanceof SerializableCommand.ListOutput) {
+                            flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.ListOutput<?>) out).getData()));
+                        } else if (out instanceof SerializableCommand.MapOutput) {
+                            flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.MapOutput<?, ?>) out).getData()));
+                        } else {
+                            flush(new CommandExceptionResponseMessage(commandName, "internal error"));
+                        }
+                    } else {
+                        SerializableCommand.ExceptionOutput exOut = (ExceptionOutput) out;
+                        flush(new CommandExceptionResponseMessage(commandName, exOut.getExceptionMessage()));
                     }
                 } catch (JsonSyntaxException jse) {
-                    reportException(jse);
+                    reportException(null, jse);
                 }
             }
         } catch (Exception e) {
@@ -64,13 +83,13 @@ class WsCommandExecutor implements CommandExecutor {
         }
     }
 
-    private void reportException(Exception e) {
+    private void reportException(String commandName, Exception e) {
         e.printStackTrace();
         cw.println(e.getMessage());
-        flush(new CommandExceptionResponseMessage());
+        flush(new CommandExceptionResponseMessage(commandName, e));
     }
 
-    private void flush(ResponseMessage message) {
+    private void flush(ResponseMessage<?> message) {
         server.getConnection().flush(message);
     }
 

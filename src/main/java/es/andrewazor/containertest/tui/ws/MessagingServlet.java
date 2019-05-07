@@ -1,5 +1,7 @@
 package es.andrewazor.containertest.tui.ws;
 
+import java.util.concurrent.TimeUnit;
+
 import com.google.gson.Gson;
 
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
@@ -18,7 +20,7 @@ class MessagingServlet extends WebSocketServlet {
 
     @Override
     public void configure(WebSocketServletFactory factory) {
-        factory.getPolicy().setIdleTimeout(120_000);
+        factory.getPolicy().setIdleTimeout(TimeUnit.MINUTES.toMillis(30));
         factory.setCreator((a, b) -> new WsClientReaderWriter(server, gson));
     }
 }

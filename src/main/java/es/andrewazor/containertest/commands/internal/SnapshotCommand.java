@@ -6,12 +6,13 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
 import es.andrewazor.containertest.jmc.CopyRecordingDescriptor;
 import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class SnapshotCommand extends AbstractRecordingCommand {
+class SnapshotCommand extends AbstractRecordingCommand implements SerializableCommand {
 
     private final RecordingExporter exporter;
 
@@ -39,6 +40,25 @@ class SnapshotCommand extends AbstractRecordingCommand {
 
         getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
         exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            IRecordingDescriptor descriptor = getService().getSnapshotRecording();
+
+            String rename = String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
+
+            RecordingOptionsBuilder recordingOptionsBuilder = recordingOptionsBuilderFactory.create(getService());
+                recordingOptionsBuilder.name(rename);
+
+            getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
+            exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
+
+            return new StringOutput(rename);
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     @Override

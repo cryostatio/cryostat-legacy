@@ -1,17 +1,21 @@
 package es.andrewazor.containertest.commands.internal;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.jmc.serialization.SerializableRecordingDescriptor;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class ListCommand extends AbstractConnectedCommand {
+class ListCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
 
@@ -36,6 +40,20 @@ class ListCommand extends AbstractConnectedCommand {
         }
         for (IRecordingDescriptor recording : recordings) {
             cw.println(toString(recording));
+        }
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            List<IRecordingDescriptor> origDescriptors = getService().getAvailableRecordings();
+            List<SerializableRecordingDescriptor> descriptors = new ArrayList<>(origDescriptors.size());
+            for (IRecordingDescriptor desc : origDescriptors) {
+                descriptors.add(new SerializableRecordingDescriptor(desc));
+            }
+            return new ListOutput<>(descriptors);
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
         }
     }
 

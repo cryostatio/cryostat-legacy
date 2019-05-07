@@ -20,7 +20,6 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
     private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private volatile Thread readingThread;
-    private StringBuilder sb;
 
     WsClientReaderWriter(MessagingServer server, Gson gson) {
         this.server = server;
@@ -31,7 +30,6 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
     @Override
     public void onWebSocketConnect(Session session) {
         super.onWebSocketConnect(session);
-        clearBuffer();
         semaphore.release();
     }
 
@@ -53,30 +51,17 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
             getSession().close();
         }
         super.onWebSocketClose(0, null);
-        sb = null;
         if (readingThread != null) {
             readingThread.interrupt();
         }
     }
 
     @Override
-    public void print(String s) {
-        if (sb != null) {
-            sb.append(s);
-        }
-    }
+    public void print(String s) { }
 
-    void clearBuffer() {
-        sb = new StringBuilder();
-    }
-
-    void flush(ResponseMessage message) {
+    void flush(ResponseMessage<?> message) {
         try {
             semaphore.acquireUninterruptibly();
-            if (message.message == null || message.message.isEmpty()) {
-                message.message = sb.toString().trim();
-            }
-            clearBuffer();
             try {
                 getRemote().sendString(gson.toJson(message));
                 getRemote().flush();

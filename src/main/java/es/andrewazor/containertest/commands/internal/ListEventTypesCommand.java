@@ -1,14 +1,20 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.jmc.serialization.SerializableEventTypeInfo;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class ListEventTypesCommand extends AbstractConnectedCommand {
+class ListEventTypesCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
 
@@ -28,6 +34,20 @@ class ListEventTypesCommand extends AbstractConnectedCommand {
     public void execute(String[] args) throws Exception {
         cw.println("Available event types:");
         getService().getAvailableEventTypes().forEach(this::printEvent);
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            Collection<? extends IEventTypeInfo> origInfos = getService().getAvailableEventTypes();
+            List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
+            for (IEventTypeInfo info : origInfos) {
+                infos.add(new SerializableEventTypeInfo(info));
+            }
+            return new ListOutput<>(infos);
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     @Override

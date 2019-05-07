@@ -6,11 +6,12 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
 import es.andrewazor.containertest.commands.internal.RecordingOptionsCustomizer.OptionKey;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
+class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private static final Pattern OPTIONS_PATTERN = Pattern.compile("^([\\w]+)=([\\w\\.-_]+)$", Pattern.MULTILINE);
     private static final Pattern UNSET_PATTERN = Pattern.compile("^-([\\w]+)$", Pattern.MULTILINE);
@@ -43,6 +44,16 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand {
         Matcher unsetMatcher = UNSET_PATTERN.matcher(options);
         unsetMatcher.find();
         OptionKey.fromOptionName(unsetMatcher.group(1)).ifPresent(customizer::unset);
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            execute(args);
+            return new SuccessOutput();
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     @Override

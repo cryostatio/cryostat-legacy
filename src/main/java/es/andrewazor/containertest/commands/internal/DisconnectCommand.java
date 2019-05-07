@@ -6,11 +6,12 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import dagger.Lazy;
+import es.andrewazor.containertest.commands.SerializableCommand;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class DisconnectCommand extends AbstractConnectedCommand {
+class DisconnectCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final Lazy<Set<ConnectionListener>> connectionListeners;
     private final ClientWriter cw;
@@ -38,6 +39,17 @@ class DisconnectCommand extends AbstractConnectedCommand {
     public void execute(String[] args) throws Exception {
         disconnectPreviousConnection();
         connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            disconnectPreviousConnection();
+            connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
+            return new SuccessOutput();
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     private void disconnectPreviousConnection() {

@@ -7,10 +7,11 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class StopRecordingCommand extends AbstractConnectedCommand {
+class StopRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
 
@@ -36,6 +37,23 @@ class StopRecordingCommand extends AbstractConnectedCommand {
         } else {
             cw.println(String.format("Recording with name \"%s\" not found", name));
             return;
+        }
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            String name = args[0];
+
+            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
+            if (descriptor.isPresent()) {
+                getService().stop(descriptor.get());
+                return new SuccessOutput();
+            } else {
+                return new FailureOutput(String.format("Recording with name \"%s\" not found", name));
+            }
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
         }
     }
 

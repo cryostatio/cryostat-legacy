@@ -1,7 +1,13 @@
 package es.andrewazor.containertest.tui.ws;
 
-class CommandExceptionResponseMessage extends ResponseMessage {
-    CommandExceptionResponseMessage() {
-        this.status = -2;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
+class CommandExceptionResponseMessage extends ResponseMessage<String> {
+    CommandExceptionResponseMessage(String commandName, Exception e) {
+        this(commandName, ExceptionUtils.getMessage(e));
+    }
+
+    CommandExceptionResponseMessage(String commandName, String message) {
+        super(commandName, -2, message);
     }
 }

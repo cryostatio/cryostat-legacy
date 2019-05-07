@@ -5,11 +5,12 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
+import es.andrewazor.containertest.commands.SerializableCommand;
 import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class DumpCommand extends AbstractRecordingCommand {
+class DumpCommand extends AbstractRecordingCommand implements SerializableCommand {
 
     private final RecordingExporter exporter;
 
@@ -46,6 +47,28 @@ class DumpCommand extends AbstractRecordingCommand {
             .duration(1000 * seconds)
             .build();
         this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
+    }
+
+    @Override
+    public Output serializableExecute(String[] args) {
+        try {
+            String name = args[0];
+            int seconds = Integer.parseInt(args[1]);
+            String events = args[2];
+
+            if (getDescriptorByName(name).isPresent()) {
+                return new FailureOutput(String.format("Recording with name \"%s\" already exists", name));
+            }
+
+            IConstrainedMap<String> recordingOptions = recordingOptionsBuilderFactory.create(getService())
+                .name(name)
+                .duration(1000 * seconds)
+                .build();
+            this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
+            return new SuccessOutput();
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     @Override

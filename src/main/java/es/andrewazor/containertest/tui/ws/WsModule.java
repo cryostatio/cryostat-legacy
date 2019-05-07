@@ -10,7 +10,7 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import es.andrewazor.containertest.ExecutionMode;
-import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
 import es.andrewazor.containertest.tui.CommandExecutor;
@@ -22,7 +22,7 @@ public class WsModule {
     @Singleton
     @ConnectionMode(ExecutionMode.WEBSOCKET)
     static CommandExecutor provideCommandExecutor(MessagingServer server, ClientReader cr, ClientWriter cw,
-            Lazy<CommandRegistry> commandRegistry, Gson gson) {
+            Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
         return new WsCommandExecutor(server, cr, cw, commandRegistry, gson);
     }
 
@@ -50,13 +50,5 @@ public class WsModule {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @Provides
-    @Singleton
-    static Gson provideGson() {
-        return new GsonBuilder()
-            .serializeNulls()
-            .create();
     }
 }

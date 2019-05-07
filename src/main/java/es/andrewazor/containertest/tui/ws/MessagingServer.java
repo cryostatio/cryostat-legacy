@@ -80,12 +80,8 @@ class MessagingServer {
         return new ClientWriter() {
             @Override
             public void print(String s) {
-                try {
-                    semaphore.acquireUninterruptibly();
-                    connection.print(s);
-                } finally {
-                    semaphore.release();
-                }
+                // TODO change to proper logging facility
+                System.out.println(s);
             }
         };
     }

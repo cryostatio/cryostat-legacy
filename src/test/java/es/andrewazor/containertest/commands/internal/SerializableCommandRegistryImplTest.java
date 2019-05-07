@@ -1,10 +1,11 @@
-package es.andrewazor.containertest.commands;
+package es.andrewazor.containertest.commands.internal;
 
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -19,20 +20,21 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import es.andrewazor.containertest.TestBase;
-import es.andrewazor.containertest.commands.CommandRegistry.CommandDefinitionException;
+import es.andrewazor.containertest.commands.Command;
+import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.commands.internal.CommandRegistryImpl.CommandDefinitionException;
 
 @ExtendWith(MockitoExtension.class)
-public class CommandRegistryTest extends TestBase {
+public class SerializableCommandRegistryImplTest {
 
-    CommandRegistry registry;
+    SerializableCommandRegistryImpl registry;
 
     @Nested
     class WithEmptySetCommands {
 
         @BeforeEach
         public void setup() {
-            registry = new CommandRegistry(mockClientWriter, Collections.emptySet());
+            registry = new SerializableCommandRegistryImpl(Collections.emptySet());
         }
 
         @Test
@@ -49,14 +51,12 @@ public class CommandRegistryTest extends TestBase {
 
         @Test
         public void shouldNoOpOnExecute() throws Exception {
-            registry.execute("foo", new String[] {});
-            assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
+            assertDoesNotThrow(() -> registry.execute("foo", new String[] {}));
         }
 
         @Test
         public void shouldNotValidateCommands() throws Exception {
             assertFalse(registry.validate("foo", new String[0]));
-            assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
         }
     }
 
@@ -66,11 +66,11 @@ public class CommandRegistryTest extends TestBase {
         FooCommand fooCommand = new FooCommand();
         BarCommand barCommand = new BarCommand();
 
-        Command[] commands = new Command[] { fooCommand, barCommand };
+        SerializableCommand[] commands = new SerializableCommand[] { fooCommand, barCommand };
 
         @BeforeEach
         public void setup() {
-            registry = new CommandRegistry(mockClientWriter, new HashSet<Command>(Arrays.asList(commands)));
+            registry = new SerializableCommandRegistryImpl(new HashSet<Command>(Arrays.asList(commands)));
         }
 
         @Test
@@ -97,7 +97,6 @@ public class CommandRegistryTest extends TestBase {
             assertThat("command should not have been executed", barCommand.value, nullValue());
             registry.execute("bar", new String[] { "arg" });
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            assertThat(stdout(), equalTo("Command \"bar\" not available\n"));
         }
 
         @Test
@@ -107,13 +106,11 @@ public class CommandRegistryTest extends TestBase {
             registry.execute("baz", new String[] { "arg" });
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
         }
 
         @Test
         public void shouldNotValidateUnknownCommands() throws Exception {
             assertFalse(registry.validate("baz", new String[0]));
-            assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
         }
 
         @Test
@@ -150,21 +147,21 @@ public class CommandRegistryTest extends TestBase {
         @Test
         public void shouldThrowCommandDefinitionException() {
             CommandDefinitionException thrown = assertThrows(CommandDefinitionException.class,
-                    () -> new CommandRegistry(mockClientWriter,
+                    () -> new SerializableCommandRegistryImpl(
                             new HashSet<Command>(Arrays.asList(new FooCommand(), new DuplicateFooCommand()))),
                     "should throw CommandDefinitionException for duplicate definitions");
             assertThat(thrown.getMessage(),
                 allOf(
                     containsString("\"foo\" command definitions provided by class"),
-                    containsString("es.andrewazor.containertest.commands.CommandRegistryTest.DuplicateFooCommand"),
+                    containsString(DuplicateFooCommand.class.getCanonicalName()),
                     containsString("AND class"),
-                    containsString("es.andrewazor.containertest.commands.CommandRegistryTest.FooCommand")
+                    containsString(FooCommand.class.getCanonicalName())
                 )
             );
         }
     }
 
-    static class FooCommand implements Command {
+    static class FooCommand implements SerializableCommand {
         String value = null;
 
         @Override
@@ -186,9 +183,15 @@ public class CommandRegistryTest extends TestBase {
         public void execute(String[] args) {
             this.value = args[0];
         }
+
+        @Override
+        public Output serializableExecute(String[] args) {
+            this.value = args[0];
+            return null;
+        }
     }
 
-    static class BarCommand implements Command {
+    static class BarCommand implements SerializableCommand {
         String value = null;
 
         @Override
@@ -209,6 +212,12 @@ public class CommandRegistryTest extends TestBase {
         @Override
         public void execute(String[] args) {
             this.value = args[0];
+        }
+
+        @Override
+        public Output serializableExecute(String[] args) {
+            this.value = args[0];
+            return null;
         }
     }
 
