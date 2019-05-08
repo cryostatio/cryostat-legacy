@@ -27,6 +27,7 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindHelpCommand(HelpCommand command);
     @Binds @IntoSet abstract Command bindHostnameCommand(HostnameCommand command);
     @Binds @IntoSet abstract Command bindIpCommand(IpCommand command);
+    @Binds @IntoSet abstract Command bindIsConnectedCommand(IsConnectedCommand command);
     @Binds @IntoSet abstract Command bindListCommand(ListCommand command);
     @Binds @IntoSet abstract Command bindListEventTypesCommand(ListEventTypesCommand command);
     @Binds @IntoSet abstract Command bindListRecordingOptionsCommand(ListRecordingOptionsCommand command);
