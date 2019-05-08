@@ -79,9 +79,12 @@ class MessagingServer {
     ClientWriter getClientWriter() {
         return new ClientWriter() {
             @Override
-            public void print(String s) {
+            public void print(String s) { }
+
+            @Override
+            public void println(Exception e) {
                 // TODO change to proper logging facility
-                System.out.println(s);
+                e.printStackTrace();
             }
         };
     }
