@@ -20,7 +20,7 @@ class MessagingServlet extends WebSocketServlet {
 
     @Override
     public void configure(WebSocketServletFactory factory) {
-        factory.getPolicy().setIdleTimeout(TimeUnit.MINUTES.toMillis(30));
+        factory.getPolicy().setIdleTimeout(TimeUnit.MINUTES.toMillis(1));
         factory.setCreator((a, b) -> new WsClientReaderWriter(server, gson));
     }
 }
