@@ -75,7 +75,7 @@ class ConnectCommand implements SerializableCommand {
     public Output serializableExecute(String[] args) {
         try {
             execute(args);
-            return new SuccessOutput();
+            return new StringOutput(args[0]);
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
