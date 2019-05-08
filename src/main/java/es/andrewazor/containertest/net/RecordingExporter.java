@@ -7,6 +7,8 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -19,6 +21,8 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class RecordingExporter implements ConnectionListener {
 
+    // TODO extract the name pattern (here and AbstractConnectedCommand) to shared utility
+    private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^([\\w-_]+)(?:\\.jfr)?$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
     static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
 
@@ -116,7 +120,12 @@ public class RecordingExporter implements ConnectionListener {
 
         @Override
         public Response serve(IHTTPSession session) {
-            String recordingName = session.getUri().substring(1);
+            String requestedName = session.getUri().substring(1);
+            Matcher matcher = RECORDING_NAME_PATTERN.matcher(requestedName);
+            if (!matcher.find()) {
+                return newNotFoundResponse(requestedName);
+            }
+            String recordingName = matcher.group(1);
             if (!recordings.containsKey(recordingName)) {
                 return newNotFoundResponse(recordingName);
             }
