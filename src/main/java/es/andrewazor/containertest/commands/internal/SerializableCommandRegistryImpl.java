@@ -10,6 +10,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import es.andrewazor.containertest.commands.Command;
 import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.FailureOutput;
 import es.andrewazor.containertest.commands.SerializableCommand.Output;
 import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.commands.internal.CommandRegistryImpl.CommandDefinitionException;
@@ -48,10 +50,17 @@ class SerializableCommandRegistryImpl implements SerializableCommandRegistry {
 
     @Override
     public Output execute(String commandName, String[] args) {
-        if (!isCommandRegistered(commandName) || !isCommandAvailable(commandName)) {
-            return () -> false;
+        if (!isCommandRegistered(commandName)) {
+            return new FailureOutput(String.format("Command \"%s\" not recognized", commandName));
         }
-        return commandMap.get(commandName).serializableExecute(args);
+        if(!isCommandAvailable(commandName)) {
+            return new FailureOutput(String.format("Command \"%s\" unavailable", commandName));
+        }
+        try {
+            return commandMap.get(commandName).serializableExecute(args);
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     @Override
