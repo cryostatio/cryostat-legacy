@@ -21,6 +21,8 @@ class WsCommandExecutor implements CommandExecutor {
     private final ClientReader cr;
     private final ClientWriter cw;
     private final Lazy<SerializableCommandRegistry> registry;
+    private volatile Thread readingThread;
+    private volatile boolean running = true;
 
     WsCommandExecutor(MessagingServer server, ClientReader cr, ClientWriter cw, Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
         this.gson = gson;
@@ -31,9 +33,10 @@ class WsCommandExecutor implements CommandExecutor {
     }
 
     @Override
-    public void run(String unused) {
+    public synchronized void run(String unused) {
+        readingThread = Thread.currentThread();
         try (cr) {
-            while (true) {
+            while (running) {
                 try {
                     String rawMsg = cr.readLine();
                     if (rawMsg == null) {
@@ -81,6 +84,14 @@ class WsCommandExecutor implements CommandExecutor {
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    void shutdown() {
+        this.running = false;
+        if (readingThread != Thread.currentThread()) {
+            readingThread.interrupt();
+            readingThread = null;
         }
     }
 
