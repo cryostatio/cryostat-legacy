@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
@@ -21,6 +22,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.commands.SerializableCommand.ListOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
 import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -73,6 +76,19 @@ class HelpCommandTest {
         inOrder.verify(cw).println("Available commands:");
         inOrder.verify(cw).println("\tbar");
         inOrder.verify(cw).println("\tfoo");
+    }
+
+    @Test
+    void shouldReturnListOutput() throws Exception {
+        List<String> names = Arrays.asList(
+            "bar",
+            "foo"
+        );
+
+        when(serializableRegistry.getAvailableCommandNames()).thenReturn(new HashSet<>(names));
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
+        MatcherAssert.assertThat(((ListOutput<String>) out).getData(), Matchers.equalTo(names));
     }
 
 }

@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
+import java.net.UnknownHostException;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -18,6 +19,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.commands.SerializableCommand.StringOutput;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
@@ -72,6 +76,26 @@ class PrintUrlCommandTest {
         verify(cw).println("mock-url");
         verifyNoMoreInteractions(cw);
         verifyNoMoreInteractions(exporter);
+    }
+
+    @Test
+    void shouldReturnStringOutput() throws Exception {
+        verifyZeroInteractions(exporter);
+        URL url = mock(URL.class);
+        when(url.toString()).thenReturn("mock-url");
+        when(exporter.getHostUrl()).thenReturn(url);
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(StringOutput.class));
+        MatcherAssert.assertThat(((StringOutput) out).getMessage(), Matchers.equalTo("mock-url"));
+        verifyNoMoreInteractions(exporter);
+    }
+
+    @Test
+    void shouldReturnExceptionOutput() throws Exception {
+        when(exporter.getHostUrl()).thenThrow(UnknownHostException.class);
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
+        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("UnknownHostException: "));
     }
 
 }

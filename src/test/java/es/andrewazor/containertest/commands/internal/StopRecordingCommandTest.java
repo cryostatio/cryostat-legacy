@@ -2,6 +2,7 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -18,11 +19,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import es.andrewazor.containertest.TestBase;
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.FailureOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.commands.SerializableCommand.SuccessOutput;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -101,6 +107,67 @@ class StopRecordingCommandTest {
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
         verifyZeroInteractions(cw);
+    }
+
+    @Test
+    void shouldReturnSuccessOutput() throws Exception {
+        verifyZeroInteractions(service);
+        verifyZeroInteractions(connection);
+
+        IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
+        when(fooDescriptor.getName()).thenReturn("foo");
+        IRecordingDescriptor barDescriptor = mock(IRecordingDescriptor.class);
+        when(barDescriptor.getName()).thenReturn("bar");
+
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableRecordings()).thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
+
+        Output out = command.serializableExecute(new String[]{ "foo" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
+
+        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor = ArgumentCaptor.forClass(IRecordingDescriptor.class);
+        verify(service).stop(descriptorCaptor.capture());
+        IRecordingDescriptor captured = descriptorCaptor.getValue();
+        MatcherAssert.assertThat(captured, Matchers.sameInstance(fooDescriptor));
+
+        verifyNoMoreInteractions(service);
+        verifyNoMoreInteractions(connection);
+    }
+
+    @Test
+    void shouldReturnFailureOutput() throws Exception {
+        verifyZeroInteractions(service);
+        verifyZeroInteractions(connection);
+
+        IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
+        when(fooDescriptor.getName()).thenReturn("foo");
+
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
+
+        Output out = command.serializableExecute(new String[]{ "bar" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
+        MatcherAssert.assertThat(((FailureOutput) out).getMessage(), Matchers.equalTo("Recording with name \"bar\" not found"));
+
+        verifyNoMoreInteractions(service);
+        verifyNoMoreInteractions(connection);
+    }
+
+    @Test
+    void shouldReturnExceptionOutput() throws Exception {
+        verifyZeroInteractions(service);
+        verifyZeroInteractions(connection);
+
+        IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
+        when(fooDescriptor.getName()).thenReturn("foo");
+
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
+        doThrow(FlightRecorderException.class).when(service).stop(Mockito.any());
+
+        Output out = command.serializableExecute(new String[]{ "foo" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
+        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("FlightRecorderException: "));
     }
 
 }

@@ -18,6 +18,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.commands.SerializableCommand.SuccessOutput;
 import es.andrewazor.containertest.net.ConnectionListener;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.tui.ClientWriter;
@@ -87,6 +89,12 @@ class DisconnectCommandTest {
         verify(cw).println("No active connection");
         verifyNoMoreInteractions(listener);
         verifyNoMoreInteractions(connection);
+    }
+
+    @Test
+    void shouldReturnSuccessOutput() throws Exception {
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
     }
 
 }

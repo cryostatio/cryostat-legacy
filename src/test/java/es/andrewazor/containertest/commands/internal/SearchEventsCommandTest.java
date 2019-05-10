@@ -26,6 +26,10 @@ import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.ListOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.jmc.serialization.SerializableEventTypeInfo;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -72,6 +76,16 @@ class SearchEventsCommandTest {
         command.execute(new String[] { "foo" });
 
         verify(cw).println("\tNo matches");
+    }
+
+    @Test
+    void shouldHandleNoSerializableMatches() throws Exception {
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
+
+        Output out = command.serializableExecute(new String[] { "foo" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
+        MatcherAssert.assertThat(((ListOutput<String>) out).getData(), Matchers.equalTo(Collections.emptyList()));
     }
 
     @Test
@@ -136,6 +150,69 @@ class SearchEventsCommandTest {
                 Matchers.containsString("com.example.E")
             )
         ));
+    }
+
+    @Test
+    void shouldHandleSerializableMatches() throws Exception {
+        IEventTypeInfo infoA = mock(IEventTypeInfo.class);
+        IEventTypeID eventIdA = mock(IEventTypeID.class);
+        when(eventIdA.getFullKey()).thenReturn("com.example.A");
+        when(infoA.getEventTypeID()).thenReturn(eventIdA);
+        when(infoA.getHierarchicalCategory()).thenReturn(new String[0]);
+        when(infoA.getDescription()).thenReturn("Does some fooing");
+
+        IEventTypeInfo infoB = mock(IEventTypeInfo.class);
+        IEventTypeID eventIdB = mock(IEventTypeID.class);
+        when(eventIdB.getFullKey()).thenReturn("com.example.B");
+        when(infoB.getEventTypeID()).thenReturn(eventIdB);
+        when(infoB.getHierarchicalCategory()).thenReturn(new String[0]);
+        when(infoB.getName()).thenReturn("FooProperty");
+
+        IEventTypeInfo infoC = mock(IEventTypeInfo.class);
+        IEventTypeID eventIdC = mock(IEventTypeID.class);
+        when(eventIdC.getFullKey()).thenReturn("com.example.C");
+        when(infoC.getEventTypeID()).thenReturn(eventIdC);
+        when(infoC.getHierarchicalCategory()).thenReturn(new String[]{ "com", "example", "Foo"});
+
+        IEventTypeInfo infoD = mock(IEventTypeInfo.class);
+        IEventTypeID eventIdD = mock(IEventTypeID.class);
+        when(eventIdD.getFullKey()).thenReturn("com.example.Foo");
+        when(infoD.getEventTypeID()).thenReturn(eventIdD);
+        when(infoD.getHierarchicalCategory()).thenReturn(new String[0]);
+
+        IEventTypeInfo infoE = mock(IEventTypeInfo.class);
+        IEventTypeID eventIdE = mock(IEventTypeID.class);
+        when(eventIdE.getFullKey()).thenReturn("com.example.E");
+        when(infoE.getEventTypeID()).thenReturn(eventIdE);
+        when(infoE.getHierarchicalCategory()).thenReturn(new String[0]);
+        when(infoE.getName()).thenReturn("bar");
+        when(infoE.getDescription()).thenReturn("Does some baring");
+
+        List<IEventTypeInfo> events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
+
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableEventTypes()).thenReturn((List) events);
+
+        Output out = command.serializableExecute(new String[] { "foo" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
+        MatcherAssert.assertThat(((ListOutput<SerializableEventTypeInfo>) out).getData(),
+            Matchers.equalTo(Arrays.asList(
+                new SerializableEventTypeInfo(infoA),
+                new SerializableEventTypeInfo(infoB),
+                new SerializableEventTypeInfo(infoC),
+                new SerializableEventTypeInfo(infoD)
+            ))
+        );
+    }
+
+    @Test
+    void shouldHandleSerializableException() throws Exception {
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableEventTypes()).thenThrow(NullPointerException.class);
+
+        Output out = command.serializableExecute(new String[] { "foo" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
+        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("NullPointerException: "));
     }
 
 }

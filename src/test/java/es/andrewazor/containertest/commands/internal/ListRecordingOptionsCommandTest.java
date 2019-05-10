@@ -8,7 +8,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.util.HashMap;
 import java.util.Map;
 
 import org.hamcrest.MatcherAssert;
@@ -20,8 +19,13 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.MapOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.jmc.serialization.SerializableOptionDescriptor;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -56,13 +60,11 @@ class ListRecordingOptionsCommandTest {
         verify(cw).println("No arguments expected");
     }
 
-    @SuppressWarnings("unchecked")
     @Test
     void shouldPrintRecordingOptions() throws Exception {
-        Map options = new HashMap();
-        IOptionDescriptor descriptor = mock(IOptionDescriptor.class);
+        IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
         when(descriptor.toString()).thenReturn("foo-option-toString");
-        options.put("foo-option", descriptor);
+        Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
 
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenReturn(options);
@@ -71,6 +73,34 @@ class ListRecordingOptionsCommandTest {
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recording options:");
         inOrder.verify(cw).println("\tfoo-option : foo-option-toString");
+    }
+
+    @Test
+    void shouldReturnMapOutput() throws Exception {
+        IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
+        when(descriptor.getName()).thenReturn("foo");
+        when(descriptor.getDescription()).thenReturn("Foo Option");
+        when(descriptor.getDefault()).thenReturn("bar");
+        Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
+
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableRecordingOptions()).thenReturn(options);
+
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(MapOutput.class));
+        MatcherAssert.assertThat(((MapOutput<String, SerializableOptionDescriptor>) out).getData(),
+                Matchers.equalTo(Map.of("foo-option", new SerializableOptionDescriptor(descriptor))));
+    }
+
+    @Test
+    void shouldReturnExceptionOutput() throws Exception {
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableRecordingOptions()).thenThrow(FlightRecorderException.class);
+
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
+        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(),
+                Matchers.equalTo("FlightRecorderException: "));
     }
 
 }

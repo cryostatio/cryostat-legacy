@@ -2,6 +2,7 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -14,8 +15,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.commands.SerializableCommand.SuccessOutput;
 import es.andrewazor.containertest.commands.internal.RecordingOptionsCustomizer.OptionKey;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -135,6 +140,27 @@ class RecordingOptionsCustomizerCommandTest {
         verify(customizer).unset(OptionKey.TO_DISK);
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
+    }
+
+    @Test
+    void shouldReturnSuccessOutput() throws Exception {
+        verifyZeroInteractions(customizer);
+        Output out = command.serializableExecute(new String[]{ "toDisk=true" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
+        verify(customizer).set(OptionKey.TO_DISK, "true");
+        verifyNoMoreInteractions(customizer);
+        verifyZeroInteractions(cw);
+    }
+
+    @Test
+    void shouldReturnExceptionOutput() throws Exception {
+        verifyZeroInteractions(customizer);
+        doThrow(NullPointerException.class).when(customizer).set(Mockito.any(), Mockito.any());
+        Output out = command.serializableExecute(new String[]{ "toDisk=true" });
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
+        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("NullPointerException: "));
+        verify(customizer).set(OptionKey.TO_DISK, "true");
+        verifyNoMoreInteractions(customizer);
     }
 
 }

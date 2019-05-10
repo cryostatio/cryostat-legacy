@@ -43,13 +43,9 @@ class DisconnectCommand extends AbstractConnectedCommand implements Serializable
 
     @Override
     public Output serializableExecute(String[] args) {
-        try {
-            disconnectPreviousConnection();
-            connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
-            return new SuccessOutput();
-        } catch (Exception e) {
-            return new ExceptionOutput(e);
-        }
+        disconnectPreviousConnection();
+        connectionListeners.get().forEach(listener -> listener.connectionChanged(null));
+        return new SuccessOutput();
     }
 
     private void disconnectPreviousConnection() {

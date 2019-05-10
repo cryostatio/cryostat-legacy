@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -19,9 +20,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.ListOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.jmc.serialization.SerializableEventTypeInfo;
 import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -72,6 +78,35 @@ class ListEventTypesCommandTest {
         inOrder.verify(cw).println("Available event types:");
         inOrder.verify(cw).println("\tmocked toString: foo");
         inOrder.verify(cw).println("\tmocked toString: bar");
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    void shouldReturnListOutput() throws Exception {
+        IEventTypeInfo eventInfo = mock(IEventTypeInfo.class);
+        when(eventInfo.getName()).thenReturn("foo");
+        when(eventInfo.getDescription()).thenReturn("Foo description");
+        when(eventInfo.getHierarchicalCategory()).thenReturn(new String[] { "com", "example" });
+        when(eventInfo.getOptionDescriptors()).thenReturn(Collections.emptyMap());
+
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableEventTypes()).thenReturn((Collection) Collections.singleton(eventInfo));
+
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
+        MatcherAssert.assertThat(((ListOutput<SerializableEventTypeInfo>) out).getData(),
+                Matchers.equalTo(Collections.singletonList(new SerializableEventTypeInfo(eventInfo))));
+    }
+
+    @Test
+    void shouldReturnExceptionOutput() throws Exception {
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableEventTypes()).thenThrow(FlightRecorderException.class);
+
+        Output out = command.serializableExecute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
+        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(),
+                Matchers.equalTo("FlightRecorderException: "));
     }
 
     private static IEventTypeInfo createEvent(String name) {
