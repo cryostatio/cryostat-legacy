@@ -21,6 +21,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import es.andrewazor.containertest.commands.CommandRegistry;
+import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,10 +30,11 @@ class HelpCommandTest {
     HelpCommand command;
     @Mock ClientWriter cw;
     @Mock CommandRegistry registry;
+    @Mock SerializableCommandRegistry serializableRegistry;
 
     @BeforeEach
     void setup() {
-        command = new HelpCommand(cw, () -> registry);
+        command = new HelpCommand(cw, () -> registry, () -> serializableRegistry);
     }
 
     @Test

@@ -33,7 +33,7 @@ class MessagingServletTest {
     void testConfigure() {
         when(factory.getPolicy()).thenReturn(policy);
         servlet.configure(factory);
-        verify(policy).setIdleTimeout(120_000);
+        verify(policy).setIdleTimeout(60_000);
 
         ArgumentCaptor<WebSocketCreator> creatorCaptor = ArgumentCaptor.forClass(WebSocketCreator.class);
         verify(factory).setCreator(creatorCaptor.capture());

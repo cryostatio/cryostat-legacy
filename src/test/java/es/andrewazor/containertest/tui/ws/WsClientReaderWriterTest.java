@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
@@ -33,13 +34,15 @@ import es.andrewazor.containertest.TestBase;
 class WsClientReaderWriterTest extends TestBase {
 
     WsClientReaderWriter crw;
+    Gson gson;
     @Mock MessagingServer server;
     @Mock Session session;
     @Mock RemoteEndpoint remote;
 
     @BeforeEach
     void setup() {
-        crw = new WsClientReaderWriter(server, new GsonBuilder().serializeNulls().create());
+        gson = new GsonBuilder().serializeNulls().create();
+        crw = new WsClientReaderWriter(server, gson);
     }
 
     @Test
@@ -108,42 +111,17 @@ class WsClientReaderWriterTest extends TestBase {
         assertTimeoutPreemptively(Duration.ofNanos(expectedDelta * 3), () -> {
             Executors.newSingleThreadScheduledExecutor().schedule(() -> crw.onWebSocketConnect(session), expectedDelta, TimeUnit.NANOSECONDS);
 
-            ResponseMessage message = new SuccessResponseMessage();
-            message.message = expectedText;
+            ResponseMessage<String> message = new SuccessResponseMessage<>("foo", expectedText);
             long start = System.nanoTime();
             crw.flush(message);
             long delta = System.nanoTime() - start;
-            verify(remote).sendString("{\"status\":0,\"message\":\"" + expectedText + "\"}");
+            verify(remote).sendString(gson.toJson(message));
             verify(remote).flush();
             MatcherAssert.assertThat(delta, Matchers.allOf(
                 Matchers.greaterThan((long) (expectedDelta * 0.75)),
                 Matchers.lessThan((long) (expectedDelta * 1.25))
             ));
         });
-    }
-
-    @Test
-    void flushShouldWriteOutBufferedPrintMessages() throws IOException {
-        crw.print("disconnected message is discarded");
-        when(session.getRemote()).thenReturn(remote);
-        crw.onWebSocketConnect(session);
-        crw.print("hello world");
-        ResponseMessage message = new InvalidCommandResponseMessage();
-        crw.flush(message);
-        verify(remote).sendString("{\"status\":-1,\"message\":\"hello world\"}");
-        verify(remote).flush();
-    }
-
-    @Test
-    void flushShouldTrimBufferedPrintMessages() throws IOException {
-        crw.print("disconnected message is discarded");
-        when(session.getRemote()).thenReturn(remote);
-        crw.onWebSocketConnect(session);
-        crw.println("hello world ");
-        ResponseMessage message = new InvalidCommandResponseMessage();
-        crw.flush(message);
-        verify(remote).sendString("{\"status\":-1,\"message\":\"hello world\"}");
-        verify(remote).flush();
     }
 
     @Test
@@ -157,51 +135,12 @@ class WsClientReaderWriterTest extends TestBase {
             doThrow(IOException.class).when(remote).sendString(Mockito.anyString());
             crw.onWebSocketConnect(session);
             crw.print("hello world");
-            crw.flush(new SuccessResponseMessage());
+            crw.flush(new SuccessResponseMessage<>("foo", "hello world"));
             verifyZeroInteractions(remote);
             MatcherAssert.assertThat(errStream.toString(), Matchers.equalTo("java.io.IOException\n"));
         } finally {
             System.setErr(origErr);
         }
-    }
-
-    @Test
-    void flushShouldIgnoreBufferedMessagesIfPassedExplicitMessage() throws IOException {
-        crw.print("disconnected message is discarded");
-        when(session.getRemote()).thenReturn(remote);
-        crw.onWebSocketConnect(session);
-        crw.print("hello world");
-        ResponseMessage message = new InvalidCommandResponseMessage();
-        message.message = "override";
-        crw.flush(message);
-        verify(remote).sendString("{\"status\":-1,\"message\":\"override\"}");
-        verify(remote).flush();
-    }
-
-    @Test
-    void flushShouldWriteBufferedMessagesIfPassedExplicitNullMessage() throws IOException {
-        crw.print("disconnected message is discarded");
-        when(session.getRemote()).thenReturn(remote);
-        crw.onWebSocketConnect(session);
-        crw.print("hello world");
-        ResponseMessage message = new InvalidCommandResponseMessage();
-        message.message = null;
-        crw.flush(message);
-        verify(remote).sendString("{\"status\":-1,\"message\":\"hello world\"}");
-        verify(remote).flush();
-    }
-
-    @Test
-    void flushShouldWriteBufferedMessagesIfPassedExplicitEmptyMessage() throws IOException {
-        crw.print("disconnected message is discarded");
-        when(session.getRemote()).thenReturn(remote);
-        crw.onWebSocketConnect(session);
-        crw.print("hello world");
-        ResponseMessage message = new InvalidCommandResponseMessage();
-        message.message = "";
-        crw.flush(message);
-        verify(remote).sendString("{\"status\":-1,\"message\":\"hello world\"}");
-        verify(remote).flush();
     }
 
 }

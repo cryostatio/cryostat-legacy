@@ -18,6 +18,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,21 +87,9 @@ class MessagingServerTest {
     }
 
     @Test
-    void clientWriterShouldBlockUntilConnected() {
-        String expectedText = "hello world";
-        long expectedDelta = TimeUnit.SECONDS.toNanos(1);
-        assertTimeoutPreemptively(Duration.ofNanos(expectedDelta * 3), () -> {
-            Executors.newSingleThreadScheduledExecutor().schedule(() -> server.setConnection(crw1), expectedDelta, TimeUnit.NANOSECONDS);
-
-            long start = System.nanoTime();
-            server.getClientWriter().print(expectedText);
-            long delta = System.nanoTime() - start;
-            verify(crw1).print(expectedText);
-            MatcherAssert.assertThat(delta, Matchers.allOf(
-                Matchers.greaterThan((long) (expectedDelta * 0.75)),
-                Matchers.lessThan((long) (expectedDelta * 1.25))
-            ));
-        });
+    void clientWriterShouldDropMessages() {
+        server.getClientWriter().print("foo");
+        verify(crw1, Mockito.never()).print(Mockito.anyString());
     }
 
 }
