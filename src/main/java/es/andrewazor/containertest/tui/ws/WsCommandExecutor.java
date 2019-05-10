@@ -51,12 +51,12 @@ class WsCommandExecutor implements CommandExecutor {
                     if (!registry.get().getRegisteredCommandNames().contains(commandName)) {
                         flush(new InvalidCommandResponseMessage(commandName));
                     }
-                    if (!registry.get().validate(commandName, args)) {
-                        flush(new InvalidCommandArgumentsResponseMessage(commandName, args));
-                        continue;
-                    }
                     if (!registry.get().isCommandAvailable(commandName)) {
                         flush(new CommandUnavailableMessage(commandName));
+                        continue;
+                    }
+                    if (!registry.get().validate(commandName, args)) {
+                        flush(new InvalidCommandArgumentsResponseMessage(commandName, args));
                         continue;
                     }
                     SerializableCommand.Output out = registry.get().execute(commandName, args);
