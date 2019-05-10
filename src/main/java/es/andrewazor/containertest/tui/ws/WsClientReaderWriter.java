@@ -79,8 +79,9 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
             readingThread = Thread.currentThread();
             return inQ.take();
         } catch (InterruptedException e) {
-            readingThread = null;
             return null;
+        } finally {
+            readingThread = null;
         }
     }
 }
