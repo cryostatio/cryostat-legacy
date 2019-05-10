@@ -6,7 +6,9 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -90,6 +92,20 @@ class MessagingServerTest {
     void clientWriterShouldDropMessages() {
         server.getClientWriter().print("foo");
         verify(crw1, Mockito.never()).print(Mockito.anyString());
+    }
+
+    @Test
+    void clientWriterShouldPrintExceptionsToStdErr() {
+        PrintStream err = System.err;
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            System.setErr(new PrintStream(baos));
+            server.getClientWriter().println(new NullPointerException("Testing Exception"));
+            verify(crw1, Mockito.never()).print(Mockito.anyString());
+            MatcherAssert.assertThat(baos.toString(), Matchers.containsString("NullPointerException: Testing Exception"));
+        } finally {
+            System.setErr(err);
+        }
     }
 
 }
