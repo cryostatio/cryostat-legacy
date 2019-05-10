@@ -1,5 +1,6 @@
 package es.andrewazor.containertest.jmc.serialization;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -34,7 +35,7 @@ public class SerializableEventTypeInfo {
     }
 
     public String[] getHierarchicalCategory() {
-        return category;
+        return Arrays.copyOf(category, category.length);
     }
 
     public Map<String, SerializableOptionDescriptor> getOptionDescriptors() {

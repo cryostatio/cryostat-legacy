@@ -1,5 +1,6 @@
 package es.andrewazor.containertest.tui.ws;
 
+import java.io.IOException;
 import java.util.Collections;
 
 import com.google.gson.Gson;
@@ -78,7 +79,7 @@ class WsCommandExecutor implements CommandExecutor {
                     reportException(null, jse);
                 }
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }

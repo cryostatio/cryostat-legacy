@@ -93,9 +93,9 @@ class PortScanCommand implements SerializableCommand {
         return result;
     }
 
-    class IpHostMapping {
-        String ip;
-        String hostname;
+    static class IpHostMapping {
+        final String ip;
+        final String hostname;
         IpHostMapping(String ip, String hostname) {
             this.ip = ip;
             this.hostname = hostname;
