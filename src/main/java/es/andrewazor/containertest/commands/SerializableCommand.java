@@ -88,6 +88,7 @@ public interface SerializableCommand extends Command {
         }
     }
 
+    // TODO remove: redundant, same use cases as StringOutput
     public class FailureOutput implements Output {
         private final String message;
 
@@ -97,7 +98,7 @@ public interface SerializableCommand extends Command {
 
         @Override
         public boolean success() {
-            return false;
+            return true;
         }
 
         public String getMessage() {

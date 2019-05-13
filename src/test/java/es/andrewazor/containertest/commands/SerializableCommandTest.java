@@ -128,7 +128,7 @@ class SerializableCommandTest {
 
         @Test
         void shouldBeSuccess() {
-            MatcherAssert.assertThat(out.success(), Matchers.is(false));
+            MatcherAssert.assertThat(out.success(), Matchers.is(true));
         }
 
         @Test

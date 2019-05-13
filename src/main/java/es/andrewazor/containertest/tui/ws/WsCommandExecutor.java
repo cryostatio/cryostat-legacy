@@ -50,6 +50,7 @@ class WsCommandExecutor implements CommandExecutor {
                     String[] args = commandMessage.args.toArray(new String[0]);
                     if (!registry.get().getRegisteredCommandNames().contains(commandName)) {
                         flush(new InvalidCommandResponseMessage(commandName));
+                        continue;
                     }
                     if (!registry.get().isCommandAvailable(commandName)) {
                         flush(new CommandUnavailableMessage(commandName));
@@ -60,23 +61,20 @@ class WsCommandExecutor implements CommandExecutor {
                         continue;
                     }
                     SerializableCommand.Output out = registry.get().execute(commandName, args);
-                    if (out.success()) {
-                        if (out instanceof SerializableCommand.SuccessOutput) {
-                            flush(new SuccessResponseMessage<Void>(commandName, null));
-                        } else if (out instanceof SerializableCommand.FailureOutput) {
-                            flush(new FailureResponseMessage(commandName, ((SerializableCommand.FailureOutput) out).getMessage()));
-                        } else if (out instanceof SerializableCommand.StringOutput) {
-                            flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.StringOutput) out).getMessage()));
-                        } else if (out instanceof SerializableCommand.ListOutput) {
-                            flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.ListOutput<?>) out).getData()));
-                        } else if (out instanceof SerializableCommand.MapOutput) {
-                            flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.MapOutput<?, ?>) out).getData()));
-                        } else {
-                            flush(new CommandExceptionResponseMessage(commandName, "internal error"));
-                        }
+                    if (out instanceof SerializableCommand.SuccessOutput) {
+                        flush(new SuccessResponseMessage<Void>(commandName, null));
+                    } else if (out instanceof SerializableCommand.FailureOutput) {
+                        flush(new FailureResponseMessage(commandName, ((SerializableCommand.FailureOutput) out).getMessage()));
+                    } else if (out instanceof SerializableCommand.StringOutput) {
+                        flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.StringOutput) out).getMessage()));
+                    } else if (out instanceof SerializableCommand.ListOutput) {
+                        flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.ListOutput<?>) out).getData()));
+                    } else if (out instanceof SerializableCommand.MapOutput) {
+                        flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.MapOutput<?, ?>) out).getData()));
+                    } else if (out instanceof SerializableCommand.ExceptionOutput) {
+                        flush(new CommandExceptionResponseMessage(commandName, ((SerializableCommand.ExceptionOutput) out).getExceptionMessage()));
                     } else {
-                        SerializableCommand.ExceptionOutput exOut = (ExceptionOutput) out;
-                        flush(new CommandExceptionResponseMessage(commandName, exOut.getExceptionMessage()));
+                        flush(new CommandExceptionResponseMessage(commandName, "internal error"));
                     }
                 } catch (JsonSyntaxException jse) {
                     reportException(null, jse);

@@ -7,8 +7,12 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.PrintStream;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -28,6 +32,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
+import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.FailureOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.ListOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.MapOutput;
+import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.commands.SerializableCommand.StringOutput;
 import es.andrewazor.containertest.commands.SerializableCommand.SuccessOutput;
 import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.tui.ClientReader;
@@ -101,6 +111,191 @@ class WsCommandExecutorTest {
     }
 
     @Test
+    void shouldHandleFailureOutputs() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new FailureOutput("some reason"));
+
+        executor.run(null);
+
+        ArgumentCaptor<FailureResponseMessage> response = ArgumentCaptor.forClass(FailureResponseMessage.class);
+        InOrder inOrder = inOrder(commandRegistry, connection);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
+        inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
+        inOrder.verify(connection).flush(response.capture());
+
+        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-1));
+        MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
+        MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo("some reason"));
+    }
+
+    @Test
+    void shouldHandleStringOutputs() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new StringOutput("some reason"));
+
+        executor.run(null);
+
+        ArgumentCaptor<SuccessResponseMessage<String>> response = ArgumentCaptor.forClass(SuccessResponseMessage.class);
+        InOrder inOrder = inOrder(commandRegistry, connection);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
+        inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
+        inOrder.verify(connection).flush(response.capture());
+
+        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
+        MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
+        MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo("some reason"));
+    }
+
+    @Test
+    void shouldHandleListOutputs() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new ListOutput<Integer>(Arrays.asList(3, 1, 4, 1, 5, 9)));
+
+        executor.run(null);
+
+        ArgumentCaptor<SuccessResponseMessage<List<Integer>>> response = ArgumentCaptor.forClass(SuccessResponseMessage.class);
+        InOrder inOrder = inOrder(commandRegistry, connection);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
+        inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
+        inOrder.verify(connection).flush(response.capture());
+
+        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
+        MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
+        MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo(Arrays.asList(3, 1, 4, 1, 5, 9)));
+    }
+
+    @Test
+    void shouldHandleMapOutputs() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new MapOutput<String, String>(Map.of("foo", "bar")));
+
+        executor.run(null);
+
+        ArgumentCaptor<SuccessResponseMessage<Map<String, String>>> response = ArgumentCaptor.forClass(SuccessResponseMessage.class);
+        InOrder inOrder = inOrder(commandRegistry, connection);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
+        inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
+        inOrder.verify(connection).flush(response.capture());
+
+        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
+        MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
+        MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo(Map.of("foo", "bar")));
+    }
+
+    @Test
+    void shouldHandleExceptionOutputs() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new ExceptionOutput(new IOException("broken pipe")));
+
+        executor.run(null);
+
+        ArgumentCaptor<CommandExceptionResponseMessage> response = ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
+        InOrder inOrder = inOrder(commandRegistry, connection);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
+        inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
+        inOrder.verify(connection).flush(response.capture());
+
+        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
+        MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
+        MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo("IOException: broken pipe"));
+    }
+
+    @Test
+    void shouldHandleUnknownOutputs() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new Output() {
+            @Override
+            public boolean success() {
+                return true;
+            }
+        });
+
+        executor.run(null);
+
+        ArgumentCaptor<CommandExceptionResponseMessage> response = ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
+        InOrder inOrder = inOrder(commandRegistry, connection);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
+        inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
+        inOrder.verify(connection).flush(response.capture());
+
+        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
+        MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
+        MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo("internal error"));
+    }
+
+    @Test
     void shouldSkipNullLines() throws Exception {
         when(cr.readLine()).thenAnswer(new Answer<String>() {
             @Override
@@ -140,6 +335,29 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).validate("help", new String[0]);
         inOrder.verify(commandRegistry).execute("help", new String[0]);
         inOrder.verify(connection).flush(Mockito.any(SuccessResponseMessage.class));
+    }
+
+    @Test
+    void shouldRespondToUnregisteredCommand() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"foo\"}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("bar"));
+
+        executor.run(null);
+
+        verify(commandRegistry).getRegisteredCommandNames();
+        verifyNoMoreInteractions(commandRegistry);
+
+        ArgumentCaptor<ResponseMessage<String>> messageCaptor = ArgumentCaptor.forClass(ResponseMessage.class);
+        verify(connection).flush(messageCaptor.capture());
+        ResponseMessage<String> message = messageCaptor.getValue();
+        MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
 
     @Test
