@@ -4,7 +4,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
 import dagger.Lazy;
 import dagger.Module;

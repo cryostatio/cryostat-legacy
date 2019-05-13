@@ -8,7 +8,6 @@ import com.google.gson.JsonSyntaxException;
 
 import dagger.Lazy;
 import es.andrewazor.containertest.commands.SerializableCommand;
-import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
 import es.andrewazor.containertest.commands.SerializableCommandRegistry;
 import es.andrewazor.containertest.tui.ClientReader;
 import es.andrewazor.containertest.tui.ClientWriter;
