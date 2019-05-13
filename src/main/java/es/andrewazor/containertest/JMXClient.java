@@ -28,18 +28,18 @@ class JMXClient {
         final ExecutionMode mode;
         final String clientArgs;
         final int port;
-        if (args.length == 0 || args[0].equals("-it") || StringUtils.isBlank(args[0])) {
-            mode = ExecutionMode.INTERACTIVE;
+        if (args.length == 0 || args[0].equals("-w")) {
+            mode = ExecutionMode.WEBSOCKET;
             clientArgs = null;
-            port = -1;
+            port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
         } else if (args[0].equals("-d")) {
             mode = ExecutionMode.SOCKET;
             clientArgs = null;
             port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
-        } else if (args[0].equals("-w")) {
-            mode = ExecutionMode.WEBSOCKET;
+        } else if (args[0].equals("-it") || StringUtils.isBlank(args[0])) {
+            mode = ExecutionMode.INTERACTIVE;
             clientArgs = null;
-            port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
+            port = -1;
         } else {
             mode = ExecutionMode.BATCH;
             clientArgs = args[0];
