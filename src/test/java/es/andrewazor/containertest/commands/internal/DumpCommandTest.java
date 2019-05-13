@@ -245,9 +245,9 @@ class DumpCommandTest {
         verifyZeroInteractions(service);
         verifyZeroInteractions(exporter);
 
-        Output out = command.serializableExecute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
+        Output<?> out = command.serializableExecute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
-        MatcherAssert.assertThat(((FailureOutput) out).getMessage(), Matchers.equalTo("Recording with name \"foo\" already exists"));
+        MatcherAssert.assertThat(((FailureOutput) out).getPayload(), Matchers.equalTo("Recording with name \"foo\" already exists"));
 
         verify(service).getAvailableRecordings();
 
@@ -261,9 +261,9 @@ class DumpCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        Output out = command.serializableExecute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
+        Output<?> out = command.serializableExecute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("NullPointerException: "));
+        MatcherAssert.assertThat(((ExceptionOutput) out).getPayload(), Matchers.equalTo("NullPointerException: "));
     }
 
 }

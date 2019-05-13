@@ -92,9 +92,9 @@ class ListEventTypesCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((Collection) Collections.singleton(eventInfo));
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
-        MatcherAssert.assertThat(((ListOutput<SerializableEventTypeInfo>) out).getData(),
+        MatcherAssert.assertThat(out.getPayload(),
                 Matchers.equalTo(Collections.singletonList(new SerializableEventTypeInfo(eventInfo))));
     }
 
@@ -103,10 +103,9 @@ class ListEventTypesCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(FlightRecorderException.class);
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(),
-                Matchers.equalTo("FlightRecorderException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
 
     private static IEventTypeInfo createEvent(String name) {

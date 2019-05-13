@@ -92,9 +92,9 @@ class ListCommandTest {
         List<IRecordingDescriptor> descriptors = Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
         when(service.getAvailableRecordings()).thenReturn(descriptors);
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
-        MatcherAssert.assertThat(((ListOutput<SerializableRecordingDescriptor>) out).getData(),
+        MatcherAssert.assertThat(out.getPayload(),
                 Matchers.equalTo(Arrays.asList(new SerializableRecordingDescriptor(createDescriptor("foo")),
                         new SerializableRecordingDescriptor(createDescriptor("bar")))));
     }
@@ -104,9 +104,9 @@ class ListCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(FlightRecorderException.class);
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("FlightRecorderException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
 
     private static IRecordingDescriptor createDescriptor(String name) throws QuantityConversionException {

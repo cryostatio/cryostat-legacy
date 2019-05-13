@@ -66,17 +66,17 @@ class IpCommandTest {
     @Test
     void shouldReturnStringOutput() throws Exception {
         when(resolver.getHostAddress()).thenReturn("192.168.2.1");
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(((StringOutput) out).getMessage(), Matchers.equalTo("192.168.2.1"));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("192.168.2.1"));
     };
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
         when(resolver.getHostAddress()).thenThrow(UnknownHostException.class);
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("UnknownHostException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("UnknownHostException: "));
     };
 
 }

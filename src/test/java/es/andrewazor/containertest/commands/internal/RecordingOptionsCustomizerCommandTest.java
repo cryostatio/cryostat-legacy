@@ -145,7 +145,7 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldReturnSuccessOutput() throws Exception {
         verifyZeroInteractions(customizer);
-        Output out = command.serializableExecute(new String[]{ "toDisk=true" });
+        Output<?> out = command.serializableExecute(new String[]{ "toDisk=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
         verify(customizer).set(OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
@@ -156,9 +156,9 @@ class RecordingOptionsCustomizerCommandTest {
     void shouldReturnExceptionOutput() throws Exception {
         verifyZeroInteractions(customizer);
         doThrow(NullPointerException.class).when(customizer).set(Mockito.any(), Mockito.any());
-        Output out = command.serializableExecute(new String[]{ "toDisk=true" });
+        Output<?> out = command.serializableExecute(new String[]{ "toDisk=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("NullPointerException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
         verify(customizer).set(OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
     }

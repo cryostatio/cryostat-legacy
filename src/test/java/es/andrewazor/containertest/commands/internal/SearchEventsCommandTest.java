@@ -83,9 +83,9 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        Output out = command.serializableExecute(new String[] { "foo" });
+        Output<?> out = command.serializableExecute(new String[] { "foo" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
-        MatcherAssert.assertThat(((ListOutput<String>) out).getData(), Matchers.equalTo(Collections.emptyList()));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Collections.emptyList()));
     }
 
     @Test
@@ -193,9 +193,9 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
-        Output out = command.serializableExecute(new String[] { "foo" });
+        Output<?> out = command.serializableExecute(new String[] { "foo" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
-        MatcherAssert.assertThat(((ListOutput<SerializableEventTypeInfo>) out).getData(),
+        MatcherAssert.assertThat(out.getPayload(),
             Matchers.equalTo(Arrays.asList(
                 new SerializableEventTypeInfo(infoA),
                 new SerializableEventTypeInfo(infoB),
@@ -210,9 +210,9 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(NullPointerException.class);
 
-        Output out = command.serializableExecute(new String[] { "foo" });
+        Output<?> out = command.serializableExecute(new String[] { "foo" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("NullPointerException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
     }
 
 }

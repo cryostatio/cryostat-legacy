@@ -122,7 +122,7 @@ class StopRecordingCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
 
-        Output out = command.serializableExecute(new String[]{ "foo" });
+        Output<?> out = command.serializableExecute(new String[]{ "foo" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
 
         ArgumentCaptor<IRecordingDescriptor> descriptorCaptor = ArgumentCaptor.forClass(IRecordingDescriptor.class);
@@ -145,9 +145,9 @@ class StopRecordingCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
 
-        Output out = command.serializableExecute(new String[]{ "bar" });
+        Output<?> out = command.serializableExecute(new String[]{ "bar" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
-        MatcherAssert.assertThat(((FailureOutput) out).getMessage(), Matchers.equalTo("Recording with name \"bar\" not found"));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("Recording with name \"bar\" not found"));
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
@@ -165,9 +165,9 @@ class StopRecordingCommandTest {
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
         doThrow(FlightRecorderException.class).when(service).stop(Mockito.any());
 
-        Output out = command.serializableExecute(new String[]{ "foo" });
+        Output<?> out = command.serializableExecute(new String[]{ "foo" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("FlightRecorderException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
 
 }

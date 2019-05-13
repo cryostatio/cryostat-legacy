@@ -30,6 +30,11 @@ class SerializableCommandTest {
         void setup() {
             out = new SuccessOutput();
         }
+
+        @Test
+        void shouldContainNullPayload() {
+            MatcherAssert.assertThat(out.getPayload(), Matchers.nullValue());
+        }
     }
 
     @Nested
@@ -43,7 +48,7 @@ class SerializableCommandTest {
 
         @Test
         void shouldContainExpectedMessage() {
-            MatcherAssert.assertThat(out.getMessage(), Matchers.equalTo("foo"));
+            MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("foo"));
         }
     }
 
@@ -58,7 +63,7 @@ class SerializableCommandTest {
 
         @Test
         void shouldContainExpectedData() {
-            MatcherAssert.assertThat(out.getData(), Matchers.equalTo(Collections.singletonList("foo")));
+            MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Collections.singletonList("foo")));
         }
     }
 
@@ -73,7 +78,7 @@ class SerializableCommandTest {
 
         @Test
         void shouldContainExpectedData() {
-            MatcherAssert.assertThat(out.getData(), Matchers.equalTo(Map.of("foo", 5)));
+            MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Map.of("foo", 5)));
         }
     }
 
@@ -88,7 +93,7 @@ class SerializableCommandTest {
 
         @Test
         void shouldContainExpectedMessage() {
-            MatcherAssert.assertThat(out.getExceptionMessage(), Matchers.equalTo("IOException: for testing reasons"));
+            MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("IOException: for testing reasons"));
         }
     }
 
@@ -103,7 +108,7 @@ class SerializableCommandTest {
 
         @Test
         void shouldContainExpectedMessage() {
-            MatcherAssert.assertThat(out.getMessage(), Matchers.equalTo("for testing reasons"));
+            MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("for testing reasons"));
         }
     }
 

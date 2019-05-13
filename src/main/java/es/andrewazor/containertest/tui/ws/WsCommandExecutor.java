@@ -59,19 +59,19 @@ class WsCommandExecutor implements CommandExecutor {
                         flush(new InvalidCommandArgumentsResponseMessage(commandName, args));
                         continue;
                     }
-                    SerializableCommand.Output out = registry.get().execute(commandName, args);
+                    SerializableCommand.Output<?> out = registry.get().execute(commandName, args);
                     if (out instanceof SerializableCommand.SuccessOutput) {
                         flush(new SuccessResponseMessage<Void>(commandName, null));
                     } else if (out instanceof SerializableCommand.FailureOutput) {
-                        flush(new FailureResponseMessage(commandName, ((SerializableCommand.FailureOutput) out).getMessage()));
+                        flush(new FailureResponseMessage(commandName, ((SerializableCommand.FailureOutput) out).getPayload()));
                     } else if (out instanceof SerializableCommand.StringOutput) {
-                        flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.StringOutput) out).getMessage()));
+                        flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.ListOutput) {
-                        flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.ListOutput<?>) out).getData()));
+                        flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.MapOutput) {
-                        flush(new SuccessResponseMessage<>(commandName, ((SerializableCommand.MapOutput<?, ?>) out).getData()));
+                        flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.ExceptionOutput) {
-                        flush(new CommandExceptionResponseMessage(commandName, ((SerializableCommand.ExceptionOutput) out).getExceptionMessage()));
+                        flush(new CommandExceptionResponseMessage(commandName, ((SerializableCommand.ExceptionOutput) out).getPayload()));
                     } else {
                         flush(new CommandExceptionResponseMessage(commandName, "internal error"));
                     }

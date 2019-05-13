@@ -84,18 +84,18 @@ class PrintUrlCommandTest {
         URL url = mock(URL.class);
         when(url.toString()).thenReturn("mock-url");
         when(exporter.getHostUrl()).thenReturn(url);
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(((StringOutput) out).getMessage(), Matchers.equalTo("mock-url"));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("mock-url"));
         verifyNoMoreInteractions(exporter);
     }
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
         when(exporter.getHostUrl()).thenThrow(UnknownHostException.class);
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("UnknownHostException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("UnknownHostException: "));
     }
 
 }

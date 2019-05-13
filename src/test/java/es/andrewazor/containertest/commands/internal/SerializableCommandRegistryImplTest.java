@@ -95,7 +95,7 @@ public class SerializableCommandRegistryImplTest {
         @Test
         public void shouldExecuteRegisteredAndAvailableCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
-            Output out = registry.execute("foo", new String[] { "arg" });
+            Output<?> out = registry.execute("foo", new String[] { "arg" });
             assertThat(out, instanceOf(SuccessOutput.class));
             assertThat("command should have been executed", fooCommand.value, equalTo("arg"));
         }
@@ -103,7 +103,7 @@ public class SerializableCommandRegistryImplTest {
         @Test
         public void shouldNotExecuteRegisteredAndUnavailableCommand() throws Exception {
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            Output out = registry.execute("bar", new String[] { "arg" });
+            Output<?> out = registry.execute("bar", new String[] { "arg" });
             assertThat(out, instanceOf(FailureOutput.class));
             assertThat("command should not have been executed", barCommand.value, nullValue());
         }
@@ -112,7 +112,7 @@ public class SerializableCommandRegistryImplTest {
         public void shouldNoOpOnUnregisteredCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            Output out = registry.execute("baz", new String[] { "arg" });
+            Output<?> out = registry.execute("baz", new String[] { "arg" });
             assertThat(out, instanceOf(FailureOutput.class));
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
@@ -120,9 +120,9 @@ public class SerializableCommandRegistryImplTest {
 
         @Test
         public void shouldWrapUncaughtCommandExceptions() throws Exception {
-            Output out = registry.execute("fizz", new String[0]);
+            Output<?> out = registry.execute("fizz", new String[0]);
             assertThat(out, instanceOf(ExceptionOutput.class));
-            assertThat(((ExceptionOutput) out).getExceptionMessage(), equalTo("NullPointerException: Fizzed Out!"));
+            assertThat(out.getPayload(), equalTo("NullPointerException: Fizzed Out!"));
         }
 
         @Test
@@ -202,7 +202,7 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public Output serializableExecute(String[] args) {
+        public Output<?> serializableExecute(String[] args) {
             this.value = args[0];
             return new SuccessOutput();
         }
@@ -232,7 +232,7 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public Output serializableExecute(String[] args) {
+        public Output<?> serializableExecute(String[] args) {
             this.value = args[0];
             return new SuccessOutput();
         }
@@ -282,7 +282,7 @@ public class SerializableCommandRegistryImplTest {
         public void execute(String[] args) { }
 
         @Override
-        public Output serializableExecute(String[] args) {
+        public Output<?> serializableExecute(String[] args) {
             throw new NullPointerException("Fizzed Out!");
         }
     }

@@ -119,9 +119,9 @@ class SnapshotCommandTest {
         verifyZeroInteractions(exporter);
         verifyZeroInteractions(cw);
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(((StringOutput) out).getMessage(), Matchers.equalTo("snapshot-1"));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("snapshot-1"));
 
         verify(service).getSnapshotRecording();
         verify(service).updateRecordingOptions(Mockito.same(snapshot), Mockito.same(builtMap));
@@ -137,9 +137,9 @@ class SnapshotCommandTest {
         when(connection.getService()).thenReturn(service);
         doThrow(FlightRecorderException.class).when(service).getSnapshotRecording();
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("FlightRecorderException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
 
 }

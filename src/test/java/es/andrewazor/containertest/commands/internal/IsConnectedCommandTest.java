@@ -58,19 +58,19 @@ class IsConnectedCommandTest {
 
     @Test
     void shouldReturnStringOutput() {
-        Output outA = command.serializableExecute(new String[0]);
+        Output<?> outA = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(outA, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(((StringOutput) outA).getMessage(), Matchers.equalTo("false"));
+        MatcherAssert.assertThat(outA.getPayload(), Matchers.equalTo("false"));
 
         command.connectionChanged(conn);
-        Output outB = command.serializableExecute(new String[0]);
+        Output<?> outB = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(outB, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(((StringOutput) outB).getMessage(), Matchers.equalTo("true"));
+        MatcherAssert.assertThat(outB.getPayload(), Matchers.equalTo("true"));
 
         command.connectionChanged(null);
-        Output outC = command.serializableExecute(new String[0]);
+        Output<?> outC = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(outC, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(((StringOutput) outC).getMessage(), Matchers.equalTo("false"));
+        MatcherAssert.assertThat(outC.getPayload(), Matchers.equalTo("false"));
     }
 
     @Test

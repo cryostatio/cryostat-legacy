@@ -86,9 +86,9 @@ class HelpCommandTest {
         );
 
         when(serializableRegistry.getAvailableCommandNames()).thenReturn(new HashSet<>(names));
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
-        MatcherAssert.assertThat(((ListOutput<String>) out).getData(), Matchers.equalTo(names));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(names));
     }
 
 }

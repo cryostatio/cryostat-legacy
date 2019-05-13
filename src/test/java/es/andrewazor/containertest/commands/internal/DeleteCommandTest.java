@@ -72,7 +72,7 @@ class DeleteCommandTest {
         when(connection.getService()).thenReturn(service);
         when(recordingDescriptor.getName()).thenReturn("foo-recording");
         
-        Output out = command.serializableExecute(new String[]{"foo-recording"});
+        Output<?> out = command.serializableExecute(new String[]{"foo-recording"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
 
         verify(connection.getService()).close(recordingDescriptor);
@@ -99,9 +99,9 @@ class DeleteCommandTest {
         when(connection.getService()).thenReturn(service);
         when(recordingDescriptor.getName()).thenReturn("foo-recording");
 
-        Output out = command.serializableExecute(new String[]{"bar-recording"});
+        Output<?> out = command.serializableExecute(new String[]{"bar-recording"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
-        MatcherAssert.assertThat((((FailureOutput) out).getMessage()), Matchers.equalTo("No recording with name \"bar-recording\" found"));
+        MatcherAssert.assertThat((((FailureOutput) out).getPayload()), Matchers.equalTo("No recording with name \"bar-recording\" found"));
 
         verify(connection.getService(), never()).close(recordingDescriptor);
         verifyZeroInteractions(exporter);
@@ -115,9 +115,9 @@ class DeleteCommandTest {
         when(recordingDescriptor.getName()).thenReturn("foo-recording");
         doThrow(FlightRecorderException.class).when(service).close(Mockito.any());
 
-        Output out = command.serializableExecute(new String[]{"foo-recording"});
+        Output<?> out = command.serializableExecute(new String[]{"foo-recording"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat((((ExceptionOutput) out).getExceptionMessage()), Matchers.equalTo("FlightRecorderException: "));
+        MatcherAssert.assertThat((((ExceptionOutput) out).getPayload()), Matchers.equalTo("FlightRecorderException: "));
     }
 
     @Test

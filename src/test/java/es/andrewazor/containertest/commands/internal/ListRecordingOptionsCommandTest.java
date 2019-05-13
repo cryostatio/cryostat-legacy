@@ -86,9 +86,9 @@ class ListRecordingOptionsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenReturn(options);
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(MapOutput.class));
-        MatcherAssert.assertThat(((MapOutput<String, SerializableOptionDescriptor>) out).getData(),
+        MatcherAssert.assertThat(out.getPayload(),
                 Matchers.equalTo(Map.of("foo-option", new SerializableOptionDescriptor(descriptor))));
     }
 
@@ -97,10 +97,9 @@ class ListRecordingOptionsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenThrow(FlightRecorderException.class);
 
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(),
-                Matchers.equalTo("FlightRecorderException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
 
 }

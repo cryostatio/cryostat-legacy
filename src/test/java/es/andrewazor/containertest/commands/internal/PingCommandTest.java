@@ -54,7 +54,7 @@ class PingCommandTest {
 
     @Test
     void shouldReturnSuccessOutput() {
-        Output out = command.serializableExecute(new String[0]);
+        Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
     }
 

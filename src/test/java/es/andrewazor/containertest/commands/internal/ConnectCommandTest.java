@@ -155,9 +155,9 @@ class ConnectCommandTest {
         JMCConnection mockConnection = mock(JMCConnection.class);
         when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
 
-        Output out = command.serializableExecute(new String[] { "foo" });
+        Output<?> out = command.serializableExecute(new String[] { "foo" });
         assertThat(out, instanceOf(StringOutput.class));
-        assertThat(((StringOutput) out).getMessage(), equalTo("foo"));
+        assertThat(((StringOutput) out).getPayload(), equalTo("foo"));
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
@@ -178,12 +178,11 @@ class ConnectCommandTest {
         verifyZeroInteractions(connectionToolkit);
         verifyZeroInteractions(disconnect);
 
-        JMCConnection mockConnection = mock(JMCConnection.class);
         when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenThrow(IOException.class);
 
-        Output out = command.serializableExecute(new String[] { "foo" });
+        Output<?> out = command.serializableExecute(new String[] { "foo" });
         assertThat(out, instanceOf(ExceptionOutput.class));
-        assertThat(((ExceptionOutput) out).getExceptionMessage(), equalTo("IOException: "));
+        assertThat(((ExceptionOutput) out).getPayload(), equalTo("IOException: "));
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);

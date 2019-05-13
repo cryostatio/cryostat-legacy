@@ -7,70 +7,80 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public interface SerializableCommand extends Command {
 
-    Output serializableExecute(String[] args);
+    Output<?> serializableExecute(String[] args);
 
-    public interface Output {
+    public interface Output<T> {
+        T getPayload();
     }
 
-    public class SuccessOutput implements Output {
+    public class SuccessOutput implements Output<Void> {
+        @Override
+        public Void getPayload() {
+            return null;
+        }
     }
 
-    public class StringOutput implements Output {
+    public class StringOutput implements Output<String> {
         private final String message;
 
         public StringOutput(String message) {
             this.message = message;
         }
 
-        public String getMessage() {
+        @Override
+        public String getPayload() {
             return message;
         }
     }
 
-    public class ListOutput<T> implements Output {
+    public class ListOutput<T> implements Output<List<T>> {
         private final List<T> data;
 
         public ListOutput(List<T> data) {
             this.data = data;
         }
 
-        public List<T> getData() {
+        @Override
+        public List<T> getPayload() {
             return data;
         }
     }
 
-    public class MapOutput<K, V> implements Output {
+    public class MapOutput<K, V> implements Output<Map<K, V>> {
         private final Map<K, V> data;
 
         public MapOutput(Map<K, V> data) {
             this.data = data;
         }
 
-        public Map<K, V> getData() {
+        @Override
+        public Map<K, V> getPayload() {
             return data;
         }
     }
 
-    public class ExceptionOutput implements Output {
+    public class ExceptionOutput implements Output<String> {
         private final Exception e;
 
         public ExceptionOutput(Exception e) {
             this.e = e;
         }
 
-        public String getExceptionMessage() {
+        @Override
+        public String getPayload() {
             return ExceptionUtils.getMessage(e);
         }
     }
 
-    public class FailureOutput implements Output {
+    public class FailureOutput implements Output<String> {
         private final String message;
 
         public FailureOutput(String message) {
             this.message = message;
         }
 
-        public String getMessage() {
+        @Override
+        public String getPayload() {
             return message;
         }
     }

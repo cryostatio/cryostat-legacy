@@ -166,9 +166,9 @@ class StartRecordingCommandTest {
         verifyZeroInteractions(service);
         verifyZeroInteractions(exporter);
 
-        Output out = command.serializableExecute(new String[]{ "foo", "foo.Bar:enabled=true" });
+        Output<?> out = command.serializableExecute(new String[]{ "foo", "foo.Bar:enabled=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(((StringOutput) out).getMessage(), Matchers.equalTo("example-url"));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("example-url"));
 
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor = ArgumentCaptor.forClass(IConstrainedMap.class);
@@ -237,9 +237,9 @@ class StartRecordingCommandTest {
         verifyZeroInteractions(service);
         verifyZeroInteractions(exporter);
 
-        Output out = command.serializableExecute(new String[]{ "foo", "foo.Bar:enabled=true" });
+        Output<?> out = command.serializableExecute(new String[]{ "foo", "foo.Bar:enabled=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
-        MatcherAssert.assertThat(((FailureOutput) out).getMessage(), Matchers.equalTo("Recording with name \"foo\" already exists"));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("Recording with name \"foo\" already exists"));
 
         verify(service).getAvailableRecordings();
 
@@ -253,9 +253,9 @@ class StartRecordingCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        Output out = command.serializableExecute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
+        Output<?> out = command.serializableExecute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
-        MatcherAssert.assertThat(((ExceptionOutput) out).getExceptionMessage(), Matchers.equalTo("NullPointerException: "));
+        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
     }
 
 }
