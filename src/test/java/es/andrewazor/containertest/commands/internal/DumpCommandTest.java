@@ -173,7 +173,6 @@ class DumpCommandTest {
 
         Output out = command.serializableExecute(new String[]{ "foo", "30", "foo.Bar:enabled=true" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(SuccessOutput.class));
-        MatcherAssert.assertThat(out.success(), Matchers.is(true));
 
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Long> durationCaptor = ArgumentCaptor.forClass(Long.class);

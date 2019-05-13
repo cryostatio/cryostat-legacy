@@ -273,12 +273,7 @@ class WsCommandExecutorTest {
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
-        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new Output() {
-            @Override
-            public boolean success() {
-                return true;
-            }
-        });
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(new Output() {});
 
         executor.run(null);
 

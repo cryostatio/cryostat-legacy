@@ -10,14 +10,9 @@ public interface SerializableCommand extends Command {
     Output serializableExecute(String[] args);
 
     public interface Output {
-        boolean success();
     }
 
     public class SuccessOutput implements Output {
-        @Override
-        public boolean success() {
-            return true;
-        }
     }
 
     public class StringOutput implements Output {
@@ -25,11 +20,6 @@ public interface SerializableCommand extends Command {
 
         public StringOutput(String message) {
             this.message = message;
-        }
-
-        @Override
-        public boolean success() {
-            return true;
         }
 
         public String getMessage() {
@@ -44,11 +34,6 @@ public interface SerializableCommand extends Command {
             this.data = data;
         }
 
-        @Override
-        public boolean success() {
-            return true;
-        }
-
         public List<T> getData() {
             return data;
         }
@@ -59,11 +44,6 @@ public interface SerializableCommand extends Command {
 
         public MapOutput(Map<K, V> data) {
             this.data = data;
-        }
-
-        @Override
-        public boolean success() {
-            return true;
         }
 
         public Map<K, V> getData() {
@@ -78,27 +58,16 @@ public interface SerializableCommand extends Command {
             this.e = e;
         }
 
-        @Override
-        public boolean success() {
-            return false;
-        }
-
         public String getExceptionMessage() {
             return ExceptionUtils.getMessage(e);
         }
     }
 
-    // TODO remove: redundant, same use cases as StringOutput
     public class FailureOutput implements Output {
         private final String message;
 
         public FailureOutput(String message) {
             this.message = message;
-        }
-
-        @Override
-        public boolean success() {
-            return true;
         }
 
         public String getMessage() {

@@ -30,11 +30,6 @@ class SerializableCommandTest {
         void setup() {
             out = new SuccessOutput();
         }
-
-        @Test
-        void shouldBeSuccess() {
-            MatcherAssert.assertThat(out.success(), Matchers.is(true));
-        }
     }
 
     @Nested
@@ -44,11 +39,6 @@ class SerializableCommandTest {
         @BeforeEach
         void setup() {
             out = new StringOutput("foo");
-        }
-
-        @Test
-        void shouldBeSuccess() {
-            MatcherAssert.assertThat(out.success(), Matchers.is(true));
         }
 
         @Test
@@ -67,11 +57,6 @@ class SerializableCommandTest {
         }
 
         @Test
-        void shouldBeSuccess() {
-            MatcherAssert.assertThat(out.success(), Matchers.is(true));
-        }
-
-        @Test
         void shouldContainExpectedData() {
             MatcherAssert.assertThat(out.getData(), Matchers.equalTo(Collections.singletonList("foo")));
         }
@@ -84,11 +69,6 @@ class SerializableCommandTest {
         @BeforeEach
         void setup() {
             out = new MapOutput<>(Map.of("foo", 5));
-        }
-
-        @Test
-        void shouldBeSuccess() {
-            MatcherAssert.assertThat(out.success(), Matchers.is(true));
         }
 
         @Test
@@ -107,11 +87,6 @@ class SerializableCommandTest {
         }
 
         @Test
-        void shouldBeSuccess() {
-            MatcherAssert.assertThat(out.success(), Matchers.is(false));
-        }
-
-        @Test
         void shouldContainExpectedMessage() {
             MatcherAssert.assertThat(out.getExceptionMessage(), Matchers.equalTo("IOException: for testing reasons"));
         }
@@ -124,11 +99,6 @@ class SerializableCommandTest {
         @BeforeEach
         void setup() {
             out = new FailureOutput("for testing reasons");
-        }
-
-        @Test
-        void shouldBeSuccess() {
-            MatcherAssert.assertThat(out.success(), Matchers.is(true));
         }
 
         @Test
