@@ -31,16 +31,12 @@ class IsConnectedCommand implements ConnectionListener, SerializableCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println(connected ? "Connected" : "Disconnected");
+        cw.println("\t" + (connected ? "Connected" : "Disconnected"));
     }
 
     @Override
     public Output serializableExecute(String[] args) {
-        try {
-            return new StringOutput(String.valueOf(connected));
-        } catch (Exception e) {
-            return new ExceptionOutput(e);
-        }
+        return new StringOutput(String.valueOf(connected));
     }
 
     @Override
