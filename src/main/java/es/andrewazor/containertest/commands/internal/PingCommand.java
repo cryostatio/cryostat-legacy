@@ -38,7 +38,7 @@ class PingCommand implements SerializableCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("pong");
+        cw.println("\tpong");
     }
 
     @Override
