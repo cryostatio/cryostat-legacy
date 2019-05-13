@@ -52,7 +52,7 @@ jib {
     }
     container {
         useCurrentTimestamp = true
-        ports = ['9091']
+        ports = ['9090', '9091']
         jvmFlags = [
             '-Dorg.openjdk.jmc.common.security.manager=es.andrewazor.containertest.jmc.SecurityManager',
             '-Dcom.sun.management.jmxremote.rmi.port=9091',
