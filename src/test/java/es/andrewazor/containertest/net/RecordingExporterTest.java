@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -55,6 +56,7 @@ class RecordingExporterTest extends TestBase {
 
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
+        when(env.getEnv(Mockito.eq("CONTAINER_DOWNLOAD_PORT"), Mockito.anyString())).thenReturn("1234");
         assertDoesNotThrow(() -> new RecordingExporter(env, mockClientWriter, resolver));
     }
 

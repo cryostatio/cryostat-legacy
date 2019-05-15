@@ -115,7 +115,7 @@ public class RecordingExporter implements ConnectionListener {
     private class ServerImpl extends NanoHTTPD {
 
         private ServerImpl() {
-            super(8080);
+            super(Integer.parseInt(env.getEnv(PORT_VAR, "8080")));
         }
 
         @Override
