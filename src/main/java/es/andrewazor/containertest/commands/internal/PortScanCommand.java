@@ -80,7 +80,7 @@ class PortScanCommand implements SerializableCommand {
                     InetAddress addr = InetAddress.getByAddress(remote);
                     s.connect(new InetSocketAddress(addr, 9091), 100);
                     s.close();
-                    result.add(new IpHostMapping(addr.getHostAddress(), addr.getHostName()));
+                    result.add(new IpHostMapping(addr.getHostAddress(), addr.getCanonicalHostName()));
                 } catch (IOException ignored) {
                 } finally {
                     latch.countDown();
