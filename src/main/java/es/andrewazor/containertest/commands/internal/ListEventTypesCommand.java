@@ -37,7 +37,7 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             Collection<? extends IEventTypeInfo> origInfos = getService().getAvailableEventTypes();
             List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());

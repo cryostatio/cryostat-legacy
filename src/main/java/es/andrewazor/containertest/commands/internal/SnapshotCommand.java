@@ -43,7 +43,7 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             IRecordingDescriptor descriptor = getService().getSnapshotRecording();
 

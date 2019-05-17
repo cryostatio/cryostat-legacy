@@ -36,7 +36,7 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             Map<String, IOptionDescriptor<?>> origOptions = getService().getAvailableRecordingOptions();
             Map<String, SerializableOptionDescriptor> options = new HashMap<>(origOptions.size());

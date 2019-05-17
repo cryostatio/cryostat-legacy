@@ -41,7 +41,7 @@ class IpCommand implements SerializableCommand {
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             return new StringOutput(resolver.getHostAddress());
         } catch (Exception e) {

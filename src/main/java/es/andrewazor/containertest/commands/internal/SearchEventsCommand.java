@@ -55,7 +55,7 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             Collection<? extends IEventTypeInfo> matchingEvents = getService().getAvailableEventTypes()
                 .stream()

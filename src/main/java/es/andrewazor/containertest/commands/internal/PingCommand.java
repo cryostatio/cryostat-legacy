@@ -42,7 +42,7 @@ class PingCommand implements SerializableCommand {
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         return new SuccessOutput();
     }
 }

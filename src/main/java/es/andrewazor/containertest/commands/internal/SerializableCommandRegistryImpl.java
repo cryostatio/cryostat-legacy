@@ -49,7 +49,7 @@ class SerializableCommandRegistryImpl implements SerializableCommandRegistry {
     }
 
     @Override
-    public Output execute(String commandName, String[] args) {
+    public Output<?> execute(String commandName, String[] args) {
         if (!isCommandRegistered(commandName)) {
             return new FailureOutput(String.format("Command \"%s\" not recognized", commandName));
         }

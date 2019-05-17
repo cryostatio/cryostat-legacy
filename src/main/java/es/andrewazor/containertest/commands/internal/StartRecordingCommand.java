@@ -48,7 +48,7 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             String name = args[0];
             String events = args[1];

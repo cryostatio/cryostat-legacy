@@ -52,7 +52,7 @@ class PortScanCommand implements SerializableCommand {
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             return new ListOutput<>(scan());
         } catch (Exception e) {

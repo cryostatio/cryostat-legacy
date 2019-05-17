@@ -50,7 +50,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             String name = args[0];
             int seconds = Integer.parseInt(args[1]);

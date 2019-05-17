@@ -72,7 +72,7 @@ class ConnectCommand implements SerializableCommand {
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             execute(args);
             return new StringOutput(args[0]);

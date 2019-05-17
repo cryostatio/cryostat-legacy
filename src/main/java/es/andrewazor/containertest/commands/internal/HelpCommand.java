@@ -53,7 +53,7 @@ class HelpCommand implements SerializableCommand {
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         return new ListOutput<String>(new ArrayList<>(serializableRegistry.get().getAvailableCommandNames()));
     }
 

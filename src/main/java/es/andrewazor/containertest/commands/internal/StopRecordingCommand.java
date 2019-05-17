@@ -41,7 +41,7 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             String name = args[0];
 

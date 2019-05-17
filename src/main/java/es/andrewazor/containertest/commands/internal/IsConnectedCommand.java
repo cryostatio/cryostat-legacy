@@ -35,7 +35,7 @@ class IsConnectedCommand implements ConnectionListener, SerializableCommand {
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         return new StringOutput(String.valueOf(connected));
     }
 

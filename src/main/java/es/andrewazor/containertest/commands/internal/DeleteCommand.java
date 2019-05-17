@@ -44,7 +44,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             final String recordingName = args[0];
             Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);

@@ -44,7 +44,7 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             List<IRecordingDescriptor> origDescriptors = getService().getAvailableRecordings();
             List<SerializableRecordingDescriptor> descriptors = new ArrayList<>(origDescriptors.size());

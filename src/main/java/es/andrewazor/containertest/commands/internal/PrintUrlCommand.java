@@ -29,7 +29,7 @@ class PrintUrlCommand extends AbstractConnectedCommand implements SerializableCo
     }
 
     @Override
-    public Output serializableExecute(String[] args) {
+    public Output<?> serializableExecute(String[] args) {
         try {
             return new StringOutput(exporter.getHostUrl().toString());
         } catch (Exception e) {
