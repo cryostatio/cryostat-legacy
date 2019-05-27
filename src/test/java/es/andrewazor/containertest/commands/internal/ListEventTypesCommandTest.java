@@ -20,6 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -83,8 +84,11 @@ class ListEventTypesCommandTest {
     @SuppressWarnings("unchecked")
     @Test
     void shouldReturnListOutput() throws Exception {
+        IEventTypeID eventTypeId = mock(IEventTypeID.class);
+        when(eventTypeId.getFullKey()).thenReturn("com.example.foo");
         IEventTypeInfo eventInfo = mock(IEventTypeInfo.class);
         when(eventInfo.getName()).thenReturn("foo");
+        when(eventInfo.getEventTypeID()).thenReturn(eventTypeId);
         when(eventInfo.getDescription()).thenReturn("Foo description");
         when(eventInfo.getHierarchicalCategory()).thenReturn(new String[] { "com", "example" });
         when(eventInfo.getOptionDescriptors()).thenReturn(Collections.emptyMap());

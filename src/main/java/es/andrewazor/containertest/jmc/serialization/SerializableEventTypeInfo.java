@@ -13,12 +13,14 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 public class SerializableEventTypeInfo {
 
     private String name;
+    private String typeId;
     private String description;
     private String[] category;
     private Map<String, SerializableOptionDescriptor> options;
 
     public SerializableEventTypeInfo(IEventTypeInfo orig) {
         this.name = orig.getName();
+        this.typeId = orig.getEventTypeID().getFullKey();
         this.description = orig.getDescription();
         this.category = orig.getHierarchicalCategory();
 
@@ -31,6 +33,10 @@ public class SerializableEventTypeInfo {
 
     public String getName() {
         return name;
+    }
+
+    public String getTypeId() {
+        return this.typeId;
     }
 
     public String getDescription() {
