@@ -12,7 +12,7 @@ import es.andrewazor.containertest.tui.ClientWriter;
 class IsConnectedCommand implements ConnectionListener, SerializableCommand {
 
     private final ClientWriter cw;
-    private boolean connected = false;
+    private JMCConnection connection;
 
     @Inject
     IsConnectedCommand(ClientWriter cw) {
@@ -26,17 +26,21 @@ class IsConnectedCommand implements ConnectionListener, SerializableCommand {
 
     @Override
     public void connectionChanged(JMCConnection connection) {
-        this.connected = connection != null;
+        this.connection = connection;
     }
 
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("\t" + (connected ? "Connected" : "Disconnected"));
+        cw.println("\t" + (connection != null ? String.format("%s:%d", connection.getHost(), connection.getPort()) : "Disconnected"));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        return new StringOutput(String.valueOf(connected));
+        if (connection != null) {
+            return new StringOutput(String.format("%s:%d", connection.getHost(), connection.getPort()));
+        } else {
+            return new StringOutput("false");
+        }
     }
 
     @Override

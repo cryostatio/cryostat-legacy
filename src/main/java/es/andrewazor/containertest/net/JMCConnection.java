@@ -22,6 +22,8 @@ public class JMCConnection {
 
     private final ClientWriter cw;
     private final Clock clock;
+    private final String host;
+    private final int port;
     private final RJMXConnection rjmxConnection;
     private final IConnectionHandle handle;
     private final IFlightRecorderService service;
@@ -29,6 +31,8 @@ public class JMCConnection {
     JMCConnection(ClientWriter cw, Clock clock, String host, int port) throws Exception {
         this.cw = cw;
         this.clock = clock;
+        this.host = host;
+        this.port = port;
         this.rjmxConnection = attemptConnect(host, port, 0);
         this.handle = new DefaultConnectionHandle(rjmxConnection, "RJMX Connection", new IConnectionListener[0]);
         this.service = new FlightRecorderServiceFactory().getServiceInstance(handle);
@@ -44,6 +48,14 @@ public class JMCConnection {
 
     public long getApproximateServerTime(Clock clock) {
         return rjmxConnection.getApproximateServerTime(clock.getWallTime());
+    }
+
+    public String getHost() {
+        return this.host;
+    }
+
+    public int getPort() {
+        return this.port;
     }
 
     public void disconnect() {

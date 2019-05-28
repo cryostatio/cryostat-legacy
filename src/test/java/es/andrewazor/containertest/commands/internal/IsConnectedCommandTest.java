@@ -2,6 +2,7 @@ package es.andrewazor.containertest.commands.internal;
 
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -62,10 +63,12 @@ class IsConnectedCommandTest {
         MatcherAssert.assertThat(outA, Matchers.instanceOf(StringOutput.class));
         MatcherAssert.assertThat(outA.getPayload(), Matchers.equalTo("false"));
 
+        when(conn.getHost()).thenReturn("someHost");
+        when(conn.getPort()).thenReturn(1234);
         command.connectionChanged(conn);
         Output<?> outB = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(outB, Matchers.instanceOf(StringOutput.class));
-        MatcherAssert.assertThat(outB.getPayload(), Matchers.equalTo("true"));
+        MatcherAssert.assertThat(outB.getPayload(), Matchers.equalTo("someHost:1234"));
 
         command.connectionChanged(null);
         Output<?> outC = command.serializableExecute(new String[0]);
@@ -77,6 +80,8 @@ class IsConnectedCommandTest {
     void shouldEchoStatus() throws Exception {
         command.execute(new String[0]);
 
+        when(conn.getHost()).thenReturn("someHost");
+        when(conn.getPort()).thenReturn(1234);
         command.connectionChanged(conn);
         command.execute(new String[0]);
 
@@ -85,7 +90,7 @@ class IsConnectedCommandTest {
 
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("\tDisconnected");
-        inOrder.verify(cw).println("\tConnected");
+        inOrder.verify(cw).println("\tsomeHost:1234");
         inOrder.verify(cw).println("\tDisconnected");
     }
 
