@@ -47,7 +47,7 @@ class WsCommandExecutor implements CommandExecutor {
                     }
                     String commandName = commandMessage.command;
                     String[] args = commandMessage.args.toArray(new String[0]);
-                    if (!registry.get().getRegisteredCommandNames().contains(commandName)) {
+                    if (commandName == null || !registry.get().getRegisteredCommandNames().contains(commandName)) {
                         flush(new InvalidCommandResponseMessage(commandName));
                         continue;
                     }

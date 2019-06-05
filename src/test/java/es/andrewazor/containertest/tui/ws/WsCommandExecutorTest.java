@@ -338,6 +338,25 @@ class WsCommandExecutorTest {
     }
 
     @Test
+    void shouldRespondToNullCommand() throws Exception {
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"commandName\":\"foo\"}";
+            }
+        });
+        when(server.getConnection()).thenReturn(connection);
+
+        executor.run(null);
+
+        ArgumentCaptor<ResponseMessage<String>> messageCaptor = ArgumentCaptor.forClass(ResponseMessage.class);
+        verify(connection).flush(messageCaptor.capture());
+        ResponseMessage<String> message = messageCaptor.getValue();
+        MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
+    }
+
+    @Test
     void shouldRespondToUnregisteredCommand() throws Exception {
         when(cr.readLine()).thenAnswer(new Answer<String>() {
             @Override
