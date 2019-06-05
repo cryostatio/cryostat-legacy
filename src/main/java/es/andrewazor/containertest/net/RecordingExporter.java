@@ -10,6 +10,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
+import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -21,8 +23,11 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class RecordingExporter implements ConnectionListener {
 
-    // TODO extract the name pattern (here and AbstractConnectedCommand) to shared utility
-    private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^([\\w-_]+)(?:\\.jfr)?$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+    // TODO extract the name pattern (here and AbstractConnectedCommand) to shared
+    // utility
+    private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^/([\\w-_]+)(?:\\.jfr)?$",
+            Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+    private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_]+)$", Pattern.MULTILINE);
     static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
     static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
 
@@ -108,7 +113,8 @@ public class RecordingExporter implements ConnectionListener {
         return new URL("http", hostname, port, "");
     }
 
-    public String getDownloadURL(String recordingName) throws UnknownHostException, MalformedURLException, SocketException {
+    public String getDownloadURL(String recordingName)
+            throws UnknownHostException, MalformedURLException, SocketException {
         return String.format("%s/%s", this.getHostUrl(), recordingName);
     }
 
@@ -120,11 +126,18 @@ public class RecordingExporter implements ConnectionListener {
 
         @Override
         public Response serve(IHTTPSession session) {
-            String requestedName = session.getUri().substring(1);
-            Matcher matcher = RECORDING_NAME_PATTERN.matcher(requestedName);
-            if (!matcher.find()) {
-                return newNotFoundResponse(requestedName);
+            String requestUrl = session.getUri();
+            Matcher recordingMatcher = RECORDING_NAME_PATTERN.matcher(requestUrl);
+            Matcher reportMatcher = REPORT_PATTERN.matcher(requestUrl);
+            if (recordingMatcher.find()) {
+                return serveRecording(recordingMatcher);
+            } else if (reportMatcher.find()) {
+                return serveReport(reportMatcher);
             }
+            return newNotFoundResponse(requestUrl);
+        }
+
+        private Response serveRecording(Matcher matcher) {
             String recordingName = matcher.group(1);
             if (!recordings.containsKey(recordingName)) {
                 return newNotFoundResponse(recordingName);
@@ -133,6 +146,19 @@ public class RecordingExporter implements ConnectionListener {
                 return newFlightRecorderResponse(recordingName);
             } catch (FlightRecorderException fre) {
                 cw.println(fre);
+                return newCouldNotBeOpenedResponse(recordingName);
+            }
+        }
+
+        private Response serveReport(Matcher matcher) {
+            String recordingName = matcher.group(1);
+            if (!recordings.containsKey(recordingName)) {
+                return newNotFoundResponse(recordingName);
+            }
+            try {
+                return newReportResponse(recordingName);
+            } catch (IOException | CouldNotLoadRecordingException | FlightRecorderException e) {
+                cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }
@@ -164,6 +190,12 @@ public class RecordingExporter implements ConnectionListener {
                     }
                 }
             };
+        }
+
+        private Response newReportResponse(String recordingName)
+                throws IOException, CouldNotLoadRecordingException, FlightRecorderException {
+            String report = JfrHtmlRulesReport.createReport(service.openStream(recordings.get(recordingName), false));
+            return newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
         }
 
     }
