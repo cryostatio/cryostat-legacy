@@ -148,8 +148,9 @@ public class RecordingExporter implements ConnectionListener {
             }
             try {
                 return newFlightRecorderResponse(recordingName);
-            } catch (FlightRecorderException fre) {
-                cw.println(fre);
+            } catch (Exception e) {
+                e.printStackTrace();
+                cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }
@@ -161,7 +162,8 @@ public class RecordingExporter implements ConnectionListener {
             }
             try {
                 return newReportResponse(recordingName);
-            } catch (IOException | CouldNotLoadRecordingException | FlightRecorderException e) {
+            } catch (Exception e) {
+                e.printStackTrace();
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
