@@ -18,7 +18,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -28,8 +30,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
 import es.andrewazor.containertest.commands.SerializableCommand.ListOutput;
 import es.andrewazor.containertest.commands.SerializableCommand.Output;
+import es.andrewazor.containertest.commands.internal.ListCommand.HyperlinkedSerializableRecordingDescriptor;
 import es.andrewazor.containertest.jmc.serialization.SerializableRecordingDescriptor;
 import es.andrewazor.containertest.net.JMCConnection;
+import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,10 +46,12 @@ class ListCommandTest {
     JMCConnection connection;
     @Mock
     IFlightRecorderService service;
+    @Mock
+    RecordingExporter exporter;
 
     @BeforeEach
     void setup() {
-        command = new ListCommand(cw);
+        command = new ListCommand(cw, exporter);
         command.connectionChanged(connection);
     }
 
@@ -91,12 +97,27 @@ class ListCommandTest {
         when(connection.getService()).thenReturn(service);
         List<IRecordingDescriptor> descriptors = Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
         when(service.getAvailableRecordings()).thenReturn(descriptors);
+        when(exporter.getDownloadURL(Mockito.anyString())).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                return String.format("http://example.com:1234/%s", invocation.getArguments()[0]);
+            }
+        });
+        when(exporter.getReportURL(Mockito.anyString())).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                return String.format("http://example.com:1234/reports/%s", invocation.getArguments()[0]);
+            }
+        });
 
         Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(ListOutput.class));
         MatcherAssert.assertThat(out.getPayload(),
-                Matchers.equalTo(Arrays.asList(new SerializableRecordingDescriptor(createDescriptor("foo")),
-                        new SerializableRecordingDescriptor(createDescriptor("bar")))));
+                Matchers.equalTo(Arrays.asList(
+                        new HyperlinkedSerializableRecordingDescriptor(createDescriptor("foo"),
+                                "http://example.com:1234/foo", "http://example.com:1234/reports/foo"),
+                        new HyperlinkedSerializableRecordingDescriptor(createDescriptor("bar"),
+                                "http://example.com:1234/bar", "http://example.com:1234/reports/bar"))));
     }
 
     @Test

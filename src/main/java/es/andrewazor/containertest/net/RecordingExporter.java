@@ -120,6 +120,11 @@ public class RecordingExporter implements ConnectionListener {
         return String.format("%s/%s", this.getHostUrl(), recordingName);
     }
 
+    public String getReportURL(String recordingName)
+            throws UnknownHostException, MalformedURLException, SocketException {
+        return String.format("%s/reports/%s", this.getHostUrl(), recordingName);
+    }
+
     private class ServerImpl extends NanoHTTPD {
 
         private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
