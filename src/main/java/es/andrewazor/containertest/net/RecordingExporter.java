@@ -7,6 +7,8 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -120,6 +122,8 @@ public class RecordingExporter implements ConnectionListener {
 
     private class ServerImpl extends NanoHTTPD {
 
+        private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
+
         private ServerImpl() {
             super(Integer.parseInt(env.getEnv(PORT_VAR, "8080")));
         }
@@ -179,7 +183,7 @@ public class RecordingExporter implements ConnectionListener {
         }
 
         private Response newFlightRecorderResponse(String recordingName) throws FlightRecorderException {
-            return new Response(Status.OK, "application/octet-stream",
+            Response r = new Response(Status.OK, "application/octet-stream",
                     service.openStream(recordings.get(recordingName), false), -1) {
                 @Override
                 public void close() throws IOException {
@@ -190,12 +194,34 @@ public class RecordingExporter implements ConnectionListener {
                     }
                 }
             };
+            r.addHeader("Access-Control-Allow-Origin", "*");
+            return r;
         }
 
         private Response newReportResponse(String recordingName)
                 throws IOException, CouldNotLoadRecordingException, FlightRecorderException {
             String report = JfrHtmlRulesReport.createReport(service.openStream(recordings.get(recordingName), false));
-            return newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
+            Response response = newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
+            response.addHeader("Access-Control-Allow-Origin", "*");
+
+            // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
+            // recordings before loading events to create the report, and these clones are erroneously left dangling.
+            TRIM_WORKER.submit(() -> {
+                try {
+                    service.getAvailableRecordings()
+                        .stream()
+                        .filter(r -> r.getName().equals(String.format("Clone of %s", recordingName)))
+                        .forEach(r -> {
+                            try {
+                                service.close(r);
+                            } catch (FlightRecorderException ignored) {
+                            }
+                        });
+                } catch (FlightRecorderException ignored) {
+                }
+            });
+
+            return response;
         }
 
     }
