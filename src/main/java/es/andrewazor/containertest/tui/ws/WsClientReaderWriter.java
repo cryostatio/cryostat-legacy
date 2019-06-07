@@ -7,6 +7,7 @@ import java.util.concurrent.Semaphore;
 
 import com.google.gson.Gson;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 
@@ -42,9 +43,10 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
         close();
     }
 
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
     @Override
     public void close() {
-        semaphore.drainPermits();
+        semaphore.tryAcquire();
         if (isConnected()) {
             getSession().close();
         }
