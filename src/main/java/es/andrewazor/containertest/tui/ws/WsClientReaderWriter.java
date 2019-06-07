@@ -16,15 +16,13 @@ import es.andrewazor.containertest.tui.ClientWriter;
 class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, ClientWriter {
 
     private final Semaphore semaphore = new Semaphore(0, true);
-    private final MessagingServer server;
     private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private volatile Thread readingThread;
 
     WsClientReaderWriter(MessagingServer server, Gson gson) {
-        this.server = server;
         this.gson = gson;
-        this.server.setConnection(this);
+        server.setConnection(this);
     }
 
     @Override
