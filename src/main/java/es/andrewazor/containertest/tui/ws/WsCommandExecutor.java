@@ -99,7 +99,7 @@ class WsCommandExecutor implements CommandExecutor {
     }
 
     private void flush(ResponseMessage<?> message) {
-        server.getConnection().flush(message);
+        server.flush(message);
     }
 
 }

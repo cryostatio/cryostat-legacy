@@ -46,25 +46,18 @@ class MessagingServerTest {
     }
 
     @Test
-    void repeatConnectionShouldClosePrevious() {
-        server.setConnection(crw1);
+    void repeatConnectionShouldNotClosePrevious() {
+        server.addConnection(crw1);
         verifyZeroInteractions(crw1);
 
-        server.setConnection(crw2);
-        verify(crw1).close();
+        server.addConnection(crw2);
+        verify(crw1, Mockito.never()).close();
         verifyZeroInteractions(crw2);
     }
 
     @Test
-    void testGetConnection() {
-        MatcherAssert.assertThat(server.getConnection(), Matchers.nullValue());
-        server.setConnection(crw1);
-        MatcherAssert.assertThat(server.getConnection(), Matchers.sameInstance(crw1));
-    }
-
-    @Test
     void clientReaderShouldPropagateClose() throws IOException {
-        server.setConnection(crw1);
+        server.addConnection(crw1);
         server.getClientReader().close();
         verify(crw1).close();
     }
@@ -74,8 +67,10 @@ class MessagingServerTest {
         String expectedText = "hello world";
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
         assertTimeoutPreemptively(Duration.ofNanos(expectedDelta * 3), () -> {
-            when(crw1.readLine()).thenReturn(expectedText);
-            Executors.newSingleThreadScheduledExecutor().schedule(() -> server.setConnection(crw1), expectedDelta, TimeUnit.NANOSECONDS);
+            when(crw1.hasMessage()).thenReturn(false);
+            when(crw2.readLine()).thenReturn(expectedText);
+            when(crw2.hasMessage()).thenReturn(true);
+            Executors.newSingleThreadScheduledExecutor().schedule(() -> { server.addConnection(crw1); server.addConnection(crw2); }, expectedDelta, TimeUnit.NANOSECONDS);
 
             long start = System.nanoTime();
             String res = server.getClientReader().readLine();
@@ -86,6 +81,46 @@ class MessagingServerTest {
                 Matchers.lessThan((long) (expectedDelta * 1.25))
             ));
         });
+    }
+
+    @Test
+    void shouldHandleRemovedConnections() {
+        String expectedText = "hello world";
+        when(crw1.hasMessage()).thenReturn(false);
+        when(crw2.readLine()).thenReturn(expectedText);
+        when(crw2.hasMessage()).thenReturn(true);
+
+        server.addConnection(crw1);
+        server.addConnection(crw2);
+
+        MatcherAssert.assertThat(server.getClientReader().readLine(), Matchers.equalTo(expectedText));
+        verify(crw1).hasMessage();
+        verify(crw2).hasMessage();
+        verify(crw2).readLine();
+
+        ResponseMessage<String> successResponseMessage = new SuccessResponseMessage<>("test", "message");
+        server.flush(successResponseMessage);
+
+        verify(crw1).flush(successResponseMessage);
+        verify(crw2).flush(successResponseMessage);
+
+        server.removeConnection(crw2);
+        server.removeConnection(null);
+
+        String newText = "another message";
+        when(crw1.hasMessage()).thenReturn(true);
+        when(crw1.readLine()).thenReturn(newText);
+
+        MatcherAssert.assertThat(server.getClientReader().readLine(), Matchers.equalTo(newText));
+        verify(crw1, Mockito.times(2)).hasMessage();
+        verify(crw1).readLine();
+        verifyNoMoreInteractions(crw2);
+
+        ResponseMessage<String> failureResponseMessage = new FailureResponseMessage("test", "failure");
+        server.flush(failureResponseMessage);
+
+        verify(crw1).flush(failureResponseMessage);
+        verifyNoMoreInteractions(crw2);
     }
 
     @Test
@@ -106,6 +141,16 @@ class MessagingServerTest {
         } finally {
             System.setErr(err);
         }
+    }
+
+    @Test
+    void serverFlushShouldDelegateToAllClientWriters() {
+        server.addConnection(crw1);
+        server.addConnection(crw2);
+        ResponseMessage<String> message = new SuccessResponseMessage<>("test", "message");
+        server.flush(message);
+        verify(crw1).flush(message);
+        verify(crw2).flush(message);
     }
 
 }

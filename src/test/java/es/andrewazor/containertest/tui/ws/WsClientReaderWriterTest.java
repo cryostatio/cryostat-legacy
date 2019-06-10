@@ -47,7 +47,7 @@ class WsClientReaderWriterTest extends TestBase {
 
     @Test
     void shouldSetServerConnection() {
-        verify(server).setConnection(crw);
+        verify(server).addConnection(crw);
     }
 
     @Test
@@ -76,6 +76,15 @@ class WsClientReaderWriterTest extends TestBase {
 
             MatcherAssert.assertThat(crw.readLine(), Matchers.equalTo(expected));
         });
+    }
+
+    @Test
+    void testHasMessage() {
+        MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(false));
+        crw.onWebSocketText("hello world");
+        MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(true));
+        crw.readLine();
+        MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(false));
     }
 
     @Test

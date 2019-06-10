@@ -1,9 +1,12 @@
 package es.andrewazor.containertest.tui.ws;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import com.google.gson.Gson;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -16,7 +19,7 @@ class MessagingServer {
 
     private final Server server;
     private final Semaphore semaphore = new Semaphore(0, true);
-    private WsClientReaderWriter connection;
+    private final List<WsClientReaderWriter> connections = new ArrayList<>();
 
     MessagingServer(int listenPort, Gson gson) {
         this.server = new Server();
@@ -40,37 +43,58 @@ class MessagingServer {
         server.dump(System.err);
     }
 
-    private void closeConnection() {
-        if (connection != null) {
-            semaphore.drainPermits();
-            connection.close();
+    void addConnection(WsClientReaderWriter crw) {
+        connections.add(crw);
+        semaphore.release();
+    }
+
+    private void closeConnections() {
+        semaphore.drainPermits();
+        connections.forEach(WsClientReaderWriter::close);
+    }
+
+    void flush(ResponseMessage<?> message) {
+        final int permits = Math.max(1, connections.size());
+        try {
+            semaphore.acquireUninterruptibly(permits);
+            connections.forEach(c -> c.flush(message));
+        } finally {
+            semaphore.release(permits);
         }
     }
 
-    WsClientReaderWriter getConnection() {
-        return connection;
-    }
-
-    void setConnection(WsClientReaderWriter crw) {
-        closeConnection();
-        this.connection = crw;
-        semaphore.release();
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
+    void removeConnection(WsClientReaderWriter crw) {
+        if (connections.remove(crw)) {
+            semaphore.tryAcquire();
+        }
     }
 
     ClientReader getClientReader() {
         return new ClientReader() {
             @Override
             public void close() {
-                closeConnection();
+                closeConnections();
             }
 
             @Override
             public String readLine() {
+                final int permits = Math.max(1, connections.size());
                 try {
-                    semaphore.acquireUninterruptibly();
-                    return connection.readLine();
+                    semaphore.acquire(permits);
+                    while (true) {
+                        for (WsClientReaderWriter crw : connections) {
+                            if (crw.hasMessage()) {
+                                return crw.readLine();
+                            }
+                        }
+                        Thread.sleep(100);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    return null;
                 } finally {
-                    semaphore.release();
+                    semaphore.release(permits);
                 }
             }
         };

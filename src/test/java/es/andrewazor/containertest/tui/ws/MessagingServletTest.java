@@ -39,7 +39,7 @@ class MessagingServletTest {
         verify(factory).setCreator(creatorCaptor.capture());
         WebSocketCreator creator = creatorCaptor.getValue();
         Object ws = creator.createWebSocket(null, null);
-        verify(server).setConnection((WsClientReaderWriter) ws);
+        verify(server).addConnection((WsClientReaderWriter) ws);
     }
 
 }

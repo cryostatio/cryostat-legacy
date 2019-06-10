@@ -48,7 +48,6 @@ class WsCommandExecutorTest {
 
     WsCommandExecutor executor;
     @Mock MessagingServer server;
-    @Mock WsClientReaderWriter connection;
     @Mock ClientReader cr;
     @Mock ClientWriter cw;
     @Mock SerializableCommandRegistry commandRegistry;
@@ -69,7 +68,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -77,12 +75,12 @@ class WsCommandExecutorTest {
 
         executor.run(null);
 
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[0]);
         inOrder.verify(commandRegistry).execute("help", new String[0]);
-        inOrder.verify(connection).flush(Mockito.any(SuccessResponseMessage.class));
+        inOrder.verify(server).flush(Mockito.any(SuccessResponseMessage.class));
     }
 
     @Test
@@ -94,7 +92,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -102,12 +99,12 @@ class WsCommandExecutorTest {
 
         executor.run(null);
 
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
         inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
-        inOrder.verify(connection).flush(Mockito.any(SuccessResponseMessage.class));
+        inOrder.verify(server).flush(Mockito.any(SuccessResponseMessage.class));
     }
 
     @Test
@@ -119,7 +116,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -128,12 +124,12 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         ArgumentCaptor<FailureResponseMessage> response = ArgumentCaptor.forClass(FailureResponseMessage.class);
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
         inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
-        inOrder.verify(connection).flush(response.capture());
+        inOrder.verify(server).flush(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-1));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -149,7 +145,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -158,12 +153,12 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         ArgumentCaptor<SuccessResponseMessage<String>> response = ArgumentCaptor.forClass(SuccessResponseMessage.class);
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
         inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
-        inOrder.verify(connection).flush(response.capture());
+        inOrder.verify(server).flush(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -179,7 +174,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -188,12 +182,12 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         ArgumentCaptor<SuccessResponseMessage<List<Integer>>> response = ArgumentCaptor.forClass(SuccessResponseMessage.class);
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
         inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
-        inOrder.verify(connection).flush(response.capture());
+        inOrder.verify(server).flush(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -209,7 +203,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -218,12 +211,12 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         ArgumentCaptor<SuccessResponseMessage<Map<String, String>>> response = ArgumentCaptor.forClass(SuccessResponseMessage.class);
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
         inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
-        inOrder.verify(connection).flush(response.capture());
+        inOrder.verify(server).flush(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -239,7 +232,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -248,12 +240,12 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         ArgumentCaptor<CommandExceptionResponseMessage> response = ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
         inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
-        inOrder.verify(connection).flush(response.capture());
+        inOrder.verify(server).flush(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -269,7 +261,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\",\"args\":[\"hello\",\"world\"]}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -283,12 +274,12 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         ArgumentCaptor<CommandExceptionResponseMessage> response = ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[]{ "hello", "world" });
         inOrder.verify(commandRegistry).execute("help", new String[]{ "hello", "world" });
-        inOrder.verify(connection).flush(response.capture());
+        inOrder.verify(server).flush(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -321,7 +312,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"help\"}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(true);
@@ -329,12 +319,12 @@ class WsCommandExecutorTest {
 
         executor.run(null);
 
-        InOrder inOrder = inOrder(commandRegistry, connection);
+        InOrder inOrder = inOrder(commandRegistry, server);
         inOrder.verify(commandRegistry).getRegisteredCommandNames();
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[0]);
         inOrder.verify(commandRegistry).execute("help", new String[0]);
-        inOrder.verify(connection).flush(Mockito.any(SuccessResponseMessage.class));
+        inOrder.verify(server).flush(Mockito.any(SuccessResponseMessage.class));
     }
 
     @Test
@@ -346,12 +336,11 @@ class WsCommandExecutorTest {
                 return "{\"commandName\":\"foo\"}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
 
         executor.run(null);
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor = ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(connection).flush(messageCaptor.capture());
+        verify(server).flush(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
@@ -365,7 +354,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"foo\"}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("bar"));
 
         executor.run(null);
@@ -374,7 +362,7 @@ class WsCommandExecutorTest {
         verifyNoMoreInteractions(commandRegistry);
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor = ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(connection).flush(messageCaptor.capture());
+        verify(server).flush(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
@@ -388,7 +376,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"foo\"}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class))).thenReturn(false);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("foo"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
@@ -402,7 +389,7 @@ class WsCommandExecutorTest {
         verifyNoMoreInteractions(commandRegistry);
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor = ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(connection).flush(messageCaptor.capture());
+        verify(server).flush(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
@@ -416,7 +403,6 @@ class WsCommandExecutorTest {
                 return "{\"command\":\"foo\"}";
             }
         });
-        when(server.getConnection()).thenReturn(connection);
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("foo"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(false);
 
@@ -428,7 +414,7 @@ class WsCommandExecutorTest {
         verifyNoMoreInteractions(commandRegistry);
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor = ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(connection).flush(messageCaptor.capture());
+        verify(server).flush(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
@@ -447,12 +433,11 @@ class WsCommandExecutorTest {
                     return "{\"command\":\"help}";
                 }
             });
-            when(server.getConnection()).thenReturn(connection);
 
             executor.run(null);
 
             ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor = ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
-            verify(connection).flush(messageCaptor.capture());
+            verify(server).flush(messageCaptor.capture());
             ResponseMessage<String> message = messageCaptor.getValue();
             MatcherAssert.assertThat(message.status, Matchers.equalTo(-2));
 
