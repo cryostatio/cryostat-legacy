@@ -8,14 +8,10 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.openjdk.jmc.common.unit.QuantityConversionException;
+import es.andrewazor.containertest.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.commands.SerializableCommand;
-import es.andrewazor.containertest.jmc.serialization.SerializableRecordingDescriptor;
 import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -93,39 +89,4 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
         return sb.toString();
     }
 
-    static class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
-
-        private String downloadUrl;
-        private String reportUrl;
-
-        HyperlinkedSerializableRecordingDescriptor(IRecordingDescriptor original, String downloadUrl, String reportUrl)
-                throws QuantityConversionException {
-            super(original);
-            this.downloadUrl = downloadUrl;
-            this.reportUrl = reportUrl;
-        }
-
-        public String getDownloadUrl() {
-            return downloadUrl;
-        }
-
-        public String getReportUrl() {
-            return reportUrl;
-        }
-
-        @Override
-        public String toString() {
-            return ToStringBuilder.reflectionToString(this);
-        }
-
-        @Override
-        public int hashCode() {
-            return HashCodeBuilder.reflectionHashCode(this);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            return EqualsBuilder.reflectionEquals(this, o);
-        }
-    }
 }
