@@ -80,8 +80,12 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
 
         for (Method m : descriptor.getClass().getDeclaredMethods()) {
             if (m.getParameterTypes().length == 0 && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
-                sb.append("\t" + m.getName());
-                sb.append("\t\t" + m.invoke(descriptor));
+                sb.append("\t") ;
+                sb.append(m.getName());
+
+                sb.append("\t\t");
+                sb.append(m.invoke(descriptor));
+
                 sb.append("\n");
             }
         }
