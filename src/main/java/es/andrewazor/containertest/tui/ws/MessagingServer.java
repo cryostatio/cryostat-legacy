@@ -48,9 +48,17 @@ class MessagingServer {
         semaphore.release();
     }
 
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
+    void removeConnection(WsClientReaderWriter crw) {
+        if (connections.remove(crw)) {
+            semaphore.tryAcquire();
+        }
+    }
+
     private void closeConnections() {
         semaphore.drainPermits();
         connections.forEach(WsClientReaderWriter::close);
+        connections.clear();
     }
 
     void flush(ResponseMessage<?> message) {
@@ -60,13 +68,6 @@ class MessagingServer {
             connections.forEach(c -> c.flush(message));
         } finally {
             semaphore.release(permits);
-        }
-    }
-
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
-    void removeConnection(WsClientReaderWriter crw) {
-        if (connections.remove(crw)) {
-            semaphore.tryAcquire();
         }
     }
 
