@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 
@@ -63,16 +64,19 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
     public void print(String s) { }
 
     void flush(ResponseMessage<?> message) {
+        boolean acquired = false;
         try {
-            semaphore.acquireUninterruptibly();
-            try {
+            acquired = semaphore.tryAcquire(3, TimeUnit.SECONDS);
+            if (acquired) {
                 getRemote().sendString(gson.toJson(message));
                 getRemote().flush();
-            } catch (IOException e) {
-                e.printStackTrace();
             }
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
         } finally {
-            semaphore.release();
+            if (acquired) {
+                semaphore.release();
+            }
         }
     }
 
