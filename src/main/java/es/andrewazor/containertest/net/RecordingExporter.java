@@ -58,12 +58,12 @@ public class RecordingExporter implements ConnectionListener {
 
     @Override
     public void connectionChanged(JMCConnection connection) {
-        if (connection == null) {
-            stop();
-            return;
+        if (connection != null) {
+            this.service = connection.getService();
+        } else {
+            this.service = null;
         }
 
-        this.service = connection.getService();
         try {
             restart();
         } catch (Exception e) {
@@ -73,11 +73,11 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     public void start() throws IOException, FlightRecorderException {
-        if (this.service != null && !this.server.isAlive()) {
+        if (!this.server.isAlive()) {
             this.server.start();
-            this.service.getAvailableRecordings().forEach(this::addRecording);
-
-            cw.println(String.format("Recordings available at %s", this.getDownloadURL("$RECORDING_NAME")));
+            if (this.service != null) {
+                this.service.getAvailableRecordings().forEach(this::addRecording);
+            }
         }
     }
 

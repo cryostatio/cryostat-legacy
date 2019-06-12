@@ -13,6 +13,7 @@ import org.eclipse.core.runtime.RegistryFactory;
 import dagger.BindsInstance;
 import dagger.Component;
 import es.andrewazor.containertest.jmc.RegistryProvider;
+import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.sys.Environment;
 import es.andrewazor.containertest.tui.CommandExecutor;
 
@@ -46,11 +47,17 @@ class JMXClient {
             port = -1;
         }
 
-        DaggerJMXClient_Client
+        Client client = DaggerJMXClient_Client
             .builder()
             .mode(mode)
             .port(port)
-            .build()
+            .build();
+
+        client
+            .recordingExporter()
+            .start();
+
+        client
             .commandExecutor()
             .run(clientArgs);
     }
@@ -59,6 +66,7 @@ class JMXClient {
     @Component(modules = { MainModule.class })
     interface Client {
         CommandExecutor commandExecutor();
+        RecordingExporter recordingExporter();
 
         @Component.Builder
         interface Builder {
