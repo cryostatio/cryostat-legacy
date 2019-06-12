@@ -5,11 +5,13 @@ import java.util.regex.Pattern;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import es.andrewazor.containertest.tui.ClientWriter;
 
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
+    private static final Pattern ALL_EVENTS_PATTERN = Pattern.compile("^ALL$", Pattern.MULTILINE);
     private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
     protected final ClientWriter cw;
@@ -24,6 +26,24 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
     }
 
     protected IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {
+        if (ALL_EVENTS_PATTERN.matcher(events).matches()) {
+            return enableAllEvents();
+        }
+
+        return enableSelectedEvents(events);
+    }
+
+    protected IConstrainedMap<EventOptionID> enableAllEvents() throws Exception {
+        EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
+
+        for (IEventTypeInfo eventTypeInfo : getService().getAvailableEventTypes()) {
+            builder.addEvent(eventTypeInfo.getEventTypeID().getFullKey(), "enabled", "true");
+        }
+
+        return builder.build();
+    }
+
+    protected IConstrainedMap<EventOptionID> enableSelectedEvents(String events) throws Exception {
         EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
 
         Matcher matcher = EVENTS_PATTERN.matcher(events);
@@ -40,7 +60,7 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
     protected boolean validateEvents(String events) {
         // TODO better validation of entire events string (not just looking for one acceptable setting)
-        if (!EVENTS_PATTERN.matcher(events).find()) {
+        if (!ALL_EVENTS_PATTERN.matcher(events).matches() && !EVENTS_PATTERN.matcher(events).find()) {
             cw.println(String.format("%s is an invalid events pattern", events));
             return false;
         }

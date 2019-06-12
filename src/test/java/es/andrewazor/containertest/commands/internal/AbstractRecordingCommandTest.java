@@ -1,8 +1,8 @@
 package es.andrewazor.containertest.commands.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.emptyString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -11,15 +11,20 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.util.Collection;
+import java.util.Collections;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import es.andrewazor.containertest.TestBase;
 import es.andrewazor.containertest.net.JMCConnection;
@@ -54,7 +59,8 @@ class AbstractRecordingCommandTest extends TestBase {
     @ValueSource(strings = {
         "foo.Event:prop=val",
         "foo.Event:prop=val,bar.Event:thing=1",
-        "foo.class$Inner:prop=val"
+        "foo.class$Inner:prop=val",
+        "ALL"
     })
     void shouldValidateValidEventString(String events) {
         assertTrue(command.validateEvents(events));
@@ -62,7 +68,7 @@ class AbstractRecordingCommandTest extends TestBase {
     }
 
     @Test
-    void shouldBuildEventMap() throws Exception {
+    void shouldBuildSelectedEventMap() throws Exception {
         verifyZeroInteractions(eventOptionsBuilderFactory);
 
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
@@ -73,6 +79,31 @@ class AbstractRecordingCommandTest extends TestBase {
         verify(builder).addEvent("foo.Bar$Inner", "prop", "some");
         verify(builder).addEvent("bar.Baz$Inner2", "key", "val");
         verify(builder).addEvent("jdk.CPULoad", "enabled", "true");
+        verify(builder).build();
+
+        verifyNoMoreInteractions(builder);
+        verifyNoMoreInteractions(eventOptionsBuilderFactory);
+    }
+
+    @Test
+    void shouldBuildAllEventMap() throws Exception {
+        verifyZeroInteractions(eventOptionsBuilderFactory);
+
+        EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
+        when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
+
+        IEventTypeInfo mockEvent = mock(IEventTypeInfo.class);
+        IEventTypeID mockEventTypeId = mock(IEventTypeID.class);
+        when(mockEventTypeId.getFullKey()).thenReturn("com.example.Event");
+        when(mockEvent.getEventTypeID()).thenReturn(mockEventTypeId);
+        IFlightRecorderService mockService = mock(IFlightRecorderService.class);
+        when(connection.getService()).thenReturn(mockService);
+        when(mockService.getAvailableEventTypes()).thenReturn((Collection) Collections.singletonList(mockEvent));
+
+        command.connectionChanged(connection);
+        command.enableEvents("ALL");
+
+        verify(builder).addEvent("com.example.Event", "enabled", "true");
         verify(builder).build();
 
         verifyNoMoreInteractions(builder);
