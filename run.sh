@@ -24,6 +24,7 @@ docker run \
     --cpus 1.0 \
     --mount source=flightrecordings,target=/flightrecordings \
     -p 9090:9090 \
+    -p 8090:8080 \
     -e CONTAINER_DOWNLOAD_HOST=$CONTAINER_DOWNLOAD_HOST \
     -e CONTAINER_DOWNLOAD_PORT=$CONTAINER_DOWNLOAD_PORT \
     --rm -it andrewazores/container-jmx-client "$@"
