@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.file.Path;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -23,7 +24,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -35,6 +35,7 @@ import fi.iki.elonen.NanoHTTPD;
 class RecordingExporterTest extends TestBase {
 
     RecordingExporter exporter;
+    @Mock Path recordingsPath;
     @Mock Environment env;
     @Mock JMCConnection connection;
     @Mock IFlightRecorderService service;
@@ -43,7 +44,7 @@ class RecordingExporterTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        exporter = new RecordingExporter(env, mockClientWriter, resolver, server);
+        exporter = new RecordingExporter(recordingsPath, env, mockClientWriter, resolver, server);
     }
 
     @Test
@@ -57,7 +58,7 @@ class RecordingExporterTest extends TestBase {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         when(env.getEnv(Mockito.eq("CONTAINER_DOWNLOAD_PORT"), Mockito.anyString())).thenReturn("1234");
-        assertDoesNotThrow(() -> new RecordingExporter(env, mockClientWriter, resolver));
+        assertDoesNotThrow(() -> new RecordingExporter(recordingsPath, env, mockClientWriter, resolver));
     }
 
     @Test
@@ -66,10 +67,6 @@ class RecordingExporterTest extends TestBase {
         when(server.isAlive())
             .thenReturn(true)
             .thenReturn(false);
-        when(resolver.getHostAddress()).thenReturn("host-address");
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation ->
-            (String) invocation.getArguments()[1]
-        );
 
         exporter.connectionChanged(connection);
 
@@ -80,9 +77,6 @@ class RecordingExporterTest extends TestBase {
         inOrder.verify(server).stop();
         inOrder.verify(server).isAlive();
         inOrder.verify(server).start();
-
-        MatcherAssert.assertThat(stdout(),
-                Matchers.equalTo("Recordings available at http://host-address:8080/$RECORDING_NAME\n"));
 
         verifyNoMoreInteractions(server);
         verifyNoMoreInteractions(connection);
@@ -123,10 +117,6 @@ class RecordingExporterTest extends TestBase {
             .thenReturn(true)
             .thenReturn(false)
             .thenReturn(true);
-        when(resolver.getHostAddress()).thenReturn("host-address");
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation ->
-            (String) invocation.getArguments()[1]
-        );
 
         exporter.connectionChanged(connection);
 
@@ -137,9 +127,6 @@ class RecordingExporterTest extends TestBase {
         inOrder.verify(server).stop();
         inOrder.verify(server).isAlive();
         inOrder.verify(server).start();
-
-        MatcherAssert.assertThat(stdout(),
-                Matchers.equalTo("Recordings available at http://host-address:8080/$RECORDING_NAME\n"));
 
         verifyNoMoreInteractions(server);
         verifyNoMoreInteractions(connection);

@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import es.andrewazor.containertest.commands.SerializableCommand.ExceptionOutput;
 import es.andrewazor.containertest.commands.SerializableCommand.Output;
 import es.andrewazor.containertest.commands.SerializableCommand.StringOutput;
-import es.andrewazor.containertest.net.JMCConnection;
 import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
@@ -44,13 +43,7 @@ class PrintUrlCommandTest {
     }
 
     @Test
-    void shouldBeUnavailableBeforeConnection() {
-        assertFalse(command.isAvailable());
-    }
-
-    @Test
-    void shouldBeAvailableAfterConnection() {
-        command.connectionChanged(mock(JMCConnection.class));
+    void shouldBeAvailable() {
         assertTrue(command.isAvailable());
     }
 
