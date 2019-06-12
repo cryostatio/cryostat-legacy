@@ -3,6 +3,7 @@ package es.andrewazor.containertest.commands.internal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Collections;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -32,8 +33,9 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     public void execute(String[] args) throws Exception {
         cw.println("Saved recordings:");
         String[] saved = recordingsPath.toFile().list();
-        if (saved.length == 0) {
+        if (saved == null || saved.length == 0) {
             cw.println("\tNone");
+            return;
         }
         for (String file : saved) {
             cw.println(String.format("\t%s", file));
@@ -42,7 +44,11 @@ class ListSavedRecordingsCommand implements SerializableCommand {
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        return new ListOutput<String>(Arrays.asList(recordingsPath.toFile().list()));
+        String[] saved = recordingsPath.toFile().list();
+        if (saved == null) {
+            return new ListOutput<String>(Collections.emptyList());
+        }
+        return new ListOutput<String>(Arrays.asList(saved));
     }
 
     @Override
