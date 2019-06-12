@@ -8,7 +8,7 @@ import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
-class PrintUrlCommand extends AbstractConnectedCommand implements SerializableCommand {
+class PrintUrlCommand implements SerializableCommand {
 
     private final ClientWriter cw;
     private final RecordingExporter exporter;
@@ -43,6 +43,11 @@ class PrintUrlCommand extends AbstractConnectedCommand implements SerializableCo
             cw.println("No arguments expected");
             return false;
         }
+        return true;
+    }
+
+    @Override
+    public boolean isAvailable() {
         return true;
     }
 

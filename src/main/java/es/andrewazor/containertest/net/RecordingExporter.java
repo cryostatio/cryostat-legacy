@@ -5,7 +5,11 @@ import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -33,6 +37,7 @@ public class RecordingExporter implements ConnectionListener {
     static final String HOST_VAR = "CONTAINER_DOWNLOAD_HOST";
     static final String PORT_VAR = "CONTAINER_DOWNLOAD_PORT";
 
+    private final Path savedRecordingsPath;
     private final Environment env;
     private final ClientWriter cw;
     private IFlightRecorderService service;
@@ -41,7 +46,8 @@ public class RecordingExporter implements ConnectionListener {
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    RecordingExporter(Environment env, ClientWriter cw, NetworkResolver resolver) {
+    RecordingExporter(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver) {
+        this.savedRecordingsPath = savedRecordingsPath;
         this.env = env;
         this.cw = cw;
         this.resolver = resolver;
@@ -49,7 +55,8 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     // Testing-only constructor
-    RecordingExporter(Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+    RecordingExporter(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+        this.savedRecordingsPath = savedRecordingsPath;
         this.env = env;
         this.cw = cw;
         this.resolver = resolver;
@@ -148,16 +155,28 @@ public class RecordingExporter implements ConnectionListener {
 
         private Response serveRecording(Matcher matcher) {
             String recordingName = matcher.group(1);
-            if (!recordings.containsKey(recordingName)) {
-                return newNotFoundResponse(recordingName);
+            if (recordings.containsKey(recordingName)) {
+                try {
+                    return newFlightRecorderResponse(recordingName);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    cw.println(e);
+                    return newCouldNotBeOpenedResponse(recordingName);
+                }
             }
             try {
-                return newFlightRecorderResponse(recordingName);
-            } catch (Exception e) {
+                Optional<Path> savedRecording = Files.list(savedRecordingsPath)
+                        .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
+                        .findFirst();
+                if (savedRecording.isPresent()) {
+                    return newSavedRecordingResponse(savedRecording.get());
+                }
+            } catch (IOException e) {
                 e.printStackTrace();
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
+            return newNotFoundResponse(recordingName);
         }
 
         private Response serveReport(Matcher matcher) {
@@ -201,6 +220,12 @@ public class RecordingExporter implements ConnectionListener {
                     }
                 }
             };
+            r.addHeader("Access-Control-Allow-Origin", "*");
+            return r;
+        }
+
+        private Response newSavedRecordingResponse(Path savedRecording) throws IOException {
+            Response r = new Response(Status.OK, "application/octet-stream", Files.newInputStream(savedRecording, StandardOpenOption.READ), -1){ };
             r.addHeader("Access-Control-Allow-Origin", "*");
             return r;
         }

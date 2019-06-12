@@ -21,6 +21,7 @@ import es.andrewazor.containertest.tui.ClientWriter;
 public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindConnectCommand(ConnectCommand command);
     @Binds @IntoSet abstract Command bindDeleteCommand(DeleteCommand command);
+    @Binds @IntoSet abstract Command bindDeleteSavedRecordingCommand(DeleteSavedRecordingCommand command);
     @Binds @IntoSet abstract Command bindDisconnectCommand(DisconnectCommand command);
     @Binds @IntoSet abstract Command bindDumpCommand(DumpCommand command);
     @Binds @IntoSet abstract Command bindExitCommand(ExitCommand command);
@@ -31,10 +32,12 @@ public abstract class CommandsInternalModule {
     @Binds @IntoSet abstract Command bindListCommand(ListCommand command);
     @Binds @IntoSet abstract Command bindListEventTypesCommand(ListEventTypesCommand command);
     @Binds @IntoSet abstract Command bindListRecordingOptionsCommand(ListRecordingOptionsCommand command);
+    @Binds @IntoSet abstract Command bindListSavedRecordingsCommand(ListSavedRecordingsCommand command);
     @Binds @IntoSet abstract Command bindPingCommand(PingCommand command);
     @Binds @IntoSet abstract Command bindPortScanCommand(PortScanCommand command);
     @Binds @IntoSet abstract Command bindPrintUrlCommand(PrintUrlCommand command);
     @Binds @IntoSet abstract Command bindRecordingOptionsCustomizerCommand(RecordingOptionsCustomizerCommand command);
+    @Binds @IntoSet abstract Command bindSaveRecordingCommand(SaveRecordingCommand command);
     @Binds @IntoSet abstract Command bindSearchEventsCommand(SearchEventsCommand command);
     @Binds @IntoSet abstract Command bindSnapshotCommand(SnapshotCommand command);
     @Binds @IntoSet abstract Command bindStartRecordingCommand(StartRecordingCommand command);

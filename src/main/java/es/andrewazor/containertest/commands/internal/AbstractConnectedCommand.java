@@ -20,7 +20,7 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
     }
 
     @Override
-    public final boolean isAvailable() {
+    public boolean isAvailable() {
         return this.connection != null;
     }
 

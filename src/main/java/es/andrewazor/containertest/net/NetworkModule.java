@@ -1,5 +1,8 @@
 package es.andrewazor.containertest.net;
 
+import java.nio.file.Path;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import dagger.Binds;
@@ -18,8 +21,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static RecordingExporter provideRecordingExporter(Environment env, ClientWriter cw, NetworkResolver resolver) {
-        return new RecordingExporter(env, cw, resolver);
+    static RecordingExporter provideRecordingExporter(@Named("RECORDINGS_PATH") Path recordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver) {
+        return new RecordingExporter(recordingsPath, env, cw, resolver);
     }
 
     @Provides

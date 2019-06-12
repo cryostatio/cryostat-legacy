@@ -1,5 +1,9 @@
 package es.andrewazor.containertest;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
@@ -25,5 +29,11 @@ abstract class MainModule {
         return new GsonBuilder()
             .serializeNulls()
             .create();
+    }
+
+    @Provides
+    @Named("RECORDINGS_PATH")
+    static Path provideSavedRecordingsPath() {
+        return Paths.get("flightrecordings");
     }
 }
