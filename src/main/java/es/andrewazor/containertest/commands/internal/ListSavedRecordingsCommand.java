@@ -1,15 +1,24 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.net.MalformedURLException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+
 import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.net.RecordingExporter;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
@@ -17,11 +26,14 @@ class ListSavedRecordingsCommand implements SerializableCommand {
 
     private final ClientWriter cw;
     private final Path recordingsPath;
+    private final RecordingExporter exporter;
 
     @Inject
-    ListSavedRecordingsCommand(ClientWriter cw, @Named("RECORDINGS_PATH") Path recordingsPath) {
+    ListSavedRecordingsCommand(ClientWriter cw, @Named("RECORDINGS_PATH") Path recordingsPath,
+            RecordingExporter exporter) {
         this.cw = cw;
         this.recordingsPath = recordingsPath;
+        this.exporter = exporter;
     }
 
     @Override
@@ -46,9 +58,17 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     public Output<?> serializableExecute(String[] args) {
         String[] saved = recordingsPath.toFile().list();
         if (saved == null) {
-            return new ListOutput<String>(Collections.emptyList());
+            return new ListOutput<SavedRecordingDescriptor>(Collections.emptyList());
         }
-        return new ListOutput<String>(Arrays.asList(saved));
+        List<SavedRecordingDescriptor> recordings = new ArrayList<>(saved.length);
+        for (String name : saved) {
+            try {
+                recordings.add(new SavedRecordingDescriptor(name, exporter.getDownloadURL(name)));
+            } catch (UnknownHostException | MalformedURLException | SocketException e) {
+                e.printStackTrace();
+            }
+        }
+        return new ListOutput<SavedRecordingDescriptor>(recordings);
     }
 
     @Override
@@ -63,6 +83,40 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     @Override
     public boolean isAvailable() {
         return Files.isDirectory(recordingsPath);
+    }
+
+    static class SavedRecordingDescriptor {
+
+        private final String name;
+        private final String downloadUrl;
+
+        SavedRecordingDescriptor(String name, String downloadUrl) {
+            this.name = name;
+            this.downloadUrl = downloadUrl;
+        }
+
+        String getName() {
+            return this.name;
+        }
+
+        String getDownloadUrl() {
+            return this.downloadUrl;
+        }
+
+        @Override
+        public String toString() {
+            return ToStringBuilder.reflectionToString(this);
+        }
+
+        @Override
+        public int hashCode() {
+            return HashCodeBuilder.reflectionHashCode(this);
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            return EqualsBuilder.reflectionEquals(this, o);
+        }
     }
 
 }
