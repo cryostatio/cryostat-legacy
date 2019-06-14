@@ -18,4 +18,10 @@ public abstract class SystemModule {
     static Environment provideEnvironment() {
         return new Environment();
     }
+
+    @Provides
+    @Singleton
+    static FileSystem provideFileSystem() {
+        return new FileSystem();
+    }
 }

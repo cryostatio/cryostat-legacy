@@ -1,5 +1,6 @@
 package es.andrewazor.containertest.commands.internal;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -9,20 +10,24 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.sys.FileSystem;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class SaveRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
+    private final FileSystem fs;
     private final Path recordingsPath;
 
     @Inject
-    SaveRecordingCommand(ClientWriter cw, @Named("RECORDINGS_PATH") Path recordingsPath) {
+    SaveRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath) {
         this.cw = cw;
+        this.fs = fs;
         this.recordingsPath = recordingsPath;
     }
 
@@ -37,11 +42,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
         Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
         if (descriptor.isPresent()) {
-            Files.copy(
-                getService().openStream(descriptor.get(), false),
-                recordingsPath.resolve(String.format("%s.jfr", descriptor.get().getName())),
-                StandardCopyOption.REPLACE_EXISTING
-            );
+            saveRecording(descriptor.get());
         } else {
             cw.println(String.format("Recording with name \"%s\" not found", name));
             return;
@@ -55,11 +56,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         try {
             Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
             if (descriptor.isPresent()) {
-                Files.copy(
-                    getService().openStream(descriptor.get(), false),
-                    recordingsPath.resolve(String.format("%s.jfr", descriptor.get().getName())),
-                    StandardCopyOption.REPLACE_EXISTING
-                );
+                saveRecording(descriptor.get());
                 return new SuccessOutput();
             } else {
                 return new FailureOutput(String.format("Recording with name \"%s\" not found", name));
@@ -88,7 +85,16 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     @Override
     public boolean isAvailable() {
-        return super.isAvailable() && recordingsPath.toFile().isDirectory();
+        return super.isAvailable() && fs.isDirectory(recordingsPath);
+    }
+
+    private void saveRecording(IRecordingDescriptor descriptor)
+            throws IOException, FlightRecorderException, JMXConnectionException {
+        fs.copy(
+            getService().openStream(descriptor, false),
+            recordingsPath.resolve(String.format("%s.jfr", descriptor.getName())),
+            StandardCopyOption.REPLACE_EXISTING
+        );
     }
 
 }

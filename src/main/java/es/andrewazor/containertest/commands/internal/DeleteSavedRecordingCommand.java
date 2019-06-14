@@ -1,6 +1,5 @@
 package es.andrewazor.containertest.commands.internal;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
 
 import javax.inject.Inject;
@@ -8,17 +7,20 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import es.andrewazor.containertest.commands.SerializableCommand;
+import es.andrewazor.containertest.sys.FileSystem;
 import es.andrewazor.containertest.tui.ClientWriter;
 
 @Singleton
 class DeleteSavedRecordingCommand implements SerializableCommand {
 
     private final ClientWriter cw;
+    private final FileSystem fs;
     private final Path recordingsPath;
 
     @Inject
-    DeleteSavedRecordingCommand(ClientWriter cw, @Named("RECORDINGS_PATH") Path recordingsPath) {
+    DeleteSavedRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath) {
         this.cw = cw;
+        this.fs = fs;
         this.recordingsPath = recordingsPath;
     }
 
@@ -30,10 +32,10 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
     @Override
     public void execute(String[] args) throws Exception {
         String name = args[0];
-        if (Files.deleteIfExists(recordingsPath.resolve(name))) {
-            cw.println(String.format("%s deleted", name));
+        if (fs.deleteIfExists(recordingsPath.resolve(name))) {
+            cw.println(String.format("\"%s\" deleted", name));
         } else {
-            cw.println(String.format("Could not delete saved recording %s", name));
+            cw.println(String.format("Could not delete saved recording \"%s\"", name));
         }
     }
 
@@ -41,11 +43,10 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
     public Output<?> serializableExecute(String[] args) {
         try {
             String name = args[0];
-            if (Files.deleteIfExists(recordingsPath.resolve(name))) {
-                cw.println(String.format("%s deleted", name));
+            if (fs.deleteIfExists(recordingsPath.resolve(name))) {
                 return new SuccessOutput();
             } else {
-                return new FailureOutput(String.format("Could not delete saved recording %s", name));
+                return new FailureOutput(String.format("Could not delete saved recording \"%s\"", name));
             }
         } catch (Exception e) {
             return new ExceptionOutput(e);
@@ -63,7 +64,7 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
 
     @Override
     public boolean isAvailable() {
-        return Files.isDirectory(recordingsPath);
+        return fs.isDirectory(recordingsPath);
     }
 
 }
