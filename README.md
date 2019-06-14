@@ -1,4 +1,4 @@
-# Container-JMC
+# Container-JFR
 
 ## SEE ALSO
 See
@@ -44,17 +44,17 @@ invoke the client with no args (`./gradlew run --args="''"`) or with the flag
 `-it`: `./gradlew run --args="-it"`. And for interactive socket mode, pass the
 flag `-d`: `./gradlew run --args="-d"`.
 
-The `run.sh` script can be used to spin up a Docker container of the JMXClient,
-running alone but set up so that it is able to introspect itself with JFR. This
-can be achieved by doing `sh run.sh -it` and then typing
-`connect jmx-client:9091` into the client shell that appears. When running in
+The `run.sh` script can be used to spin up a Docker container of the Container
+JFR Client, running alone but set up so that it is able to introspect itself
+with JFR. This can be achieved by doing `sh run.sh -it` and then typing
+`connect container-jfr:9091` into the client shell that appears. When running in
 this container, all three execution modes described above are still available
 and accessible using the same mthods. Some client shell demo scripts are also
 available in the `demos` directory. These can be used with batch mode, ex.
 `sh run.sh "$(more demos/print_help)"`.
 
 There are three environment variables that the client checks during its
-runtime: `CONTAINER_DOWNLOAD_HOST`, `CONTAINER_DOWNLOAD_PORT`, and
+runtime: `CONTAINER_JFR_DOWNLOAD_HOST`, `CONTAINER_JFR_DOWNLOAD_PORT`, and
 `LISTEN_PORT`. The former two are used by the embedded webserver for
 controlling the port and hostname used and displayed when making recordings
 available for export (download). The latter is used when running the client in

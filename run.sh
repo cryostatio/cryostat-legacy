@@ -5,26 +5,26 @@ set -x
 function cleanup() {
     set +e
     # TODO: better container management
-    docker kill $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-client)
-    docker rm $(docker ps -a -q --filter ancestor=andrewazores/container-jmx-client)
+    docker kill $(docker ps -a -q --filter ancestor=andrewazores/container-jfr)
+    docker rm $(docker ps -a -q --filter ancestor=andrewazores/container-jfr)
 }
 
 cleanup
 trap cleanup EXIT
 
 set +e
-docker network create --attachable jmx-test
+docker network create --attachable container-jfr
 set -e
 
 docker run \
-    --net jmx-test \
-    --hostname jmx-client \
-    --name jmx-client \
+    --net container-jfr \
+    --hostname container-jfr \
+    --name container-jfr \
     --memory 80M \
     --cpus 1.0 \
     --mount source=flightrecordings,target=/flightrecordings \
     -p 9090:9090 \
     -p 8090:8080 \
-    -e CONTAINER_DOWNLOAD_HOST=$CONTAINER_DOWNLOAD_HOST \
-    -e CONTAINER_DOWNLOAD_PORT=$CONTAINER_DOWNLOAD_PORT \
-    --rm -it andrewazores/container-jmx-client "$@"
+    -e CONTAINER_JFR_DOWNLOAD_HOST=$CONTAINER_JFR_DOWNLOAD_HOST \
+    -e CONTAINER_JFR_DOWNLOAD_PORT=$CONTAINER_JFR_DOWNLOAD_PORT \
+    --rm -it andrewazores/container-jfr "$@"
