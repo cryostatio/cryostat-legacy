@@ -5,8 +5,8 @@ set -x
 function cleanup() {
     set +e
     # TODO: better container management
-    docker kill $(docker ps -a -q --filter ancestor=andrewazores/container-jfr)
-    docker rm $(docker ps -a -q --filter ancestor=andrewazores/container-jfr)
+    docker kill $(docker ps -a -q --filter ancestor=quay.io/rh-jmc-team/container-jfr)
+    docker rm $(docker ps -a -q --filter ancestor=quay.io/rh-jmc-team/container-jfr)
 }
 
 cleanup
@@ -27,4 +27,4 @@ docker run \
     -p 8090:8080 \
     -e CONTAINER_JFR_DOWNLOAD_HOST=$CONTAINER_JFR_DOWNLOAD_HOST \
     -e CONTAINER_JFR_DOWNLOAD_PORT=$CONTAINER_JFR_DOWNLOAD_PORT \
-    --rm -it andrewazores/container-jfr "$@"
+    --rm -it quay.io/rh-jmc-team/container-jfr "$@"

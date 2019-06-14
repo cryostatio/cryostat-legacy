@@ -66,8 +66,6 @@ jib {
     }
 }
 
-tasks.build.dependsOn tasks.jib
-
 test {
     useJUnitPlatform()
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
