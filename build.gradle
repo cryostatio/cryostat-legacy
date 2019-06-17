@@ -48,7 +48,7 @@ jib {
         image = 'gcr.io/distroless/java:11'
     }
     to {
-        image = 'andrewazores/container-jfr'
+        image = 'quay.io/rh-jmc-team/container-jfr'
     }
     container {
         useCurrentTimestamp = true
