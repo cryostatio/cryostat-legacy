@@ -18,6 +18,7 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 
 @Singleton
 class UploadSavedRecordingCommand implements SerializableCommand {
@@ -50,11 +51,12 @@ class UploadSavedRecordingCommand implements SerializableCommand {
     public Output<?> serializableExecute(String[] args) {
         try {
             ResponseMessage response = doPost(args[0], args[1]);
-            if (200 <= response.status.getStatusCode() && response.status.getStatusCode() <= 299) {
-                return new FailureOutput(response.body);
-            } else {
-                return new StringOutput(response.body) ;
-            }
+            return new MapOutput<>(
+                Map.of(
+                    "status", response.status,
+                    "body", response.body
+                )
+            );
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
