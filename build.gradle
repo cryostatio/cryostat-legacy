@@ -21,6 +21,8 @@ dependencies {
     implementation "org.openjdk.jmc:org.openjdk.jmc.ui.common:${jmcVersion}"
 
     implementation 'org.apache.commons:commons-lang3:3.8.1+'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.9'
+    implementation 'org.apache.httpcomponents:httpmime:4.5.9'
     implementation 'org.eclipse.core:runtime:3.10.0+'
     implementation 'org.nanohttpd:nanohttpd:2.3.1+'
     implementation 'com.google.dagger:dagger:2.21'

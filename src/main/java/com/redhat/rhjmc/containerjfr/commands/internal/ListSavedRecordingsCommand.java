@@ -59,7 +59,7 @@ class ListSavedRecordingsCommand implements SerializableCommand {
         } catch (IOException e) {
             return new ExceptionOutput(e);
         }
-        return new ListOutput<SavedRecordingDescriptor>(recordings);
+        return new ListOutput<>(recordings);
     }
 
     @Override
