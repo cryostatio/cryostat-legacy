@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -19,6 +20,8 @@ import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 @Singleton
 class PortScanCommand implements SerializableCommand {
+
+    private static final String KUBERNETES_ENV_SUFFIX = "_PORT_9091_TCP_ADDR";
 
     private final ClientWriter cw;
 
@@ -48,15 +51,41 @@ class PortScanCommand implements SerializableCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        scan().forEach(m -> cw.println(String.format("%s -> %s", m.hostname, m.ip)));
+        findCompatibleJvms().forEach(m -> cw.println(String.format("%s -> %s", m.hostname, m.ip)));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return new ListOutput<>(scan());
+            return new ListOutput<>(findCompatibleJvms());
         } catch (Exception e) {
             return new ExceptionOutput(e);
+        }
+    }
+
+    private List<IpHostMapping> findCompatibleJvms() throws UnknownHostException, InterruptedException {
+        // Check for environment variables added by Kubernetes that indicate
+        // IP addresses listening on port 9091.
+        List<IpHostMapping> mapping = System.getenv().entrySet().parallelStream()
+                .filter(e -> e.getKey().endsWith(KUBERNETES_ENV_SUFFIX))
+                .map(e -> {
+                    try {
+                        return testHost(InetAddress.getByName(e.getValue()));
+                    } catch (IOException ignored) {
+                        return null;
+                    }
+                }).filter(m -> m != null).collect(Collectors.toList());
+        if (mapping.isEmpty()) {
+            // No matches from environment variables, use port scan
+            mapping = scan();
+        }
+        return mapping;
+    }
+
+    private IpHostMapping testHost(InetAddress addr) throws IOException {
+        try (Socket s = new Socket()) {
+            s.connect(new InetSocketAddress(addr, 9091), 100);
+            return new IpHostMapping(addr.getHostAddress(), addr.getCanonicalHostName());
         }
     }
 
@@ -76,11 +105,9 @@ class PortScanCommand implements SerializableCommand {
             };
             executor.submit(() -> {
                 try {
-                    Socket s = new Socket();
                     InetAddress addr = InetAddress.getByAddress(remote);
-                    s.connect(new InetSocketAddress(addr, 9091), 100);
-                    s.close();
-                    result.add(new IpHostMapping(addr.getHostAddress(), addr.getCanonicalHostName()));
+                    IpHostMapping mapping = testHost(addr);
+                    result.add(mapping);
                 } catch (IOException ignored) {
                 } finally {
                     latch.countDown();
