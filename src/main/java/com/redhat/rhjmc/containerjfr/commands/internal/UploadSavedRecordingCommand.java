@@ -10,12 +10,11 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.util.EntityUtils;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -26,12 +25,14 @@ class UploadSavedRecordingCommand implements SerializableCommand {
     private final ClientWriter cw;
     private final FileSystem fs;
     private final Path recordingsPath;
+    private final Provider<CloseableHttpClient> httpClientProvider;
 
     @Inject
-    UploadSavedRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath) {
+    UploadSavedRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath, Provider<CloseableHttpClient> httpClientProvider) {
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
+        this.httpClientProvider = httpClientProvider;
     }
 
     @Override
@@ -69,7 +70,7 @@ class UploadSavedRecordingCommand implements SerializableCommand {
         post.setEntity(builder.build());
 
         try (
-            CloseableHttpClient httpClient = HttpClients.createMinimal(new BasicHttpClientConnectionManager());
+            CloseableHttpClient httpClient = httpClientProvider.get();
             CloseableHttpResponse response = httpClient.execute(post)
         ) {
             return new ResponseMessage(response.getStatusLine(), EntityUtils.toString(response.getEntity()));

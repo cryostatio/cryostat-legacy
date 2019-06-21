@@ -12,6 +12,9 @@ import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 
 @Module
 public abstract class NetworkModule {
@@ -35,5 +38,10 @@ public abstract class NetworkModule {
     @Singleton
     static JMCConnectionToolkit provideJMCConnectionToolkit(ClientWriter cw, Clock clock) {
         return new JMCConnectionToolkit(cw, clock);
+    }
+
+    @Provides
+    static CloseableHttpClient provideHttpClient() {
+        return HttpClients.createMinimal(new BasicHttpClientConnectionManager());
     }
 }
