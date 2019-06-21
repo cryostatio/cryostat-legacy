@@ -1,5 +1,7 @@
 package com.redhat.rhjmc.containerjfr.sys;
 
+import java.util.Map;
+
 public class Environment {
 
     public String getEnv(String key) {
@@ -12,6 +14,10 @@ public class Environment {
             return def;
         }
         return res;
+    }
+
+    public Map<String, String> getEnv() {
+        return System.getenv();
     }
 
     public String getProperty(String key) {
