@@ -20,7 +20,7 @@ import com.redhat.rhjmc.containerjfr.sys.Environment;
 import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 @Singleton
-class PortScanCommand implements SerializableCommand {
+class ScanTargetsCommand implements SerializableCommand {
 
     private static final String KUBERNETES_ENV_SUFFIX = "_PORT_9091_TCP_ADDR";
 
@@ -28,14 +28,14 @@ class PortScanCommand implements SerializableCommand {
     private final Environment env;
 
     @Inject
-    PortScanCommand(ClientWriter cw, Environment env) {
+    ScanTargetsCommand(ClientWriter cw, Environment env) {
         this.cw = cw;
         this.env = env;
     }
 
     @Override
     public String getName() {
-        return "port-scan";
+        return "scan-targets";
     }
 
     @Override
