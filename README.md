@@ -65,3 +65,25 @@ invoking the `run.sh` shell script, or if this script is not used, by using the
 
 For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).
+
+## MONITORING APPLICATIONS
+In order for `container-jfr` to be able to monitor JVM application targets, the
+targets must have RJMX enabled. The default expected listening port is 9091.
+Targets listening on other ports are still connectable by `container-jfr` but
+will not be automatically discoverable.
+
+To enable RJMX on this port, the following JVM flags should be passed at target
+startup:
+
+```
+    '-Dcom.sun.management.jmxremote.rmi.port=9091',
+    '-Dcom.sun.management.jmxremote=true',
+    '-Dcom.sun.management.jmxremote.port=9091',
+    '-Dcom.sun.management.jmxremote.ssl=false',
+    '-Dcom.sun.management.jmxremote.authenticate=false',
+    '-Dcom.sun.management.jmxremote.local.only=false',
+    '-Djava.rmi.server.hostname=$TARGET_HOSTNAME'
+```
+
+The `java.rmi.server.hostname` value should be substituted with the actual
+hostname of the machine or container which will be running the target JVM.
