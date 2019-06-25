@@ -87,3 +87,6 @@ startup:
 
 The `java.rmi.server.hostname` value should be substituted with the actual
 hostname of the machine or container which will be running the target JVM.
+For example, in a Podman or Docker deployment scenario, the
+`java.rmi.server.hostname` value should correspond to the value passed to the
+`--hostname` flag on the `podman run`/`docker run` invocation.
