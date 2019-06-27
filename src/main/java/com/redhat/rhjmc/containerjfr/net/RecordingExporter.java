@@ -156,54 +156,51 @@ public class RecordingExporter implements ConnectionListener {
 
         private Response serveRecording(Matcher matcher) {
             String recordingName = matcher.group(1);
-            if (recordings.containsKey(recordingName)) {
-                try {
-                    return newFlightRecorderResponse(recordingName);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    cw.println(e);
-                    return newCouldNotBeOpenedResponse(recordingName);
-                }
-            }
             try {
-                Optional<Path> savedRecording = Files.list(savedRecordingsPath)
-                        .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName) || saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
-                        .findFirst();
-                if (savedRecording.isPresent()) {
-                    return newSavedRecordingResponse(savedRecording.get());
+                Optional<InputStream> recording = getRecordingInputStream(recordingName);
+                if (recording.isPresent()) {
+                    return newFlightRecorderResponse(recordingName, recording.get());
                 }
-            } catch (IOException e) {
+                return newNotFoundResponse(recordingName);
+            } catch (Exception e) {
                 e.printStackTrace();
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
-            return newNotFoundResponse(recordingName);
         }
 
         private Response serveReport(Matcher matcher) {
             String recordingName = matcher.group(1);
-            if (recordings.containsKey(recordingName)) {
-                try {
-                    return newReportResponse(recordingName, service.openStream(recordings.get(recordingName), false));
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    cw.println(e);
-                    return newCouldNotBeOpenedResponse(recordingName);
-                }
-            }
             try {
-                Optional<Path> savedRecording = Files.list(savedRecordingsPath)
-                        .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName) || saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
-                        .findFirst();
-                if (savedRecording.isPresent()) {
-                    return newReportResponse(recordingName, Files.newInputStream(savedRecording.get(), StandardOpenOption.READ));
+                Optional<InputStream> recording = getRecordingInputStream(recordingName);
+                if (recording.isPresent()) {
+                    return newReportResponse(recordingName, recording.get());
+                } else {
+                    return newNotFoundResponse(recordingName);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
-            return newNotFoundResponse(recordingName);
+        }
+
+        private Optional<InputStream> getRecordingInputStream(String recordingName) throws FlightRecorderException {
+            if (recordings.containsKey(recordingName)) {
+                return Optional.of(service.openStream(recordings.get(recordingName), false));
+            }
+            try {
+                Optional<Path> savedRecording = Files.list(savedRecordingsPath)
+                        .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName) || saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
+                        .findFirst();
+                if (savedRecording.isPresent()) {
+                    return Optional.of(Files.newInputStream(savedRecording.get(), StandardOpenOption.READ));
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                cw.println(e);
+            }
+            return Optional.empty();
         }
 
         @Override
@@ -221,9 +218,8 @@ public class RecordingExporter implements ConnectionListener {
                     String.format("%s could not be opened", recordingName));
         }
 
-        private Response newFlightRecorderResponse(String recordingName) throws FlightRecorderException {
-            Response r = new Response(Status.OK, "application/octet-stream",
-                    service.openStream(recordings.get(recordingName), false), -1) {
+        private Response newFlightRecorderResponse(String recordingName, InputStream recording) {
+            Response r = new Response(Status.OK, "application/octet-stream", recording, -1) {
                 @Override
                 public void close() throws IOException {
                     try {
@@ -237,36 +233,31 @@ public class RecordingExporter implements ConnectionListener {
             return r;
         }
 
-        private Response newSavedRecordingResponse(Path savedRecording) throws IOException {
-            Response r = new Response(Status.OK, "application/octet-stream", Files.newInputStream(savedRecording, StandardOpenOption.READ), -1){ };
-            r.addHeader("Access-Control-Allow-Origin", "*");
-            return r;
-        }
+        private Response newReportResponse(String recordingName, InputStream recording) throws IOException, CouldNotLoadRecordingException {
+            try (recording) {
+                String report = JfrHtmlRulesReport.createReport(recording);
+                Response response = newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
+                response.addHeader("Access-Control-Allow-Origin", "*");
 
-        private Response newReportResponse(String recordingName, InputStream recording)
-                throws IOException, CouldNotLoadRecordingException, FlightRecorderException {
-            String report = JfrHtmlRulesReport.createReport(recording);
-            Response response = newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
-            response.addHeader("Access-Control-Allow-Origin", "*");
+                // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
+                // recordings before loading events to create the report, and these clones are erroneously left dangling.
+                TRIM_WORKER.submit(() -> {
+                    try {
+                        service.getAvailableRecordings()
+                                .stream()
+                                .filter(r -> r.getName().equals(String.format("Clone of %s", recordingName)))
+                                .forEach(r -> {
+                                    try {
+                                        service.close(r);
+                                    } catch (FlightRecorderException ignored) {
+                                    }
+                                });
+                    } catch (FlightRecorderException ignored) {
+                    }
+                });
 
-            // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
-            // recordings before loading events to create the report, and these clones are erroneously left dangling.
-            TRIM_WORKER.submit(() -> {
-                try {
-                    service.getAvailableRecordings()
-                        .stream()
-                        .filter(r -> r.getName().equals(String.format("Clone of %s", recordingName)))
-                        .forEach(r -> {
-                            try {
-                                service.close(r);
-                            } catch (FlightRecorderException ignored) {
-                            }
-                        });
-                } catch (FlightRecorderException ignored) {
-                }
-            });
-
-            return response;
+                return response;
+            }
         }
 
     }
