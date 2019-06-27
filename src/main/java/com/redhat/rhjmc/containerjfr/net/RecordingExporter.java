@@ -1,6 +1,7 @@
 package com.redhat.rhjmc.containerjfr.net;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
@@ -33,7 +34,7 @@ public class RecordingExporter implements ConnectionListener {
     // utility
     private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^/([\\w-_]+)(?:\\.jfr)?$",
             Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
-    private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_]+)$", Pattern.MULTILINE);
+    private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_.]+)$", Pattern.MULTILINE);
     static final String HOST_VAR = "CONTAINER_JFR_DOWNLOAD_HOST";
     static final String PORT_VAR = "CONTAINER_JFR_DOWNLOAD_PORT";
 
@@ -166,7 +167,7 @@ public class RecordingExporter implements ConnectionListener {
             }
             try {
                 Optional<Path> savedRecording = Files.list(savedRecordingsPath)
-                        .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
+                        .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName) || saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
                         .findFirst();
                 if (savedRecording.isPresent()) {
                     return newSavedRecordingResponse(savedRecording.get());
@@ -181,16 +182,28 @@ public class RecordingExporter implements ConnectionListener {
 
         private Response serveReport(Matcher matcher) {
             String recordingName = matcher.group(1);
-            if (!recordings.containsKey(recordingName)) {
-                return newNotFoundResponse(recordingName);
+            if (recordings.containsKey(recordingName)) {
+                try {
+                    return newReportResponse(recordingName, service.openStream(recordings.get(recordingName), false));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    cw.println(e);
+                    return newCouldNotBeOpenedResponse(recordingName);
+                }
             }
             try {
-                return newReportResponse(recordingName);
+                Optional<Path> savedRecording = Files.list(savedRecordingsPath)
+                        .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName) || saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
+                        .findFirst();
+                if (savedRecording.isPresent()) {
+                    return newReportResponse(recordingName, Files.newInputStream(savedRecording.get(), StandardOpenOption.READ));
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
+            return newNotFoundResponse(recordingName);
         }
 
         @Override
@@ -230,9 +243,9 @@ public class RecordingExporter implements ConnectionListener {
             return r;
         }
 
-        private Response newReportResponse(String recordingName)
+        private Response newReportResponse(String recordingName, InputStream recording)
                 throws IOException, CouldNotLoadRecordingException, FlightRecorderException {
-            String report = JfrHtmlRulesReport.createReport(service.openStream(recordings.get(recordingName), false));
+            String report = JfrHtmlRulesReport.createReport(recording);
             Response response = newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
             response.addHeader("Access-Control-Allow-Origin", "*");
 

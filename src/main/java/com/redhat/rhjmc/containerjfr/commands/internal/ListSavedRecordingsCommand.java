@@ -54,7 +54,7 @@ class ListSavedRecordingsCommand implements SerializableCommand {
         List<SavedRecordingDescriptor> recordings = new ArrayList<>();
         try {
             for (String name : fs.listDirectoryChildren(recordingsPath)) {
-                recordings.add(new SavedRecordingDescriptor(name, exporter.getDownloadURL(name)));
+                recordings.add(new SavedRecordingDescriptor(name, exporter.getDownloadURL(name), exporter.getReportURL(name)));
             }
         } catch (IOException e) {
             return new ExceptionOutput(e);

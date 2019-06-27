@@ -135,14 +135,20 @@ class ListSavedRecordingsCommandTest {
                 return invocation.getArguments()[0] + ".jfr";
             }
         });
+        when(exporter.getReportURL(Mockito.anyString())).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                return "/reports/" + invocation.getArguments()[0] + ".jfr";
+            }
+        });
 
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(((SerializableCommand.ListOutput) out).getPayload(), Matchers.equalTo(
             Arrays.asList(
-                new SavedRecordingDescriptor("foo", "foo.jfr"),
-                new SavedRecordingDescriptor("bar", "bar.jfr")
+                new SavedRecordingDescriptor("foo", "foo.jfr", "/reports/foo.jfr"),
+                new SavedRecordingDescriptor("bar", "bar.jfr", "/reports/bar.jfr")
             )
         ));
 

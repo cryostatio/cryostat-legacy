@@ -8,10 +8,12 @@ public class SavedRecordingDescriptor {
 
     private final String name;
     private final String downloadUrl;
+    private final String reportUrl;
 
-    public SavedRecordingDescriptor(String name, String downloadUrl) {
+    public SavedRecordingDescriptor(String name, String downloadUrl, String reportUrl) {
         this.name = name;
         this.downloadUrl = downloadUrl;
+        this.reportUrl = reportUrl;
     }
 
     public String getName() {
@@ -20,6 +22,10 @@ public class SavedRecordingDescriptor {
 
     public String getDownloadUrl() {
         return downloadUrl;
+    }
+
+    public String getReportUrl() {
+        return reportUrl;
     }
 
     @Override
