@@ -9,11 +9,17 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -142,6 +148,12 @@ public class RecordingExporter implements ConnectionListener {
         }
 
         @Override
+        public void start() throws IOException {
+            setAsyncRunner(new PooledAsyncRunner());
+            super.start();
+        }
+
+        @Override
         public Response serve(IHTTPSession session) {
             String requestUrl = session.getUri();
             Matcher recordingMatcher = RECORDING_NAME_PATTERN.matcher(requestUrl);
@@ -259,6 +271,57 @@ public class RecordingExporter implements ConnectionListener {
                 return response;
             }
         }
+    }
 
+    private static class PooledAsyncRunner implements NanoHTTPD.AsyncRunner {
+
+        private final List<NanoHTTPD.ClientHandler> handlers = new ArrayList<>();
+        private final ReentrantLock lock = new ReentrantLock();
+        private final ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactory() {
+            private final ThreadFactory defaultFactory = Executors.defaultThreadFactory();
+            private long numWorkers;
+
+            @Override
+            public Thread newThread(Runnable runnable) {
+                Thread t = defaultFactory.newThread(runnable);
+                t.setName(String.format("NanoHttpd Worker #%d", numWorkers++));
+                return t;
+            }
+        });
+        private final Map<NanoHTTPD.ClientHandler, Future<?>> futures = new HashMap<>();
+
+        @Override
+        public void closeAll() {
+            try {
+                lock.lock();
+                handlers.forEach(NanoHTTPD.ClientHandler::close);
+                executor.shutdownNow();
+                futures.clear();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void closed(NanoHTTPD.ClientHandler clientHandler) {
+            try {
+                lock.lock();
+                handlers.remove(clientHandler);
+                futures.get(clientHandler).cancel(true);
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void exec(NanoHTTPD.ClientHandler clientHandler) {
+            try {
+                lock.lock();
+                handlers.add(clientHandler);
+                futures.put(clientHandler, executor.submit(clientHandler));
+            } finally {
+                lock.unlock();
+            }
+        }
     }
 }
