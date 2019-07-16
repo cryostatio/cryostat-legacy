@@ -1,6 +1,9 @@
 # Container-JFR
 
 ## SEE ALSO
+
+[Trello](https://trello.com/b/zoQx1GxV/jmc-cloud) for project planning.
+
 See
 [container-jmc-pubsub-demo](https://github.com/andrewazores/container-jmc-pubsub-demo)
 and
