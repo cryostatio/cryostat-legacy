@@ -4,6 +4,10 @@
 
 [Trello](https://trello.com/b/zoQx1GxV/jmc-cloud) for project planning.
 
+See [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) for
+the core library providing a convenience wrapper and headless stubs for use of
+JFR using JDK Mission Control internals.
+
 See
 [container-jmc-pubsub-demo](https://github.com/andrewazores/container-jmc-pubsub-demo)
 and
@@ -20,13 +24,13 @@ Run:
 - Podman/Docker
 
 ## BUILD
-The gradle build expects to be able to find Java Mission Control (JMC) 7
-artefacts in the local Maven repository. To ensure these are available, clone
-the JMC project at the [JMC homepage](https://hg.openjdk.java.net/jmc/jmc7)
-and follow its build instructions. Run `mvn install` in the jmc project root to
-install its artefacts to the local repository. After this is complete, the
-project in this repository may be built locally. This can be done with
-`./gradlew build`.
+[container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) is a
+required dependency, which is not currently published in an artefact repository
+and so much be built and installed into the Maven local repository.
+Instructions for doing so are available at that project's README.
+
+Once the `container-jfr-core` local dependency is made available,
+`./gradlew build` will build the project.
 
 Tests can be run with `./gradlew check`, or for an interactive watch mode,
 `./gradlew -it test`.
