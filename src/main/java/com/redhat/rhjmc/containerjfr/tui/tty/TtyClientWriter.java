@@ -1,6 +1,6 @@
 package com.redhat.rhjmc.containerjfr.tui.tty;
 
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 class TtyClientWriter implements ClientWriter {
     @Override

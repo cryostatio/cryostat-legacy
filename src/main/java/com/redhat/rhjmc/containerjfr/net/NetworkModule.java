@@ -5,9 +5,10 @@ import java.nio.file.Path;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.sys.Clock;
-import com.redhat.rhjmc.containerjfr.sys.Environment;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;

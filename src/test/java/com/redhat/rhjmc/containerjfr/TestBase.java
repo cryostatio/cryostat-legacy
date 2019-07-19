@@ -6,7 +6,7 @@ import java.io.PrintStream;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 public class TestBase {
     protected PrintStream mockStdout;

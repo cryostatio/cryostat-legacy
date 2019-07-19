@@ -10,10 +10,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SavedRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
-import com.redhat.rhjmc.containerjfr.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 @Singleton
 class ListSavedRecordingsCommand implements SerializableCommand {

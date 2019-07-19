@@ -8,7 +8,7 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomizer.OptionKey;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
 class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand implements SerializableCommand {

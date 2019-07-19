@@ -1,14 +1,13 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.util.Optional;
-
+import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-import com.redhat.rhjmc.containerjfr.net.JMCConnection;
+import java.util.Optional;
 
 abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 

@@ -23,7 +23,7 @@ import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
 @ExtendWith(MockitoExtension.class)

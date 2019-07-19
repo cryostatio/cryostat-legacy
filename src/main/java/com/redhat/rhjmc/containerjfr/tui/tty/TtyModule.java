@@ -9,9 +9,9 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 

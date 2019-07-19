@@ -7,7 +7,7 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
 class StartRecordingCommand extends AbstractRecordingCommand implements SerializableCommand {

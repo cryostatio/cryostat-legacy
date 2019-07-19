@@ -40,8 +40,8 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.StringOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.SuccessOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class WsCommandExecutorTest {

@@ -7,9 +7,9 @@ import java.util.stream.Collectors;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.jmc.RegistryProvider;
+import com.redhat.rhjmc.containerjfr.core.jmc.RegistryProvider;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
-import com.redhat.rhjmc.containerjfr.sys.Environment;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import org.apache.commons.lang3.StringUtils;
 import org.eclipse.core.runtime.RegistryFactory;

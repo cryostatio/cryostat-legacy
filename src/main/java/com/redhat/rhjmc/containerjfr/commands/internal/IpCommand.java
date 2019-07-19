@@ -3,8 +3,8 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 class IpCommand implements SerializableCommand {
 

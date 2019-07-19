@@ -3,7 +3,7 @@ package com.redhat.rhjmc.containerjfr.tui.tty;
 import java.io.IOException;
 import java.util.Scanner;
 
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 
 class TtyClientReader implements ClientReader {
     private final Scanner scanner = new Scanner(System.in, "utf-8");

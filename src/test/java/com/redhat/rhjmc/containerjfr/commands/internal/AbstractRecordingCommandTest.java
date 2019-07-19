@@ -15,8 +15,8 @@ import java.util.Collection;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.net.JMCConnection;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,8 +33,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 class AbstractRecordingCommandTest extends TestBase {
 
     AbstractRecordingCommand command;
-    @Mock
-    JMCConnection connection;
+    @Mock JMCConnection connection;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 

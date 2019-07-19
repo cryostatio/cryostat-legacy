@@ -2,13 +2,15 @@ package com.redhat.rhjmc.containerjfr.tui;
 
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.ExecutionMode;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.tui.tcp.TcpModule;
 import com.redhat.rhjmc.containerjfr.tui.tty.TtyModule;
 import com.redhat.rhjmc.containerjfr.tui.ws.WsModule;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import com.redhat.rhjmc.containerjfr.ExecutionMode;
 
 @Module(includes={
     TcpModule.class,

@@ -6,10 +6,10 @@ import java.util.List;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.ExitCommand;
-import dagger.Lazy;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.tui.AbstractCommandExecutor;
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import dagger.Lazy;
 
 class BatchModeExecutor extends AbstractCommandExecutor {
     BatchModeExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {

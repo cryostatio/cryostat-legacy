@@ -9,8 +9,8 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 @Singleton
 class ListRecordingOptionsCommand extends AbstractConnectedCommand implements SerializableCommand {

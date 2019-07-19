@@ -12,8 +12,8 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.eclipse.jetty.websocket.api.Session;
 import org.eclipse.jetty.websocket.api.WebSocketAdapter;
 
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, ClientWriter {
 

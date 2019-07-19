@@ -11,8 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.net.JMCConnection;
-import com.redhat.rhjmc.containerjfr.sys.Clock;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;

@@ -4,9 +4,9 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-import com.redhat.rhjmc.containerjfr.net.JMCConnection;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 @Singleton
 class IsConnectedCommand implements ConnectionListener, SerializableCommand {

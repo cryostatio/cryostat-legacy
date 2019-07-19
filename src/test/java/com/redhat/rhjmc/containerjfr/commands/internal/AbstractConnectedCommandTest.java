@@ -15,7 +15,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Optional;
 
-import com.redhat.rhjmc.containerjfr.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;

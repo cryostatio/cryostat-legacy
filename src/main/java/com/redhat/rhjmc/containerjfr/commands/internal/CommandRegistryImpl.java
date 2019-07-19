@@ -9,7 +9,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 class CommandRegistryImpl implements CommandRegistry {
 

@@ -7,8 +7,8 @@ import javax.inject.Singleton;
 
 import dagger.Lazy;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 @Singleton
 class DisconnectCommand extends AbstractConnectedCommand implements SerializableCommand {

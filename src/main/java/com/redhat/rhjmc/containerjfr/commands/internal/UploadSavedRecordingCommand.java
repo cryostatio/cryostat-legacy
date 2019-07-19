@@ -1,8 +1,8 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;

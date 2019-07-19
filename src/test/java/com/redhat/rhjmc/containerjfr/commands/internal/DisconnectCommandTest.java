@@ -10,9 +10,9 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-import com.redhat.rhjmc.containerjfr.net.JMCConnection;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;

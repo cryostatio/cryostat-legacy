@@ -2,7 +2,7 @@ package com.redhat.rhjmc.containerjfr.tui.tty;
 
 import java.io.IOException;
 
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 
 class NoOpClientReader implements ClientReader {
     @Override

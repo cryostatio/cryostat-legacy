@@ -4,12 +4,12 @@ import java.util.NoSuchElementException;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.ExitCommand;
-import dagger.Lazy;
+import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-import com.redhat.rhjmc.containerjfr.net.JMCConnection;
 import com.redhat.rhjmc.containerjfr.tui.AbstractCommandExecutor;
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import dagger.Lazy;
 
 public class InteractiveShellExecutor extends AbstractCommandExecutor implements ConnectionListener {
 

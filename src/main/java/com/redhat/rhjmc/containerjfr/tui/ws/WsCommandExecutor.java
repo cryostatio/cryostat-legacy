@@ -8,10 +8,10 @@ import com.google.gson.JsonSyntaxException;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
-import dagger.Lazy;
-import com.redhat.rhjmc.containerjfr.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
+import dagger.Lazy;
 
 class WsCommandExecutor implements CommandExecutor {
 

@@ -7,7 +7,7 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 

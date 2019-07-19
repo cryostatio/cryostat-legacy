@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import java.util.concurrent.TimeUnit;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.sys.Clock;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;

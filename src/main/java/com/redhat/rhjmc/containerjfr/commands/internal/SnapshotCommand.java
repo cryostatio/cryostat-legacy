@@ -7,9 +7,9 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.jmc.CopyRecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.core.jmc.CopyRecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
 
 @Singleton
 class SnapshotCommand extends AbstractRecordingCommand implements SerializableCommand {

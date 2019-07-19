@@ -3,7 +3,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 public class ExitCommand implements Command {
 

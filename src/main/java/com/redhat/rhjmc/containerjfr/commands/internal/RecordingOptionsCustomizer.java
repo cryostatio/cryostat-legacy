@@ -7,7 +7,7 @@ import java.util.function.Function;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
-import com.redhat.rhjmc.containerjfr.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.util.CheckedConsumer;
 
 class RecordingOptionsCustomizer implements Function<RecordingOptionsBuilder, RecordingOptionsBuilder> {
