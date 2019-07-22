@@ -53,7 +53,7 @@ jib {
         ports = ['8080', '9090', '9091']
         jvmFlags = [
             '-XX:+CrashOnOutOfMemoryError',
-            '-Dorg.openjdk.jmc.common.security.manager=com.redhat.rhjmc.containerjfr.jmc.SecurityManager',
+            '-Dorg.openjdk.jmc.common.security.manager=com.redhat.rhjmc.containerjfr.core.jmc.SecurityManager',
             '-Dcom.sun.management.jmxremote.rmi.port=9091',
             '-Dcom.sun.management.jmxremote=true',
             '-Dcom.sun.management.jmxremote.port=9091',
