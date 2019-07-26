@@ -41,12 +41,21 @@ dependencies {
 
 mainClassName = 'com.redhat.rhjmc.containerjfr.JMXClient'
 
+def baseImage = 'gcr.io/distroless/java:11';
+def version = '0.1.1';
+def debugBuild = System.getenv('CONTAINER_JFR_DEBUG') != null;
+if (debugBuild) {
+    baseImage += '-debug'
+    version += '-debug';
+}
+
 jib {
     from {
-        image = 'gcr.io/distroless/java:11'
+        image = baseImage
     }
     to {
         image = 'quay.io/rh-jmc-team/container-jfr'
+        tags = [version, 'latest']
     }
     container {
         useCurrentTimestamp = true
@@ -63,6 +72,10 @@ jib {
             '-Djava.rmi.server.hostname=container-jfr'
         ]
     }
+}
+
+if (debugBuild) {
+    jib.container.jvmFlags += '-Dcom.redhat.rhjmc.containerjfr.debug=true'
 }
 
 test {
