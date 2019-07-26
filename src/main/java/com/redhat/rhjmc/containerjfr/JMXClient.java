@@ -26,17 +26,19 @@ class JMXClient {
                 Arrays.asList(args).stream().map(s -> "\"" + s + "\"").collect(Collectors.toList()).toString()));
         ContainerJfrCore.initialize();
 
+        final Environment environment = new Environment();
+        System.out.println(String.format("env: %s", environment.getEnv().toString()));
         final ExecutionMode mode;
         final String clientArgs;
         final int port;
         if (args.length == 0 || args[0].equals("-w")) {
             mode = ExecutionMode.WEBSOCKET;
             clientArgs = null;
-            port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
+            port = Integer.parseInt(environment.getEnv("LISTEN_PORT", "9090"));
         } else if (args[0].equals("-d")) {
             mode = ExecutionMode.SOCKET;
             clientArgs = null;
-            port = Integer.parseInt(new Environment().getEnv("LISTEN_PORT", "9090"));
+            port = Integer.parseInt(environment.getEnv("LISTEN_PORT", "9090"));
         } else if (args[0].equals("-it") || StringUtils.isBlank(args[0])) {
             mode = ExecutionMode.INTERACTIVE;
             clientArgs = null;
