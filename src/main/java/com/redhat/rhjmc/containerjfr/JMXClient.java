@@ -27,7 +27,9 @@ class JMXClient {
         ContainerJfrCore.initialize();
 
         final Environment environment = new Environment();
-        System.out.println(String.format("env: %s", environment.getEnv().toString()));
+        if (StringUtils.isNotEmpty(environment.getEnv("CONTAINER_JFR_DEBUG"))) {
+            System.out.println(String.format("env: %s", environment.getEnv().toString()));
+        }
         final ExecutionMode mode;
         final String clientArgs;
         final int port;
