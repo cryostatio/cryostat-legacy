@@ -27,7 +27,7 @@ class JMXClient {
         ContainerJfrCore.initialize();
 
         final Environment environment = new Environment();
-        if (StringUtils.isNotEmpty(environment.getEnv("CONTAINER_JFR_DEBUG"))) {
+        if (environment.getProperty("com.redhat.rhjmc.containerjfr.debug", "false").equals("true")) {
             System.out.println(String.format("env: %s", environment.getEnv().toString()));
         }
         final ExecutionMode mode;

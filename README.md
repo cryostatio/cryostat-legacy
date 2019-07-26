@@ -39,12 +39,13 @@ A Docker image can be built to your local Docker image registry using
 `./gradlew jibDockerBuild`. Take note that the standard `./gradlew build`
 will not only build the image but will attempt to publish it to Dockerhub.
 
+If the environment variable `CONTAINER_JFR_DEBUG` is set to a non-empty
+string at build time then a debug image will be built, containing a debug shell
+environment within the image and enabling debug printing from the application.
+
 ## RUN
 For a basic development non-containerized smoketest, use `./gradlew run`, or
 `./gradlew run --args="client-args-here"`.
-
-Debug output can be enabled by setting the environment variable
-`CONTAINER_JFR_DEBUG` to any non-empty string.
 
 The client can operate in three different command execution modes. These are
 batch (scripted), interactive TTY, and interactive socket. To use batch mode,
