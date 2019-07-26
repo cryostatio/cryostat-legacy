@@ -43,6 +43,9 @@ will not only build the image but will attempt to publish it to Dockerhub.
 For a basic development non-containerized smoketest, use `./gradlew run`, or
 `./gradlew run --args="client-args-here"`.
 
+Debug output can be enabled by setting the environment variable
+`CONTAINER_JFR_DEBUG` to any non-empty string.
+
 The client can operate in three different command execution modes. These are
 batch (scripted), interactive TTY, and interactive socket. To use batch mode,
 simply pass a single argument string to the client at runtime, ex.
