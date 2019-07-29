@@ -3,7 +3,10 @@
 ## Introduction
 
 This document provides a brief listing of the commands implemented by this
-client, including a short synopsis of any expected arguments.
+client, including a short synopsis of any expected arguments. Sample outputs
+reflect the human-friendly output produced when running `container-jfr` in
+`tty` or `tcp` modes. In `ws` mode the output will be semantically similar but
+formatted as a JSON response.
 
 ## Command Listing
 
@@ -15,6 +18,24 @@ client, including a short synopsis of any expected arguments.
     ###### synopsis
     Lists available commands. The output may vary depending on whether the client
     has an active connection to a target JVM.
+
+* #### `scan-targets`
+    ###### usage
+    `scan-targets`
+    ###### synopsis
+    Scans for discoverable target JVMs. This may use various discovery
+    mechanisms, including Kubernetes service discovery or port scanning within
+    `container-jfr`'s /24 subnet. For more details see
+    [this document](https://github.com/rh-jmc-team/container-jfr#monitoring-applications).
+
+* #### `is-connected`
+    ###### usage
+    `is-connected`
+    ###### synopsis
+    Outputs the connection status of `container-jfr` to a target JVM. If no
+    target connection exists then the output is `Disconnected`. If a connection
+    does exist then the output is of the form `foo:1234`, where `foo` is the
+    hostname of the target and `1234` is the connected RJMX port.
 
 * #### `connect`
     ###### usage
@@ -37,6 +58,15 @@ client, including a short synopsis of any expected arguments.
     reconnection.
     ###### see also
     [`connect`](#connect)
+
+* #### `ping`
+    ###### usage
+    `ping`
+    ###### synopsis
+    Used to test the connection between `container-jfr` and whatever end client
+    is in use by the user, whether that is ex. netcat over a TCP socket or
+    `container-jfr-web`. Outputs "pong" unconditionally, signifying the
+    connection is open and working.
 
 * #### `exit`
     ###### usage
@@ -136,6 +166,56 @@ client, including a short synopsis of any expected arguments.
     * [`dump`](#dump)
     * [`start`](#start)
 
+* #### `save`
+    ###### usage
+    `save foo`
+    ###### synopsis
+    Saves the named recording to persistent storage attached to the
+    `container-jfr` container. The saved recording contains a snapshot of its
+    parent in-memory recording at the time of the save and is not updated
+    (unless overwritten by a new save in the future). A saved recording is not
+    tied to the lifecycle of the JVM which produced it - that is, the recording
+    will remain available even if the target JVM dies.
+
+    For `container-jfr` to be able to save recordings to persistent storage,
+    there must be persistent storage available to the container. The storage is
+    expected to be mounted at the path `/flightrecordings` within the
+    container. The exact type of persistent storage is not important, so long
+    as it is a writeable directory.
+    ###### see also
+    * [`delete`](#delete)
+    * [`snapshot`](#snapshot)
+
+* #### `upload`
+    ###### usage
+    `upload foo`
+    ###### synopsis
+    TODO: describe Grafana upload command and provide links to Grafana setup
+    documentation.
+
+* #### `delete`
+    ###### usage
+    `delete foo`
+    ###### synopsis
+    Deletes the named recording, removing it from the target JVM and freeing
+    the buffer memory used. The recording will be stopped automatically if it
+    is running at the time of deletion.
+    ###### see also
+    * [`stop`](#stop)
+    * [`delete-saved`](#delete-saved)
+
+* #### `delete-saved`
+    ###### usage
+    `delete-saved foo.jfr`
+    ###### synopsis
+    Deletes the named recording from persistent storage. This does not affect
+    any recordings in the target JVM's JFR buffer, even if the named saved
+    recording was created from and named identically to the in-memory
+    recording.
+    ###### see also
+    * [`save`](#save)
+    * [`delete`](#delete)
+
 * #### `search-events`
     ###### usage
     `search-events foo`
@@ -155,7 +235,7 @@ client, including a short synopsis of any expected arguments.
     the option and restores the target JVM default.
     The currently supported options are toDisk (boolean), maxAge (seconds),
     maxSize (bytes), destinationCompressed (boolean), and destinationFile
-    (string) .
+    (string).
 
     These recording options are local to the client session, not the connected
     target JVM. In practical terms this means, for example, that setting
@@ -171,6 +251,16 @@ client, including a short synopsis of any expected arguments.
     Lists recordings in the target JVM. The name provided in this list is the
     name that can be used to download the recording, as well as to pass to
     other commands which operate upon recordings.
+    ###### see also
+    [`list-saved`](#list-saved)
+
+* #### `list-saved`
+    ###### usage
+    `list-saved`
+    ###### synopsis
+    Lists saved recordings in persistent storage attached to `container-jfr`.
+    #### see also
+    [`list`](#list)
 
 * #### `list-recording-options`
     ###### usage
