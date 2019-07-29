@@ -8,7 +8,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +35,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 class EventOptionsBuilderTest extends TestBase {
 
     private EventOptionsBuilder builder;
-    @Mock private JMCConnection connection;
+    @Mock private JFRConnection connection;
     @Mock private IFlightRecorderService service;
     @Mock private IDescribedMap map;
     @Mock private IMutableConstrainedMap mutableMap;
@@ -116,7 +116,7 @@ class EventOptionsBuilderTest extends TestBase {
     static class FactoryTest extends TestBase {
 
         private EventOptionsBuilder.Factory factory;
-        @Mock private JMCConnection connection;
+        @Mock private JFRConnection connection;
         @Mock private IFlightRecorderService service;
         @Mock private IDescribedMap map;
         @Mock private IMutableConstrainedMap mutableMap;

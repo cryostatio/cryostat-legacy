@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
 import org.hamcrest.MatcherAssert;
@@ -39,7 +39,7 @@ class StartRecordingCommandTest {
     @Mock
     ClientWriter cw;
     @Mock
-    JMCConnection connection;
+    JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock
     RecordingExporter exporter;

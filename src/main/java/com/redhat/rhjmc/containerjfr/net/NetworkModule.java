@@ -5,7 +5,7 @@ import java.nio.file.Path;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -37,8 +37,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static JMCConnectionToolkit provideJMCConnectionToolkit(ClientWriter cw, Clock clock) {
-        return new JMCConnectionToolkit(cw, clock);
+    static JFRConnectionToolkit provideJFRConnectionToolkit(ClientWriter cw, Clock clock) {
+        return new JFRConnectionToolkit(cw, clock);
     }
 
     @Provides

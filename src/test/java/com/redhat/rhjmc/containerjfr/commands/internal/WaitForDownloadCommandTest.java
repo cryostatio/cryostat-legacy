@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
 import org.hamcrest.MatcherAssert;
@@ -33,7 +33,7 @@ class WaitForDownloadCommandTest extends TestBase {
     @Mock
     RecordingExporter exporter;
     @Mock
-    JMCConnection connection;
+    JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock
     Clock clock;

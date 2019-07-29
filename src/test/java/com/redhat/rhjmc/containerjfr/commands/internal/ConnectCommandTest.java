@@ -16,8 +16,8 @@ import java.io.IOException;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import org.hamcrest.MatcherAssert;
@@ -42,7 +42,7 @@ class ConnectCommandTest {
     ConnectionListener listener;
     @Mock DisconnectCommand disconnect;
     @Mock
-    JMCConnectionToolkit connectionToolkit;
+    JFRConnectionToolkit connectionToolkit;
 
     @BeforeEach
     void setup() {
@@ -105,14 +105,14 @@ class ConnectCommandTest {
         verifyZeroInteractions(connectionToolkit);
         verifyZeroInteractions(disconnect);
 
-        JMCConnection mockConnection = mock(JMCConnection.class);
+        JFRConnection mockConnection = mock(JFRConnection.class);
         when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
 
         command.execute(new String[] { "foo:5" });
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<JMCConnection> connectionCaptor = ArgumentCaptor.forClass(JMCConnection.class);
+        ArgumentCaptor<JFRConnection> connectionCaptor = ArgumentCaptor.forClass(JFRConnection.class);
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
@@ -129,21 +129,21 @@ class ConnectCommandTest {
         verifyZeroInteractions(connectionToolkit);
         verifyZeroInteractions(disconnect);
 
-        JMCConnection mockConnection = mock(JMCConnection.class);
+        JFRConnection mockConnection = mock(JFRConnection.class);
         when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
 
         command.execute(new String[] { "foo" });
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<JMCConnection> connectionCaptor = ArgumentCaptor.forClass(JMCConnection.class);
+        ArgumentCaptor<JFRConnection> connectionCaptor = ArgumentCaptor.forClass(JFRConnection.class);
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
         verify(disconnect).execute(Mockito.any());
 
         assertThat(hostCaptor.getValue(), equalTo("foo"));
-        assertThat(portCaptor.getValue(), equalTo(JMCConnection.DEFAULT_PORT));
+        assertThat(portCaptor.getValue(), equalTo(JFRConnection.DEFAULT_PORT));
         assertThat(connectionCaptor.getValue(), sameInstance(mockConnection));
     }
 
@@ -153,7 +153,7 @@ class ConnectCommandTest {
         verifyZeroInteractions(connectionToolkit);
         verifyZeroInteractions(disconnect);
 
-        JMCConnection mockConnection = mock(JMCConnection.class);
+        JFRConnection mockConnection = mock(JFRConnection.class);
         when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
 
         SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
@@ -162,14 +162,14 @@ class ConnectCommandTest {
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<JMCConnection> connectionCaptor = ArgumentCaptor.forClass(JMCConnection.class);
+        ArgumentCaptor<JFRConnection> connectionCaptor = ArgumentCaptor.forClass(JFRConnection.class);
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
         verify(disconnect).execute(Mockito.any());
 
         assertThat(hostCaptor.getValue(), equalTo("foo"));
-        assertThat(portCaptor.getValue(), equalTo(JMCConnection.DEFAULT_PORT));
+        assertThat(portCaptor.getValue(), equalTo(JFRConnection.DEFAULT_PORT));
         assertThat(connectionCaptor.getValue(), sameInstance(mockConnection));
     }
 
@@ -193,7 +193,7 @@ class ConnectCommandTest {
         verify(disconnect).execute(Mockito.any());
 
         assertThat(hostCaptor.getValue(), equalTo("foo"));
-        assertThat(portCaptor.getValue(), equalTo(JMCConnection.DEFAULT_PORT));
+        assertThat(portCaptor.getValue(), equalTo(JFRConnection.DEFAULT_PORT));
     }
 
 }
