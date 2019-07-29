@@ -39,7 +39,7 @@ dependencies {
     testImplementation 'org.mockito:mockito-inline:2.25.1'
 }
 
-mainClassName = 'com.redhat.rhjmc.containerjfr.JMXClient'
+mainClassName = 'com.redhat.rhjmc.containerjfr.ContainerJfr'
 
 def baseImage = 'gcr.io/distroless/java:11';
 def version = '0.1.1';

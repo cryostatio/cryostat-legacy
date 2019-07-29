@@ -17,7 +17,7 @@ import org.apache.commons.lang3.StringUtils;
 import dagger.BindsInstance;
 import dagger.Component;
 
-class JMXClient {
+class ContainerJfr {
     public static void main(String[] args) throws Exception {
         LogManager.getLogManager().reset();
 
@@ -51,7 +51,7 @@ class JMXClient {
             port = -1;
         }
 
-        Client client = DaggerJMXClient_Client
+        Client client = DaggerContainerJfr_Client
             .builder()
             .mode(mode)
             .port(port)
