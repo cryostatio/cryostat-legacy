@@ -12,7 +12,7 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
 import org.hamcrest.MatcherAssert;
@@ -37,7 +37,7 @@ class DeleteCommandTest {
     ClientWriter cw;
     @Mock IRecordingDescriptor recordingDescriptor;
     @Mock
-    JMCConnection connection;
+    JFRConnection connection;
     @Mock
     RecordingExporter exporter;
 

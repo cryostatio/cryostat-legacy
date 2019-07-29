@@ -33,7 +33,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import fi.iki.elonen.NanoHTTPD;
 
@@ -46,7 +46,7 @@ class RecordingExporterTest extends TestBase {
     @Mock
     Environment env;
     @Mock
-    JMCConnection connection;
+    JFRConnection connection;
     @Mock
     IFlightRecorderService service;
     @Mock

@@ -13,7 +13,7 @@ import java.util.Collection;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 import org.hamcrest.MatcherAssert;
@@ -36,7 +36,7 @@ class ListEventTypesCommandTest {
     @Mock
     ClientWriter cw;
     @Mock
-    JMCConnection connection;
+    JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach

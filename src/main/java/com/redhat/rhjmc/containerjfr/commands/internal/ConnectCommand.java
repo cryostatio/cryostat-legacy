@@ -10,12 +10,12 @@ import javax.inject.Singleton;
 import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 
-@Singleton 
+@Singleton
 class ConnectCommand implements SerializableCommand {
 
     private static final Pattern HOST_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
@@ -23,11 +23,11 @@ class ConnectCommand implements SerializableCommand {
     private final ClientWriter cw;
     private final Set<ConnectionListener> connectionListeners;
     private final DisconnectCommand disconnect;
-    private final JMCConnectionToolkit connectionToolkit;
+    private final JFRConnectionToolkit connectionToolkit;
 
     @Inject
     ConnectCommand(ClientWriter cw, Set<ConnectionListener> connectionListeners, DisconnectCommand disconnect,
-            JMCConnectionToolkit connectionToolkit) {
+            JFRConnectionToolkit connectionToolkit) {
         this.cw = cw;
         this.connectionListeners = connectionListeners;
         this.disconnect = disconnect;
@@ -67,7 +67,7 @@ class ConnectCommand implements SerializableCommand {
             port = "9091";
         }
         this.disconnect.execute(new String[0]);
-        JMCConnection connection = connectionToolkit.connect(host, Integer.parseInt(port));
+        JFRConnection connection = connectionToolkit.connect(host, Integer.parseInt(port));
         connectionListeners.forEach(listener -> listener.connectionChanged(connection));
     }
 

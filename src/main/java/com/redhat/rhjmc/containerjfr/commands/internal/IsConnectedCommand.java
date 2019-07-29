@@ -4,7 +4,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 
@@ -12,7 +12,7 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 class IsConnectedCommand implements ConnectionListener, SerializableCommand {
 
     private final ClientWriter cw;
-    private JMCConnection connection;
+    private JFRConnection connection;
 
     @Inject
     IsConnectedCommand(ClientWriter cw) {
@@ -25,7 +25,7 @@ class IsConnectedCommand implements ConnectionListener, SerializableCommand {
     }
 
     @Override
-    public void connectionChanged(JMCConnection connection) {
+    public void connectionChanged(JFRConnection connection) {
         this.connection = connection;
     }
 

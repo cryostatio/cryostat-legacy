@@ -1,7 +1,7 @@
 package com.redhat.rhjmc.containerjfr.net;
 
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 
 public interface ConnectionListener {
-    void connectionChanged(JMCConnection connection);
+    void connectionChanged(JFRConnection connection);
 }

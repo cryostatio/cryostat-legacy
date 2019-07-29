@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.redhat.rhjmc:containerjfr-core:0.1.4'
+    implementation 'com.redhat.rhjmc:containerjfr-core:0.2.0'
 
     implementation 'org.apache.commons:commons-lang3:3.8.1+'
     implementation 'org.apache.httpcomponents:httpclient:4.5.9'
@@ -41,7 +41,7 @@ dependencies {
 mainClassName = 'com.redhat.rhjmc.containerjfr.ContainerJfr'
 
 def baseImage = 'gcr.io/distroless/java:11';
-def version = '0.1.1';
+def version = '0.2.0';
 def debugBuild = System.getenv('CONTAINER_JFR_DEBUG') != null;
 if (debugBuild) {
     baseImage += '-debug'

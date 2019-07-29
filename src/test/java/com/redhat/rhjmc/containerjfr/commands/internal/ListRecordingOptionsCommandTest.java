@@ -11,7 +11,7 @@ import static org.mockito.Mockito.when;
 import java.util.Map;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 import org.hamcrest.MatcherAssert;
@@ -33,7 +33,7 @@ class ListRecordingOptionsCommandTest {
     @Mock
     ClientWriter cw;
     @Mock
-    JMCConnection connection;
+    JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach

@@ -25,7 +25,7 @@ import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 
 @ExtendWith(MockitoExtension.class)
@@ -34,7 +34,7 @@ class InteractiveShellExecutorTest extends TestBase {
     InteractiveShellExecutor executor;
     @Mock ClientReader mockClientReader;
     @Mock CommandRegistry mockRegistry;
-    @Mock JMCConnection mockConnection;
+    @Mock JFRConnection mockConnection;
 
     @BeforeEach
     void setup() {

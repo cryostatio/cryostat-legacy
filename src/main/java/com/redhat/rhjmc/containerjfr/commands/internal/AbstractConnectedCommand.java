@@ -1,7 +1,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -11,10 +11,10 @@ import java.util.Optional;
 
 abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 
-    protected JMCConnection connection;
+    protected JFRConnection connection;
 
     @Override
-    public final void connectionChanged(JMCConnection connection) {
+    public final void connectionChanged(JFRConnection connection) {
         this.connection = connection;
     }
 
@@ -23,7 +23,7 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
         return this.connection != null;
     }
 
-    protected JMCConnection getConnection() throws JMXConnectionException {
+    protected JFRConnection getConnection() throws JMXConnectionException {
         validateConnection();
         return this.connection;
     }

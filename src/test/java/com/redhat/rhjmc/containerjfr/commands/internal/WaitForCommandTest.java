@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.net.JMCConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -31,7 +31,7 @@ class WaitForCommandTest extends TestBase {
 
     WaitForCommand command;
     @Mock
-    JMCConnection connection;
+    JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock
     Clock clock;
