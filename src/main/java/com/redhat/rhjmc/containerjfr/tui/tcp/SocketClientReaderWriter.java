@@ -10,6 +10,9 @@ import java.util.concurrent.Semaphore;
 
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class SocketClientReaderWriter implements ClientReader, ClientWriter {
 
@@ -30,7 +33,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                     try {
                         close();
                     } catch (IOException e) {
-                        e.printStackTrace();
+                        Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
                     }
                     System.out.println(String.format("Connected: %s", sock.getRemoteSocketAddress().toString()));
                     try {
@@ -43,7 +46,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                 } catch (SocketException e) {
                     semaphore.drainPermits();
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
                 }
             }
         });
@@ -74,7 +77,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                 semaphore.release();
             }
         } catch (InterruptedException e) {
-            e.printStackTrace();
+            Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
             return null;
         }
     }
@@ -90,7 +93,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                 semaphore.release();
             }
         } catch (InterruptedException | IOException e) {
-            e.printStackTrace();
+            Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
         }
     }
 

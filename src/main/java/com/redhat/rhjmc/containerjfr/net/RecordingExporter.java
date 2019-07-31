@@ -26,6 +26,9 @@ import java.util.regex.Pattern;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -176,7 +179,6 @@ public class RecordingExporter implements ConnectionListener {
                 }
                 return newNotFoundResponse(recordingName);
             } catch (Exception e) {
-                e.printStackTrace();
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
@@ -192,7 +194,6 @@ public class RecordingExporter implements ConnectionListener {
                     return newNotFoundResponse(recordingName);
                 }
             } catch (Exception e) {
-                e.printStackTrace();
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
@@ -210,7 +211,6 @@ public class RecordingExporter implements ConnectionListener {
                     return Optional.of(Files.newInputStream(savedRecording.get(), StandardOpenOption.READ));
                 }
             } catch (Exception e) {
-                e.printStackTrace();
                 cw.println(e);
             }
             return Optional.empty();
@@ -272,6 +272,10 @@ public class RecordingExporter implements ConnectionListener {
                 return response;
             }
         }
+
+		public ExecutorService getTRIM_WORKER() {
+			return TRIM_WORKER;
+		}
     }
 
     private static class PooledAsyncRunner implements NanoHTTPD.AsyncRunner {

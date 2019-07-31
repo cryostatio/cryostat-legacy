@@ -5,12 +5,15 @@ import java.util.Collections;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
-
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import dagger.Lazy;
 
 class WsCommandExecutor implements CommandExecutor {
@@ -80,7 +83,7 @@ class WsCommandExecutor implements CommandExecutor {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
         }
     }
 
@@ -93,8 +96,7 @@ class WsCommandExecutor implements CommandExecutor {
     }
 
     private void reportException(String commandName, Exception e) {
-        e.printStackTrace();
-        cw.println(e.getMessage());
+        Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
         flush(new CommandExceptionResponseMessage(commandName, e));
     }
 

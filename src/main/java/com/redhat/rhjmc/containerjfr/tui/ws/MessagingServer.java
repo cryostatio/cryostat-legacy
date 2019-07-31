@@ -5,15 +5,17 @@ import java.util.List;
 import java.util.concurrent.Semaphore;
 
 import com.google.gson.Gson;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
 
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class MessagingServer {
 
@@ -92,7 +94,7 @@ class MessagingServer {
                         Thread.sleep(100);
                     }
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
                     return null;
                 } finally {
                     semaphore.release(permits);
@@ -104,12 +106,13 @@ class MessagingServer {
     ClientWriter getClientWriter() {
         return new ClientWriter() {
             @Override
-            public void print(String s) { }
+            public void print(String s) {
+                Logger.INSTANCE.info(s);
+            }
 
             @Override
             public void println(Exception e) {
-                // TODO change to proper logging facility
-                e.printStackTrace();
+                Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
             }
         };
     }
