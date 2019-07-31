@@ -9,6 +9,7 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
@@ -29,6 +30,7 @@ class ContainerJfr {
         final Environment environment = new Environment();
         if (environment.getProperty("com.redhat.rhjmc.containerjfr.debug", "false").equals("true")) {
             System.out.println(String.format("env: %s", environment.getEnv().toString()));
+            Logger.INSTANCE.setLevel(Logger.Level.ALL);
         }
         final ExecutionMode mode;
         final String clientArgs;
