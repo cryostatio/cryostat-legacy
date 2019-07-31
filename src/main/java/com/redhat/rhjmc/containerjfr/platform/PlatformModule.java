@@ -2,6 +2,8 @@ package com.redhat.rhjmc.containerjfr.platform;
 
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+
 import dagger.Module;
 import dagger.Provides;
 
@@ -9,7 +11,7 @@ import dagger.Provides;
 public abstract class PlatformModule {
     @Provides
     @Singleton
-    static Platform providePlatform() {
-        return new Platform();
+    static Platform providePlatform(Environment env) {
+        return new Platform(env);
     }
 }
