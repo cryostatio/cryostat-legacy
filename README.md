@@ -21,7 +21,7 @@ Build:
 - Gradle
 
 Run:
-- Podman/Docker
+- Podman/Docker, OpenShift/Minishift, or other container platform
 
 ## BUILD
 [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) is a
@@ -74,16 +74,24 @@ connections on. These may be set by setting the environment variable before
 invoking the `run.sh` shell script, or if this script is not used, by using the
 `-e` environment variable flag in the `docker` or `podman` command invocation.
 
+The application can also be easily set up and configured to run in a more full-
+fledged container application platform that supports the Docker/Podman
+container image format, such as OpenShift. For an example of such a project
+setup, see [jmc-robots-demo](https://github.com/rh-jmc-team/jmc-robots-demo/blob/master/minishift/setup.sh)
+
 For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).
 
 ## MONITORING APPLICATIONS
 In order for `container-jfr` to be able to monitor JVM application targets, the
-targets must have RJMX enabled. The default expected listening port is 9091.
-Targets listening on other ports are still connectable by `container-jfr` but
-will not be automatically discoverable.
+targets must have RJMX enabled. The primary target discovery mechanism is based
+on Kubernetes environment variable service discovery. If no such Kubernetes-
+style environment variables are detected at runtime then `container-jfr` will
+fall back to a port-scanning discovery mechanism. The default expected
+listening port is 9091.  Targets listening on other ports are still connectable
+by `container-jfr` but will not be automatically discoverable via port-scanning.
 
-To enable RJMX on this port, the following JVM flags should be passed at target
+To enable RJMX on port 9091, the following JVM flags should be passed at target
 startup:
 
 ```
@@ -101,3 +109,9 @@ hostname of the machine or container which will be running the target JVM.
 For example, in a Podman or Docker deployment scenario, the
 `java.rmi.server.hostname` value should correspond to the value passed to the
 `--hostname` flag on the `podman run`/`docker run` invocation.
+
+The port number 9091 is arbitrary and may be configured to suit individual
+deployments, so long as the two `port` properties above match the desired port
+number and the deployment network configuration allows connections on the
+configured port. As noted above, the final caveat is that in non-Kube
+deployments, port 9091 is expected for automatic port-scanning target discovery.
