@@ -21,21 +21,23 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
 
     private Session session = null;
     private final Semaphore semaphore = new Semaphore(0, true);
+    private final Logger logger;
     private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private final MessagingServer server;
     private volatile Thread readingThread;
 
-    WsClientReaderWriter(MessagingServer server, Gson gson) {
-        this.gson = gson;
+    WsClientReaderWriter(MessagingServer server, Logger logger, Gson gson) {
         this.server = server;
+        this.logger = logger;
+        this.gson = gson;
         this.server.addConnection(this);
     }
 
     @Override
     public void onWebSocketConnect(Session session) {
         super.onWebSocketConnect(session);
-        Logger.INSTANCE.info(String.format("Connected remote client %s", session.getRemoteAddress().toString()));
+        logger.info(String.format("Connected remote client %s", session.getRemoteAddress().toString()));
         this.session = session;
         semaphore.release();
     }
@@ -43,7 +45,7 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
     @Override
     public void onWebSocketText(String text) {
         super.onWebSocketText(text);
-        Logger.INSTANCE.info(String.format("(%s): %s", session.getRemoteAddress().toString(), text));
+        logger.info(String.format("(%s): %s", session.getRemoteAddress().toString(), text));
         inQ.add(text);
     }
 
@@ -55,7 +57,9 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
     @Override
     public void close() {
-        Logger.INSTANCE.info(String.format("Disconnected remote client %s", session.getRemoteAddress().toString()));
+        if (session != null) {
+            logger.info(String.format("Disconnected remote client %s", session.getRemoteAddress().toString()));
+        }
         semaphore.tryAcquire();
         this.session = null;
         if (isConnected()) {
@@ -70,7 +74,7 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
 
     @Override
     public void print(String s) {
-        Logger.INSTANCE.info(s);
+        logger.info(s);
     }
 
     void flush(ResponseMessage<?> message) {
@@ -82,7 +86,7 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
                 getRemote().flush();
             }
         } catch (IOException | InterruptedException e) {
-            Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+            logger.warn(ExceptionUtils.getStackTrace(e));
         } finally {
             if (acquired) {
                 semaphore.release();

@@ -12,6 +12,7 @@ import dagger.Provides;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
@@ -20,9 +21,9 @@ public class WsModule {
     @Provides
     @Singleton
     @ConnectionMode(ExecutionMode.WEBSOCKET)
-    static CommandExecutor provideCommandExecutor(MessagingServer server, ClientReader cr, ClientWriter cw,
+    static CommandExecutor provideCommandExecutor(Logger logger, MessagingServer server, ClientReader cr, ClientWriter cw,
                                                   Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
-        return new WsCommandExecutor(server, cr, cw, commandRegistry, gson);
+        return new WsCommandExecutor(logger, server, cr, cw, commandRegistry, gson);
     }
 
     @Provides
@@ -41,9 +42,9 @@ public class WsModule {
 
     @Provides
     @Singleton
-    static MessagingServer provideWebSocketMessagingServer(@Named("LISTEN_PORT") int port, Gson gson) {
+    static MessagingServer provideWebSocketMessagingServer(Logger logger, @Named("LISTEN_PORT") int port, Gson gson) {
         try {
-            MessagingServer messagingServer = new MessagingServer(port, gson);
+            MessagingServer messagingServer = new MessagingServer(logger, port, gson);
             messagingServer.start();
             return messagingServer;
         } catch (Exception e) {

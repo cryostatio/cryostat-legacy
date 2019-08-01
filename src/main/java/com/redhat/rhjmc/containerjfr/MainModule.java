@@ -10,6 +10,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.tui.TuiModule;
@@ -23,6 +24,12 @@ import dagger.Provides;
     TuiModule.class
 })
 abstract class MainModule {
+    @Provides
+    @Singleton
+    static Logger provideLogger() {
+        return Logger.INSTANCE;
+    }
+
     @Provides
     @Singleton
     static Gson provideGson() {

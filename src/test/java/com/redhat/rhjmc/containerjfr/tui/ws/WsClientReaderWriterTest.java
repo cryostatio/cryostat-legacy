@@ -1,21 +1,23 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.PrintStream;
+import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.redhat.rhjmc.containerjfr.TestBase;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
@@ -28,21 +30,20 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.TestBase;
-
 @ExtendWith(MockitoExtension.class)
 class WsClientReaderWriterTest extends TestBase {
 
     WsClientReaderWriter crw;
     Gson gson;
     @Mock MessagingServer server;
+    @Mock Logger logger;
     @Mock Session session;
     @Mock RemoteEndpoint remote;
 
     @BeforeEach
     void setup() {
         gson = new GsonBuilder().serializeNulls().create();
-        crw = new WsClientReaderWriter(server, gson);
+        crw = new WsClientReaderWriter(server, logger, gson);
     }
 
     @Test
@@ -52,6 +53,8 @@ class WsClientReaderWriterTest extends TestBase {
 
     @Test
     void readLineShouldBlockUntilClosed() {
+        when(session.getRemoteAddress()).thenReturn(mock(InetSocketAddress.class));
+        crw.onWebSocketConnect(session);
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
         assertTimeoutPreemptively(Duration.ofNanos(expectedDelta * 3), () -> {
             Executors.newSingleThreadScheduledExecutor().schedule(crw::close, expectedDelta, TimeUnit.NANOSECONDS);
@@ -69,6 +72,8 @@ class WsClientReaderWriterTest extends TestBase {
 
     @Test
     void readLineShouldBlockUntilTextReceived() {
+        when(session.getRemoteAddress()).thenReturn(mock(InetSocketAddress.class));
+        crw.onWebSocketConnect(session);
         long expectedDelta = 500L;
         assertTimeoutPreemptively(Duration.ofMillis(expectedDelta * 3), () -> {
             String expected = "hello world";
@@ -80,6 +85,8 @@ class WsClientReaderWriterTest extends TestBase {
 
     @Test
     void testHasMessage() {
+        when(session.getRemoteAddress()).thenReturn(mock(InetSocketAddress.class));
+        crw.onWebSocketConnect(session);
         MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(false));
         crw.onWebSocketText("hello world");
         MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(true));
@@ -90,6 +97,7 @@ class WsClientReaderWriterTest extends TestBase {
     @Test
     void closeShouldCloseConnection() {
         when(session.isOpen()).thenReturn(true);
+        when(session.getRemoteAddress()).thenReturn(mock(InetSocketAddress.class));
         crw.onWebSocketConnect(session);
 
         crw.close();
@@ -102,6 +110,7 @@ class WsClientReaderWriterTest extends TestBase {
     @Test
     void onWebSocketCloseShouldCloseConnection() {
         when(session.isOpen()).thenReturn(true);
+        when(session.getRemoteAddress()).thenReturn(mock(InetSocketAddress.class));
         crw.onWebSocketConnect(session);
 
         crw.onWebSocketClose(0, null);
@@ -114,6 +123,7 @@ class WsClientReaderWriterTest extends TestBase {
     @Test
     void flushShouldBlockUntilConnected() {
         when(session.getRemote()).thenReturn(remote);
+        when(session.getRemoteAddress()).thenReturn(mock(InetSocketAddress.class));
 
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
         String expectedText = "hello world";
@@ -135,21 +145,14 @@ class WsClientReaderWriterTest extends TestBase {
 
     @Test
     void flushShouldHandleIOExceptions() throws IOException {
-        PrintStream origErr = System.err;
-        try {
-            OutputStream errStream = new ByteArrayOutputStream();
-            PrintStream err = new PrintStream(errStream);
-            System.setErr(err);
-            when(session.getRemote()).thenReturn(remote);
-            doThrow(IOException.class).when(remote).sendString(Mockito.anyString());
-            crw.onWebSocketConnect(session);
-            crw.print("hello world");
-            crw.flush(new SuccessResponseMessage<>("foo", "hello world"));
-            verifyZeroInteractions(remote);
-            MatcherAssert.assertThat(errStream.toString(), Matchers.equalTo("java.io.IOException\n"));
-        } finally {
-            System.setErr(origErr);
-        }
+        when(session.getRemote()).thenReturn(remote);
+        when(session.getRemoteAddress()).thenReturn(mock(InetSocketAddress.class));
+        doThrow(IOException.class).when(remote).sendString(Mockito.anyString());
+        crw.onWebSocketConnect(session);
+        crw.print("hello world");
+        crw.flush(new SuccessResponseMessage<>("foo", "hello world"));
+        verifyZeroInteractions(remote);
+        verify(logger).warn(anyString());
     }
 
 }

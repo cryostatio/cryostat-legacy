@@ -6,9 +6,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +16,17 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.MalformedJsonException;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.StringOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.SuccessOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -32,22 +41,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.StringOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.SuccessOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 @ExtendWith(MockitoExtension.class)
 class WsCommandExecutorTest {
 
     WsCommandExecutor executor;
     @Mock MessagingServer server;
+    @Mock Logger logger;
     @Mock ClientReader cr;
     @Mock ClientWriter cw;
     @Mock SerializableCommandRegistry commandRegistry;
@@ -56,7 +55,7 @@ class WsCommandExecutorTest {
     @BeforeEach
     void setup() {
         gson = new GsonBuilder().serializeNulls().create();
-        executor = new WsCommandExecutor(server, cr, cw, () -> commandRegistry, gson);
+        executor = new WsCommandExecutor(logger, server, cr, cw, () -> commandRegistry, gson);
     }
 
     @Test
@@ -421,33 +420,31 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldReportInvalidJSONExceptions() throws Exception {
-        PrintStream origErr = System.err;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            System.setErr(new PrintStream(baos));
+        when(cr.readLine()).thenAnswer(new Answer<String>() {
+            @Override
+            public String answer(InvocationOnMock invocation) throws Throwable {
+                executor.shutdown();
+                return "{\"command\":\"help}";
+            }
+        });
 
-            when(cr.readLine()).thenAnswer(new Answer<String>() {
-                @Override
-                public String answer(InvocationOnMock invocation) throws Throwable {
-                    executor.shutdown();
-                    return "{\"command\":\"help}";
-                }
-            });
+        executor.run(null);
 
-            executor.run(null);
+        ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor = ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
+        verify(server).flush(messageCaptor.capture());
+        ResponseMessage<String> message = messageCaptor.getValue();
+        MatcherAssert.assertThat(message.status, Matchers.equalTo(-2));
 
-            ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor = ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
-            verify(server).flush(messageCaptor.capture());
-            ResponseMessage<String> message = messageCaptor.getValue();
-            MatcherAssert.assertThat(message.status, Matchers.equalTo(-2));
+        verifyZeroInteractions(commandRegistry);
 
-            verifyZeroInteractions(commandRegistry);
-
-            MatcherAssert.assertThat(baos.toString(), Matchers.stringContainsInOrder(
-                    JsonSyntaxException.class.getName(), MalformedJsonException.class.getName()));
-        } finally {
-            System.setErr(origErr);
-        }
+        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        verify(logger).warn(logCaptor.capture());
+        MatcherAssert.assertThat(logCaptor.getValue(),
+                Matchers.stringContainsInOrder(
+                    JsonSyntaxException.class.getName(),
+                    MalformedJsonException.class.getName()
+                    )
+                );
     }
 
 }

@@ -6,12 +6,12 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import org.eclipse.jetty.server.Server;
 import org.hamcrest.MatcherAssert;
@@ -19,6 +19,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,13 +28,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MessagingServerTest {
 
     MessagingServer server;
+    @Mock Logger logger;
     @Mock Server jettyServer;
     @Mock WsClientReaderWriter crw1;
     @Mock WsClientReaderWriter crw2;
 
     @BeforeEach
     void setup() {
-        server = new MessagingServer(jettyServer);
+        server = new MessagingServer(logger, jettyServer);
     }
 
     @Test
@@ -130,17 +132,14 @@ class MessagingServerTest {
     }
 
     @Test
-    void clientWriterShouldPrintExceptionsToStdErr() {
-        PrintStream err = System.err;
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            System.setErr(new PrintStream(baos));
-            server.getClientWriter().println(new NullPointerException("Testing Exception"));
-            verify(crw1, Mockito.never()).print(Mockito.anyString());
-            MatcherAssert.assertThat(baos.toString(), Matchers.containsString("NullPointerException: Testing Exception"));
-        } finally {
-            System.setErr(err);
-        }
+    void clientWriterShouldLogExceptions() {
+        server.getClientWriter().println(new NullPointerException("Testing Exception"));
+        verify(crw1, Mockito.never()).print(Mockito.anyString());
+        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        verify(logger).warn(logCaptor.capture());
+        MatcherAssert.assertThat(logCaptor.getValue(),
+                Matchers.containsString("NullPointerException: Testing Exception")
+                );
     }
 
     @Test

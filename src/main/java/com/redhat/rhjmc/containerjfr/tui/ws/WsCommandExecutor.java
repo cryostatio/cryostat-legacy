@@ -18,20 +18,22 @@ import dagger.Lazy;
 
 class WsCommandExecutor implements CommandExecutor {
 
-    private final Gson gson;
+    private final Logger logger;
     private final MessagingServer server;
     private final ClientReader cr;
     private final ClientWriter cw;
     private final Lazy<SerializableCommandRegistry> registry;
+    private final Gson gson;
     private volatile Thread readingThread;
     private volatile boolean running = true;
 
-    WsCommandExecutor(MessagingServer server, ClientReader cr, ClientWriter cw, Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
-        this.gson = gson;
+    WsCommandExecutor(Logger logger, MessagingServer server, ClientReader cr, ClientWriter cw, Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
+        this.logger = logger;
         this.server = server;
         this.cr = cr;
         this.cw = cw;
         this.registry = commandRegistry;
+        this.gson = gson;
     }
 
     @Override
@@ -83,7 +85,7 @@ class WsCommandExecutor implements CommandExecutor {
                 }
             }
         } catch (IOException e) {
-            Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+            logger.warn(ExceptionUtils.getStackTrace(e));
         }
     }
 
@@ -96,7 +98,7 @@ class WsCommandExecutor implements CommandExecutor {
     }
 
     private void reportException(String commandName, Exception e) {
-        Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+        logger.warn(ExceptionUtils.getStackTrace(e));
         flush(new CommandExceptionResponseMessage(commandName, e));
     }
 

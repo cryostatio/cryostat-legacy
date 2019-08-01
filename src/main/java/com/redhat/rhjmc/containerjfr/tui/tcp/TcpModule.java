@@ -14,6 +14,7 @@ import dagger.multibindings.IntoSet;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
@@ -53,9 +54,9 @@ public abstract class TcpModule {
 
     @Provides
     @Singleton
-    static SocketClientReaderWriter provideSocketClientReaderWriter(@Named("LISTEN_PORT") int port) {
+    static SocketClientReaderWriter provideSocketClientReaderWriter(Logger logger, @Named("LISTEN_PORT") int port) {
         try {
-            return new SocketClientReaderWriter(port);
+            return new SocketClientReaderWriter(logger, port);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

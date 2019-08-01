@@ -16,6 +16,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class SocketClientReaderWriter implements ClientReader, ClientWriter {
 
+    private final Logger logger;
     private final Thread listenerThread;
     private final ServerSocket ss;
     private final Semaphore semaphore = new Semaphore(0, true);
@@ -23,7 +24,8 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     private volatile Scanner scanner;
     private volatile OutputStreamWriter writer;
 
-    SocketClientReaderWriter(int port) throws IOException {
+    SocketClientReaderWriter(Logger logger, int port) throws IOException {
+        this.logger = logger;
         ss = new ServerSocket(port);
         listenerThread = new Thread(() -> {
             System.out.println(String.format("Listening on port %d", port));
@@ -33,7 +35,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                     try {
                         close();
                     } catch (IOException e) {
-                        Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+                        logger.warn(ExceptionUtils.getStackTrace(e));
                     }
                     System.out.println(String.format("Connected: %s", sock.getRemoteSocketAddress().toString()));
                     try {
@@ -46,7 +48,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                 } catch (SocketException e) {
                     semaphore.drainPermits();
                 } catch (IOException e) {
-                    Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+                    logger.warn(ExceptionUtils.getStackTrace(e));
                 }
             }
         });
@@ -77,7 +79,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                 semaphore.release();
             }
         } catch (InterruptedException e) {
-            Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+            logger.warn(ExceptionUtils.getStackTrace(e));
             return null;
         }
     }
@@ -93,7 +95,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                 semaphore.release();
             }
         } catch (InterruptedException | IOException e) {
-            Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+            logger.warn(ExceptionUtils.getStackTrace(e));
         }
     }
 

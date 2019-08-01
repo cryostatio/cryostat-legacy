@@ -19,11 +19,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class MessagingServer {
 
+    private final Logger logger;
     private final Server server;
     private final Semaphore semaphore = new Semaphore(0, true);
     private final List<WsClientReaderWriter> connections = new ArrayList<>();
 
-    MessagingServer(int listenPort, Gson gson) {
+    MessagingServer(Logger logger, int listenPort, Gson gson) {
+        this.logger = logger;
         this.server = new Server();
         ServerConnector connector = new ServerConnector(server);
         connector.setPort(listenPort);
@@ -32,11 +34,12 @@ class MessagingServer {
         ServletContextHandler contextHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
         contextHandler.setContextPath("/");
         server.setHandler(contextHandler);
-        contextHandler.addServlet(new ServletHolder(new MessagingServlet(this, gson)), "/command");
+        contextHandler.addServlet(new ServletHolder(new MessagingServlet(this, logger, gson)), "/command");
     }
 
     // testing-only constructor
-    MessagingServer(Server server) {
+    MessagingServer(Logger logger, Server server) {
+        this.logger = logger;
         this.server = server;
     }
 
@@ -94,7 +97,7 @@ class MessagingServer {
                         Thread.sleep(100);
                     }
                 } catch (InterruptedException e) {
-                    Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+                    logger.warn(ExceptionUtils.getStackTrace(e));
                     return null;
                 } finally {
                     semaphore.release(permits);
@@ -107,12 +110,12 @@ class MessagingServer {
         return new ClientWriter() {
             @Override
             public void print(String s) {
-                Logger.INSTANCE.info(s);
+                logger.info(s);
             }
 
             @Override
             public void println(Exception e) {
-                Logger.INSTANCE.warn(ExceptionUtils.getStackTrace(e));
+                logger.warn(ExceptionUtils.getStackTrace(e));
             }
         };
     }
