@@ -12,12 +12,14 @@ import com.google.gson.GsonBuilder;
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
+import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.tui.TuiModule;
 import dagger.Module;
 import dagger.Provides;
 
 @Module(includes = {
+    PlatformModule.class,
     NetworkModule.class,
     SystemModule.class,
     CommandsModule.class,
