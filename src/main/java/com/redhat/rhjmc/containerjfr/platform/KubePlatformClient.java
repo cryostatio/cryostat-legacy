@@ -1,5 +1,8 @@
 package com.redhat.rhjmc.containerjfr.platform;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -11,6 +14,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.V1Service;
+import io.kubernetes.client.util.Config;
 
 class KubePlatformClient implements PlatformClient {
 
@@ -28,7 +32,7 @@ class KubePlatformClient implements PlatformClient {
     public List<ServiceRef> listDiscoverableServices() {
         try {
             return this.api
-                .listServiceForAllNamespaces(null, null, null, null, null, null, null, null, null)
+                .listNamespacedService(Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace")).trim(), null, null, null, null, null, null, null, null, null)
                 .getItems()
                 .stream()
                 .map(V1Service::getSpec)
@@ -39,8 +43,13 @@ class KubePlatformClient implements PlatformClient {
                                 EXPECTED_SERVICE_PORT
                             ))
                 .collect(Collectors.toList());
-        } catch (ApiException e) {
+        } catch (IOException e) {
+            logger.warn(e.getMessage());
             logger.warn(ExceptionUtils.getStackTrace(e));
+            return Collections.emptyList();
+        } catch (ApiException e) {
+            logger.warn(e.getMessage());
+            logger.warn(e.getResponseBody());
             return Collections.emptyList();
         }
     }
