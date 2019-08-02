@@ -1,46 +1,47 @@
 package com.redhat.rhjmc.containerjfr.platform;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
+import io.kubernetes.client.ApiException;
+import io.kubernetes.client.apis.CoreV1Api;
+import io.kubernetes.client.models.V1Service;
 
 class KubePlatformClient implements PlatformClient {
 
-    private static final int TESTED_PORT = 9091;
-    private static final String KUBERNETES_ENV_SUFFIX = "_PORT_" + TESTED_PORT + "_TCP_ADDR";
+    // TODO implement search method that is service port agnostic
+    private static final int EXPECTED_SERVICE_PORT = 9091;
+    private final Logger logger;
+    private final CoreV1Api api;
 
-    private final Environment env;
-
-    KubePlatformClient(Environment env) {
-        this.env = env;
+    KubePlatformClient(Logger logger, CoreV1Api api) {
+        this.logger = logger;
+        this.api = api;
     }
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
-        return env.getEnv().entrySet().parallelStream()
-                .filter(e -> e.getKey().endsWith(KUBERNETES_ENV_SUFFIX))
-                .map(e -> testHostByName(e.getValue()))
-                .filter(m -> m != null)
-                .collect(Collectors.toList());
-    }
-
-    private ServiceRef testHostByName(String host) {
         try {
-            return testHost(InetAddress.getByName(host));
-        } catch (IOException ignored) {
-            return null;
-        }
-    }
-
-    private ServiceRef testHost(InetAddress addr) throws IOException {
-        try (Socket s = new Socket()) {
-            s.connect(new InetSocketAddress(addr, TESTED_PORT), 100);
-            return new ServiceRef(addr.getCanonicalHostName(), addr.getHostAddress(), TESTED_PORT);
+            return this.api
+                .listServiceForAllNamespaces(null, null, null, null, null, null, null, null, null)
+                .getItems()
+                .stream()
+                .map(V1Service::getSpec)
+                .filter(s -> s.getPorts().stream().anyMatch(p -> p.getPort() == EXPECTED_SERVICE_PORT))
+                .map(s -> new ServiceRef(
+                                s.getExternalName(),
+                                s.getClusterIP(),
+                                EXPECTED_SERVICE_PORT
+                            ))
+                .collect(Collectors.toList());
+        } catch (ApiException e) {
+            logger.warn(ExceptionUtils.getStackTrace(e));
+            return Collections.emptyList();
         }
     }
 }
