@@ -7,6 +7,8 @@ import java.util.Optional;
 
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import io.kubernetes.client.ApiException;
@@ -30,6 +32,7 @@ public class Platform {
         }
     }
 
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     private boolean detectKubernetes() {
         try {
             Configuration.setDefaultApiClient(Config.fromCluster());

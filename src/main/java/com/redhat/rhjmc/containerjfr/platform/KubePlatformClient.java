@@ -13,6 +13,8 @@ import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import io.kubernetes.client.ApiException;
@@ -34,6 +36,7 @@ class KubePlatformClient implements PlatformClient {
     }
 
     @Override
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     public List<ServiceRef> listDiscoverableServices() {
         try {
             String currentNamespace = Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace")).trim();
