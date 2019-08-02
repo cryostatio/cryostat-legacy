@@ -1,11 +1,15 @@
 package com.redhat.rhjmc.containerjfr.platform;
 
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
@@ -35,14 +39,18 @@ class KubePlatformClient implements PlatformClient {
             String currentNamespace = Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace")).trim();
             V1ServiceList services = api
                 .listNamespacedService(currentNamespace, null, null, null, null, null, null, null, null, null);
-            List<ServiceRef> result = new ArrayList<>();
+            List<ServiceRef> initialRefs = new ArrayList<>();
             for (V1Service service : services.getItems()) {
                 V1ServiceSpec spec = service.getSpec();
                 for (V1ServicePort port : spec.getPorts()) {
-                    result.add(new ServiceRef(spec.getExternalName(), spec.getClusterIP(), port.getPort()));
+                    initialRefs.add(new ServiceRef(spec.getClusterIP(), null, port.getPort()));
                 }
             }
-            return Collections.unmodifiableList(result);
+            return initialRefs
+                .parallelStream()
+                .map(this::resolveServiceRefHostname)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
         } catch (IOException e) {
             logger.warn(e.getMessage());
             logger.warn(ExceptionUtils.getStackTrace(e));
@@ -51,6 +59,17 @@ class KubePlatformClient implements PlatformClient {
             logger.warn(e.getMessage());
             logger.warn(e.getResponseBody());
             return Collections.emptyList();
+        }
+    }
+
+    private ServiceRef resolveServiceRefHostname(ServiceRef in) {
+        try {
+            String hostname = InetAddress.getByName(in.getIp()).getCanonicalHostName();
+            logger.debug(String.format("Resolved %s to %s", in.getIp(), hostname));
+            return new ServiceRef(in.getIp(), hostname, in.getPort());
+        } catch (UnknownHostException e) {
+            logger.debug(ExceptionUtils.getStackTrace(e));
+            return null;
         }
     }
 }
