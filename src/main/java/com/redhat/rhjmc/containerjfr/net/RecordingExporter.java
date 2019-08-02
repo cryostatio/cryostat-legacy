@@ -26,9 +26,7 @@ import java.util.regex.Pattern;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -45,6 +43,7 @@ public class RecordingExporter implements ConnectionListener {
     private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^/([\\w-_]+)(?:\\.jfr)?$",
             Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_.]+)$", Pattern.MULTILINE);
+    static final String DEFAULT_PORT = "8181";
     static final String HOST_VAR = "CONTAINER_JFR_DOWNLOAD_HOST";
     static final String PORT_VAR = "CONTAINER_JFR_DOWNLOAD_PORT";
 
@@ -128,7 +127,7 @@ public class RecordingExporter implements ConnectionListener {
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
         String hostname = env.getEnv(HOST_VAR, resolver.getHostAddress());
-        int port = Integer.parseInt(env.getEnv(PORT_VAR, "8080"));
+        int port = Integer.parseInt(env.getEnv(PORT_VAR, DEFAULT_PORT));
 
         return new URL("http", hostname, port, "");
     }
@@ -148,7 +147,7 @@ public class RecordingExporter implements ConnectionListener {
         private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
 
         private ServerImpl() {
-            super(Integer.parseInt(env.getEnv(PORT_VAR, "8080")));
+            super(Integer.parseInt(env.getEnv(PORT_VAR, DEFAULT_PORT)));
         }
 
         @Override

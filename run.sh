@@ -24,7 +24,7 @@ docker run \
     --cpus 1.0 \
     --mount source=flightrecordings,target=/flightrecordings \
     -p 9090:9090 \
-    -p 8090:8080 \
+    -p 8181:8181 \
     -e CONTAINER_JFR_DOWNLOAD_HOST=$CONTAINER_JFR_DOWNLOAD_HOST \
     -e CONTAINER_JFR_DOWNLOAD_PORT=$CONTAINER_JFR_DOWNLOAD_PORT \
     --rm -it quay.io/rh-jmc-team/container-jfr "$@"

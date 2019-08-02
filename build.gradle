@@ -61,7 +61,7 @@ jib {
     }
     container {
         useCurrentTimestamp = true
-        ports = ['8080', '9090', '9091']
+        ports = ['8181', '9090', '9091']
         jvmFlags = [
             '-XX:+CrashOnOutOfMemoryError',
             '-Dorg.openjdk.jmc.common.security.manager=com.redhat.rhjmc.containerjfr.core.jmc.SecurityManager',
