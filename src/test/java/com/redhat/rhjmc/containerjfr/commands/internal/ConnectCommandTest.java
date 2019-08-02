@@ -93,7 +93,7 @@ class ConnectCommandTest {
     @ParameterizedTest
     @ValueSource(strings = {
         "some.host",
-        "some.host:8080",
+        "some.host:8181",
     })
     void shouldValidateValidIdentifiers(String id) {
         assertTrue(command.validate(new String[] { id }));

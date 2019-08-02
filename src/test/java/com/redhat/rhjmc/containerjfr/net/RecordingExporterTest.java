@@ -221,7 +221,7 @@ class RecordingExporterTest extends TestBase {
                 .thenAnswer(invocation -> (String) invocation.getArguments()[1]);
         when(resolver.getHostAddress()).thenReturn("foo");
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", 8080, "")));
+        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", Integer.valueOf(RecordingExporter.DEFAULT_PORT), "")));
     }
 
     @Test
@@ -236,7 +236,7 @@ class RecordingExporterTest extends TestBase {
         });
         when(resolver.getHostAddress()).thenReturn("foo");
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "bar-host", 8080, "")));
+        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "bar-host", Integer.valueOf(RecordingExporter.DEFAULT_PORT), "")));
     }
 
     @Test
@@ -285,7 +285,7 @@ class RecordingExporterTest extends TestBase {
         );
         when(resolver.getHostAddress()).thenReturn(hostUrl);
 
-        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("http://example.com:8080/" + recordingName));
+        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("http://example.com:8181/" + recordingName));
     }
 
     @ParameterizedTest()
@@ -304,7 +304,7 @@ class RecordingExporterTest extends TestBase {
         );
         when(resolver.getHostAddress()).thenReturn(hostUrl);
 
-        MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("http://example.com:8080/reports/" + recordingName));
+        MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("http://example.com:8181/reports/" + recordingName));
     }
 
 }

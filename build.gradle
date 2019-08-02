@@ -15,20 +15,22 @@ repositories {
 
 dependencies {
     implementation 'com.redhat.rhjmc:containerjfr-core:0.2.2'
+    implementation 'io.kubernetes:client-java:5.0.0'
+
+    implementation 'com.google.dagger:dagger:2.21'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.21'
 
     implementation 'org.apache.commons:commons-lang3:3.8.1+'
+
     implementation 'org.apache.httpcomponents:httpclient:4.5.9'
     implementation 'org.apache.httpcomponents:httpmime:4.5.9'
     implementation 'org.nanohttpd:nanohttpd:2.3.1+'
-    implementation 'com.google.dagger:dagger:2.21'
-    implementation 'com.github.spotbugs:spotbugs-annotations:4.0.0-beta1'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.21'
+
+    implementation 'com.google.code.gson:gson:2.8.5'
 
     def jettyVersion = '9.4.17.v20190418'
     implementation "org.eclipse.jetty.websocket:websocket-api:${jettyVersion}"
     implementation "org.eclipse.jetty.websocket:websocket-server:${jettyVersion}"
-
-    implementation 'com.google.code.gson:gson:2.8.5'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.1'
@@ -36,6 +38,7 @@ dependencies {
     testImplementation 'org.hamcrest:hamcrest:2.1'
     testImplementation 'org.mockito:mockito-junit-jupiter:2.25.1'
     testImplementation 'org.mockito:mockito-inline:2.25.1'
+    implementation 'com.github.spotbugs:spotbugs-annotations:4.0.0-beta1'
 }
 
 mainClassName = 'com.redhat.rhjmc.containerjfr.ContainerJfr'
@@ -58,7 +61,7 @@ jib {
     }
     container {
         useCurrentTimestamp = true
-        ports = ['8080', '9090', '9091']
+        ports = ['8181', '9090', '9091']
         jvmFlags = [
             '-XX:+CrashOnOutOfMemoryError',
             '-Dorg.openjdk.jmc.common.security.manager=com.redhat.rhjmc.containerjfr.core.jmc.SecurityManager',
