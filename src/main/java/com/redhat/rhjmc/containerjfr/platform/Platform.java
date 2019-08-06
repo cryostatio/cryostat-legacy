@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Optional;
 
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -21,11 +22,14 @@ public class Platform {
     private final Logger logger;
     private final PlatformClient client;
 
-    Platform(Logger logger) {
+    Platform(Logger logger, Environment env) {
         this.logger = logger;
         PlatformCheckResult pcr;
         if ((pcr = detectKubernetesApi()).available) {
-            logger.info("Kubernetes configuration detected");
+            logger.info("Kubernetes configuration detected and API is accessible");
+            client = pcr.client;
+        } else if ((pcr = detectKubernetesEnv(env)).available) {
+            logger.info("Kubernetes configuration detected but API is inaccessible");
             client = pcr.client;
         } else {
             logger.info("No runtime platform support available");
@@ -51,6 +55,16 @@ public class Platform {
             logger.debug(e.getResponseBody());
             logger.debug(ExceptionUtils.getStackTrace(e));
         }
+        return pcr;
+    }
+
+    private PlatformCheckResult detectKubernetesEnv(Environment env) {
+        PlatformCheckResult pcr = new PlatformCheckResult();
+        pcr.available = env.getEnv().keySet().stream().anyMatch(s -> s.equals("KUBERNETES_SERVICE_HOST"));
+        if (pcr.available) {
+            pcr.client = new KubeEnvPlatformClient(env);
+        }
+
         return pcr;
     }
 
