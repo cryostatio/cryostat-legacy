@@ -44,7 +44,7 @@ dependencies {
 mainClassName = 'com.redhat.rhjmc.containerjfr.ContainerJfr'
 
 def baseImage = 'gcr.io/distroless/java:11';
-def version = '0.2.3';
+def version = '0.2.4';
 def debugBuild = System.getenv('CONTAINER_JFR_DEBUG') != null;
 if (debugBuild) {
     baseImage += '-debug'

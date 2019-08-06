@@ -5,6 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Optional;
 
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -21,37 +22,63 @@ public class Platform {
     private final Logger logger;
     private final PlatformClient client;
 
-    Platform(Logger logger) {
+    Platform(Logger logger, Environment env) {
         this.logger = logger;
-        if (detectKubernetes()) {
-            logger.info("Kubernetes configuration detected");
-            client = new KubePlatformClient(logger, new CoreV1Api());
+        PlatformCheckResult pcr;
+        if ((pcr = detectKubernetesApi()).available) {
+            logger.info("Kubernetes configuration detected and API is accessible");
+            client = pcr.client;
+        } else if ((pcr = detectKubernetesEnv(env)).available) {
+            logger.info("Kubernetes configuration detected but API is inaccessible");
+            client = pcr.client;
         } else {
             logger.info("No runtime platform support available");
             client = new DefaultPlatformClient();
         }
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    private boolean detectKubernetes() {
+    private PlatformCheckResult detectKubernetesApi() {
+        PlatformCheckResult pcr = new PlatformCheckResult();
         try {
+            String namespace = getKubernetesNamespace();
             Configuration.setDefaultApiClient(Config.fromCluster());
+            CoreV1Api api = new CoreV1Api();
             // arbitrary request - don't care about the result, just whether the API is available
-            new CoreV1Api().listNamespacedService(Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace")), null, null, null, null, null, null, null, null, null);
+            api.listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
+            pcr.client = new KubeApiPlatformClient(logger, api, namespace);
+            pcr.available = true;
         } catch (IOException e) {
             logger.debug(ExceptionUtils.getMessage(e));
             logger.debug(ExceptionUtils.getStackTrace(e));
-            return false;
         } catch (ApiException e) {
             logger.debug(ExceptionUtils.getMessage(e));
             logger.debug(e.getResponseBody());
             logger.debug(ExceptionUtils.getStackTrace(e));
-            return false;
         }
-        return true;
+        return pcr;
+    }
+
+    private PlatformCheckResult detectKubernetesEnv(Environment env) {
+        PlatformCheckResult pcr = new PlatformCheckResult();
+        pcr.available = env.getEnv().keySet().stream().anyMatch(s -> s.equals("KUBERNETES_SERVICE_HOST"));
+        if (pcr.available) {
+            pcr.client = new KubeEnvPlatformClient(env);
+        }
+
+        return pcr;
+    }
+
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    private static String getKubernetesNamespace() throws IOException {
+        return Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace"));
     }
 
     public Optional<PlatformClient> getClient() {
         return Optional.of(client);
+    }
+
+    private static class PlatformCheckResult {
+        boolean available;
+        PlatformClient client;
     }
 }

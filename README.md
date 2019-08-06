@@ -83,13 +83,32 @@ For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).
 
 ## MONITORING APPLICATIONS
-In order for `container-jfr` to be able to monitor JVM application targets, the
-targets must have RJMX enabled. The primary target discovery mechanism is based
-on Kubernetes environment variable service discovery. If no such Kubernetes-
-style environment variables are detected at runtime then `container-jfr` will
-fall back to a port-scanning discovery mechanism. The default expected
-listening port is 9091.  Targets listening on other ports are still connectable
-by `container-jfr` but will not be automatically discoverable via port-scanning.
+In order for `container-jfr` to be able to monitor JVM application targets the
+targets must have RJMX enabled. `container-jfr` has several strategies for
+automatic discovery of potential targets. Each strategy will be tested in order
+until a working strategy is found.
+
+The primary target discovery mechanism uses the Kubernetes API to list services
+and expose all discovered services as potential targets. This is runtime
+dynamic, allowing `container-jfr` to discover new services which come online
+after `container-jfr`, or to detect when known services disappear later. This
+requires the `container-jfr` pod to have authorization to list services within
+its own namespace.
+
+The secondary target discovery mechanism is based on Kubernetes environment
+variable service discovery. In this mode, environment variables available to
+`container-jfr` (note: environment variables are set once at process creation -
+this implies that this method of service discovery is *static* after startup)
+are examined for the form `FOO_PORT_1234_TCP_ADDR=127.0.0.1`. Such an
+environment variable will cause the discovery of a target at address
+`127.0.0.1`, aliased as `foo`, listening on port `1234`.
+
+Finally, if no supported platform is detected, then `container-jfr` will fall
+back to a port-scanning discovery mechanism. All hosts in the /24 subnet that
+`container-jfr` is within will be scanned for an open listening port. The
+default expected listening port is 9091. Targets listening on other ports are
+still connectable by `container-jfr` but will not be automatically discoverable
+via port-scanning.
 
 To enable RJMX on port 9091, the following JVM flags should be passed at target
 startup:
