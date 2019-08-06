@@ -4,6 +4,7 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import dagger.Module;
 import dagger.Provides;
@@ -12,7 +13,7 @@ import dagger.Provides;
 public abstract class PlatformModule {
     @Provides
     @Singleton
-    static Platform providePlatform(Logger logger, Environment env) {
-        return new Platform(logger, env);
+    static Platform providePlatform(Logger logger, Environment env, NetworkResolver resolver) {
+        return new Platform(logger, env, resolver);
     }
 }

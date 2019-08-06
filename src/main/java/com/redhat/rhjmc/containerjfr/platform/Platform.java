@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -22,7 +23,7 @@ public class Platform {
     private final Logger logger;
     private final PlatformClient client;
 
-    Platform(Logger logger, Environment env) {
+    Platform(Logger logger, Environment env, NetworkResolver resolver) {
         this.logger = logger;
         PlatformCheckResult pcr;
         if ((pcr = detectKubernetesApi()).available) {
@@ -33,7 +34,7 @@ public class Platform {
             client = pcr.client;
         } else {
             logger.info("No runtime platform support available");
-            client = new DefaultPlatformClient();
+            client = new DefaultPlatformClient(resolver);
         }
     }
 
