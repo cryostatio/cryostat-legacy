@@ -25,12 +25,12 @@ import io.kubernetes.client.models.V1ServicePort;
 import io.kubernetes.client.models.V1ServiceSpec;
 import io.kubernetes.client.util.Config;
 
-class KubePlatformClient implements PlatformClient {
+class KubeApiPlatformClient implements PlatformClient {
 
     private final Logger logger;
     private final CoreV1Api api;
 
-    KubePlatformClient(Logger logger, CoreV1Api api) {
+    KubeApiPlatformClient(Logger logger, CoreV1Api api) {
         this.logger = logger;
         this.api = api;
     }

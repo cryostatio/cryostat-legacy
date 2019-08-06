@@ -25,7 +25,7 @@ public class Platform {
         this.logger = logger;
         if (detectKubernetes()) {
             logger.info("Kubernetes configuration detected");
-            client = new KubePlatformClient(logger, new CoreV1Api());
+            client = new KubeApiPlatformClient(logger, new CoreV1Api());
         } else {
             logger.info("No runtime platform support available");
             client = new DefaultPlatformClient();
