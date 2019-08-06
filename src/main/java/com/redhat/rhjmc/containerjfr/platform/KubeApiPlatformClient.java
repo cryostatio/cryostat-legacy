@@ -56,6 +56,7 @@ class KubeApiPlatformClient implements PlatformClient {
         }
     }
 
+    // TODO this resolution needs to be testable. Add some network utility for performing hostname reverse lookup
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {
         try {
             String hostname = InetAddress.getByName(in.getIp()).getCanonicalHostName();

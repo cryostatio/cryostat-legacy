@@ -1,9 +1,5 @@
 package com.redhat.rhjmc.containerjfr.platform;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -37,16 +33,7 @@ class KubeEnvPlatformClient implements PlatformClient {
         }
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
-        return testTarget(entry.getValue(), alias, port);
-    }
-
-    private static ServiceRef testTarget(String host, String alias, int port) {
-        try (Socket s = new Socket()) {
-            s.connect(new InetSocketAddress(InetAddress.getByName(host), port), 100);
-            return new ServiceRef(host, alias, port);
-        } catch (IOException e) {
-            return null;
-        }
+        return new ServiceRef(entry.getValue(), alias, port);
     }
 
 }

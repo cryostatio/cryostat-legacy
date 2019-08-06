@@ -1,7 +1,7 @@
 package com.redhat.rhjmc.containerjfr.platform;
 
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
@@ -12,7 +12,6 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,7 +47,6 @@ class KubeEnvPlatformClientTest {
         }
 
         @Test
-        @Disabled("Tests fail due to inability to connect to faked network services, need to provide mock socket tester")
         void shouldDiscoverServicesByEnv() {
             when(env.getEnv()).thenReturn(Map.of(
                 "FOO_PORT_1234_TCP_ADDR", "127.0.0.1",
