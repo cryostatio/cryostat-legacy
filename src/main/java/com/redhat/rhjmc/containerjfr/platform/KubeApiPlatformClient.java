@@ -2,7 +2,6 @@ package com.redhat.rhjmc.containerjfr.platform;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -15,9 +14,6 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.V1Service;
-import io.kubernetes.client.models.V1ServiceList;
-import io.kubernetes.client.models.V1ServicePort;
-import io.kubernetes.client.models.V1ServiceSpec;
 
 class KubeApiPlatformClient implements PlatformClient {
 
@@ -34,18 +30,13 @@ class KubeApiPlatformClient implements PlatformClient {
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
-            String currentNamespace = namespace;
-            V1ServiceList services = api
-                .listNamespacedService(currentNamespace, null, null, null, null, null, null, null, null, null);
-            List<ServiceRef> initialRefs = new ArrayList<>();
-            for (V1Service service : services.getItems()) {
-                V1ServiceSpec spec = service.getSpec();
-                for (V1ServicePort port : spec.getPorts()) {
-                    initialRefs.add(new ServiceRef(spec.getClusterIP(), null, port.getPort()));
-                }
-            }
-            return initialRefs
-                .parallelStream()
+            return api
+                .listNamespacedService(namespace, null, null, null, null, null, null, null, null, null)
+                .getItems()
+                .stream()
+                .map(V1Service::getSpec)
+                .flatMap(s -> s.getPorts().stream().map(p -> new ServiceRef(s.getClusterIP(), "", p.getPort())))
+                .parallel()
                 .map(this::resolveServiceRefHostname)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
