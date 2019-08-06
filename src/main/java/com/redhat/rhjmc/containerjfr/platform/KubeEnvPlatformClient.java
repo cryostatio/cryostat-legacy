@@ -5,15 +5,17 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 
 class KubeEnvPlatformClient implements PlatformClient {
 
-    private static final int TESTED_PORT = 9091;
-    private static final String KUBERNETES_ENV_SUFFIX = "_PORT_" + TESTED_PORT + "_TCP_ADDR";
-
+    private static final Pattern SERVICE_ENV_PATTERN = Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final Environment env;
 
     KubeEnvPlatformClient(Environment env) {
@@ -22,25 +24,28 @@ class KubeEnvPlatformClient implements PlatformClient {
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
-        return env.getEnv().entrySet().parallelStream()
-                .filter(e -> e.getKey().endsWith(KUBERNETES_ENV_SUFFIX))
-                .map(e -> testHostByName(e.getValue()))
-                .filter(m -> m != null)
+        return env.getEnv().entrySet().stream()
+                .map(KubeEnvPlatformClient::envToServiceRef)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 
-    private ServiceRef testHostByName(String host) {
-        try {
-            return testHost(InetAddress.getByName(host));
-        } catch (IOException ignored) {
+    private static ServiceRef envToServiceRef(Map.Entry<String, String> entry) {
+        Matcher matcher = SERVICE_ENV_PATTERN.matcher(entry.getKey());
+        if (!matcher.matches()) {
             return null;
         }
+        String alias = matcher.group(1).toLowerCase();
+        int port = Integer.parseInt(matcher.group(2));
+        return testTarget(entry.getValue(), alias, port);
     }
 
-    private ServiceRef testHost(InetAddress addr) throws IOException {
+    private static ServiceRef testTarget(String host, String alias, int port) {
         try (Socket s = new Socket()) {
-            s.connect(new InetSocketAddress(addr, TESTED_PORT), 100);
-            return new ServiceRef(addr.getCanonicalHostName(), addr.getHostAddress(), TESTED_PORT);
+            s.connect(new InetSocketAddress(InetAddress.getByName(host), port), 100);
+            return new ServiceRef(host, alias, port);
+        } catch (IOException e) {
+            return null;
         }
     }
 
