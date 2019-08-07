@@ -1,4 +1,4 @@
-package com.redhat.rhjmc.containerjfr.platform;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import java.net.UnknownHostException;
 import java.util.Collections;
@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 

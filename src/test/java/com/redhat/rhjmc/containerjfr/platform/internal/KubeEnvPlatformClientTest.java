@@ -1,4 +1,4 @@
-package com.redhat.rhjmc.containerjfr.platform;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
