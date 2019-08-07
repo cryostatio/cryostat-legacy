@@ -1,4 +1,4 @@
-package com.redhat.rhjmc.containerjfr.platform;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -14,6 +14,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;

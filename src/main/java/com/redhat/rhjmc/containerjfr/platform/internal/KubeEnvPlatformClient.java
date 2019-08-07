@@ -1,4 +1,4 @@
-package com.redhat.rhjmc.containerjfr.platform;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import java.util.List;
 import java.util.Map;
@@ -8,6 +8,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 class KubeEnvPlatformClient implements PlatformClient {
 

@@ -1,9 +1,7 @@
-package com.redhat.rhjmc.containerjfr.platform;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import java.io.IOException;
 import java.net.InetAddress;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +11,8 @@ import java.util.concurrent.Executors;
 
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
