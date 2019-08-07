@@ -7,6 +7,7 @@ import java.util.Optional;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
@@ -22,10 +23,10 @@ public class Platform {
     private final Logger logger;
     private final PlatformClient client;
 
-    Platform(Logger logger, Environment env) {
+    Platform(Logger logger, Environment env, NetworkResolver resolver) {
         this.logger = logger;
         PlatformCheckResult pcr;
-        if ((pcr = detectKubernetesApi()).available) {
+        if ((pcr = detectKubernetesApi(resolver)).available) {
             logger.info("Kubernetes configuration detected and API is accessible");
             client = pcr.client;
         } else if ((pcr = detectKubernetesEnv(env)).available) {
@@ -33,11 +34,11 @@ public class Platform {
             client = pcr.client;
         } else {
             logger.info("No runtime platform support available");
-            client = new DefaultPlatformClient();
+            client = new DefaultPlatformClient(resolver);
         }
     }
 
-    private PlatformCheckResult detectKubernetesApi() {
+    private PlatformCheckResult detectKubernetesApi(NetworkResolver resolver) {
         PlatformCheckResult pcr = new PlatformCheckResult();
         try {
             String namespace = getKubernetesNamespace();
@@ -45,7 +46,7 @@ public class Platform {
             CoreV1Api api = new CoreV1Api();
             // arbitrary request - don't care about the result, just whether the API is available
             api.listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
-            pcr.client = new KubeApiPlatformClient(logger, api, namespace);
+            pcr.client = new KubeApiPlatformClient(logger, api, namespace, resolver);
             pcr.available = true;
         } catch (IOException e) {
             logger.debug(ExceptionUtils.getMessage(e));
