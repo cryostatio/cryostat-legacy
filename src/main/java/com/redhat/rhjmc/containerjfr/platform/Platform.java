@@ -16,7 +16,7 @@ import io.kubernetes.client.Configuration;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.util.Config;
 
-public class Platform {
+class Platform {
 
     private final Logger logger;
     private final PlatformClient client;
@@ -67,7 +67,7 @@ public class Platform {
         return Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace"));
     }
 
-    public PlatformClient getClient() {
+    PlatformClient getClient() {
         return client;
     }
 

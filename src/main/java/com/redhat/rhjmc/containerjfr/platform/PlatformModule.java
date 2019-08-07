@@ -13,7 +13,7 @@ import dagger.Provides;
 public abstract class PlatformModule {
     @Provides
     @Singleton
-    static Platform providePlatform(Logger logger, Environment env, NetworkResolver resolver) {
-        return new Platform(logger, env, resolver);
+    static PlatformClient providePlatformClient(Logger logger, Environment env, NetworkResolver resolver) {
+        return new Platform(logger, env, resolver).getClient();
     }
 }

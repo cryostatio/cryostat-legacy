@@ -1,18 +1,11 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.net.UnknownHostException;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.platform.Platform;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 @Singleton
 class ScanTargetsCommand implements SerializableCommand {
@@ -21,8 +14,8 @@ class ScanTargetsCommand implements SerializableCommand {
     private final ClientWriter cw;
 
     @Inject
-    ScanTargetsCommand(Platform platform, ClientWriter cw) {
-        this.platformClient = platform.getClient();
+    ScanTargetsCommand(PlatformClient platformClient, ClientWriter cw) {
+        this.platformClient = platformClient;
         this.cw = cw;
     }
 
