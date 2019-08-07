@@ -3,16 +3,14 @@ package com.redhat.rhjmc.containerjfr.platform;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Optional;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.Configuration;
 import io.kubernetes.client.apis.CoreV1Api;
@@ -74,8 +72,8 @@ public class Platform {
         return Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace"));
     }
 
-    public Optional<PlatformClient> getClient() {
-        return Optional.of(client);
+    public PlatformClient getClient() {
+        return client;
     }
 
     private static class PlatformCheckResult {

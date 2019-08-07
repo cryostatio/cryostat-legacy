@@ -17,7 +17,7 @@ import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 @Singleton
 class ScanTargetsCommand implements SerializableCommand {
 
-    private final Optional<PlatformClient> platformClient;
+    private final PlatformClient platformClient;
     private final ClientWriter cw;
 
     @Inject
@@ -47,19 +47,15 @@ class ScanTargetsCommand implements SerializableCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        findCompatibleJvms().forEach(s -> cw.println(String.format("%s -> %s", s.getHostname(), s.getIp())));
+        platformClient.listDiscoverableServices().forEach(s -> cw.println(String.format("%s -> %s", s.getHostname(), s.getIp())));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return new ListOutput<>(findCompatibleJvms());
+            return new ListOutput<>(platformClient.listDiscoverableServices());
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
-    }
-
-    private List<ServiceRef> findCompatibleJvms() throws UnknownHostException, InterruptedException {
-        return platformClient.map(PlatformClient::listDiscoverableServices).orElse(Collections.emptyList());
     }
 }
