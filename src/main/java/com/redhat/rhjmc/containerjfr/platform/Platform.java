@@ -26,7 +26,7 @@ public class Platform {
     Platform(Logger logger, Environment env, NetworkResolver resolver) {
         this.logger = logger;
         PlatformCheckResult pcr;
-        if ((pcr = detectKubernetesApi()).available) {
+        if ((pcr = detectKubernetesApi(resolver)).available) {
             logger.info("Kubernetes configuration detected and API is accessible");
             client = pcr.client;
         } else if ((pcr = detectKubernetesEnv(env)).available) {
@@ -38,7 +38,7 @@ public class Platform {
         }
     }
 
-    private PlatformCheckResult detectKubernetesApi() {
+    private PlatformCheckResult detectKubernetesApi(NetworkResolver resolver) {
         PlatformCheckResult pcr = new PlatformCheckResult();
         try {
             String namespace = getKubernetesNamespace();
@@ -46,7 +46,7 @@ public class Platform {
             CoreV1Api api = new CoreV1Api();
             // arbitrary request - don't care about the result, just whether the API is available
             api.listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
-            pcr.client = new KubeApiPlatformClient(logger, api, namespace);
+            pcr.client = new KubeApiPlatformClient(logger, api, namespace, resolver);
             pcr.available = true;
         } catch (IOException e) {
             logger.debug(ExceptionUtils.getMessage(e));

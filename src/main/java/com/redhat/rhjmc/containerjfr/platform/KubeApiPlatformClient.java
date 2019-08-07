@@ -1,6 +1,5 @@
 package com.redhat.rhjmc.containerjfr.platform;
 
-import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
@@ -8,6 +7,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
@@ -20,11 +20,13 @@ class KubeApiPlatformClient implements PlatformClient {
     private final Logger logger;
     private final CoreV1Api api;
     private final String namespace;
+    private final NetworkResolver resolver;
 
-    KubeApiPlatformClient(Logger logger, CoreV1Api api, String namespace) {
+    KubeApiPlatformClient(Logger logger, CoreV1Api api, String namespace, NetworkResolver resolver) {
         this.logger = logger;
         this.api = api;
         this.namespace = namespace;
+        this.resolver = resolver;
     }
 
     @Override
@@ -47,10 +49,9 @@ class KubeApiPlatformClient implements PlatformClient {
         }
     }
 
-    // TODO this resolution needs to be testable. Add some network utility for performing hostname reverse lookup
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {
         try {
-            String hostname = InetAddress.getByName(in.getIp()).getCanonicalHostName();
+            String hostname = resolver.resolveCanonicalHostName(in.getIp());
             logger.debug(String.format("Resolved %s to %s", in.getIp(), hostname));
             return new ServiceRef(in.getIp(), hostname, in.getPort());
         } catch (UnknownHostException e) {
