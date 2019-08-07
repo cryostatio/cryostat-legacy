@@ -23,29 +23,27 @@ public class Platform {
 
     Platform(Logger logger, Environment env, NetworkResolver resolver) {
         this.logger = logger;
-        PlatformCheckResult pcr;
-        if ((pcr = detectKubernetesApi(resolver)).available) {
+        PlatformClient client;
+        if ((client = detectKubernetesApi(resolver)) != null) {
             logger.info("Kubernetes configuration detected and API is accessible");
-            client = pcr.client;
-        } else if ((pcr = detectKubernetesEnv(env)).available) {
+            this.client = client;
+        } else if ((client = detectKubernetesEnv(env)) != null) {
             logger.info("Kubernetes configuration detected but API is inaccessible");
-            client = pcr.client;
+            this.client = client;
         } else {
             logger.info("No runtime platform support available");
-            client = new DefaultPlatformClient(resolver);
+            this.client = new DefaultPlatformClient(resolver);
         }
     }
 
-    private PlatformCheckResult detectKubernetesApi(NetworkResolver resolver) {
-        PlatformCheckResult pcr = new PlatformCheckResult();
+    private PlatformClient detectKubernetesApi(NetworkResolver resolver) {
         try {
             String namespace = getKubernetesNamespace();
             Configuration.setDefaultApiClient(Config.fromCluster());
             CoreV1Api api = new CoreV1Api();
             // arbitrary request - don't care about the result, just whether the API is available
             api.listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
-            pcr.client = new KubeApiPlatformClient(logger, api, namespace, resolver);
-            pcr.available = true;
+            return new KubeApiPlatformClient(logger, api, namespace, resolver);
         } catch (IOException e) {
             logger.debug(ExceptionUtils.getMessage(e));
             logger.debug(ExceptionUtils.getStackTrace(e));
@@ -54,17 +52,14 @@ public class Platform {
             logger.debug(e.getResponseBody());
             logger.debug(ExceptionUtils.getStackTrace(e));
         }
-        return pcr;
+        return null;
     }
 
-    private PlatformCheckResult detectKubernetesEnv(Environment env) {
-        PlatformCheckResult pcr = new PlatformCheckResult();
-        pcr.available = env.getEnv().keySet().stream().anyMatch(s -> s.equals("KUBERNETES_SERVICE_HOST"));
-        if (pcr.available) {
-            pcr.client = new KubeEnvPlatformClient(env);
+    private PlatformClient detectKubernetesEnv(Environment env) {
+        if (env.getEnv().keySet().stream().anyMatch(s -> s.equals("KUBERNETES_SERVICE_HOST"))) {
+            return new KubeEnvPlatformClient(env);
         }
-
-        return pcr;
+        return null;
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
@@ -76,8 +71,4 @@ public class Platform {
         return client;
     }
 
-    private static class PlatformCheckResult {
-        boolean available;
-        PlatformClient client;
-    }
 }
