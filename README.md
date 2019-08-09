@@ -29,6 +29,11 @@ required dependency, which is not currently published in an artefact repository
 and so much be built and installed into the Maven local repository.
 Instructions for doing so are available at that project's README.
 
+Submodules must be initialized via `git submodule init`.
+
+`container-jfr-web`, as a submodule located within the `web-client` directory,
+must be prepared by running `pushd web-client; npm install; popd`.
+
 Once the `container-jfr-core` local dependency is made available,
 `./gradlew build` will build the project.
 
