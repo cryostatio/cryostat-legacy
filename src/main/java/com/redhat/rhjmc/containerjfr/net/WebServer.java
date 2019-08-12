@@ -36,10 +36,11 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
-public class RecordingExporter implements ConnectionListener {
+public class WebServer implements ConnectionListener {
 
     // TODO extract the name pattern (here and AbstractConnectedCommand) to shared
     // utility
@@ -60,7 +61,7 @@ public class RecordingExporter implements ConnectionListener {
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    RecordingExporter(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, @Named("LISTEN_PORT") int wsListenPort) {
+    WebServer(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, @Named("LISTEN_PORT") int wsListenPort) {
         this.savedRecordingsPath = savedRecordingsPath;
         this.env = env;
         this.wsListenPort = wsListenPort;
@@ -70,7 +71,7 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     // Testing-only constructor
-    RecordingExporter(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+    WebServer(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
         this.savedRecordingsPath = savedRecordingsPath;
         this.env = env;
         this.wsListenPort = 9090;
@@ -230,6 +231,7 @@ public class RecordingExporter implements ConnectionListener {
             return serveClientAsset("index.html");
         }
 
+        @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
         private Response serveClientAsset(String assetName) {
             Path assetPath = Paths.get("/", "web-client", assetName);
             if (!assetPath.toFile().isFile()) {

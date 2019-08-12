@@ -9,15 +9,15 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
-    private final RecordingExporter exporter;
+    private final WebServer exporter;
 
-    @Inject DeleteCommand(ClientWriter cw, RecordingExporter exporter) {
+    @Inject DeleteCommand(ClientWriter cw, WebServer exporter) {
         this.cw = cw;
         this.exporter = exporter;
     }

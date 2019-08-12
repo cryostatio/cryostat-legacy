@@ -13,7 +13,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SavedRecordingDescriptor;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 
 @Singleton
 class ListSavedRecordingsCommand implements SerializableCommand {
@@ -21,11 +21,11 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     private final ClientWriter cw;
     private final FileSystem fs;
     private final Path recordingsPath;
-    private final RecordingExporter exporter;
+    private final WebServer exporter;
 
     @Inject
     ListSavedRecordingsCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath,
-            RecordingExporter exporter) {
+            WebServer exporter) {
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;

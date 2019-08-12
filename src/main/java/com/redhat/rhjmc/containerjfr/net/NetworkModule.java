@@ -21,12 +21,12 @@ import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 public abstract class NetworkModule {
     @Binds
     @IntoSet
-    abstract ConnectionListener bindRecordingExporter(RecordingExporter exporter);
+    abstract ConnectionListener bindWebServer(WebServer exporter);
 
     @Provides
     @Singleton
-    static RecordingExporter provideRecordingExporter(@Named("RECORDINGS_PATH") Path recordingsPath, Environment env, @Named("LISTEN_PORT") int listenPort, ClientWriter cw, NetworkResolver resolver) {
-        return new RecordingExporter(recordingsPath, env, cw, resolver, listenPort);
+    static WebServer provideWebServer(@Named("RECORDINGS_PATH") Path recordingsPath, Environment env, @Named("LISTEN_PORT") int listenPort, ClientWriter cw, NetworkResolver resolver) {
+        return new WebServer(recordingsPath, env, cw, resolver, listenPort);
     }
 
     @Provides

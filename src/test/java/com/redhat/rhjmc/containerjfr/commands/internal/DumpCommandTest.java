@@ -15,7 +15,7 @@ import java.util.Collections;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +38,7 @@ class DumpCommandTest {
     @Mock
     ClientWriter cw;
     @Mock
-    RecordingExporter exporter;
+    WebServer exporter;
     @Mock
     JFRConnection connection;
     @Mock IFlightRecorderService service;

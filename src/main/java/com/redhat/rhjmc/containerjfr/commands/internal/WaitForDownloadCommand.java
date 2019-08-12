@@ -5,16 +5,16 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
 class WaitForDownloadCommand extends WaitForCommand {
 
-    private final RecordingExporter exporter;
+    private final WebServer exporter;
 
-    @Inject WaitForDownloadCommand(ClientWriter cw, Clock clock, RecordingExporter exporter) {
+    @Inject WaitForDownloadCommand(ClientWriter cw, Clock clock, WebServer exporter) {
         super(cw, clock);
         this.exporter = exporter;
     }

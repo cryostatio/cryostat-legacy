@@ -9,15 +9,15 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.jmc.CopyRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 
 @Singleton
 class SnapshotCommand extends AbstractRecordingCommand implements SerializableCommand {
 
-    private final RecordingExporter exporter;
+    private final WebServer exporter;
 
     @Inject
-    SnapshotCommand(ClientWriter cw, RecordingExporter exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    SnapshotCommand(ClientWriter cw, WebServer exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;

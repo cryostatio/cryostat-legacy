@@ -13,7 +13,7 @@ import java.util.Collections;
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,7 +31,7 @@ class WaitForDownloadCommandTest extends TestBase {
 
     WaitForDownloadCommand command;
     @Mock
-    RecordingExporter exporter;
+    WebServer exporter;
     @Mock
     JFRConnection connection;
     @Mock IFlightRecorderService service;

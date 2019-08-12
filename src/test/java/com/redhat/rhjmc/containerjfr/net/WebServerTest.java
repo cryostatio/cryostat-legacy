@@ -38,25 +38,19 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import fi.iki.elonen.NanoHTTPD;
 
 @ExtendWith(MockitoExtension.class)
-class RecordingExporterTest extends TestBase {
+class WebServerTest extends TestBase {
 
-    RecordingExporter exporter;
-    @Mock
-    Path recordingsPath;
-    @Mock
-    Environment env;
-    @Mock
-    JFRConnection connection;
-    @Mock
-    IFlightRecorderService service;
-    @Mock
-    NetworkResolver resolver;
-    @Mock
-    NanoHTTPD server;
+    WebServer exporter;
+    @Mock Path recordingsPath;
+    @Mock Environment env;
+    @Mock JFRConnection connection;
+    @Mock IFlightRecorderService service;
+    @Mock NetworkResolver resolver;
+    @Mock NanoHTTPD server;
 
     @BeforeEach
     void setup() {
-        exporter = new RecordingExporter(recordingsPath, env, mockClientWriter, resolver, server);
+        exporter = new WebServer(recordingsPath, env, mockClientWriter, resolver, server);
     }
 
     @Test
@@ -70,7 +64,7 @@ class RecordingExporterTest extends TestBase {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         when(env.getEnv(Mockito.eq("CONTAINER_JFR_DOWNLOAD_PORT"), Mockito.anyString())).thenReturn("1234");
-        assertDoesNotThrow(() -> new RecordingExporter(recordingsPath, env, mockClientWriter, resolver));
+        assertDoesNotThrow(() -> new WebServer(recordingsPath, env, mockClientWriter, resolver, 1234));
     }
 
     @Test
@@ -221,14 +215,14 @@ class RecordingExporterTest extends TestBase {
                 .thenAnswer(invocation -> (String) invocation.getArguments()[1]);
         when(resolver.getHostAddress()).thenReturn("foo");
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", Integer.valueOf(RecordingExporter.DEFAULT_PORT), "")));
+        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", Integer.valueOf(WebServer.DEFAULT_PORT), "")));
     }
 
     @Test
     void shouldProvideCustomizedHostUrl() throws Exception {
         when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation -> {
             String arg = (String) invocation.getArguments()[0];
-            if (arg.equals(RecordingExporter.HOST_VAR)) {
+            if (arg.equals(WebServer.HOST_VAR)) {
                 return "bar-host";
             } else {
                 return (String) invocation.getArguments()[1];
@@ -236,14 +230,14 @@ class RecordingExporterTest extends TestBase {
         });
         when(resolver.getHostAddress()).thenReturn("foo");
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "bar-host", Integer.valueOf(RecordingExporter.DEFAULT_PORT), "")));
+        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "bar-host", Integer.valueOf(WebServer.DEFAULT_PORT), "")));
     }
 
     @Test
     void shouldProvideCustomizedPortUrl() throws Exception {
         when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation -> {
             String arg = (String) invocation.getArguments()[0];
-            if (arg.equals(RecordingExporter.HOST_VAR)) {
+            if (arg.equals(WebServer.HOST_VAR)) {
                 return (String) invocation.getArguments()[1];
             } else {
                 return "1234";
@@ -258,7 +252,7 @@ class RecordingExporterTest extends TestBase {
     void shouldProvideCustomizedUrl() throws Exception {
         when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation -> {
             String arg = (String) invocation.getArguments()[0];
-            if (arg.equals(RecordingExporter.HOST_VAR)) {
+            if (arg.equals(WebServer.HOST_VAR)) {
                 return "example";
             } else {
                 return "9876";
@@ -285,7 +279,7 @@ class RecordingExporterTest extends TestBase {
         );
         when(resolver.getHostAddress()).thenReturn(hostUrl);
 
-        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("http://example.com:8181/" + recordingName));
+        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("http://example.com:8181/recordings/" + recordingName));
     }
 
     @ParameterizedTest()

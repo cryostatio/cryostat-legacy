@@ -14,7 +14,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +43,7 @@ class ListCommandTest {
     @Mock
     IFlightRecorderService service;
     @Mock
-    RecordingExporter exporter;
+    WebServer exporter;
 
     @BeforeEach
     void setup() {

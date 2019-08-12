@@ -14,7 +14,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SavedRecordingDescriptor;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -40,7 +40,7 @@ class ListSavedRecordingsCommandTest {
     @Mock
     Path recordingsPath;
     @Mock
-    RecordingExporter exporter;
+    WebServer exporter;
     ListSavedRecordingsCommand command;
 
     @BeforeEach
