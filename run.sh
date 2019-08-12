@@ -16,6 +16,14 @@ set +e
 docker network create --attachable container-jfr
 set -e
 
+if [ -z "$CONTAINER_JFR_DOWNLOAD_HOST" ]; then
+    CONTAINER_JFR_DOWNLOAD_HOST="localhost"
+fi
+
+if [ -z "$CONTAINER_JFR_DOWNLOAD_PORT" ]; then
+    CONTAINER_JFR_DOWNLOAD_PORT=8181
+fi
+
 docker run \
     --net container-jfr \
     --hostname container-jfr \

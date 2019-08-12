@@ -25,8 +25,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static RecordingExporter provideRecordingExporter(@Named("RECORDINGS_PATH") Path recordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver) {
-        return new RecordingExporter(recordingsPath, env, cw, resolver);
+    static RecordingExporter provideRecordingExporter(@Named("RECORDINGS_PATH") Path recordingsPath, Environment env, @Named("LISTEN_PORT") int listenPort, ClientWriter cw, NetworkResolver resolver) {
+        return new RecordingExporter(recordingsPath, env, cw, resolver, listenPort);
     }
 
     @Provides
