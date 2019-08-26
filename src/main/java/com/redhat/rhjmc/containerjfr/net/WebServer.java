@@ -166,7 +166,7 @@ public class WebServer implements ConnectionListener {
         @Override
         public Response serve(IHTTPSession session) {
             String requestUrl = session.getUri();
-            System.err.println("Serving " + requestUrl);
+            cw.println("Serving " + requestUrl);
             Matcher recordingMatcher = RECORDING_NAME_PATTERN.matcher(requestUrl);
             Matcher reportMatcher = REPORT_PATTERN.matcher(requestUrl);
             Matcher clientMatcher = CLIENT_PATTERN.matcher(requestUrl);
@@ -176,8 +176,8 @@ public class WebServer implements ConnectionListener {
                 try {
                     return serveJsonKeyValueResponse("clientUrl", String.format("ws://%s:%d/command", getHostUrl().getHost(), wsListenPort));
                 } catch (UnknownHostException | MalformedURLException | SocketException e) {
-                    //TODO
-                    e.printStackTrace();
+                    cw.println(e.getLocalizedMessage());
+                    return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, e.getLocalizedMessage());
                 }
             } else if (requestUrl.equals("/grafana_datasource_url")) {
                 return serveJsonKeyValueResponse("grafanaDatasourceUrl", "");
