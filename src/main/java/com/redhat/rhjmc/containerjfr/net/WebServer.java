@@ -53,7 +53,6 @@ public class WebServer implements ConnectionListener {
 
     private final Path savedRecordingsPath;
     private final Environment env;
-    private final int wsListenPort;
     private final ClientWriter cw;
     private IFlightRecorderService service;
     private final NetworkResolver resolver;
@@ -61,10 +60,9 @@ public class WebServer implements ConnectionListener {
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    WebServer(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, @Named("LISTEN_PORT") int wsListenPort) {
+    WebServer(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver) {
         this.savedRecordingsPath = savedRecordingsPath;
         this.env = env;
-        this.wsListenPort = wsListenPort;
         this.cw = cw;
         this.resolver = resolver;
         this.server = new ServerImpl();
@@ -74,7 +72,6 @@ public class WebServer implements ConnectionListener {
     WebServer(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
         this.savedRecordingsPath = savedRecordingsPath;
         this.env = env;
-        this.wsListenPort = 9090;
         this.cw = cw;
         this.resolver = resolver;
         this.server = server;
@@ -174,6 +171,7 @@ public class WebServer implements ConnectionListener {
                 return serveClientIndex();
             } else if (requestUrl.endsWith("/clienturl")) {
                 try {
+                    int wsListenPort = Integer.parseInt(env.getEnv("CONTAINER_JFR_LISTEN_PORT", "9090"));
                     return serveJsonKeyValueResponse("clientUrl", String.format("ws://%s:%d/command", getHostUrl().getHost(), wsListenPort));
                 } catch (UnknownHostException | MalformedURLException | SocketException e) {
                     cw.println(e.getLocalizedMessage());

@@ -64,7 +64,7 @@ class WebServerTest extends TestBase {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         when(env.getEnv(Mockito.eq("CONTAINER_JFR_DOWNLOAD_PORT"), Mockito.anyString())).thenReturn("1234");
-        assertDoesNotThrow(() -> new WebServer(recordingsPath, env, mockClientWriter, resolver, 1234));
+        assertDoesNotThrow(() -> new WebServer(recordingsPath, env, mockClientWriter, resolver));
     }
 
     @Test

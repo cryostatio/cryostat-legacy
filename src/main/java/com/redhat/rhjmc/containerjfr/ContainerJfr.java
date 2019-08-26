@@ -38,25 +38,20 @@ class ContainerJfr {
         if (args.length == 0 || args[0].equals("-w")) {
             mode = ExecutionMode.WEBSOCKET;
             clientArgs = null;
-            port = Integer.parseInt(environment.getEnv("LISTEN_PORT", "9090"));
         } else if (args[0].equals("-d")) {
             mode = ExecutionMode.SOCKET;
             clientArgs = null;
-            port = Integer.parseInt(environment.getEnv("LISTEN_PORT", "9090"));
         } else if (args[0].equals("-it") || StringUtils.isBlank(args[0])) {
             mode = ExecutionMode.INTERACTIVE;
             clientArgs = null;
-            port = -1;
         } else {
             mode = ExecutionMode.BATCH;
             clientArgs = args[0];
-            port = -1;
         }
 
         Client client = DaggerContainerJfr_Client
             .builder()
             .mode(mode)
-            .port(port)
             .build();
 
         client
@@ -77,7 +72,6 @@ class ContainerJfr {
         @Component.Builder
         interface Builder {
             @BindsInstance Builder mode(ExecutionMode mode);
-            @BindsInstance Builder port(@Named("LISTEN_PORT") int port);
             Client build();
         }
     }

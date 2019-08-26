@@ -25,8 +25,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static WebServer provideWebServer(@Named("RECORDINGS_PATH") Path recordingsPath, Environment env, @Named("LISTEN_PORT") int listenPort, ClientWriter cw, NetworkResolver resolver) {
-        return new WebServer(recordingsPath, env, cw, resolver, listenPort);
+    static WebServer provideWebServer(@Named("RECORDINGS_PATH") Path recordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver) {
+        return new WebServer(recordingsPath, env, cw, resolver);
     }
 
     @Provides

@@ -2,22 +2,23 @@ package com.redhat.rhjmc.containerjfr.tui.tcp;
 
 import java.io.IOException;
 
-import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import dagger.Binds;
-import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
+import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
+
+import dagger.Binds;
+import dagger.Lazy;
+import dagger.Module;
+import dagger.Provides;
+import dagger.multibindings.IntoSet;
 
 @Module
 public abstract class TcpModule {
@@ -54,9 +55,9 @@ public abstract class TcpModule {
 
     @Provides
     @Singleton
-    static SocketClientReaderWriter provideSocketClientReaderWriter(Logger logger, @Named("LISTEN_PORT") int port) {
+    static SocketClientReaderWriter provideSocketClientReaderWriter(Logger logger, Environment env) {
         try {
-            return new SocketClientReaderWriter(logger, port);
+            return new SocketClientReaderWriter(logger, Integer.parseInt(env.getEnv("CONTAINER_JFR_LISTEN_PORT", "9090")));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

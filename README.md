@@ -71,7 +71,7 @@ available in the `demos` directory. These can be used with batch mode, ex.
 
 There are three environment variables that the client checks during its
 runtime: `CONTAINER_JFR_DOWNLOAD_HOST`, `CONTAINER_JFR_DOWNLOAD_PORT`, and
-`LISTEN_PORT`. The former two are used by the embedded webserver for
+`CONTAINER_JFR_LISTEN_PORT`. The former two are used by the embedded webserver for
 controlling the port and hostname used and displayed when making recordings
 available for export (download). The latter is used when running the client in
 daemon/socket mode and controls the port that the client listens for
