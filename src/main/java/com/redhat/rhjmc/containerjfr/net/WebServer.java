@@ -174,16 +174,15 @@ public class WebServer implements ConnectionListener {
                 return serveClientIndex();
             } else if (requestUrl.endsWith("/clienturl")) {
                 try {
-                    String webSocketUrl = String.format("ws://%s:%d/command", getHostUrl().getHost(), wsListenPort);
-                    return newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_PLAINTEXT, "{\"clientUrl\":\"" + webSocketUrl + "\"}");
+                    return serveJsonKeyValueResponse("clientUrl", String.format("ws://%s:%d/command", getHostUrl().getHost(), wsListenPort));
                 } catch (UnknownHostException | MalformedURLException | SocketException e) {
                     //TODO
                     e.printStackTrace();
                 }
             } else if (requestUrl.equals("/grafana_datasource_url")) {
-                return newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_PLAINTEXT, "{\"grafanaDatasourceUrl\":\"\"}");
+                return serveJsonKeyValueResponse("grafanaDatasourceUrl", "");
             } else if (requestUrl.equals("/grafana_dashboard_url")) {
-                return newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_PLAINTEXT, "{\"grafanaDashboardUrl\":\"\"}");
+                return serveJsonKeyValueResponse("grafanaDashboardUrl", "");
             } else if (recordingMatcher.find()) {
                 return serveRecording(recordingMatcher);
             } else if (reportMatcher.find()) {
@@ -192,6 +191,14 @@ public class WebServer implements ConnectionListener {
                 return serveClient(clientMatcher);
             }
             return newNotFoundResponse(requestUrl);
+        }
+
+        private Response serveJsonKeyValueResponse(String key, String value) {
+            return serveTextResponse(String.format("{\"%s\":\"%s\"}", key, value));
+        }
+
+        private Response serveTextResponse(String message) {
+            return newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_PLAINTEXT, message);
         }
 
         private Response serveRecording(Matcher matcher) {
@@ -307,7 +314,7 @@ public class WebServer implements ConnectionListener {
         private Response newReportResponse(String recordingName, InputStream recording) throws IOException, CouldNotLoadRecordingException {
             try (recording) {
                 String report = JfrHtmlRulesReport.createReport(recording);
-                Response response = newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
+                Response response = serveTextResponse(report);
                 response.addHeader("Access-Control-Allow-Origin", "*");
 
                 // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
