@@ -63,7 +63,7 @@ tasks.jib.dependsOn copyWebClient
 tasks.jibDockerBuild.dependsOn copyWebClient
 
 def baseImage = 'gcr.io/distroless/java:11';
-def version = '0.2.4';
+def version = '0.3.0';
 def debugBuild = System.getenv('CONTAINER_JFR_DEBUG') != null;
 if (debugBuild) {
     baseImage += '-debug'
