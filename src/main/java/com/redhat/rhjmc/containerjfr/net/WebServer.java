@@ -24,10 +24,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.inject.Named;
-
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
@@ -47,33 +44,27 @@ public class WebServer implements ConnectionListener {
     private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^/recordings/([\\w-_]+)(?:\\.jfr)?$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_.]+)$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     private static final Pattern CLIENT_PATTERN = Pattern.compile("^/(.*)$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
-    static final String DEFAULT_PORT = "8181";
-    static final String HOST_VAR = "CONTAINER_JFR_DOWNLOAD_HOST";
-    static final String PORT_VAR = "CONTAINER_JFR_DOWNLOAD_PORT";
 
+    private final NetworkConfiguration netConf;
     private final Path savedRecordingsPath;
-    private final Environment env;
     private final ClientWriter cw;
     private IFlightRecorderService service;
-    private final NetworkResolver resolver;
     private final NanoHTTPD server;
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    WebServer(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver) {
+    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, ClientWriter cw) {
+        this.netConf = netConf;
         this.savedRecordingsPath = savedRecordingsPath;
-        this.env = env;
         this.cw = cw;
-        this.resolver = resolver;
         this.server = new ServerImpl();
     }
 
     // Testing-only constructor
-    WebServer(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, ClientWriter cw, NanoHTTPD server) {
+        this.netConf = netConf;
         this.savedRecordingsPath = savedRecordingsPath;
-        this.env = env;
         this.cw = cw;
-        this.resolver = resolver;
         this.server = server;
     }
 
@@ -130,10 +121,7 @@ public class WebServer implements ConnectionListener {
     }
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
-        String hostname = env.getEnv(HOST_VAR, resolver.getHostAddress());
-        int port = Integer.parseInt(env.getEnv(PORT_VAR, DEFAULT_PORT));
-
-        return new URL("http", hostname, port, "");
+        return new URL("http", netConf.getWebServerHost(), netConf.getExternalWebServerPort(), "");
     }
 
     public String getDownloadURL(String recordingName)
@@ -151,7 +139,7 @@ public class WebServer implements ConnectionListener {
         private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
 
         private ServerImpl() {
-            super(Integer.parseInt(env.getEnv(PORT_VAR, DEFAULT_PORT)));
+            super(netConf.getInternalWebServerPort());
         }
 
         @Override
@@ -171,9 +159,8 @@ public class WebServer implements ConnectionListener {
                 return serveClientIndex();
             } else if (requestUrl.endsWith("/clienturl")) {
                 try {
-                    int wsListenPort = Integer.parseInt(env.getEnv("CONTAINER_JFR_LISTEN_PORT", "9090"));
-                    return serveJsonKeyValueResponse("clientUrl", String.format("ws://%s:%d/command", getHostUrl().getHost(), wsListenPort));
-                } catch (UnknownHostException | MalformedURLException | SocketException e) {
+                    return serveJsonKeyValueResponse("clientUrl", String.format("ws://%s:%d/command", netConf.getCommandChannelHost(), netConf.getExternalCommandChannelPort()));
+                } catch (UnknownHostException | SocketException e) {
                     cw.println(e.getLocalizedMessage());
                     return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, e.getLocalizedMessage());
                 }
