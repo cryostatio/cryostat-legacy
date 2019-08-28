@@ -17,6 +17,9 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,32 +27,28 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentMatchers;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import fi.iki.elonen.NanoHTTPD;
 
 @ExtendWith(MockitoExtension.class)
-class WebServerTest extends TestBase {
+class WebServerTest {
 
     WebServer exporter;
     @Mock NetworkConfiguration netConf;
     @Mock Path recordingsPath;
+    @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock NanoHTTPD server;
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(netConf, recordingsPath, mockClientWriter, server);
+        exporter = new WebServer(netConf, recordingsPath, logger, server);
     }
 
     @Test
@@ -62,7 +61,7 @@ class WebServerTest extends TestBase {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         when(netConf.getInternalWebServerPort()).thenReturn(1234);
-        assertDoesNotThrow(() -> new WebServer(netConf, recordingsPath, mockClientWriter));
+        assertDoesNotThrow(() -> new WebServer(netConf, recordingsPath, logger));
     }
 
     @Test

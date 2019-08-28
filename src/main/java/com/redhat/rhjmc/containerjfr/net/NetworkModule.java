@@ -9,6 +9,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -27,8 +28,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static WebServer provideWebServer(NetworkConfiguration netConf, @Named("RECORDINGS_PATH") Path recordingsPath, ClientWriter cw) {
-        return new WebServer(netConf, recordingsPath, cw);
+    static WebServer provideWebServer(NetworkConfiguration netConf, @Named("RECORDINGS_PATH") Path recordingsPath, Logger logger) {
+        return new WebServer(netConf, recordingsPath, logger);
     }
 
     @Provides
