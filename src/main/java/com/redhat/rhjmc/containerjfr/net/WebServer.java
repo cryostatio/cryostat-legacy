@@ -300,6 +300,7 @@ public class WebServer implements ConnectionListener {
             try (recording) {
                 String report = JfrHtmlRulesReport.createReport(recording);
                 Response response = serveTextResponse(report);
+                response.setMimeType(NanoHTTPD.MIME_HTML);
                 response.addHeader("Access-Control-Allow-Origin", "*");
 
                 // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
