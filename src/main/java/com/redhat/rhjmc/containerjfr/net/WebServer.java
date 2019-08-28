@@ -8,6 +8,7 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +25,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
@@ -33,43 +33,38 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
-public class RecordingExporter implements ConnectionListener {
+public class WebServer implements ConnectionListener {
 
     // TODO extract the name pattern (here and AbstractConnectedCommand) to shared
     // utility
-    private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^/([\\w-_]+)(?:\\.jfr)?$",
-            Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
-    private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_.]+)$", Pattern.MULTILINE);
-    static final String DEFAULT_PORT = "8181";
-    static final String HOST_VAR = "CONTAINER_JFR_DOWNLOAD_HOST";
-    static final String PORT_VAR = "CONTAINER_JFR_DOWNLOAD_PORT";
+    private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^/recordings/([\\w-_]+)(?:\\.jfr)?$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+    private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_.]+)$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+    private static final Pattern CLIENT_PATTERN = Pattern.compile("^/(.*)$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
 
+    private final NetworkConfiguration netConf;
     private final Path savedRecordingsPath;
-    private final Environment env;
     private final ClientWriter cw;
     private IFlightRecorderService service;
-    private final NetworkResolver resolver;
     private final NanoHTTPD server;
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    RecordingExporter(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver) {
+    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, ClientWriter cw) {
+        this.netConf = netConf;
         this.savedRecordingsPath = savedRecordingsPath;
-        this.env = env;
         this.cw = cw;
-        this.resolver = resolver;
         this.server = new ServerImpl();
     }
 
     // Testing-only constructor
-    RecordingExporter(Path savedRecordingsPath, Environment env, ClientWriter cw, NetworkResolver resolver, NanoHTTPD server) {
+    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, ClientWriter cw, NanoHTTPD server) {
+        this.netConf = netConf;
         this.savedRecordingsPath = savedRecordingsPath;
-        this.env = env;
         this.cw = cw;
-        this.resolver = resolver;
         this.server = server;
     }
 
@@ -126,15 +121,12 @@ public class RecordingExporter implements ConnectionListener {
     }
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
-        String hostname = env.getEnv(HOST_VAR, resolver.getHostAddress());
-        int port = Integer.parseInt(env.getEnv(PORT_VAR, DEFAULT_PORT));
-
-        return new URL("http", hostname, port, "");
+        return new URL("http", netConf.getWebServerHost(), netConf.getExternalWebServerPort(), "");
     }
 
     public String getDownloadURL(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
-        return String.format("%s/%s", this.getHostUrl(), recordingName);
+        return String.format("%s/recordings/%s", this.getHostUrl(), recordingName);
     }
 
     public String getReportURL(String recordingName)
@@ -147,7 +139,7 @@ public class RecordingExporter implements ConnectionListener {
         private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
 
         private ServerImpl() {
-            super(Integer.parseInt(env.getEnv(PORT_VAR, DEFAULT_PORT)));
+            super(netConf.getInternalWebServerPort());
         }
 
         @Override
@@ -159,14 +151,39 @@ public class RecordingExporter implements ConnectionListener {
         @Override
         public Response serve(IHTTPSession session) {
             String requestUrl = session.getUri();
+            cw.println("Serving " + requestUrl);
             Matcher recordingMatcher = RECORDING_NAME_PATTERN.matcher(requestUrl);
             Matcher reportMatcher = REPORT_PATTERN.matcher(requestUrl);
-            if (recordingMatcher.find()) {
+            Matcher clientMatcher = CLIENT_PATTERN.matcher(requestUrl);
+            if (requestUrl.equals("/")) {
+                return serveClientIndex();
+            } else if (requestUrl.endsWith("/clienturl")) {
+                try {
+                    return serveJsonKeyValueResponse("clientUrl", String.format("ws://%s:%d/command", netConf.getCommandChannelHost(), netConf.getExternalCommandChannelPort()));
+                } catch (UnknownHostException | SocketException e) {
+                    cw.println(e.getLocalizedMessage());
+                    return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, e.getLocalizedMessage());
+                }
+            } else if (requestUrl.equals("/grafana_datasource_url")) {
+                return serveJsonKeyValueResponse("grafanaDatasourceUrl", "");
+            } else if (requestUrl.equals("/grafana_dashboard_url")) {
+                return serveJsonKeyValueResponse("grafanaDashboardUrl", "");
+            } else if (recordingMatcher.find()) {
                 return serveRecording(recordingMatcher);
             } else if (reportMatcher.find()) {
                 return serveReport(reportMatcher);
+            } else if (clientMatcher.find()) {
+                return serveClient(clientMatcher);
             }
             return newNotFoundResponse(requestUrl);
+        }
+
+        private Response serveJsonKeyValueResponse(String key, String value) {
+            return serveTextResponse(String.format("{\"%s\":\"%s\"}", key, value));
+        }
+
+        private Response serveTextResponse(String message) {
+            return newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_PLAINTEXT, message);
         }
 
         private Response serveRecording(Matcher matcher) {
@@ -195,6 +212,40 @@ public class RecordingExporter implements ConnectionListener {
             } catch (Exception e) {
                 cw.println(e);
                 return newCouldNotBeOpenedResponse(recordingName);
+            }
+        }
+
+        private Response serveClient(Matcher matcher) {
+            return serveClientAsset(matcher.group(1));
+        }
+
+        private Response serveClientIndex() {
+            return serveClientAsset("index.html");
+        }
+
+        @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+        private Response serveClientAsset(String assetName) {
+            Path assetPath = Paths.get("/", "web-client", assetName);
+            if (!assetPath.toFile().isFile()) {
+                return newFixedLengthResponse(Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT,
+                        String.format("%s not found", assetName));
+            }
+            try {
+                String mime = NanoHTTPD.getMimeTypeForFile(assetPath.toUri().toString());
+                InputStream assetStream = Files.newInputStream(assetPath);
+                Response r = new Response(Status.OK, mime, assetStream, -1) {
+                    @Override
+                    public void close() throws IOException {
+                        try (assetStream) {
+                            super.close();
+                        }
+                    }
+                };
+                r.addHeader("Access-Control-Allow-Origin", "*");
+                return r;
+            } catch (IOException e) {
+                return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT,
+                        String.format("%s could not be opened", assetName));
             }
         }
 
@@ -248,7 +299,8 @@ public class RecordingExporter implements ConnectionListener {
         private Response newReportResponse(String recordingName, InputStream recording) throws IOException, CouldNotLoadRecordingException {
             try (recording) {
                 String report = JfrHtmlRulesReport.createReport(recording);
-                Response response = newFixedLengthResponse(Status.OK, NanoHTTPD.MIME_HTML, report);
+                Response response = serveTextResponse(report);
+                response.setMimeType(NanoHTTPD.MIME_HTML);
                 response.addHeader("Access-Control-Allow-Origin", "*");
 
                 // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
@@ -271,10 +323,6 @@ public class RecordingExporter implements ConnectionListener {
                 return response;
             }
         }
-
-		public ExecutorService getTRIM_WORKER() {
-			return TRIM_WORKER;
-		}
     }
 
     private static class PooledAsyncRunner implements NanoHTTPD.AsyncRunner {

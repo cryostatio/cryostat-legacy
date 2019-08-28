@@ -43,8 +43,27 @@ dependencies {
 
 mainClassName = 'com.redhat.rhjmc.containerjfr.ContainerJfr'
 
+task buildWebClient(type: Exec) {
+    inputs.files project.fileTree(dir: 'web-client')
+    outputs.dir "$projectDir/web-client/dist"
+    workingDir "$projectDir/web-client"
+    commandLine 'npm', 'ci'
+    commandLine 'npm', 'run', 'build'
+}
+
+jib.extraDirectory = file('build/extra-directory')
+
+task copyWebClient(type: Copy) {
+    from file('web-client/dist/container-jfr-web')
+    into file('build/extra-directory/web-client')
+}
+
+copyWebClient.dependsOn buildWebClient
+tasks.jib.dependsOn copyWebClient
+tasks.jibDockerBuild.dependsOn copyWebClient
+
 def baseImage = 'gcr.io/distroless/java:11';
-def version = '0.2.4';
+def version = '0.3.0';
 def debugBuild = System.getenv('CONTAINER_JFR_DEBUG') != null;
 if (debugBuild) {
     baseImage += '-debug'

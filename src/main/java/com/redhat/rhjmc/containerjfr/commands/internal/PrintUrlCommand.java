@@ -5,15 +5,15 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 
 @Singleton
 class PrintUrlCommand implements SerializableCommand {
 
     private final ClientWriter cw;
-    private final RecordingExporter exporter;
+    private final WebServer exporter;
 
-    @Inject PrintUrlCommand(ClientWriter cw, RecordingExporter exporter) {
+    @Inject PrintUrlCommand(ClientWriter cw, WebServer exporter) {
         this.cw = cw;
         this.exporter = exporter;
     }

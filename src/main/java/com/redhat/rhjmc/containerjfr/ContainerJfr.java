@@ -10,7 +10,7 @@ import javax.inject.Singleton;
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.RecordingExporter;
+import com.redhat.rhjmc.containerjfr.net.WebServer;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
 import org.apache.commons.lang3.StringUtils;
@@ -38,29 +38,24 @@ class ContainerJfr {
         if (args.length == 0 || args[0].equals("-w")) {
             mode = ExecutionMode.WEBSOCKET;
             clientArgs = null;
-            port = Integer.parseInt(environment.getEnv("LISTEN_PORT", "9090"));
         } else if (args[0].equals("-d")) {
             mode = ExecutionMode.SOCKET;
             clientArgs = null;
-            port = Integer.parseInt(environment.getEnv("LISTEN_PORT", "9090"));
         } else if (args[0].equals("-it") || StringUtils.isBlank(args[0])) {
             mode = ExecutionMode.INTERACTIVE;
             clientArgs = null;
-            port = -1;
         } else {
             mode = ExecutionMode.BATCH;
             clientArgs = args[0];
-            port = -1;
         }
 
         Client client = DaggerContainerJfr_Client
             .builder()
             .mode(mode)
-            .port(port)
             .build();
 
         client
-            .recordingExporter()
+            .webServer()
             .start();
 
         client
@@ -72,12 +67,11 @@ class ContainerJfr {
     @Component(modules = { MainModule.class })
     interface Client {
         CommandExecutor commandExecutor();
-        RecordingExporter recordingExporter();
+        WebServer webServer();
 
         @Component.Builder
         interface Builder {
             @BindsInstance Builder mode(ExecutionMode mode);
-            @BindsInstance Builder port(@Named("LISTEN_PORT") int port);
             Client build();
         }
     }

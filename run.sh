@@ -16,6 +16,30 @@ set +e
 docker network create --attachable container-jfr
 set -e
 
+if [ -z "$CONTAINER_JFR_WEB_HOST" ]; then
+    CONTAINER_JFR_WEB_HOST="localhost"
+fi
+
+if [ -z "$CONTAINER_JFR_WEB_PORT" ]; then
+    CONTAINER_JFR_WEB_PORT=8181
+fi
+
+if [ -z "$CONTAINER_JFR_EXT_WEB_PORT" ]; then
+    CONTAINER_JFR_EXT_WEB_PORT="$CONTAINER_JFR_WEB_PORT"
+fi
+
+if [ -z "$CONTAINER_JFR_LISTEN_HOST" ]; then
+    CONTAINER_JFR_LISTEN_HOST="$CONTAINER_JFR_WEB_HOST"
+fi
+
+if [ -z "$CONTAINER_JFR_LISTEN_PORT" ]; then
+    CONTAINER_JFR_LISTEN_PORT=9090;
+fi
+
+if [ -z "$CONTAINER_JFR_EXT_LISTEN_PORT" ]; then
+    CONTAINER_JFR_EXT_LISTEN_PORT="$CONTAINER_JFR_LISTEN_PORT"
+fi
+
 docker run \
     --net container-jfr \
     --hostname container-jfr \
@@ -23,8 +47,12 @@ docker run \
     --memory 80M \
     --cpus 1.0 \
     --mount source=flightrecordings,target=/flightrecordings \
-    -p 9090:9090 \
-    -p 8181:8181 \
-    -e CONTAINER_JFR_DOWNLOAD_HOST=$CONTAINER_JFR_DOWNLOAD_HOST \
-    -e CONTAINER_JFR_DOWNLOAD_PORT=$CONTAINER_JFR_DOWNLOAD_PORT \
+    -p $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
+    -p $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
+    -e CONTAINER_JFR_WEB_HOST=$CONTAINER_JFR_WEB_HOST \
+    -e CONTAINER_JFR_WEB_PORT=$CONTAINER_JFR_WEB_PORT \
+    -e CONTAINER_JFR_EXT_WEB_PORT=$CONTAINER_JFR_EXT_WEB_PORT \
+    -e CONTAINER_JFR_LISTEN_HOST=$CONTAINER_JFR_LISTEN_HOST \
+    -e CONTAINER_JFR_LISTEN_PORT=$CONTAINER_JFR_LISTEN_PORT \
+    -e CONTAINER_JFR_EXT_LISTEN_PORT=$CONTAINER_JFR_EXT_LISTEN_PORT \
     --rm -it quay.io/rh-jmc-team/container-jfr "$@"

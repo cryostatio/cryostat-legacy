@@ -29,6 +29,11 @@ required dependency, which is not currently published in an artefact repository
 and so much be built and installed into the Maven local repository.
 Instructions for doing so are available at that project's README.
 
+Submodules must be initialized via `git submodule init`.
+
+`container-jfr-web`, as a submodule located within the `web-client` directory,
+must be prepared by running `pushd web-client; npm install; popd`.
+
 Once the `container-jfr-core` local dependency is made available,
 `./gradlew build` will build the project.
 
@@ -64,15 +69,20 @@ and accessible using the same mthods. Some client shell demo scripts are also
 available in the `demos` directory. These can be used with batch mode, ex.
 `sh run.sh "$(more demos/print_help)"`.
 
-There are three environment variables that the client checks during its
-runtime: `CONTAINER_JFR_DOWNLOAD_HOST`, `CONTAINER_JFR_DOWNLOAD_PORT`, and
-`LISTEN_PORT`. The former two are used by the embedded webserver for
-controlling the port and hostname used and displayed when making recordings
-available for export (download). The latter is used when running the client in
-daemon/socket mode and controls the port that the client listens for
-connections on. These may be set by setting the environment variable before
-invoking the `run.sh` shell script, or if this script is not used, by using the
-`-e` environment variable flag in the `docker` or `podman` command invocation.
+There are six environment variables that the client checks during its
+runtime: `CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
+`CONTAINER_JFR_EXT_WEB_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
+`CONTAINER_JFR_LISTEN_PORT` and `CONTAINER_JFR_EXT_LISTEN_PORT`. The former
+three are used by the embedded webserver for controlling the port and hostname
+used and reported when making recordings available for export (download). The
+latter three are used when running the client in daemon/socket mode and controls
+the port that the client listens for connections on and which port is reported
+should be used for connecting to the command channel (web)socket. These may be
+set by setting the environment variable before invoking the `run.sh` shell
+script, or if this script is not used, by using the `-e` environment variable
+flag in the `docker` or `podman` command invocation. If the `EXT` variables are
+unspecified then they default to the value of their non-EXT counterparts. If
+`LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
 
 The application can also be easily set up and configured to run in a more full-
 fledged container application platform that supports the Docker/Podman

@@ -38,25 +38,18 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import fi.iki.elonen.NanoHTTPD;
 
 @ExtendWith(MockitoExtension.class)
-class RecordingExporterTest extends TestBase {
+class WebServerTest extends TestBase {
 
-    RecordingExporter exporter;
-    @Mock
-    Path recordingsPath;
-    @Mock
-    Environment env;
-    @Mock
-    JFRConnection connection;
-    @Mock
-    IFlightRecorderService service;
-    @Mock
-    NetworkResolver resolver;
-    @Mock
-    NanoHTTPD server;
+    WebServer exporter;
+    @Mock NetworkConfiguration netConf;
+    @Mock Path recordingsPath;
+    @Mock JFRConnection connection;
+    @Mock IFlightRecorderService service;
+    @Mock NanoHTTPD server;
 
     @BeforeEach
     void setup() {
-        exporter = new RecordingExporter(recordingsPath, env, mockClientWriter, resolver, server);
+        exporter = new WebServer(netConf, recordingsPath, mockClientWriter, server);
     }
 
     @Test
@@ -64,13 +57,12 @@ class RecordingExporterTest extends TestBase {
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
         verifyZeroInteractions(server);
-        verifyZeroInteractions(resolver);
     }
 
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
-        when(env.getEnv(Mockito.eq("CONTAINER_JFR_DOWNLOAD_PORT"), Mockito.anyString())).thenReturn("1234");
-        assertDoesNotThrow(() -> new RecordingExporter(recordingsPath, env, mockClientWriter, resolver));
+        when(netConf.getInternalWebServerPort()).thenReturn(1234);
+        assertDoesNotThrow(() -> new WebServer(netConf, recordingsPath, mockClientWriter));
     }
 
     @Test
@@ -216,57 +208,21 @@ class RecordingExporterTest extends TestBase {
     }
 
     @Test
-    void shouldProvideDefaultHostUrl() throws Exception {
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString()))
-                .thenAnswer(invocation -> (String) invocation.getArguments()[1]);
-        when(resolver.getHostAddress()).thenReturn("foo");
+    void shouldUseConfiguredHost() throws Exception {
+        int defaultPort = 1234;
+        when(netConf.getExternalWebServerPort()).thenReturn(defaultPort);
+        when(netConf.getWebServerHost()).thenReturn("foo");
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", Integer.valueOf(RecordingExporter.DEFAULT_PORT), "")));
+        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", defaultPort, "")));
     }
 
     @Test
-    void shouldProvideCustomizedHostUrl() throws Exception {
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation -> {
-            String arg = (String) invocation.getArguments()[0];
-            if (arg.equals(RecordingExporter.HOST_VAR)) {
-                return "bar-host";
-            } else {
-                return (String) invocation.getArguments()[1];
-            }
-        });
-        when(resolver.getHostAddress()).thenReturn("foo");
-
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "bar-host", Integer.valueOf(RecordingExporter.DEFAULT_PORT), "")));
-    }
-
-    @Test
-    void shouldProvideCustomizedPortUrl() throws Exception {
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation -> {
-            String arg = (String) invocation.getArguments()[0];
-            if (arg.equals(RecordingExporter.HOST_VAR)) {
-                return (String) invocation.getArguments()[1];
-            } else {
-                return "1234";
-            }
-        });
-        when(resolver.getHostAddress()).thenReturn("foo");
+    void shouldUseConfiguredPort() throws Exception {
+        int defaultPort = 1234;
+        when(netConf.getExternalWebServerPort()).thenReturn(defaultPort);
+        when(netConf.getWebServerHost()).thenReturn("foo");
 
         MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", 1234, "")));
-    }
-
-    @Test
-    void shouldProvideCustomizedUrl() throws Exception {
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation -> {
-            String arg = (String) invocation.getArguments()[0];
-            if (arg.equals(RecordingExporter.HOST_VAR)) {
-                return "example";
-            } else {
-                return "9876";
-            }
-        });
-        when(resolver.getHostAddress()).thenReturn("foo");
-
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "example", 9876, "")));
     }
 
     @ParameterizedTest()
@@ -279,13 +235,10 @@ class RecordingExporterTest extends TestBase {
     })
     void shouldProvideDownloadUrl(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
-        String hostUrl = "example.com";
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation ->
-            (String) invocation.getArguments()[1]
-        );
-        when(resolver.getHostAddress()).thenReturn(hostUrl);
+        when(netConf.getWebServerHost()).thenReturn("example.com");
+        when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
-        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("http://example.com:8181/" + recordingName));
+        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("http://example.com:8181/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
@@ -298,11 +251,8 @@ class RecordingExporterTest extends TestBase {
     })
     void shouldProvideReportUrl(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
-        String hostUrl = "example.com";
-        when(env.getEnv(ArgumentMatchers.anyString(), ArgumentMatchers.anyString())).thenAnswer(invocation ->
-            (String) invocation.getArguments()[1]
-        );
-        when(resolver.getHostAddress()).thenReturn(hostUrl);
+        when(netConf.getWebServerHost()).thenReturn("example.com");
+        when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("http://example.com:8181/reports/" + recordingName));
     }
