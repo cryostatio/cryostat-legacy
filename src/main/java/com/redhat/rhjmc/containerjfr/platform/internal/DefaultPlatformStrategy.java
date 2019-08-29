@@ -26,7 +26,7 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     @Override
     public DefaultPlatformClient get() {
         logger.trace("Selected Default Platform Strategy");
-        return new DefaultPlatformClient(resolver);
+        return new DefaultPlatformClient(logger, resolver);
     }
 
 }

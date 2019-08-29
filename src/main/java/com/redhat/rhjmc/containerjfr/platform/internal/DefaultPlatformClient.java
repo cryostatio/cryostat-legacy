@@ -20,9 +20,11 @@ class DefaultPlatformClient implements PlatformClient {
     private static final int CONNECTION_TIMEOUT_MS = 100;
     private static final int THREAD_COUNT = 16;
 
+    private final Logger logger;
     private final NetworkResolver resolver;
 
-    DefaultPlatformClient(NetworkResolver resolver) {
+    DefaultPlatformClient(Logger logger, NetworkResolver resolver) {
+        this.logger = logger;
         this.resolver = resolver;
     }
 
@@ -52,9 +54,9 @@ class DefaultPlatformClient implements PlatformClient {
 
             latch.await();
         } catch (InterruptedException ie) {
-            Logger.INSTANCE.debug(ie);
+            logger.debug(ie);
         } catch (IOException ioe) {
-            Logger.INSTANCE.debug(ioe);
+            logger.debug(ioe);
             return Collections.emptyList();
         } finally {
             executor.shutdown();
