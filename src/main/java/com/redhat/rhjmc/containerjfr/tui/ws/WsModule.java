@@ -6,9 +6,9 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
@@ -42,9 +42,9 @@ public class WsModule {
 
     @Provides
     @Singleton
-    static MessagingServer provideWebSocketMessagingServer(Logger logger, Environment env, Gson gson) {
+    static MessagingServer provideWebSocketMessagingServer(Logger logger, NetworkConfiguration netConf, Gson gson) {
         try {
-            MessagingServer messagingServer = new MessagingServer(logger, Integer.parseInt(env.getEnv("CONTAINER_JFR_LISTEN_PORT", "9090")), gson);
+            MessagingServer messagingServer = new MessagingServer(logger, netConf.getInternalCommandChannelPort(), gson);
             messagingServer.start();
             return messagingServer;
         } catch (Exception e) {

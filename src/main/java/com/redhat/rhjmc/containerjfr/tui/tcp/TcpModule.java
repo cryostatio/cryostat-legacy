@@ -7,10 +7,10 @@ import javax.inject.Singleton;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
@@ -55,9 +55,9 @@ public abstract class TcpModule {
 
     @Provides
     @Singleton
-    static SocketClientReaderWriter provideSocketClientReaderWriter(Logger logger, Environment env) {
+    static SocketClientReaderWriter provideSocketClientReaderWriter(Logger logger, NetworkConfiguration netConf) {
         try {
-            return new SocketClientReaderWriter(logger, Integer.parseInt(env.getEnv("CONTAINER_JFR_LISTEN_PORT", "9090")));
+            return new SocketClientReaderWriter(logger, netConf.getInternalCommandChannelPort());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
