@@ -80,7 +80,11 @@ jib {
     }
     container {
         useCurrentTimestamp = true
-        ports = ['8181', '9090', '9091']
+        ports = [
+            System.getenv('CONTAINER_JFR_WEB_PORT') ?: '8181',
+            System.getenv('CONTAINER_JFR_LISTEN_PORT') ?: '9090',
+            '9091'
+        ]
         jvmFlags = [
             '-XX:+CrashOnOutOfMemoryError',
             '-Dorg.openjdk.jmc.common.security.manager=com.redhat.rhjmc.containerjfr.core.jmc.SecurityManager',
