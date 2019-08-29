@@ -4,12 +4,11 @@ import java.util.Arrays;
 import java.util.logging.LogManager;
 import java.util.stream.Collectors;
 
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.WebServer;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 

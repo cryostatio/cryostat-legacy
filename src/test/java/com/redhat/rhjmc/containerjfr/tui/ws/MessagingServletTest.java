@@ -4,7 +4,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.gson.Gson;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import org.eclipse.jetty.websocket.api.WebSocketPolicy;
 import org.eclipse.jetty.websocket.servlet.WebSocketCreator;

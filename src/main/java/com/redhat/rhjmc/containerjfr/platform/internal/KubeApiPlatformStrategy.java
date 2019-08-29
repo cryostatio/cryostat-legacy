@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

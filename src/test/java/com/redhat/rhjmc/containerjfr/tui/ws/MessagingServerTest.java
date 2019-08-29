@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import org.eclipse.jetty.server.Server;
 import org.hamcrest.MatcherAssert;

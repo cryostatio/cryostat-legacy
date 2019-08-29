@@ -2,8 +2,8 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import dagger.Binds;

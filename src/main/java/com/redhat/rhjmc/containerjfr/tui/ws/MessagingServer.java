@@ -7,7 +7,7 @@ import java.util.concurrent.Semaphore;
 import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.server.Server;

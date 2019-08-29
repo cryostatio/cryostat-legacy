@@ -24,8 +24,8 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;

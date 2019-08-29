@@ -3,7 +3,7 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import org.eclipse.jetty.websocket.servlet.WebSocketServlet;
 import org.eclipse.jetty.websocket.servlet.WebSocketServletFactory;

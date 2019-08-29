@@ -5,10 +5,10 @@ import javax.inject.Singleton;
 import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
