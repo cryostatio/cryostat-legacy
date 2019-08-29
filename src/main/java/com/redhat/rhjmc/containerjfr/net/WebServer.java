@@ -25,8 +25,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -47,24 +48,24 @@ public class WebServer implements ConnectionListener {
 
     private final NetworkConfiguration netConf;
     private final Path savedRecordingsPath;
-    private final ClientWriter cw;
+    private final Logger logger;
     private IFlightRecorderService service;
     private final NanoHTTPD server;
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
 
-    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, ClientWriter cw) {
+    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, Logger logger) {
         this.netConf = netConf;
         this.savedRecordingsPath = savedRecordingsPath;
-        this.cw = cw;
+        this.logger = logger;
         this.server = new ServerImpl();
     }
 
     // Testing-only constructor
-    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, ClientWriter cw, NanoHTTPD server) {
+    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, Logger logger, NanoHTTPD server) {
         this.netConf = netConf;
         this.savedRecordingsPath = savedRecordingsPath;
-        this.cw = cw;
+        this.logger = logger;
         this.server = server;
     }
 
@@ -151,7 +152,7 @@ public class WebServer implements ConnectionListener {
         @Override
         public Response serve(IHTTPSession session) {
             String requestUrl = session.getUri();
-            cw.println("Serving " + requestUrl);
+            logger.trace("Serving " + requestUrl);
             Matcher recordingMatcher = RECORDING_NAME_PATTERN.matcher(requestUrl);
             Matcher reportMatcher = REPORT_PATTERN.matcher(requestUrl);
             Matcher clientMatcher = CLIENT_PATTERN.matcher(requestUrl);
@@ -161,7 +162,7 @@ public class WebServer implements ConnectionListener {
                 try {
                     return serveJsonKeyValueResponse("clientUrl", String.format("ws://%s:%d/command", netConf.getCommandChannelHost(), netConf.getExternalCommandChannelPort()));
                 } catch (UnknownHostException | SocketException e) {
-                    cw.println(e.getLocalizedMessage());
+                    logger.error(e.getLocalizedMessage());
                     return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, e.getLocalizedMessage());
                 }
             } else if (requestUrl.equals("/grafana_datasource_url")) {
@@ -195,7 +196,7 @@ public class WebServer implements ConnectionListener {
                 }
                 return newNotFoundResponse(recordingName);
             } catch (Exception e) {
-                cw.println(e);
+                logger.error(ExceptionUtils.getStackTrace(e));
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }
@@ -210,7 +211,7 @@ public class WebServer implements ConnectionListener {
                     return newNotFoundResponse(recordingName);
                 }
             } catch (Exception e) {
-                cw.println(e);
+                logger.error(ExceptionUtils.getStackTrace(e));
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }
@@ -261,7 +262,7 @@ public class WebServer implements ConnectionListener {
                     return Optional.of(Files.newInputStream(savedRecording.get(), StandardOpenOption.READ));
                 }
             } catch (Exception e) {
-                cw.println(e);
+                logger.error(ExceptionUtils.getStackTrace(e));
             }
             return Optional.empty();
         }
