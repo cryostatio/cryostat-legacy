@@ -9,12 +9,10 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class DefaultPlatformClient implements PlatformClient {
 
@@ -22,9 +20,11 @@ class DefaultPlatformClient implements PlatformClient {
     private static final int CONNECTION_TIMEOUT_MS = 100;
     private static final int THREAD_COUNT = 16;
 
+    private final Logger logger;
     private final NetworkResolver resolver;
 
-    DefaultPlatformClient(NetworkResolver resolver) {
+    DefaultPlatformClient(Logger logger, NetworkResolver resolver) {
+        this.logger = logger;
         this.resolver = resolver;
     }
 
@@ -54,9 +54,9 @@ class DefaultPlatformClient implements PlatformClient {
 
             latch.await();
         } catch (InterruptedException ie) {
-            Logger.INSTANCE.debug(ExceptionUtils.getStackTrace(ie));
+            logger.debug(ie);
         } catch (IOException ioe) {
-            Logger.INSTANCE.debug(ExceptionUtils.getStackTrace(ioe));
+            logger.debug(ioe);
             return Collections.emptyList();
         } finally {
             executor.shutdown();

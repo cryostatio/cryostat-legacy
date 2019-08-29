@@ -17,8 +17,8 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;

@@ -11,7 +11,7 @@ import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import org.eclipse.jetty.server.Server;
 import org.hamcrest.MatcherAssert;
@@ -135,11 +135,10 @@ class MessagingServerTest {
     void clientWriterShouldLogExceptions() {
         server.getClientWriter().println(new NullPointerException("Testing Exception"));
         verify(crw1, Mockito.never()).print(Mockito.anyString());
-        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Exception> logCaptor = ArgumentCaptor.forClass(Exception.class);
         verify(logger).warn(logCaptor.capture());
-        MatcherAssert.assertThat(logCaptor.getValue(),
-                Matchers.containsString("NullPointerException: Testing Exception")
-                );
+        MatcherAssert.assertThat(logCaptor.getValue(), Matchers.isA(NullPointerException.class));
+        MatcherAssert.assertThat(logCaptor.getValue().getMessage(), Matchers.equalTo("Testing Exception"));
     }
 
     @Test

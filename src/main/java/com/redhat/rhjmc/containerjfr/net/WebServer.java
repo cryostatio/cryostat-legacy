@@ -24,10 +24,9 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -196,7 +195,7 @@ public class WebServer implements ConnectionListener {
                 }
                 return newNotFoundResponse(recordingName);
             } catch (Exception e) {
-                logger.error(ExceptionUtils.getStackTrace(e));
+                logger.error(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }
@@ -211,7 +210,7 @@ public class WebServer implements ConnectionListener {
                     return newNotFoundResponse(recordingName);
                 }
             } catch (Exception e) {
-                logger.error(ExceptionUtils.getStackTrace(e));
+                logger.error(e);
                 return newCouldNotBeOpenedResponse(recordingName);
             }
         }
@@ -262,7 +261,7 @@ public class WebServer implements ConnectionListener {
                     return Optional.of(Files.newInputStream(savedRecording.get(), StandardOpenOption.READ));
                 }
             } catch (Exception e) {
-                logger.error(ExceptionUtils.getStackTrace(e));
+                logger.error(e);
             }
             return Optional.empty();
         }

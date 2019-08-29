@@ -1,7 +1,7 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -17,7 +17,7 @@ import java.util.concurrent.TimeUnit;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import org.eclipse.jetty.websocket.api.RemoteEndpoint;
 import org.eclipse.jetty.websocket.api.Session;
@@ -152,7 +152,7 @@ class WsClientReaderWriterTest extends TestBase {
         crw.print("hello world");
         crw.flush(new SuccessResponseMessage<>("foo", "hello world"));
         verifyZeroInteractions(remote);
-        verify(logger).warn(anyString());
+        verify(logger).warn(any(IOException.class));
     }
 
 }

@@ -24,10 +24,10 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.StringOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.SuccessOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,14 +48,13 @@ class WsCommandExecutorTest {
     @Mock MessagingServer server;
     @Mock Logger logger;
     @Mock ClientReader cr;
-    @Mock ClientWriter cw;
     @Mock SerializableCommandRegistry commandRegistry;
     Gson gson;
 
     @BeforeEach
     void setup() {
         gson = new GsonBuilder().serializeNulls().create();
-        executor = new WsCommandExecutor(logger, server, cr, cw, () -> commandRegistry, gson);
+        executor = new WsCommandExecutor(logger, server, cr, () -> commandRegistry, gson);
     }
 
     @Test
@@ -299,7 +298,6 @@ class WsCommandExecutorTest {
 
         verifyZeroInteractions(commandRegistry);
         verifyZeroInteractions(server);
-        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -437,9 +435,9 @@ class WsCommandExecutorTest {
 
         verifyZeroInteractions(commandRegistry);
 
-        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Exception> logCaptor = ArgumentCaptor.forClass(Exception.class);
         verify(logger).warn(logCaptor.capture());
-        MatcherAssert.assertThat(logCaptor.getValue(),
+        MatcherAssert.assertThat(ExceptionUtils.getStackTrace(logCaptor.getValue()),
                 Matchers.stringContainsInOrder(
                     JsonSyntaxException.class.getName(),
                     MalformedJsonException.class.getName()

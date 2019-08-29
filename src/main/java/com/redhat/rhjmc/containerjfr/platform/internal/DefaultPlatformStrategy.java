@@ -1,6 +1,6 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
-import com.redhat.rhjmc.containerjfr.core.util.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatformClient> {
@@ -26,7 +26,7 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     @Override
     public DefaultPlatformClient get() {
         logger.trace("Selected Default Platform Strategy");
-        return new DefaultPlatformClient(resolver);
+        return new DefaultPlatformClient(logger, resolver);
     }
 
 }
