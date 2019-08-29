@@ -1,7 +1,7 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -152,7 +152,7 @@ class WsClientReaderWriterTest extends TestBase {
         crw.print("hello world");
         crw.flush(new SuccessResponseMessage<>("foo", "hello world"));
         verifyZeroInteractions(remote);
-        verify(logger).warn(anyString());
+        verify(logger).warn(any(IOException.class));
     }
 
 }

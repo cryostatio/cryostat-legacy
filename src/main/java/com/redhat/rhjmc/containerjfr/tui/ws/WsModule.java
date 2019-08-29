@@ -21,9 +21,9 @@ public class WsModule {
     @Provides
     @Singleton
     @ConnectionMode(ExecutionMode.WEBSOCKET)
-    static CommandExecutor provideCommandExecutor(Logger logger, MessagingServer server, ClientReader cr, ClientWriter cw,
+    static CommandExecutor provideCommandExecutor(Logger logger, MessagingServer server, ClientReader cr,
                                                   Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
-        return new WsCommandExecutor(logger, server, cr, cw, commandRegistry, gson);
+        return new WsCommandExecutor(logger, server, cr, commandRegistry, gson);
     }
 
     @Provides

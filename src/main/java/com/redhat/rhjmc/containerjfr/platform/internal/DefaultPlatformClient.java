@@ -14,8 +14,6 @@ import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 class DefaultPlatformClient implements PlatformClient {
 
     private static final int TESTED_PORT = 9091;
@@ -54,9 +52,9 @@ class DefaultPlatformClient implements PlatformClient {
 
             latch.await();
         } catch (InterruptedException ie) {
-            Logger.INSTANCE.debug(ExceptionUtils.getStackTrace(ie));
+            Logger.INSTANCE.debug(ie);
         } catch (IOException ioe) {
-            Logger.INSTANCE.debug(ExceptionUtils.getStackTrace(ioe));
+            Logger.INSTANCE.debug(ioe);
             return Collections.emptyList();
         } finally {
             executor.shutdown();

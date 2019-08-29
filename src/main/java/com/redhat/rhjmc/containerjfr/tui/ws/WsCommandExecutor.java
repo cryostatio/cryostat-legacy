@@ -9,10 +9,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import dagger.Lazy;
 
@@ -21,17 +18,15 @@ class WsCommandExecutor implements CommandExecutor {
     private final Logger logger;
     private final MessagingServer server;
     private final ClientReader cr;
-    private final ClientWriter cw;
     private final Lazy<SerializableCommandRegistry> registry;
     private final Gson gson;
     private volatile Thread readingThread;
     private volatile boolean running = true;
 
-    WsCommandExecutor(Logger logger, MessagingServer server, ClientReader cr, ClientWriter cw, Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
+    WsCommandExecutor(Logger logger, MessagingServer server, ClientReader cr, Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
         this.logger = logger;
         this.server = server;
         this.cr = cr;
-        this.cw = cw;
         this.registry = commandRegistry;
         this.gson = gson;
     }
@@ -85,7 +80,7 @@ class WsCommandExecutor implements CommandExecutor {
                 }
             }
         } catch (IOException e) {
-            logger.warn(ExceptionUtils.getStackTrace(e));
+            logger.warn(e);
         }
     }
 
@@ -98,7 +93,7 @@ class WsCommandExecutor implements CommandExecutor {
     }
 
     private void reportException(String commandName, Exception e) {
-        logger.warn(ExceptionUtils.getStackTrace(e));
+        logger.warn(e);
         flush(new CommandExceptionResponseMessage(commandName, e));
     }
 

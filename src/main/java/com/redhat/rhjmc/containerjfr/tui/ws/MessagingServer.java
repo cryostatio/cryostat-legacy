@@ -9,7 +9,6 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.server.ServerConnector;
 import org.eclipse.jetty.servlet.ServletContextHandler;
@@ -97,7 +96,7 @@ class MessagingServer {
                         Thread.sleep(100);
                     }
                 } catch (InterruptedException e) {
-                    logger.warn(ExceptionUtils.getStackTrace(e));
+                    logger.warn(e);
                     return null;
                 } finally {
                     semaphore.release(permits);
@@ -115,7 +114,7 @@ class MessagingServer {
 
             @Override
             public void println(Exception e) {
-                logger.warn(ExceptionUtils.getStackTrace(e));
+                logger.warn(e);
             }
         };
     }

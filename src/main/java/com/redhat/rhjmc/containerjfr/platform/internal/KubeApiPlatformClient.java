@@ -11,8 +11,6 @@ import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.V1Service;
@@ -57,7 +55,7 @@ class KubeApiPlatformClient implements PlatformClient {
             logger.debug(String.format("Resolved %s to %s", in.getIp(), hostname));
             return new ServiceRef(in.getIp(), hostname, in.getPort());
         } catch (UnknownHostException e) {
-            logger.debug(ExceptionUtils.getStackTrace(e));
+            logger.debug(e);
             return null;
         }
     }
