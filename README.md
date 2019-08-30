@@ -29,7 +29,7 @@ required dependency, which is not currently published in an artefact repository
 and so much be built and installed into the Maven local repository.
 Instructions for doing so are available at that project's README.
 
-Submodules must be initialized via `git submodule init`.
+Submodules must be initialized via `git submodule init && git submodule update`.
 
 `container-jfr-web`, as a submodule located within the `web-client` directory,
 must be prepared by running `pushd web-client; npm install; popd`.
