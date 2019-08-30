@@ -16,9 +16,12 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
+import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -40,15 +43,17 @@ class WebServerTest {
 
     WebServer exporter;
     @Mock NetworkConfiguration netConf;
+    @Mock Environment env;
     @Mock Path recordingsPath;
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock NanoHTTPD server;
+    @Mock ReportGenerator reportGenerator;
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(netConf, recordingsPath, logger, server);
+        exporter = new WebServer(netConf, env, recordingsPath, reportGenerator, logger, server);
     }
 
     @Test
@@ -61,7 +66,7 @@ class WebServerTest {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         when(netConf.getInternalWebServerPort()).thenReturn(1234);
-        assertDoesNotThrow(() -> new WebServer(netConf, recordingsPath, logger));
+        assertDoesNotThrow(() -> new WebServer(netConf, env, recordingsPath, reportGenerator, logger));
     }
 
     @Test

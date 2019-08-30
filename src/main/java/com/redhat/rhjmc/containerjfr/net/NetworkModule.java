@@ -10,6 +10,8 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
 
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
@@ -20,7 +22,9 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 
-@Module
+@Module(includes={
+    ReportsModule.class,
+})
 public abstract class NetworkModule {
     @Binds
     @IntoSet
@@ -28,8 +32,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static WebServer provideWebServer(NetworkConfiguration netConf, @Named("RECORDINGS_PATH") Path recordingsPath, Logger logger) {
-        return new WebServer(netConf, recordingsPath, logger);
+    static WebServer provideWebServer(NetworkConfiguration netConf, Environment env, @Named("RECORDINGS_PATH") Path recordingsPath, ReportGenerator reportGenerator, Logger logger) {
+        return new WebServer(netConf, env, recordingsPath, reportGenerator, logger);
     }
 
     @Provides
