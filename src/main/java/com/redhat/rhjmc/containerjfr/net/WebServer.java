@@ -26,9 +26,10 @@ import java.util.regex.Pattern;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -39,32 +40,40 @@ import fi.iki.elonen.NanoHTTPD.Response.Status;
 
 public class WebServer implements ConnectionListener {
 
-    // TODO extract the name pattern (here and AbstractConnectedCommand) to shared
-    // utility
+    // TODO extract the name pattern (here and AbstractConnectedCommand) to shared utility
     private static final Pattern RECORDING_NAME_PATTERN = Pattern.compile("^/recordings/([\\w-_]+)(?:\\.jfr)?$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     private static final Pattern REPORT_PATTERN = Pattern.compile("^/reports/([\\w-_.]+)$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
     private static final Pattern CLIENT_PATTERN = Pattern.compile("^/(.*)$", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
 
+    private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
+    private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+
     private final NetworkConfiguration netConf;
+    private final Environment env;
     private final Path savedRecordingsPath;
     private final Logger logger;
     private IFlightRecorderService service;
     private final NanoHTTPD server;
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
     private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
+    private final ReportGenerator reportGenerator;
 
-    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, Logger logger) {
+    WebServer(NetworkConfiguration netConf, Environment env, Path savedRecordingsPath, ReportGenerator reportGenerator, Logger logger) {
         this.netConf = netConf;
+        this.env = env;
         this.savedRecordingsPath = savedRecordingsPath;
         this.logger = logger;
+        this.reportGenerator = reportGenerator;
         this.server = new ServerImpl();
     }
 
     // Testing-only constructor
-    WebServer(NetworkConfiguration netConf, Path savedRecordingsPath, Logger logger, NanoHTTPD server) {
+    WebServer(NetworkConfiguration netConf, Environment env, Path savedRecordingsPath, ReportGenerator reportGenerator, Logger logger, NanoHTTPD server) {
         this.netConf = netConf;
+        this.env = env;
         this.savedRecordingsPath = savedRecordingsPath;
         this.logger = logger;
+        this.reportGenerator = reportGenerator;
         this.server = server;
     }
 
@@ -151,7 +160,7 @@ public class WebServer implements ConnectionListener {
         @Override
         public Response serve(IHTTPSession session) {
             String requestUrl = session.getUri();
-            logger.trace("Serving " + requestUrl);
+            logger.info("Serving " + requestUrl);
             Matcher recordingMatcher = RECORDING_NAME_PATTERN.matcher(requestUrl);
             Matcher reportMatcher = REPORT_PATTERN.matcher(requestUrl);
             Matcher clientMatcher = CLIENT_PATTERN.matcher(requestUrl);
@@ -165,9 +174,9 @@ public class WebServer implements ConnectionListener {
                     return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, e.getLocalizedMessage());
                 }
             } else if (requestUrl.equals("/grafana_datasource_url")) {
-                return serveJsonKeyValueResponse("grafanaDatasourceUrl", "");
+                return serveJsonKeyValueResponse("grafanaDatasourceUrl", env.getEnv(GRAFANA_DATASOURCE_ENV, ""));
             } else if (requestUrl.equals("/grafana_dashboard_url")) {
-                return serveJsonKeyValueResponse("grafanaDashboardUrl", "");
+                return serveJsonKeyValueResponse("grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV, ""));
             } else if (recordingMatcher.find()) {
                 return serveRecording(recordingMatcher);
             } else if (reportMatcher.find()) {
@@ -298,8 +307,7 @@ public class WebServer implements ConnectionListener {
 
         private Response newReportResponse(String recordingName, InputStream recording) throws IOException, CouldNotLoadRecordingException {
             try (recording) {
-                String report = JfrHtmlRulesReport.createReport(recording);
-                Response response = serveTextResponse(report);
+                Response response = serveTextResponse(reportGenerator.generateReport(recording));
                 response.setMimeType(NanoHTTPD.MIME_HTML);
                 response.addHeader("Access-Control-Allow-Origin", "*");
 
@@ -313,10 +321,12 @@ public class WebServer implements ConnectionListener {
                                 .forEach(r -> {
                                     try {
                                         service.close(r);
-                                    } catch (FlightRecorderException ignored) {
+                                    } catch (FlightRecorderException fre) {
+                                        logger.debug(fre);
                                     }
                                 });
-                    } catch (FlightRecorderException ignored) {
+                    } catch (FlightRecorderException fre) {
+                        logger.debug(fre);
                     }
                 });
 
