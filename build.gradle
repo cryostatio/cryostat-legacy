@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.redhat.rhjmc:containerjfr-core:0.2.4'
+    implementation 'com.redhat.rhjmc:containerjfr-core:0.3.0'
     implementation 'io.kubernetes:client-java:5.0.0'
 
     implementation 'com.google.dagger:dagger:2.21'
@@ -87,7 +87,6 @@ jib {
         ]
         jvmFlags = [
             '-XX:+CrashOnOutOfMemoryError',
-            '-Dorg.openjdk.jmc.common.security.manager=com.redhat.rhjmc.containerjfr.core.jmc.SecurityManager',
             '-Dcom.sun.management.jmxremote.rmi.port=9091',
             '-Dcom.sun.management.jmxremote=true',
             '-Dcom.sun.management.jmxremote.port=9091',
