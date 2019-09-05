@@ -1,47 +1,26 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
-import javax.inject.Singleton;
+import java.util.Set;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
-import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
-import dagger.multibindings.IntoSet;
+import dagger.multibindings.ElementsIntoSet;
 
 @Module
 public abstract class PlatformStrategyModule {
 
-    @Binds
-    @IntoSet
-    abstract PlatformDetectionStrategy<?> bindDefaultStrategy(DefaultPlatformStrategy s);
-
     @Provides
-    @Singleton
-    static DefaultPlatformStrategy provideDefaultStrategy(Logger logger, NetworkResolver resolver) {
-        return new DefaultPlatformStrategy(logger, resolver);
-    }
-
-    @Binds
-    @IntoSet
-    abstract PlatformDetectionStrategy<?> bindKubeEnvStrategy(KubeEnvPlatformStrategy s);
-
-    @Provides
-    @Singleton
-    static KubeEnvPlatformStrategy provideKubeEnvPlatformStrategy(Logger logger, Environment env) {
-        return new KubeEnvPlatformStrategy(logger, env);
-    }
-
-    @Binds
-    @IntoSet
-    abstract PlatformDetectionStrategy<?> bindKubeApiStrategy(KubeApiPlatformStrategy s);
-
-    @Provides
-    @Singleton
-    static KubeApiPlatformStrategy provideKubeApiPlatformStrategy(Logger logger, NetworkResolver resolver) {
-        return new KubeApiPlatformStrategy(logger, resolver);
+    @ElementsIntoSet
+    static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(Logger logger, NetworkResolver resolver, Environment env) {
+        return Set.of(
+                new KubeApiPlatformStrategy(logger, resolver),
+                new KubeEnvPlatformStrategy(logger, env),
+                new DefaultPlatformStrategy(logger, resolver)
+                );
     }
 
 }
