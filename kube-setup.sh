@@ -16,7 +16,7 @@ oc create role service-lister --verb=list --resource=services
 
 oc policy add-role-to-user --role-namespace=container-jfr service-lister -z discovery
 
-oc new-app quay.io/andrewazores/container-jfr:latest --name=container-jfr
+oc new-app quay.io/rh-jmc-team/container-jfr:latest --name=container-jfr
 
 oc patch dc/container-jfr -p '{"spec":{"template":{"spec":{"serviceAccountName":"discovery"}}}}'
 
