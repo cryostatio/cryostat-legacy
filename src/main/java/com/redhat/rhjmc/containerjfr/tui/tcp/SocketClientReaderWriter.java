@@ -5,6 +5,7 @@ import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.charset.StandardCharsets;
 import java.util.Scanner;
 import java.util.concurrent.Semaphore;
 
@@ -17,7 +18,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     private final Logger logger;
     private final Thread listenerThread;
     private final ServerSocket ss;
-    private final Semaphore semaphore = new Semaphore(0, true);
+    private final Semaphore semaphore;
     private volatile Socket s;
     private volatile Scanner scanner;
     private volatile OutputStreamWriter writer;
@@ -25,6 +26,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     SocketClientReaderWriter(Logger logger, int port) throws IOException {
         this.logger = logger;
         ss = new ServerSocket(port);
+        semaphore = new Semaphore(0, true);
         listenerThread = new Thread(() -> {
             System.out.println(String.format("Listening on port %d", port));
             while (true) {
@@ -38,8 +40,8 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                     System.out.println(String.format("Connected: %s", sock.getRemoteSocketAddress().toString()));
                     try {
                         s = sock;
-                        scanner = new Scanner(sock.getInputStream(), "utf-8");
-                        writer = new OutputStreamWriter(sock.getOutputStream(), "utf-8");
+                        scanner = new Scanner(sock.getInputStream(), StandardCharsets.UTF_8);
+                        writer = new OutputStreamWriter(sock.getOutputStream(), StandardCharsets.UTF_8);
                     } finally {
                         semaphore.release();
                     }
@@ -51,6 +53,20 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
             }
         });
         listenerThread.start();
+    }
+
+    // Testing-only constructor
+    SocketClientReaderWriter(Logger logger, Semaphore semaphore, Socket s, Scanner scanner, OutputStreamWriter writer) {
+        this.logger = logger;
+        this.semaphore = semaphore;
+        this.scanner = scanner;
+        this.writer = writer;
+        this.listenerThread = null;
+        this.ss = null;
+        this.s = s;
+
+
+        semaphore.release();
     }
 
     @Override
