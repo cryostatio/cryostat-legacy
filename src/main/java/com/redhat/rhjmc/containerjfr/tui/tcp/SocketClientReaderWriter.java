@@ -17,21 +17,21 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
 
     private final Logger logger;
     private final Thread listenerThread;
-    private final ServerSocket ss;
+    private final ServerSocket serverSocket;
     private final Semaphore semaphore;
-    private volatile Socket s;
+    private volatile Socket socket;
     private volatile Scanner scanner;
     private volatile OutputStreamWriter writer;
 
     SocketClientReaderWriter(Logger logger, int port) throws IOException {
         this.logger = logger;
-        ss = new ServerSocket(port);
+        serverSocket = new ServerSocket(port);
         semaphore = new Semaphore(0, true);
         listenerThread = new Thread(() -> {
             System.out.println(String.format("Listening on port %d", port));
             while (true) {
                 try {
-                    Socket sock = ss.accept();
+                    Socket sock = serverSocket.accept();
                     try {
                         close();
                     } catch (IOException e) {
@@ -39,7 +39,7 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
                     }
                     System.out.println(String.format("Connected: %s", sock.getRemoteSocketAddress().toString()));
                     try {
-                        s = sock;
+                        socket = sock;
                         scanner = new Scanner(sock.getInputStream(), StandardCharsets.UTF_8);
                         writer = new OutputStreamWriter(sock.getOutputStream(), StandardCharsets.UTF_8);
                     } finally {
@@ -56,15 +56,14 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
     }
 
     // Testing-only constructor
-    SocketClientReaderWriter(Logger logger, Semaphore semaphore, Socket s, Scanner scanner, OutputStreamWriter writer) {
+    SocketClientReaderWriter(Logger logger, Semaphore semaphore, Socket socket, Scanner scanner, OutputStreamWriter writer) {
         this.logger = logger;
         this.semaphore = semaphore;
         this.scanner = scanner;
         this.writer = writer;
         this.listenerThread = null;
-        this.ss = null;
-        this.s = s;
-
+        this.serverSocket = null;
+        this.socket = socket;
 
         semaphore.release();
     }
@@ -78,8 +77,8 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
         if (writer != null) {
             writer.close();
         }
-        if (s != null) {
-            s.close();
+        if (socket != null) {
+            socket.close();
         }
     }
 

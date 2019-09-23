@@ -27,7 +27,7 @@ class SocketClientReaderWriterTest {
     Semaphore semaphore;
 
     @Mock
-    Socket s;
+    Socket socket;
 
     @Mock
     Scanner scanner;
@@ -38,8 +38,8 @@ class SocketClientReaderWriterTest {
     SocketClientReaderWriter scrw;
 
     @BeforeEach
-    void setup() throws Exception {
-        scrw = new SocketClientReaderWriter(logger, semaphore, s, scanner, writer);
+    void setup() {
+        scrw = new SocketClientReaderWriter(logger, semaphore, socket, scanner, writer);
     }
 
     @Test
@@ -48,7 +48,7 @@ class SocketClientReaderWriterTest {
 
         verify(scanner).close();
         verify(writer).close();
-        verify(s).close();
+        verify(socket).close();
     }
 
     @Test
