@@ -64,8 +64,6 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
         this.listenerThread = null;
         this.serverSocket = null;
         this.socket = socket;
-
-        semaphore.release();
     }
 
     @Override

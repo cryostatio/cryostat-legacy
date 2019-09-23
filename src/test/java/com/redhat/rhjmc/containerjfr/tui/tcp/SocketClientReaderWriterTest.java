@@ -56,8 +56,6 @@ class SocketClientReaderWriterTest {
         String result = "read line result";
         when(scanner.nextLine()).thenReturn(result);
 
-        reset(semaphore);
-
         MatcherAssert.assertThat(scrw.readLine(), Matchers.equalTo(result));
 
         verify(semaphore).acquire();
@@ -79,7 +77,6 @@ class SocketClientReaderWriterTest {
         RuntimeException e = new RuntimeException();
         when(scanner.nextLine()).thenThrow(e);
 
-        reset(semaphore);
         Assertions.assertThrows(RuntimeException.class, scrw::readLine);
 
         verify(semaphore).acquire();
@@ -111,7 +108,6 @@ class SocketClientReaderWriterTest {
         IOException e = new IOException();
         doThrow(e).when(writer).flush();
 
-        reset(semaphore);
         scrw.print("some content");
 
         verify(semaphore).acquire();
