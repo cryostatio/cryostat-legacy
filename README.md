@@ -124,20 +124,10 @@ To enable RJMX on port 9091, the following JVM flags should be passed at target
 startup:
 
 ```
-    '-Dcom.sun.management.jmxremote.rmi.port=9091',
-    '-Dcom.sun.management.jmxremote=true',
     '-Dcom.sun.management.jmxremote.port=9091',
     '-Dcom.sun.management.jmxremote.ssl=false',
-    '-Dcom.sun.management.jmxremote.authenticate=false',
-    '-Dcom.sun.management.jmxremote.local.only=false',
-    '-Djava.rmi.server.hostname=$TARGET_HOSTNAME'
+    '-Dcom.sun.management.jmxremote.authenticate=false'
 ```
-
-The `java.rmi.server.hostname` value should be substituted with the actual
-hostname of the machine or container which will be running the target JVM.
-For example, in a Podman or Docker deployment scenario, the
-`java.rmi.server.hostname` value should correspond to the value passed to the
-`--hostname` flag on the `podman run`/`docker run` invocation.
 
 The port number 9091 is arbitrary and may be configured to suit individual
 deployments, so long as the two `port` properties above match the desired port
