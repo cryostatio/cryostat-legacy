@@ -1,5 +1,7 @@
 # Container-JFR
 
+[![Docker Repository on Quay](https://quay.io/repository/rh-jmc-team/container-jfr/status "Docker Repository on Quay")](https://quay.io/repository/rh-jmc-team/container-jfr)
+
 ## SEE ALSO
 
 [Trello](https://trello.com/b/zoQx1GxV/jmc-cloud) for project planning.
