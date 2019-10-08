@@ -20,6 +20,7 @@ public abstract class ConnectionListenerModule {
     @Binds @IntoSet abstract ConnectionListener bindSnapshotCommand(SnapshotCommand command);
     @Binds @IntoSet abstract ConnectionListener bindStartRecordingCommand(StartRecordingCommand command);
     @Binds @IntoSet abstract ConnectionListener bindStopRecordingCommand(StopRecordingCommand command);
+    @Binds @IntoSet abstract ConnectionListener bindUploadSavedRecordingCommand(UploadSavedRecordingCommand command);
     @Binds @IntoSet abstract ConnectionListener bindWaitForCommand(WaitForCommand command);
     @Binds @IntoSet abstract ConnectionListener bindWaitForDownloadCommand(WaitForDownloadCommand command);
 }
