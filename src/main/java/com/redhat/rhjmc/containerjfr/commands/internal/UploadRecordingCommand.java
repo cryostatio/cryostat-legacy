@@ -30,7 +30,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Singleton
-class UploadSavedRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
+class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
     private final FileSystem fs;
@@ -38,7 +38,7 @@ class UploadSavedRecordingCommand extends AbstractConnectedCommand implements Se
     private final Provider<CloseableHttpClient> httpClientProvider;
 
     @Inject
-    UploadSavedRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath, Provider<CloseableHttpClient> httpClientProvider) {
+    UploadRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath, Provider<CloseableHttpClient> httpClientProvider) {
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
@@ -47,7 +47,7 @@ class UploadSavedRecordingCommand extends AbstractConnectedCommand implements Se
 
     @Override
     public String getName() {
-        return "upload-saved";
+        return "upload-recording";
     }
 
     @Override
