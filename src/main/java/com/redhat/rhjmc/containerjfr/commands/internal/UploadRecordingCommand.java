@@ -1,9 +1,22 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Optional;
+
+import javax.inject.Inject;
+import javax.inject.Named;
+import javax.inject.Provider;
+import javax.inject.Singleton;
+
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -11,17 +24,13 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Provider;
-import javax.inject.Singleton;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Map;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Singleton
-class UploadSavedRecordingCommand implements SerializableCommand {
+class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
     private final FileSystem fs;
@@ -29,7 +38,7 @@ class UploadSavedRecordingCommand implements SerializableCommand {
     private final Provider<CloseableHttpClient> httpClientProvider;
 
     @Inject
-    UploadSavedRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath, Provider<CloseableHttpClient> httpClientProvider) {
+    UploadRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath, Provider<CloseableHttpClient> httpClientProvider) {
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
@@ -38,7 +47,7 @@ class UploadSavedRecordingCommand implements SerializableCommand {
 
     @Override
     public String getName() {
-        return "upload-saved";
+        return "upload-recording";
     }
 
     @Override
@@ -64,11 +73,16 @@ class UploadSavedRecordingCommand implements SerializableCommand {
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private ResponseMessage doPost(String recordingName, String uploadUrl) throws IOException {
+    private ResponseMessage doPost(String recordingName, String uploadUrl) throws Exception {
+        Optional<InputStream> recording = getBestRecordingForName(recordingName);
+        if (!recording.isPresent()) {
+            throw new RecordingNotFoundException(recordingName);
+        }
+
         HttpPost post = new HttpPost(uploadUrl);
         post.setEntity(
             MultipartEntityBuilder.create()
-                .addBinaryBody("file", recordingsPath.resolve(recordingName).toFile(), ContentType.APPLICATION_OCTET_STREAM, recordingName)
+                .addBinaryBody("file", recording.get(), ContentType.APPLICATION_OCTET_STREAM, recordingName)
                 .build()
         );
 
@@ -86,12 +100,32 @@ class UploadSavedRecordingCommand implements SerializableCommand {
             cw.println("Expected two arguments: recording name and upload URL");
             return false;
         }
+        if (!validateRecordingName(args[0])) {
+            cw.println("%s is an invalid recording name");
+            return false;
+        }
         return true;
     }
 
     @Override
     public boolean isAvailable() {
-        return fs.isDirectory(recordingsPath);
+        return super.isAvailable() || fs.isDirectory(recordingsPath);
+    }
+
+    Optional<InputStream> getBestRecordingForName(String recordingName) throws FlightRecorderException, JMXConnectionException, FileNotFoundException {
+        if (super.isAvailable()) {
+            Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(recordingName);
+            if (currentRecording.isPresent()) {
+                return Optional.of(getService().openStream(currentRecording.get(), true));
+            }
+        }
+
+        File archivedRecording = recordingsPath.resolve(recordingName).toFile();
+        if (archivedRecording.isFile()) {
+            return Optional.of(new FileInputStream(archivedRecording));
+        }
+
+        return Optional.empty();
     }
 
     private static class ResponseMessage {
@@ -101,6 +135,14 @@ class UploadSavedRecordingCommand implements SerializableCommand {
         ResponseMessage(StatusLine status, String body) {
             this.status = status;
             this.body = body;
+        }
+    }
+
+    static class RecordingNotFoundException extends Exception {
+        private static final long serialVersionUID = 1L;
+
+        RecordingNotFoundException(String recordingName) {
+            super(String.format("Recording \"%s\" could not be found"));
         }
     }
 
