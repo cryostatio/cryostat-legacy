@@ -236,8 +236,7 @@ public class WebServer implements ConnectionListener {
                 return newFixedLengthResponse(Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT,
                         String.format("%s not found", assetName));
             }
-            String mime = NanoHTTPD.getMimeTypeForFile(assetName);
-            Response r = new Response(Status.OK, mime, assetStream, -1) {
+            return new Response(Status.OK, NanoHTTPD.getMimeTypeForFile(assetName), assetStream, -1) {
                 @Override
                 public void close() throws IOException {
                     try (assetStream) {
@@ -245,8 +244,6 @@ public class WebServer implements ConnectionListener {
                     }
                 }
             };
-            r.addHeader("Access-Control-Allow-Origin", "*");
-            return r;
         }
 
         private Optional<InputStream> getRecordingInputStream(String recordingName) throws FlightRecorderException {
@@ -282,7 +279,7 @@ public class WebServer implements ConnectionListener {
         }
 
         private Response newFlightRecorderResponse(String recordingName, InputStream recording) {
-            Response r = new Response(Status.OK, "application/octet-stream", recording, -1) {
+            return new Response(Status.OK, "application/octet-stream", recording, -1) {
                 @Override
                 public void close() throws IOException {
                     try {
@@ -292,15 +289,12 @@ public class WebServer implements ConnectionListener {
                     }
                 }
             };
-            r.addHeader("Access-Control-Allow-Origin", "*");
-            return r;
         }
 
         private Response newReportResponse(String recordingName, InputStream recording) throws IOException, CouldNotLoadRecordingException {
             try (recording) {
                 Response response = serveTextResponse(reportGenerator.generateReport(recording));
                 response.setMimeType(NanoHTTPD.MIME_HTML);
-                response.addHeader("Access-Control-Allow-Origin", "*");
 
                 // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
                 // recordings before loading events to create the report, and these clones are erroneously left dangling.
