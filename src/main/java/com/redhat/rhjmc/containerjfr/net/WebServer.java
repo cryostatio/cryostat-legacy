@@ -8,7 +8,6 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -34,7 +33,6 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import fi.iki.elonen.NanoHTTPD;
 import fi.iki.elonen.NanoHTTPD.Response.Status;
 
@@ -232,30 +230,23 @@ public class WebServer implements ConnectionListener {
             return serveClientAsset("index.html");
         }
 
-        @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
         private Response serveClientAsset(String assetName) {
-            Path assetPath = Paths.get("/", "web-client", assetName);
-            if (!assetPath.toFile().isFile()) {
+            InputStream assetStream = WebServer.class.getResourceAsStream(assetName);
+            if (assetStream == null) {
                 return newFixedLengthResponse(Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT,
                         String.format("%s not found", assetName));
             }
-            try {
-                String mime = NanoHTTPD.getMimeTypeForFile(assetPath.toUri().toString());
-                InputStream assetStream = Files.newInputStream(assetPath);
-                Response r = new Response(Status.OK, mime, assetStream, -1) {
-                    @Override
-                    public void close() throws IOException {
-                        try (assetStream) {
-                            super.close();
-                        }
+            String mime = NanoHTTPD.getMimeTypeForFile(assetName);
+            Response r = new Response(Status.OK, mime, assetStream, -1) {
+                @Override
+                public void close() throws IOException {
+                    try (assetStream) {
+                        super.close();
                     }
-                };
-                r.addHeader("Access-Control-Allow-Origin", "*");
-                return r;
-            } catch (IOException e) {
-                return newFixedLengthResponse(Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT,
-                        String.format("%s could not be opened", assetName));
-            }
+                }
+            };
+            r.addHeader("Access-Control-Allow-Origin", "*");
+            return r;
         }
 
         private Optional<InputStream> getRecordingInputStream(String recordingName) throws FlightRecorderException {
