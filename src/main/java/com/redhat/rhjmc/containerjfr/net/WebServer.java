@@ -8,7 +8,6 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -234,14 +233,14 @@ public class WebServer implements ConnectionListener {
 
         @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
         private Response serveClientAsset(String assetName) {
-            Path assetPath = Paths.get("/", "web-client", assetName);
-            if (!assetPath.toFile().isFile()) {
+            URL url = WebServer.class.getResource(assetName);
+            if (url == null) {
                 return newFixedLengthResponse(Status.NOT_FOUND, NanoHTTPD.MIME_PLAINTEXT,
                         String.format("%s not found", assetName));
             }
             try {
-                String mime = NanoHTTPD.getMimeTypeForFile(assetPath.toUri().toString());
-                InputStream assetStream = Files.newInputStream(assetPath);
+                String mime = NanoHTTPD.getMimeTypeForFile(url.toString());
+                InputStream assetStream = url.openStream();
                 Response r = new Response(Status.OK, mime, assetStream, -1) {
                     @Override
                     public void close() throws IOException {
