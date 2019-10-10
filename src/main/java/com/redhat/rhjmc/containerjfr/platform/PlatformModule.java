@@ -4,6 +4,8 @@ import java.util.Set;
 
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformStrategyModule;
 
@@ -24,5 +26,11 @@ public abstract class PlatformModule {
             .findFirst()
             .orElseThrow()
             .get();
+    }
+
+    @Provides
+    @Singleton
+    static JvmDiscoveryClient provideJvmDiscoveryClient(Logger logger) {
+        return new JvmDiscoveryClient(logger);
     }
 }
