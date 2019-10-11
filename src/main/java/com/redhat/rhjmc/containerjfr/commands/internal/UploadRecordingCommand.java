@@ -112,6 +112,8 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         return super.isAvailable() || fs.isDirectory(recordingsPath);
     }
 
+    // returned stream should be cleaned up by HttpClient
+    @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
     Optional<InputStream> getBestRecordingForName(String recordingName) throws FlightRecorderException, JMXConnectionException, FileNotFoundException {
         if (super.isAvailable()) {
             Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(recordingName);
