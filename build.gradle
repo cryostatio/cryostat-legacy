@@ -87,7 +87,6 @@ jib {
     container {
         useCurrentTimestamp = true
         ports = [
-            '7095', // Default JDP autodiscovery port
             System.getenv('CONTAINER_JFR_WEB_PORT') ?: '8181',
             System.getenv('CONTAINER_JFR_LISTEN_PORT') ?: '9090',
             '9091'
@@ -97,7 +96,6 @@ jib {
             '-Dcom.sun.management.jmxremote.port=9091',
             '-Dcom.sun.management.jmxremote.ssl=false',
             '-Dcom.sun.management.jmxremote.authenticate=false',
-            '-Dcom.sun.management.jmxremote.autodiscovery=true',
         ]
     }
 }
