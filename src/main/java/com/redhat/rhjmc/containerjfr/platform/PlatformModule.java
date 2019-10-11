@@ -19,13 +19,13 @@ public abstract class PlatformModule {
     @Provides
     @Singleton
     static PlatformClient providePlatformClient(Set<PlatformDetectionStrategy<?>> strategies) {
-        return strategies
+        return new SelfDiscoveryPlatformClient(strategies
             .stream()
             .sorted()
             .filter(PlatformDetectionStrategy::isAvailable)
             .findFirst()
             .orElseThrow()
-            .get();
+            .get());
     }
 
     @Provides
