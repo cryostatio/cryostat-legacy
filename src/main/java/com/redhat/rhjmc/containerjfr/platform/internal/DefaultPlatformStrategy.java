@@ -1,16 +1,18 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
+import java.io.IOException;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 
 class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatformClient> {
 
     private final Logger logger;
-    private final NetworkResolver resolver;
+    private final JvmDiscoveryClient discoveryClient;
 
-    DefaultPlatformStrategy(Logger logger, NetworkResolver resolver) {
+    DefaultPlatformStrategy(Logger logger, JvmDiscoveryClient discoveryClient) {
         this.logger = logger;
-        this.resolver = resolver;
+        this.discoveryClient = discoveryClient;
     }
 
     @Override
@@ -26,7 +28,12 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     @Override
     public DefaultPlatformClient get() {
         logger.trace("Selected Default Platform Strategy");
-        return new DefaultPlatformClient(logger, resolver);
+        try {
+            discoveryClient.start();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+        return new DefaultPlatformClient(logger, discoveryClient);
     }
 
 }

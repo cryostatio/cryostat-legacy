@@ -14,7 +14,7 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.redhat.rhjmc:containerjfr-core:0.3.0'
+    implementation 'com.redhat.rhjmc:containerjfr-core:0.4.0'
     implementation 'io.kubernetes:client-java:5.0.0'
 
     implementation 'com.google.dagger:dagger:2.21'
@@ -69,7 +69,7 @@ copyWebClient.dependsOn buildWebClient
 processResources.dependsOn copyWebClient
 
 def baseImage = 'gcr.io/distroless/java:11';
-def version = '0.4.6';
+def version = '0.4.7';
 def debugBuild = System.getenv('CONTAINER_JFR_DEBUG') != null;
 if (debugBuild) {
     baseImage += '-debug'
@@ -95,14 +95,18 @@ jib {
             '-XX:+CrashOnOutOfMemoryError',
             '-Dcom.sun.management.jmxremote.port=9091',
             '-Dcom.sun.management.jmxremote.ssl=false',
-            '-Dcom.sun.management.jmxremote.authenticate=false'
+            '-Dcom.sun.management.jmxremote.authenticate=false',
         ]
     }
 }
 
 if (debugBuild) {
     jib.container.jvmFlags += '-Dcom.redhat.rhjmc.containerjfr.debug=true'
+    jib.container.jvmFlags += '-XX:+PrintCommandLineFlags'
+    jib.container.jvmFlags += '-XshowSettings:properties'
 }
+
+applicationDefaultJvmArgs = jib.container.jvmFlags
 
 test {
     useJUnitPlatform()

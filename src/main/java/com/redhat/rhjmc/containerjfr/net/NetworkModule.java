@@ -7,7 +7,6 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
@@ -50,8 +49,8 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static JFRConnectionToolkit provideJFRConnectionToolkit(ClientWriter cw, Clock clock) {
-        return new JFRConnectionToolkit(cw, clock);
+    static JFRConnectionToolkit provideJFRConnectionToolkit(ClientWriter cw) {
+        return new JFRConnectionToolkit(cw);
     }
 
     @Provides
