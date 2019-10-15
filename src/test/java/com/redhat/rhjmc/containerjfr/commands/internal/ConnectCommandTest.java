@@ -64,7 +64,7 @@ class ConnectCommandTest {
         assertFalse(command.validate(new String[0]));
         assertTrue(command.validate(new String[]{ "foo" }));
         assertFalse(command.validate(new String[2]));
-        verify(cw, Mockito.times(2)).println("Expected one argument: host name/URL");
+        verify(cw, Mockito.times(2)).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @ParameterizedTest
@@ -75,19 +75,19 @@ class ConnectCommandTest {
     })
     void shouldNotValidateInvalidIdentifiers(String id) {
         assertFalse(command.validate(new String[] { id }), id);
-        verify(cw).println(id + " is an invalid host name/URL");
+        verify(cw).println(id + " is an invalid connection specifier");
     }
 
     @Test
     void shouldNotValidateNull() {
         assertFalse(command.validate(new String[] { null }));
-        verify(cw).println("Expected one argument: host name/URL");
+        verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @Test
     void shouldNotValidateEmptyString() {
         assertFalse(command.validate(new String[] { " " }));
-        verify(cw).println("Expected one argument: host name/URL");
+        verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @ParameterizedTest
