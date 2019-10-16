@@ -18,17 +18,17 @@ for multi-container demos of this project.
 
 ## REQUIREMENTS
 Build:
+- Git
 - JDK11+
-- JMC
 - Gradle
 
 Run:
-- Podman/Docker, OpenShift/Minishift, or other container platform
+- Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
 
 ## BUILD
 [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) is a
 required dependency, which is not currently published in an artefact repository
-and so much be built and installed into the Maven local repository.
+and so must be built and installed into the Maven local repository.
 Instructions for doing so are available at that project's README.
 
 Submodules must be initialized via `git submodule init && git submodule update`.
@@ -53,6 +53,10 @@ environment within the image and enabling debug printing from the application.
 ## RUN
 For a basic development non-containerized smoketest, use `./gradlew run`, or
 `./gradlew run --args="client-args-here"`.
+
+For a Kubernetes/OpenShift deployment, see [container-jfr-operator](https://github.com/rh-jmc-team/container-jfr-operator).
+This will deploy container-jfr into your configured cluster in interactive
+WebSocket mode with a web frontend.
 
 The client can operate in three different command execution modes. These are
 batch (scripted), interactive TTY, and interactive socket. To use batch mode,
@@ -85,11 +89,6 @@ script, or if this script is not used, by using the `-e` environment variable
 flag in the `docker` or `podman` command invocation. If the `EXT` variables are
 unspecified then they default to the value of their non-EXT counterparts. If
 `LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
-
-The application can also be easily set up and configured to run in a more full-
-fledged container application platform that supports the Docker/Podman
-container image format, such as OpenShift. For an example of such a project
-setup, see [jmc-robots-demo](https://github.com/rh-jmc-team/jmc-robots-demo/blob/master/minishift/setup.sh)
 
 For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).
