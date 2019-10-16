@@ -24,9 +24,8 @@ formatted as a JSON response.
     `scan-targets`
     ###### synopsis
     Scans for discoverable target JVMs. This may use various discovery
-    mechanisms, including Kubernetes service discovery or port scanning within
-    `container-jfr`'s /24 subnet. For more details see
-    [this document](https://github.com/rh-jmc-team/container-jfr#monitoring-applications).
+    mechanisms, including Kubernetes service discovery or JDP. For more details
+    see [this document](https://github.com/rh-jmc-team/container-jfr#monitoring-applications).
 
 * #### `is-connected`
     ###### usage
