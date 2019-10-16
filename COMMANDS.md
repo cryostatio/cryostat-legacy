@@ -186,12 +186,17 @@ formatted as a JSON response.
     * [`delete`](#delete)
     * [`snapshot`](#snapshot)
 
-* #### `upload`
+* #### `upload-recording`
     ###### usage
-    `upload foo`
+    `upload-recording foo`
     ###### synopsis
-    TODO: describe Grafana upload command and provide links to Grafana setup
-    documentation.
+    Uploads the named recording to a jfr-datasource instance, which exposes the
+    information contained within the recording to its associated Grafana
+    instance. For information on setting environment variables to enable
+    uploading, see README.md .
+    ###### see also
+    * [`dump`](#dump)
+    * [`start`](#start)
 
 * #### `delete`
     ###### usage
