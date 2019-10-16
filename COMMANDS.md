@@ -42,7 +42,8 @@ formatted as a JSON response.
     ###### synopsis
     Connect to a target JVM. One argument is expected, which is the hostname
     (`foo`) or address (`10.130.0.4`) of the target JVM with an optional port
-    number (`1234`). The default RJMX port used if unspecified is 9091.
+    number (`1234`), or a JMX service URL. The default RJMX port used if
+    unspecified is 9091.
     ###### see also
     [`disconnect`](#disconnect)
 
