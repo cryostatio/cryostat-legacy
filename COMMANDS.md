@@ -24,9 +24,8 @@ formatted as a JSON response.
     `scan-targets`
     ###### synopsis
     Scans for discoverable target JVMs. This may use various discovery
-    mechanisms, including Kubernetes service discovery or port scanning within
-    `container-jfr`'s /24 subnet. For more details see
-    [this document](https://github.com/rh-jmc-team/container-jfr#monitoring-applications).
+    mechanisms, including Kubernetes service discovery or JDP. For more details
+    see [this document](https://github.com/rh-jmc-team/container-jfr#monitoring-applications).
 
 * #### `is-connected`
     ###### usage
@@ -43,7 +42,8 @@ formatted as a JSON response.
     ###### synopsis
     Connect to a target JVM. One argument is expected, which is the hostname
     (`foo`) or address (`10.130.0.4`) of the target JVM with an optional port
-    number (`1234`). The default RJMX port used if unspecified is 9091.
+    number (`1234`), or a JMX service URL. The default RJMX port used if
+    unspecified is 9091.
     ###### see also
     [`disconnect`](#disconnect)
 
@@ -186,12 +186,17 @@ formatted as a JSON response.
     * [`delete`](#delete)
     * [`snapshot`](#snapshot)
 
-* #### `upload`
+* #### `upload-recording`
     ###### usage
-    `upload foo`
+    `upload-recording foo`
     ###### synopsis
-    TODO: describe Grafana upload command and provide links to Grafana setup
-    documentation.
+    Uploads the named recording to a jfr-datasource instance, which exposes the
+    information contained within the recording to its associated Grafana
+    instance. For information on setting environment variables to enable
+    uploading, see README.md .
+    ###### see also
+    * [`dump`](#dump)
+    * [`start`](#start)
 
 * #### `delete`
     ###### usage

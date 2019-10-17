@@ -115,11 +115,15 @@ environment variable will cause the discovery of a target at address
 `127.0.0.1`, aliased as `foo`, listening on port `1234`.
 
 Finally, if no supported platform is detected, then `container-jfr` will fall
-back to a port-scanning discovery mechanism. All hosts in the /24 subnet that
-`container-jfr` is within will be scanned for an open listening port. The
-default expected listening port is 9091. Targets listening on other ports are
-still connectable by `container-jfr` but will not be automatically discoverable
-via port-scanning.
+back to the JDP (Java Discovery Protocol) mechanism. This relies on target JVMs
+being configured with the JVM flags to enable JDP and requires the targets to
+be reachable and in the same subject as `container-jfr`. JDP can be enabled by
+passing the flag `"-Dcom.sun.management.jmxremote.autodiscovery=true"` when
+starting target JVMs; for more configuration options, see
+(this document)[https://docs.oracle.com/javase/10/management/java-discovery-protocol.htm]
+. Once the targets are properly configured, `container-jfr` will automatically
+discover their JMX Service URLs, which includes the RJMX port number for that
+specific target.
 
 To enable RJMX on port 9091, the following JVM flags should be passed at target
 startup:
