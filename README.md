@@ -120,7 +120,7 @@ being configured with the JVM flags to enable JDP and requires the targets to
 be reachable and in the same subject as `container-jfr`. JDP can be enabled by
 passing the flag `"-Dcom.sun.management.jmxremote.autodiscovery=true"` when
 starting target JVMs; for more configuration options, see
-(this document)[https://docs.oracle.com/javase/10/management/java-discovery-protocol.htm]
+[this document](https://docs.oracle.com/javase/10/management/java-discovery-protocol.htm)
 . Once the targets are properly configured, `container-jfr` will automatically
 discover their JMX Service URLs, which includes the RJMX port number for that
 specific target.
