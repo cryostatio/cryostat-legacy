@@ -1,6 +1,5 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
-import java.net.UnknownHostException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -37,6 +36,8 @@ class KubeApiPlatformClient implements PlatformClient {
                 .getItems()
                 .stream()
                 .map(V1Service::getSpec)
+                .peek(spec -> logger.trace("Service spec: " + spec.toString()))
+                .filter(s -> s.getPorts() != null)
                 .flatMap(s -> s.getPorts().stream().map(p -> new ServiceRef(s.getClusterIP(), "", p.getPort())))
                 .parallel()
                 .map(this::resolveServiceRefHostname)
@@ -46,6 +47,9 @@ class KubeApiPlatformClient implements PlatformClient {
             logger.warn(e.getMessage());
             logger.warn(e.getResponseBody());
             return Collections.emptyList();
+        } catch (Exception e) {
+            logger.warn(e);
+            return Collections.emptyList();
         }
     }
 
@@ -54,7 +58,7 @@ class KubeApiPlatformClient implements PlatformClient {
             String hostname = resolver.resolveCanonicalHostName(in.getIp());
             logger.debug(String.format("Resolved %s to %s", in.getIp(), hostname));
             return new ServiceRef(in.getIp(), hostname, in.getPort());
-        } catch (UnknownHostException e) {
+        } catch (Exception e) {
             logger.debug(e);
             return null;
         }
