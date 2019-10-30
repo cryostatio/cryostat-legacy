@@ -11,6 +11,7 @@ import com.google.gson.GsonBuilder;
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
+import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.tui.TuiModule;
@@ -19,11 +20,11 @@ import dagger.Module;
 import dagger.Provides;
 
 @Module(includes = {
-    PlatformModule.class,
-    NetworkModule.class,
-    SystemModule.class,
-    CommandsModule.class,
-    TuiModule.class
+        PlatformModule.class,
+        WebModule.class,
+        SystemModule.class,
+        CommandsModule.class,
+        TuiModule.class
 })
 abstract class MainModule {
     @Provides
@@ -36,8 +37,8 @@ abstract class MainModule {
     @Singleton
     static Gson provideGson() {
         return new GsonBuilder()
-            .serializeNulls()
-            .create();
+                .serializeNulls()
+                .create();
     }
 
     @Provides

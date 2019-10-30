@@ -1,4 +1,4 @@
-package com.redhat.rhjmc.containerjfr.net;
+package com.redhat.rhjmc.containerjfr.net.web;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -16,13 +16,14 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
-import java.util.Collections;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,7 +43,8 @@ import fi.iki.elonen.NanoHTTPD;
 class WebServerTest {
 
     WebServer exporter;
-    @Mock NetworkConfiguration netConf;
+    @Mock
+    NetworkConfiguration netConf;
     @Mock Environment env;
     @Mock Path recordingsPath;
     @Mock Logger logger;

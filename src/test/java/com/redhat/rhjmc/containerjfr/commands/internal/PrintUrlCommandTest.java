@@ -13,7 +13,7 @@ import java.net.UnknownHostException;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.WebServer;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;

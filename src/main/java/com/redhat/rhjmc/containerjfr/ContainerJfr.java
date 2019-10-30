@@ -8,7 +8,7 @@ import javax.inject.Singleton;
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.WebServer;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
 import org.apache.commons.lang3.StringUtils;
