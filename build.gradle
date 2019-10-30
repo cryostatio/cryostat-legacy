@@ -64,7 +64,7 @@ task buildWebClient(type: Exec) {
 
 task copyWebClient(type: Copy) {
     from file('web-client/dist/container-jfr-web')
-    into file("${buildDir}/assets/com/redhat/rhjmc/containerjfr/net")
+    into file("${buildDir}/assets/com/redhat/rhjmc/containerjfr/net/web")
 }
 
 copyWebClient.dependsOn buildWebClient
