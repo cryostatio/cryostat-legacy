@@ -40,7 +40,7 @@ class ScanTargetsCommand implements SerializableCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        platformClient.listDiscoverableServices().forEach(s -> cw.println(String.format("%s -> %s", s.getHostname(), s.getIp())));
+        platformClient.listDiscoverableServices().forEach(s -> cw.println(String.format("%s -> %s:%d", s.getAlias(), s.getConnectUrl(), s.getPort())));
     }
 
     @Override
