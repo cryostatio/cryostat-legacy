@@ -9,6 +9,8 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -101,14 +103,14 @@ public class WebServer implements ConnectionListener {
         }
     }
 
-    public void start() throws IOException, FlightRecorderException {
+    public void start() throws FlightRecorderException {
         server.start();
         if (this.service != null) {
             this.service.getAvailableRecordings().forEach(this::addRecording);
         }
 
         Router router = Router.router(server.getVertx()); // a vertx is only available after server started
-        
+
         Handler<RoutingContext> failureHandler = ctx -> {
             HttpStatusException exception;
             if (ctx.failure() instanceof HttpStatusException) {
@@ -116,7 +118,7 @@ public class WebServer implements ConnectionListener {
             } else {
                 exception = new HttpStatusException(500, ctx.failure());
             }
-            
+
             if (exception.getStatusCode() < 500) {
                 logger.warn(exception);
             } else {
@@ -164,7 +166,7 @@ public class WebServer implements ConnectionListener {
                         .endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum))
                         .end();
                 recording.get().close();
-            } catch (FlightRecorderException e ) {
+            } catch (FlightRecorderException e) {
                 throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
             } catch (IOException e) {
                 throw new HttpStatusException(500, e);
@@ -192,10 +194,19 @@ public class WebServer implements ConnectionListener {
         }).failureHandler(failureHandler);
 
         router.get("/*")
-                .handler(StaticHandler.create(WebServer.class.getPackageName().replaceAll("\\.", "/")))
-                .failureHandler(failureHandler);
+                .handler(StaticHandler.create(WebServer.class.getPackageName().replaceAll("\\.", "/")));
 
-        this.server.requestHandler(router);
+        this.server.requestHandler(req -> {
+            Instant start = Instant.now();
+            req.response().endHandler((res) -> logger.info(String.format("(%s): %s %s %d %dms",
+                    req.remoteAddress().toString(),
+                    req.method().toString(),
+                    req.path(),
+                    req.response().getStatusCode(),
+                    Duration.between(start, Instant.now()).toMillis()
+            )));
+            router.handle(req);
+        });
     }
 
     public void stop() {
@@ -260,7 +271,8 @@ public class WebServer implements ConnectionListener {
     }
 
     private void endWithClientUrl(HttpServerResponse response) throws SocketException, UnknownHostException {
-        endWithJsonKeyValue("clientUrl", String.format("ws://%s:%d/command", netConf.getCommandChannelHost(), netConf.getExternalCommandChannelPort()), response);
+//        endWithJsonKeyValue("clientUrl", String.format("ws://%s:%d/command", netConf.getCommandChannelHost(), netConf.getExternalCommandChannelPort()), response);
+        endWithJsonKeyValue("clientUrl", String.format("ws://%s:%d/command", netConf.getWebServerHost(), netConf.getExternalWebServerPort()), response);
     }
 
     private void endWithGrafanaDatasourceUrl(HttpServerResponse response) {
