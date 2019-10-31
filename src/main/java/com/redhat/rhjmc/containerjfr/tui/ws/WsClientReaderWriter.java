@@ -37,7 +37,7 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
         logger.info(String.format("Connected remote client %s", this.sws.remoteAddress().toString()));
 
         sws.textMessageHandler((msg) -> {
-            logger.info(String.format("(%s): %s", this.sws.remoteAddress().toString(), msg));
+            logger.info(String.format("(%s): CMD %s", this.sws.remoteAddress().toString(), msg));
             inQ.add(msg);
         });
         sws.endHandler((unused) -> close());

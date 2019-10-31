@@ -7,6 +7,8 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.ServerWebSocket;
 
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 
 public class HttpServer {
@@ -24,7 +26,7 @@ public class HttpServer {
         this.logger = logger;
     }
 
-    public void start() {
+    public void start() throws SocketException, UnknownHostException {
         if (vertx != null) {
             return;
         }
@@ -32,7 +34,7 @@ public class HttpServer {
         vertx = Vertx.vertx();
 
         CompletableFuture<Void> future = new CompletableFuture<>();
-        vertx
+        io.vertx.core.http.HttpServer server = vertx
                 .createHttpServer(new HttpServerOptions()
                         .setCompressionSupported(true)
                         .setLogActivity(true)
@@ -46,8 +48,11 @@ public class HttpServer {
                     }
                     future.complete(null);
                 });
+                // TODO: Do we only listen on a specific host name? (Or simply 0.0.0.0)
 
         future.join(); // wait for async deployment to complete
+
+        logger.info(String.format("HTTP service running on http://%s:%d", netConf.getWebServerHost(), netConf.getExternalWebServerPort()));
     }
 
     public void stop() {

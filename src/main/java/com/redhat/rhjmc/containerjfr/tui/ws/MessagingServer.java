@@ -1,5 +1,7 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -27,7 +29,7 @@ class MessagingServer {
         this.gson = gson;
     }
 
-    void start() {
+    void start() throws SocketException, UnknownHostException {
         server.start();
 
         server.websocketHandler((sws) -> {
