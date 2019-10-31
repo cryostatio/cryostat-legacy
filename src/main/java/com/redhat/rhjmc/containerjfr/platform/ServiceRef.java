@@ -6,22 +6,26 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class ServiceRef {
 
-    private final String ip;
-    private final String hostname;
+    private final String connectUrl;
+    private final String alias;
     private final int port;
 
-    public ServiceRef(String ip, String hostname, int port) {
-        this.ip = ip;
-        this.hostname = hostname;
+    public ServiceRef(String connectUrl, int port) {
+        this(connectUrl, connectUrl, port);
+    }
+
+    public ServiceRef(String connectUrl, String alias, int port) {
+        this.connectUrl = connectUrl;
+        this.alias = alias;
         this.port = port;
     }
 
-    public String getIp() {
-        return ip;
+    public String getConnectUrl() {
+        return connectUrl;
     }
 
-    public String getHostname() {
-        return hostname;
+    public String getAlias() {
+        return alias;
     }
 
     public int getPort() {
