@@ -41,10 +41,9 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
         Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
         if (descriptor.isPresent()) {
-            saveRecording(descriptor.get());
+            cw.println(String.format("Recording saved as \"%s\"", saveRecording(descriptor.get())));
         } else {
             cw.println(String.format("Recording with name \"%s\" not found", name));
-            return;
         }
     }
 
@@ -55,8 +54,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         try {
             Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
             if (descriptor.isPresent()) {
-                saveRecording(descriptor.get());
-                return new SuccessOutput();
+                return new StringOutput(saveRecording(descriptor.get()));
             } else {
                 return new FailureOutput(String.format("Recording with name \"%s\" not found", name));
             }
@@ -87,15 +85,20 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         return super.isAvailable() && fs.isDirectory(recordingsPath);
     }
 
-    private void saveRecording(IRecordingDescriptor descriptor)
+    private String saveRecording(IRecordingDescriptor descriptor)
             throws IOException, FlightRecorderException, JMXConnectionException {
         String recordingName = descriptor.getName();
-        String destination = recordingName.endsWith(".jfr") ? recordingName : String.format("%s.jfr", recordingName);
+        if (!recordingName.endsWith(".jfr")) {
+            recordingName += ".jfr";
+        }
+        String targetName = getConnection().getHost().replaceAll("[\\._]+", "-");
+        String destination = String.format("%s_%s", targetName, recordingName);
         fs.copy(
             getService().openStream(descriptor, false),
             recordingsPath.resolve(destination),
             StandardCopyOption.REPLACE_EXISTING
         );
+        return destination;
     }
 
 }
