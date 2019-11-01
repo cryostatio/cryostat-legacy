@@ -117,9 +117,11 @@ class AbstractConnectedCommandTest {
         @ParameterizedTest
         @ValueSource(strings = {
             ".",
-            "extension.jfr",
+            ".jfr",
+            "some.other.jfr",
             "/",
             "/a/path",
+            "another/path",
             " ",
             "two words",
         })
@@ -131,8 +133,11 @@ class AbstractConnectedCommandTest {
         @ValueSource(strings = {
             "foo",
             "recording",
+            "recording.jfr",
             "Capitalized",
-            "4lphanum3r1c"
+            "4lphanum3r1c",
+            "with-dash",
+            "with_underscore",
         })
         void shouldValidateRecordingNames(String name) {
             assertTrue(command.validateRecordingName(name));

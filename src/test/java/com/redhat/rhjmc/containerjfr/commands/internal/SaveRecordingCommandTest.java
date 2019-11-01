@@ -128,6 +128,27 @@ class SaveRecordingCommandTest {
     }
 
     @Test
+    void shouldExecuteAndSaveRecordingWithExtension() throws Exception {
+        IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
+        when(recording.getName()).thenReturn("foo.jfr");
+        when(connection.getService()).thenReturn(service);
+        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+        InputStream recordingStream = mock(InputStream.class);
+        when(service.openStream(recording, false)).thenReturn(recordingStream);
+        Path savePath = mock(Path.class);
+        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(savePath);
+
+        command.connectionChanged(connection);
+        command.execute(new String[] { "foo.jfr" });
+
+        verify(service).getAvailableRecordings();
+        verify(fs).copy(recordingStream, savePath, StandardCopyOption.REPLACE_EXISTING);
+        verify(recordingsPath).resolve("foo.jfr");
+        verifyNoMoreInteractions(service);
+        verifyZeroInteractions(cw);
+    }
+
+    @Test
     void shouldExecuteAndReturnSerializedFailureIfRecordingNotFound() throws FlightRecorderException {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());

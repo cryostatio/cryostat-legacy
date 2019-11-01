@@ -89,9 +89,11 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     private void saveRecording(IRecordingDescriptor descriptor)
             throws IOException, FlightRecorderException, JMXConnectionException {
+        String recordingName = descriptor.getName();
+        String destination = recordingName.endsWith(".jfr") ? recordingName : String.format("%s.jfr", recordingName);
         fs.copy(
             getService().openStream(descriptor, false),
-            recordingsPath.resolve(String.format("%s.jfr", descriptor.getName())),
+            recordingsPath.resolve(destination),
             StandardCopyOption.REPLACE_EXISTING
         );
     }
