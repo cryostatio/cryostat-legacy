@@ -97,9 +97,9 @@ class KubeApiPlatformClientTest {
             List<ServiceRef> result = client.listDiscoverableServices();
 
             assertThat(result, Matchers.contains(
-                        new ServiceRef("127.0.0.1", "ServiceA.local", 123),
-                        new ServiceRef("127.0.0.1", "ServiceA.local", 456),
-                        new ServiceRef("10.0.0.1", "b-service.example.com", 7899)
+                        new ServiceRef("ServiceA.local", 123),
+                        new ServiceRef("ServiceA.local", 456),
+                        new ServiceRef("b-service.example.com", 7899)
                         ));
             assertThat(result, Matchers.hasSize(3));
 
@@ -144,8 +144,8 @@ class KubeApiPlatformClientTest {
             List<ServiceRef> result = client.listDiscoverableServices();
 
             assertThat(result, Matchers.contains(
-                        new ServiceRef("127.0.0.1", "ServiceA.local", 123),
-                        new ServiceRef("127.0.0.1", "ServiceA.local", 456)
+                        new ServiceRef("ServiceA.local", 123),
+                        new ServiceRef("ServiceA.local", 456)
                         ));
             assertThat(result, Matchers.hasSize(2));
 
