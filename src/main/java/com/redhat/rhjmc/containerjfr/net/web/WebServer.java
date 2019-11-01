@@ -78,6 +78,8 @@ public class WebServer implements ConnectionListener {
             this.service = connection.getService();
         } else {
             this.service = null;
+            stop();
+            return;
         }
 
         try {
@@ -89,6 +91,10 @@ public class WebServer implements ConnectionListener {
     }
 
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
+        if (this.server.isAlive()) { 
+            return;
+        }
+
         server.start();
         if (this.service != null) {
             this.service.getAvailableRecordings().forEach(this::addRecording);

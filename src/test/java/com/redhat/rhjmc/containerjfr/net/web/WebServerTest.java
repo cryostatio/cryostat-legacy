@@ -2,6 +2,8 @@ package com.redhat.rhjmc.containerjfr.net.web;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.notNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -10,7 +12,6 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
@@ -20,10 +21,10 @@ import java.nio.file.Path;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,133 +44,126 @@ import fi.iki.elonen.NanoHTTPD;
 class WebServerTest {
 
     WebServer exporter;
-    @Mock
-    NetworkConfiguration netConf;
+    @Mock HttpServer httpServer;
+    @Mock NetworkConfiguration netConf;
     @Mock Environment env;
     @Mock Path recordingsPath;
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
-    @Mock NanoHTTPD server;
     @Mock ReportGenerator reportGenerator;
+    
+//    @Mock NanoHTTPD server;
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(netConf, env, recordingsPath, reportGenerator, logger, server);
+        exporter = new WebServer(httpServer, netConf, env, recordingsPath, reportGenerator, logger);
     }
 
     @Test
     void shouldDoNothingOnInit() {
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
     }
 
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
-        when(netConf.getInternalWebServerPort()).thenReturn(1234);
-        assertDoesNotThrow(() -> new WebServer(netConf, env, recordingsPath, reportGenerator, logger));
+        assertDoesNotThrow(() -> new WebServer(httpServer, netConf, env, recordingsPath, reportGenerator, logger));
     }
 
     @Test
     void shouldRestartOnConnectionChange() throws Exception {
         when(connection.getService()).thenReturn(service);
-        when(server.isAlive()).thenReturn(true).thenReturn(false);
+        when(httpServer.isAlive()).thenReturn(false);
 
         exporter.connectionChanged(connection);
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).start();
+        InOrder inOrder = inOrder(httpServer);
+        inOrder.verify(httpServer).requestHandler(null);
+        inOrder.verify(httpServer).start();
+        inOrder.verify(httpServer).getVertx();
+        inOrder.verify(httpServer).requestHandler(notNull());
 
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
 
     @Test
     void shouldStopOnDisconnect() throws Exception {
-        when(server.isAlive()).thenReturn(true);
-
         exporter.connectionChanged(null);
 
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
+        InOrder inOrder = inOrder(httpServer);
+        inOrder.verify(httpServer).requestHandler(null);
 
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
 
     @Test
     void shouldThrowExceptionIfServerCannotStart() {
+        Throwable cause = new SocketException();
         Exception e = assertThrows(RuntimeException.class, () -> {
             when(connection.getService()).thenReturn(service);
-            when(server.isAlive()).thenReturn(true).thenReturn(false);
-            doThrow(IOException.class).when(server).start();
+            doThrow(cause).when(httpServer).start();
 
             exporter.connectionChanged(connection);
         });
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("java.io.IOException"));
+        MatcherAssert.assertThat(e.getCause(), Matchers.equalTo(cause));
     }
 
     @Test
     void shouldStartEvenWhileDisconnectedFromTarget() throws Exception {
-        when(server.isAlive()).thenReturn(false);
-
         exporter.start();
 
-        verify(server).start();
+        verify(httpServer).start();
     }
 
     @Test
     void shouldDoNothingIfStartedWhileRunning() throws Exception {
         when(connection.getService()).thenReturn(service);
-        when(server.isAlive()).thenReturn(true).thenReturn(false).thenReturn(true);
+        when(httpServer.isAlive()).thenReturn(false).thenReturn(true);
 
         exporter.connectionChanged(connection);
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).start();
+        InOrder inOrder = inOrder(httpServer);
+        inOrder.verify(httpServer).requestHandler(null);
+        inOrder.verify(httpServer).start();
+        inOrder.verify(httpServer).getVertx();
+        inOrder.verify(httpServer).requestHandler(notNull());
 
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
-
+        
         exporter.start();
 
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
 
     @Test
     void shouldDoNothingIfStartedWhileDisconnected() throws Exception {
-        when(server.isAlive()).thenReturn(true);
+        when(httpServer.isAlive()).thenReturn(true);
 
         exporter.connectionChanged(null);
+        
+        verify(httpServer).requestHandler(null);
 
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
-
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
 
         exporter.start();
 
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
@@ -183,7 +177,7 @@ class WebServerTest {
 
         MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.equalTo(0));
 
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
     }
@@ -192,7 +186,7 @@ class WebServerTest {
     void shouldReportNegativeDownloadsForUnknownRecordings() throws Exception {
         MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
 
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
     }
@@ -208,7 +202,7 @@ class WebServerTest {
         exporter.removeRecording(descriptor);
         MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
 
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
     }
