@@ -34,7 +34,7 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
     }
 
     protected boolean validateRecordingName(String name) {
-        return name.matches("[\\w-_]+");
+        return name.matches("[\\w-_]+(\\.jfr)?");
     }
 
     protected Optional<IRecordingDescriptor> getDescriptorByName(String name)
