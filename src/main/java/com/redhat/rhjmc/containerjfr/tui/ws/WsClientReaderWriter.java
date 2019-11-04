@@ -36,11 +36,13 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
         semaphore.release();
         logger.info(String.format("Connected remote client %s", this.sws.remoteAddress().toString()));
 
-        sws.textMessageHandler((msg) -> {
-            logger.info(String.format("(%s): CMD %s", this.sws.remoteAddress().toString(), msg));
-            inQ.add(msg);
-        });
-        sws.endHandler((unused) -> close());
+        sws.textMessageHandler(this::handleTextMessage);
+        sws.closeHandler((unused) -> close());
+    }
+
+    void handleTextMessage(String msg) {
+        logger.info(String.format("(%s): CMD %s", this.sws.remoteAddress().toString(), msg));
+        inQ.add(msg);
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
@@ -72,27 +74,34 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
     public void print(String s) {
         logger.info(s);
     }
-    
-    void flush(ResponseMessage<?> message) {
-        semaphore.tryAcquire();
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        this.sws.writeTextMessage(gson.toJson(message), (res) -> {
-            if (res.failed()) {
-                future.completeExceptionally(res.cause());
-            } else {
-                future.complete(null);
-            }
-        });
 
+    void flush(ResponseMessage<?> message) {
+        boolean acquired = false;
         try {
-            future.join(); // convert async call to sync
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof RuntimeException) { // Don't fail silently on unchecked exceptions
-                throw (RuntimeException) e.getCause();
+            acquired = semaphore.tryAcquire(3, TimeUnit.SECONDS);
+            if (acquired) {
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                this.sws.writeTextMessage(gson.toJson(message), (res) -> {
+                    if (res.failed()) {
+                        future.completeExceptionally(res.cause());
+                    } else {
+                        future.complete(null);
+                    }
+                });
+                future.join();
             }
+        } catch (InterruptedException e) {
             logger.warn(e);
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof IllegalStateException) {
+                logger.warn((IllegalStateException) e.getCause());
+                return;
+            }
+            throw e;
         } finally {
-            semaphore.release();
+            if (acquired) {
+                semaphore.release();
+            }
         }
     }
 

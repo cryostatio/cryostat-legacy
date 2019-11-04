@@ -16,29 +16,30 @@ public class HttpServer {
     private final NetworkConfiguration netConf;
     private final Logger logger;
 
+    private final Vertx vertx;
     private final HandlerDelegate<HttpServerRequest> requestHandlerDelegate = new HandlerDelegate<>();
     private final HandlerDelegate<ServerWebSocket> websocketHandlerDelegate = new HandlerDelegate<>();
 
-    private Vertx vertx;
+    private final io.vertx.core.http.HttpServer server;
+    
 
     HttpServer(NetworkConfiguration netConf, Logger logger) {
         this.netConf = netConf;
         this.logger = logger;
+        this.vertx = Vertx.vertx();
+        this.server = vertx.createHttpServer(new HttpServerOptions()
+                .setCompressionSupported(true)
+                .setLogActivity(true)
+        );
     }
 
     public void start() throws SocketException, UnknownHostException {
-        if (vertx != null) {
+        if (isAlive()) {
             return;
         }
 
-        vertx = Vertx.vertx();
-
         CompletableFuture<Void> future = new CompletableFuture<>();
-        io.vertx.core.http.HttpServer server = vertx
-                .createHttpServer(new HttpServerOptions()
-                        .setCompressionSupported(true)
-                        .setLogActivity(true)
-                )
+        this.server
                 .requestHandler(requestHandlerDelegate)
                 .websocketHandler(websocketHandlerDelegate)
                 .listen(netConf.getInternalWebServerPort(), res -> {
@@ -56,12 +57,12 @@ public class HttpServer {
     }
 
     public void stop() {
-        if (vertx == null) {
+        if (!isAlive()) {
             return;
         }
 
         CompletableFuture<Void> future = new CompletableFuture<>();
-        vertx.close(res -> {
+        this.server.close(res -> {
             if (res.failed()) {
                 future.completeExceptionally(res.cause());
                 return;
@@ -70,10 +71,6 @@ public class HttpServer {
             future.complete(null);
         });
         future.join(); // wait for vertx to be closed
-
-        vertx = null;
-        requestHandlerDelegate.handler(null);
-        websocketHandlerDelegate.handler(null);
     }
 
     public void requestHandler(Handler<HttpServerRequest> handler) {
@@ -83,6 +80,10 @@ public class HttpServer {
     public void websocketHandler(Handler<ServerWebSocket> handler) {
         websocketHandlerDelegate.handler(handler);
     }
+
+    public boolean isAlive() {
+        return this.server.actualPort() != 0;
+    } 
 
     public Vertx getVertx() {
         return vertx;
