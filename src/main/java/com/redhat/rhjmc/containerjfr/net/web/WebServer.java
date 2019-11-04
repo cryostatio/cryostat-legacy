@@ -71,22 +71,26 @@ public class WebServer implements ConnectionListener {
         this.logger = logger;
         this.reportGenerator = reportGenerator;
     }
+    
+    private void refreshAvailableRecordings () throws FlightRecorderException {
+        if (this.service != null) {
+            this.service.getAvailableRecordings().forEach(this::addRecording);
+        }
+    }
 
     @Override
     public void connectionChanged(JFRConnection connection) {
         if (connection != null) {
             this.service = connection.getService();
+
+            try {
+                refreshAvailableRecordings();
+            } catch (FlightRecorderException e) {
+                logger.warn(e);
+                throw new RuntimeException(e);
+            }
         } else {
             this.service = null;
-            stop();
-            return;
-        }
-
-        try {
-            restart();
-        } catch (Exception e) {
-            stop();
-            throw new RuntimeException(e);
         }
     }
 
@@ -95,10 +99,8 @@ public class WebServer implements ConnectionListener {
             return;
         }
 
+        refreshAvailableRecordings();
         server.start();
-        if (this.service != null) {
-            this.service.getAvailableRecordings().forEach(this::addRecording);
-        }
 
         Router router = Router.router(server.getVertx()); // a vertx is only available after server started
 
@@ -206,11 +208,6 @@ public class WebServer implements ConnectionListener {
 
         recordings.clear();
         downloadCounts.clear();
-    }
-
-    public void restart() throws FlightRecorderException, SocketException, UnknownHostException {
-        stop();
-        start();
     }
 
     public void addRecording(IRecordingDescriptor descriptor) {

@@ -24,16 +24,11 @@ dependencies {
 
     implementation 'org.apache.httpcomponents:httpclient:4.5.9'
     implementation 'org.apache.httpcomponents:httpmime:4.5.9'
-    implementation 'org.nanohttpd:nanohttpd:2.3.1+'
     implementation 'org.jsoup:jsoup:1.12.1'
 
     implementation 'io.vertx:vertx-web:3.8.3'
 
     implementation 'com.google.code.gson:gson:2.8.5'
-
-    def jettyVersion = '9.4.17.v20190418'
-    implementation "org.eclipse.jetty.websocket:websocket-api:${jettyVersion}"
-    implementation "org.eclipse.jetty.websocket:websocket-server:${jettyVersion}"
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.1'

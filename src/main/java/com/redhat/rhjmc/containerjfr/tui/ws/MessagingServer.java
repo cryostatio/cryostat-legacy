@@ -35,6 +35,7 @@ class MessagingServer {
         server.websocketHandler((sws) -> {
             if (!"/command".equals(sws.path())) {
                 sws.reject(404);
+                return;
             }
             
             sws.accept();
