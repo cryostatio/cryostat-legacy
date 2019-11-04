@@ -38,7 +38,7 @@ class MessagingServerTest {
     }
 
     @Test
-    void startShouldStartJetty() throws Exception {
+    void startShouldStartHttpServer() throws Exception {
         verifyZeroInteractions(httpServer);
         server.start();
         verify(httpServer, times(1)).start();

@@ -38,8 +38,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import fi.iki.elonen.NanoHTTPD;
-
 @ExtendWith(MockitoExtension.class)
 class WebServerTest {
 
@@ -52,8 +50,6 @@ class WebServerTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock ReportGenerator reportGenerator;
-    
-//    @Mock NanoHTTPD server;
 
     @BeforeEach
     void setup() {
