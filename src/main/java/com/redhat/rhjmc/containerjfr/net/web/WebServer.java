@@ -73,6 +73,9 @@ public class WebServer implements ConnectionListener {
     }
     
     private void refreshAvailableRecordings () throws FlightRecorderException {
+        recordings.clear();
+        downloadCounts.clear();
+
         if (this.service != null) {
             this.service.getAvailableRecordings().forEach(this::addRecording);
         }
@@ -148,6 +151,9 @@ public class WebServer implements ConnectionListener {
 
         router.get("/recordings/:name").blockingHandler(ctx -> {
             String recordingName = ctx.pathParam("name");
+            if (recordingName != null && recordingName.indexOf(".jfr") == recordingName.length() - 4) {
+                recordingName = recordingName.substring(0, recordingName.length() - 4);
+            }
             try {
                 Optional<InputStream> recording = getRecordingInputStream(recordingName);
                 if (recording.isEmpty()) {
@@ -156,8 +162,9 @@ public class WebServer implements ConnectionListener {
 
                 ctx.response().setChunked(true);
                 ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
+                String key = recordingName;
                 writeInputStream(recording.get(), ctx.response())
-                        .endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum))
+                        .endHandler((e) -> downloadCounts.merge(key, 1, Integer::sum))
                         .end();
                 recording.get().close();
             } catch (FlightRecorderException e) {
