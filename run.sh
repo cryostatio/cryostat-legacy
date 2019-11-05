@@ -17,7 +17,7 @@ docker network create --attachable container-jfr
 set -e
 
 if [ -z "$CONTAINER_JFR_WEB_HOST" ]; then
-    CONTAINER_JFR_WEB_HOST="localhost"
+    CONTAINER_JFR_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
 fi
 
 if [ -z "$CONTAINER_JFR_WEB_PORT" ]; then
