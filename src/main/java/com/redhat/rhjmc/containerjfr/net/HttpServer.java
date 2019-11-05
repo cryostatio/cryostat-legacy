@@ -42,14 +42,13 @@ public class HttpServer {
         this.server
                 .requestHandler(requestHandlerDelegate)
                 .websocketHandler(websocketHandlerDelegate)
-                .listen(netConf.getInternalWebServerPort(), res -> {
+                .listen(netConf.getInternalWebServerPort(), netConf.getWebServerHost(), res -> {
                     if (res.failed()) {
                         future.completeExceptionally(res.cause());
                         return;
                     }
                     future.complete(null);
                 });
-                // TODO: Do we only listen on a specific host name? (Or simply 0.0.0.0)
 
         future.join(); // wait for async deployment to complete
 
