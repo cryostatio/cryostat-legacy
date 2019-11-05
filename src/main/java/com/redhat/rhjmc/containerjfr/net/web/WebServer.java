@@ -33,6 +33,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -42,14 +43,14 @@ public class WebServer implements ConnectionListener {
 
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
     private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
-    
+
     private static final String MIME_TYPE_JSON = "application/json";
     private static final String MIME_TYPE_HTML = "text/html";
     private static final String MIME_TYPE_PLAINTEXT = "text/plain";
     private static final String MIME_TYPE_OCTET_STREAM = "application/octet-stream";
 
     private static final int WRITE_BUFFER_SIZE = 64 * 1024; //64 KB
-    
+
     private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
 
     private final HttpServer server;
@@ -71,8 +72,8 @@ public class WebServer implements ConnectionListener {
         this.logger = logger;
         this.reportGenerator = reportGenerator;
     }
-    
-    private void refreshAvailableRecordings () throws FlightRecorderException {
+
+    private void refreshAvailableRecordings() throws FlightRecorderException {
         recordings.clear();
         downloadCounts.clear();
 
@@ -98,7 +99,7 @@ public class WebServer implements ConnectionListener {
     }
 
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        if (this.server.isAlive()) { 
+        if (this.server.isAlive()) {
             return;
         }
 
@@ -130,69 +131,25 @@ public class WebServer implements ConnectionListener {
                     .end(payload);
         };
 
-        router.get("/clienturl").handler(ctx -> {
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-            try {
-                endWithClientUrl(ctx.response());
-            } catch (SocketException | UnknownHostException e) {
-                throw new HttpStatusException(500, e);
-            }
-        }).failureHandler(failureHandler);
+        router.get("/clienturl").handler(this::handleClientUrlRequest).failureHandler(failureHandler);
 
-        router.get("/grafana_datasource_url").handler(ctx -> {
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-            endWithGrafanaDatasourceUrl(ctx.response());
-        }).failureHandler(failureHandler);
+        router.get("/grafana_datasource_url").handler(this::handleGrafanaDatasourceUrlRequest)
+                .failureHandler(failureHandler);
 
-        router.get("/grafana_dashboard_url").handler(ctx -> {
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-            endWithGrafanaDashboardUrl(ctx.response());
-        }).failureHandler(failureHandler);
+        router.get("/grafana_dashboard_url").handler(this::handleGrafanaDashboardUrlRequest)
+                .failureHandler(failureHandler);
 
         router.get("/recordings/:name").blockingHandler(ctx -> {
             String recordingName = ctx.pathParam("name");
             if (recordingName != null && recordingName.indexOf(".jfr") == recordingName.length() - 4) {
                 recordingName = recordingName.substring(0, recordingName.length() - 4);
             }
-            try {
-                Optional<InputStream> recording = getRecordingInputStream(recordingName);
-                if (recording.isEmpty()) {
-                    throw new HttpStatusException(404, String.format("%s not found", recordingName));
-                }
-
-                ctx.response().setChunked(true);
-                ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
-                String key = recordingName;
-                writeInputStream(recording.get(), ctx.response())
-                        .endHandler((e) -> downloadCounts.merge(key, 1, Integer::sum))
-                        .end();
-                recording.get().close();
-            } catch (FlightRecorderException e) {
-                throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
-            } catch (IOException e) {
-                throw new HttpStatusException(500, e);
-            }
+            handleRecordingDownloadRequest(recordingName, ctx);
         }, false).failureHandler(failureHandler);
 
-        router.get("/reports/:name").blockingHandler(ctx -> {
-            String recordingName = ctx.pathParam("name");
-            try {
-                Optional<InputStream> recording = getRecordingInputStream(recordingName);
-                if (recording.isEmpty()) {
-                    throw new HttpStatusException(404, String.format("%s not found", recordingName));
-                }
-
-                ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
-                endWithReport(recording.get(), recordingName, ctx.response());
-                recording.get().close();
-            } catch (FlightRecorderException e) {
-                throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
-            } catch (CouldNotLoadRecordingException e) {
-                throw new HttpStatusException(500, String.format("%s could not be loaded", recordingName), e);
-            } catch (IOException e) {
-                throw new HttpStatusException(500, e);
-            }
-        }).failureHandler(failureHandler);
+        router.get("/reports/:name")
+                .blockingHandler(ctx -> this.handleReportPageRequest(ctx.pathParam("name"), ctx))
+                .failureHandler(failureHandler);
 
         router.get("/*")
                 .handler(StaticHandler.create(WebServer.class.getPackageName().replaceAll("\\.", "/")));
@@ -266,20 +223,8 @@ public class WebServer implements ConnectionListener {
         response.end(String.format("{\"%s\":\"%s\"}", key, value));
     }
 
-    private void endWithClientUrl(HttpServerResponse response) throws SocketException, UnknownHostException {
-        endWithJsonKeyValue("clientUrl", String.format("ws://%s:%d/command", netConf.getWebServerHost(), netConf.getExternalWebServerPort()), response);
-    }
-
-    private void endWithGrafanaDatasourceUrl(HttpServerResponse response) {
-        endWithJsonKeyValue("grafanaDatasourceUrl", env.getEnv(GRAFANA_DATASOURCE_ENV, ""), response);
-    }
-
-    private void endWithGrafanaDashboardUrl(HttpServerResponse response) {
-        endWithJsonKeyValue("grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV, ""), response);
-    }
-
     private HttpServerResponse writeInputStream(InputStream inputStream, HttpServerResponse response) throws IOException {
-        // blocking function, must be calling from a blocking handler
+        // blocking function, must be called from a blocking handler
         byte[] buff = new byte[WRITE_BUFFER_SIZE]; // 64 KB
         int n;
         while (true) {
@@ -295,7 +240,7 @@ public class WebServer implements ConnectionListener {
     }
 
     private void endWithReport(InputStream recording, String recordingName, HttpServerResponse response) throws IOException, CouldNotLoadRecordingException {
-        // blocking function, must be calling from a blocking handler
+        // blocking function, must be called from a blocking handler
         try (recording) {
             response.end(reportGenerator.generateReport(recording));
 
@@ -320,4 +265,63 @@ public class WebServer implements ConnectionListener {
         }
     }
 
+    void handleClientUrlRequest(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+        try {
+            endWithJsonKeyValue("clientUrl", String.format("ws://%s:%d/command", netConf.getWebServerHost(), netConf.getExternalWebServerPort()), ctx.response());
+        } catch (SocketException | UnknownHostException e) {
+            throw new HttpStatusException(500, e);
+        }
+    }
+
+    void handleGrafanaDatasourceUrlRequest(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+        endWithJsonKeyValue("grafanaDatasourceUrl", env.getEnv(GRAFANA_DATASOURCE_ENV, ""), ctx.response());
+    }
+
+    void handleGrafanaDashboardUrlRequest(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+        endWithJsonKeyValue("grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV, ""), ctx.response());
+    }
+
+    void handleRecordingDownloadRequest(String recordingName, RoutingContext ctx) {
+        try {
+            Optional<InputStream> recording = getRecordingInputStream(recordingName);
+            if (recording.isEmpty()) {
+                throw new HttpStatusException(404, String.format("%s not found", recordingName));
+            }
+
+            ctx.response().setChunked(true);
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
+            writeInputStream(recording.get(), ctx.response())
+                    .endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum))
+                    .end();
+            recording.get().close();
+        } catch (FlightRecorderException e) {
+            throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
+        } catch (IOException e) {
+            throw new HttpStatusException(500, e);
+        }
+    }
+
+    void handleReportPageRequest(String recordingName, RoutingContext ctx) {
+        try {
+            Optional<InputStream> recording = getRecordingInputStream(recordingName);
+            if (recording.isEmpty()) {
+                throw new HttpStatusException(404, String.format("%s not found", recordingName));
+            }
+
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
+            endWithReport(recording.get(), recordingName, ctx.response());
+            recording.get().close();
+        } catch (FlightRecorderException e) {
+            throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
+        } catch (CouldNotLoadRecordingException e) {
+            throw new HttpStatusException(500, String.format("%s could not be loaded", recordingName), e);
+        } catch (IOException e) {
+            throw new HttpStatusException(500, e);
+        }
+    }
+
+    
 }
