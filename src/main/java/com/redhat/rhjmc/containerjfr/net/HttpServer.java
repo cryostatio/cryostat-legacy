@@ -88,7 +88,7 @@ public class HttpServer {
         return vertx;
     }
 
-    private class HandlerDelegate<T> implements Handler<T> {
+    private static class HandlerDelegate<T> implements Handler<T> {
 
         private Handler<T> mHandler;
 
