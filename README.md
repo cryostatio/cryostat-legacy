@@ -83,12 +83,21 @@ three are used by the embedded webserver for controlling the port and hostname
 used and reported when making recordings available for export (download). The
 latter three are used when running the client in daemon/socket mode and controls
 the port that the client listens for connections on and which port is reported
-should be used for connecting to the command channel (web)socket. These may be
-set by setting the environment variable before invoking the `run.sh` shell
-script, or if this script is not used, by using the `-e` environment variable
-flag in the `docker` or `podman` command invocation. If the `EXT` variables are
-unspecified then they default to the value of their non-EXT counterparts. If
-`LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
+should be used for connecting to the command channel socket. (Note: the
+WebSocket server always listens on `CONTAINER_JFR_WEB_PORT` and advertises
+`CONTAINER_JFR_EXT_WEB_PORT` regardless of `CONTAINER_JFR_LISTEN_PORT` and
+`CONTAINER_JFR_EXT_LISTEN_PORT`.) These may be set by setting the environment
+variable before invoking the `run.sh` shell script, or if this script is not
+used, by using the `-e` environment variable flag in the `docker` or `podman`
+command invocation. If the `EXT` variables are unspecified then they default to
+the value of their non-EXT counterparts. If `LISTEN_HOST` is unspecified then
+it defaults to the value of `WEB_HOST`. 
+
+The embedded webserver can be optionally configured to enable low memory 
+pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty 
+value, the webserver uses a single buffer when serving recording download 
+requests. Enabling this option leaves a constant memory size footprint, but 
+might also reduce the network throughput. 
 
 For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).

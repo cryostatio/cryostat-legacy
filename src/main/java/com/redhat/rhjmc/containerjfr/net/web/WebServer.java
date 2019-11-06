@@ -75,7 +75,7 @@ public class WebServer implements ConnectionListener {
         this.logger = logger;
         this.reportGenerator = reportGenerator;
 
-        if (env.getEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV) != null) {
+        if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
             logger.info("low memory pressure streaming enabled for web server");
         } else {
             logger.info("low memory pressure streaming disabled for web server");
@@ -150,7 +150,7 @@ public class WebServer implements ConnectionListener {
 
         router.get("/recordings/:name").blockingHandler(ctx -> {
             String recordingName = ctx.pathParam("name");
-            if (recordingName != null && recordingName.indexOf(".jfr") == recordingName.length() - 4) {
+            if (recordingName != null && recordingName.endsWith(".jfr")) {
                 recordingName = recordingName.substring(0, recordingName.length() - 4);
             }
             handleRecordingDownloadRequest(recordingName, ctx);
@@ -353,7 +353,7 @@ public class WebServer implements ConnectionListener {
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
             ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
 
-            if (env.getEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV) != null) {
+            if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
                 writeInputStreamLowMemPressure(recording.get(), ctx.response());
             } else {
                 writeInputStream(recording.get(), ctx.response());
