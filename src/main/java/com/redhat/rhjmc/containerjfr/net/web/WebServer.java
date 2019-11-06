@@ -45,6 +45,7 @@ public class WebServer implements ConnectionListener {
 
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
     private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+    private static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV = "USE_LOW_MEM_PRESSURE_STREAMING";
 
     private static final String MIME_TYPE_JSON = "application/json";
     private static final String MIME_TYPE_HTML = "text/html";
@@ -73,6 +74,12 @@ public class WebServer implements ConnectionListener {
         this.savedRecordingsPath = savedRecordingsPath;
         this.logger = logger;
         this.reportGenerator = reportGenerator;
+
+        if (env.getEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV) != null) {
+            logger.info("low memory pressure streaming enabled for web server");
+        } else {
+            logger.info("low memory pressure streaming disabled for web server");
+        }
     }
 
     private void refreshAvailableRecordings() throws FlightRecorderException {
@@ -225,7 +232,7 @@ public class WebServer implements ConnectionListener {
         response.end(String.format("{\"%s\":\"%s\"}", key, value));
     }
 
-    private HttpServerResponse writeInputStreamSync(InputStream inputStream, HttpServerResponse response) throws IOException {
+    private HttpServerResponse writeInputStreamLowMemPressure(InputStream inputStream, HttpServerResponse response) throws IOException {
         // blocking function, must be called from a blocking handler
         byte[] buff = new byte[WRITE_BUFFER_SIZE];
         Buffer chunk = Buffer.buffer();
@@ -346,12 +353,10 @@ public class WebServer implements ConnectionListener {
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
             ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
 
-            if (System.getenv("USE_SYNC_WRITE_INPUT_STREAM") != null) {
-                writeInputStreamSync(recording.get(), ctx.response());
-                logger.info("useWriteInputStreamSync");
+            if (env.getEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV) != null) {
+                writeInputStreamLowMemPressure(recording.get(), ctx.response());
             } else {
                 writeInputStream(recording.get(), ctx.response());
-                logger.info("don't useWriteInputStreamSync");
             }
   
             ctx.response().end();
