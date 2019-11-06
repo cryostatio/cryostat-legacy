@@ -13,6 +13,8 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -223,6 +225,53 @@ public class WebServer implements ConnectionListener {
         response.end(String.format("{\"%s\":\"%s\"}", key, value));
     }
 
+    private HttpServerResponse writeInputStreamSync(InputStream inputStream, HttpServerResponse response) throws IOException {
+        // blocking function, must be called from a blocking handler
+        byte[] buff = new byte[WRITE_BUFFER_SIZE];
+        Buffer chunk = Buffer.buffer();
+
+        CompletableFuture<Void> future = new CompletableFuture<>();
+
+        (new Runnable() {
+            @Override
+            public void run() {
+                int n;
+                try {
+                    n = inputStream.read(buff);
+                } catch (IOException e) {
+                    future.completeExceptionally(e);
+                    return;
+                }
+
+                if (n == -1) {
+                    future.complete(null);
+                    return;
+                }
+
+                chunk.setBytes(0, buff, 0, n);
+                response.write(chunk.slice(0, n), (res) -> {
+                    if (res.failed()) {
+                        future.completeExceptionally(res.cause());
+                        return;
+                    }
+                    run(); // recursive call on this runnable itself
+                });
+            }
+        }).run();
+
+        try {
+            future.join();
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof IOException) {
+                throw (IOException) e.getCause();
+            } else {
+                throw e;
+            }
+        }
+
+        return response;
+    }
+
     private HttpServerResponse writeInputStream(InputStream inputStream, HttpServerResponse response) throws IOException {
         // blocking function, must be called from a blocking handler
         byte[] buff = new byte[WRITE_BUFFER_SIZE]; // 64 KB
@@ -232,7 +281,6 @@ public class WebServer implements ConnectionListener {
             if (n == -1) {
                 break;
             }
-
             response.write(Buffer.buffer().appendBytes(buff, 0, n));
         }
 
@@ -293,9 +341,17 @@ public class WebServer implements ConnectionListener {
 
             ctx.response().setChunked(true);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
-            writeInputStream(recording.get(), ctx.response())
-                    .endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum))
-                    .end();
+            ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
+
+            if (System.getenv("USE_SYNC_WRITE_INPUT_STREAM") != null) {
+                writeInputStreamSync(recording.get(), ctx.response());
+                logger.info("useWriteInputStreamSync");
+            } else {
+                writeInputStream(recording.get(), ctx.response());
+                logger.info("don't useWriteInputStreamSync");
+            }
+  
+            ctx.response().end();
             recording.get().close();
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
@@ -322,6 +378,4 @@ public class WebServer implements ConnectionListener {
             throw new HttpStatusException(500, e);
         }
     }
-
-    
 }
