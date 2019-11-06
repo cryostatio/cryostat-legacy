@@ -1,7 +1,12 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.time.Duration;
