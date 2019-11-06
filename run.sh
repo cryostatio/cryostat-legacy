@@ -17,7 +17,7 @@ docker network create --attachable container-jfr
 set -e
 
 if [ -z "$CONTAINER_JFR_WEB_HOST" ]; then
-    CONTAINER_JFR_WEB_HOST="localhost"
+    CONTAINER_JFR_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
 fi
 
 if [ -z "$CONTAINER_JFR_WEB_PORT" ]; then
@@ -57,4 +57,5 @@ docker run \
     -e CONTAINER_JFR_EXT_LISTEN_PORT=$CONTAINER_JFR_EXT_LISTEN_PORT \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
     -e GRAFANA_DASHBOARD_URL=$GRAFANA_DASHBOARD_URL \
+    -e USE_LOW_MEM_PRESSURE_STREAMING=$USE_LOW_MEM_PRESSURE_STREAMING \
     --rm -it quay.io/rh-jmc-team/container-jfr "$@"

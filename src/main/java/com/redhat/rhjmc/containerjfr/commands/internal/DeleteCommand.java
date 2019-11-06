@@ -9,7 +9,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.WebServer;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {

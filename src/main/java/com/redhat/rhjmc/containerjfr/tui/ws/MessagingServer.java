@@ -1,5 +1,7 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -9,42 +11,36 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
-import org.eclipse.jetty.server.Server;
-import org.eclipse.jetty.server.ServerConnector;
-import org.eclipse.jetty.servlet.ServletContextHandler;
-import org.eclipse.jetty.servlet.ServletHolder;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class MessagingServer {
 
+    private final HttpServer server;
     private final Logger logger;
-    private final Server server;
+    private final Gson gson;
     private final Semaphore semaphore = new Semaphore(0, true);
     private final List<WsClientReaderWriter> connections = new ArrayList<>();
 
-    MessagingServer(Logger logger, int listenPort, Gson gson) {
-        this.logger = logger;
-        this.server = new Server();
-        ServerConnector connector = new ServerConnector(server);
-        connector.setPort(listenPort);
-        server.addConnector(connector);
-
-        ServletContextHandler contextHandler = new ServletContextHandler(ServletContextHandler.SESSIONS);
-        contextHandler.setContextPath("/");
-        server.setHandler(contextHandler);
-        contextHandler.addServlet(new ServletHolder(new MessagingServlet(this, logger, gson)), "/command");
-    }
-
-    // testing-only constructor
-    MessagingServer(Logger logger, Server server) {
-        this.logger = logger;
+    MessagingServer(HttpServer server, Logger logger, Gson gson) {
         this.server = server;
+        this.logger = logger;
+        this.gson = gson;
     }
 
-    void start() throws Exception {
+    void start() throws SocketException, UnknownHostException {
         server.start();
-        server.dump(System.err);
+
+        server.websocketHandler((sws) -> {
+            if (!"/command".equals(sws.path())) {
+                sws.reject(404);
+                return;
+            }
+            
+            sws.accept();
+            new WsClientReaderWriter(this, this.logger, this.gson).handle(sws);
+        });
     }
 
     void addConnection(WsClientReaderWriter crw) {
@@ -52,7 +48,8 @@ class MessagingServer {
         semaphore.release();
     }
 
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
+    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED")
+        // tryAcquire return value is irrelevant
     void removeConnection(WsClientReaderWriter crw) {
         if (connections.remove(crw)) {
             semaphore.tryAcquire();

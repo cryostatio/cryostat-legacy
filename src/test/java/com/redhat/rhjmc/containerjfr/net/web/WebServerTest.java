@@ -1,173 +1,141 @@
-package com.redhat.rhjmc.containerjfr.net;
+package com.redhat.rhjmc.containerjfr.net.web;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
-import java.util.Collections;
+import java.util.Random;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
+
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InOrder;
+
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import fi.iki.elonen.NanoHTTPD;
 
 @ExtendWith(MockitoExtension.class)
 class WebServerTest {
 
     WebServer exporter;
+    @Mock HttpServer httpServer;
     @Mock NetworkConfiguration netConf;
     @Mock Environment env;
     @Mock Path recordingsPath;
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
-    @Mock NanoHTTPD server;
     @Mock ReportGenerator reportGenerator;
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(netConf, env, recordingsPath, reportGenerator, logger, server);
+        exporter = new WebServer(httpServer, netConf, env, recordingsPath, reportGenerator, logger);
     }
 
     @Test
     void shouldDoNothingOnInit() {
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
     }
 
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
-        when(netConf.getInternalWebServerPort()).thenReturn(1234);
-        assertDoesNotThrow(() -> new WebServer(netConf, env, recordingsPath, reportGenerator, logger));
+        assertDoesNotThrow(() -> new WebServer(httpServer, netConf, env, recordingsPath, reportGenerator, logger));
     }
 
     @Test
-    void shouldRestartOnConnectionChange() throws Exception {
+    void shouldRefreshRecordingsOnConnectionChange() throws Exception {
         when(connection.getService()).thenReturn(service);
-        when(server.isAlive()).thenReturn(true).thenReturn(false);
 
         exporter.connectionChanged(connection);
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).start();
 
-        verifyNoMoreInteractions(server);
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-    }
-
-    @Test
-    void shouldStopOnDisconnect() throws Exception {
-        when(server.isAlive()).thenReturn(true);
-
-        exporter.connectionChanged(null);
-
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
-
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
 
     @Test
     void shouldThrowExceptionIfServerCannotStart() {
-        Exception e = assertThrows(RuntimeException.class, () -> {
-            when(connection.getService()).thenReturn(service);
-            when(server.isAlive()).thenReturn(true).thenReturn(false);
-            doThrow(IOException.class).when(server).start();
+        Throwable cause = new SocketException();
+        Exception e = assertThrows(SocketException.class, () -> {
+            doThrow(cause).when(httpServer).start();
 
-            exporter.connectionChanged(connection);
+            exporter.start();
         });
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("java.io.IOException"));
+        MatcherAssert.assertThat(e, Matchers.equalTo(cause));
     }
 
     @Test
     void shouldStartEvenWhileDisconnectedFromTarget() throws Exception {
-        when(server.isAlive()).thenReturn(false);
-
         exporter.start();
 
-        verify(server).start();
+        verify(httpServer).start();
     }
 
     @Test
     void shouldDoNothingIfStartedWhileRunning() throws Exception {
-        when(connection.getService()).thenReturn(service);
-        when(server.isAlive()).thenReturn(true).thenReturn(false).thenReturn(true);
-
-        exporter.connectionChanged(connection);
-
-        verify(connection).getService();
-        verify(service).getAvailableRecordings();
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).start();
-
-        verifyNoMoreInteractions(server);
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
+        when(httpServer.isAlive()).thenReturn(true);
 
         exporter.start();
 
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
 
     @Test
     void shouldDoNothingIfStartedWhileDisconnected() throws Exception {
-        when(server.isAlive()).thenReturn(true);
+        when(httpServer.isAlive()).thenReturn(true);
 
         exporter.connectionChanged(null);
 
-        InOrder inOrder = inOrder(server);
-        inOrder.verify(server).isAlive();
-        inOrder.verify(server).stop();
-
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
 
         exporter.start();
 
-        verifyNoMoreInteractions(server);
+        verifyNoMoreInteractions(httpServer);
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
@@ -181,7 +149,7 @@ class WebServerTest {
 
         MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.equalTo(0));
 
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
     }
@@ -190,7 +158,7 @@ class WebServerTest {
     void shouldReportNegativeDownloadsForUnknownRecordings() throws Exception {
         MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
 
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
     }
@@ -206,7 +174,7 @@ class WebServerTest {
         exporter.removeRecording(descriptor);
         MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
 
-        verifyZeroInteractions(server);
+        verifyZeroInteractions(httpServer);
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
     }
@@ -261,4 +229,100 @@ class WebServerTest {
         MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("http://example.com:8181/reports/" + recordingName));
     }
 
+    @Test
+    void shouldHandleClientUrlRequest() throws SocketException, UnknownHostException {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(netConf.getWebServerHost()).thenReturn("hostname");
+        when(netConf.getExternalWebServerPort()).thenReturn(1);
+
+        exporter.handleClientUrlRequest(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        verify(rep).end("{\"clientUrl\":\"ws://hostname:1/command\"}");
+    }
+
+    @Test
+    void shouldHandleGrafanaDatasourceUrlRequest() {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+
+        String url = "http://hostname:1/path?query=value";
+        when(env.getEnv("GRAFANA_DATASOURCE_URL", "")).thenReturn(url);
+
+        exporter.handleGrafanaDatasourceUrlRequest(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        verify(rep).end("{\"grafanaDatasourceUrl\":\"" + url + "\"}");
+    }
+
+    @Test
+    void shouldHandleGrafanaDashboardUrlRequest() {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+
+        String url = "http://hostname:1/path?query=value";
+        when(env.getEnv("GRAFANA_DASHBOARD_URL", "")).thenReturn(url);
+
+        exporter.handleGrafanaDashboardUrlRequest(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        verify(rep).end("{\"grafanaDashboardUrl\":\"" + url + "\"}");
+    }
+
+    @Test
+    void shouldHandleRecordingDownloadRequest() throws FlightRecorderException {
+        when(connection.getService()).thenReturn(service);
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.endHandler(any())).thenReturn(rep);
+
+        byte[] src = new byte[1024 * 1024];
+        new Random(123456).nextBytes(src);
+        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
+        String recordingName = "foo";
+        when(descriptor.getName()).thenReturn(recordingName);
+        when(service.openStream(descriptor, false)).thenReturn(new ByteArrayInputStream(src));
+
+        Buffer dst = Buffer.buffer(1024 * 1024);
+        when(rep.write(any(Buffer.class))).thenAnswer(invocation -> {
+            Buffer chunk = invocation.getArgument(0);
+            dst.appendBuffer(chunk);
+            return null;
+        });
+
+        exporter.connectionChanged(connection);
+        exporter.addRecording(descriptor);
+        exporter.handleRecordingDownloadRequest(recordingName, ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
+        assertArrayEquals(src, dst.getBytes());
+    }
+
+    @Test
+    void shouldHandleReportPageRequest() throws FlightRecorderException, IOException, CouldNotLoadRecordingException {
+        when(connection.getService()).thenReturn(service);
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+
+        InputStream ins = mock(InputStream.class);
+        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
+        String recordingName = "foo";
+        String content = "foobar";
+        when(descriptor.getName()).thenReturn(recordingName);
+        when(service.openStream(descriptor, false)).thenReturn(ins);
+        when(reportGenerator.generateReport(ins)).thenReturn(content);
+
+        exporter.connectionChanged(connection);
+        exporter.addRecording(descriptor);
+        exporter.handleReportPageRequest(recordingName, ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+        verify(rep).end(content);
+    }
 }

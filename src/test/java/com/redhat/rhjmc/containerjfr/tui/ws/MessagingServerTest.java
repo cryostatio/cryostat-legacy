@@ -1,6 +1,8 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -11,9 +13,10 @@ import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
-import org.eclipse.jetty.server.Server;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,22 +32,23 @@ class MessagingServerTest {
 
     MessagingServer server;
     @Mock Logger logger;
-    @Mock Server jettyServer;
+    @Mock HttpServer httpServer;
+    @Mock Gson gson;
     @Mock WsClientReaderWriter crw1;
     @Mock WsClientReaderWriter crw2;
 
     @BeforeEach
     void setup() {
-        server = new MessagingServer(logger, jettyServer);
+        server = new MessagingServer(httpServer, logger, gson);
     }
 
     @Test
-    void startShouldStartJetty() throws Exception {
-        verifyZeroInteractions(jettyServer);
+    void startShouldStartHttpServer() throws Exception {
+        verifyZeroInteractions(httpServer);
         server.start();
-        verify(jettyServer).start();
-        verify(jettyServer).dump(System.err);
-        verifyNoMoreInteractions(jettyServer);
+        verify(httpServer, times(1)).start();
+        verify(httpServer, times(1)).websocketHandler(any());
+        verifyNoMoreInteractions(httpServer);
     }
 
     @Test

@@ -1,29 +1,26 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
-import java.io.IOException;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
-import org.eclipse.jetty.websocket.api.Session;
-import org.eclipse.jetty.websocket.api.WebSocketAdapter;
+import io.vertx.core.Handler;
+import io.vertx.core.http.ServerWebSocket;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, ClientWriter {
+class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<ServerWebSocket> {
 
-    private Session session = null;
     private final Semaphore semaphore = new Semaphore(0, true);
     private final Logger logger;
     private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private final MessagingServer server;
+
+    private ServerWebSocket sws;
     private volatile Thread readingThread;
 
     WsClientReaderWriter(MessagingServer server, Logger logger, Gson gson) {
@@ -34,37 +31,39 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
     }
 
     @Override
-    public void onWebSocketConnect(Session session) {
-        super.onWebSocketConnect(session);
-        logger.info(String.format("Connected remote client %s", session.getRemoteAddress().toString()));
-        this.session = session;
+    public void handle(ServerWebSocket sws) {
+        this.sws = sws;
         semaphore.release();
+        logger.info(String.format("Connected remote client %s", this.sws.remoteAddress().toString()));
+
+        sws.textMessageHandler(this::handleTextMessage);
+        sws.closeHandler((unused) -> close());
     }
 
-    @Override
-    public void onWebSocketText(String text) {
-        super.onWebSocketText(text);
-        logger.info(String.format("(%s): %s", session.getRemoteAddress().toString(), text));
-        inQ.add(text);
-    }
-
-    @Override
-    public void onWebSocketClose(int statusCode, String reason) {
-        close();
+    void handleTextMessage(String msg) {
+        logger.info(String.format("(%s): CMD %s", this.sws.remoteAddress().toString(), msg));
+        inQ.add(msg);
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
     @Override
     public void close() {
-        if (session != null) {
-            logger.info(String.format("Disconnected remote client %s", session.getRemoteAddress().toString()));
-        }
+        logger.info(String.format("Disconnected remote client %s", this.sws.remoteAddress().toString()));
+
         semaphore.tryAcquire();
-        this.session = null;
-        if (isConnected()) {
-            getSession().close();
+        if (!this.sws.isClosed()) {
+            CompletableFuture<Void> future = new CompletableFuture<>();
+            this.sws.close((res) -> {
+                if (res.failed()) {
+                    future.completeExceptionally(res.cause());
+                } else {
+                    future.complete(null);
+                }
+            });
+            future.join();
         }
-        super.onWebSocketClose(0, null);
+        this.sws = null;
+
         server.removeConnection(this);
         if (readingThread != null) {
             readingThread.interrupt();
@@ -81,11 +80,24 @@ class WsClientReaderWriter extends WebSocketAdapter implements ClientReader, Cli
         try {
             acquired = semaphore.tryAcquire(3, TimeUnit.SECONDS);
             if (acquired) {
-                getRemote().sendString(gson.toJson(message));
-                getRemote().flush();
+                CompletableFuture<Void> future = new CompletableFuture<>();
+                this.sws.writeTextMessage(gson.toJson(message), (res) -> {
+                    if (res.failed()) {
+                        future.completeExceptionally(res.cause());
+                    } else {
+                        future.complete(null);
+                    }
+                });
+                future.join();
             }
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             logger.warn(e);
+        } catch (CompletionException e) {
+            if (e.getCause() instanceof IllegalStateException) {
+                logger.warn((IllegalStateException) e.getCause());
+                return;
+            }
+            throw e;
         } finally {
             if (acquired) {
                 semaphore.release();
