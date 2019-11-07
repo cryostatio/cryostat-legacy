@@ -33,13 +33,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 @ExtendWith(MockitoExtension.class)
 class SaveRecordingCommandTest {
 
-    @Mock
-    ClientWriter cw;
-    @Mock
-    FileSystem fs;
+    @Mock ClientWriter cw;
+    @Mock FileSystem fs;
     @Mock Path recordingsPath;
-    @Mock
-    JFRConnection connection;
+    @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     SaveRecordingCommand command;
 
@@ -111,6 +108,7 @@ class SaveRecordingCommandTest {
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
         when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("some-host.svc.local");
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
         InputStream recordingStream = mock(InputStream.class);
         when(service.openStream(recording, false)).thenReturn(recordingStream);
@@ -122,9 +120,9 @@ class SaveRecordingCommandTest {
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath, StandardCopyOption.REPLACE_EXISTING);
-        verify(recordingsPath).resolve("foo.jfr");
+        verify(recordingsPath).resolve("some-host-svc-local_foo.jfr");
+        verify(cw).println("Recording saved as \"some-host-svc-local_foo.jfr\"");
         verifyNoMoreInteractions(service);
-        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -132,6 +130,7 @@ class SaveRecordingCommandTest {
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo.jfr");
         when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("some-host.svc.local");
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
         InputStream recordingStream = mock(InputStream.class);
         when(service.openStream(recording, false)).thenReturn(recordingStream);
@@ -143,9 +142,9 @@ class SaveRecordingCommandTest {
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath, StandardCopyOption.REPLACE_EXISTING);
-        verify(recordingsPath).resolve("foo.jfr");
+        verify(recordingsPath).resolve("some-host-svc-local_foo.jfr");
+        verify(cw).println("Recording saved as \"some-host-svc-local_foo.jfr\"");
         verifyNoMoreInteractions(service);
-        verifyZeroInteractions(cw);
     }
 
     @Test
@@ -178,10 +177,11 @@ class SaveRecordingCommandTest {
     }
 
     @Test
-    void shouldExecuteAndSaveRecordingAndReturnSerializedSuccess() throws Exception {
+    void shouldExecuteAndSaveRecordingAndReturnSerializedRecordingName() throws Exception {
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
         when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("some-host.svc.local");
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
         InputStream recordingStream = mock(InputStream.class);
         when(service.openStream(recording, false)).thenReturn(recordingStream);
@@ -191,11 +191,12 @@ class SaveRecordingCommandTest {
         command.connectionChanged(connection);
         SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
 
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
+        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
+        MatcherAssert.assertThat(((SerializableCommand.StringOutput) out).getPayload(), Matchers.equalTo("some-host-svc-local_foo.jfr"));
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath, StandardCopyOption.REPLACE_EXISTING);
-        verify(recordingsPath).resolve("foo.jfr");
+        verify(recordingsPath).resolve("some-host-svc-local_foo.jfr");
         verifyNoMoreInteractions(service);
         verifyZeroInteractions(cw);
     }
