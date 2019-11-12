@@ -148,3 +148,24 @@ deployments, so long as the two `port` properties above match the desired port
 number and the deployment network configuration allows connections on the
 configured port. As noted above, the final caveat is that in non-Kube
 deployments, port 9091 is expected for automatic port-scanning target discovery.
+
+## SECURING COMMUNICATION CHANNELS
+`container-jfr` can be optionally configured to secure HTTP and WebSocket 
+traffics end-to-end with SSL/TLS.
+
+This feature can be enabled by configuring environment variables to points to 
+a certificate in the file system. One can set `KEYSTORE_PATH` to point to a 
+`.jks`, `.pfx` or `.p12` certificate file *and* `KEYSTORE_PASS` to the plaintext
+password to such a keystore. Alternatively, one can  set `KEY_PATH` to a PEM 
+encoded key file *and* `CERT_PATH` to a PEM encoded certificate file.
+
+In the absence of these environment variables, `container-jfr` will look for a
+certificate at following locations, in an orderly fashion:
+
+- `$HOME/container-jfr-keystore.jks` (used together with `KEYSTORE_PASS`)
+- `$HOME/container-jfr-keystore.pfx` (used together with `KEYSTORE_PASS`)
+- `$HOME/container-jfr-keystore.p12` (used together with `KEYSTORE_PASS`)
+- `$HOME/container-jfr-key.pem` and `$HOME/container-jfr-cert.pem`
+
+If no certificate can be found, `container-jfr` will fallback to plain 
+unencrypted `http://` and `ws://` connections.

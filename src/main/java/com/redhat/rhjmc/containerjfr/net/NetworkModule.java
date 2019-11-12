@@ -21,8 +21,8 @@ import dagger.Provides;
 public abstract class NetworkModule {
     @Provides
     @Singleton
-    static HttpServer provideHttpServer(NetworkConfiguration netConf, Logger logger) {
-        return new HttpServer(netConf, logger);
+    static HttpServer provideHttpServer(NetworkConfiguration netConf, Environment env, Logger logger) {
+        return new HttpServer(netConf, env, logger);
     }
 
     @Provides
