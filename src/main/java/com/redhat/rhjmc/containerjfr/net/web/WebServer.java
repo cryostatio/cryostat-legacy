@@ -326,7 +326,7 @@ public class WebServer implements ConnectionListener {
     void handleClientUrlRequest(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
         try {
-            endWithJsonKeyValue("clientUrl", String.format("%s://%s:%d/command",server.getSslEnabled() ? "wss" : "ws", netConf.getWebServerHost(), netConf.getExternalWebServerPort()), ctx.response());
+            endWithJsonKeyValue("clientUrl", String.format("%s://%s:%d/command", server.isSsl() ? "wss" : "ws", netConf.getWebServerHost(), netConf.getExternalWebServerPort()), ctx.response());
         } catch (SocketException | UnknownHostException e) {
             throw new HttpStatusException(500, e);
         }
