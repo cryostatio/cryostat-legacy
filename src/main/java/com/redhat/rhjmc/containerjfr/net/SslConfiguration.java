@@ -83,13 +83,24 @@ class SslConfiguration {
         logger.warn("No available SSL certificates. Fallback to plain HTTP.");
     }
 
+    // Test-only constructor
+    SslConfiguration(Environment env, FileSystem fs, Logger logger, Path keystorePath, String keystorePass, Path keyPath, Path certPath) {
+        this.env = env;
+        this.fs = fs;
+        this.logger = logger;
+        this.keystorePath = keystorePath;
+        this.keystorePass = keystorePass;
+        this.keyPath = keyPath;
+        this.certPath = certPath;
+    }
+    
     Path obtainKeyStorePathIfSpecified() throws IllegalArgumentException {
         if (!env.hasEnv(KEYSTORE_PATH_ENV)) {
             return null;
         }
 
-        Path path = Path.of(env.getEnv(KEYSTORE_PATH_ENV)).normalize();
-        if (!fs.exists(keystorePath)) {
+        Path path = fs.pathOf(env.getEnv(KEYSTORE_PATH_ENV)).normalize();
+        if (!fs.exists(path)) {
             throw new IllegalArgumentException("KEYSTORE_PATH refers to a non-existent file");
         }
 
@@ -105,8 +116,8 @@ class SslConfiguration {
             throw new IllegalArgumentException("both KEY_PATH and CERT_PATH must be specified");
         }
 
-        Path key = Path.of(env.getEnv(KEY_PATH_ENV)).normalize();
-        Path cert = Path.of(env.getEnv(CERT_PATH_ENV)).normalize();
+        Path key = fs.pathOf(env.getEnv(KEY_PATH_ENV)).normalize();
+        Path cert = fs.pathOf(env.getEnv(CERT_PATH_ENV)).normalize();
         if (!fs.exists(key)) {
             throw new IllegalArgumentException("KEY_PATH refers to a non-existent file");
         }
@@ -119,7 +130,7 @@ class SslConfiguration {
     }
 
     Path discoverKeyStorePathInDefaultLocations() {
-        Path home = Path.of(System.getProperty("user.home", "/"));
+        Path home = fs.pathOf(System.getProperty("user.home", "/"));
 
         if (fs.exists(home.resolve("container-jfr-keystore.jks"))) {
             return home.resolve("container-jfr-keystore.jks");
@@ -133,7 +144,7 @@ class SslConfiguration {
     }
 
     Pair<Path, Path> discoverKeyCertPathPairInDefaultLocations() {
-        Path home = Path.of(System.getProperty("user.home", "/"));
+        Path home = fs.pathOf(System.getProperty("user.home", "/"));
         Pair<Path, Path> ret = new Pair<>(null, null);
 
         // discover keyPath
@@ -150,7 +161,7 @@ class SslConfiguration {
             logger.warn("unable to locate container-jfr-cert.pem");
         }
 
-        if (keyPath == null || certPath == null) {
+        if (ret.left == null || ret.right == null) {
             return null;
         }
 
