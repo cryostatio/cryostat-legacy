@@ -83,7 +83,7 @@ jib {
         image = baseImage
     }
     to {
-        image = 'quay.io/rh-jmc-team/container-jfr'
+        image = System.getenv("CONTAINER_JFR_IMAGE_STREAM") ?: "quay.io/rh-jmc-team/container-jfr"
         tags = [version, 'latest']
     }
     container {
