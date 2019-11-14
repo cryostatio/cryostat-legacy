@@ -1,9 +1,8 @@
 package com.redhat.rhjmc.containerjfr.net;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import io.vertx.core.http.HttpServerOptions;
+import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,12 +11,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.common.util.Pair;
 
 import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -30,22 +28,31 @@ import static org.mockito.Mockito.when;
 class SslConfigurationTest {
     @Mock Environment env;
     @Mock FileSystem fs;
-    @Mock Logger logger;
+    @Mock
+    SslConfiguration.SslConfigurationStrategy strategy;
     
     SslConfiguration sslConf;
     
     @BeforeEach
     void setup() {
-        sslConf = new SslConfiguration(env, fs, logger, null, null, null, null);
+        sslConf = new SslConfiguration(env, fs, strategy);
     }
-    
+
     @Test
-    void testDefaultSslConfiguration() {
+    void shouldFallbackToPlainHttp() throws SslConfiguration.SslConfigurationException {
+        Path dne = mock(Path.class);
+        when(env.hasEnv(anyString())).thenReturn(false);
+        when(fs.pathOf(anyString())).thenReturn(dne);
+        when(dne.resolve(anyString())).thenReturn(dne);
+        when(fs.exists(any(Path.class))).thenReturn(false);
+        
+        sslConf = new SslConfiguration(env, fs);
+        
         MatcherAssert.assertThat(sslConf.enabled(), Matchers.equalTo(false));
     }
-    
+
     @Test
-    void shouldObtainKeyStorePathIfSpecified() {
+    void shouldObtainKeyStorePathIfSpecified() throws SslConfiguration.SslConfigurationException {
         Path path = mock(Path.class);
         
         when(env.hasEnv("KEYSTORE_PATH")).thenReturn(true);
@@ -55,16 +62,16 @@ class SslConfigurationTest {
         when(fs.exists(path)).thenReturn(true);
         MatcherAssert.assertThat(sslConf.obtainKeyStorePathIfSpecified(), Matchers.equalTo(path));
     }
-    
+
     @Test
-    void shouldReturnNullIfKeyStorePathUnspecified() {
+    void shouldReturnNullIfKeyStorePathUnspecified() throws SslConfiguration.SslConfigurationException {
         when(env.hasEnv("KEYSTORE_PATH")).thenReturn(false);
 
         MatcherAssert.assertThat(sslConf.obtainKeyStorePathIfSpecified(), Matchers.equalTo(null));
         verifyNoMoreInteractions(env);
         verifyNoMoreInteractions(fs);
     }
-    
+
     @Test
     void shouldThrowIfKeyStorePathRefersToANonExistentFile() {
         Path dne = mock(Path.class);
@@ -75,9 +82,9 @@ class SslConfigurationTest {
         when(dne.normalize()).thenReturn(dne);
         when(fs.exists(dne)).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () -> sslConf.obtainKeyStorePathIfSpecified());
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> sslConf.obtainKeyStorePathIfSpecified());
     }
-    
+
     @Test 
     void shouldDiscoverJksKeyStoreIfExists() {
         Path home = mock(Path.class);
@@ -92,7 +99,7 @@ class SslConfigurationTest {
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(home);
     }
-    
+
     @Test
     void shouldDiscoverPfxKeyStoreIfExists() {
         Path home = mock(Path.class);
@@ -132,7 +139,7 @@ class SslConfigurationTest {
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(home);
     }
-    
+
     @Test
     void shouldReturnNullIfNoKeyStoreInDefaultLocations() {
         Path home = mock(Path.class);
@@ -155,7 +162,7 @@ class SslConfigurationTest {
     }
 
     @Test
-    void shouldObtainKeyCertPathPairIfSpecified() {
+    void shouldObtainKeyCertPathPairIfSpecified() throws SslConfiguration.SslConfigurationException {
         Path key = mock(Path.class);
         Path cert = mock(Path.class);
         
@@ -172,15 +179,15 @@ class SslConfigurationTest {
         when(fs.exists(cert)).thenReturn(true);
 
         Pair<Path, Path> pair = sslConf.obtainKeyCertPathPairIfSpecified();
-        MatcherAssert.assertThat(pair.left, Matchers.equalTo(key));
-        MatcherAssert.assertThat(pair.right, Matchers.equalTo(cert));
+        MatcherAssert.assertThat(pair.getLeft(), Matchers.equalTo(key));
+        MatcherAssert.assertThat(pair.getRight(), Matchers.equalTo(cert));
 
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(env);
     }
-    
+
     @Test
-    void shouldReturnNullIfKeyCertPathsUnspecified() {
+    void shouldReturnNullIfKeyCertPathsUnspecified() throws SslConfiguration.SslConfigurationException {
         when(env.hasEnv("KEY_PATH")).thenReturn(false);
         when(env.hasEnv("CERT_PATH")).thenReturn(false);
 
@@ -195,7 +202,7 @@ class SslConfigurationTest {
         when(env.hasEnv("KEY_PATH")).thenReturn(false);
         when(env.hasEnv("CERT_PATH")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
 
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(env);
@@ -206,12 +213,12 @@ class SslConfigurationTest {
         when(env.hasEnv("KEY_PATH")).thenReturn(true);
         when(env.hasEnv("CERT_PATH")).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
 
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(env);
     }
-    
+
     @Test
     void shouldThrowIfKeyPathRefersToANonExistentFile() {
         Path key = mock(Path.class);
@@ -228,7 +235,7 @@ class SslConfigurationTest {
         when(fs.pathOf("bar")).thenReturn(cert);
         when(cert.normalize()).thenReturn(cert);
 
-        assertThrows(IllegalArgumentException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
         
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(env);
@@ -251,12 +258,12 @@ class SslConfigurationTest {
         when(cert.normalize()).thenReturn(cert);
         when(fs.exists(cert)).thenReturn(false);
 
-        assertThrows(IllegalArgumentException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> sslConf.obtainKeyCertPathPairIfSpecified());
 
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(env);
     }
-    
+
     @Test
     void shouldDiscoverKeyCertPathPairInDefaultLocations() {
         Path home = mock(Path.class);
@@ -272,8 +279,8 @@ class SslConfigurationTest {
         when(fs.exists(cert)).thenReturn(true);
 
         Pair<Path, Path> pair = sslConf.discoverKeyCertPathPairInDefaultLocations();
-        MatcherAssert.assertThat(pair.left, Matchers.equalTo(key));
-        MatcherAssert.assertThat(pair.right, Matchers.equalTo(cert));
+        MatcherAssert.assertThat(pair.getLeft(), Matchers.equalTo(key));
+        MatcherAssert.assertThat(pair.getRight(), Matchers.equalTo(cert));
 
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(home);
@@ -317,18 +324,5 @@ class SslConfigurationTest {
 
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(home);
-    }
-
-    @Test
-    void shouldSetSslToFalseIfDisabled() {
-        MatcherAssert.assertThat(sslConf.enabled(), Matchers.equalTo(false));
-
-        HttpServerOptions options = mock(HttpServerOptions.class);
-        when(options.setSsl(anyBoolean())).thenReturn(options);
-        
-        MatcherAssert.assertThat(sslConf.setToHttpServerOptions(options), Matchers.equalTo(options));
-        
-        verify(options).setSsl(false);
-        verifyNoMoreInteractions(options);
     }
 }

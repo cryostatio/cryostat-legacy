@@ -28,9 +28,13 @@ public class HttpServer {
         this.sslConf = sslConf;
         this.logger = logger;
         this.vertx = Vertx.vertx();
-        this.server = vertx.createHttpServer(sslConf.setToHttpServerOptions(new HttpServerOptions()
+        this.server = vertx.createHttpServer(sslConf.applyToHttpServerOptions(new HttpServerOptions()
                 .setCompressionSupported(true)
                 .setLogActivity(true)));
+
+        if (!sslConf.enabled()) {
+            this.logger.warn("No available SSL certificates. Fallback to plain HTTP.");
+        }
     }
 
     public void start() throws SocketException, UnknownHostException {

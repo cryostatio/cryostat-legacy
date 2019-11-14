@@ -1,44 +1,34 @@
 package com.redhat.rhjmc.containerjfr.net;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
-import org.openjdk.jmc.common.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.nio.file.Path;
 
 class SslConfiguration {
     private final Environment env;
     private final FileSystem fs;
-    private final Logger logger;
 
-    private final Path keystorePath;
-    private final String keystorePass;
-
-    private final Path keyPath;
-    private final Path certPath;
+    private final SslConfigurationStrategy strategy;
 
     private static final String KEYSTORE_PATH_ENV = "KEYSTORE_PATH";
     private static final String KEYSTORE_PASS_ENV = "KEYSTORE_PASS";
     private static final String KEY_PATH_ENV = "KEY_PATH";
     private static final String CERT_PATH_ENV = "CERT_PATH";
 
-    SslConfiguration(Environment env, FileSystem fs, Logger logger) throws IllegalArgumentException {
+    SslConfiguration(Environment env, FileSystem fs) throws SslConfigurationException {
         this.env = env;
         this.fs = fs;
-        this.logger = logger;
 
         {
             Path path = obtainKeyStorePathIfSpecified();
             if (path != null) {
-                keystorePath = path;
-                keystorePass = env.getEnv(KEYSTORE_PASS_ENV, "");
-                keyPath = null;
-                certPath = null;
+                strategy = keyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
                 return;
             }    
         }
@@ -46,10 +36,7 @@ class SslConfiguration {
         {
             Pair<Path, Path> pair = obtainKeyCertPathPairIfSpecified();
             if (pair != null) {
-                keystorePath = null;
-                keystorePass = null;
-                keyPath = pair.left;
-                certPath = pair.right;
+                strategy = keyCertStrategy(pair.getLeft(), pair.getRight());
                 return;
             }
         }
@@ -57,10 +44,7 @@ class SslConfiguration {
         {
             Path path = discoverKeyStorePathInDefaultLocations();
             if (path != null) {
-                keystorePath = path;
-                keystorePass = env.getEnv(KEYSTORE_PASS_ENV, "");
-                keyPath = null;
-                certPath = null;
+                strategy = keyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
                 return;
             }    
         }
@@ -68,65 +52,54 @@ class SslConfiguration {
         {
             Pair<Path, Path> pair = discoverKeyCertPathPairInDefaultLocations();
             if (pair != null) {
-                keystorePath = null;
-                keystorePass = null;
-                keyPath = pair.left;
-                certPath = pair.right;
+                strategy = keyCertStrategy(pair.getLeft(), pair.getRight());
                 return;
             }
         }
 
-        keystorePath = null;
-        keystorePass = null;
-        keyPath = null;
-        certPath = null;
-        logger.warn("No available SSL certificates. Fallback to plain HTTP.");
+        strategy = noSslStrategy();
     }
 
     // Test-only constructor
-    SslConfiguration(Environment env, FileSystem fs, Logger logger, Path keystorePath, String keystorePass, Path keyPath, Path certPath) {
+    SslConfiguration(Environment env, FileSystem fs, SslConfigurationStrategy strategy) {
         this.env = env;
         this.fs = fs;
-        this.logger = logger;
-        this.keystorePath = keystorePath;
-        this.keystorePass = keystorePass;
-        this.keyPath = keyPath;
-        this.certPath = certPath;
+        this.strategy = strategy;
     }
     
-    Path obtainKeyStorePathIfSpecified() throws IllegalArgumentException {
+    Path obtainKeyStorePathIfSpecified() throws SslConfigurationException {
         if (!env.hasEnv(KEYSTORE_PATH_ENV)) {
             return null;
         }
 
         Path path = fs.pathOf(env.getEnv(KEYSTORE_PATH_ENV)).normalize();
         if (!fs.exists(path)) {
-            throw new IllegalArgumentException("KEYSTORE_PATH refers to a non-existent file");
+            throw new SslConfigurationException("KEYSTORE_PATH refers to a non-existent file");
         }
 
         return path;
     }
 
-    Pair<Path, Path> obtainKeyCertPathPairIfSpecified() throws IllegalArgumentException {
+    Pair<Path, Path> obtainKeyCertPathPairIfSpecified() throws SslConfigurationException {
         if (!env.hasEnv(KEY_PATH_ENV) && !env.hasEnv(CERT_PATH_ENV)) {
             return null;
         }
 
         if (env.hasEnv(KEY_PATH_ENV) ^ env.hasEnv(CERT_PATH_ENV)) {
-            throw new IllegalArgumentException("both KEY_PATH and CERT_PATH must be specified");
+            throw new SslConfigurationException("both KEY_PATH and CERT_PATH must be specified");
         }
 
         Path key = fs.pathOf(env.getEnv(KEY_PATH_ENV)).normalize();
         Path cert = fs.pathOf(env.getEnv(CERT_PATH_ENV)).normalize();
         if (!fs.exists(key)) {
-            throw new IllegalArgumentException("KEY_PATH refers to a non-existent file");
+            throw new SslConfigurationException("KEY_PATH refers to a non-existent file");
         }
 
         if (!fs.exists(cert)) {
-            throw new IllegalArgumentException("CERT_PATH refers to a non-existent file");
+            throw new SslConfigurationException("CERT_PATH refers to a non-existent file");
         }
 
-        return new Pair<>(key, cert);
+        return Pair.of(key, cert);
     }
 
     Path discoverKeyStorePathInDefaultLocations() {
@@ -145,74 +118,117 @@ class SslConfiguration {
 
     Pair<Path, Path> discoverKeyCertPathPairInDefaultLocations() {
         Path home = fs.pathOf(System.getProperty("user.home", "/"));
-        Pair<Path, Path> ret = new Pair<>(null, null);
+        Path key = null;
+        Path cert = null;
 
         // discover keyPath
         if (fs.exists(home.resolve("container-jfr-key.pem"))) {
-            ret.left = home.resolve("container-jfr-key.pem");
-        } else {
-            logger.warn("unable to locate container-jfr-key.pem");
+            key = home.resolve("container-jfr-key.pem");
         }
 
         // discover certPath
         if (fs.exists(home.resolve("container-jfr-cert.pem"))) {
-            ret.right = home.resolve("container-jfr-cert.pem");
-        } else {
-            logger.warn("unable to locate container-jfr-cert.pem");
+            cert = home.resolve("container-jfr-cert.pem");
         }
 
-        if (ret.left == null || ret.right == null) {
+        if (key == null || cert == null) {
             return null;
         }
 
-        return ret;
+        return Pair.of(key, cert);
     }
 
-    HttpServerOptions setToHttpServerOptions(HttpServerOptions options) {
-        if (!enabled()) {
-            return options.setSsl(false);
-        }
-
-        options.setSsl(true);
-
-        if (keystorePath != null) {
-            if (keystorePass.isEmpty()) {
-                logger.warn("keystore password unset or empty");
-            }
-
-            if (keystorePath.endsWith(".jks")) {
-                return options
-                        .setKeyStoreOptions(new JksOptions().setPath(keystorePath.toString()).setPassword(keystorePass));
-            } else if (keystorePath.endsWith(".pfx") || keystorePath.endsWith(".p12")) {
-                return options
-                        .setPfxKeyCertOptions(new PfxOptions().setPath(keystorePath.toString()).setPassword(keystorePass));
-            }
-
-            IllegalArgumentException e = new IllegalArgumentException("unrecognized keystore type");
-            logger.error(e);
-            throw e;
-        }
-
-        if (keyPath != null && certPath != null) {
-            if (!keyPath.endsWith(".pem")) {
-                IllegalArgumentException e = new IllegalArgumentException("unrecognized key file type");
-                logger.error(e);
-                throw e;
-            }
-            if (!certPath.endsWith(".pem")) {
-                IllegalArgumentException e = new IllegalArgumentException("unrecognized certificate file type");
-                logger.error(e);
-                throw e;
-            }
-
-            return options
-                    .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath(keyPath.toString()).setCertPath(certPath.toString()));
-        }
-
-        return options;
+    HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
+        return strategy.applyKeyStoreOptions(options);
     }
 
     boolean enabled() {
-        return keystorePath != null || (certPath != null && keyPath != null);
+        return strategy.enabled();
+    }
+
+    SslConfigurationStrategy keyStoreStrategy(Path path, String password) throws SslConfigurationException {
+        return new KeyStoreStrategy(path, password);
+    }
+
+    SslConfigurationStrategy keyCertStrategy(Path keyPath, Path certPath) throws SslConfigurationException {
+        return new KeyCertStrategy(keyPath, certPath);
+    }
+    
+    SslConfigurationStrategy noSslStrategy() {
+        return new NoSslStrategy();
+    }
+
+    interface SslConfigurationStrategy {
+        HttpServerOptions applyKeyStoreOptions(HttpServerOptions options);
+        
+        default boolean enabled() {
+            return !(this instanceof NoSslStrategy);
+        }
+    }
+    
+    static class NoSslStrategy implements SslConfigurationStrategy {
+
+        @Override
+        public HttpServerOptions applyKeyStoreOptions(HttpServerOptions options) {
+            return options.setSsl(false);
+        }
+    }
+
+    static class KeyStoreStrategy implements SslConfigurationStrategy {
+
+        private final Path path;
+        private final String password;
+
+        KeyStoreStrategy(Path path, String pass) throws SslConfigurationException {
+            this.path = path;
+            this.password = pass;
+            
+            if (!path.toString().endsWith(".jks") && !path.toString().endsWith(".pfx") && !path.toString().endsWith(".p12")) {
+                throw new SslConfigurationException("unrecognized keystore type");
+            }
+        }
+
+        @Override
+        public HttpServerOptions applyKeyStoreOptions(HttpServerOptions options){
+            if (path.toString().endsWith(".jks")) {
+                return options.setSsl(true)
+                        .setKeyStoreOptions(new JksOptions().setPath(path.toString()).setPassword(password));
+            } else if (path.toString().endsWith(".pfx") || path.toString().endsWith(".p12")) {
+                return options.setSsl(true)
+                        .setPfxKeyCertOptions(new PfxOptions().setPath(path.toString()).setPassword(password));
+            }
+
+            throw new IllegalStateException(); // extension checked in constructor. should never reach this step
+        }
+    }
+
+    static class KeyCertStrategy implements SslConfigurationStrategy {
+
+        private final Path keyPath;
+        private final Path certPath;
+
+        KeyCertStrategy(Path keyPath, Path certPath) throws SslConfigurationException {
+            this.keyPath = keyPath;
+            this.certPath = certPath;
+
+            if (!keyPath.toString().endsWith(".pem")) {
+                throw new SslConfigurationException("unrecognized key file type");
+            }
+            if (!certPath.toString().endsWith(".pem")) {
+                throw new SslConfigurationException("unrecognized certificate file type");
+            }
+        }
+
+        @Override
+        public HttpServerOptions applyKeyStoreOptions(HttpServerOptions options) {
+            return options.setSsl(true)
+                    .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath(keyPath.toString()).setCertPath(certPath.toString()));
+        }
+    }
+
+    static class SslConfigurationException extends Exception {
+        SslConfigurationException(String msg) {
+            super(msg);
+        }
     }
 }
