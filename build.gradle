@@ -55,7 +55,7 @@ task copyWebClient(type: Copy) {
 }
 
 def baseImage = 'gcr.io/distroless/java:11';
-def version = '0.4.12';
+def version = '0.4.13';
 
 def minimalBuild = System.getenv("CONTAINER_JFR_MINIMAL") != null;
 if (minimalBuild) {
