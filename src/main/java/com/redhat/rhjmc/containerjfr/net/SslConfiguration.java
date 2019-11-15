@@ -139,7 +139,7 @@ class SslConfiguration {
     }
 
     HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
-        return strategy.applyKeyStoreOptions(options);
+        return strategy.applyToHttpServerOptions(options);
     }
 
     boolean enabled() {
@@ -159,7 +159,7 @@ class SslConfiguration {
     }
 
     interface SslConfigurationStrategy {
-        HttpServerOptions applyKeyStoreOptions(HttpServerOptions options);
+        HttpServerOptions applyToHttpServerOptions(HttpServerOptions options);
         
         default boolean enabled() {
             return !(this instanceof NoSslStrategy);
@@ -169,7 +169,7 @@ class SslConfiguration {
     static class NoSslStrategy implements SslConfigurationStrategy {
 
         @Override
-        public HttpServerOptions applyKeyStoreOptions(HttpServerOptions options) {
+        public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
             return options.setSsl(false);
         }
     }
@@ -186,10 +186,14 @@ class SslConfiguration {
             if (!path.toString().endsWith(".jks") && !path.toString().endsWith(".pfx") && !path.toString().endsWith(".p12")) {
                 throw new SslConfigurationException("unrecognized keystore type");
             }
+
+            if (pass == null) {
+                throw new SslConfigurationException("keystore password must not be null");
+            }
         }
 
         @Override
-        public HttpServerOptions applyKeyStoreOptions(HttpServerOptions options){
+        public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options){
             if (path.toString().endsWith(".jks")) {
                 return options.setSsl(true)
                         .setKeyStoreOptions(new JksOptions().setPath(path.toString()).setPassword(password));
@@ -220,7 +224,7 @@ class SslConfiguration {
         }
 
         @Override
-        public HttpServerOptions applyKeyStoreOptions(HttpServerOptions options) {
+        public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
             return options.setSsl(true)
                     .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath(keyPath.toString()).setCertPath(certPath.toString()));
         }

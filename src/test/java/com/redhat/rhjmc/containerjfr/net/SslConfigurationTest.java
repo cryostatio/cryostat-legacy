@@ -2,12 +2,18 @@ package com.redhat.rhjmc.containerjfr.net;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.core.net.PfxOptions;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,6 +22,7 @@ import java.nio.file.Path;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -324,5 +331,150 @@ class SslConfigurationTest {
 
         verifyNoMoreInteractions(fs);
         verifyNoMoreInteractions(home);
+    }
+
+    @Test
+    void testNoSslStrategyAppliesOptions() {
+        HttpServerOptions options = mock(HttpServerOptions.class);
+        when(options.setSsl(anyBoolean())).thenReturn(options);
+        
+        SslConfiguration.SslConfigurationStrategy noSslStrategy = new SslConfiguration.NoSslStrategy();
+        MatcherAssert.assertThat(noSslStrategy.applyToHttpServerOptions(options), Matchers.equalTo(options));
+        
+        verify(options).setSsl(false);
+        verifyNoMoreInteractions(options);
+    }
+
+    @Test
+    void shouldNoSslStrategyReturnFalseForEnabled() {
+        SslConfiguration.SslConfigurationStrategy noSslStrategy = new SslConfiguration.NoSslStrategy();
+        MatcherAssert.assertThat(noSslStrategy.enabled(), Matchers.equalTo(false));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(strings = {
+            "key",
+            "foo.abc",
+            "bar.pem",
+            "foo/bar.xyz"
+    })
+    void shouldKeyStoreStrategyThrowOnUnrecognizedTypes(String keyStore) {
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> new SslConfiguration.KeyStoreStrategy(Path.of(keyStore), ""));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(strings = {
+            "key.jks",
+            "foo.pfx",
+            "bar.p12",
+            "foo/bar.jks"
+    })
+    void shouldKeyStoreStrategyConstructsWithSupportedTypes(String keyStore) throws SslConfiguration.SslConfigurationException {
+        new SslConfiguration.KeyStoreStrategy(Path.of(keyStore), "");
+    }
+
+    @Test
+    void shouldKeyStoreStrategyThrowOnNullPassword() {
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> new SslConfiguration.KeyStoreStrategy(Path.of("key.jks"), null));
+    }
+
+    @Test
+    void testKeyStoreStrategyAppliesJksOptions() throws SslConfiguration.SslConfigurationException {
+        SslConfiguration.SslConfigurationStrategy keyStoreStrategy = new SslConfiguration.KeyStoreStrategy(Path.of("key.jks"), "password");
+
+        HttpServerOptions options = mock(HttpServerOptions.class);
+        when(options.setSsl(anyBoolean())).thenReturn(options);
+        when(options.setKeyStoreOptions(any())).thenAnswer(invocation -> {
+            JksOptions jksOptions = invocation.getArgument(0);
+            MatcherAssert.assertThat(jksOptions.getPath(), Matchers.equalTo("key.jks"));
+            MatcherAssert.assertThat(jksOptions.getPassword(), Matchers.equalTo("password"));
+            return null;
+        }).thenReturn(options);
+
+        keyStoreStrategy.applyToHttpServerOptions(options);
+        
+        verify(options).setSsl(true);
+        verify(options).setKeyStoreOptions(any());
+        verifyNoMoreInteractions(options);
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "key.pfx",
+            "key.p12"
+    })
+    void testKeyStoreStrategyAppliesJksOptions(String keyStore) throws SslConfiguration.SslConfigurationException {
+        SslConfiguration.SslConfigurationStrategy keyStoreStrategy = new SslConfiguration.KeyStoreStrategy(Path.of(keyStore), "password");
+
+        HttpServerOptions options = mock(HttpServerOptions.class);
+        when(options.setSsl(anyBoolean())).thenReturn(options);
+        when(options.setPfxKeyCertOptions(any())).thenAnswer(invocation -> {
+            PfxOptions pfxOptions = invocation.getArgument(0);
+            MatcherAssert.assertThat(pfxOptions.getPath(), Matchers.equalTo(keyStore));
+            MatcherAssert.assertThat(pfxOptions.getPassword(), Matchers.equalTo("password"));
+            return null;
+        }).thenReturn(options);
+
+        keyStoreStrategy.applyToHttpServerOptions(options);
+
+        verify(options).setSsl(true);
+        verify(options).setPfxKeyCertOptions(any());
+        verifyNoMoreInteractions(options);
+    }
+
+    @Test
+    void shouldKeyStoreStrategyReturnTrueForEnabled() throws SslConfiguration.SslConfigurationException {
+        SslConfiguration.SslConfigurationStrategy noSslStrategy = new SslConfiguration.KeyStoreStrategy(Path.of("key.jks"), "");
+        MatcherAssert.assertThat(noSslStrategy.enabled(), Matchers.equalTo(true));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(strings = {
+            "key.jks",
+            "key.p12",
+            "key.pfx",
+            "foo.abc",
+            "foobar"
+    })
+    void shouldKeyCertStrategyThrowOnUnrecognizedKeyTypes(String key) {
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> new SslConfiguration.KeyCertStrategy(Path.of(key), Path.of("cert.pem")));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(strings = {
+            "key.jks",
+            "key.p12",
+            "key.pfx",
+            "foo.abc",
+            "foobar"
+    })
+    void shouldKeyCertStrategyThrowOnUnrecognizedCertTypes(String cert) {
+        assertThrows(SslConfiguration.SslConfigurationException.class, () -> new SslConfiguration.KeyCertStrategy(Path.of("key.pem"), Path.of(cert)));
+    }
+
+    @Test
+    void testKeyCertStrategyAppliesOptions() throws SslConfiguration.SslConfigurationException {
+        SslConfiguration.SslConfigurationStrategy ketCertStrategy = new SslConfiguration.KeyCertStrategy(Path.of("key.pem"), Path.of("cert.pem"));
+
+        HttpServerOptions options = mock(HttpServerOptions.class);
+        when(options.setSsl(anyBoolean())).thenReturn(options);
+        when(options.setPemKeyCertOptions(any())).thenAnswer(invocation -> {
+            PemKeyCertOptions keyCertOptions = invocation.getArgument(0);
+            MatcherAssert.assertThat(keyCertOptions.getKeyPath(), Matchers.equalTo("key.pem"));
+            MatcherAssert.assertThat(keyCertOptions.getCertPath(), Matchers.equalTo("cert.pem"));
+            return null;
+        }).thenReturn(options);
+
+        ketCertStrategy.applyToHttpServerOptions(options);
+
+        verify(options).setSsl(true);
+        verify(options).setPemKeyCertOptions(any());
+        verifyNoMoreInteractions(options);
+    }
+
+    @Test
+    void shouldKeyCertStrategyReturnTrueForEnabled() throws SslConfiguration.SslConfigurationException {
+        SslConfiguration.SslConfigurationStrategy noSslStrategy = new SslConfiguration.KeyCertStrategy(Path.of("key.pem"), Path.of("cert.pem"));
+        MatcherAssert.assertThat(noSslStrategy.enabled(), Matchers.equalTo(true));
     }
 }
