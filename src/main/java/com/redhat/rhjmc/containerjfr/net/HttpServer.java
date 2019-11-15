@@ -21,13 +21,13 @@ public class HttpServer {
     private final HandlerDelegate<ServerWebSocket> websocketHandlerDelegate = new HandlerDelegate<>();
 
     private final io.vertx.core.http.HttpServer server;
-    
 
     HttpServer(NetworkConfiguration netConf, Logger logger) {
         this.netConf = netConf;
         this.logger = logger;
         this.vertx = Vertx.vertx();
         this.server = vertx.createHttpServer(new HttpServerOptions()
+                .setPort(netConf.getInternalWebServerPort())
                 .setCompressionSupported(true)
                 .setLogActivity(true)
         );
@@ -42,7 +42,7 @@ public class HttpServer {
         this.server
                 .requestHandler(requestHandlerDelegate)
                 .websocketHandler(websocketHandlerDelegate)
-                .listen(netConf.getInternalWebServerPort(), netConf.getWebServerHost(), res -> {
+                .listen(res -> {
                     if (res.failed()) {
                         future.completeExceptionally(res.cause());
                         return;
@@ -82,7 +82,7 @@ public class HttpServer {
 
     public boolean isAlive() {
         return this.server.actualPort() != 0;
-    } 
+    }
 
     public Vertx getVertx() {
         return vertx;
