@@ -16,6 +16,12 @@ set +e
 docker network create --attachable container-jfr
 set -e
 
+if [ -z "$CONTAINER_JFR_IMAGE" ]; then
+    CONTAINER_JFR_IMAGE="quay.io/rh-jmc-team/container-jfr:latest"
+fi
+
+echo -e "\n\nRunning $CONTAINER_JFR_IMAGE ...\n\n"
+
 if [ -z "$CONTAINER_JFR_WEB_HOST" ]; then
     CONTAINER_JFR_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
 fi
@@ -62,4 +68,4 @@ docker run \
     -e KEYSTORE_PASS=$KEYSTORE_PASS \
     -e KEY_PATH=$KEY_PATH \
     -e CERT_PATH=$CERT_PATH \
-    --rm -it quay.io/rh-jmc-team/container-jfr "$@"
+    --rm -it "$CONTAINER_JFR_IMAGE" "$@"
