@@ -5,6 +5,7 @@ import javax.inject.Singleton;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
 
@@ -21,8 +22,8 @@ import dagger.Provides;
 public abstract class NetworkModule {
     @Provides
     @Singleton
-    static HttpServer provideHttpServer(NetworkConfiguration netConf, Logger logger) {
-        return new HttpServer(netConf, logger);
+    static HttpServer provideHttpServer(NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
+        return new HttpServer(netConf, sslConf, logger);
     }
 
     @Provides
@@ -46,5 +47,15 @@ public abstract class NetworkModule {
     @Provides
     static CloseableHttpClient provideHttpClient() {
         return HttpClients.createMinimal(new BasicHttpClientConnectionManager());
+    }
+
+    @Provides
+    @Singleton
+    static SslConfiguration provideSslConfiguration(Environment env, FileSystem fs) {
+        try {
+            return new SslConfiguration(env, fs);
+        } catch (SslConfiguration.SslConfigurationException e) {
+            throw new RuntimeException(e); // @Provides methods may only throw unchecked exceptions
+        }
     }
 }
