@@ -16,6 +16,12 @@ set +e
 docker network create --attachable container-jfr
 set -e
 
+if [ -z "$CONTAINER_JFR_IMAGE" ]; then
+    CONTAINER_JFR_IMAGE="quay.io/rh-jmc-team/container-jfr:latest"
+fi
+
+echo -e "\n\nRunning $CONTAINER_JFR_IMAGE ...\n\n"
+
 if [ -z "$CONTAINER_JFR_WEB_HOST" ]; then
     CONTAINER_JFR_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
 fi
@@ -58,4 +64,4 @@ docker run \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
     -e GRAFANA_DASHBOARD_URL=$GRAFANA_DASHBOARD_URL \
     -e USE_LOW_MEM_PRESSURE_STREAMING=$USE_LOW_MEM_PRESSURE_STREAMING \
-    --rm -it quay.io/rh-jmc-team/container-jfr "$@"
+    --rm -it "$CONTAINER_JFR_IMAGE" "$@"
