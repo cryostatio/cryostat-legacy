@@ -28,7 +28,7 @@ class SslConfiguration {
         {
             Path path = obtainKeyStorePathIfSpecified();
             if (path != null) {
-                strategy = keyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
+                strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
                 return;
             }    
         }
@@ -36,7 +36,7 @@ class SslConfiguration {
         {
             Pair<Path, Path> pair = obtainKeyCertPathPairIfSpecified();
             if (pair != null) {
-                strategy = keyCertStrategy(pair.getLeft(), pair.getRight());
+                strategy = new KeyCertStrategy(pair.getLeft(), pair.getRight());
                 return;
             }
         }
@@ -44,7 +44,7 @@ class SslConfiguration {
         {
             Path path = discoverKeyStorePathInDefaultLocations();
             if (path != null) {
-                strategy = keyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
+                strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
                 return;
             }    
         }
@@ -52,12 +52,12 @@ class SslConfiguration {
         {
             Pair<Path, Path> pair = discoverKeyCertPathPairInDefaultLocations();
             if (pair != null) {
-                strategy = keyCertStrategy(pair.getLeft(), pair.getRight());
+                strategy = new KeyCertStrategy(pair.getLeft(), pair.getRight());
                 return;
             }
         }
 
-        strategy = noSslStrategy();
+        strategy = new NoSslStrategy();
     }
 
     // Test-only constructor
@@ -146,23 +146,11 @@ class SslConfiguration {
         return strategy.enabled();
     }
 
-    SslConfigurationStrategy keyStoreStrategy(Path path, String password) throws SslConfigurationException {
-        return new KeyStoreStrategy(path, password);
-    }
-
-    SslConfigurationStrategy keyCertStrategy(Path keyPath, Path certPath) throws SslConfigurationException {
-        return new KeyCertStrategy(keyPath, certPath);
-    }
-    
-    SslConfigurationStrategy noSslStrategy() {
-        return new NoSslStrategy();
-    }
-
     interface SslConfigurationStrategy {
         HttpServerOptions applyToHttpServerOptions(HttpServerOptions options);
         
         default boolean enabled() {
-            return !(this instanceof NoSslStrategy);
+            return true;
         }
     }
     
@@ -171,6 +159,11 @@ class SslConfiguration {
         @Override
         public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
             return options.setSsl(false);
+        }
+
+        @Override
+        public boolean enabled() {
+            return false;
         }
     }
 
