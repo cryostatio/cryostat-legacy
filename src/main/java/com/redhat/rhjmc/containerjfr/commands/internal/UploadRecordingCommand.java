@@ -144,7 +144,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         private static final long serialVersionUID = 1L;
 
         RecordingNotFoundException(String recordingName) {
-            super(String.format("Recording \"%s\" could not be found"));
+            super(String.format("Recording \"%s\" could not be found", recordingName));
         }
     }
 

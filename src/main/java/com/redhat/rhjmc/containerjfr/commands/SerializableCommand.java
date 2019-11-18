@@ -9,18 +9,18 @@ public interface SerializableCommand extends Command {
 
     Output<?> serializableExecute(String[] args);
 
-    public interface Output<T> {
+    interface Output<T> {
         T getPayload();
     }
 
-    public class SuccessOutput implements Output<Void> {
+    class SuccessOutput implements Output<Void> {
         @Override
         public Void getPayload() {
             return null;
         }
     }
 
-    public class StringOutput implements Output<String> {
+    class StringOutput implements Output<String> {
         private final String message;
 
         public StringOutput(String message) {
@@ -33,7 +33,7 @@ public interface SerializableCommand extends Command {
         }
     }
 
-    public class ListOutput<T> implements Output<List<T>> {
+    class ListOutput<T> implements Output<List<T>> {
         private final List<T> data;
 
         public ListOutput(List<T> data) {
@@ -46,7 +46,7 @@ public interface SerializableCommand extends Command {
         }
     }
 
-    public class MapOutput<K, V> implements Output<Map<K, V>> {
+    class MapOutput<K, V> implements Output<Map<K, V>> {
         private final Map<K, V> data;
 
         public MapOutput(Map<K, V> data) {
@@ -59,7 +59,7 @@ public interface SerializableCommand extends Command {
         }
     }
 
-    public class ExceptionOutput implements Output<String> {
+    class ExceptionOutput implements Output<String> {
         private final Exception e;
 
         public ExceptionOutput(Exception e) {
@@ -72,7 +72,7 @@ public interface SerializableCommand extends Command {
         }
     }
 
-    public class FailureOutput implements Output<String> {
+    class FailureOutput implements Output<String> {
         private final String message;
 
         public FailureOutput(String message) {

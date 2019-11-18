@@ -10,7 +10,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;

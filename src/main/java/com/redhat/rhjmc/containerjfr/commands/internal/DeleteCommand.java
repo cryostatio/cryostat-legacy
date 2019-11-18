@@ -39,7 +39,6 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
             exporter.removeRecording(descriptor.get());
         } else {
             cw.println(String.format("No recording with name \"%s\" found", recordingName));
-            return;
         }
     }
 

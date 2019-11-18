@@ -20,7 +20,7 @@ class ContainerJfr {
     public static void main(String[] args) throws Exception {
         System.out.println(String.format("%s started. args: %s",
                 System.getProperty("java.rmi.server.hostname", "cjfr-client"),
-                Arrays.asList(args).stream().map(s -> "\"" + s + "\"").collect(Collectors.toList()).toString()));
+                Arrays.stream(args).map(s -> "\"" + s + "\"").collect(Collectors.toList()).toString()));
         ContainerJfrCore.initialize();
 
         final Environment environment = new Environment();

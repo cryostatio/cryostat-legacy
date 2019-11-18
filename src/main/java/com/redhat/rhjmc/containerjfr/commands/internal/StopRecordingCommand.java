@@ -36,7 +36,6 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
             getService().stop(descriptor.get());
         } else {
             cw.println(String.format("Recording with name \"%s\" not found", name));
-            return;
         }
     }
 
