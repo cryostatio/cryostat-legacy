@@ -35,6 +35,6 @@ public class ExitCommand implements Command {
     }
 
     @Override
-    public void execute(String[] args) { };
+    public void execute(String[] args) { }
 
 }

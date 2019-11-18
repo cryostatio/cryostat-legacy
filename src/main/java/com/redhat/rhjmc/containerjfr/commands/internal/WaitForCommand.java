@@ -58,11 +58,7 @@ class WaitForCommand extends AbstractConnectedCommand {
                 for (int i = 0; i < 2 * currentDots; i++) {
                     cw.print('\b');
                 }
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < currentDots; i++) {
-                    sb.append(". ");
-                }
-                cw.print(sb.toString().trim());
+                cw.print(". ".repeat(currentDots).trim());
                 lastDots = currentDots;
             } else {
                 progressFlag = !progressFlag;
