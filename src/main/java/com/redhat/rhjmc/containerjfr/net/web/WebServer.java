@@ -198,7 +198,7 @@ public class WebServer implements ConnectionListener {
     }
 
     public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
-        return new URL("http", netConf.getWebServerHost(), netConf.getExternalWebServerPort(), "");
+        return new URL("http" + (server.isSsl() ? "s" : ""), netConf.getWebServerHost(), netConf.getExternalWebServerPort(), "");
     }
 
     public String getDownloadURL(String recordingName)
