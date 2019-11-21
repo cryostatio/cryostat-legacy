@@ -184,8 +184,19 @@ class WebServerTest {
         int defaultPort = 1234;
         when(netConf.getExternalWebServerPort()).thenReturn(defaultPort);
         when(netConf.getWebServerHost()).thenReturn("foo");
+        when(httpServer.isSsl()).thenReturn(false);
 
         MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", defaultPort, "")));
+    }
+
+    @Test
+    void shouldUseConfiguredHostWithSSL() throws Exception {
+        int defaultPort = 1234;
+        when(netConf.getExternalWebServerPort()).thenReturn(defaultPort);
+        when(netConf.getWebServerHost()).thenReturn("foo");
+        when(httpServer.isSsl()).thenReturn(true);
+
+        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("https", "foo", defaultPort, "")));
     }
 
     @Test
@@ -221,12 +232,46 @@ class WebServerTest {
         "another_recording",
         "alpha123"
     })
+    void shouldProvideDownloadUrlWithHttps(String recordingName)
+            throws UnknownHostException, MalformedURLException, SocketException {
+        when(netConf.getWebServerHost()).thenReturn("example.com");
+        when(netConf.getExternalWebServerPort()).thenReturn(8181);
+        when(httpServer.isSsl()).thenReturn(true);
+
+        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("https://example.com:8181/recordings/" + recordingName));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(strings = {
+        "foo",
+        "bar.jfr",
+        "some-recording.jfr",
+        "another_recording",
+        "alpha123"
+    })
     void shouldProvideReportUrl(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("http://example.com:8181/reports/" + recordingName));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(strings = {
+        "foo",
+        "bar.jfr",
+        "some-recording.jfr",
+        "another_recording",
+        "alpha123"
+    })
+    void shouldProvideReportUrlWithHttps(String recordingName)
+            throws UnknownHostException, MalformedURLException, SocketException {
+        when(netConf.getWebServerHost()).thenReturn("example.com");
+        when(netConf.getExternalWebServerPort()).thenReturn(8181);
+        when(httpServer.isSsl()).thenReturn(true);
+
+        MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("https://example.com:8181/reports/" + recordingName));
     }
 
     @Test
@@ -241,6 +286,21 @@ class WebServerTest {
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         verify(rep).end("{\"clientUrl\":\"ws://hostname:1/command\"}");
+    }
+
+    @Test
+    void shouldHandleClientUrlRequestWithWss() throws SocketException, UnknownHostException {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(netConf.getWebServerHost()).thenReturn("hostname");
+        when(netConf.getExternalWebServerPort()).thenReturn(1);
+        when(httpServer.isSsl()).thenReturn(true);
+
+        exporter.handleClientUrlRequest(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        verify(rep).end("{\"clientUrl\":\"wss://hostname:1/command\"}");
     }
 
     @Test
