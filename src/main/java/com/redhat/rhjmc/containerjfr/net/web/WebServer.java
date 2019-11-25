@@ -55,8 +55,6 @@ public class WebServer implements ConnectionListener {
 
     private static final int WRITE_BUFFER_SIZE = 64 * 1024; //64 KB
 
-    private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
-
     private final HttpServer server;
     private final NetworkConfiguration netConf;
     private final Environment env;
@@ -301,25 +299,6 @@ public class WebServer implements ConnectionListener {
     private void endWithReport(InputStream recording, String recordingName, HttpServerResponse response) throws IOException, CouldNotLoadRecordingException {
         // blocking function, must be called from a blocking handler
         response.end(reportGenerator.generateReport(recording));
-
-        // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
-        // recordings before loading events to create the report, and these clones are erroneously left dangling.
-        TRIM_WORKER.submit(() -> {
-            try {
-                service.getAvailableRecordings()
-                        .stream()
-                        .filter(r -> r.getName().equals(String.format("Clone of %s", recordingName)))
-                        .forEach(r -> {
-                            try {
-                                service.close(r);
-                            } catch (FlightRecorderException fre) {
-                                logger.debug(fre);
-                            }
-                        });
-            } catch (FlightRecorderException fre) {
-                logger.debug(fre);
-            }
-        });
     }
 
     void handleClientUrlRequest(RoutingContext ctx) {
