@@ -297,11 +297,6 @@ public class WebServer implements ConnectionListener {
         return response;
     }
 
-    private void endWithReport(InputStream recording, String recordingName, HttpServerResponse response) throws IOException, CouldNotLoadRecordingException {
-        // blocking function, must be called from a blocking handler
-        response.end(reportGenerator.generateReport(recording));
-    }
-
     void handleClientUrlRequest(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
         try {
@@ -331,15 +326,13 @@ public class WebServer implements ConnectionListener {
             ctx.response().setChunked(true);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
             ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
+            descriptor.get().bytes.ifPresent(b -> ctx.response().putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
             try (InputStream stream = descriptor.get().stream) {
-                descriptor.get().bytes.ifPresent(b -> ctx.response().putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
-
                 if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
                     writeInputStreamLowMemPressure(stream, ctx.response());
                 } else {
                     writeInputStream(stream, ctx.response());
                 }
-
                 ctx.response().end();
             }
         } catch (FlightRecorderException e) {
@@ -358,7 +351,8 @@ public class WebServer implements ConnectionListener {
 
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
             try (InputStream stream = descriptor.get().stream) {
-                endWithReport(stream, recordingName, ctx.response());
+                // blocking function, must be called from a blocking handler
+                ctx.response().end(reportGenerator.generateReport(stream));
             }
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
