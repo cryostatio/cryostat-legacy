@@ -12,6 +12,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -53,8 +54,6 @@ public class WebServer implements ConnectionListener {
     private static final String MIME_TYPE_OCTET_STREAM = "application/octet-stream";
 
     private static final int WRITE_BUFFER_SIZE = 64 * 1024; //64 KB
-
-    private final ExecutorService TRIM_WORKER = Executors.newSingleThreadExecutor();
 
     private final HttpServer server;
     private final NetworkConfiguration netConf;
@@ -211,16 +210,17 @@ public class WebServer implements ConnectionListener {
         return String.format("%s/reports/%s", this.getHostUrl(), recordingName);
     }
 
-    private Optional<InputStream> getRecordingInputStream(String recordingName) throws FlightRecorderException {
+    private Optional<DownloadDescriptor> getDownloadDescriptor(String recordingName) throws FlightRecorderException {
         if (recordings.containsKey(recordingName)) {
-            return Optional.of(service.openStream(recordings.get(recordingName), false));
+            return Optional.of(new DownloadDescriptor(service.openStream(recordings.get(recordingName), false), null));
         }
         try {
+            // TODO refactor Files calls into FileSystem for testability
             Optional<Path> savedRecording = Files.list(savedRecordingsPath)
                     .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName) || saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
                     .findFirst();
             if (savedRecording.isPresent()) {
-                return Optional.of(Files.newInputStream(savedRecording.get(), StandardOpenOption.READ));
+                return Optional.of(new DownloadDescriptor(Files.newInputStream(savedRecording.get(), StandardOpenOption.READ), Files.size(savedRecording.get())));
             }
         } catch (Exception e) {
             logger.error(e);
@@ -267,7 +267,7 @@ public class WebServer implements ConnectionListener {
                 }
             }
         });
-        
+
         try {
             future.join();
             worker.shutdownNow();
@@ -297,32 +297,6 @@ public class WebServer implements ConnectionListener {
         return response;
     }
 
-    private void endWithReport(InputStream recording, String recordingName, HttpServerResponse response) throws IOException, CouldNotLoadRecordingException {
-        // blocking function, must be called from a blocking handler
-        try (recording) {
-            response.end(reportGenerator.generateReport(recording));
-
-            // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
-            // recordings before loading events to create the report, and these clones are erroneously left dangling.
-            TRIM_WORKER.submit(() -> {
-                try {
-                    service.getAvailableRecordings()
-                            .stream()
-                            .filter(r -> r.getName().equals(String.format("Clone of %s", recordingName)))
-                            .forEach(r -> {
-                                try {
-                                    service.close(r);
-                                } catch (FlightRecorderException fre) {
-                                    logger.debug(fre);
-                                }
-                            });
-                } catch (FlightRecorderException fre) {
-                    logger.debug(fre);
-                }
-            });
-        }
-    }
-
     void handleClientUrlRequest(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
         try {
@@ -344,23 +318,23 @@ public class WebServer implements ConnectionListener {
 
     void handleRecordingDownloadRequest(String recordingName, RoutingContext ctx) {
         try {
-            Optional<InputStream> recording = getRecordingInputStream(recordingName);
-            if (recording.isEmpty()) {
+            Optional<DownloadDescriptor> descriptor = getDownloadDescriptor(recordingName);
+            if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
 
             ctx.response().setChunked(true);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
             ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
-
-            if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-                writeInputStreamLowMemPressure(recording.get(), ctx.response());
-            } else {
-                writeInputStream(recording.get(), ctx.response());
+            descriptor.get().bytes.ifPresent(b -> ctx.response().putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
+            try (InputStream stream = descriptor.get().stream) {
+                if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
+                    writeInputStreamLowMemPressure(stream, ctx.response());
+                } else {
+                    writeInputStream(stream, ctx.response());
+                }
+                ctx.response().end();
             }
-  
-            ctx.response().end();
-            recording.get().close();
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
         } catch (IOException e) {
@@ -370,20 +344,32 @@ public class WebServer implements ConnectionListener {
 
     void handleReportPageRequest(String recordingName, RoutingContext ctx) {
         try {
-            Optional<InputStream> recording = getRecordingInputStream(recordingName);
-            if (recording.isEmpty()) {
+            Optional<DownloadDescriptor> descriptor = getDownloadDescriptor(recordingName);
+            if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
 
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
-            endWithReport(recording.get(), recordingName, ctx.response());
-            recording.get().close();
+            try (InputStream stream = descriptor.get().stream) {
+                // blocking function, must be called from a blocking handler
+                ctx.response().end(reportGenerator.generateReport(stream));
+            }
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
         } catch (CouldNotLoadRecordingException e) {
             throw new HttpStatusException(500, String.format("%s could not be loaded", recordingName), e);
         } catch (IOException e) {
             throw new HttpStatusException(500, e);
+        }
+    }
+
+    private static class DownloadDescriptor {
+        final InputStream stream;
+        final Optional<Long> bytes;
+
+        DownloadDescriptor(InputStream stream, Long bytes) {
+            this.stream = Objects.requireNonNull(stream);
+            this.bytes = Optional.ofNullable(bytes);
         }
     }
 }
