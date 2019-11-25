@@ -215,6 +215,7 @@ public class WebServer implements ConnectionListener {
             return Optional.of(new DownloadDescriptor(service.openStream(recordings.get(recordingName), false), null));
         }
         try {
+            // TODO refactor Files calls into FileSystem for testability
             Optional<Path> savedRecording = Files.list(savedRecordingsPath)
                     .filter(saved -> saved.getFileName().toFile().getName().equals(recordingName) || saved.getFileName().toFile().getName().equals(recordingName + ".jfr"))
                     .findFirst();
