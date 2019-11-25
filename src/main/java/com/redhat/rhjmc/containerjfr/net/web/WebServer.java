@@ -300,28 +300,26 @@ public class WebServer implements ConnectionListener {
 
     private void endWithReport(InputStream recording, String recordingName, HttpServerResponse response) throws IOException, CouldNotLoadRecordingException {
         // blocking function, must be called from a blocking handler
-        try (recording) {
-            response.end(reportGenerator.generateReport(recording));
+        response.end(reportGenerator.generateReport(recording));
 
-            // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
-            // recordings before loading events to create the report, and these clones are erroneously left dangling.
-            TRIM_WORKER.submit(() -> {
-                try {
-                    service.getAvailableRecordings()
-                            .stream()
-                            .filter(r -> r.getName().equals(String.format("Clone of %s", recordingName)))
-                            .forEach(r -> {
-                                try {
-                                    service.close(r);
-                                } catch (FlightRecorderException fre) {
-                                    logger.debug(fre);
-                                }
-                            });
-                } catch (FlightRecorderException fre) {
-                    logger.debug(fre);
-                }
-            });
-        }
+        // ugly hack for "trimming" created clones of specified recording. JMC service creates a clone of running
+        // recordings before loading events to create the report, and these clones are erroneously left dangling.
+        TRIM_WORKER.submit(() -> {
+            try {
+                service.getAvailableRecordings()
+                        .stream()
+                        .filter(r -> r.getName().equals(String.format("Clone of %s", recordingName)))
+                        .forEach(r -> {
+                            try {
+                                service.close(r);
+                            } catch (FlightRecorderException fre) {
+                                logger.debug(fre);
+                            }
+                        });
+            } catch (FlightRecorderException fre) {
+                logger.debug(fre);
+            }
+        });
     }
 
     void handleClientUrlRequest(RoutingContext ctx) {
@@ -353,16 +351,17 @@ public class WebServer implements ConnectionListener {
             ctx.response().setChunked(true);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
             ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
-            descriptor.get().bytes.ifPresent(b -> ctx.response().putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
+            try (InputStream stream = descriptor.get().stream) {
+                descriptor.get().bytes.ifPresent(b -> ctx.response().putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
 
-            if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-                writeInputStreamLowMemPressure(descriptor.get().stream, ctx.response());
-            } else {
-                writeInputStream(descriptor.get().stream, ctx.response());
+                if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
+                    writeInputStreamLowMemPressure(stream, ctx.response());
+                } else {
+                    writeInputStream(stream, ctx.response());
+                }
+
+                ctx.response().end();
             }
-
-            ctx.response().end();
-            descriptor.get().stream.close();
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
         } catch (IOException e) {
@@ -378,8 +377,9 @@ public class WebServer implements ConnectionListener {
             }
 
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
-            endWithReport(descriptor.get().stream, recordingName, ctx.response());
-            descriptor.get().stream.close();
+            try (InputStream stream = descriptor.get().stream) {
+                endWithReport(stream, recordingName, ctx.response());
+            }
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(500, String.format("%s could not be opened", recordingName), e);
         } catch (CouldNotLoadRecordingException e) {
