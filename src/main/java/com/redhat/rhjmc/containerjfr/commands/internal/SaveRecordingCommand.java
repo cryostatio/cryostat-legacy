@@ -1,6 +1,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
@@ -88,11 +89,19 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     private String saveRecording(IRecordingDescriptor descriptor)
             throws IOException, FlightRecorderException, JMXConnectionException {
         String recordingName = descriptor.getName();
-        if (!recordingName.endsWith(".jfr")) {
-            recordingName += ".jfr";
-        }
         String targetName = getConnection().getHost().replaceAll("[\\._]+", "-");
         String destination = String.format("%s_%s", targetName, recordingName);
+        // TODO byte-sized rename limit is arbitrary
+        byte count = 1;
+        while (Files.exists(recordingsPath.resolve(destination + ".jfr"))) {
+            destination = String.format("%s_%s.%d", targetName, recordingName, count++);
+            if (count == Byte.MAX_VALUE) {
+                throw new IOException("Recording could not be saved. File already exists and rename attempts were exhausted.");
+            }
+        }
+        if (!destination.endsWith(".jfr")) {
+            destination += ".jfr";
+        }
         fs.copy(
             getService().openStream(descriptor, false),
             recordingsPath.resolve(destination),
