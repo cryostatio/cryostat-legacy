@@ -1,6 +1,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -102,11 +103,12 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         if (!destination.endsWith(".jfr")) {
             destination += ".jfr";
         }
-        fs.copy(
-            getService().openStream(descriptor, false),
-            recordingsPath.resolve(destination),
-            StandardCopyOption.REPLACE_EXISTING
-        );
+        try (InputStream stream = getService().openStream(descriptor, false)) {
+            fs.copy(
+                stream,
+                recordingsPath.resolve(destination)
+            );
+        }
         return destination;
     }
 
