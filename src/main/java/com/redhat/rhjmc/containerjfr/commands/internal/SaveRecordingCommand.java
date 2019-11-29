@@ -4,19 +4,20 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 @Singleton
 class SaveRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -91,8 +92,9 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
             throws IOException, FlightRecorderException, JMXConnectionException {
         String recordingName = descriptor.getName();
         String targetName = getConnection().getHost().replaceAll("[\\._]+", "-");
-        String destination = String.format("%s_%s", targetName, recordingName);
-        // TODO byte-sized rename limit is arbitrary
+        String timestamp = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
+        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings are also differentiated by second-resolution timestamp
         byte count = 1;
         while (Files.exists(recordingsPath.resolve(destination + ".jfr"))) {
             destination = String.format("%s_%s.%d", targetName, recordingName, count++);
