@@ -79,16 +79,18 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             throw new RecordingNotFoundException(recordingName);
         }
 
+        InputStream stream = recording.get();
         HttpPost post = new HttpPost(uploadUrl);
         post.setEntity(
             MultipartEntityBuilder.create()
-                .addBinaryBody("file", recording.get(), ContentType.APPLICATION_OCTET_STREAM, recordingName)
+                .addBinaryBody("file", stream, ContentType.APPLICATION_OCTET_STREAM, recordingName)
                 .build()
         );
 
         try (
             CloseableHttpClient httpClient = httpClientProvider.get();
-            CloseableHttpResponse response = httpClient.execute(post)
+            CloseableHttpResponse response = httpClient.execute(post);
+            stream
         ) {
             return new ResponseMessage(response.getStatusLine(), EntityUtils.toString(response.getEntity()));
         }
