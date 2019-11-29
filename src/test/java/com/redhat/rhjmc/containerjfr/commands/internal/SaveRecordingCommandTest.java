@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -130,6 +131,37 @@ class SaveRecordingCommandTest {
         verify(fs).copy(recordingStream, savePath);
         verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
         verify(cw).println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.jfr\"");
+        verifyNoMoreInteractions(service);
+    }
+
+    @Test
+    void shouldExecuteAndSaveDuplicatedRecording() throws Exception {
+        IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
+        when(recording.getName()).thenReturn("foo");
+        when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("some-host.svc.local");
+        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+        InputStream recordingStream = mock(InputStream.class);
+        when(service.openStream(recording, false)).thenReturn(recordingStream);
+        Path savePath = mock(Path.class);
+        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(savePath);
+        Instant now = mock(Instant.class);
+        when(clock.now()).thenReturn(now);
+        when(now.truncatedTo(Mockito.any(TemporalUnit.class))).thenReturn(now);
+        when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
+        when(fs.exists(savePath)).thenReturn(false).thenReturn(true).thenReturn(false);
+
+        command.connectionChanged(connection);
+        command.execute(new String[] { "foo" });
+        command.execute(new String[] { "foo" });
+
+        verify(service, Mockito.times(2)).getAvailableRecordings();
+        verify(fs, Mockito.times(2)).copy(recordingStream, savePath);
+        verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
+        verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.1.jfr");
+        InOrder inOrder = Mockito.inOrder(cw);
+        inOrder.verify(cw).println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.jfr\"");
+        inOrder.verify(cw).println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.1.jfr\"");
         verifyNoMoreInteractions(service);
     }
 

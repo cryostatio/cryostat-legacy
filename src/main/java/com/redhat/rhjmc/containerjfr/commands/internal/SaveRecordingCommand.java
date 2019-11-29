@@ -101,14 +101,12 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings are also differentiated by second-resolution timestamp
         byte count = 1;
         while (fs.exists(recordingsPath.resolve(destination + ".jfr"))) {
-            destination = String.format("%s_%s.%d", targetName, recordingName, count++);
+            destination = String.format("%s_%s_%s.%d", targetName, recordingName, timestamp, count++);
             if (count == Byte.MAX_VALUE) {
                 throw new IOException("Recording could not be saved. File already exists and rename attempts were exhausted.");
             }
         }
-        if (!destination.endsWith(".jfr")) {
-            destination += ".jfr";
-        }
+        destination += ".jfr";
         try (InputStream stream = getService().openStream(descriptor, false)) {
             fs.copy(
                 stream,
