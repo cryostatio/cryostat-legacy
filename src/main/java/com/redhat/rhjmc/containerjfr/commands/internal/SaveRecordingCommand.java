@@ -1,31 +1,35 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.time.temporal.ChronoUnit;
 import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 @Singleton
 class SaveRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
+    private final Clock clock;
     private final FileSystem fs;
     private final Path recordingsPath;
 
     @Inject
-    SaveRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath) {
+    SaveRecordingCommand(ClientWriter cw, Clock clock, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath) {
         this.cw = cw;
+        this.clock = clock;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
     }
@@ -88,16 +92,27 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     private String saveRecording(IRecordingDescriptor descriptor)
             throws IOException, FlightRecorderException, JMXConnectionException {
         String recordingName = descriptor.getName();
-        if (!recordingName.endsWith(".jfr")) {
-            recordingName += ".jfr";
+        if (recordingName.endsWith(".jfr")) {
+            recordingName = recordingName.substring(0, recordingName.length() - 4);
         }
         String targetName = getConnection().getHost().replaceAll("[\\._]+", "-");
-        String destination = String.format("%s_%s", targetName, recordingName);
-        fs.copy(
-            getService().openStream(descriptor, false),
-            recordingsPath.resolve(destination),
-            StandardCopyOption.REPLACE_EXISTING
-        );
+        String timestamp = clock.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
+        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings are also differentiated by second-resolution timestamp
+        byte count = 1;
+        while (fs.exists(recordingsPath.resolve(destination + ".jfr"))) {
+            destination = String.format("%s_%s_%s.%d", targetName, recordingName, timestamp, count++);
+            if (count == Byte.MAX_VALUE) {
+                throw new IOException("Recording could not be saved. File already exists and rename attempts were exhausted.");
+            }
+        }
+        destination += ".jfr";
+        try (InputStream stream = getService().openStream(descriptor, false)) {
+            fs.copy(
+                stream,
+                recordingsPath.resolve(destination)
+            );
+        }
         return destination;
     }
 
