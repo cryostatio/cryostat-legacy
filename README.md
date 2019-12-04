@@ -169,3 +169,8 @@ certificate at following locations, in an orderly fashion:
 
 If no certificate can be found, `container-jfr` will fallback to plain 
 unencrypted `http://` and `ws://` connections.
+
+In case `container-jfr` is deployed behind an SSL proxy, set the environment
+variable `CONTAINER_JFR_SSL_PROXIED` to a non-empty value. This informs
+`container-jfr` that the URLs it reports pointing back to itself should use
+the secure variants of protocols.
