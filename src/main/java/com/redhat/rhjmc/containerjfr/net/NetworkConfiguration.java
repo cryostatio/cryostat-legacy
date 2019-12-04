@@ -56,4 +56,8 @@ public class NetworkConfiguration {
         return env.hasEnv("CONTAINER_JFR_SSL_PROXIED");
     }
 
+    public boolean isUntrustedSslAllowed() {
+        return env.hasEnv("CONTAINER_JFR_ALLOW_UNTRUSTED_SSL");
+    }
+
 }

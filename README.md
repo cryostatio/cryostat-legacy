@@ -174,3 +174,7 @@ In case `container-jfr` is deployed behind an SSL proxy, set the environment
 variable `CONTAINER_JFR_SSL_PROXIED` to a non-empty value. This informs
 `container-jfr` that the URLs it reports pointing back to itself should use
 the secure variants of protocols.
+
+If the certificate used for SSL-enabled Grafana/jfr-datasource connections is
+self-signed or otherwise untrusted, set the environment variable
+`CONTAINER_JFR_ALLOW_UNTRUSTED_SSL` to permit uploads of recordings.
