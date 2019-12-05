@@ -80,9 +80,9 @@ public class HttpServer {
     }
 
     public boolean isSsl() {
-        return sslConf.enabled();
+        return netConf.isSslProxied() || sslConf.enabled();
     }
-    
+
     public void requestHandler(Handler<HttpServerRequest> handler) {
         requestHandlerDelegate.handler(handler);
     }

@@ -30,7 +30,7 @@ class SslConfiguration {
             if (path != null) {
                 strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
                 return;
-            }    
+            }
         }
 
         {
@@ -46,7 +46,7 @@ class SslConfiguration {
             if (path != null) {
                 strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
                 return;
-            }    
+            }
         }
 
         {
@@ -66,7 +66,7 @@ class SslConfiguration {
         this.fs = fs;
         this.strategy = strategy;
     }
-    
+
     Path obtainKeyStorePathIfSpecified() throws SslConfigurationException {
         if (!env.hasEnv(KEYSTORE_PATH_ENV)) {
             return null;
@@ -148,12 +148,12 @@ class SslConfiguration {
 
     interface SslConfigurationStrategy {
         HttpServerOptions applyToHttpServerOptions(HttpServerOptions options);
-        
+
         default boolean enabled() {
             return true;
         }
     }
-    
+
     static class NoSslStrategy implements SslConfigurationStrategy {
 
         @Override
@@ -175,7 +175,7 @@ class SslConfiguration {
         KeyStoreStrategy(Path path, String pass) throws SslConfigurationException {
             this.path = path;
             this.password = pass;
-            
+
             if (!path.toString().endsWith(".jks") && !path.toString().endsWith(".pfx") && !path.toString().endsWith(".p12")) {
                 throw new SslConfigurationException("unrecognized keystore type");
             }

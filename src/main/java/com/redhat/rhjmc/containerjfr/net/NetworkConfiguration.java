@@ -52,4 +52,12 @@ public class NetworkConfiguration {
         return Integer.parseInt(env.getEnv("CONTAINER_JFR_EXT_WEB_PORT", String.valueOf(getInternalWebServerPort())));
     }
 
+    public boolean isSslProxied() {
+        return env.hasEnv("CONTAINER_JFR_SSL_PROXIED");
+    }
+
+    public boolean isUntrustedSslAllowed() {
+        return env.hasEnv("CONTAINER_JFR_ALLOW_UNTRUSTED_SSL");
+    }
+
 }

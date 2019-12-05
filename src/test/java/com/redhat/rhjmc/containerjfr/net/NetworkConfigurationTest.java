@@ -7,6 +7,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -86,6 +87,20 @@ class NetworkConfigurationTest {
         MatcherAssert.assertThat(conf.getExternalCommandChannelPort(), Matchers.equalTo(9292));
         Mockito.verify(env).getEnv("CONTAINER_JFR_EXT_LISTEN_PORT", "9191");
         Mockito.verify(env).getEnv("CONTAINER_JFR_LISTEN_PORT", "9090");
+    }
+
+    @Test
+    void shouldReportSslNotProxiedWhenVarUnset() {
+        Mockito.when(env.hasEnv("CONTAINER_JFR_SSL_PROXIED")).thenReturn(false);
+        Assertions.assertFalse(conf.isSslProxied());
+        Mockito.verify(env).hasEnv("CONTAINER_JFR_SSL_PROXIED");
+    }
+
+    @Test
+    void shouldReportSslProxiedWhenVarSet() {
+        Mockito.when(env.hasEnv("CONTAINER_JFR_SSL_PROXIED")).thenReturn(true);
+        Assertions.assertTrue(conf.isSslProxied());
+        Mockito.verify(env).hasEnv("CONTAINER_JFR_SSL_PROXIED");
     }
 
 }
