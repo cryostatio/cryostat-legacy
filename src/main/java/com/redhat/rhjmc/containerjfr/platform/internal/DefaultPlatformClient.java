@@ -21,18 +21,18 @@ class DefaultPlatformClient implements PlatformClient {
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
-        return discoveryClient.getDiscoveredJvmDescriptors()
-            .stream()
-            .map(u -> {
-                try {
-                    return new ServiceRef(u.getJmxServiceUrl().toString(), u.getMainClass(), 0);
-                } catch (MalformedURLException e) {
-                    log.info(e);
-                    return null;
-                }
-            })
-            .filter(s -> s != null)
-            .collect(Collectors.toList());
+        return discoveryClient.getDiscoveredJvmDescriptors().stream()
+                .map(
+                        u -> {
+                            try {
+                                return new ServiceRef(
+                                        u.getJmxServiceUrl().toString(), u.getMainClass(), 0);
+                            } catch (MalformedURLException e) {
+                                log.info(e);
+                                return null;
+                            }
+                        })
+                .filter(s -> s != null)
+                .collect(Collectors.toList());
     }
-
 }

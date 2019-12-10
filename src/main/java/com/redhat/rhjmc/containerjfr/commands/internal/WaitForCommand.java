@@ -17,7 +17,8 @@ class WaitForCommand extends AbstractConnectedCommand {
     protected final ClientWriter cw;
     protected final Clock clock;
 
-    @Inject WaitForCommand(ClientWriter cw, Clock clock) {
+    @Inject
+    WaitForCommand(ClientWriter cw, Clock clock) {
         this.cw = cw;
         this.clock = clock;
     }
@@ -40,7 +41,8 @@ class WaitForCommand extends AbstractConnectedCommand {
         }
         IRecordingDescriptor descriptor = d.get();
 
-        if (descriptor.isContinuous() && !descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
+        if (descriptor.isContinuous()
+                && !descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
             cw.println(String.format("Recording \"%s\" is continuous, refusing to wait", name));
             return;
         }
@@ -51,7 +53,8 @@ class WaitForCommand extends AbstractConnectedCommand {
         int lastDots = 0;
         boolean progressFlag = false;
         while (!descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
-            long recordingElapsed = getConnection().getApproximateServerTime(clock) - recordingStart;
+            long recordingElapsed =
+                    getConnection().getApproximateServerTime(clock) - recordingStart;
             double elapsedProportion = ((double) recordingElapsed) / ((double) recordingLength);
             int currentDots = (int) Math.ceil(10 * elapsedProportion);
             if (currentDots > lastDots) {

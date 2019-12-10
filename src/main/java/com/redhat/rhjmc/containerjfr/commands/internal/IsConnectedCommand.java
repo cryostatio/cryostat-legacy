@@ -31,13 +31,18 @@ class IsConnectedCommand implements ConnectionListener, SerializableCommand {
 
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("\t" + (connection != null ? String.format("%s:%d", connection.getHost(), connection.getPort()) : "Disconnected"));
+        cw.println(
+                "\t"
+                        + (connection != null
+                                ? String.format("%s:%d", connection.getHost(), connection.getPort())
+                                : "Disconnected"));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         if (connection != null) {
-            return new StringOutput(String.format("%s:%d", connection.getHost(), connection.getPort()));
+            return new StringOutput(
+                    String.format("%s:%d", connection.getHost(), connection.getPort()));
         } else {
             return new StringOutput("false");
         }
@@ -56,5 +61,4 @@ class IsConnectedCommand implements ConnectionListener, SerializableCommand {
     public boolean isAvailable() {
         return true;
     }
-
 }

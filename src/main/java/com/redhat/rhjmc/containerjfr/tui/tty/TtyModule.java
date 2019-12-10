@@ -2,25 +2,26 @@ package com.redhat.rhjmc.containerjfr.tui.tty;
 
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import dagger.Binds;
-import dagger.Lazy;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
+import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
+import dagger.Binds;
+import dagger.Lazy;
+import dagger.Module;
+import dagger.Provides;
+import dagger.multibindings.IntoSet;
+
 @Module
 public abstract class TtyModule {
     @Provides
     @Singleton
-    static InteractiveShellExecutor provideInteractiveShellExecutor(ClientReader cr, ClientWriter cw,
-            Lazy<CommandRegistry> commandRegistry) {
+    static InteractiveShellExecutor provideInteractiveShellExecutor(
+            ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         return new InteractiveShellExecutor(cr, cw, commandRegistry);
     }
 
@@ -37,8 +38,8 @@ public abstract class TtyModule {
     @Provides
     @Singleton
     @ConnectionMode(ExecutionMode.BATCH)
-    static CommandExecutor provideBatchCommandExecutor(ClientReader cr, ClientWriter cw,
-            Lazy<CommandRegistry> commandRegistry) {
+    static CommandExecutor provideBatchCommandExecutor(
+            ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         return new BatchModeExecutor(cr, cw, commandRegistry);
     }
 

@@ -13,6 +13,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,12 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class DisconnectCommandTest {
 
     DisconnectCommand command;
-    @Mock
-    ConnectionListener listener;
-    @Mock
-    JFRConnection connection;
-    @Mock
-    ClientWriter cw;
+    @Mock ConnectionListener listener;
+    @Mock JFRConnection connection;
+    @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
@@ -97,5 +95,4 @@ class DisconnectCommandTest {
         SerializableCommand.Output out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
     }
-
 }

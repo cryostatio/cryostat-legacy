@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,10 +23,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class IsConnectedCommandTest {
 
     IsConnectedCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    JFRConnection conn;
+    @Mock ClientWriter cw;
+    @Mock JFRConnection conn;
 
     @BeforeEach
     void setup() {
@@ -43,10 +42,10 @@ class IsConnectedCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {
-        1,
-        2,
-    })
+    @ValueSource(
+            ints = {
+                1, 2,
+            })
     void shouldNotExpectArgs(int argc) {
         MatcherAssert.assertThat(command.validate(new String[argc]), Matchers.is(false));
         verify(cw).println("No arguments expected");
@@ -93,5 +92,4 @@ class IsConnectedCommandTest {
         inOrder.verify(cw).println("\tsomeHost:1234");
         inOrder.verify(cw).println("\tDisconnected");
     }
-
 }

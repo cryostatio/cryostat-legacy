@@ -15,6 +15,12 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
+import io.kubernetes.client.ApiException;
+import io.kubernetes.client.apis.CoreV1Api;
+import io.kubernetes.client.models.V1Service;
+import io.kubernetes.client.models.V1ServiceList;
+import io.kubernetes.client.models.V1ServicePort;
+import io.kubernetes.client.models.V1ServiceSpec;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -23,13 +29,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Service;
-import io.kubernetes.client.models.V1ServiceList;
-import io.kubernetes.client.models.V1ServicePort;
-import io.kubernetes.client.models.V1ServiceSpec;
 
 @ExtendWith(MockitoExtension.class)
 class KubeApiPlatformClientTest {
@@ -51,14 +50,23 @@ class KubeApiPlatformClientTest {
         @Test
         void discoversNoServicesIfApiThrows() throws ApiException {
             when(api.listNamespacedService(
-                        Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(),
-                        Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any())
-                )
-                .thenThrow(ApiException.class);
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any()))
+                    .thenThrow(ApiException.class);
 
             assertThat(client.listDiscoverableServices(), Matchers.empty());
 
-            verify(api).listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
+            verify(api)
+                    .listNamespacedService(
+                            namespace, null, null, null, null, null, null, null, null, null);
             verifyNoMoreInteractions(api);
             verifyZeroInteractions(resolver);
         }
@@ -87,26 +95,36 @@ class KubeApiPlatformClientTest {
 
             when(mockServiceList.getItems()).thenReturn(Arrays.asList(mockServiceA, mockServiceB));
             when(api.listNamespacedService(
-                        Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(),
-                        Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any())
-                )
-                .thenReturn(mockServiceList);
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any()))
+                    .thenReturn(mockServiceList);
             when(resolver.resolveCanonicalHostName("127.0.0.1")).thenReturn("ServiceA.local");
             when(resolver.resolveCanonicalHostName("10.0.0.1")).thenReturn("b-service.example.com");
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            assertThat(result, Matchers.contains(
-                        new ServiceRef("ServiceA.local", 123),
-                        new ServiceRef("ServiceA.local", 456),
-                        new ServiceRef("b-service.example.com", 7899)
-                        ));
+            assertThat(
+                    result,
+                    Matchers.contains(
+                            new ServiceRef("ServiceA.local", 123),
+                            new ServiceRef("ServiceA.local", 456),
+                            new ServiceRef("b-service.example.com", 7899)));
             assertThat(result, Matchers.hasSize(3));
 
             verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");
             verify(resolver).resolveCanonicalHostName("10.0.0.1");
             verifyNoMoreInteractions(resolver);
-            verify(api).listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
+            verify(api)
+                    .listNamespacedService(
+                            namespace, null, null, null, null, null, null, null, null, null);
             verifyNoMoreInteractions(api);
         }
 
@@ -134,28 +152,37 @@ class KubeApiPlatformClientTest {
 
             when(mockServiceList.getItems()).thenReturn(Arrays.asList(mockServiceA, mockServiceB));
             when(api.listNamespacedService(
-                        Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(),
-                        Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any())
-                )
-                .thenReturn(mockServiceList);
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any(),
+                            Mockito.any()))
+                    .thenReturn(mockServiceList);
             when(resolver.resolveCanonicalHostName("127.0.0.1")).thenReturn("ServiceA.local");
-            when(resolver.resolveCanonicalHostName("10.0.0.1")).thenThrow(UnknownHostException.class);
+            when(resolver.resolveCanonicalHostName("10.0.0.1"))
+                    .thenThrow(UnknownHostException.class);
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            assertThat(result, Matchers.contains(
-                        new ServiceRef("ServiceA.local", 123),
-                        new ServiceRef("ServiceA.local", 456)
-                        ));
+            assertThat(
+                    result,
+                    Matchers.contains(
+                            new ServiceRef("ServiceA.local", 123),
+                            new ServiceRef("ServiceA.local", 456)));
             assertThat(result, Matchers.hasSize(2));
 
             verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");
             verify(resolver).resolveCanonicalHostName("10.0.0.1");
             verifyNoMoreInteractions(resolver);
-            verify(api).listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
+            verify(api)
+                    .listNamespacedService(
+                            namespace, null, null, null, null, null, null, null, null, null);
             verifyNoMoreInteractions(api);
         }
-
     }
-
 }

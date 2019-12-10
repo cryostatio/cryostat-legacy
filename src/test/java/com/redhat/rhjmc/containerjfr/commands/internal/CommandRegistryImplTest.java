@@ -6,7 +6,6 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -15,6 +14,7 @@ import java.util.HashSet;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.Command;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -37,13 +37,17 @@ public class CommandRegistryImplTest extends TestBase {
 
         @Test
         public void shouldReturnEmptyRegisteredCommandNames() {
-            assertThat("registered commands should be empty", registry.getRegisteredCommandNames(),
+            assertThat(
+                    "registered commands should be empty",
+                    registry.getRegisteredCommandNames(),
                     equalTo(Collections.emptySet()));
         }
 
         @Test
         public void shouldReturnEmptyAvailableCommandNames() {
-            assertThat("available commands should be empty", registry.getAvailableCommandNames(),
+            assertThat(
+                    "available commands should be empty",
+                    registry.getAvailableCommandNames(),
                     equalTo(Collections.emptySet()));
         }
 
@@ -66,36 +70,44 @@ public class CommandRegistryImplTest extends TestBase {
         FooCommand fooCommand = new FooCommand();
         BarCommand barCommand = new BarCommand();
 
-        Command[] commands = new Command[] { fooCommand, barCommand };
+        Command[] commands = new Command[] {fooCommand, barCommand};
 
         @BeforeEach
         public void setup() {
-            registry = new CommandRegistryImpl(mockClientWriter, new HashSet<Command>(Arrays.asList(commands)));
+            registry =
+                    new CommandRegistryImpl(
+                            mockClientWriter, new HashSet<Command>(Arrays.asList(commands)));
         }
 
         @Test
         public void shouldReturnRegisteredCommandNames() {
-            assertThat("registered command names should be returned", registry.getRegisteredCommandNames(),
-                    equalTo(new HashSet<String>(Arrays.asList(fooCommand.getName(), barCommand.getName()))));
+            assertThat(
+                    "registered command names should be returned",
+                    registry.getRegisteredCommandNames(),
+                    equalTo(
+                            new HashSet<String>(
+                                    Arrays.asList(fooCommand.getName(), barCommand.getName()))));
         }
 
         @Test
         public void shouldReturnAvailableCommandNames() {
-            assertThat("available command names should be returned", registry.getAvailableCommandNames(),
+            assertThat(
+                    "available command names should be returned",
+                    registry.getAvailableCommandNames(),
                     equalTo(new HashSet<String>(Arrays.asList(fooCommand.getName()))));
         }
 
         @Test
         public void shouldExecuteRegisteredAndAvailableCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
-            registry.execute("foo", new String[] { "arg" });
+            registry.execute("foo", new String[] {"arg"});
             assertThat("command should have been executed", fooCommand.value, equalTo("arg"));
         }
 
         @Test
         public void shouldNotExecuteRegisteredAndUnavailableCommand() throws Exception {
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            registry.execute("bar", new String[] { "arg" });
+            registry.execute("bar", new String[] {"arg"});
             assertThat("command should not have been executed", barCommand.value, nullValue());
             assertThat(stdout(), equalTo("Command \"bar\" not available\n"));
         }
@@ -104,7 +116,7 @@ public class CommandRegistryImplTest extends TestBase {
         public void shouldNoOpOnUnregisteredCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            registry.execute("baz", new String[] { "arg" });
+            registry.execute("baz", new String[] {"arg"});
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
             assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
@@ -149,18 +161,24 @@ public class CommandRegistryImplTest extends TestBase {
     class WithConflictingCommandDefinitions {
         @Test
         public void shouldThrowCommandDefinitionException() {
-            CommandRegistryImpl.CommandDefinitionException thrown = Assertions.assertThrows(CommandRegistryImpl.CommandDefinitionException.class,
-                    () -> new CommandRegistryImpl(mockClientWriter,
-                            new HashSet<Command>(Arrays.asList(new FooCommand(), new DuplicateFooCommand()))),
-                    "should throw CommandDefinitionException for duplicate definitions");
-            assertThat(thrown.getMessage(),
-                allOf(
-                    containsString("\"foo\" command definitions provided by class"),
-                    containsString(DuplicateFooCommand.class.getCanonicalName()),
-                    containsString("AND class"),
-                    containsString(FooCommand.class.getCanonicalName())
-                )
-            );
+            CommandRegistryImpl.CommandDefinitionException thrown =
+                    Assertions.assertThrows(
+                            CommandRegistryImpl.CommandDefinitionException.class,
+                            () ->
+                                    new CommandRegistryImpl(
+                                            mockClientWriter,
+                                            new HashSet<Command>(
+                                                    Arrays.asList(
+                                                            new FooCommand(),
+                                                            new DuplicateFooCommand()))),
+                            "should throw CommandDefinitionException for duplicate definitions");
+            assertThat(
+                    thrown.getMessage(),
+                    allOf(
+                            containsString("\"foo\" command definitions provided by class"),
+                            containsString(DuplicateFooCommand.class.getCanonicalName()),
+                            containsString("AND class"),
+                            containsString(FooCommand.class.getCanonicalName())));
         }
     }
 
@@ -212,7 +230,5 @@ public class CommandRegistryImplTest extends TestBase {
         }
     }
 
-    static class DuplicateFooCommand extends FooCommand {
-    }
-
+    static class DuplicateFooCommand extends FooCommand {}
 }

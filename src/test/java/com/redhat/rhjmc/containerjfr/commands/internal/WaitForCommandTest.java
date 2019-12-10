@@ -10,9 +10,15 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.openjdk.jmc.common.unit.UnitLookup;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
+
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,20 +27,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.common.unit.UnitLookup;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForCommandTest extends TestBase {
 
     WaitForCommand command;
-    @Mock
-    JFRConnection connection;
+    @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
-    @Mock
-    Clock clock;
+    @Mock Clock clock;
 
     @BeforeEach
     void setup() {
@@ -61,13 +61,13 @@ class WaitForCommandTest extends TestBase {
 
     @Test
     void shouldNotValidateMalformedRecordingName() {
-        assertFalse(command.validate(new String[] { "." }));
+        assertFalse(command.validate(new String[] {"."}));
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
     }
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] { "foo" }));
+        assertTrue(command.validate(new String[] {"foo"}));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
@@ -76,11 +76,12 @@ class WaitForCommandTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout(),
+        MatcherAssert.assertThat(
+                stdout(),
                 Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
 
         verifyNoMoreInteractions(connection);
@@ -96,12 +97,12 @@ class WaitForCommandTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout(),
-                Matchers.equalTo("Recording \"foo\" is continuous, refusing to wait\n"));
+        MatcherAssert.assertThat(
+                stdout(), Matchers.equalTo("Recording \"foo\" is continuous, refusing to wait\n"));
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
@@ -113,11 +114,11 @@ class WaitForCommandTest extends TestBase {
         when(descriptorA.getName()).thenReturn("foo");
         when(descriptorA.isContinuous()).thenReturn(false);
         when(descriptorA.getState())
-            .thenReturn(RecordingState.RUNNING)
-            .thenReturn(RecordingState.RUNNING)
-            .thenReturn(RecordingState.RUNNING)
-            .thenReturn(RecordingState.RUNNING)
-            .thenReturn(RecordingState.STOPPED);
+                .thenReturn(RecordingState.RUNNING)
+                .thenReturn(RecordingState.RUNNING)
+                .thenReturn(RecordingState.RUNNING)
+                .thenReturn(RecordingState.RUNNING)
+                .thenReturn(RecordingState.STOPPED);
         when(descriptorA.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptorA.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
 
@@ -127,21 +128,24 @@ class WaitForCommandTest extends TestBase {
         when(descriptorA.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptorA.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
         when(connection.getApproximateServerTime(clock))
-            .thenReturn(5_000L)
-            .thenReturn(5_001L)
-            .thenReturn(6_000L);
+                .thenReturn(5_000L)
+                .thenReturn(5_001L)
+                .thenReturn(6_000L);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(connection, Mockito.times(5)).getService();
         verify(service, Mockito.times(5)).getAvailableRecordings();
         // Use byte array constructor due to \b control characters in output
-        String s = new String(
-                new byte[] { 8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 8, 8, 8, 8, 8, 8,
-                        8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 46, 10 }
-                        );
+        String s =
+                new String(
+                        new byte[] {
+                            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 8, 8,
+                            8, 8, 8, 8, 8, 8, 8, 8, 8, 8, 46, 32, 46, 32, 46, 32, 46, 32, 46, 32,
+                            46, 8, 46, 10
+                        });
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(s));
 
         verifyNoMoreInteractions(connection);
@@ -159,7 +163,7 @@ class WaitForCommandTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
@@ -168,5 +172,4 @@ class WaitForCommandTest extends TestBase {
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
     }
-
 }

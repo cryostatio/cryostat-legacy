@@ -51,5 +51,4 @@ class TtyClientReaderTest {
         String res = clientReader.readLine();
         MatcherAssert.assertThat(res, Matchers.equalTo("foo"));
     }
-
 }

@@ -22,7 +22,8 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
 
     private final ClientWriter cw;
 
-    @Inject SearchEventsCommand(ClientWriter cw) {
+    @Inject
+    SearchEventsCommand(ClientWriter cw) {
         this.cw = cw;
     }
 
@@ -43,10 +44,10 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
 
     @Override
     public void execute(String[] args) throws Exception {
-        Collection<? extends IEventTypeInfo> matchingEvents = getService().getAvailableEventTypes()
-            .stream()
-            .filter(event -> eventMatchesSearchTerm(event, args[0].toLowerCase()))
-            .collect(Collectors.toList());
+        Collection<? extends IEventTypeInfo> matchingEvents =
+                getService().getAvailableEventTypes().stream()
+                        .filter(event -> eventMatchesSearchTerm(event, args[0].toLowerCase()))
+                        .collect(Collectors.toList());
 
         if (matchingEvents.isEmpty()) {
             cw.println("\tNo matches");
@@ -57,10 +58,10 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            Collection<? extends IEventTypeInfo> matchingEvents = getService().getAvailableEventTypes()
-                .stream()
-                .filter(event -> eventMatchesSearchTerm(event, args[0].toLowerCase()))
-                .collect(Collectors.toList());
+            Collection<? extends IEventTypeInfo> matchingEvents =
+                    getService().getAvailableEventTypes().stream()
+                            .filter(event -> eventMatchesSearchTerm(event, args[0].toLowerCase()))
+                            .collect(Collectors.toList());
             List<SerializableEventTypeInfo> events = new ArrayList<>(matchingEvents.size());
             for (IEventTypeInfo info : matchingEvents) {
                 events.add(new SerializableEventTypeInfo(info));
@@ -72,7 +73,11 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     }
 
     private void printEvent(IEventTypeInfo event) {
-        cw.println(String.format("\t%s\toptions: %s", event.getEventTypeID().getFullKey(), event.getOptionDescriptors().keySet().toString()));
+        cw.println(
+                String.format(
+                        "\t%s\toptions: %s",
+                        event.getEventTypeID().getFullKey(),
+                        event.getOptionDescriptors().keySet().toString()));
     }
 
     private boolean eventMatchesSearchTerm(IEventTypeInfo event, String term) {
@@ -82,10 +87,9 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
         terms.add(event.getDescription());
         terms.add(event.getName());
 
-        return terms
-            .stream()
-            .filter(s -> s != null)
-            .map(String::toLowerCase)
-            .anyMatch(s -> s.contains(term));
+        return terms.stream()
+                .filter(s -> s != null)
+                .map(String::toLowerCase)
+                .anyMatch(s -> s.contains(term));
     }
 }

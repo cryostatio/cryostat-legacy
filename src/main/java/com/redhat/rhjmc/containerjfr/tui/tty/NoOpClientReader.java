@@ -11,5 +11,5 @@ class NoOpClientReader implements ClientReader {
     }
 
     @Override
-    public void close() throws IOException { }
+    public void close() throws IOException {}
 }

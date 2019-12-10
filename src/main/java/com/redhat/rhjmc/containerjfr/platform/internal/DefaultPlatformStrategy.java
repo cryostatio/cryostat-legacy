@@ -35,5 +35,4 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
         }
         return new DefaultPlatformClient(logger, discoveryClient);
     }
-
 }

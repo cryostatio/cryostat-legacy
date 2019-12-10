@@ -21,6 +21,11 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.Random;
 
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -32,23 +37,15 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class WebServerTest {
@@ -77,7 +74,10 @@ class WebServerTest {
 
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
-        assertDoesNotThrow(() -> new WebServer(httpServer, netConf, env, recordingsPath, reportGenerator, logger));
+        assertDoesNotThrow(
+                () ->
+                        new WebServer(
+                                httpServer, netConf, env, recordingsPath, reportGenerator, logger));
     }
 
     @Test
@@ -97,11 +97,14 @@ class WebServerTest {
     @Test
     void shouldThrowExceptionIfServerCannotStart() {
         Throwable cause = new SocketException();
-        Exception e = assertThrows(SocketException.class, () -> {
-            doThrow(cause).when(httpServer).start();
+        Exception e =
+                assertThrows(
+                        SocketException.class,
+                        () -> {
+                            doThrow(cause).when(httpServer).start();
 
-            exporter.start();
-        });
+                            exporter.start();
+                        });
         MatcherAssert.assertThat(e, Matchers.equalTo(cause));
     }
 
@@ -186,7 +189,8 @@ class WebServerTest {
         when(netConf.getWebServerHost()).thenReturn("foo");
         when(httpServer.isSsl()).thenReturn(false);
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", defaultPort, "")));
+        MatcherAssert.assertThat(
+                exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", defaultPort, "")));
     }
 
     @Test
@@ -196,7 +200,8 @@ class WebServerTest {
         when(netConf.getWebServerHost()).thenReturn("foo");
         when(httpServer.isSsl()).thenReturn(true);
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("https", "foo", defaultPort, "")));
+        MatcherAssert.assertThat(
+                exporter.getHostUrl(), Matchers.equalTo(new URL("https", "foo", defaultPort, "")));
     }
 
     @Test
@@ -205,73 +210,62 @@ class WebServerTest {
         when(netConf.getExternalWebServerPort()).thenReturn(defaultPort);
         when(netConf.getWebServerHost()).thenReturn("foo");
 
-        MatcherAssert.assertThat(exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", 1234, "")));
+        MatcherAssert.assertThat(
+                exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", 1234, "")));
     }
 
     @ParameterizedTest()
-    @ValueSource(strings = {
-        "foo",
-        "bar.jfr",
-        "some-recording.jfr",
-        "another_recording",
-        "alpha123"
-    })
+    @ValueSource(
+            strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideDownloadUrl(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
-        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("http://example.com:8181/recordings/" + recordingName));
+        MatcherAssert.assertThat(
+                exporter.getDownloadURL(recordingName),
+                Matchers.equalTo("http://example.com:8181/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
-    @ValueSource(strings = {
-        "foo",
-        "bar.jfr",
-        "some-recording.jfr",
-        "another_recording",
-        "alpha123"
-    })
+    @ValueSource(
+            strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideDownloadUrlWithHttps(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
         when(httpServer.isSsl()).thenReturn(true);
 
-        MatcherAssert.assertThat(exporter.getDownloadURL(recordingName), Matchers.equalTo("https://example.com:8181/recordings/" + recordingName));
+        MatcherAssert.assertThat(
+                exporter.getDownloadURL(recordingName),
+                Matchers.equalTo("https://example.com:8181/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
-    @ValueSource(strings = {
-        "foo",
-        "bar.jfr",
-        "some-recording.jfr",
-        "another_recording",
-        "alpha123"
-    })
+    @ValueSource(
+            strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideReportUrl(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
-        MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("http://example.com:8181/reports/" + recordingName));
+        MatcherAssert.assertThat(
+                exporter.getReportURL(recordingName),
+                Matchers.equalTo("http://example.com:8181/reports/" + recordingName));
     }
 
     @ParameterizedTest()
-    @ValueSource(strings = {
-        "foo",
-        "bar.jfr",
-        "some-recording.jfr",
-        "another_recording",
-        "alpha123"
-    })
+    @ValueSource(
+            strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideReportUrlWithHttps(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
         when(httpServer.isSsl()).thenReturn(true);
 
-        MatcherAssert.assertThat(exporter.getReportURL(recordingName), Matchers.equalTo("https://example.com:8181/reports/" + recordingName));
+        MatcherAssert.assertThat(
+                exporter.getReportURL(recordingName),
+                Matchers.equalTo("https://example.com:8181/reports/" + recordingName));
     }
 
     @Test
@@ -349,11 +343,13 @@ class WebServerTest {
         when(service.openStream(descriptor, false)).thenReturn(new ByteArrayInputStream(src));
 
         Buffer dst = Buffer.buffer(1024 * 1024);
-        when(rep.write(any(Buffer.class))).thenAnswer(invocation -> {
-            Buffer chunk = invocation.getArgument(0);
-            dst.appendBuffer(chunk);
-            return null;
-        });
+        when(rep.write(any(Buffer.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Buffer chunk = invocation.getArgument(0);
+                            dst.appendBuffer(chunk);
+                            return null;
+                        });
 
         exporter.connectionChanged(connection);
         exporter.addRecording(descriptor);
@@ -364,7 +360,8 @@ class WebServerTest {
     }
 
     @Test
-    void shouldHandleReportPageRequest() throws FlightRecorderException, IOException, CouldNotLoadRecordingException {
+    void shouldHandleReportPageRequest()
+            throws FlightRecorderException, IOException, CouldNotLoadRecordingException {
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);

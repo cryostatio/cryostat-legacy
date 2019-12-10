@@ -13,34 +13,32 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
 
+import dagger.Module;
+import dagger.Provides;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.conn.ssl.TrustAllStrategy;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import dagger.Module;
-import dagger.Provides;
-
-@Module(includes = {
-        ReportsModule.class
-})
+@Module(includes = {ReportsModule.class})
 public abstract class NetworkModule {
     @Provides
     @Singleton
-    static HttpServer provideHttpServer(NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
+    static HttpServer provideHttpServer(
+            NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
         return new HttpServer(netConf, sslConf, logger);
     }
 
     @Provides
     @Singleton
-    static NetworkConfiguration provideNetworkConfiguration(Environment env, NetworkResolver resolver) {
+    static NetworkConfiguration provideNetworkConfiguration(
+            Environment env, NetworkResolver resolver) {
         return new NetworkConfiguration(env, resolver);
     }
 
@@ -63,22 +61,23 @@ public abstract class NetworkModule {
         }
 
         try {
-            SSLConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
-                    new SSLContextBuilder()
-                    .loadTrustMaterial(null, new TrustAllStrategy())
-                    .build(),
-                    SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER
-                    );
+            SSLConnectionSocketFactory sslSocketFactory =
+                    new SSLConnectionSocketFactory(
+                            new SSLContextBuilder()
+                                    .loadTrustMaterial(null, new TrustAllStrategy())
+                                    .build(),
+                            SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
 
-            Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory>create()
-                .register("http", new PlainConnectionSocketFactory())
-                .register("https", sslSocketFactory)
-                .build();
+            Registry<ConnectionSocketFactory> registry =
+                    RegistryBuilder.<ConnectionSocketFactory>create()
+                            .register("http", new PlainConnectionSocketFactory())
+                            .register("https", sslSocketFactory)
+                            .build();
 
             return HttpClients.custom()
-                .setSSLSocketFactory(sslSocketFactory)
-                .setConnectionManager(new BasicHttpClientConnectionManager(registry))
-                .build();
+                    .setSSLSocketFactory(sslSocketFactory)
+                    .setConnectionManager(new BasicHttpClientConnectionManager(registry))
+                    .build();
         } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
             throw new RuntimeException(e); // @Provides methods may only throw unchecked exceptions
         }

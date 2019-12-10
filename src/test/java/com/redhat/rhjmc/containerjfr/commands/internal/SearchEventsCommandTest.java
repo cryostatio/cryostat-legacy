@@ -11,10 +11,15 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,18 +31,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
-import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 @ExtendWith(MockitoExtension.class)
 class SearchEventsCommandTest {
 
     SearchEventsCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    JFRConnection connection;
+    @Mock ClientWriter cw;
+    @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
@@ -58,10 +58,10 @@ class SearchEventsCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints={
-        0,
-        2,
-    })
+    @ValueSource(
+            ints = {
+                0, 2,
+            })
     void shouldNotValidateIncorrectArgc(int c) {
         assertFalse(command.validate(new String[c]));
         verify(cw).println("Expected one argument: search term string");
@@ -72,7 +72,7 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(cw).println("\tNo matches");
     }
@@ -82,7 +82,7 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Collections.emptyList()));
     }
@@ -107,7 +107,7 @@ class SearchEventsCommandTest {
         IEventTypeID eventIdC = mock(IEventTypeID.class);
         when(eventIdC.getFullKey()).thenReturn("com.example.C");
         when(infoC.getEventTypeID()).thenReturn(eventIdC);
-        when(infoC.getHierarchicalCategory()).thenReturn(new String[]{ "com", "example", "Foo"});
+        when(infoC.getHierarchicalCategory()).thenReturn(new String[] {"com", "example", "Foo"});
 
         IEventTypeInfo infoD = mock(IEventTypeInfo.class);
         IEventTypeID eventIdD = mock(IEventTypeID.class);
@@ -128,7 +128,7 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(events);
 
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         StringBuilder sb = new StringBuilder();
         ArgumentCaptor<String> outCaptor = ArgumentCaptor.forClass(String.class);
@@ -137,18 +137,19 @@ class SearchEventsCommandTest {
             sb.append(s).append('\n');
         }
         String out = sb.toString();
-        MatcherAssert.assertThat(out, Matchers.allOf(
-            Matchers.containsString("\tcom.example.A\toptions: []"),
-            Matchers.containsString("\tcom.example.B\toptions: []"),
-            Matchers.containsString("\tcom.example.C\toptions: []"),
-            Matchers.containsString("\tcom.example.Foo\toptions: []")
-        ));
-        MatcherAssert.assertThat(out, Matchers.not(
-            Matchers.anyOf(
-                Matchers.containsStringIgnoringCase("bar"),
-                Matchers.containsString("com.example.E")
-            )
-        ));
+        MatcherAssert.assertThat(
+                out,
+                Matchers.allOf(
+                        Matchers.containsString("\tcom.example.A\toptions: []"),
+                        Matchers.containsString("\tcom.example.B\toptions: []"),
+                        Matchers.containsString("\tcom.example.C\toptions: []"),
+                        Matchers.containsString("\tcom.example.Foo\toptions: []")));
+        MatcherAssert.assertThat(
+                out,
+                Matchers.not(
+                        Matchers.anyOf(
+                                Matchers.containsStringIgnoringCase("bar"),
+                                Matchers.containsString("com.example.E"))));
     }
 
     @Test
@@ -171,7 +172,7 @@ class SearchEventsCommandTest {
         IEventTypeID eventIdC = mock(IEventTypeID.class);
         when(eventIdC.getFullKey()).thenReturn("com.example.C");
         when(infoC.getEventTypeID()).thenReturn(eventIdC);
-        when(infoC.getHierarchicalCategory()).thenReturn(new String[]{ "com", "example", "Foo"});
+        when(infoC.getHierarchicalCategory()).thenReturn(new String[] {"com", "example", "Foo"});
 
         IEventTypeInfo infoD = mock(IEventTypeInfo.class);
         IEventTypeID eventIdD = mock(IEventTypeID.class);
@@ -192,16 +193,16 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
-        MatcherAssert.assertThat(out.getPayload(),
-            Matchers.equalTo(Arrays.asList(
-                new SerializableEventTypeInfo(infoA),
-                new SerializableEventTypeInfo(infoB),
-                new SerializableEventTypeInfo(infoC),
-                new SerializableEventTypeInfo(infoD)
-            ))
-        );
+        MatcherAssert.assertThat(
+                out.getPayload(),
+                Matchers.equalTo(
+                        Arrays.asList(
+                                new SerializableEventTypeInfo(infoA),
+                                new SerializableEventTypeInfo(infoB),
+                                new SerializableEventTypeInfo(infoC),
+                                new SerializableEventTypeInfo(infoD))));
     }
 
     @Test
@@ -209,9 +210,9 @@ class SearchEventsCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(NullPointerException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
     }
-
 }

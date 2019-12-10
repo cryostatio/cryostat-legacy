@@ -3,14 +3,14 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 import java.io.IOException;
 import java.util.Collections;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
 
 class WsCommandExecutor implements CommandExecutor {
@@ -23,7 +23,12 @@ class WsCommandExecutor implements CommandExecutor {
     private volatile Thread readingThread;
     private volatile boolean running = true;
 
-    WsCommandExecutor(Logger logger, MessagingServer server, ClientReader cr, Lazy<SerializableCommandRegistry> commandRegistry, Gson gson) {
+    WsCommandExecutor(
+            Logger logger,
+            MessagingServer server,
+            ClientReader cr,
+            Lazy<SerializableCommandRegistry> commandRegistry,
+            Gson gson) {
         this.logger = logger;
         this.server = server;
         this.cr = cr;
@@ -47,7 +52,8 @@ class WsCommandExecutor implements CommandExecutor {
                     }
                     String commandName = commandMessage.command;
                     String[] args = commandMessage.args.toArray(new String[0]);
-                    if (commandName == null || !registry.get().getRegisteredCommandNames().contains(commandName)) {
+                    if (commandName == null
+                            || !registry.get().getRegisteredCommandNames().contains(commandName)) {
                         flush(new InvalidCommandResponseMessage(commandName));
                         continue;
                     }
@@ -63,7 +69,10 @@ class WsCommandExecutor implements CommandExecutor {
                     if (out instanceof SerializableCommand.SuccessOutput) {
                         flush(new SuccessResponseMessage<Void>(commandName, null));
                     } else if (out instanceof SerializableCommand.FailureOutput) {
-                        flush(new FailureResponseMessage(commandName, ((SerializableCommand.FailureOutput) out).getPayload()));
+                        flush(
+                                new FailureResponseMessage(
+                                        commandName,
+                                        ((SerializableCommand.FailureOutput) out).getPayload()));
                     } else if (out instanceof SerializableCommand.StringOutput) {
                         flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.ListOutput) {
@@ -71,7 +80,10 @@ class WsCommandExecutor implements CommandExecutor {
                     } else if (out instanceof SerializableCommand.MapOutput) {
                         flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.ExceptionOutput) {
-                        flush(new CommandExceptionResponseMessage(commandName, ((SerializableCommand.ExceptionOutput) out).getPayload()));
+                        flush(
+                                new CommandExceptionResponseMessage(
+                                        commandName,
+                                        ((SerializableCommand.ExceptionOutput) out).getPayload()));
                     } else {
                         flush(new CommandExceptionResponseMessage(commandName, "internal error"));
                     }
@@ -100,5 +112,4 @@ class WsCommandExecutor implements CommandExecutor {
     private void flush(ResponseMessage<?> message) {
         server.flush(message);
     }
-
 }

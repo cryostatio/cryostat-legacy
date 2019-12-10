@@ -56,7 +56,8 @@ class SerializableCommandTest {
 
         @Test
         void shouldContainExpectedData() {
-            MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Collections.singletonList("foo")));
+            MatcherAssert.assertThat(
+                    out.getPayload(), Matchers.equalTo(Collections.singletonList("foo")));
         }
     }
 
@@ -86,7 +87,8 @@ class SerializableCommandTest {
 
         @Test
         void shouldContainExpectedMessage() {
-            MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("IOException: for testing reasons"));
+            MatcherAssert.assertThat(
+                    out.getPayload(), Matchers.equalTo("IOException: for testing reasons"));
         }
     }
 
@@ -104,5 +106,4 @@ class SerializableCommandTest {
             MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("for testing reasons"));
         }
     }
-
 }

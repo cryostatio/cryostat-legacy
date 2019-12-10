@@ -24,7 +24,10 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     private final WebServer exporter;
 
     @Inject
-    ListSavedRecordingsCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath,
+    ListSavedRecordingsCommand(
+            ClientWriter cw,
+            FileSystem fs,
+            @Named("RECORDINGS_PATH") Path recordingsPath,
             WebServer exporter) {
         this.cw = cw;
         this.fs = fs;
@@ -54,7 +57,9 @@ class ListSavedRecordingsCommand implements SerializableCommand {
         List<SavedRecordingDescriptor> recordings = new ArrayList<>();
         try {
             for (String name : fs.listDirectoryChildren(recordingsPath)) {
-                recordings.add(new SavedRecordingDescriptor(name, exporter.getDownloadURL(name), exporter.getReportURL(name)));
+                recordings.add(
+                        new SavedRecordingDescriptor(
+                                name, exporter.getDownloadURL(name), exporter.getReportURL(name)));
             }
         } catch (IOException e) {
             return new ExceptionOutput(e);
@@ -75,5 +80,4 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     public boolean isAvailable() {
         return fs.isDirectory(recordingsPath);
     }
-
 }

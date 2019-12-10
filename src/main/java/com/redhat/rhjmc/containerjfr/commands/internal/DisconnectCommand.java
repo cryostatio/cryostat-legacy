@@ -5,10 +5,11 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import dagger.Lazy;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
+
+import dagger.Lazy;
 
 @Singleton
 class DisconnectCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -16,7 +17,8 @@ class DisconnectCommand extends AbstractConnectedCommand implements Serializable
     private final Lazy<Set<ConnectionListener>> connectionListeners;
     private final ClientWriter cw;
 
-    @Inject DisconnectCommand(Lazy<Set<ConnectionListener>> connectionListeners, ClientWriter cw) {
+    @Inject
+    DisconnectCommand(Lazy<Set<ConnectionListener>> connectionListeners, ClientWriter cw) {
         this.connectionListeners = connectionListeners;
         this.cw = cw;
     }
@@ -55,5 +57,4 @@ class DisconnectCommand extends AbstractConnectedCommand implements Serializable
             cw.println("No active connection");
         }
     }
-
 }

@@ -10,10 +10,14 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,20 +27,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForDownloadCommandTest extends TestBase {
 
     WaitForDownloadCommand command;
-    @Mock
-    WebServer exporter;
-    @Mock
-    JFRConnection connection;
+    @Mock WebServer exporter;
+    @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
-    @Mock
-    Clock clock;
+    @Mock Clock clock;
 
     @BeforeEach
     void setup() {
@@ -68,13 +67,13 @@ class WaitForDownloadCommandTest extends TestBase {
 
     @Test
     void shouldNotExpectMalformedRecordingNameArg() {
-        assertFalse(command.validate(new String[]{ "." }));
+        assertFalse(command.validate(new String[] {"."}));
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
     }
 
     @Test
     void shouldValidateRecordingNameArg() {
-        assertTrue(command.validate(new String[]{ "foo" }));
+        assertTrue(command.validate(new String[] {"foo"}));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
@@ -87,10 +86,12 @@ class WaitForDownloadCommandTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[]{ "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(service).getAvailableRecordings();
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
+        MatcherAssert.assertThat(
+                stdout(),
+                Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
@@ -107,17 +108,18 @@ class WaitForDownloadCommandTest extends TestBase {
         when(recordingDescriptor.getName()).thenReturn("foo");
 
         when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recordingDescriptor));
-        when(exporter.getDownloadCount(Mockito.anyString()))
-                .thenReturn(0)
-                .thenReturn(1);
+        when(service.getAvailableRecordings())
+                .thenReturn(Collections.singletonList(recordingDescriptor));
+        when(exporter.getDownloadCount(Mockito.anyString())).thenReturn(0).thenReturn(1);
         when(exporter.getDownloadURL(Mockito.anyString())).thenReturn("download-url");
 
-        command.execute(new String[]{ "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(service).getAvailableRecordings();
 
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Waiting for download of recording \"foo\" at download-url\n"));
+        MatcherAssert.assertThat(
+                stdout(),
+                Matchers.equalTo("Waiting for download of recording \"foo\" at download-url\n"));
 
         ArgumentCaptor<String> downloadCaptor = ArgumentCaptor.forClass(String.class);
         verify(exporter, Mockito.times(2)).getDownloadCount(downloadCaptor.capture());
@@ -131,5 +133,4 @@ class WaitForDownloadCommandTest extends TestBase {
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(exporter);
     }
-
 }

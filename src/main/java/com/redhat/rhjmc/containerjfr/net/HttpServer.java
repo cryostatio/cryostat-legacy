@@ -1,15 +1,16 @@
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.concurrent.CompletableFuture;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.ServerWebSocket;
-
-import java.net.SocketException;
-import java.net.UnknownHostException;
-import java.util.concurrent.CompletableFuture;
 
 public class HttpServer {
 
@@ -18,8 +19,10 @@ public class HttpServer {
     private final Logger logger;
 
     private final Vertx vertx;
-    private final HandlerDelegate<HttpServerRequest> requestHandlerDelegate = new HandlerDelegate<>();
-    private final HandlerDelegate<ServerWebSocket> websocketHandlerDelegate = new HandlerDelegate<>();
+    private final HandlerDelegate<HttpServerRequest> requestHandlerDelegate =
+            new HandlerDelegate<>();
+    private final HandlerDelegate<ServerWebSocket> websocketHandlerDelegate =
+            new HandlerDelegate<>();
 
     private final io.vertx.core.http.HttpServer server;
 
@@ -28,10 +31,13 @@ public class HttpServer {
         this.sslConf = sslConf;
         this.logger = logger;
         this.vertx = Vertx.vertx();
-        this.server = vertx.createHttpServer(sslConf.applyToHttpServerOptions(new HttpServerOptions()
-                .setPort(netConf.getInternalWebServerPort())
-                .setCompressionSupported(true)
-                .setLogActivity(true)));
+        this.server =
+                vertx.createHttpServer(
+                        sslConf.applyToHttpServerOptions(
+                                new HttpServerOptions()
+                                        .setPort(netConf.getInternalWebServerPort())
+                                        .setCompressionSupported(true)
+                                        .setLogActivity(true)));
 
         if (!sslConf.enabled()) {
             this.logger.warn("No available SSL certificates. Fallback to plain HTTP.");
@@ -47,19 +53,24 @@ public class HttpServer {
         this.server
                 .requestHandler(requestHandlerDelegate)
                 .websocketHandler(websocketHandlerDelegate)
-                .listen(res -> {
-                    if (res.failed()) {
-                        future.completeExceptionally(res.cause());
-                        return;
-                    }
-                    future.complete(null);
-                });
+                .listen(
+                        res -> {
+                            if (res.failed()) {
+                                future.completeExceptionally(res.cause());
+                                return;
+                            }
+                            future.complete(null);
+                        });
 
         future.join(); // wait for async deployment to complete
 
-        logger.info(String.format("%s service running on %s://%s:%d",
-                isSsl() ? "HTTPS" : "HTTP", isSsl() ? "https" : "http", 
-                netConf.getWebServerHost(), netConf.getExternalWebServerPort()));
+        logger.info(
+                String.format(
+                        "%s service running on %s://%s:%d",
+                        isSsl() ? "HTTPS" : "HTTP",
+                        isSsl() ? "https" : "http",
+                        netConf.getWebServerHost(),
+                        netConf.getExternalWebServerPort()));
     }
 
     public void stop() {
@@ -68,14 +79,15 @@ public class HttpServer {
         }
 
         CompletableFuture<Void> future = new CompletableFuture<>();
-        this.server.close(res -> {
-            if (res.failed()) {
-                future.completeExceptionally(res.cause());
-                return;
-            }
+        this.server.close(
+                res -> {
+                    if (res.failed()) {
+                        future.completeExceptionally(res.cause());
+                        return;
+                    }
 
-            future.complete(null);
-        });
+                    future.complete(null);
+                });
         future.join(); // wait for vertx to be closed
     }
 

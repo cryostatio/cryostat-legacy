@@ -4,6 +4,7 @@ import static org.mockito.Mockito.verify;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,8 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PingCommandTest {
 
     PingCommand command;
-    @Mock
-    ClientWriter cw;
+    @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
@@ -37,10 +37,10 @@ class PingCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {
-        1,
-        2,
-    })
+    @ValueSource(
+            ints = {
+                1, 2,
+            })
     void shouldNotExpectArgs(int argc) {
         MatcherAssert.assertThat(command.validate(new String[argc]), Matchers.is(false));
         verify(cw).println("No arguments expected");
@@ -62,5 +62,4 @@ class PingCommandTest {
         command.execute(new String[0]);
         verify(cw).println("\tpong");
     }
-
 }

@@ -15,7 +15,8 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     private final ClientWriter cw;
 
-    @Inject StopRecordingCommand(ClientWriter cw) {
+    @Inject
+    StopRecordingCommand(ClientWriter cw) {
         this.cw = cw;
     }
 
@@ -24,9 +25,7 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
         return "stop";
     }
 
-    /**
-     * Argument is recording name
-     */
+    /** Argument is recording name */
     @Override
     public void execute(String[] args) throws Exception {
         String name = args[0];
@@ -49,7 +48,8 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
                 getService().stop(descriptor.get());
                 return new SuccessOutput();
             } else {
-                return new FailureOutput(String.format("Recording with name \"%s\" not found", name));
+                return new FailureOutput(
+                        String.format("Recording with name \"%s\" not found", name));
             }
         } catch (Exception e) {
             return new ExceptionOutput(e);

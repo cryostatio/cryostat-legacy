@@ -12,10 +12,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,19 +30,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 @ExtendWith(MockitoExtension.class)
 class ListEventTypesCommandTest {
 
     ListEventTypesCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    JFRConnection connection;
+    @Mock ClientWriter cw;
+    @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
@@ -65,10 +65,7 @@ class ListEventTypesCommandTest {
     @SuppressWarnings("unchecked")
     @Test
     void shouldPrintEventTypes() throws Exception {
-        Collection eventTypes = Arrays.asList(
-            createEvent("foo"),
-            createEvent("bar")
-        );
+        Collection eventTypes = Arrays.asList(createEvent("foo"), createEvent("bar"));
 
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(eventTypes);
@@ -89,16 +86,19 @@ class ListEventTypesCommandTest {
         when(eventInfo.getName()).thenReturn("foo");
         when(eventInfo.getEventTypeID()).thenReturn(eventTypeId);
         when(eventInfo.getDescription()).thenReturn("Foo description");
-        when(eventInfo.getHierarchicalCategory()).thenReturn(new String[] { "com", "example" });
+        when(eventInfo.getHierarchicalCategory()).thenReturn(new String[] {"com", "example"});
         when(eventInfo.getOptionDescriptors()).thenReturn(Collections.emptyMap());
 
         when(connection.getService()).thenReturn(service);
-        when(service.getAvailableEventTypes()).thenReturn((Collection) Collections.singleton(eventInfo));
+        when(service.getAvailableEventTypes())
+                .thenReturn((Collection) Collections.singleton(eventInfo));
 
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
-        MatcherAssert.assertThat(out.getPayload(),
-                Matchers.equalTo(Collections.singletonList(new SerializableEventTypeInfo(eventInfo))));
+        MatcherAssert.assertThat(
+                out.getPayload(),
+                Matchers.equalTo(
+                        Collections.singletonList(new SerializableEventTypeInfo(eventInfo))));
     }
 
     @Test
@@ -107,7 +107,8 @@ class ListEventTypesCommandTest {
         when(service.getAvailableEventTypes()).thenThrow(FlightRecorderException.class);
 
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
 
@@ -116,5 +117,4 @@ class ListEventTypesCommandTest {
         when(info.toString()).thenReturn("mocked toString: " + name);
         return info;
     }
-
 }

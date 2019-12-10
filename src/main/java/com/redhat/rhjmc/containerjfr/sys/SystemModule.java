@@ -2,12 +2,12 @@ package com.redhat.rhjmc.containerjfr.sys;
 
 import javax.inject.Singleton;
 
-import dagger.Module;
-import dagger.Provides;
-
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+
+import dagger.Module;
+import dagger.Provides;
 
 @Module
 public abstract class SystemModule {

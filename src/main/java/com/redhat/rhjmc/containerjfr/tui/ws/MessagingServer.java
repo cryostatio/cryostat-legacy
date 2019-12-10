@@ -6,13 +6,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
 
-import com.google.gson.Gson;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
+import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class MessagingServer {
@@ -32,15 +31,16 @@ class MessagingServer {
     void start() throws SocketException, UnknownHostException {
         server.start();
 
-        server.websocketHandler((sws) -> {
-            if (!"/command".equals(sws.path())) {
-                sws.reject(404);
-                return;
-            }
-            
-            sws.accept();
-            new WsClientReaderWriter(this, this.logger, this.gson).handle(sws);
-        });
+        server.websocketHandler(
+                (sws) -> {
+                    if (!"/command".equals(sws.path())) {
+                        sws.reject(404);
+                        return;
+                    }
+
+                    sws.accept();
+                    new WsClientReaderWriter(this, this.logger, this.gson).handle(sws);
+                });
     }
 
     void addConnection(WsClientReaderWriter crw) {
@@ -49,7 +49,7 @@ class MessagingServer {
     }
 
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED")
-        // tryAcquire return value is irrelevant
+    // tryAcquire return value is irrelevant
     void removeConnection(WsClientReaderWriter crw) {
         if (connections.remove(crw)) {
             semaphore.tryAcquire();
@@ -115,5 +115,4 @@ class MessagingServer {
             }
         };
     }
-
 }

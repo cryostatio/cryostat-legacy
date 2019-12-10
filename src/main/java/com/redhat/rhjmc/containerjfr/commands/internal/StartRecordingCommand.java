@@ -6,8 +6,8 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
 class StartRecordingCommand extends AbstractRecordingCommand implements SerializableCommand {
@@ -15,7 +15,10 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     private final WebServer exporter;
 
     @Inject
-    StartRecordingCommand(ClientWriter cw, WebServer exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    StartRecordingCommand(
+            ClientWriter cw,
+            WebServer exporter,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
@@ -27,9 +30,9 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     }
 
     /**
-     * Two args expected.
-     * First argument is recording name, second argument is recording length in seconds.
-     * Second argument is comma-separated event options list, ex. jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
+     * Two args expected. First argument is recording name, second argument is recording length in
+     * seconds. Second argument is comma-separated event options list, ex.
+     * jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
      */
     @Override
     public void execute(String[] args) throws Exception {
@@ -41,9 +44,8 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
             return;
         }
 
-        IConstrainedMap<String> recordingOptions = recordingOptionsBuilderFactory.create(getService())
-            .name(name)
-            .build();
+        IConstrainedMap<String> recordingOptions =
+                recordingOptionsBuilderFactory.create(getService()).name(name).build();
         this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
     }
 
@@ -54,12 +56,12 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
             String events = args[1];
 
             if (getDescriptorByName(name).isPresent()) {
-                return new FailureOutput(String.format("Recording with name \"%s\" already exists", name));
+                return new FailureOutput(
+                        String.format("Recording with name \"%s\" already exists", name));
             }
 
-            IConstrainedMap<String> recordingOptions = recordingOptionsBuilderFactory.create(getService())
-                .name(name)
-                .build();
+            IConstrainedMap<String> recordingOptions =
+                    recordingOptionsBuilderFactory.create(getService()).name(name).build();
             this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
             return new StringOutput(this.exporter.getDownloadURL(name));
         } catch (Exception e) {

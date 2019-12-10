@@ -1,17 +1,19 @@
 package com.redhat.rhjmc.containerjfr.jmc.serialization;
 
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
 
     private String downloadUrl;
     private String reportUrl;
 
-    public HyperlinkedSerializableRecordingDescriptor(IRecordingDescriptor original, String downloadUrl, String reportUrl)
+    public HyperlinkedSerializableRecordingDescriptor(
+            IRecordingDescriptor original, String downloadUrl, String reportUrl)
             throws QuantityConversionException {
         super(original);
         this.downloadUrl = downloadUrl;

@@ -24,12 +24,14 @@ class EventOptionsBuilder {
     private Map<IEventTypeID, Map<String, IOptionDescriptor<?>>> knownTypes;
     private Map<String, IEventTypeID> eventIds;
 
-    private EventOptionsBuilder(ClientWriter cw, JFRConnection connection) throws FlightRecorderException {
+    private EventOptionsBuilder(ClientWriter cw, JFRConnection connection)
+            throws FlightRecorderException {
         this(cw, connection, () -> FlightRecorderServiceV2.isAvailable(connection.getHandle()));
     }
 
     // Testing only
-    EventOptionsBuilder(ClientWriter cw, JFRConnection connection, Supplier<Boolean> v2) throws FlightRecorderException {
+    EventOptionsBuilder(ClientWriter cw, JFRConnection connection, Supplier<Boolean> v2)
+            throws FlightRecorderException {
         this.isV2 = v2.get();
         this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
         knownTypes = new HashMap<>();
@@ -40,8 +42,11 @@ class EventOptionsBuilder {
         }
 
         for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
-            eventIds.put(eventTypeInfo.getEventTypeID().getFullKey(), eventTypeInfo.getEventTypeID());
-            knownTypes.putIfAbsent(eventTypeInfo.getEventTypeID(), new HashMap<>(eventTypeInfo.getOptionDescriptors()));
+            eventIds.put(
+                    eventTypeInfo.getEventTypeID().getFullKey(), eventTypeInfo.getEventTypeID());
+            knownTypes.putIfAbsent(
+                    eventTypeInfo.getEventTypeID(),
+                    new HashMap<>(eventTypeInfo.getOptionDescriptors()));
         }
     }
 

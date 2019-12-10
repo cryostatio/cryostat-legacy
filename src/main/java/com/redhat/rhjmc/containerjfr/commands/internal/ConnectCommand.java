@@ -9,13 +9,13 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
+
+import org.apache.commons.lang3.StringUtils;
 
 @Singleton
 class ConnectCommand implements SerializableCommand {
@@ -28,7 +28,10 @@ class ConnectCommand implements SerializableCommand {
     private final JFRConnectionToolkit connectionToolkit;
 
     @Inject
-    ConnectCommand(ClientWriter cw, Set<ConnectionListener> connectionListeners, DisconnectCommand disconnect,
+    ConnectCommand(
+            ClientWriter cw,
+            Set<ConnectionListener> connectionListeners,
+            DisconnectCommand disconnect,
             JFRConnectionToolkit connectionToolkit) {
         this.cw = cw;
         this.connectionListeners = connectionListeners;
@@ -107,5 +110,4 @@ class ConnectCommand implements SerializableCommand {
             return new ExceptionOutput(e);
         }
     }
-
 }

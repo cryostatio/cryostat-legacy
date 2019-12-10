@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,8 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ExitCommandTest {
 
     ExitCommand command;
-    @Mock
-    ClientWriter cw;
+    @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
@@ -57,5 +57,4 @@ class ExitCommandTest {
     void shouldNotThrowOnExecute() {
         command.execute(new String[0]);
     }
-
 }

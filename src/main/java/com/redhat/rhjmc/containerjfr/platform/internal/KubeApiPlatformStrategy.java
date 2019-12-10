@@ -44,7 +44,8 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
             return false;
         }
         try {
-            api.listNamespacedService(namespace, null, null, null, null, null, null, null, null, null);
+            api.listNamespacedService(
+                    namespace, null, null, null, null, null, null, null, null, null);
         } catch (ApiException e) {
             logger.debug(e.getResponseBody());
             return false;
@@ -66,5 +67,4 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
             return null;
         }
     }
-
 }

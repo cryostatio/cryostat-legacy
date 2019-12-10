@@ -9,6 +9,7 @@ import com.redhat.rhjmc.containerjfr.commands.internal.ExitCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.tui.AbstractCommandExecutor;
+
 import dagger.Lazy;
 
 class BatchModeExecutor extends AbstractCommandExecutor {

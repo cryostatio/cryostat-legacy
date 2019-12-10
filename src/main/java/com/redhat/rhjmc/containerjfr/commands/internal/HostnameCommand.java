@@ -3,15 +3,16 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 class HostnameCommand implements SerializableCommand {
 
     private final ClientWriter cw;
     private final NetworkResolver resolver;
 
-    @Inject HostnameCommand(ClientWriter cw, NetworkResolver resolver) {
+    @Inject
+    HostnameCommand(ClientWriter cw, NetworkResolver resolver) {
         this.cw = cw;
         this.resolver = resolver;
     }

@@ -12,20 +12,18 @@ import com.redhat.rhjmc.containerjfr.platform.internal.PlatformStrategyModule;
 import dagger.Module;
 import dagger.Provides;
 
-@Module(includes = {
-    PlatformStrategyModule.class
-})
+@Module(includes = {PlatformStrategyModule.class})
 public abstract class PlatformModule {
     @Provides
     @Singleton
     static PlatformClient providePlatformClient(Set<PlatformDetectionStrategy<?>> strategies) {
-        return new SelfDiscoveryPlatformClient(strategies
-            .stream()
-            .sorted()
-            .filter(PlatformDetectionStrategy::isAvailable)
-            .findFirst()
-            .orElseThrow()
-            .get());
+        return new SelfDiscoveryPlatformClient(
+                strategies.stream()
+                        .sorted()
+                        .filter(PlatformDetectionStrategy::isAvailable)
+                        .findFirst()
+                        .orElseThrow()
+                        .get());
     }
 
     @Provides

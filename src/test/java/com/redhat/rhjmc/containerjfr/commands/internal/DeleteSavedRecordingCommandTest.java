@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -26,12 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class DeleteSavedRecordingCommandTest {
 
-    @Mock
-    ClientWriter cw;
-    @Mock
-    FileSystem fs;
-    @Mock
-    Path recordingsPath;
+    @Mock ClientWriter cw;
+    @Mock FileSystem fs;
+    @Mock Path recordingsPath;
     DeleteSavedRecordingCommand command;
 
     @BeforeEach
@@ -45,7 +43,7 @@ class DeleteSavedRecordingCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { 0, 2 })
+    @ValueSource(ints = {0, 2})
     void shouldNotValidateWrongArgCounts(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
         verify(cw).println("Expected one argument: recording name");
@@ -53,7 +51,7 @@ class DeleteSavedRecordingCommandTest {
 
     @Test
     void shouldValidateRecordingNameArg() {
-        Assertions.assertTrue(command.validate(new String[] { "foo" }));
+        Assertions.assertTrue(command.validate(new String[] {"foo"}));
         verifyZeroInteractions(cw);
     }
 
@@ -81,7 +79,7 @@ class DeleteSavedRecordingCommandTest {
         Path filePath = mock(Path.class);
         when(recordingsPath.resolve(Mockito.anyString())).thenReturn(filePath);
 
-        command.execute(new String[]{ "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(recordingsPath).resolve("foo");
         verify(fs).deleteIfExists(filePath);
@@ -94,7 +92,7 @@ class DeleteSavedRecordingCommandTest {
         Path filePath = mock(Path.class);
         when(recordingsPath.resolve(Mockito.anyString())).thenReturn(filePath);
 
-        command.execute(new String[]{ "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(recordingsPath).resolve("foo");
         verify(fs).deleteIfExists(filePath);
@@ -107,7 +105,7 @@ class DeleteSavedRecordingCommandTest {
         Path filePath = mock(Path.class);
         when(recordingsPath.resolve(Mockito.anyString())).thenReturn(filePath);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
@@ -121,10 +119,12 @@ class DeleteSavedRecordingCommandTest {
         Path filePath = mock(Path.class);
         when(recordingsPath.resolve(Mockito.anyString())).thenReturn(filePath);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
-        MatcherAssert.assertThat(((SerializableCommand.FailureOutput) out).getPayload(), Matchers.equalTo("Could not delete saved recording \"foo\""));
+        MatcherAssert.assertThat(
+                ((SerializableCommand.FailureOutput) out).getPayload(),
+                Matchers.equalTo("Could not delete saved recording \"foo\""));
 
         verify(recordingsPath).resolve("foo");
         verify(fs).deleteIfExists(filePath);
@@ -136,12 +136,12 @@ class DeleteSavedRecordingCommandTest {
         Path filePath = mock(Path.class);
         when(recordingsPath.resolve(Mockito.anyString())).thenReturn(filePath);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
 
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
 
         verify(recordingsPath).resolve("foo");
         verify(fs).deleteIfExists(filePath);
     }
-
 }

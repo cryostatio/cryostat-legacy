@@ -16,6 +16,7 @@ import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,12 +30,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class HelpCommandTest {
 
     HelpCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    CommandRegistry registry;
-    @Mock
-    SerializableCommandRegistry serializableRegistry;
+    @Mock ClientWriter cw;
+    @Mock CommandRegistry registry;
+    @Mock SerializableCommandRegistry serializableRegistry;
 
     @BeforeEach
     void setup() {
@@ -65,10 +63,7 @@ class HelpCommandTest {
 
     @Test
     void shouldPrintAvailableCommandNames() throws Exception {
-        Set<String> names = new HashSet<>(Arrays.asList(
-            "foo",
-            "bar"
-        ));
+        Set<String> names = new HashSet<>(Arrays.asList("foo", "bar"));
 
         when(registry.getAvailableCommandNames()).thenReturn(names);
         command.execute(new String[0]);
@@ -81,15 +76,11 @@ class HelpCommandTest {
 
     @Test
     void shouldReturnListOutput() throws Exception {
-        List<String> names = Arrays.asList(
-            "bar",
-            "foo"
-        );
+        List<String> names = Arrays.asList("bar", "foo");
 
         when(serializableRegistry.getAvailableCommandNames()).thenReturn(new HashSet<>(names));
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(names));
     }
-
 }

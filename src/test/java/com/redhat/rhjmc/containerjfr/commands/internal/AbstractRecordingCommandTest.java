@@ -14,9 +14,14 @@ import static org.mockito.Mockito.when;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,9 +30,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
-import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractRecordingCommandTest extends TestBase {
@@ -39,28 +41,34 @@ class AbstractRecordingCommandTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        command = new BaseRecordingCommand(mockClientWriter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        command =
+                new BaseRecordingCommand(
+                        mockClientWriter,
+                        eventOptionsBuilderFactory,
+                        recordingOptionsBuilderFactory);
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "",
-        "jdk:bar:baz",
-        "jdk.Event",
-        "Event",
-    })
+    @ValueSource(
+            strings = {
+                "",
+                "jdk:bar:baz",
+                "jdk.Event",
+                "Event",
+            })
     void shouldNotValidateInvalidEventString(String events) {
         assertFalse(command.validateEvents(events));
         assertThat(stdout(), equalTo(events + " is an invalid events pattern\n"));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "foo.Event:prop=val",
-        "foo.Event:prop=val,bar.Event:thing=1",
-        "foo.class$Inner:prop=val",
-        "ALL"
-    })
+    @ValueSource(
+            strings = {
+                "foo.Event:prop=val",
+                "foo.Event:prop=val,bar.Event:thing=1",
+                "foo.class$Inner:prop=val",
+                "ALL"
+            })
     void shouldValidateValidEventString(String events) {
         assertTrue(command.validateEvents(events));
         assertThat(stdout(), emptyString());
@@ -73,7 +81,8 @@ class AbstractRecordingCommandTest extends TestBase {
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
 
-        command.enableEvents("foo.Bar$Inner:prop=some,bar.Baz$Inner2:key=val,jdk.CPULoad:enabled=true");
+        command.enableEvents(
+                "foo.Bar$Inner:prop=some,bar.Baz$Inner2:key=val,jdk.CPULoad:enabled=true");
 
         verify(builder).addEvent("foo.Bar$Inner", "prop", "some");
         verify(builder).addEvent("bar.Baz$Inner2", "key", "val");
@@ -97,7 +106,8 @@ class AbstractRecordingCommandTest extends TestBase {
         when(mockEvent.getEventTypeID()).thenReturn(mockEventTypeId);
         IFlightRecorderService mockService = mock(IFlightRecorderService.class);
         when(connection.getService()).thenReturn(mockService);
-        when(mockService.getAvailableEventTypes()).thenReturn((Collection) Collections.singletonList(mockEvent));
+        when(mockService.getAvailableEventTypes())
+                .thenReturn((Collection) Collections.singletonList(mockEvent));
 
         command.connectionChanged(connection);
         command.enableEvents("ALL");
@@ -110,8 +120,10 @@ class AbstractRecordingCommandTest extends TestBase {
     }
 
     static class BaseRecordingCommand extends AbstractRecordingCommand {
-        BaseRecordingCommand(ClientWriter cw, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
-                             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+        BaseRecordingCommand(
+                ClientWriter cw,
+                EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+                RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
             super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         }
 
@@ -126,6 +138,6 @@ class AbstractRecordingCommandTest extends TestBase {
         }
 
         @Override
-        public void execute(String[] args) { }
+        public void execute(String[] args) {}
     }
 }

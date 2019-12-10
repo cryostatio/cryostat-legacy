@@ -6,7 +6,8 @@ import java.util.List;
 
 class SelfDiscoveryPlatformClient implements PlatformClient {
 
-    private static final ServiceRef VM_SELF_REF = new ServiceRef("localhost", "This ContainerJFR", 0);
+    private static final ServiceRef VM_SELF_REF =
+            new ServiceRef("localhost", "This ContainerJFR", 0);
     private final PlatformClient client;
 
     SelfDiscoveryPlatformClient(PlatformClient client) {
@@ -20,5 +21,4 @@ class SelfDiscoveryPlatformClient implements PlatformClient {
         list.addAll(this.client.listDiscoverableServices());
         return Collections.unmodifiableList(list);
     }
-
 }

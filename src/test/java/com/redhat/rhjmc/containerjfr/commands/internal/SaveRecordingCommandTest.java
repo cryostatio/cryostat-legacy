@@ -8,16 +8,20 @@ import static org.mockito.Mockito.when;
 
 import java.io.InputStream;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.time.temporal.TemporalUnit;
 import java.util.Collections;
+
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -30,9 +34,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class SaveRecordingCommandTest {
@@ -56,22 +57,22 @@ class SaveRecordingCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { 0, 2 })
+    @ValueSource(ints = {0, 2})
     void shouldNotValidateWrongArgCounts(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
         verify(cw).println("Expected one argument: recording name");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { "foo", "recording", "some-name", "another_name", "123", "abc123" })
+    @ValueSource(strings = {"foo", "recording", "some-name", "another_name", "123", "abc123"})
     void shouldValidateRecordingNames(String recordingName) {
-        Assertions.assertTrue(command.validate(new String[] { recordingName }));
+        Assertions.assertTrue(command.validate(new String[] {recordingName}));
     }
 
     @ParameterizedTest
-    @ValueSource(strings = { ".", "some recording", "" })
+    @ValueSource(strings = {".", "some recording", ""})
     void shouldNotValidateInvalidRecordingNames(String recordingName) {
-        Assertions.assertFalse(command.validate(new String[] { recordingName }));
+        Assertions.assertFalse(command.validate(new String[] {recordingName}));
         verify(cw).println(recordingName + " is an invalid recording name");
     }
 
@@ -100,7 +101,7 @@ class SaveRecordingCommandTest {
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
         command.connectionChanged(connection);
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
@@ -125,11 +126,12 @@ class SaveRecordingCommandTest {
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
 
         command.connectionChanged(connection);
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath);
-        verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
+        verify(recordingsPath, Mockito.atLeastOnce())
+                .resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
         verify(cw).println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.jfr\"");
         verifyNoMoreInteractions(service);
     }
@@ -152,16 +154,20 @@ class SaveRecordingCommandTest {
         when(fs.exists(savePath)).thenReturn(false).thenReturn(true).thenReturn(false);
 
         command.connectionChanged(connection);
-        command.execute(new String[] { "foo" });
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"foo"});
 
         verify(service, Mockito.times(2)).getAvailableRecordings();
         verify(fs, Mockito.times(2)).copy(recordingStream, savePath);
-        verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
-        verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.1.jfr");
+        verify(recordingsPath, Mockito.atLeastOnce())
+                .resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
+        verify(recordingsPath, Mockito.atLeastOnce())
+                .resolve("some-host-svc-local_foo_20191129T112233Z.1.jfr");
         InOrder inOrder = Mockito.inOrder(cw);
-        inOrder.verify(cw).println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.jfr\"");
-        inOrder.verify(cw).println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.1.jfr\"");
+        inOrder.verify(cw)
+                .println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.jfr\"");
+        inOrder.verify(cw)
+                .println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.1.jfr\"");
         verifyNoMoreInteractions(service);
     }
 
@@ -182,27 +188,31 @@ class SaveRecordingCommandTest {
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
 
         command.connectionChanged(connection);
-        command.execute(new String[] { "foo.jfr" });
+        command.execute(new String[] {"foo.jfr"});
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath);
-        verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
+        verify(recordingsPath, Mockito.atLeastOnce())
+                .resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
         verify(cw).println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.jfr\"");
         verifyNoMoreInteractions(service);
     }
 
     @Test
-    void shouldExecuteAndReturnSerializedFailureIfRecordingNotFound() throws FlightRecorderException {
+    void shouldExecuteAndReturnSerializedFailureIfRecordingNotFound()
+            throws FlightRecorderException {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
         command.connectionChanged(connection);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
-        MatcherAssert.assertThat(((SerializableCommand.FailureOutput) out).getPayload(), Matchers.equalTo("Recording with name \"foo\" not found"));
+        MatcherAssert.assertThat(
+                ((SerializableCommand.FailureOutput) out).getPayload(),
+                Matchers.equalTo("Recording with name \"foo\" not found"));
         verifyZeroInteractions(cw);
     }
 
@@ -212,11 +222,12 @@ class SaveRecordingCommandTest {
         when(service.getAvailableRecordings()).thenThrow(NullPointerException.class);
 
         command.connectionChanged(connection);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         verifyZeroInteractions(cw);
     }
 
@@ -237,16 +248,18 @@ class SaveRecordingCommandTest {
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
 
         command.connectionChanged(connection);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
-        MatcherAssert.assertThat(((SerializableCommand.StringOutput) out).getPayload(), Matchers.equalTo("some-host-svc-local_foo_20191129T112233Z.jfr"));
+        MatcherAssert.assertThat(
+                ((SerializableCommand.StringOutput) out).getPayload(),
+                Matchers.equalTo("some-host-svc-local_foo_20191129T112233Z.jfr"));
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath);
-        verify(recordingsPath, Mockito.atLeastOnce()).resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
+        verify(recordingsPath, Mockito.atLeastOnce())
+                .resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
         verifyNoMoreInteractions(service);
         verifyZeroInteractions(cw);
     }
-
 }

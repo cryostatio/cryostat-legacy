@@ -28,7 +28,7 @@ class NoOpClientReaderTest {
     @Test
     void readLineShouldThrow() {
         Exception e = assertThrows(UnsupportedOperationException.class, clientReader::readLine);
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("NoOpClientReader does not support readLine"));
+        MatcherAssert.assertThat(
+                e.getMessage(), Matchers.equalTo("NoOpClientReader does not support readLine"));
     }
-
 }

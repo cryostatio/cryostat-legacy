@@ -20,6 +20,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -36,17 +37,16 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ConnectCommandTest {
 
     ConnectCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    ConnectionListener listener;
+    @Mock ClientWriter cw;
+    @Mock ConnectionListener listener;
     @Mock DisconnectCommand disconnect;
-    @Mock
-    JFRConnectionToolkit connectionToolkit;
+    @Mock JFRConnectionToolkit connectionToolkit;
 
     @BeforeEach
     void setup() {
-        command = new ConnectCommand(cw, Collections.singleton(listener), disconnect, connectionToolkit);
+        command =
+                new ConnectCommand(
+                        cw, Collections.singleton(listener), disconnect, connectionToolkit);
     }
 
     @Test
@@ -62,41 +62,39 @@ class ConnectCommandTest {
     @Test
     void shouldExpectOneArg() {
         assertFalse(command.validate(new String[0]));
-        assertTrue(command.validate(new String[]{ "foo" }));
+        assertTrue(command.validate(new String[] {"foo"}));
         assertFalse(command.validate(new String[2]));
-        verify(cw, Mockito.times(2)).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
+        verify(cw, Mockito.times(2))
+                .println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "some.host:",
-        ":",
-        "some.host:abc"
-    })
+    @ValueSource(strings = {"some.host:", ":", "some.host:abc"})
     void shouldNotValidateInvalidIdentifiers(String id) {
-        assertFalse(command.validate(new String[] { id }), id);
+        assertFalse(command.validate(new String[] {id}), id);
         verify(cw).println(id + " is an invalid connection specifier");
     }
 
     @Test
     void shouldNotValidateNull() {
-        assertFalse(command.validate(new String[] { null }));
+        assertFalse(command.validate(new String[] {null}));
         verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @Test
     void shouldNotValidateEmptyString() {
-        assertFalse(command.validate(new String[] { " " }));
+        assertFalse(command.validate(new String[] {" "}));
         verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "some.host",
-        "some.host:8181",
-    })
+    @ValueSource(
+            strings = {
+                "some.host",
+                "some.host:8181",
+            })
     void shouldValidateValidIdentifiers(String id) {
-        assertTrue(command.validate(new String[] { id }));
+        assertTrue(command.validate(new String[] {id}));
     }
 
     @Test
@@ -106,13 +104,15 @@ class ConnectCommandTest {
         verifyZeroInteractions(disconnect);
 
         JFRConnection mockConnection = mock(JFRConnection.class);
-        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
+        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(mockConnection);
 
-        command.execute(new String[] { "foo:5" });
+        command.execute(new String[] {"foo:5"});
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<JFRConnection> connectionCaptor = ArgumentCaptor.forClass(JFRConnection.class);
+        ArgumentCaptor<JFRConnection> connectionCaptor =
+                ArgumentCaptor.forClass(JFRConnection.class);
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
@@ -130,13 +130,15 @@ class ConnectCommandTest {
         verifyZeroInteractions(disconnect);
 
         JFRConnection mockConnection = mock(JFRConnection.class);
-        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
+        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(mockConnection);
 
-        command.execute(new String[] { "foo" });
+        command.execute(new String[] {"foo"});
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<JFRConnection> connectionCaptor = ArgumentCaptor.forClass(JFRConnection.class);
+        ArgumentCaptor<JFRConnection> connectionCaptor =
+                ArgumentCaptor.forClass(JFRConnection.class);
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
@@ -154,15 +156,18 @@ class ConnectCommandTest {
         verifyZeroInteractions(disconnect);
 
         JFRConnection mockConnection = mock(JFRConnection.class);
-        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(mockConnection);
+        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(mockConnection);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
         assertThat(out, instanceOf(SerializableCommand.StringOutput.class));
-        MatcherAssert.assertThat(((SerializableCommand.StringOutput) out).getPayload(), equalTo("foo"));
+        MatcherAssert.assertThat(
+                ((SerializableCommand.StringOutput) out).getPayload(), equalTo("foo"));
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
-        ArgumentCaptor<JFRConnection> connectionCaptor = ArgumentCaptor.forClass(JFRConnection.class);
+        ArgumentCaptor<JFRConnection> connectionCaptor =
+                ArgumentCaptor.forClass(JFRConnection.class);
 
         verify(listener).connectionChanged(connectionCaptor.capture());
         verify(connectionToolkit).connect(hostCaptor.capture(), portCaptor.capture());
@@ -179,11 +184,13 @@ class ConnectCommandTest {
         verifyZeroInteractions(connectionToolkit);
         verifyZeroInteractions(disconnect);
 
-        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenThrow(IOException.class);
+        when(connectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenThrow(IOException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
         assertThat(out, instanceOf(SerializableCommand.ExceptionOutput.class));
-        MatcherAssert.assertThat(((SerializableCommand.ExceptionOutput) out).getPayload(), equalTo("IOException: "));
+        MatcherAssert.assertThat(
+                ((SerializableCommand.ExceptionOutput) out).getPayload(), equalTo("IOException: "));
 
         ArgumentCaptor<String> hostCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<Integer> portCaptor = ArgumentCaptor.forClass(Integer.class);
@@ -195,5 +202,4 @@ class ConnectCommandTest {
         assertThat(hostCaptor.getValue(), equalTo("foo"));
         assertThat(portCaptor.getValue(), equalTo(JFRConnection.DEFAULT_PORT));
     }
-
 }

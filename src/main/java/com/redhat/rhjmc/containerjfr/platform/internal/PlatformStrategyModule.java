@@ -16,12 +16,14 @@ public abstract class PlatformStrategyModule {
 
     @Provides
     @ElementsIntoSet
-    static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(Logger logger, NetworkResolver resolver, Environment env, JvmDiscoveryClient discoveryClient) {
+    static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
+            Logger logger,
+            NetworkResolver resolver,
+            Environment env,
+            JvmDiscoveryClient discoveryClient) {
         return Set.of(
                 new KubeApiPlatformStrategy(logger, resolver),
                 new KubeEnvPlatformStrategy(logger, env),
-                new DefaultPlatformStrategy(logger, discoveryClient)
-                );
+                new DefaultPlatformStrategy(logger, discoveryClient));
     }
-
 }

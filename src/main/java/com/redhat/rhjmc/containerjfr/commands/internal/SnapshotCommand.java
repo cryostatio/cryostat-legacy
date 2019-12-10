@@ -17,7 +17,10 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
     private final WebServer exporter;
 
     @Inject
-    SnapshotCommand(ClientWriter cw, WebServer exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    SnapshotCommand(
+            ClientWriter cw,
+            WebServer exporter,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
@@ -32,11 +35,13 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
     public void execute(String[] args) throws Exception {
         IRecordingDescriptor descriptor = getService().getSnapshotRecording();
 
-        String rename = String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
+        String rename =
+                String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
         cw.println(String.format("Latest snapshot: \"%s\"", rename));
 
-        RecordingOptionsBuilder recordingOptionsBuilder = recordingOptionsBuilderFactory.create(getService());
-            recordingOptionsBuilder.name(rename);
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                recordingOptionsBuilderFactory.create(getService());
+        recordingOptionsBuilder.name(rename);
 
         getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
         exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
@@ -47,10 +52,12 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
         try {
             IRecordingDescriptor descriptor = getService().getSnapshotRecording();
 
-            String rename = String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
+            String rename =
+                    String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
 
-            RecordingOptionsBuilder recordingOptionsBuilder = recordingOptionsBuilderFactory.create(getService());
-                recordingOptionsBuilder.name(rename);
+            RecordingOptionsBuilder recordingOptionsBuilder =
+                    recordingOptionsBuilderFactory.create(getService());
+            recordingOptionsBuilder.name(rename);
 
             getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
             exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
@@ -83,5 +90,4 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
             return rename;
         }
     }
-
 }
