@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,8 +23,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class WaitCommandTest extends TestBase {
 
     WaitCommand command;
-    @Mock
-    Clock clock;
+    @Mock Clock clock;
 
     @BeforeEach
     void setup() {
@@ -49,13 +49,13 @@ class WaitCommandTest extends TestBase {
 
     @Test
     void shouldExpectIntegerFormattedArg() {
-        assertFalse(command.validate(new String[]{ "f" }));
+        assertFalse(command.validate(new String[] {"f"}));
         MatcherAssert.assertThat(stdout(), Matchers.equalTo("f is an invalid integer\n"));
     }
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[]{ "10" }));
+        assertTrue(command.validate(new String[] {"10"}));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
@@ -67,10 +67,9 @@ class WaitCommandTest extends TestBase {
     @Test
     void testExecution() throws Exception {
         when(clock.getWallTime()).thenReturn(0L).thenReturn(1_000L).thenReturn(2_000L);
-        command.execute(new String[]{ "1" });
+        command.execute(new String[] {"1"});
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(". \n"));
         verify(clock, Mockito.times(2)).getWallTime();
         verify(clock).sleep(TimeUnit.SECONDS, 1);
     }
-
 }

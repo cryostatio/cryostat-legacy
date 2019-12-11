@@ -5,11 +5,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
+import org.apache.commons.lang3.StringUtils;
 
 class CommandRegistryImpl implements CommandRegistry {
 
@@ -21,7 +21,8 @@ class CommandRegistryImpl implements CommandRegistry {
         for (Command command : commands) {
             String commandName = command.getName();
             if (commandMap.containsKey(commandName)) {
-                throw new CommandDefinitionException(commandName, command.getClass(), commandMap.get(commandName).getClass());
+                throw new CommandDefinitionException(
+                        commandName, command.getClass(), commandMap.get(commandName).getClass());
             }
             commandMap.put(commandName, command);
         }
@@ -32,18 +33,13 @@ class CommandRegistryImpl implements CommandRegistry {
         return this.commandMap.keySet();
     }
 
-
     @Override
     public Set<String> getAvailableCommandNames() {
-        return this.commandMap
-            .values()
-            .stream()
-            .filter(Command::isAvailable)
-            .map(Command::getName)
-            .collect(Collectors.toSet())
-            ;
+        return this.commandMap.values().stream()
+                .filter(Command::isAvailable)
+                .map(Command::getName)
+                .collect(Collectors.toSet());
     }
-
 
     @Override
     public void execute(String commandName, String[] args) throws Exception {
@@ -52,7 +48,6 @@ class CommandRegistryImpl implements CommandRegistry {
         }
         commandMap.get(commandName).execute(args);
     }
-
 
     @Override
     public boolean validate(String commandName, String[] args) {
@@ -70,7 +65,6 @@ class CommandRegistryImpl implements CommandRegistry {
         return registered;
     }
 
-
     @Override
     public boolean isCommandAvailable(String commandName) {
         if (StringUtils.isBlank(commandName)) {
@@ -85,10 +79,12 @@ class CommandRegistryImpl implements CommandRegistry {
 
     @SuppressWarnings("serial")
     public static class CommandDefinitionException extends RuntimeException {
-        public CommandDefinitionException(String commandName, Class<? extends Command> cmd1, Class<? extends Command> cmd2) {
-            super(String.format("\"%s\" command definitions provided by class %s AND class %s",
-                        commandName, cmd1.getCanonicalName(), cmd2.getCanonicalName()));
+        public CommandDefinitionException(
+                String commandName, Class<? extends Command> cmd1, Class<? extends Command> cmd2) {
+            super(
+                    String.format(
+                            "\"%s\" command definitions provided by class %s AND class %s",
+                            commandName, cmd1.getCanonicalName(), cmd2.getCanonicalName()));
         }
     }
 }
-

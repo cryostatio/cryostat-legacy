@@ -51,7 +51,7 @@ class NetworkResolverTest {
 
     @Test
     void shouldUseSocketRawHostAddress() throws Exception {
-        byte[] rawHostAddress = new byte[]{1, 2, 3, 4};
+        byte[] rawHostAddress = new byte[] {1, 2, 3, 4};
         when(socket.getLocalAddress()).thenReturn(address);
         when(address.getAddress()).thenReturn(rawHostAddress);
 
@@ -60,14 +60,16 @@ class NetworkResolverTest {
 
     @Test
     void shouldResolveAddress() throws Exception {
-        MatcherAssert.assertThat(resolver.resolveAddress(new byte[]{127, 0, 0, 1}).getHostName(),
+        MatcherAssert.assertThat(
+                resolver.resolveAddress(new byte[] {127, 0, 0, 1}).getHostName(),
                 Matchers.equalTo("localhost"));
     }
 
     @Test
     void shouldLookup() throws Exception {
-        MatcherAssert
-                .assertThat(resolver.lookup("localhost").getAddress(), Matchers.equalTo(new byte[]{127, 0, 0, 1}));
+        MatcherAssert.assertThat(
+                resolver.lookup("localhost").getAddress(),
+                Matchers.equalTo(new byte[] {127, 0, 0, 1}));
     }
 
     @Test
@@ -75,11 +77,13 @@ class NetworkResolverTest {
         String canonicalHostName = "canonical-host-name";
         when(address.getCanonicalHostName()).thenReturn(canonicalHostName);
 
-        MatcherAssert.assertThat(resolver.resolveCanonicalHostName(address), Matchers.equalTo(canonicalHostName));
+        MatcherAssert.assertThat(
+                resolver.resolveCanonicalHostName(address), Matchers.equalTo(canonicalHostName));
     }
 
     @Test
     void testResolveCanonicalHostName() throws Exception {
-        MatcherAssert.assertThat(resolver.resolveCanonicalHostName("127.0.0.1"), Matchers.equalTo("localhost"));
+        MatcherAssert.assertThat(
+                resolver.resolveCanonicalHostName("127.0.0.1"), Matchers.equalTo("localhost"));
     }
 }

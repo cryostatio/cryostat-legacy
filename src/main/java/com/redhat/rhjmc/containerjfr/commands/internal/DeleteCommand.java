@@ -17,7 +17,8 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     private final ClientWriter cw;
     private final WebServer exporter;
 
-    @Inject DeleteCommand(ClientWriter cw, WebServer exporter) {
+    @Inject
+    DeleteCommand(ClientWriter cw, WebServer exporter) {
         this.cw = cw;
         this.exporter = exporter;
     }
@@ -27,9 +28,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
         return "delete";
     }
 
-    /**
-     * One arg expected. Deletes recordings in target JVM by recording name.
-     */
+    /** One arg expected. Deletes recordings in target JVM by recording name. */
     @Override
     public void execute(String[] args) throws Exception {
         final String recordingName = args[0];
@@ -52,7 +51,8 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
                 exporter.removeRecording(descriptor.get());
                 return new SuccessOutput();
             } else {
-                return new FailureOutput(String.format("No recording with name \"%s\" found", recordingName));
+                return new FailureOutput(
+                        String.format("No recording with name \"%s\" found", recordingName));
             }
         } catch (Exception e) {
             return new ExceptionOutput(e);

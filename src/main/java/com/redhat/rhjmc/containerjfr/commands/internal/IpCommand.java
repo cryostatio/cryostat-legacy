@@ -11,7 +11,8 @@ class IpCommand implements SerializableCommand {
     private final ClientWriter cw;
     private final NetworkResolver resolver;
 
-    @Inject IpCommand(ClientWriter cw, NetworkResolver resolver) {
+    @Inject
+    IpCommand(ClientWriter cw, NetworkResolver resolver) {
         this.cw = cw;
         this.resolver = resolver;
     }

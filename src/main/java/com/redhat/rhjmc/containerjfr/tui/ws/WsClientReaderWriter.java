@@ -2,15 +2,14 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import java.util.concurrent.*;
 
-import com.google.gson.Gson;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
+import com.google.gson.Gson;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Handler;
 import io.vertx.core.http.ServerWebSocket;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<ServerWebSocket> {
 
@@ -34,7 +33,8 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
     public void handle(ServerWebSocket sws) {
         this.sws = sws;
         semaphore.release();
-        logger.info(String.format("Connected remote client %s", this.sws.remoteAddress().toString()));
+        logger.info(
+                String.format("Connected remote client %s", this.sws.remoteAddress().toString()));
 
         sws.textMessageHandler(this::handleTextMessage);
         sws.closeHandler((unused) -> close());
@@ -48,18 +48,21 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
     @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
     @Override
     public void close() {
-        logger.info(String.format("Disconnected remote client %s", this.sws.remoteAddress().toString()));
+        logger.info(
+                String.format(
+                        "Disconnected remote client %s", this.sws.remoteAddress().toString()));
 
         semaphore.tryAcquire();
         if (!this.sws.isClosed()) {
             CompletableFuture<Void> future = new CompletableFuture<>();
-            this.sws.close((res) -> {
-                if (res.failed()) {
-                    future.completeExceptionally(res.cause());
-                } else {
-                    future.complete(null);
-                }
-            });
+            this.sws.close(
+                    (res) -> {
+                        if (res.failed()) {
+                            future.completeExceptionally(res.cause());
+                        } else {
+                            future.complete(null);
+                        }
+                    });
             future.join();
         }
         this.sws = null;
@@ -81,13 +84,15 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
             acquired = semaphore.tryAcquire(3, TimeUnit.SECONDS);
             if (acquired) {
                 CompletableFuture<Void> future = new CompletableFuture<>();
-                this.sws.writeTextMessage(gson.toJson(message), (res) -> {
-                    if (res.failed()) {
-                        future.completeExceptionally(res.cause());
-                    } else {
-                        future.complete(null);
-                    }
-                });
+                this.sws.writeTextMessage(
+                        gson.toJson(message),
+                        (res) -> {
+                            if (res.failed()) {
+                                future.completeExceptionally(res.cause());
+                            } else {
+                                future.complete(null);
+                            }
+                        });
                 future.join();
             }
         } catch (InterruptedException e) {

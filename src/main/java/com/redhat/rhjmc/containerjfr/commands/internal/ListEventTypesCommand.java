@@ -18,7 +18,8 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
 
     private final ClientWriter cw;
 
-    @Inject ListEventTypesCommand(ClientWriter cw) {
+    @Inject
+    ListEventTypesCommand(ClientWriter cw) {
         this.cw = cw;
     }
 
@@ -27,9 +28,7 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
         return "list-event-types";
     }
 
-    /**
-     * No args expected. Prints a list of available event types in the target JVM.
-     */
+    /** No args expected. Prints a list of available event types in the target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
         cw.println("Available event types:");

@@ -12,13 +12,16 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
     private static final Pattern ALL_EVENTS_PATTERN = Pattern.compile("^ALL$", Pattern.MULTILINE);
-    private static final Pattern EVENTS_PATTERN = Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
+    private static final Pattern EVENTS_PATTERN =
+            Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
     protected final ClientWriter cw;
     protected final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     protected final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
-    protected AbstractRecordingCommand(ClientWriter cw, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    protected AbstractRecordingCommand(
+            ClientWriter cw,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         this.cw = cw;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
@@ -59,8 +62,10 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
     }
 
     protected boolean validateEvents(String events) {
-        // TODO better validation of entire events string (not just looking for one acceptable setting)
-        if (!ALL_EVENTS_PATTERN.matcher(events).matches() && !EVENTS_PATTERN.matcher(events).find()) {
+        // TODO better validation of entire events string (not just looking for one acceptable
+        // setting)
+        if (!ALL_EVENTS_PATTERN.matcher(events).matches()
+                && !EVENTS_PATTERN.matcher(events).find()) {
             cw.println(String.format("%s is an invalid events pattern", events));
             return false;
         }

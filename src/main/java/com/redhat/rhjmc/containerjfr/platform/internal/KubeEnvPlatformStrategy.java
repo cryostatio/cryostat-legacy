@@ -29,5 +29,4 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
         logger.trace("Selected KubeEnv Platform Strategy");
         return new KubeEnvPlatformClient(env);
     }
-
 }

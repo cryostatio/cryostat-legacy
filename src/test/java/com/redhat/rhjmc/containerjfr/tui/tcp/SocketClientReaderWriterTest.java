@@ -1,6 +1,15 @@
 package com.redhat.rhjmc.containerjfr.tui.tcp;
 
+import static org.mockito.Mockito.*;
+
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.net.Socket;
+import java.util.Scanner;
+import java.util.concurrent.Semaphore;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -10,30 +19,17 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.io.IOException;
-import java.io.OutputStreamWriter;
-import java.net.Socket;
-import java.util.Scanner;
-import java.util.concurrent.Semaphore;
-
-import static org.mockito.Mockito.*;
-
 @ExtendWith(MockitoExtension.class)
 class SocketClientReaderWriterTest {
-    @Mock
-    Logger logger;
+    @Mock Logger logger;
 
-    @Mock
-    Semaphore semaphore;
+    @Mock Semaphore semaphore;
 
-    @Mock
-    Socket socket;
+    @Mock Socket socket;
 
-    @Mock
-    Scanner scanner;
+    @Mock Scanner scanner;
 
-    @Mock
-    OutputStreamWriter writer;
+    @Mock OutputStreamWriter writer;
 
     SocketClientReaderWriter scrw;
 

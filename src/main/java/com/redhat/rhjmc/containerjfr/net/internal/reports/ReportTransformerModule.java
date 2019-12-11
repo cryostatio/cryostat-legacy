@@ -9,9 +9,9 @@ import dagger.multibindings.ElementsIntoSet;
 @Module
 public abstract class ReportTransformerModule {
 
-    @Provides @ElementsIntoSet
+    @Provides
+    @ElementsIntoSet
     static Set<ReportTransformer> provideReportTransformers() {
         return Set.of();
     }
-
 }

@@ -13,10 +13,14 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -24,10 +28,6 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Singleton
 class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -38,7 +38,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     private final Provider<CloseableHttpClient> httpClientProvider;
 
     @Inject
-    UploadRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath, Provider<CloseableHttpClient> httpClientProvider) {
+    UploadRecordingCommand(
+            ClientWriter cw,
+            FileSystem fs,
+            @Named("RECORDINGS_PATH") Path recordingsPath,
+            Provider<CloseableHttpClient> httpClientProvider) {
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
@@ -61,11 +65,9 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         try {
             ResponseMessage response = doPost(args[0], args[1]);
             return new MapOutput<>(
-                Map.of(
-                    "status", response.status,
-                    "body", response.body
-                )
-            );
+                    Map.of(
+                            "status", response.status,
+                            "body", response.body));
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -82,17 +84,16 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         InputStream stream = recording.get();
         HttpPost post = new HttpPost(uploadUrl);
         post.setEntity(
-            MultipartEntityBuilder.create()
-                .addBinaryBody("file", stream, ContentType.APPLICATION_OCTET_STREAM, recordingName)
-                .build()
-        );
+                MultipartEntityBuilder.create()
+                        .addBinaryBody(
+                                "file", stream, ContentType.APPLICATION_OCTET_STREAM, recordingName)
+                        .build());
 
-        try (
-            CloseableHttpClient httpClient = httpClientProvider.get();
-            CloseableHttpResponse response = httpClient.execute(post);
-            stream
-        ) {
-            return new ResponseMessage(response.getStatusLine(), EntityUtils.toString(response.getEntity()));
+        try (CloseableHttpClient httpClient = httpClientProvider.get();
+                CloseableHttpResponse response = httpClient.execute(post);
+                stream) {
+            return new ResponseMessage(
+                    response.getStatusLine(), EntityUtils.toString(response.getEntity()));
         }
     }
 
@@ -116,7 +117,8 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
-    Optional<InputStream> getBestRecordingForName(String recordingName) throws FlightRecorderException, JMXConnectionException, FileNotFoundException {
+    Optional<InputStream> getBestRecordingForName(String recordingName)
+            throws FlightRecorderException, JMXConnectionException, FileNotFoundException {
         if (super.isAvailable()) {
             Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(recordingName);
             if (currentRecording.isPresent()) {
@@ -149,5 +151,4 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             super(String.format("Recording \"%s\" could not be found", recordingName));
         }
     }
-
 }

@@ -14,6 +14,7 @@ import java.net.UnknownHostException;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,10 +27,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class PrintUrlCommandTest {
 
     PrintUrlCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    WebServer exporter;
+    @Mock ClientWriter cw;
+    @Mock WebServer exporter;
 
     @BeforeEach
     void setup() {
@@ -86,8 +85,8 @@ class PrintUrlCommandTest {
     void shouldReturnExceptionOutput() throws Exception {
         when(exporter.getHostUrl()).thenThrow(UnknownHostException.class);
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("UnknownHostException: "));
     }
-
 }

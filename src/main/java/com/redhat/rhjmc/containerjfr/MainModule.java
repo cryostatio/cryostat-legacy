@@ -6,8 +6,6 @@ import java.nio.file.Paths;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
@@ -15,16 +13,19 @@ import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.tui.TuiModule;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
 
-@Module(includes = {
-        PlatformModule.class,
-        WebModule.class,
-        SystemModule.class,
-        CommandsModule.class,
-        TuiModule.class
-})
+@Module(
+        includes = {
+            PlatformModule.class,
+            WebModule.class,
+            SystemModule.class,
+            CommandsModule.class,
+            TuiModule.class
+        })
 abstract class MainModule {
     @Provides
     @Singleton
@@ -35,9 +36,7 @@ abstract class MainModule {
     @Provides
     @Singleton
     static Gson provideGson() {
-        return new GsonBuilder()
-                .serializeNulls()
-                .create();
+        return new GsonBuilder().serializeNulls().create();
     }
 
     @Provides

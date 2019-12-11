@@ -8,11 +8,11 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
@@ -32,9 +32,7 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
         return "list";
     }
 
-    /**
-     * No args expected. Prints list of available recordings in target JVM.
-     */
+    /** No args expected. Prints list of available recordings in target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
         cw.println("Available recordings:");
@@ -51,10 +49,14 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
     public Output<?> serializableExecute(String[] args) {
         try {
             List<IRecordingDescriptor> origDescriptors = getService().getAvailableRecordings();
-            List<HyperlinkedSerializableRecordingDescriptor> descriptors = new ArrayList<>(origDescriptors.size());
+            List<HyperlinkedSerializableRecordingDescriptor> descriptors =
+                    new ArrayList<>(origDescriptors.size());
             for (IRecordingDescriptor desc : origDescriptors) {
-                descriptors.add(new HyperlinkedSerializableRecordingDescriptor(desc,
-                        exporter.getDownloadURL(desc.getName()), exporter.getReportURL(desc.getName())));
+                descriptors.add(
+                        new HyperlinkedSerializableRecordingDescriptor(
+                                desc,
+                                exporter.getDownloadURL(desc.getName()),
+                                exporter.getReportURL(desc.getName())));
             }
             return new ListOutput<>(descriptors);
         } catch (Exception e) {
@@ -75,8 +77,9 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
         StringBuilder sb = new StringBuilder();
 
         for (Method m : descriptor.getClass().getDeclaredMethods()) {
-            if (m.getParameterTypes().length == 0 && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
-                sb.append("\t") ;
+            if (m.getParameterTypes().length == 0
+                    && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
+                sb.append("\t");
                 sb.append(m.getName());
 
                 sb.append("\t\t");
@@ -88,5 +91,4 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
 
         return sb.toString();
     }
-
 }

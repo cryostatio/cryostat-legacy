@@ -12,6 +12,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.NoSuchElementException;
 
+import com.redhat.rhjmc.containerjfr.TestBase;
+import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,11 +28,6 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
-import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-
 @ExtendWith(MockitoExtension.class)
 class InteractiveShellExecutorTest extends TestBase {
 
@@ -38,7 +38,9 @@ class InteractiveShellExecutorTest extends TestBase {
 
     @BeforeEach
     void setup() {
-        executor = new InteractiveShellExecutor(mockClientReader, mockClientWriter, () -> mockRegistry);
+        executor =
+                new InteractiveShellExecutor(
+                        mockClientReader, mockClientWriter, () -> mockRegistry);
     }
 
     @Test
@@ -48,33 +50,37 @@ class InteractiveShellExecutorTest extends TestBase {
 
         when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
         when(mockClientReader.readLine())
-            .thenReturn("connect foo")
-            .thenAnswer(new Answer<String>() {
-                @Override
-                public String answer(InvocationOnMock invocation) {
-                    executor.connectionChanged(mockConnection);
-                    return "disconnect";
-                }
-            })
-            .thenAnswer(new Answer<String>() {
-                @Override
-                public String answer(InvocationOnMock invocation) throws Throwable {
-                    executor.connectionChanged(null);
-                    return "exit";
-                }
-            });
+                .thenReturn("connect foo")
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) {
+                                executor.connectionChanged(mockConnection);
+                                return "disconnect";
+                            }
+                        })
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.connectionChanged(null);
+                                return "exit";
+                            }
+                        });
 
         executor.run(null);
 
-        MatcherAssert.assertThat(stdout(),
-                Matchers.equalTo("- \n\"connect\" \"[foo]\"\n- \n\"disconnect\" \"[]\"\n> \n\"exit\" \"[]\"\n"));
+        MatcherAssert.assertThat(
+                stdout(),
+                Matchers.equalTo(
+                        "- \n\"connect\" \"[foo]\"\n- \n\"disconnect\" \"[]\"\n> \n\"exit\" \"[]\"\n"));
 
-        verify(mockRegistry).validate("connect", new String[] { "foo" });
+        verify(mockRegistry).validate("connect", new String[] {"foo"});
         verify(mockRegistry).validate("exit", new String[0]);
         verify(mockClientReader).close();
 
         InOrder inOrder = inOrder(mockRegistry);
-        inOrder.verify(mockRegistry).execute("connect", new String[]{ "foo" });
+        inOrder.verify(mockRegistry).execute("connect", new String[] {"foo"});
         inOrder.verify(mockRegistry).execute("disconnect", new String[0]);
         inOrder.verify(mockRegistry).execute("exit", new String[0]);
 
@@ -89,12 +95,16 @@ class InteractiveShellExecutorTest extends TestBase {
 
         when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
         when(mockClientReader.readLine()).thenReturn("help").thenReturn("exit");
-        doThrow(UnsupportedOperationException.class).when(mockRegistry).execute(eq("help"), any(String[].class));
+        doThrow(UnsupportedOperationException.class)
+                .when(mockRegistry)
+                .execute(eq("help"), any(String[].class));
 
         executor.run(null);
 
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo(
-                "- \n\"help\" \"[]\"\nhelp operation failed due to null\njava.lang.UnsupportedOperationException\n\n- \n\"exit\" \"[]\"\n"));
+        MatcherAssert.assertThat(
+                stdout(),
+                Matchers.equalTo(
+                        "- \n\"help\" \"[]\"\nhelp operation failed due to null\njava.lang.UnsupportedOperationException\n\n- \n\"exit\" \"[]\"\n"));
 
         verify(mockRegistry).validate("help", new String[0]);
         verify(mockRegistry).validate("exit", new String[0]);
@@ -117,7 +127,8 @@ class InteractiveShellExecutorTest extends TestBase {
 
         executor.run(null);
 
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("- java.lang.NullPointerException\n\n"));
+        MatcherAssert.assertThat(
+                stdout(), Matchers.equalTo("- java.lang.NullPointerException\n\n"));
         verify(mockClientReader).readLine();
         verify(mockClientReader).close();
 
@@ -166,5 +177,4 @@ class InteractiveShellExecutorTest extends TestBase {
         verifyNoMoreInteractions(mockClientReader);
         verifyNoMoreInteractions(mockRegistry);
     }
-
 }

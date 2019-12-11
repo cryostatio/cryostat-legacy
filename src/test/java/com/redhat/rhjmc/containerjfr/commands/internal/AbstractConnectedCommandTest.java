@@ -15,7 +15,11 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Optional;
 
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,8 +30,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractConnectedCommandTest {
@@ -42,8 +44,7 @@ class AbstractConnectedCommandTest {
     @Nested
     class WithConnection {
 
-        @Mock
-        JFRConnection mockConnection;
+        @Mock JFRConnection mockConnection;
 
         @BeforeEach
         void setup() {
@@ -56,12 +57,14 @@ class AbstractConnectedCommandTest {
         }
 
         @Test
-        void shouldContainExpectedConnection() throws AbstractConnectedCommand.JMXConnectionException {
+        void shouldContainExpectedConnection()
+                throws AbstractConnectedCommand.JMXConnectionException {
             assertThat(command.getConnection(), is(mockConnection));
         }
 
         @Test
-        void shouldGetServiceFromConnection() throws AbstractConnectedCommand.JMXConnectionException {
+        void shouldGetServiceFromConnection()
+                throws AbstractConnectedCommand.JMXConnectionException {
             IFlightRecorderService mockService = mock(IFlightRecorderService.class);
             when(mockConnection.getService()).thenReturn(mockService);
             verify(mockConnection, never()).getService();
@@ -75,7 +78,8 @@ class AbstractConnectedCommandTest {
             IFlightRecorderService mockService = mock(IFlightRecorderService.class);
             IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
             when(mockConnection.getService()).thenReturn(mockService);
-            when(mockService.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+            when(mockService.getAvailableRecordings())
+                    .thenReturn(Collections.singletonList(recording));
             when(recording.getName()).thenReturn("foo");
             Optional<IRecordingDescriptor> descriptor = command.getDescriptorByName("foo");
             assertTrue(descriptor.isPresent());
@@ -87,7 +91,8 @@ class AbstractConnectedCommandTest {
             IFlightRecorderService mockService = mock(IFlightRecorderService.class);
             IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
             when(mockConnection.getService()).thenReturn(mockService);
-            when(mockService.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+            when(mockService.getAvailableRecordings())
+                    .thenReturn(Collections.singletonList(recording));
             when(recording.getName()).thenReturn("foo");
             Optional<IRecordingDescriptor> descriptor = command.getDescriptorByName("bar");
             assertFalse(descriptor.isPresent());
@@ -104,48 +109,58 @@ class AbstractConnectedCommandTest {
 
         @Test
         void shouldThrowOnGetConnection() {
-            AbstractConnectedCommand.JMXConnectionException ex = assertThrows(AbstractConnectedCommand.JMXConnectionException.class, command::getConnection);
+            AbstractConnectedCommand.JMXConnectionException ex =
+                    assertThrows(
+                            AbstractConnectedCommand.JMXConnectionException.class,
+                            command::getConnection);
             assertThat(ex.getMessage(), equalTo("No active JMX connection"));
         }
 
         @Test
         void shouldThrowOnGetService() {
-            AbstractConnectedCommand.JMXConnectionException ex = assertThrows(AbstractConnectedCommand.JMXConnectionException.class, command::getService);
+            AbstractConnectedCommand.JMXConnectionException ex =
+                    assertThrows(
+                            AbstractConnectedCommand.JMXConnectionException.class,
+                            command::getService);
             assertThat(ex.getMessage(), equalTo("No active JMX connection"));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-            ".",
-            ".jfr",
-            "some.other.jfr",
-            "/",
-            "/a/path",
-            "another/path",
-            " ",
-            "two words",
-        })
+        @ValueSource(
+                strings = {
+                    ".",
+                    ".jfr",
+                    "some.other.jfr",
+                    "/",
+                    "/a/path",
+                    "another/path",
+                    " ",
+                    "two words",
+                })
         void shouldNotValidateMalformedRecordingNames(String name) {
             assertFalse(command.validateRecordingName(name));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-            "foo",
-            "recording",
-            "recording.jfr",
-            "Capitalized",
-            "4lphanum3r1c",
-            "with-dash",
-            "with_underscore",
-        })
+        @ValueSource(
+                strings = {
+                    "foo",
+                    "recording",
+                    "recording.jfr",
+                    "Capitalized",
+                    "4lphanum3r1c",
+                    "with-dash",
+                    "with_underscore",
+                })
         void shouldValidateRecordingNames(String name) {
             assertTrue(command.validateRecordingName(name));
         }
 
         @Test
         void getDescriptorByNameShouldThrow() throws Exception {
-            assertThrows(AbstractConnectedCommand.JMXConnectionException.class, () -> command.getDescriptorByName("someRecording"));
+            assertThrows(
+                    AbstractConnectedCommand.JMXConnectionException.class,
+                    () -> command.getDescriptorByName("someRecording"));
         }
     }
 
@@ -157,7 +172,7 @@ class AbstractConnectedCommandTest {
         }
 
         @Override
-        public void execute(String[] args) { }
+        public void execute(String[] args) {}
 
         @Override
         public boolean validate(String[] args) {
@@ -173,7 +188,5 @@ class AbstractConnectedCommandTest {
         public IFlightRecorderService getService() throws JMXConnectionException {
             return super.getService();
         }
-
     }
-
 }

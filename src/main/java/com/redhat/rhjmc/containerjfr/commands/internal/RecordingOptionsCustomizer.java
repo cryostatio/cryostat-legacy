@@ -10,7 +10,8 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.util.CheckedConsumer;
 
-class RecordingOptionsCustomizer implements Function<RecordingOptionsBuilder, RecordingOptionsBuilder> {
+class RecordingOptionsCustomizer
+        implements Function<RecordingOptionsBuilder, RecordingOptionsBuilder> {
 
     private final Map<OptionKey, CustomizerConsumer> customizers;
     private final ClientWriter cw;
@@ -37,24 +38,33 @@ class RecordingOptionsCustomizer implements Function<RecordingOptionsBuilder, Re
     }
 
     enum OptionKey {
-        MAX_AGE("maxAge", v -> new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
-                t.maxAge(Long.parseLong(v));
-            }
-        }),
-        MAX_SIZE("maxSize", v -> new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
-                t.maxSize(Long.parseLong(v));
-            }
-        }),
-        TO_DISK("toDisk", v -> new CustomizerConsumer() {
-            @Override
-            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
-                t.toDisk(Boolean.parseBoolean(v));
-            }
-        }),
+        MAX_AGE(
+                "maxAge",
+                v ->
+                        new CustomizerConsumer() {
+                            @Override
+                            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
+                                t.maxAge(Long.parseLong(v));
+                            }
+                        }),
+        MAX_SIZE(
+                "maxSize",
+                v ->
+                        new CustomizerConsumer() {
+                            @Override
+                            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
+                                t.maxSize(Long.parseLong(v));
+                            }
+                        }),
+        TO_DISK(
+                "toDisk",
+                v ->
+                        new CustomizerConsumer() {
+                            @Override
+                            public void acceptThrows(RecordingOptionsBuilder t) throws Exception {
+                                t.toDisk(Boolean.parseBoolean(v));
+                            }
+                        }),
         ;
 
         private final String name;
@@ -76,7 +86,8 @@ class RecordingOptionsCustomizer implements Function<RecordingOptionsBuilder, Re
         }
     }
 
-    private static abstract class CustomizerConsumer implements CheckedConsumer<RecordingOptionsBuilder> {
+    private abstract static class CustomizerConsumer
+            implements CheckedConsumer<RecordingOptionsBuilder> {
         private Optional<ClientWriter> cw = Optional.empty();
 
         void setClientWriter(ClientWriter cw) {
@@ -88,5 +99,4 @@ class RecordingOptionsCustomizer implements Function<RecordingOptionsBuilder, Re
             cw.ifPresent(w -> w.println(e));
         }
     }
-
 }

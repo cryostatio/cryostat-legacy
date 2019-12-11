@@ -11,6 +11,7 @@ import java.net.UnknownHostException;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,10 +24,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class IpCommandTest {
 
     IpCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    NetworkResolver resolver;
+    @Mock ClientWriter cw;
+    @Mock NetworkResolver resolver;
 
     @BeforeEach
     void setup() {
@@ -74,8 +73,8 @@ class IpCommandTest {
     void shouldReturnExceptionOutput() throws Exception {
         when(resolver.getHostAddress()).thenThrow(UnknownHostException.class);
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("UnknownHostException: "));
     };
-
 }

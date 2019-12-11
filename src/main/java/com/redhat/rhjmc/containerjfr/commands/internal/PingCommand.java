@@ -33,9 +33,7 @@ class PingCommand implements SerializableCommand {
         return true;
     }
 
-    /**
-     * No args expected.
-     */
+    /** No args expected. */
     @Override
     public void execute(String[] args) throws Exception {
         cw.println("\tpong");
@@ -46,5 +44,3 @@ class PingCommand implements SerializableCommand {
         return new SuccessOutput();
     }
 }
-
-

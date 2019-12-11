@@ -27,36 +27,52 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
         this.logger = logger;
         serverSocket = new ServerSocket(port);
         semaphore = new Semaphore(0, true);
-        listenerThread = new Thread(() -> {
-            System.out.println(String.format("Listening on port %d", port));
-            while (true) {
-                try {
-                    Socket sock = serverSocket.accept();
-                    try {
-                        close();
-                    } catch (IOException e) {
-                        logger.warn(e);
-                    }
-                    System.out.println(String.format("Connected: %s", sock.getRemoteSocketAddress().toString()));
-                    try {
-                        socket = sock;
-                        scanner = new Scanner(sock.getInputStream(), StandardCharsets.UTF_8);
-                        writer = new OutputStreamWriter(sock.getOutputStream(), StandardCharsets.UTF_8);
-                    } finally {
-                        semaphore.release();
-                    }
-                } catch (SocketException e) {
-                    semaphore.drainPermits();
-                } catch (IOException e) {
-                    logger.warn(e);
-                }
-            }
-        });
+        listenerThread =
+                new Thread(
+                        () -> {
+                            System.out.println(String.format("Listening on port %d", port));
+                            while (true) {
+                                try {
+                                    Socket sock = serverSocket.accept();
+                                    try {
+                                        close();
+                                    } catch (IOException e) {
+                                        logger.warn(e);
+                                    }
+                                    System.out.println(
+                                            String.format(
+                                                    "Connected: %s",
+                                                    sock.getRemoteSocketAddress().toString()));
+                                    try {
+                                        socket = sock;
+                                        scanner =
+                                                new Scanner(
+                                                        sock.getInputStream(),
+                                                        StandardCharsets.UTF_8);
+                                        writer =
+                                                new OutputStreamWriter(
+                                                        sock.getOutputStream(),
+                                                        StandardCharsets.UTF_8);
+                                    } finally {
+                                        semaphore.release();
+                                    }
+                                } catch (SocketException e) {
+                                    semaphore.drainPermits();
+                                } catch (IOException e) {
+                                    logger.warn(e);
+                                }
+                            }
+                        });
         listenerThread.start();
     }
 
     // Testing-only constructor
-    SocketClientReaderWriter(Logger logger, Semaphore semaphore, Socket socket, Scanner scanner, OutputStreamWriter writer) {
+    SocketClientReaderWriter(
+            Logger logger,
+            Semaphore semaphore,
+            Socket socket,
+            Scanner scanner,
+            OutputStreamWriter writer) {
         this.logger = logger;
         this.semaphore = semaphore;
         this.scanner = scanner;
@@ -109,5 +125,4 @@ class SocketClientReaderWriter implements ClientReader, ClientWriter {
             logger.warn(e);
         }
     }
-
 }

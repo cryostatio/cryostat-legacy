@@ -7,8 +7,19 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
+import org.openjdk.jmc.common.unit.IConstraint;
+import org.openjdk.jmc.common.unit.IDescribedMap;
+import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
+import org.openjdk.jmc.common.unit.IOptionDescriptor;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,15 +31,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
-import org.openjdk.jmc.common.unit.IConstraint;
-import org.openjdk.jmc.common.unit.IDescribedMap;
-import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
-import org.openjdk.jmc.common.unit.IOptionDescriptor;
-import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
-import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -48,10 +50,12 @@ class EventOptionsBuilderTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getDefaultEventOptions()).thenReturn(map);
         when(map.emptyWithSameConstraints()).thenReturn(mutableMap);
-        when(service.getAvailableEventTypes()).thenReturn(EventOptionsBuilder.capture(Collections.singletonList(event)));
+        when(service.getAvailableEventTypes())
+                .thenReturn(EventOptionsBuilder.capture(Collections.singletonList(event)));
 
         when(event.getEventTypeID()).thenReturn(eventId);
-        when(event.getOptionDescriptors()).thenReturn(EventOptionsBuilder.capture(Collections.singletonMap("prop", option)));
+        when(event.getOptionDescriptors())
+                .thenReturn(EventOptionsBuilder.capture(Collections.singletonMap("prop", option)));
         when(eventId.getFullKey()).thenReturn("jdk.Foo");
         when(eventId.getFullKey(Mockito.anyString())).thenReturn("jdk.Foo full");
 
@@ -66,18 +70,22 @@ class EventOptionsBuilderTest extends TestBase {
     @Test
     void shouldWarnV1Unsupported() throws FlightRecorderException {
         new EventOptionsBuilder(mockClientWriter, connection, () -> false);
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+        MatcherAssert.assertThat(
+                stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
     }
 
     @Test
     void shouldWarnV1Unsupported2() throws FlightRecorderException {
         new EventOptionsBuilder(mockClientWriter, connection, () -> false);
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+        MatcherAssert.assertThat(
+                stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
     }
 
     @Test
     void shouldBuildNullMapWhenV1Detected() throws FlightRecorderException {
-        MatcherAssert.assertThat(new EventOptionsBuilder(mockClientWriter, connection, () -> false).build(), Matchers.nullValue());
+        MatcherAssert.assertThat(
+                new EventOptionsBuilder(mockClientWriter, connection, () -> false).build(),
+                Matchers.nullValue());
     }
 
     @Test
@@ -87,7 +95,9 @@ class EventOptionsBuilderTest extends TestBase {
         ArgumentCaptor<EventOptionID> optionIdCaptor = ArgumentCaptor.forClass(EventOptionID.class);
         ArgumentCaptor<Object> valueCaptor = ArgumentCaptor.forClass(Object.class);
         verify(mutableMap).put(optionIdCaptor.capture(), valueCaptor.capture());
-        MatcherAssert.assertThat(optionIdCaptor.getValue().getEventTypeID().getFullKey(), Matchers.equalTo(eventId.getFullKey()));
+        MatcherAssert.assertThat(
+                optionIdCaptor.getValue().getEventTypeID().getFullKey(),
+                Matchers.equalTo(eventId.getFullKey()));
         MatcherAssert.assertThat(valueCaptor.getValue(), Matchers.equalTo("val"));
     }
 
@@ -98,18 +108,26 @@ class EventOptionsBuilderTest extends TestBase {
 
     @Test
     void shouldThrowEventTypeExceptionIfEventTypeUnknown() throws Exception {
-        Exception e = assertThrows(EventOptionsBuilder.EventTypeException.class, () -> {
-            builder.addEvent("jdk.Bar", "prop", "val");
-        });
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("Unknown event type \"jdk.Bar\""));
+        Exception e =
+                assertThrows(
+                        EventOptionsBuilder.EventTypeException.class,
+                        () -> {
+                            builder.addEvent("jdk.Bar", "prop", "val");
+                        });
+        MatcherAssert.assertThat(
+                e.getMessage(), Matchers.equalTo("Unknown event type \"jdk.Bar\""));
     }
 
     @Test
     void shouldThrowEventOptionExceptionIfOptionUnknown() throws Exception {
-        Exception e = assertThrows(EventOptionsBuilder.EventOptionException.class, () -> {
-            builder.addEvent("jdk.Foo", "opt", "val");
-        });
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("Unknown option \"opt\" for event \"jdk.Foo\""));
+        Exception e =
+                assertThrows(
+                        EventOptionsBuilder.EventOptionException.class,
+                        () -> {
+                            builder.addEvent("jdk.Foo", "opt", "val");
+                        });
+        MatcherAssert.assertThat(
+                e.getMessage(), Matchers.equalTo("Unknown option \"opt\" for event \"jdk.Foo\""));
     }
 
     @ExtendWith(MockitoExtension.class)
@@ -132,9 +150,8 @@ class EventOptionsBuilderTest extends TestBase {
             when(service.getDefaultEventOptions()).thenReturn(map);
             when(map.emptyWithSameConstraints()).thenReturn(mutableMap);
             EventOptionsBuilder result = factory.create(connection);
-            MatcherAssert.assertThat(stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
+            MatcherAssert.assertThat(
+                    stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
         }
-
     }
-
 }

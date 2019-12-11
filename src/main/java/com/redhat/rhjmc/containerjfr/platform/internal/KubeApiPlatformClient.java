@@ -21,7 +21,8 @@ class KubeApiPlatformClient implements PlatformClient {
     private final String namespace;
     private final NetworkResolver resolver;
 
-    KubeApiPlatformClient(Logger logger, CoreV1Api api, String namespace, NetworkResolver resolver) {
+    KubeApiPlatformClient(
+            Logger logger, CoreV1Api api, String namespace, NetworkResolver resolver) {
         this.logger = logger;
         this.api = api;
         this.namespace = namespace;
@@ -32,17 +33,23 @@ class KubeApiPlatformClient implements PlatformClient {
     public List<ServiceRef> listDiscoverableServices() {
         try {
             return api
-                .listNamespacedService(namespace, null, null, null, null, null, null, null, null, null)
-                .getItems()
-                .stream()
-                .map(V1Service::getSpec)
-                .peek(spec -> logger.trace("Service spec: " + spec.toString()))
-                .filter(s -> s.getPorts() != null)
-                .flatMap(s -> s.getPorts().stream().map(p -> new ServiceRef(s.getClusterIP(), p.getPort())))
-                .parallel()
-                .map(this::resolveServiceRefHostname)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+                    .listNamespacedService(
+                            namespace, null, null, null, null, null, null, null, null, null)
+                    .getItems().stream()
+                    .map(V1Service::getSpec)
+                    .peek(spec -> logger.trace("Service spec: " + spec.toString()))
+                    .filter(s -> s.getPorts() != null)
+                    .flatMap(
+                            s ->
+                                    s.getPorts().stream()
+                                            .map(
+                                                    p ->
+                                                            new ServiceRef(
+                                                                    s.getClusterIP(), p.getPort())))
+                    .parallel()
+                    .map(this::resolveServiceRefHostname)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toList());
         } catch (ApiException e) {
             logger.warn(e.getMessage());
             logger.warn(e.getResponseBody());

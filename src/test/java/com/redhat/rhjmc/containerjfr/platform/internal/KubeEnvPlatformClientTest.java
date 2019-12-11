@@ -49,20 +49,20 @@ class KubeEnvPlatformClientTest {
 
         @Test
         void shouldDiscoverServicesByEnv() {
-            when(env.getEnv()).thenReturn(Map.of(
-                "FOO_PORT_1234_TCP_ADDR", "127.0.0.1",
-                "BAR_PORT_9999_TCP_ADDR", "1.2.3.4",
-                "BAZ_PORT_9876_UDP_ADDR", "5.6.7.8"
-            ));
+            when(env.getEnv())
+                    .thenReturn(
+                            Map.of(
+                                    "FOO_PORT_1234_TCP_ADDR", "127.0.0.1",
+                                    "BAR_PORT_9999_TCP_ADDR", "1.2.3.4",
+                                    "BAZ_PORT_9876_UDP_ADDR", "5.6.7.8"));
             List<ServiceRef> services = client.listDiscoverableServices();
-            MatcherAssert.assertThat(services, Matchers.containsInAnyOrder(
-                new ServiceRef("127.0.0.1", "foo", 1234),
-                new ServiceRef("1.2.3.4", "bar", 9999)
-            ));
+            MatcherAssert.assertThat(
+                    services,
+                    Matchers.containsInAnyOrder(
+                            new ServiceRef("127.0.0.1", "foo", 1234),
+                            new ServiceRef("1.2.3.4", "bar", 9999)));
             MatcherAssert.assertThat(services, Matchers.hasSize(2));
             verifyNoMoreInteractions(env);
         }
-
     }
-
 }

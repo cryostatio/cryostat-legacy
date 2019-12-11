@@ -13,10 +13,10 @@ import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
+
+import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,21 +72,31 @@ class MessagingServerTest {
     void clientReaderShouldBlockUntilConnected() {
         String expectedText = "hello world";
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
-        assertTimeoutPreemptively(Duration.ofNanos(expectedDelta * 3), () -> {
-            when(crw1.hasMessage()).thenReturn(false);
-            when(crw2.readLine()).thenReturn(expectedText);
-            when(crw2.hasMessage()).thenReturn(true);
-            Executors.newSingleThreadScheduledExecutor().schedule(() -> { server.addConnection(crw1); server.addConnection(crw2); }, expectedDelta, TimeUnit.NANOSECONDS);
+        assertTimeoutPreemptively(
+                Duration.ofNanos(expectedDelta * 3),
+                () -> {
+                    when(crw1.hasMessage()).thenReturn(false);
+                    when(crw2.readLine()).thenReturn(expectedText);
+                    when(crw2.hasMessage()).thenReturn(true);
+                    Executors.newSingleThreadScheduledExecutor()
+                            .schedule(
+                                    () -> {
+                                        server.addConnection(crw1);
+                                        server.addConnection(crw2);
+                                    },
+                                    expectedDelta,
+                                    TimeUnit.NANOSECONDS);
 
-            long start = System.nanoTime();
-            String res = server.getClientReader().readLine();
-            long delta = System.nanoTime() - start;
-            MatcherAssert.assertThat(res, Matchers.equalTo(expectedText));
-            MatcherAssert.assertThat(delta, Matchers.allOf(
-                Matchers.greaterThan((long) (expectedDelta * 0.75)),
-                Matchers.lessThan((long) (expectedDelta * 1.25))
-            ));
-        });
+                    long start = System.nanoTime();
+                    String res = server.getClientReader().readLine();
+                    long delta = System.nanoTime() - start;
+                    MatcherAssert.assertThat(res, Matchers.equalTo(expectedText));
+                    MatcherAssert.assertThat(
+                            delta,
+                            Matchers.allOf(
+                                    Matchers.greaterThan((long) (expectedDelta * 0.75)),
+                                    Matchers.lessThan((long) (expectedDelta * 1.25))));
+                });
     }
 
     @Test
@@ -99,12 +109,14 @@ class MessagingServerTest {
         server.addConnection(crw1);
         server.addConnection(crw2);
 
-        MatcherAssert.assertThat(server.getClientReader().readLine(), Matchers.equalTo(expectedText));
+        MatcherAssert.assertThat(
+                server.getClientReader().readLine(), Matchers.equalTo(expectedText));
         verify(crw1).hasMessage();
         verify(crw2).hasMessage();
         verify(crw2).readLine();
 
-        ResponseMessage<String> successResponseMessage = new SuccessResponseMessage<>("test", "message");
+        ResponseMessage<String> successResponseMessage =
+                new SuccessResponseMessage<>("test", "message");
         server.flush(successResponseMessage);
 
         verify(crw1).flush(successResponseMessage);
@@ -122,7 +134,8 @@ class MessagingServerTest {
         verify(crw1).readLine();
         verifyNoMoreInteractions(crw2);
 
-        ResponseMessage<String> failureResponseMessage = new FailureResponseMessage("test", "failure");
+        ResponseMessage<String> failureResponseMessage =
+                new FailureResponseMessage("test", "failure");
         server.flush(failureResponseMessage);
 
         verify(crw1).flush(failureResponseMessage);
@@ -142,7 +155,8 @@ class MessagingServerTest {
         ArgumentCaptor<Exception> logCaptor = ArgumentCaptor.forClass(Exception.class);
         verify(logger).warn(logCaptor.capture());
         MatcherAssert.assertThat(logCaptor.getValue(), Matchers.isA(NullPointerException.class));
-        MatcherAssert.assertThat(logCaptor.getValue().getMessage(), Matchers.equalTo("Testing Exception"));
+        MatcherAssert.assertThat(
+                logCaptor.getValue().getMessage(), Matchers.equalTo("Testing Exception"));
     }
 
     @Test
@@ -154,5 +168,4 @@ class MessagingServerTest {
         verify(crw1).flush(message);
         verify(crw2).flush(message);
     }
-
 }

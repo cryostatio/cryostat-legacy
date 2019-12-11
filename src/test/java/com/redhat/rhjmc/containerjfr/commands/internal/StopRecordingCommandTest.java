@@ -12,9 +12,14 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,18 +29,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class StopRecordingCommandTest {
 
     StopRecordingCommand command;
-    @Mock
-    ClientWriter cw;
-    @Mock
-    JFRConnection connection;
+    @Mock ClientWriter cw;
+    @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
@@ -57,13 +57,13 @@ class StopRecordingCommandTest {
 
     @Test
     void shouldNotExpectMalformedArg() {
-        assertFalse(command.validate(new String[]{ "." }));
+        assertFalse(command.validate(new String[] {"."}));
         verify(cw).println(". is an invalid recording name");
     }
 
     @Test
     void shouldExpectRecordingNameArg() {
-        assertTrue(command.validate(new String[]{ "foo" }));
+        assertTrue(command.validate(new String[] {"foo"}));
         verifyZeroInteractions(cw);
     }
 
@@ -75,7 +75,7 @@ class StopRecordingCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[]{ "foo" });
+        command.execute(new String[] {"foo"});
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
@@ -93,11 +93,13 @@ class StopRecordingCommandTest {
         when(barDescriptor.getName()).thenReturn("bar");
 
         when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordings()).thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
+        when(service.getAvailableRecordings())
+                .thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
 
-        command.execute(new String[]{ "foo" });
+        command.execute(new String[] {"foo"});
 
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor = ArgumentCaptor.forClass(IRecordingDescriptor.class);
+        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
+                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(service).stop(descriptorCaptor.capture());
         IRecordingDescriptor captured = descriptorCaptor.getValue();
         MatcherAssert.assertThat(captured, Matchers.sameInstance(fooDescriptor));
@@ -118,12 +120,14 @@ class StopRecordingCommandTest {
         when(barDescriptor.getName()).thenReturn("bar");
 
         when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordings()).thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
+        when(service.getAvailableRecordings())
+                .thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "foo" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor = ArgumentCaptor.forClass(IRecordingDescriptor.class);
+        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
+                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(service).stop(descriptorCaptor.capture());
         IRecordingDescriptor captured = descriptorCaptor.getValue();
         MatcherAssert.assertThat(captured, Matchers.sameInstance(fooDescriptor));
@@ -143,9 +147,10 @@ class StopRecordingCommandTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "bar" });
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"bar"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
-        MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("Recording with name \"bar\" not found"));
+        MatcherAssert.assertThat(
+                out.getPayload(), Matchers.equalTo("Recording with name \"bar\" not found"));
 
         verifyNoMoreInteractions(service);
         verifyNoMoreInteractions(connection);
@@ -163,9 +168,9 @@ class StopRecordingCommandTest {
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
         doThrow(FlightRecorderException.class).when(service).stop(Mockito.any());
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "foo" });
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
-
 }

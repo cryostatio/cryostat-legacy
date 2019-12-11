@@ -1,13 +1,14 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
+import java.util.Optional;
+
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import java.util.Optional;
+import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 
 abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 
@@ -40,8 +41,8 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
     protected Optional<IRecordingDescriptor> getDescriptorByName(String name)
             throws FlightRecorderException, JMXConnectionException {
         return getService().getAvailableRecordings().stream()
-            .filter(recording -> recording.getName().equals(name))
-            .findFirst();
+                .filter(recording -> recording.getName().equals(name))
+                .findFirst();
     }
 
     private void validateConnection() throws JMXConnectionException {

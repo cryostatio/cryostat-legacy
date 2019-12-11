@@ -5,7 +5,11 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -13,15 +17,12 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingOptionsCustomizerTest {
 
     RecordingOptionsCustomizer customizer;
-    @Mock
-    ClientWriter cw;
+    @Mock ClientWriter cw;
     @Mock RecordingOptionsBuilder builder;
 
     @BeforeEach
@@ -84,5 +85,4 @@ class RecordingOptionsCustomizerTest {
         verifyNoMoreInteractions(builder);
         verifyNoMoreInteractions(cw);
     }
-
 }

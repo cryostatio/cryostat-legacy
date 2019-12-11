@@ -8,7 +8,6 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -17,6 +16,7 @@ import java.util.HashSet;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -39,13 +39,17 @@ public class SerializableCommandRegistryImplTest {
 
         @Test
         public void shouldReturnEmptyRegisteredCommandNames() {
-            assertThat("registered commands should be empty", registry.getRegisteredCommandNames(),
+            assertThat(
+                    "registered commands should be empty",
+                    registry.getRegisteredCommandNames(),
                     equalTo(Collections.emptySet()));
         }
 
         @Test
         public void shouldReturnEmptyAvailableCommandNames() {
-            assertThat("available commands should be empty", registry.getAvailableCommandNames(),
+            assertThat(
+                    "available commands should be empty",
+                    registry.getAvailableCommandNames(),
                     equalTo(Collections.emptySet()));
         }
 
@@ -68,29 +72,42 @@ public class SerializableCommandRegistryImplTest {
         BazCommand bazCommand = new BazCommand();
         FizzCommand fizzCommand = new FizzCommand();
 
-        Command[] commands = new Command[] { fooCommand, barCommand, bazCommand, fizzCommand };
+        Command[] commands = new Command[] {fooCommand, barCommand, bazCommand, fizzCommand};
 
         @BeforeEach
         public void setup() {
-            registry = new SerializableCommandRegistryImpl(new HashSet<Command>(Arrays.asList(commands)));
+            registry =
+                    new SerializableCommandRegistryImpl(
+                            new HashSet<Command>(Arrays.asList(commands)));
         }
 
         @Test
         public void shouldReturnRegisteredCommandNames() {
-            assertThat("registered command names should be returned", registry.getRegisteredCommandNames(),
-                    equalTo(new HashSet<String>(Arrays.asList(fooCommand.getName(), fizzCommand.getName(), barCommand.getName()))));
+            assertThat(
+                    "registered command names should be returned",
+                    registry.getRegisteredCommandNames(),
+                    equalTo(
+                            new HashSet<String>(
+                                    Arrays.asList(
+                                            fooCommand.getName(),
+                                            fizzCommand.getName(),
+                                            barCommand.getName()))));
         }
 
         @Test
         public void shouldReturnAvailableCommandNames() {
-            assertThat("available command names should be returned", registry.getAvailableCommandNames(),
-                    equalTo(new HashSet<String>(Arrays.asList(fooCommand.getName(), fizzCommand.getName()))));
+            assertThat(
+                    "available command names should be returned",
+                    registry.getAvailableCommandNames(),
+                    equalTo(
+                            new HashSet<String>(
+                                    Arrays.asList(fooCommand.getName(), fizzCommand.getName()))));
         }
 
         @Test
         public void shouldExecuteRegisteredAndAvailableCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
-            SerializableCommand.Output<?> out = registry.execute("foo", new String[] { "arg" });
+            SerializableCommand.Output<?> out = registry.execute("foo", new String[] {"arg"});
             assertThat(out, instanceOf(SerializableCommand.SuccessOutput.class));
             assertThat("command should have been executed", fooCommand.value, equalTo("arg"));
         }
@@ -98,7 +115,7 @@ public class SerializableCommandRegistryImplTest {
         @Test
         public void shouldNotExecuteRegisteredAndUnavailableCommand() throws Exception {
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            SerializableCommand.Output<?> out = registry.execute("bar", new String[] { "arg" });
+            SerializableCommand.Output<?> out = registry.execute("bar", new String[] {"arg"});
             assertThat(out, instanceOf(SerializableCommand.FailureOutput.class));
             assertThat("command should not have been executed", barCommand.value, nullValue());
         }
@@ -107,7 +124,7 @@ public class SerializableCommandRegistryImplTest {
         public void shouldNoOpOnUnregisteredCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            SerializableCommand.Output<?> out = registry.execute("baz", new String[] { "arg" });
+            SerializableCommand.Output<?> out = registry.execute("baz", new String[] {"arg"});
             assertThat(out, instanceOf(SerializableCommand.FailureOutput.class));
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
@@ -158,18 +175,23 @@ public class SerializableCommandRegistryImplTest {
     class WithConflictingCommandDefinitions {
         @Test
         public void shouldThrowCommandDefinitionException() {
-            CommandRegistryImpl.CommandDefinitionException thrown = Assertions.assertThrows(CommandRegistryImpl.CommandDefinitionException.class,
-                    () -> new SerializableCommandRegistryImpl(
-                            new HashSet<Command>(Arrays.asList(new FooCommand(), new DuplicateFooCommand()))),
-                    "should throw CommandDefinitionException for duplicate definitions");
-            assertThat(thrown.getMessage(),
-                allOf(
-                    containsString("\"foo\" command definitions provided by class"),
-                    containsString(DuplicateFooCommand.class.getCanonicalName()),
-                    containsString("AND class"),
-                    containsString(FooCommand.class.getCanonicalName())
-                )
-            );
+            CommandRegistryImpl.CommandDefinitionException thrown =
+                    Assertions.assertThrows(
+                            CommandRegistryImpl.CommandDefinitionException.class,
+                            () ->
+                                    new SerializableCommandRegistryImpl(
+                                            new HashSet<Command>(
+                                                    Arrays.asList(
+                                                            new FooCommand(),
+                                                            new DuplicateFooCommand()))),
+                            "should throw CommandDefinitionException for duplicate definitions");
+            assertThat(
+                    thrown.getMessage(),
+                    allOf(
+                            containsString("\"foo\" command definitions provided by class"),
+                            containsString(DuplicateFooCommand.class.getCanonicalName()),
+                            containsString("AND class"),
+                            containsString(FooCommand.class.getCanonicalName())));
         }
     }
 
@@ -274,7 +296,7 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public void execute(String[] args) { }
+        public void execute(String[] args) {}
 
         @Override
         public Output<?> serializableExecute(String[] args) {
@@ -282,7 +304,5 @@ public class SerializableCommandRegistryImplTest {
         }
     }
 
-    static class DuplicateFooCommand extends FooCommand {
-    }
-
+    static class DuplicateFooCommand extends FooCommand {}
 }

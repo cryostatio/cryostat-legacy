@@ -5,12 +5,13 @@ import java.io.InputStream;
 import java.util.Set;
 import java.util.TreeSet;
 
+import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
+import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
-import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.flightrecorder.rules.report.html.JfrHtmlRulesReport;
 
 public class ReportGenerator {
 
@@ -22,7 +23,8 @@ public class ReportGenerator {
         this.transformers = new TreeSet<>(transformers);
     }
 
-    public String generateReport(InputStream recording) throws IOException, CouldNotLoadRecordingException {
+    public String generateReport(InputStream recording)
+            throws IOException, CouldNotLoadRecordingException {
         String report = JfrHtmlRulesReport.createReport(recording);
         if (!transformers.isEmpty()) {
             try {

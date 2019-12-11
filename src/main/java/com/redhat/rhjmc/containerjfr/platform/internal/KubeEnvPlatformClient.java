@@ -13,7 +13,8 @@ import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 class KubeEnvPlatformClient implements PlatformClient {
 
-    private static final Pattern SERVICE_ENV_PATTERN = Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
+    private static final Pattern SERVICE_ENV_PATTERN =
+            Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final Environment env;
 
     KubeEnvPlatformClient(Environment env) {
@@ -37,5 +38,4 @@ class KubeEnvPlatformClient implements PlatformClient {
         int port = Integer.parseInt(matcher.group(2));
         return new ServiceRef(entry.getValue(), alias, port);
     }
-
 }

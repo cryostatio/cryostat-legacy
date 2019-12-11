@@ -15,6 +15,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SavedRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -33,14 +34,10 @@ import org.mockito.stubbing.Answer;
 @ExtendWith(MockitoExtension.class)
 class ListSavedRecordingsCommandTest {
 
-    @Mock
-    ClientWriter cw;
-    @Mock
-    FileSystem fs;
-    @Mock
-    Path recordingsPath;
-    @Mock
-    WebServer exporter;
+    @Mock ClientWriter cw;
+    @Mock FileSystem fs;
+    @Mock Path recordingsPath;
+    @Mock WebServer exporter;
     ListSavedRecordingsCommand command;
 
     @BeforeEach
@@ -54,7 +51,7 @@ class ListSavedRecordingsCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = { 1, 2 })
+    @ValueSource(ints = {1, 2})
     void shouldNotValidateWrongArgCounts(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
         verify(cw).println("No arguments expected");
@@ -110,7 +107,9 @@ class ListSavedRecordingsCommandTest {
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
-        MatcherAssert.assertThat(((SerializableCommand.ListOutput) out).getPayload(), Matchers.equalTo(Collections.emptyList()));
+        MatcherAssert.assertThat(
+                ((SerializableCommand.ListOutput) out).getPayload(),
+                Matchers.equalTo(Collections.emptyList()));
 
         verifyZeroInteractions(cw);
     }
@@ -121,7 +120,8 @@ class ListSavedRecordingsCommandTest {
 
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
 
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
 
         verifyZeroInteractions(cw);
     }
@@ -129,30 +129,34 @@ class ListSavedRecordingsCommandTest {
     @Test
     void shouldExecuteAndReturnSerializedRecordingInfo() throws Exception {
         when(fs.listDirectoryChildren(recordingsPath)).thenReturn(Arrays.asList("foo", "bar"));
-        when(exporter.getDownloadURL(Mockito.anyString())).thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) throws Throwable {
-                return invocation.getArguments()[0] + ".jfr";
-            }
-        });
-        when(exporter.getReportURL(Mockito.anyString())).thenAnswer(new Answer<String>() {
-            @Override
-            public String answer(InvocationOnMock invocation) throws Throwable {
-                return "/reports/" + invocation.getArguments()[0] + ".jfr";
-            }
-        });
+        when(exporter.getDownloadURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return invocation.getArguments()[0] + ".jfr";
+                            }
+                        });
+        when(exporter.getReportURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return "/reports/" + invocation.getArguments()[0] + ".jfr";
+                            }
+                        });
 
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
-        MatcherAssert.assertThat(((SerializableCommand.ListOutput) out).getPayload(), Matchers.equalTo(
-            Arrays.asList(
-                new SavedRecordingDescriptor("foo", "foo.jfr", "/reports/foo.jfr"),
-                new SavedRecordingDescriptor("bar", "bar.jfr", "/reports/bar.jfr")
-            )
-        ));
+        MatcherAssert.assertThat(
+                ((SerializableCommand.ListOutput) out).getPayload(),
+                Matchers.equalTo(
+                        Arrays.asList(
+                                new SavedRecordingDescriptor("foo", "foo.jfr", "/reports/foo.jfr"),
+                                new SavedRecordingDescriptor(
+                                        "bar", "bar.jfr", "/reports/bar.jfr"))));
 
         verifyZeroInteractions(cw);
     }
-
 }

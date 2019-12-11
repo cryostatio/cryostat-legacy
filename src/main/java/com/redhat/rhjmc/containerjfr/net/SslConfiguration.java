@@ -1,14 +1,15 @@
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.nio.file.Path;
+
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
 import org.apache.commons.lang3.tuple.Pair;
-
-import java.nio.file.Path;
 
 class SslConfiguration {
     private final Environment env;
@@ -176,7 +177,9 @@ class SslConfiguration {
             this.path = path;
             this.password = pass;
 
-            if (!path.toString().endsWith(".jks") && !path.toString().endsWith(".pfx") && !path.toString().endsWith(".p12")) {
+            if (!path.toString().endsWith(".jks")
+                    && !path.toString().endsWith(".pfx")
+                    && !path.toString().endsWith(".p12")) {
                 throw new SslConfigurationException("unrecognized keystore type");
             }
 
@@ -186,16 +189,19 @@ class SslConfiguration {
         }
 
         @Override
-        public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options){
+        public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
             if (path.toString().endsWith(".jks")) {
                 return options.setSsl(true)
-                        .setKeyStoreOptions(new JksOptions().setPath(path.toString()).setPassword(password));
+                        .setKeyStoreOptions(
+                                new JksOptions().setPath(path.toString()).setPassword(password));
             } else if (path.toString().endsWith(".pfx") || path.toString().endsWith(".p12")) {
                 return options.setSsl(true)
-                        .setPfxKeyCertOptions(new PfxOptions().setPath(path.toString()).setPassword(password));
+                        .setPfxKeyCertOptions(
+                                new PfxOptions().setPath(path.toString()).setPassword(password));
             }
 
-            throw new IllegalStateException(); // extension checked in constructor. should never reach this step
+            throw new IllegalStateException(); // extension checked in constructor. should never
+            // reach this step
         }
     }
 
@@ -219,7 +225,10 @@ class SslConfiguration {
         @Override
         public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
             return options.setSsl(true)
-                    .setPemKeyCertOptions(new PemKeyCertOptions().setKeyPath(keyPath.toString()).setCertPath(certPath.toString()));
+                    .setPemKeyCertOptions(
+                            new PemKeyCertOptions()
+                                    .setKeyPath(keyPath.toString())
+                                    .setCertPath(certPath.toString()));
         }
     }
 

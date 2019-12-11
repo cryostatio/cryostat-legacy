@@ -15,7 +15,8 @@ class WaitCommand implements Command {
     private final ClientWriter cw;
     private final Clock clock;
 
-    @Inject WaitCommand(ClientWriter cw, Clock clock) {
+    @Inject
+    WaitCommand(ClientWriter cw, Clock clock) {
         this.cw = cw;
         this.clock = clock;
     }
@@ -62,5 +63,4 @@ class WaitCommand implements Command {
     public boolean isAvailable() {
         return true;
     }
-
 }

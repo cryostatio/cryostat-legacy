@@ -64,5 +64,4 @@ class TtyClientWriterTest {
         verify(out).println();
         verifyNoMoreInteractions(out);
     }
-
 }

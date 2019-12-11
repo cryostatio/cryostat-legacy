@@ -5,5 +5,6 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 interface RecordingOptionsBuilderFactory {
-    RecordingOptionsBuilder create(IFlightRecorderService service) throws QuantityConversionException;
+    RecordingOptionsBuilder create(IFlightRecorderService service)
+            throws QuantityConversionException;
 }

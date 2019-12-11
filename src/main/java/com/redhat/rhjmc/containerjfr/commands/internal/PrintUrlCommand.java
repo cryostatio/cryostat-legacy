@@ -13,7 +13,8 @@ class PrintUrlCommand implements SerializableCommand {
     private final ClientWriter cw;
     private final WebServer exporter;
 
-    @Inject PrintUrlCommand(ClientWriter cw, WebServer exporter) {
+    @Inject
+    PrintUrlCommand(ClientWriter cw, WebServer exporter) {
         this.cw = cw;
         this.exporter = exporter;
     }
@@ -50,5 +51,4 @@ class PrintUrlCommand implements SerializableCommand {
     public boolean isAvailable() {
         return true;
     }
-
 }

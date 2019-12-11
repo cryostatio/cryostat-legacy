@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,8 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class RecordingOptionsCustomizerCommandTest {
 
     RecordingOptionsCustomizerCommand command;
-    @Mock
-    ClientWriter cw;
+    @Mock ClientWriter cw;
     @Mock RecordingOptionsCustomizer customizer;
 
     @BeforeEach
@@ -51,44 +51,46 @@ class RecordingOptionsCustomizerCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "foo",
-        "+foo",
-        "foo=",
-        "-foo=bar",
-    })
+    @ValueSource(
+            strings = {
+                "foo",
+                "+foo",
+                "foo=",
+                "-foo=bar",
+            })
     void shouldNotValidateMalformedArg(String arg) {
-        assertFalse(command.validate(new String[]{ arg }));
+        assertFalse(command.validate(new String[] {arg}));
         verify(cw).println(arg + " is an invalid option string");
     }
 
     @Test
     void shouldNotValidateUnrecognizedOption() {
-        assertFalse(command.validate(new String[] { "someUnknownOption=value" }));
+        assertFalse(command.validate(new String[] {"someUnknownOption=value"}));
         verify(cw).println("someUnknownOption is an unrecognized or unsupported option");
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {
-        "toDisk=true",
-        "maxAge=10",
-        "maxSize=512",
-    })
+    @ValueSource(
+            strings = {
+                "toDisk=true",
+                "maxAge=10",
+                "maxSize=512",
+            })
     void shouldKnownValidateKeyValueArg(String arg) {
-        assertTrue(command.validate(new String[]{ arg }));
+        assertTrue(command.validate(new String[] {arg}));
         verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldExpectUnsetArg() {
-        assertTrue(command.validate(new String[]{ "-toDisk" }));
+        assertTrue(command.validate(new String[] {"-toDisk"}));
         verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldSetMaxAge() throws Exception {
         verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "maxAge=123" });
+        command.execute(new String[] {"maxAge=123"});
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.MAX_AGE, "123");
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
@@ -97,7 +99,7 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldSetMaxSize() throws Exception {
         verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "maxSize=123" });
+        command.execute(new String[] {"maxSize=123"});
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.MAX_SIZE, "123");
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
@@ -106,7 +108,7 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldSetToDisk() throws Exception {
         verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "toDisk=true" });
+        command.execute(new String[] {"toDisk=true"});
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
@@ -115,7 +117,7 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldUnsetMaxAge() throws Exception {
         verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "-maxAge" });
+        command.execute(new String[] {"-maxAge"});
         verify(customizer).unset(RecordingOptionsCustomizer.OptionKey.MAX_AGE);
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
@@ -124,7 +126,7 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldUnsetMaxSize() throws Exception {
         verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "-maxSize" });
+        command.execute(new String[] {"-maxSize"});
         verify(customizer).unset(RecordingOptionsCustomizer.OptionKey.MAX_SIZE);
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
@@ -133,7 +135,7 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldUnsetToDisk() throws Exception {
         verifyZeroInteractions(customizer);
-        command.execute(new String[]{ "-toDisk" });
+        command.execute(new String[] {"-toDisk"});
         verify(customizer).unset(RecordingOptionsCustomizer.OptionKey.TO_DISK);
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
@@ -142,7 +144,8 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldReturnSuccessOutput() throws Exception {
         verifyZeroInteractions(customizer);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "toDisk=true" });
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"toDisk=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
@@ -153,11 +156,12 @@ class RecordingOptionsCustomizerCommandTest {
     void shouldReturnExceptionOutput() throws Exception {
         verifyZeroInteractions(customizer);
         doThrow(NullPointerException.class).when(customizer).set(Mockito.any(), Mockito.any());
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "toDisk=true" });
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"toDisk=true"});
+        MatcherAssert.assertThat(
+                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
     }
-
 }

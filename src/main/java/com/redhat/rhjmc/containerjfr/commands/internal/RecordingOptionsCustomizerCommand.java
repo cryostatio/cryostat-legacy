@@ -11,15 +11,18 @@ import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomize
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
-class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand implements SerializableCommand {
+class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand
+        implements SerializableCommand {
 
-    private static final Pattern OPTIONS_PATTERN = Pattern.compile("^([\\w]+)=([\\w\\.-_]+)$", Pattern.MULTILINE);
+    private static final Pattern OPTIONS_PATTERN =
+            Pattern.compile("^([\\w]+)=([\\w\\.-_]+)$", Pattern.MULTILINE);
     private static final Pattern UNSET_PATTERN = Pattern.compile("^-([\\w]+)$", Pattern.MULTILINE);
 
     private final ClientWriter cw;
     private final RecordingOptionsCustomizer customizer;
 
-    @Inject RecordingOptionsCustomizerCommand(ClientWriter cw, RecordingOptionsCustomizer customizer) {
+    @Inject
+    RecordingOptionsCustomizerCommand(ClientWriter cw, RecordingOptionsCustomizer customizer) {
         this.cw = cw;
         this.customizer = customizer;
     }
@@ -74,8 +77,7 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand impleme
         }
 
         String option = (optionsMatch ? optionsMatcher : unsetMatcher).group(1);
-        boolean recognizedOption = OptionKey.fromOptionName(option)
-            .isPresent();
+        boolean recognizedOption = OptionKey.fromOptionName(option).isPresent();
         if (!recognizedOption) {
             cw.println(String.format("%s is an unrecognized or unsupported option", option));
             return false;
@@ -83,5 +85,4 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand impleme
 
         return true;
     }
-
 }

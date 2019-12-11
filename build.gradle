@@ -1,6 +1,7 @@
 plugins {
     id 'java'
     id 'application'
+    id 'com.diffplug.gradle.spotless' version '3.26.1'
     id 'com.github.spotbugs' version '1.7.1'
     id 'jacoco'
     id 'com.google.cloud.tools.jib' version '1.0.1'
@@ -113,6 +114,20 @@ applicationDefaultJvmArgs = jib.container.jvmFlags
 test {
     useJUnitPlatform()
     maxParallelForks = Runtime.runtime.availableProcessors().intdiv(2) ?: 1
+}
+
+spotless {
+    java {
+        target 'src/**/*.java'
+
+        googleJavaFormat("1.7").aosp()
+
+        trimTrailingWhitespace()
+        endWithNewline()
+
+        importOrder 'java', 'javax', 'org.openjdk.jmc', 'com.redhat.rhjmc.containerjfr', ''
+        removeUnusedImports()
+    }
 }
 
 spotbugs {

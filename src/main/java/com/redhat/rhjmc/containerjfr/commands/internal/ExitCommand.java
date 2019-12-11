@@ -11,7 +11,8 @@ public class ExitCommand implements Command {
 
     private final ClientWriter cw;
 
-    @Inject ExitCommand(ClientWriter cw) {
+    @Inject
+    ExitCommand(ClientWriter cw) {
         this.cw = cw;
     }
 
@@ -35,6 +36,5 @@ public class ExitCommand implements Command {
     }
 
     @Override
-    public void execute(String[] args) { }
-
+    public void execute(String[] args) {}
 }

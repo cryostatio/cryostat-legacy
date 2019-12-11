@@ -1,12 +1,13 @@
 package com.redhat.rhjmc.containerjfr.jmc.serialization;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.common.unit.UnitLookup;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
+
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class SerializableRecordingDescriptor {
 
@@ -20,7 +21,8 @@ public class SerializableRecordingDescriptor {
     private long maxSize;
     private long maxAge;
 
-    public SerializableRecordingDescriptor(IRecordingDescriptor orig) throws QuantityConversionException {
+    public SerializableRecordingDescriptor(IRecordingDescriptor orig)
+            throws QuantityConversionException {
         this.id = orig.getId();
         this.name = orig.getName();
         this.state = orig.getState();

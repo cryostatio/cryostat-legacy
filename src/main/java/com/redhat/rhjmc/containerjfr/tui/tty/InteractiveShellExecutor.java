@@ -9,14 +9,17 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.tui.AbstractCommandExecutor;
+
 import dagger.Lazy;
 
-public class InteractiveShellExecutor extends AbstractCommandExecutor implements ConnectionListener {
+public class InteractiveShellExecutor extends AbstractCommandExecutor
+        implements ConnectionListener {
 
     private boolean running = true;
     private boolean connected = false;
 
-    public InteractiveShellExecutor(ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
+    public InteractiveShellExecutor(
+            ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         super(cr, cw, commandRegistry);
     }
 

@@ -24,8 +24,8 @@ import dagger.multibindings.IntoSet;
 public abstract class TcpModule {
     @Provides
     @Singleton
-    static SocketInteractiveShellExecutor provideSocketInteractiveShellExecutor(ClientReader cr, ClientWriter cw,
-            Lazy<CommandRegistry> commandRegistry) {
+    static SocketInteractiveShellExecutor provideSocketInteractiveShellExecutor(
+            ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
         return new SocketInteractiveShellExecutor(cr, cw, commandRegistry);
     }
 
@@ -37,7 +37,8 @@ public abstract class TcpModule {
 
     @Binds
     @IntoSet
-    abstract ConnectionListener bindConnectionListener(SocketInteractiveShellExecutor commandExecutor);
+    abstract ConnectionListener bindConnectionListener(
+            SocketInteractiveShellExecutor commandExecutor);
 
     @Provides
     @Singleton
@@ -55,7 +56,8 @@ public abstract class TcpModule {
 
     @Provides
     @Singleton
-    static SocketClientReaderWriter provideSocketClientReaderWriter(Logger logger, NetworkConfiguration netConf) {
+    static SocketClientReaderWriter provideSocketClientReaderWriter(
+            Logger logger, NetworkConfiguration netConf) {
         try {
             return new SocketClientReaderWriter(logger, netConf.getInternalCommandChannelPort());
         } catch (IOException e) {

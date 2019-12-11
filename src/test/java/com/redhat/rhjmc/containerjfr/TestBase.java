@@ -3,10 +3,10 @@ package com.redhat.rhjmc.containerjfr;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
 
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 public class TestBase {
     protected PrintStream mockStdout;

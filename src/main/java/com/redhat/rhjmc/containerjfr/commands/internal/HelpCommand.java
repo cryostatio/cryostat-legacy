@@ -4,11 +4,12 @@ import java.util.ArrayList;
 
 import javax.inject.Inject;
 
-import dagger.Lazy;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
+import dagger.Lazy;
 
 class HelpCommand implements SerializableCommand {
 
@@ -17,7 +18,9 @@ class HelpCommand implements SerializableCommand {
     private final Lazy<SerializableCommandRegistry> serializableRegistry;
 
     @Inject
-    HelpCommand(ClientWriter cw, Lazy<CommandRegistry> commandRegistry,
+    HelpCommand(
+            ClientWriter cw,
+            Lazy<CommandRegistry> commandRegistry,
             Lazy<SerializableCommandRegistry> serializableCommandRegistry) {
         this.cw = cw;
         this.registry = commandRegistry;
@@ -43,9 +46,7 @@ class HelpCommand implements SerializableCommand {
         return true;
     }
 
-    /**
-     * No args expected.
-     */
+    /** No args expected. */
     @Override
     public void execute(String[] args) throws Exception {
         cw.println("Available commands:");
@@ -54,11 +55,11 @@ class HelpCommand implements SerializableCommand {
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        return new ListOutput<>(new ArrayList<>(serializableRegistry.get().getAvailableCommandNames()));
+        return new ListOutput<>(
+                new ArrayList<>(serializableRegistry.get().getAvailableCommandNames()));
     }
 
     private void printCommand(String cmd) {
         cw.println(String.format("\t%s", cmd));
     }
 }
-

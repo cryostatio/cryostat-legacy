@@ -64,7 +64,8 @@ public class NetworkResolver {
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private <T> T getLocalAddressProperty(Function<InetAddress, T> fn) throws SocketException, UnknownHostException {
+    private <T> T getLocalAddressProperty(Function<InetAddress, T> fn)
+            throws SocketException, UnknownHostException {
         try (DatagramSocket s = socketSupplier.get()) {
             s.connect(lookup("1.1.1.1"), 80);
             return fn.apply(s.getLocalAddress());

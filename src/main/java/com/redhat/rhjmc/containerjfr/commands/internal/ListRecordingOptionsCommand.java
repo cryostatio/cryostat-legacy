@@ -17,7 +17,8 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
 
     private final ClientWriter cw;
 
-    @Inject ListRecordingOptionsCommand(ClientWriter cw) {
+    @Inject
+    ListRecordingOptionsCommand(ClientWriter cw) {
         this.cw = cw;
     }
 
@@ -26,9 +27,7 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
         return "list-recording-options";
     }
 
-    /**
-     * No args expected. Prints list of available recording options in target JVM.
-     */
+    /** No args expected. Prints list of available recording options in target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
         cw.println("Available recording options:");
@@ -38,7 +37,8 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            Map<String, IOptionDescriptor<?>> origOptions = getService().getAvailableRecordingOptions();
+            Map<String, IOptionDescriptor<?>> origOptions =
+                    getService().getAvailableRecordingOptions();
             Map<String, SerializableOptionDescriptor> options = new HashMap<>(origOptions.size());
             for (Map.Entry<String, IOptionDescriptor<?>> entry : origOptions.entrySet()) {
                 options.put(entry.getKey(), new SerializableOptionDescriptor(entry.getValue()));

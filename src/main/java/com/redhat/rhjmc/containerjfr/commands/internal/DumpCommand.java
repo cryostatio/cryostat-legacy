@@ -15,7 +15,10 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     private final WebServer exporter;
 
     @Inject
-    DumpCommand(ClientWriter cw, WebServer exporter, EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+    DumpCommand(
+            ClientWriter cw,
+            WebServer exporter,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
@@ -27,9 +30,9 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     }
 
     /**
-     * Three args expected.
-     * First argument is recording name, second argument is recording length in seconds.
-     * Third argument is comma-separated event options list, ex. jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
+     * Three args expected. First argument is recording name, second argument is recording length in
+     * seconds. Third argument is comma-separated event options list, ex.
+     * jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
      */
     @Override
     public void execute(String[] args) throws Exception {
@@ -42,10 +45,12 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             return;
         }
 
-        IConstrainedMap<String> recordingOptions = recordingOptionsBuilderFactory.create(getService())
-            .name(name)
-            .duration(1000 * seconds)
-            .build();
+        IConstrainedMap<String> recordingOptions =
+                recordingOptionsBuilderFactory
+                        .create(getService())
+                        .name(name)
+                        .duration(1000 * seconds)
+                        .build();
         this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
     }
 
@@ -57,13 +62,16 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             String events = args[2];
 
             if (getDescriptorByName(name).isPresent()) {
-                return new FailureOutput(String.format("Recording with name \"%s\" already exists", name));
+                return new FailureOutput(
+                        String.format("Recording with name \"%s\" already exists", name));
             }
 
-            IConstrainedMap<String> recordingOptions = recordingOptionsBuilderFactory.create(getService())
-                .name(name)
-                .duration(1000 * seconds)
-                .build();
+            IConstrainedMap<String> recordingOptions =
+                    recordingOptionsBuilderFactory
+                            .create(getService())
+                            .name(name)
+                            .duration(1000 * seconds)
+                            .build();
             this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
             return new SuccessOutput();
         } catch (Exception e) {
@@ -74,7 +82,8 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     @Override
     public boolean validate(String[] args) {
         if (args.length != 3) {
-            cw.println("Expected three arguments: recording name, recording length, and event types");
+            cw.println(
+                    "Expected three arguments: recording name, recording length, and event types");
             return false;
         }
 

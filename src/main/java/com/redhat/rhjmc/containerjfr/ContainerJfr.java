@@ -11,20 +11,26 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
-import org.apache.commons.lang3.StringUtils;
-
 import dagger.BindsInstance;
 import dagger.Component;
+import org.apache.commons.lang3.StringUtils;
 
 class ContainerJfr {
     public static void main(String[] args) throws Exception {
-        System.out.println(String.format("%s started. args: %s",
-                System.getProperty("java.rmi.server.hostname", "cjfr-client"),
-                Arrays.stream(args).map(s -> "\"" + s + "\"").collect(Collectors.toList()).toString()));
+        System.out.println(
+                String.format(
+                        "%s started. args: %s",
+                        System.getProperty("java.rmi.server.hostname", "cjfr-client"),
+                        Arrays.stream(args)
+                                .map(s -> "\"" + s + "\"")
+                                .collect(Collectors.toList())
+                                .toString()));
         ContainerJfrCore.initialize();
 
         final Environment environment = new Environment();
-        if (environment.getProperty("com.redhat.rhjmc.containerjfr.debug", "false").equals("true")) {
+        if (environment
+                .getProperty("com.redhat.rhjmc.containerjfr.debug", "false")
+                .equals("true")) {
             System.out.println(String.format("env: %s", environment.getEnv().toString()));
             Logger.INSTANCE.setLevel(Logger.Level.ALL);
         }
@@ -45,31 +51,26 @@ class ContainerJfr {
             clientArgs = args[0];
         }
 
-        Client client = DaggerContainerJfr_Client
-            .builder()
-            .mode(mode)
-            .build();
+        Client client = DaggerContainerJfr_Client.builder().mode(mode).build();
 
-        client
-            .webServer()
-            .start();
+        client.webServer().start();
 
-        client
-            .commandExecutor()
-            .run(clientArgs);
+        client.commandExecutor().run(clientArgs);
     }
 
     @Singleton
-    @Component(modules = { MainModule.class })
+    @Component(modules = {MainModule.class})
     interface Client {
         CommandExecutor commandExecutor();
+
         WebServer webServer();
 
         @Component.Builder
         interface Builder {
-            @BindsInstance Builder mode(ExecutionMode mode);
+            @BindsInstance
+            Builder mode(ExecutionMode mode);
+
             Client build();
         }
     }
-
 }

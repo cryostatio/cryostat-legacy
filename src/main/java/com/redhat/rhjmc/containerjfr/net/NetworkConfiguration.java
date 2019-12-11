@@ -24,16 +24,22 @@ public class NetworkConfiguration {
     }
 
     public int getInternalCommandChannelPort() {
-        return Integer.parseInt(env.getEnv("CONTAINER_JFR_LISTEN_PORT", String.valueOf(getDefaultCommandChannelPort())));
+        return Integer.parseInt(
+                env.getEnv(
+                        "CONTAINER_JFR_LISTEN_PORT",
+                        String.valueOf(getDefaultCommandChannelPort())));
     }
 
     /**
-     * "External" or "advertised" port which the command channel listens on,
-     * which is publicly exposed for client connections. May vary from internal
-     * port number used when service is running behind a proxy or router.
+     * "External" or "advertised" port which the command channel listens on, which is publicly
+     * exposed for client connections. May vary from internal port number used when service is
+     * running behind a proxy or router.
      */
     public int getExternalCommandChannelPort() {
-        return Integer.parseInt(env.getEnv("CONTAINER_JFR_EXT_LISTEN_PORT", String.valueOf(getInternalCommandChannelPort())));
+        return Integer.parseInt(
+                env.getEnv(
+                        "CONTAINER_JFR_EXT_LISTEN_PORT",
+                        String.valueOf(getInternalCommandChannelPort())));
     }
 
     public String getWebServerHost() throws SocketException, UnknownHostException {
@@ -45,11 +51,14 @@ public class NetworkConfiguration {
     }
 
     public int getInternalWebServerPort() {
-        return Integer.parseInt(env.getEnv("CONTAINER_JFR_WEB_PORT", String.valueOf(getDefaultWebServerPort())));
+        return Integer.parseInt(
+                env.getEnv("CONTAINER_JFR_WEB_PORT", String.valueOf(getDefaultWebServerPort())));
     }
 
     public int getExternalWebServerPort() {
-        return Integer.parseInt(env.getEnv("CONTAINER_JFR_EXT_WEB_PORT", String.valueOf(getInternalWebServerPort())));
+        return Integer.parseInt(
+                env.getEnv(
+                        "CONTAINER_JFR_EXT_WEB_PORT", String.valueOf(getInternalWebServerPort())));
     }
 
     public boolean isSslProxied() {
@@ -59,5 +68,4 @@ public class NetworkConfiguration {
     public boolean isUntrustedSslAllowed() {
         return env.hasEnv("CONTAINER_JFR_ALLOW_UNTRUSTED_SSL");
     }
-
 }

@@ -5,16 +5,17 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
 class WaitForDownloadCommand extends WaitForCommand {
 
     private final WebServer exporter;
 
-    @Inject WaitForDownloadCommand(ClientWriter cw, Clock clock, WebServer exporter) {
+    @Inject
+    WaitForDownloadCommand(ClientWriter cw, Clock clock, WebServer exporter) {
         super(cw, clock);
         this.exporter = exporter;
     }
@@ -35,7 +36,10 @@ class WaitForDownloadCommand extends WaitForCommand {
             return;
         }
 
-        cw.println(String.format("Waiting for download of recording \"%s\" at %s", name, this.exporter.getDownloadURL(name)));
+        cw.println(
+                String.format(
+                        "Waiting for download of recording \"%s\" at %s",
+                        name, this.exporter.getDownloadURL(name)));
         while (this.exporter.getDownloadCount(name) < 1) {
             clock.sleep(TimeUnit.SECONDS, 1);
         }

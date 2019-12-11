@@ -1,9 +1,10 @@
 package com.redhat.rhjmc.containerjfr.jmc.serialization;
 
+import org.openjdk.jmc.common.unit.IOptionDescriptor;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
 public class SerializableOptionDescriptor {
 
@@ -43,5 +44,4 @@ public class SerializableOptionDescriptor {
     public boolean equals(Object o) {
         return EqualsBuilder.reflectionEquals(this, o);
     }
-
 }

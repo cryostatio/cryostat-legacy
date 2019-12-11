@@ -18,7 +18,8 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
     private final Path recordingsPath;
 
     @Inject
-    DeleteSavedRecordingCommand(ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath) {
+    DeleteSavedRecordingCommand(
+            ClientWriter cw, FileSystem fs, @Named("RECORDINGS_PATH") Path recordingsPath) {
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
@@ -46,7 +47,8 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
             if (fs.deleteIfExists(recordingsPath.resolve(name))) {
                 return new SuccessOutput();
             } else {
-                return new FailureOutput(String.format("Could not delete saved recording \"%s\"", name));
+                return new FailureOutput(
+                        String.format("Could not delete saved recording \"%s\"", name));
             }
         } catch (Exception e) {
             return new ExceptionOutput(e);
@@ -66,5 +68,4 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
     public boolean isAvailable() {
         return fs.isDirectory(recordingsPath);
     }
-
 }
