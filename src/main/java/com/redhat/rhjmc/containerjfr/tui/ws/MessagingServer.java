@@ -65,9 +65,20 @@ class MessagingServer {
                                                     String.format(
                                                             "Remote client %s passed token authentication",
                                                             remoteAddress));
+                                            WsClientReaderWriter crw =
+                                                    new WsClientReaderWriter(
+                                                            this.logger, this.gson, sws);
+                                            sws.closeHandler(
+                                                    (unused) -> {
+                                                        logger.info(
+                                                                String.format(
+                                                                        "Disconnected remote client %s",
+                                                                        remoteAddress));
+                                                        removeConnection(crw);
+                                                    });
+                                            sws.textMessageHandler(crw);
+                                            addConnection(crw);
                                             sws.accept();
-                                            new WsClientReaderWriter(this, this.logger, this.gson)
-                                                    .handle(sws);
                                         })
                                 .onFailure(
                                         () -> {
@@ -95,6 +106,7 @@ class MessagingServer {
     void removeConnection(WsClientReaderWriter crw) {
         if (connections.remove(crw)) {
             semaphore.tryAcquire();
+            crw.close();
         }
     }
 
