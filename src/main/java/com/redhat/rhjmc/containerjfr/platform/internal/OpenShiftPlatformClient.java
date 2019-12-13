@@ -6,11 +6,19 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.AuthenticatedAction;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
@@ -90,25 +98,70 @@ class OpenShiftPlatformClient implements PlatformClient {
         }
 
         @Override
-        public boolean validateToken(Supplier<String> tokenProvider) {
+        public Future<Boolean> validateToken(Supplier<String> tokenProvider)
+                throws TimeoutException {
             String token = tokenProvider.get();
             if (StringUtils.isBlank(token)) {
-                return false;
+                return CompletableFuture.completedFuture(false);
             }
-            try (OpenShiftClient authClient =
-                    new DefaultOpenShiftClient(
-                            new OpenShiftConfigBuilder().withOauthToken(token).build())) {
-                // only an authenticated user should be allowed to list routes in the namespace
-                // TODO find a better way to authenticate tokens
-                authClient.routes().inNamespace(OpenShiftPlatformClient.getNamespace()).list();
-            } catch (KubernetesClientException e) {
-                logger.info(e.getMessage());
-                return false;
-            } catch (Exception e) {
-                logger.error(e);
-                return false;
-            }
-            return true;
+            CompletableFuture<Boolean> result = new CompletableFuture<>();
+            Executors.newSingleThreadExecutor()
+                    .submit(
+                            () -> {
+                                try (OpenShiftClient authClient =
+                                        new DefaultOpenShiftClient(
+                                                new OpenShiftConfigBuilder()
+                                                        .withOauthToken(token)
+                                                        .build())) {
+                                    // only an authenticated user should be allowed to list routes
+                                    // in the namespace
+                                    // TODO find a better way to authenticate tokens
+                                    authClient
+                                            .routes()
+                                            .inNamespace(OpenShiftPlatformClient.getNamespace())
+                                            .list();
+                                    result.complete(true);
+                                } catch (KubernetesClientException e) {
+                                    logger.info(e.getMessage());
+                                    result.complete(false);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    result.completeExceptionally(e);
+                                }
+                            });
+            result.orTimeout(15, TimeUnit.SECONDS);
+            return result;
+        }
+
+        @Override
+        public AuthenticatedAction doAuthenticated(Supplier<String> tokenProvider) {
+            return new AuthenticatedAction() {
+                private Optional<Runnable> onSuccess = Optional.empty();
+                private Optional<Runnable> onFailure = Optional.empty();
+
+                @Override
+                public AuthenticatedAction onSuccess(Runnable runnable) {
+                    this.onSuccess = Optional.ofNullable(runnable);
+                    return this;
+                }
+
+                @Override
+                public AuthenticatedAction onFailure(Runnable runnable) {
+                    this.onFailure = Optional.ofNullable(runnable);
+                    return this;
+                }
+
+                @Override
+                public void execute()
+                        throws InterruptedException, ExecutionException, TimeoutException {
+                    boolean valid = validateToken(tokenProvider).get();
+                    if (valid) {
+                        onSuccess.ifPresent(Runnable::run);
+                    } else {
+                        onFailure.ifPresent(Runnable::run);
+                    }
+                }
+            };
         }
     }
 }

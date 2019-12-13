@@ -17,8 +17,11 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -158,7 +161,9 @@ public class WebServer implements ConnectionListener {
                             .end(payload);
                 };
 
-        router.post("/auth").handler(this::handleAuthRequest).failureHandler(failureHandler);
+        router.post("/auth")
+                .blockingHandler(this::handleAuthRequest, false)
+                .failureHandler(failureHandler);
 
         router.get("/clienturl")
                 .handler(this::handleClientUrlRequest)
@@ -362,26 +367,30 @@ public class WebServer implements ConnectionListener {
     }
 
     void handleAuthRequest(RoutingContext ctx) {
-        boolean valid =
-                auth.validateToken(
-                        () -> {
-                            String authorization = ctx.request().getHeader("Authorization");
-                            Pattern basicPattern = Pattern.compile("Bearer (.*)");
-                            if (StringUtils.isBlank(authorization)) {
-                                throw new HttpStatusException(401);
-                            }
-                            Matcher matcher = basicPattern.matcher(authorization);
-                            if (!matcher.matches()) {
-                                throw new HttpStatusException(401);
-                            }
-                            return matcher.group(1);
-                        });
-        if (valid) {
-            ctx.response().setStatusCode(200);
-            endWithJsonKeyValue("valid", "true", ctx.response());
-        } else {
-            ctx.response().setStatusCode(401);
-            endWithJsonKeyValue("valid", "false", ctx.response());
+        try {
+            Future<Boolean> valid =
+                    auth.validateToken(
+                            () -> {
+                                String authorization = ctx.request().getHeader("Authorization");
+                                Pattern basicPattern = Pattern.compile("Bearer (.*)");
+                                if (StringUtils.isBlank(authorization)) {
+                                    throw new HttpStatusException(401);
+                                }
+                                Matcher matcher = basicPattern.matcher(authorization);
+                                if (!matcher.matches()) {
+                                    throw new HttpStatusException(401);
+                                }
+                                return matcher.group(1);
+                            });
+            if (valid.get()) {
+                ctx.response().setStatusCode(200);
+                endWithJsonKeyValue("valid", "true", ctx.response());
+            } else {
+                ctx.response().setStatusCode(401);
+                endWithJsonKeyValue("valid", "false", ctx.response());
+            }
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new HttpStatusException(500, e);
         }
     }
 
