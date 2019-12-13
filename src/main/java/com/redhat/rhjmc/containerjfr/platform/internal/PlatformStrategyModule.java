@@ -22,6 +22,7 @@ public abstract class PlatformStrategyModule {
             Environment env,
             JvmDiscoveryClient discoveryClient) {
         return Set.of(
+                new OpenShiftPlatformStrategy(logger, env, resolver),
                 new KubeApiPlatformStrategy(logger, resolver),
                 new KubeEnvPlatformStrategy(logger, env),
                 new DefaultPlatformStrategy(logger, discoveryClient));

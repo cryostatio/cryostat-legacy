@@ -19,6 +19,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -28,6 +30,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -41,6 +44,7 @@ import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.StringUtils;
 
 public class WebServer implements ConnectionListener {
 
@@ -60,6 +64,7 @@ public class WebServer implements ConnectionListener {
     private final NetworkConfiguration netConf;
     private final Environment env;
     private final Path savedRecordingsPath;
+    private final AuthManager auth;
     private final Logger logger;
     private IFlightRecorderService service;
 
@@ -72,12 +77,14 @@ public class WebServer implements ConnectionListener {
             NetworkConfiguration netConf,
             Environment env,
             Path savedRecordingsPath,
+            AuthManager auth,
             ReportGenerator reportGenerator,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
         this.env = env;
         this.savedRecordingsPath = savedRecordingsPath;
+        this.auth = auth;
         this.logger = logger;
         this.reportGenerator = reportGenerator;
 
@@ -150,6 +157,8 @@ public class WebServer implements ConnectionListener {
                             .setStatusMessage(exception.getMessage())
                             .end(payload);
                 };
+
+        router.post("/auth").handler(this::handleAuthRequest).failureHandler(failureHandler);
 
         router.get("/clienturl")
                 .handler(this::handleClientUrlRequest)
@@ -350,6 +359,30 @@ public class WebServer implements ConnectionListener {
         }
 
         return response;
+    }
+
+    void handleAuthRequest(RoutingContext ctx) {
+        boolean valid =
+                auth.validateToken(
+                        () -> {
+                            String authorization = ctx.request().getHeader("Authorization");
+                            Pattern basicPattern = Pattern.compile("Bearer (.*)");
+                            if (StringUtils.isBlank(authorization)) {
+                                throw new HttpStatusException(401);
+                            }
+                            Matcher matcher = basicPattern.matcher(authorization);
+                            if (!matcher.matches()) {
+                                throw new HttpStatusException(401);
+                            }
+                            return matcher.group(1);
+                        });
+        if (valid) {
+            ctx.response().setStatusCode(200);
+            endWithJsonKeyValue("valid", "true", ctx.response());
+        } else {
+            ctx.response().setStatusCode(401);
+            endWithJsonKeyValue("valid", "false", ctx.response());
+        }
     }
 
     void handleClientUrlRequest(RoutingContext ctx) {
