@@ -33,8 +33,6 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
     public void handle(ServerWebSocket sws) {
         this.sws = sws;
         semaphore.release();
-        logger.info(
-                String.format("Connected remote client %s", this.sws.remoteAddress().toString()));
 
         sws.textMessageHandler(this::handleTextMessage);
         sws.closeHandler((unused) -> close());

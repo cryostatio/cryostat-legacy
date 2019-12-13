@@ -22,6 +22,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
+import org.apache.commons.lang3.StringUtils;
 
 class OpenShiftPlatformClient implements PlatformClient {
 
@@ -90,11 +91,13 @@ class OpenShiftPlatformClient implements PlatformClient {
 
         @Override
         public boolean validateToken(Supplier<String> tokenProvider) {
+            String token = tokenProvider.get();
+            if (StringUtils.isBlank(token)) {
+                return false;
+            }
             try (OpenShiftClient authClient =
                     new DefaultOpenShiftClient(
-                            new OpenShiftConfigBuilder()
-                                    .withOauthToken(tokenProvider.get())
-                                    .build())) {
+                            new OpenShiftConfigBuilder().withOauthToken(token).build())) {
                 // only an authenticated user should be allowed to list routes in the namespace
                 // TODO find a better way to authenticate tokens
                 authClient.routes().inNamespace(OpenShiftPlatformClient.getNamespace()).list();

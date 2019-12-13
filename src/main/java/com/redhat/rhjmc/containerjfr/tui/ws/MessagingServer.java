@@ -2,6 +2,7 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.Semaphore;
@@ -9,21 +10,26 @@ import java.util.concurrent.Semaphore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
 
 class MessagingServer {
 
     private final HttpServer server;
+    private final AuthManager authManager;
     private final Logger logger;
     private final Gson gson;
     private final Semaphore semaphore = new Semaphore(0, true);
     private final List<WsClientReaderWriter> connections = new ArrayList<>();
 
-    MessagingServer(HttpServer server, Logger logger, Gson gson) {
+    MessagingServer(HttpServer server, AuthManager authManager, Logger logger, Gson gson) {
         this.server = server;
+        this.authManager = authManager;
         this.logger = logger;
         this.gson = gson;
     }
@@ -37,9 +43,30 @@ class MessagingServer {
                         sws.reject(404);
                         return;
                     }
+                    String remoteAddress = sws.remoteAddress().toString();
+                    logger.info(String.format("Connected remote client %s", remoteAddress));
 
-                    sws.accept();
-                    new WsClientReaderWriter(this, this.logger, this.gson).handle(sws);
+                    if (authManager.validateToken(
+                            () ->
+                                    URLEncodedUtils.parse(sws.query(), StandardCharsets.UTF_8)
+                                            .stream()
+                                            .filter(p -> p.getName().equals("token"))
+                                            .findFirst()
+                                            .map(NameValuePair::getValue)
+                                            .orElse(null))) {
+                        logger.info(
+                                String.format(
+                                        "Remote client %s passed token authentication",
+                                        remoteAddress));
+                        sws.accept();
+                        new WsClientReaderWriter(this, this.logger, this.gson).handle(sws);
+                    } else {
+                        logger.info(
+                                String.format(
+                                        "Remote client %s failed token authentication",
+                                        remoteAddress));
+                        sws.reject(401);
+                    }
                 });
     }
 
