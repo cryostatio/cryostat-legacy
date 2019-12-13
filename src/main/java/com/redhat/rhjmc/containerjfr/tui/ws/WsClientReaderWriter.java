@@ -1,11 +1,7 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.TimeUnit;
 
 import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -17,10 +13,10 @@ import io.vertx.core.http.ServerWebSocket;
 
 class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String> {
 
-    private final Semaphore semaphore = new Semaphore(0, true);
     private final Logger logger;
     private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
+    private boolean running = true;
 
     private final ServerWebSocket sws;
     private volatile Thread readingThread;
@@ -29,7 +25,6 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
         this.logger = logger;
         this.gson = gson;
         this.sws = sws;
-        semaphore.release();
     }
 
     @Override
@@ -40,9 +35,11 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
 
     @Override
     public void close() {
-        if (semaphore.tryAcquire() && readingThread != null) {
+        if (running && readingThread != null) {
+            inQ.clear();
             readingThread.interrupt();
         }
+        running = false;
     }
 
     @Override
@@ -51,34 +48,8 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
     }
 
     void flush(ResponseMessage<?> message) {
-        boolean acquired = false;
-        try {
-            acquired = semaphore.tryAcquire(3, TimeUnit.SECONDS);
-            if (acquired) {
-                CompletableFuture<Void> future = new CompletableFuture<>();
-                this.sws.writeTextMessage(
-                        gson.toJson(message),
-                        (res) -> {
-                            if (res.failed()) {
-                                future.completeExceptionally(res.cause());
-                            } else {
-                                future.complete(null);
-                            }
-                        });
-                future.join();
-            }
-        } catch (InterruptedException e) {
-            logger.warn(e);
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof IllegalStateException) {
-                logger.warn((IllegalStateException) e.getCause());
-                return;
-            }
-            throw e;
-        } finally {
-            if (acquired) {
-                semaphore.release();
-            }
+        if (!this.sws.isClosed()) {
+            this.sws.writeTextMessage(gson.toJson(message));
         }
     }
 
