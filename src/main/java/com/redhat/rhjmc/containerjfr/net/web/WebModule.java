@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -37,9 +38,10 @@ public abstract class WebModule {
             @Named("RECORDINGS_PATH") Path recordingsPath,
             ReportGenerator reportGenerator,
             AuthManager authManager,
+            Gson gson,
             Logger logger) {
         return new WebServer(
-                httpServer, netConf, env, recordingsPath, authManager, reportGenerator, logger);
+                httpServer, netConf, env, recordingsPath, authManager, gson, reportGenerator, logger);
     }
 
     @Provides

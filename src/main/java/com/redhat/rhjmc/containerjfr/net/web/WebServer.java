@@ -30,6 +30,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -68,6 +69,7 @@ public class WebServer implements ConnectionListener {
     private final Environment env;
     private final Path savedRecordingsPath;
     private final AuthManager auth;
+    private final Gson gson;
     private final Logger logger;
     private IFlightRecorderService service;
 
@@ -81,6 +83,7 @@ public class WebServer implements ConnectionListener {
             Environment env,
             Path savedRecordingsPath,
             AuthManager auth,
+            Gson gson,
             ReportGenerator reportGenerator,
             Logger logger) {
         this.server = server;
@@ -88,6 +91,7 @@ public class WebServer implements ConnectionListener {
         this.env = env;
         this.savedRecordingsPath = savedRecordingsPath;
         this.auth = auth;
+        this.gson = gson;
         this.logger = logger;
         this.reportGenerator = reportGenerator;
 
@@ -291,8 +295,8 @@ public class WebServer implements ConnectionListener {
         return Optional.empty();
     }
 
-    private void endWithJsonKeyValue(String key, String value, HttpServerResponse response) {
-        response.end(String.format("{\"%s\":\"%s\"}", key, value));
+    private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
+        response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
     }
 
     private HttpServerResponse writeInputStreamLowMemPressure(
@@ -384,10 +388,10 @@ public class WebServer implements ConnectionListener {
                             });
             if (valid.get()) {
                 ctx.response().setStatusCode(200);
-                endWithJsonKeyValue("valid", "true", ctx.response());
+                endWithJsonKeyValue("valid", true, ctx.response());
             } else {
                 ctx.response().setStatusCode(401);
-                endWithJsonKeyValue("valid", "false", ctx.response());
+                endWithJsonKeyValue("valid", false, ctx.response());
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new HttpStatusException(500, e);
