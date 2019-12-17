@@ -9,6 +9,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -91,7 +92,6 @@ class OpenShiftPlatformClient implements PlatformClient {
     }
 
     private static class OpenShiftAuthManager extends AbstractAuthManager {
-
         OpenShiftAuthManager(Logger logger) {
             super(logger);
         }
@@ -102,33 +102,29 @@ class OpenShiftPlatformClient implements PlatformClient {
             if (StringUtils.isBlank(token)) {
                 return CompletableFuture.completedFuture(false);
             }
-            CompletableFuture<Boolean> result = new CompletableFuture<>();
-            Executors.newSingleThreadExecutor()
-                    .submit(
-                            () -> {
-                                try (OpenShiftClient authClient =
-                                        new DefaultOpenShiftClient(
-                                                new OpenShiftConfigBuilder()
-                                                        .withOauthToken(token)
-                                                        .build())) {
-                                    // only an authenticated user should be allowed to list routes
-                                    // in the namespace
-                                    // TODO find a better way to authenticate tokens
-                                    authClient
-                                            .routes()
-                                            .inNamespace(OpenShiftPlatformClient.getNamespace())
-                                            .list();
-                                    result.complete(true);
-                                } catch (KubernetesClientException e) {
-                                    logger.info(e.getMessage());
-                                    result.complete(false);
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    result.completeExceptionally(e);
-                                }
-                            });
-            result.orTimeout(15, TimeUnit.SECONDS);
-            return result;
+            return CompletableFuture.supplyAsync(
+                    () -> {
+                        try (OpenShiftClient authClient =
+                                new DefaultOpenShiftClient(
+                                    new OpenShiftConfigBuilder()
+                                    .withOauthToken(token)
+                                    .build())) {
+                            // only an authenticated user should be allowed to list routes
+                            // in the namespace
+                            // TODO find a better way to authenticate tokens
+                            authClient
+                                .routes()
+                                .inNamespace(OpenShiftPlatformClient.getNamespace())
+                                .list();
+                            return true;
+                        } catch (KubernetesClientException e) {
+                            logger.info(e);
+                        } catch (Exception e) {
+                            logger.error(e);
+                        }
+                        return false;
+                    })
+            .orTimeout(15, TimeUnit.SECONDS);
         }
     }
 }
