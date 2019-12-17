@@ -17,6 +17,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.AbstractAuthManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.AuthenticatedAction;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
@@ -89,12 +90,10 @@ class OpenShiftPlatformClient implements PlatformClient {
         return Files.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
     }
 
-    private static class OpenShiftAuthManager implements AuthManager {
-
-        private final Logger logger;
+    private static class OpenShiftAuthManager extends AbstractAuthManager {
 
         OpenShiftAuthManager(Logger logger) {
-            this.logger = logger;
+            super(logger);
         }
 
         @Override
@@ -130,37 +129,6 @@ class OpenShiftPlatformClient implements PlatformClient {
                             });
             result.orTimeout(15, TimeUnit.SECONDS);
             return result;
-        }
-
-        @Override
-        public AuthenticatedAction doAuthenticated(Supplier<String> tokenProvider) {
-            return new AuthenticatedAction() {
-                private Optional<Runnable> onSuccess = Optional.empty();
-                private Optional<Runnable> onFailure = Optional.empty();
-
-                @Override
-                public AuthenticatedAction onSuccess(Runnable runnable) {
-                    this.onSuccess = Optional.ofNullable(runnable);
-                    return this;
-                }
-
-                @Override
-                public AuthenticatedAction onFailure(Runnable runnable) {
-                    this.onFailure = Optional.ofNullable(runnable);
-                    return this;
-                }
-
-                @Override
-                public void execute()
-                        throws InterruptedException, ExecutionException, TimeoutException {
-                    boolean valid = validateToken(tokenProvider).get();
-                    if (valid) {
-                        onSuccess.ifPresent(Runnable::run);
-                    } else {
-                        onFailure.ifPresent(Runnable::run);
-                    }
-                }
-            };
         }
     }
 }

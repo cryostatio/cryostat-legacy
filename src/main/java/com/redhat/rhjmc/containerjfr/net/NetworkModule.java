@@ -100,12 +100,13 @@ public abstract class NetworkModule {
     @Singleton
     static AuthManager provideAuthManager(
             ExecutionMode mode,
-            @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> webSocketAuth) {
+            @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> webSocketAuth,
+            Logger logger) {
         switch (mode) {
             case BATCH:
             case INTERACTIVE:
             case SOCKET:
-                return new NoopAuthManager();
+                return new NoopAuthManager(logger);
             case WEBSOCKET:
                 return webSocketAuth.get();
             default:
