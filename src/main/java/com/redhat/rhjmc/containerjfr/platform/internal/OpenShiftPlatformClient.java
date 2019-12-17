@@ -98,8 +98,7 @@ class OpenShiftPlatformClient implements PlatformClient {
         }
 
         @Override
-        public Future<Boolean> validateToken(Supplier<String> tokenProvider)
-                throws TimeoutException {
+        public Future<Boolean> validateToken(Supplier<String> tokenProvider) throws TimeoutException {
             String token = tokenProvider.get();
             if (StringUtils.isBlank(token)) {
                 return CompletableFuture.completedFuture(false);
