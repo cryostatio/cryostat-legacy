@@ -91,13 +91,13 @@ variable before invoking the `run.sh` shell script, or if this script is not
 used, by using the `-e` environment variable flag in the `docker` or `podman`
 command invocation. If the `EXT` variables are unspecified then they default to
 the value of their non-EXT counterparts. If `LISTEN_HOST` is unspecified then
-it defaults to the value of `WEB_HOST`. 
+it defaults to the value of `WEB_HOST`.
 
-The embedded webserver can be optionally configured to enable low memory 
-pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty 
-value, the webserver uses a single buffer when serving recording download 
-requests. Enabling this option leaves a constant memory size footprint, but 
-might also reduce the network throughput. 
+The embedded webserver can be optionally configured to enable low memory
+pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty
+value, the webserver uses a single buffer when serving recording download
+requests. Enabling this option leaves a constant memory size footprint, but
+might also reduce the network throughput.
 
 For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).
@@ -150,13 +150,13 @@ configured port. As noted above, the final caveat is that in non-Kube
 deployments, port 9091 is expected for automatic port-scanning target discovery.
 
 ## SECURING COMMUNICATION CHANNELS
-`container-jfr` can be optionally configured to secure HTTP and WebSocket 
+`container-jfr` can be optionally configured to secure HTTP and WebSocket
 traffics end-to-end with SSL/TLS.
 
-This feature can be enabled by configuring environment variables to points to 
-a certificate in the file system. One can set `KEYSTORE_PATH` to point to a 
+This feature can be enabled by configuring environment variables to points to
+a certificate in the file system. One can set `KEYSTORE_PATH` to point to a
 `.jks`, `.pfx` or `.p12` certificate file *and* `KEYSTORE_PASS` to the plaintext
-password to such a keystore. Alternatively, one can  set `KEY_PATH` to a PEM 
+password to such a keystore. Alternatively, one can  set `KEY_PATH` to a PEM
 encoded key file *and* `CERT_PATH` to a PEM encoded certificate file.
 
 In the absence of these environment variables, `container-jfr` will look for a
@@ -167,7 +167,7 @@ certificate at following locations, in an orderly fashion:
 - `$HOME/container-jfr-keystore.p12` (used together with `KEYSTORE_PASS`)
 - `$HOME/container-jfr-key.pem` and `$HOME/container-jfr-cert.pem`
 
-If no certificate can be found, `container-jfr` will fallback to plain 
+If no certificate can be found, `container-jfr` will fallback to plain
 unencrypted `http://` and `ws://` connections.
 
 In case `container-jfr` is deployed behind an SSL proxy, set the environment
@@ -178,3 +178,23 @@ the secure variants of protocols.
 If the certificate used for SSL-enabled Grafana/jfr-datasource connections is
 self-signed or otherwise untrusted, set the environment variable
 `CONTAINER_JFR_ALLOW_UNTRUSTED_SSL` to permit uploads of recordings.
+
+## USER AUTHENTICATION / AUTHORIZATION
+
+Using the platform detection mechanism described previously, ContainerJFR will
+attempt to select an appropriate authz manager to match the deployment
+platform. In all scenarios, the presence of an auth manager (other than
+NoopAuthManager) causes ContainerJFR to expect credentials on command channel
+WebSocket handshake via a `?token=TOKEN` query parameter, as well as with an
+`Authorization: Bearer TOKEN` header on recording download and report requests.
+
+The token is never stored in any form, only kept in-memory long enough to
+process the external token validation.
+
+If the detected deployment platform is OpenShift then the selected auth manager
+will pass through the user's provided token to the OpenShift API for
+validation on each request, rejecting the request if the validation fails.
+
+If no appropriate auth manager can be automatically determined then the
+fallback is the NoopAuthManager, which does no external validation calls and
+simply accepts any provided token.
