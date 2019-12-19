@@ -3,11 +3,11 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
+import com.google.gson.Gson;
 import io.vertx.core.Handler;
 import io.vertx.core.http.ServerWebSocket;
 

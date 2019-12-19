@@ -64,19 +64,19 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<OpenShiftPl
         return new OpenShiftPlatformClient(logger, osClient, resolver);
     }
 
-	public Logger getLogger() {
-		return logger;
-	}
+    public Logger getLogger() {
+        return logger;
+    }
 
-	public NetworkResolver getResolver() {
-		return resolver;
-	}
+    public NetworkResolver getResolver() {
+        return resolver;
+    }
 
-	public OpenShiftClient getOsClient() {
-		return osClient;
-	}
+    public OpenShiftClient getOsClient() {
+        return osClient;
+    }
 
-	public void setOsClient(OpenShiftClient osClient) {
-		this.osClient = osClient;
-	}
+    public void setOsClient(OpenShiftClient osClient) {
+        this.osClient = osClient;
+    }
 }

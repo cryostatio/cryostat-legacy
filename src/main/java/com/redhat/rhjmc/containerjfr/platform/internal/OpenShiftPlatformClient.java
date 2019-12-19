@@ -6,11 +6,7 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -20,7 +16,6 @@ import java.util.stream.Collectors;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AbstractAuthManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.AuthenticatedAction;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
@@ -97,34 +92,35 @@ class OpenShiftPlatformClient implements PlatformClient {
         }
 
         @Override
-        public Future<Boolean> validateToken(Supplier<String> tokenProvider) throws TimeoutException {
+        public Future<Boolean> validateToken(Supplier<String> tokenProvider)
+                throws TimeoutException {
             String token = tokenProvider.get();
             if (StringUtils.isBlank(token)) {
                 return CompletableFuture.completedFuture(false);
             }
             return CompletableFuture.supplyAsync(
-                    () -> {
-                        try (OpenShiftClient authClient =
-                                new DefaultOpenShiftClient(
-                                    new OpenShiftConfigBuilder()
-                                    .withOauthToken(token)
-                                    .build())) {
-                            // only an authenticated user should be allowed to list routes
-                            // in the namespace
-                            // TODO find a better way to authenticate tokens
-                            authClient
-                                .routes()
-                                .inNamespace(OpenShiftPlatformClient.getNamespace())
-                                .list();
-                            return true;
-                        } catch (KubernetesClientException e) {
-                            logger.info(e);
-                        } catch (Exception e) {
-                            logger.error(e);
-                        }
-                        return false;
-                    })
-            .orTimeout(15, TimeUnit.SECONDS);
+                            () -> {
+                                try (OpenShiftClient authClient =
+                                        new DefaultOpenShiftClient(
+                                                new OpenShiftConfigBuilder()
+                                                        .withOauthToken(token)
+                                                        .build())) {
+                                    // only an authenticated user should be allowed to list routes
+                                    // in the namespace
+                                    // TODO find a better way to authenticate tokens
+                                    authClient
+                                            .routes()
+                                            .inNamespace(OpenShiftPlatformClient.getNamespace())
+                                            .list();
+                                    return true;
+                                } catch (KubernetesClientException e) {
+                                    logger.info(e);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                }
+                                return false;
+                            })
+                    .orTimeout(15, TimeUnit.SECONDS);
         }
     }
 }
