@@ -12,7 +12,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
@@ -20,12 +19,12 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.Random;
+import java.util.concurrent.CompletableFuture;
 
-import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -37,6 +36,7 @@ import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
@@ -58,7 +58,7 @@ class WebServerTest {
     @Mock Environment env;
     @Mock Path recordingsPath;
     @Mock AuthManager authManager;
-    Gson gson = new Gson();
+    Gson gson = MainModule.provideGson();
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -348,12 +348,16 @@ class WebServerTest {
     }
 
     @Test
-    void shouldHandleRecordingDownloadRequest() throws FlightRecorderException {
+    void shouldHandleRecordingDownloadRequest() throws Exception {
+        when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
+
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
         when(rep.endHandler(any())).thenReturn(rep);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
 
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
@@ -380,12 +384,15 @@ class WebServerTest {
     }
 
     @Test
-    void shouldHandleReportPageRequest()
-            throws FlightRecorderException, IOException, CouldNotLoadRecordingException {
+    void shouldHandleReportPageRequest() throws Exception {
+        when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
+
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
 
         InputStream ins = mock(InputStream.class);
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);

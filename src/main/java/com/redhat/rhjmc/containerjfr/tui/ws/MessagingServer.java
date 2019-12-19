@@ -17,6 +17,7 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.http.ServerWebSocket;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
@@ -50,50 +51,45 @@ class MessagingServer {
 
                     try {
                         authManager
-                                .doAuthenticated(
-                                        () ->
-                                                URLEncodedUtils.parse(
-                                                                sws.query(), StandardCharsets.UTF_8)
-                                                        .stream()
-                                                        .filter(p -> p.getName().equals("token"))
-                                                        .findFirst()
-                                                        .map(NameValuePair::getValue)
-                                                        .orElse(null))
-                                .onSuccess(
-                                        () -> {
-                                            logger.info(
-                                                    String.format(
-                                                            "Remote client %s passed token authentication",
-                                                            remoteAddress));
-                                            WsClientReaderWriter crw =
-                                                    new WsClientReaderWriter(
-                                                            this.logger, this.gson, sws);
-                                            sws.closeHandler(
-                                                    (unused) -> {
-                                                        logger.info(
-                                                                String.format(
-                                                                        "Disconnected remote client %s",
-                                                                        remoteAddress));
-                                                        removeConnection(crw);
-                                                    });
-                                            sws.textMessageHandler(crw);
-                                            addConnection(crw);
-                                            sws.accept();
-                                        })
-                                .onFailure(
-                                        () -> {
-                                            logger.info(
-                                                    String.format(
-                                                            "Remote client %s failed token authentication",
-                                                            remoteAddress));
-                                            sws.reject(401);
-                                        })
+                                .doAuthenticated(() -> this.getHandshakeAuthToken(sws))
+                                .onSuccess(() -> this.acceptHandshake(sws))
+                                .onFailure(() -> this.rejectHandshake(sws))
                                 .execute();
                     } catch (InterruptedException | ExecutionException | TimeoutException e) {
                         logger.error(e);
                         sws.reject(500);
                     }
                 });
+    }
+
+    String getHandshakeAuthToken(ServerWebSocket sws) {
+        return URLEncodedUtils.parse(sws.query(), StandardCharsets.UTF_8).stream()
+                .filter(p -> p.getName().equals("token"))
+                .findFirst()
+                .map(NameValuePair::getValue)
+                .orElse(null);
+    }
+
+    void acceptHandshake(ServerWebSocket sws) {
+        String remoteAddress = sws.remoteAddress().toString();
+        logger.info(String.format("Remote client %s passed token authentication", remoteAddress));
+        WsClientReaderWriter crw = new WsClientReaderWriter(this.logger, this.gson, sws);
+        sws.closeHandler(
+                (unused) -> {
+                    logger.info(String.format("Disconnected remote client %s", remoteAddress));
+                    removeConnection(crw);
+                });
+        sws.textMessageHandler(crw);
+        addConnection(crw);
+        sws.accept();
+    }
+
+    void rejectHandshake(ServerWebSocket sws) {
+        logger.info(
+                String.format(
+                        "Remote client %s failed token authentication",
+                        sws.remoteAddress().toString()));
+        sws.reject(401);
     }
 
     void addConnection(WsClientReaderWriter crw) {

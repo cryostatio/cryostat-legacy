@@ -26,17 +26,18 @@ import dagger.Provides;
             CommandsModule.class,
             TuiModule.class
         })
-abstract class MainModule {
+public abstract class MainModule {
     @Provides
     @Singleton
     static Logger provideLogger() {
         return Logger.INSTANCE;
     }
 
+    // public since this is useful to use directly in tests
     @Provides
     @Singleton
-    static Gson provideGson() {
-        return new GsonBuilder().serializeNulls().create();
+    public static Gson provideGson() {
+        return new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
     }
 
     @Provides
