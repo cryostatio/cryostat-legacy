@@ -7,6 +7,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -33,6 +34,7 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<OpenShiftPl
         return PRIORITY_PLATFORM + 15;
     }
 
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Override
     public boolean isAvailable() {
         logger.trace("Testing OpenShift Platform Availability");
@@ -61,4 +63,20 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<OpenShiftPl
         logger.info("Selected OpenShift Platform Strategy");
         return new OpenShiftPlatformClient(logger, osClient, resolver);
     }
+
+	public Logger getLogger() {
+		return logger;
+	}
+
+	public NetworkResolver getResolver() {
+		return resolver;
+	}
+
+	public OpenShiftClient getOsClient() {
+		return osClient;
+	}
+
+	public void setOsClient(OpenShiftClient osClient) {
+		this.osClient = osClient;
+	}
 }
