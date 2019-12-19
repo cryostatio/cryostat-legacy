@@ -2,7 +2,6 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -38,19 +37,13 @@ class WsClientReaderWriterTest extends TestBase {
 
     WsClientReaderWriter crw;
     Gson gson;
-    @Mock MessagingServer server;
     @Mock Logger logger;
     @Mock ServerWebSocket sws;
 
     @BeforeEach
     void setup() {
         gson = new GsonBuilder().serializeNulls().create();
-        crw = new WsClientReaderWriter(server, logger, gson);
-    }
-
-    @Test
-    void shouldSetServerConnection() {
-        verify(server).addConnection(crw);
+        crw = new WsClientReaderWriter(logger, gson, sws);
     }
 
     @Test
@@ -67,8 +60,6 @@ class WsClientReaderWriterTest extends TestBase {
                                 })
                 .when(sws)
                 .close(any());
-
-        crw.handle(sws);
 
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
         assertTimeoutPreemptively(
@@ -93,8 +84,6 @@ class WsClientReaderWriterTest extends TestBase {
     void readLineShouldBlockUntilTextReceived() {
         when(sws.remoteAddress()).thenReturn(mock(SocketAddress.class));
 
-        crw.handle(sws);
-
         long expectedDelta = 500L;
         assertTimeoutPreemptively(
                 Duration.ofMillis(expectedDelta * 3),
@@ -102,7 +91,7 @@ class WsClientReaderWriterTest extends TestBase {
                     String expected = "hello world";
                     Executors.newSingleThreadScheduledExecutor()
                             .schedule(
-                                    () -> crw.handleTextMessage(expected),
+                                    () -> crw.handle(expected),
                                     expectedDelta,
                                     TimeUnit.MILLISECONDS);
 
@@ -114,10 +103,8 @@ class WsClientReaderWriterTest extends TestBase {
     void testHasMessage() {
         when(sws.remoteAddress()).thenReturn(mock(SocketAddress.class));
 
-        crw.handle(sws);
-
         MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(false));
-        crw.handleTextMessage("hello world");
+        crw.handle("hello world");
         MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(true));
         crw.readLine();
         MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(false));
@@ -137,8 +124,6 @@ class WsClientReaderWriterTest extends TestBase {
                                 })
                 .when(sws)
                 .close(any());
-
-        crw.handle(sws);
 
         crw.close();
         verify(sws, times(1)).close(any());
@@ -177,47 +162,8 @@ class WsClientReaderWriterTest extends TestBase {
                 .when(sws)
                 .close(any());
 
-        crw.handle(sws);
-
         closeHandler.get(0).handle(null);
         verify(sws, times(1)).close(any());
-    }
-
-    @Test
-    void flushShouldBlockUntilConnected() {
-        when(sws.remoteAddress()).thenReturn(mock(SocketAddress.class));
-        doAnswer(
-                        (Answer<Void>)
-                                invocation -> {
-                                    Handler<AsyncResult<Void>> cb = invocation.getArgument(1);
-                                    AsyncResult<Void> res = mock(AsyncResult.class);
-                                    when(res.failed()).thenReturn(false);
-                                    cb.handle(res);
-                                    return null;
-                                })
-                .when(sws)
-                .writeTextMessage(any(), any());
-
-        long expectedDelta = TimeUnit.SECONDS.toNanos(1);
-        String expectedText = "hello world";
-        assertTimeoutPreemptively(
-                Duration.ofNanos(expectedDelta * 3),
-                () -> {
-                    Executors.newSingleThreadScheduledExecutor()
-                            .schedule(() -> crw.handle(sws), expectedDelta, TimeUnit.NANOSECONDS);
-
-                    ResponseMessage<String> message =
-                            new SuccessResponseMessage<>("foo", expectedText);
-                    long start = System.nanoTime();
-                    crw.flush(message);
-                    long delta = System.nanoTime() - start;
-                    verify(sws).writeTextMessage(eq(gson.toJson(message)), any());
-                    MatcherAssert.assertThat(
-                            delta,
-                            Matchers.allOf(
-                                    Matchers.greaterThan((long) (expectedDelta * 0.75)),
-                                    Matchers.lessThan((long) (expectedDelta * 1.25))));
-                });
     }
 
     @Test
@@ -236,8 +182,6 @@ class WsClientReaderWriterTest extends TestBase {
                                 })
                 .when(sws)
                 .writeTextMessage(any(), any());
-
-        crw.handle(sws);
 
         crw.flush(new SuccessResponseMessage<>("foo", "hello world"));
         verify(sws).writeTextMessage(any(), any());

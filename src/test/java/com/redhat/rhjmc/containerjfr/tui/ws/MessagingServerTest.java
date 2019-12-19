@@ -14,6 +14,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import com.google.gson.Gson;
@@ -33,13 +34,14 @@ class MessagingServerTest {
     MessagingServer server;
     @Mock Logger logger;
     @Mock HttpServer httpServer;
+    @Mock AuthManager authManager;
     @Mock Gson gson;
     @Mock WsClientReaderWriter crw1;
     @Mock WsClientReaderWriter crw2;
 
     @BeforeEach
     void setup() {
-        server = new MessagingServer(httpServer, logger, gson);
+        server = new MessagingServer(httpServer, authManager, logger, gson);
     }
 
     @Test

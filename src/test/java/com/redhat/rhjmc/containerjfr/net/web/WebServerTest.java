@@ -29,10 +29,12 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
+import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
@@ -55,6 +57,8 @@ class WebServerTest {
     @Mock NetworkConfiguration netConf;
     @Mock Environment env;
     @Mock Path recordingsPath;
+    @Mock AuthManager authManager;
+    Gson gson = new Gson();
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -62,7 +66,16 @@ class WebServerTest {
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(httpServer, netConf, env, recordingsPath, reportGenerator, logger);
+        exporter =
+                new WebServer(
+                        httpServer,
+                        netConf,
+                        env,
+                        recordingsPath,
+                        authManager,
+                        gson,
+                        reportGenerator,
+                        logger);
     }
 
     @Test
@@ -77,7 +90,14 @@ class WebServerTest {
         assertDoesNotThrow(
                 () ->
                         new WebServer(
-                                httpServer, netConf, env, recordingsPath, reportGenerator, logger));
+                                httpServer,
+                                netConf,
+                                env,
+                                recordingsPath,
+                                authManager,
+                                gson,
+                                reportGenerator,
+                                logger));
     }
 
     @Test

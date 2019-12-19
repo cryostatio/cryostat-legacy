@@ -7,6 +7,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
@@ -22,12 +23,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class KubeEnvPlatformClientTest {
 
+    @Mock Logger logger;
     @Mock Environment env;
     KubeEnvPlatformClient client;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(env);
+        client = new KubeEnvPlatformClient(logger, env);
     }
 
     @Nested
