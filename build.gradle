@@ -16,6 +16,7 @@ repositories {
 
 dependencies {
     implementation 'com.redhat.rhjmc:containerjfr-core:0.6.0'
+    implementation 'io.fabric8:openshift-client:4.6.4'
     implementation 'io.kubernetes:client-java:5.0.0'
 
     implementation 'com.google.dagger:dagger:2.21'

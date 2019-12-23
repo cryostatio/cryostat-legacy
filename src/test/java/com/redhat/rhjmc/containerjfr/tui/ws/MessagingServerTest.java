@@ -14,15 +14,20 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import com.google.gson.Gson;
+import io.vertx.core.Handler;
+import io.vertx.core.http.ServerWebSocket;
+import io.vertx.core.net.SocketAddress;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -33,13 +38,15 @@ class MessagingServerTest {
     MessagingServer server;
     @Mock Logger logger;
     @Mock HttpServer httpServer;
+    @Mock AuthManager authManager;
     @Mock Gson gson;
     @Mock WsClientReaderWriter crw1;
     @Mock WsClientReaderWriter crw2;
+    @Mock ServerWebSocket sws;
 
     @BeforeEach
     void setup() {
-        server = new MessagingServer(httpServer, logger, gson);
+        server = new MessagingServer(httpServer, authManager, logger, gson);
     }
 
     @Test
@@ -100,6 +107,22 @@ class MessagingServerTest {
     }
 
     @Test
+    void webSocketCloseHandlerShouldRemoveConnection() {
+        SocketAddress addr = Mockito.mock(SocketAddress.class);
+        when(addr.toString()).thenReturn("mockaddr");
+        when(sws.remoteAddress()).thenReturn(addr);
+        server.acceptHandshake(sws);
+
+        // TODO verify that the WsClientReaderWriter is closed
+        ArgumentCaptor<Handler> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        InOrder inOrder = Mockito.inOrder(sws);
+        inOrder.verify(sws).closeHandler(handlerCaptor.capture());
+        inOrder.verify(sws).textMessageHandler(Mockito.any(WsClientReaderWriter.class));
+        inOrder.verify(sws).accept();
+        inOrder.verifyNoMoreInteractions();
+    }
+
+    @Test
     void shouldHandleRemovedConnections() {
         String expectedText = "hello world";
         when(crw1.hasMessage()).thenReturn(false);
@@ -123,7 +146,7 @@ class MessagingServerTest {
         verify(crw2).flush(successResponseMessage);
 
         server.removeConnection(crw2);
-        server.removeConnection(null);
+        verify(crw2).close();
 
         String newText = "another message";
         when(crw1.hasMessage()).thenReturn(true);

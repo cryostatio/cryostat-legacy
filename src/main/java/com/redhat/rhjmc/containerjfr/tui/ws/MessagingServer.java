@@ -2,28 +2,37 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeoutException;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.http.ServerWebSocket;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.utils.URLEncodedUtils;
 
 class MessagingServer {
 
     private final HttpServer server;
+    private final AuthManager authManager;
     private final Logger logger;
     private final Gson gson;
     private final Semaphore semaphore = new Semaphore(0, true);
     private final List<WsClientReaderWriter> connections = new ArrayList<>();
 
-    MessagingServer(HttpServer server, Logger logger, Gson gson) {
+    MessagingServer(HttpServer server, AuthManager authManager, Logger logger, Gson gson) {
         this.server = server;
+        this.authManager = authManager;
         this.logger = logger;
         this.gson = gson;
     }
@@ -37,10 +46,50 @@ class MessagingServer {
                         sws.reject(404);
                         return;
                     }
+                    String remoteAddress = sws.remoteAddress().toString();
+                    logger.info(String.format("Connected remote client %s", remoteAddress));
 
-                    sws.accept();
-                    new WsClientReaderWriter(this, this.logger, this.gson).handle(sws);
+                    try {
+                        authManager
+                                .doAuthenticated(() -> this.getHandshakeAuthToken(sws))
+                                .onSuccess(() -> this.acceptHandshake(sws))
+                                .onFailure(() -> this.rejectHandshake(sws))
+                                .execute();
+                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                        logger.error(e);
+                        sws.reject(500);
+                    }
                 });
+    }
+
+    String getHandshakeAuthToken(ServerWebSocket sws) {
+        return URLEncodedUtils.parse(sws.query(), StandardCharsets.UTF_8).stream()
+                .filter(p -> p.getName().equals("token"))
+                .findFirst()
+                .map(NameValuePair::getValue)
+                .orElse(null);
+    }
+
+    void acceptHandshake(ServerWebSocket sws) {
+        String remoteAddress = sws.remoteAddress().toString();
+        logger.info(String.format("Remote client %s passed token authentication", remoteAddress));
+        WsClientReaderWriter crw = new WsClientReaderWriter(this.logger, this.gson, sws);
+        sws.closeHandler(
+                (unused) -> {
+                    logger.info(String.format("Disconnected remote client %s", remoteAddress));
+                    removeConnection(crw);
+                });
+        sws.textMessageHandler(crw);
+        addConnection(crw);
+        sws.accept();
+    }
+
+    void rejectHandshake(ServerWebSocket sws) {
+        logger.info(
+                String.format(
+                        "Remote client %s failed token authentication",
+                        sws.remoteAddress().toString()));
+        sws.reject(401);
     }
 
     void addConnection(WsClientReaderWriter crw) {
@@ -53,6 +102,7 @@ class MessagingServer {
     void removeConnection(WsClientReaderWriter crw) {
         if (connections.remove(crw)) {
             semaphore.tryAcquire();
+            crw.close();
         }
     }
 

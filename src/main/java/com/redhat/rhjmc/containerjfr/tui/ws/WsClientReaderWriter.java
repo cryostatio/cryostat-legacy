@@ -1,76 +1,45 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
-import java.util.concurrent.*;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 import com.google.gson.Gson;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Handler;
 import io.vertx.core.http.ServerWebSocket;
 
-class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<ServerWebSocket> {
+class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String> {
 
-    private final Semaphore semaphore = new Semaphore(0, true);
     private final Logger logger;
     private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
-    private final MessagingServer server;
+    private boolean running = true;
 
-    private ServerWebSocket sws;
+    private final ServerWebSocket sws;
     private volatile Thread readingThread;
 
-    WsClientReaderWriter(MessagingServer server, Logger logger, Gson gson) {
-        this.server = server;
+    WsClientReaderWriter(Logger logger, Gson gson, ServerWebSocket sws) {
         this.logger = logger;
         this.gson = gson;
-        this.server.addConnection(this);
+        this.sws = sws;
     }
 
     @Override
-    public void handle(ServerWebSocket sws) {
-        this.sws = sws;
-        semaphore.release();
-        logger.info(
-                String.format("Connected remote client %s", this.sws.remoteAddress().toString()));
-
-        sws.textMessageHandler(this::handleTextMessage);
-        sws.closeHandler((unused) -> close());
-    }
-
-    void handleTextMessage(String msg) {
+    public void handle(String msg) {
         logger.info(String.format("(%s): CMD %s", this.sws.remoteAddress().toString(), msg));
         inQ.add(msg);
     }
 
-    @SuppressFBWarnings("RV_RETURN_VALUE_IGNORED") // tryAcquire return value is irrelevant
     @Override
     public void close() {
-        logger.info(
-                String.format(
-                        "Disconnected remote client %s", this.sws.remoteAddress().toString()));
-
-        semaphore.tryAcquire();
-        if (!this.sws.isClosed()) {
-            CompletableFuture<Void> future = new CompletableFuture<>();
-            this.sws.close(
-                    (res) -> {
-                        if (res.failed()) {
-                            future.completeExceptionally(res.cause());
-                        } else {
-                            future.complete(null);
-                        }
-                    });
-            future.join();
-        }
-        this.sws = null;
-
-        server.removeConnection(this);
-        if (readingThread != null) {
+        if (running && readingThread != null) {
+            inQ.clear();
             readingThread.interrupt();
         }
+        running = false;
     }
 
     @Override
@@ -79,34 +48,8 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<Server
     }
 
     void flush(ResponseMessage<?> message) {
-        boolean acquired = false;
-        try {
-            acquired = semaphore.tryAcquire(3, TimeUnit.SECONDS);
-            if (acquired) {
-                CompletableFuture<Void> future = new CompletableFuture<>();
-                this.sws.writeTextMessage(
-                        gson.toJson(message),
-                        (res) -> {
-                            if (res.failed()) {
-                                future.completeExceptionally(res.cause());
-                            } else {
-                                future.complete(null);
-                            }
-                        });
-                future.join();
-            }
-        } catch (InterruptedException e) {
-            logger.warn(e);
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof IllegalStateException) {
-                logger.warn((IllegalStateException) e.getCause());
-                return;
-            }
-            throw e;
-        } finally {
-            if (acquired) {
-                semaphore.release();
-            }
+        if (!this.sws.isClosed()) {
+            this.sws.writeTextMessage(gson.toJson(message));
         }
     }
 

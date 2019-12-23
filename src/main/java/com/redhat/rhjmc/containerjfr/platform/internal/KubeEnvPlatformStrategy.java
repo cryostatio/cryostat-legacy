@@ -26,7 +26,7 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
 
     @Override
     public KubeEnvPlatformClient get() {
-        logger.trace("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(env);
+        logger.info("Selected KubeEnv Platform Strategy");
+        return new KubeEnvPlatformClient(logger, env);
     }
 }

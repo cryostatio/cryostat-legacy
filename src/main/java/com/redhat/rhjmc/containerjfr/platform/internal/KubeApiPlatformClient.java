@@ -6,7 +6,9 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
@@ -58,6 +60,11 @@ class KubeApiPlatformClient implements PlatformClient {
             logger.warn(e);
             return Collections.emptyList();
         }
+    }
+
+    @Override
+    public AuthManager getAuthManager() {
+        return new NoopAuthManager(logger);
     }
 
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {

@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
@@ -24,7 +25,6 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.MalformedJsonException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -49,11 +49,10 @@ class WsCommandExecutorTest {
     @Mock Logger logger;
     @Mock ClientReader cr;
     @Mock SerializableCommandRegistry commandRegistry;
-    Gson gson;
+    Gson gson = MainModule.provideGson();
 
     @BeforeEach
     void setup() {
-        gson = new GsonBuilder().serializeNulls().create();
         executor = new WsCommandExecutor(logger, server, cr, () -> commandRegistry, gson);
     }
 

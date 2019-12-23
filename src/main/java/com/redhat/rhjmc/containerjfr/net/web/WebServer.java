@@ -19,6 +19,9 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -28,19 +31,23 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
+import com.google.gson.Gson;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.StringUtils;
 
 public class WebServer implements ConnectionListener {
 
@@ -60,6 +67,8 @@ public class WebServer implements ConnectionListener {
     private final NetworkConfiguration netConf;
     private final Environment env;
     private final Path savedRecordingsPath;
+    private final AuthManager auth;
+    private final Gson gson;
     private final Logger logger;
     private IFlightRecorderService service;
 
@@ -72,12 +81,16 @@ public class WebServer implements ConnectionListener {
             NetworkConfiguration netConf,
             Environment env,
             Path savedRecordingsPath,
+            AuthManager auth,
+            Gson gson,
             ReportGenerator reportGenerator,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
         this.env = env;
         this.savedRecordingsPath = savedRecordingsPath;
+        this.auth = auth;
+        this.gson = gson;
         this.logger = logger;
         this.reportGenerator = reportGenerator;
 
@@ -150,6 +163,10 @@ public class WebServer implements ConnectionListener {
                             .setStatusMessage(exception.getMessage())
                             .end(payload);
                 };
+
+        router.post("/auth")
+                .blockingHandler(this::handleAuthRequest, false)
+                .failureHandler(failureHandler);
 
         router.get("/clienturl")
                 .handler(this::handleClientUrlRequest)
@@ -277,8 +294,8 @@ public class WebServer implements ConnectionListener {
         return Optional.empty();
     }
 
-    private void endWithJsonKeyValue(String key, String value, HttpServerResponse response) {
-        response.end(String.format("{\"%s\":\"%s\"}", key, value));
+    private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
+        response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
     }
 
     private HttpServerResponse writeInputStreamLowMemPressure(
@@ -352,6 +369,23 @@ public class WebServer implements ConnectionListener {
         return response;
     }
 
+    void handleAuthRequest(RoutingContext ctx) {
+        boolean authd = false;
+        try {
+            authd = validateRequestAuthorization(ctx.request()).get();
+        } catch (HttpStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e);
+        }
+        if (authd) {
+            ctx.response().setStatusCode(200);
+            ctx.response().end();
+        } else {
+            throw new HttpStatusException(401);
+        }
+    }
+
     void handleClientUrlRequest(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
         try {
@@ -382,6 +416,10 @@ public class WebServer implements ConnectionListener {
 
     void handleRecordingDownloadRequest(String recordingName, RoutingContext ctx) {
         try {
+            if (!validateRequestAuthorization(ctx.request()).get()) {
+                throw new HttpStatusException(401);
+            }
+
             Optional<DownloadDescriptor> descriptor = getDownloadDescriptor(recordingName);
             if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
@@ -406,16 +444,21 @@ public class WebServer implements ConnectionListener {
                 }
                 ctx.response().end();
             }
+        } catch (HttpStatusException e) {
+            throw e;
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(
                     500, String.format("%s could not be opened", recordingName), e);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
     }
 
     void handleReportPageRequest(String recordingName, RoutingContext ctx) {
         try {
+            if (!validateRequestAuthorization(ctx.request()).get()) {
+                throw new HttpStatusException(401);
+            }
             Optional<DownloadDescriptor> descriptor = getDownloadDescriptor(recordingName);
             if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
@@ -426,15 +469,33 @@ public class WebServer implements ConnectionListener {
                 // blocking function, must be called from a blocking handler
                 ctx.response().end(reportGenerator.generateReport(stream));
             }
+        } catch (HttpStatusException e) {
+            throw e;
         } catch (FlightRecorderException e) {
             throw new HttpStatusException(
                     500, String.format("%s could not be opened", recordingName), e);
         } catch (CouldNotLoadRecordingException e) {
             throw new HttpStatusException(
                     500, String.format("%s could not be loaded", recordingName), e);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
+    }
+
+    private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
+        return auth.validateToken(
+                () -> {
+                    String authorization = req.getHeader("Authorization");
+                    Pattern basicPattern = Pattern.compile("Bearer (.*)");
+                    if (StringUtils.isBlank(authorization)) {
+                        throw new HttpStatusException(401);
+                    }
+                    Matcher matcher = basicPattern.matcher(authorization);
+                    if (!matcher.matches()) {
+                        throw new HttpStatusException(401);
+                    }
+                    return matcher.group(1);
+                });
     }
 
     private static class DownloadDescriptor {

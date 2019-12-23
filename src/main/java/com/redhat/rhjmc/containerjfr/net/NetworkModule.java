@@ -6,13 +6,16 @@ import java.security.NoSuchAlgorithmException;
 
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
+import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import org.apache.http.config.Registry;
@@ -90,6 +93,25 @@ public abstract class NetworkModule {
             return new SslConfiguration(env, fs);
         } catch (SslConfiguration.SslConfigurationException e) {
             throw new RuntimeException(e); // @Provides methods may only throw unchecked exceptions
+        }
+    }
+
+    @Provides
+    @Singleton
+    static AuthManager provideAuthManager(
+            ExecutionMode mode,
+            @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> webSocketAuth,
+            Logger logger) {
+        switch (mode) {
+            case BATCH:
+            case INTERACTIVE:
+            case SOCKET:
+                return new NoopAuthManager(logger);
+            case WEBSOCKET:
+                return webSocketAuth.get();
+            default:
+                throw new RuntimeException(
+                        String.format("Unimplemented execution mode: %s", mode.toString()));
         }
     }
 }

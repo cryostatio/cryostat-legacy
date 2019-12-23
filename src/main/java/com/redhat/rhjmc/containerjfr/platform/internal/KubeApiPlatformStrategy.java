@@ -55,7 +55,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
 
     @Override
     public KubeApiPlatformClient get() {
-        logger.trace("Selected KubeApi Platform Strategy");
+        logger.info("Selected KubeApi Platform Strategy");
         return new KubeApiPlatformClient(logger, api, namespace, resolver);
     }
 

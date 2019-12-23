@@ -20,7 +20,7 @@ class ContainerJfr {
         System.out.println(
                 String.format(
                         "%s started. args: %s",
-                        System.getProperty("java.rmi.server.hostname", "cjfr-client"),
+                        System.getProperty("java.rmi.server.hostname", "container-jfr"),
                         Arrays.stream(args)
                                 .map(s -> "\"" + s + "\"")
                                 .collect(Collectors.toList())

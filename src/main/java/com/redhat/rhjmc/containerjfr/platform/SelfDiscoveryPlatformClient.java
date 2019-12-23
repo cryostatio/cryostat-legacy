@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+
 class SelfDiscoveryPlatformClient implements PlatformClient {
 
     private static final ServiceRef VM_SELF_REF =
@@ -20,5 +22,10 @@ class SelfDiscoveryPlatformClient implements PlatformClient {
         list.add(VM_SELF_REF);
         list.addAll(this.client.listDiscoverableServices());
         return Collections.unmodifiableList(list);
+    }
+
+    @Override
+    public AuthManager getAuthManager() {
+        return this.client.getAuthManager();
     }
 }
