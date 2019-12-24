@@ -164,10 +164,21 @@ public class WebServer implements ConnectionListener {
                             exception.getPayload() != null
                                     ? exception.getPayload()
                                     : exception.getMessage();
+
                     ctx.response()
-                            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_PLAINTEXT)
-                            .setStatusCode(exception.getStatusCode())
-                            .setStatusMessage(exception.getMessage())
+                        .setStatusCode(exception.getStatusCode())
+                        .setStatusMessage(exception.getMessage());
+
+                    String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
+                    if (accept.contains(MIME_TYPE_JSON) && accept.indexOf(MIME_TYPE_JSON) < accept.indexOf(MIME_TYPE_PLAINTEXT)) {
+                        ctx.response()
+                            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+                        endWithJsonKeyValue("message", payload, ctx.response());
+                        return;
+                    }
+
+                    ctx.response()
+                        .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_PLAINTEXT)
                             .end(payload);
                 };
 
@@ -507,11 +518,11 @@ public class WebServer implements ConnectionListener {
                                             return;
                                         }
 
-                                        String msg = "Recording saved as " + file;
                                         ctx.response()
-                                            .end(msg);
+                                            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+                                        endWithJsonKeyValue("name", file, ctx.response());
 
-                                        logger.info(msg);
+                                        logger.info(String.format("Recording saved as %s", file));
                                     });
                         });
             }
