@@ -8,6 +8,7 @@ import javax.inject.Singleton;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -36,6 +37,7 @@ public abstract class WebModule {
             NetworkConfiguration netConf,
             Environment env,
             @Named("RECORDINGS_PATH") Path recordingsPath,
+            FileSystem fs,
             ReportGenerator reportGenerator,
             AuthManager authManager,
             Gson gson,
@@ -45,6 +47,7 @@ public abstract class WebModule {
                 netConf,
                 env,
                 recordingsPath,
+                fs,
                 authManager,
                 gson,
                 reportGenerator,

@@ -3,7 +3,9 @@ package com.redhat.rhjmc.containerjfr.net.web;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -18,7 +20,9 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -34,10 +38,15 @@ import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
 import com.google.gson.Gson;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -57,6 +66,7 @@ class WebServerTest {
     @Mock NetworkConfiguration netConf;
     @Mock Environment env;
     @Mock Path recordingsPath;
+    @Mock com.redhat.rhjmc.containerjfr.core.sys.FileSystem fs;
     @Mock AuthManager authManager;
     Gson gson = MainModule.provideGson();
     @Mock Logger logger;
@@ -72,6 +82,7 @@ class WebServerTest {
                         netConf,
                         env,
                         recordingsPath,
+                        fs,
                         authManager,
                         gson,
                         reportGenerator,
@@ -94,6 +105,7 @@ class WebServerTest {
                                 netConf,
                                 env,
                                 recordingsPath,
+                                fs,
                                 authManager,
                                 gson,
                                 reportGenerator,
@@ -345,6 +357,138 @@ class WebServerTest {
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         verify(rep).end("{\"grafanaDashboardUrl\":\"" + url + "\"}");
+    }
+
+    @Test
+    void shouldHandleRecordingUploadRequest() throws Exception {
+        String basename = "localhost_test_20191219T213834Z";
+        String filename = basename + ".jfr";
+        String savePath = "/some/path/";
+
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+
+        when(fs.isDirectory(recordingsPath)).thenReturn(true);
+
+        Set<FileUpload> uploads = new HashSet<>();
+        FileUpload upload = mock(FileUpload.class);
+        uploads.add(upload);
+        when(ctx.fileUploads()).thenReturn(uploads);
+        when(upload.name()).thenReturn("recording");
+        when(upload.fileName()).thenReturn(filename);
+        when(upload.uploadedFileName()).thenReturn("foo");
+
+        Path filePath = mock(Path.class);
+        when(filePath.toString()).thenReturn(savePath + filename);
+        when(recordingsPath.resolve(filename)).thenReturn(filePath);
+
+        Vertx vertx = mock(Vertx.class);
+        when(httpServer.getVertx()).thenReturn(vertx);
+
+        FileSystem fs = mock(FileSystem.class);
+        when(vertx.fileSystem()).thenReturn(fs);
+
+        doAnswer(
+                        invocation -> {
+                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
+                            handler.handle(
+                                    new AsyncResult<>() {
+                                        @Override
+                                        public Boolean result() {
+                                            return false;
+                                        }
+
+                                        @Override
+                                        public Throwable cause() {
+                                            return null;
+                                        }
+
+                                        @Override
+                                        public boolean succeeded() {
+                                            return true;
+                                        }
+
+                                        @Override
+                                        public boolean failed() {
+                                            return false;
+                                        }
+                                    });
+
+                            return null;
+                        })
+                .when(vertx)
+                .executeBlocking(any(Handler.class), any(Handler.class));
+
+        when(fs.exists(eq(savePath + filename), any(Handler.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
+                            handler.handle(
+                                    new AsyncResult<>() {
+                                        @Override
+                                        public Boolean result() {
+                                            return false;
+                                        }
+
+                                        @Override
+                                        public Throwable cause() {
+                                            return null;
+                                        }
+
+                                        @Override
+                                        public boolean succeeded() {
+                                            return true;
+                                        }
+
+                                        @Override
+                                        public boolean failed() {
+                                            return false;
+                                        }
+                                    });
+
+                            return null;
+                        });
+
+        when(fs.move(eq("foo"), eq(savePath + filename), any(Handler.class)))
+                .thenAnswer(
+                        invocation -> {
+                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(2);
+                            handler.handle(
+                                    new AsyncResult<>() {
+                                        @Override
+                                        public Boolean result() {
+                                            return true;
+                                        }
+
+                                        @Override
+                                        public Throwable cause() {
+                                            return null;
+                                        }
+
+                                        @Override
+                                        public boolean succeeded() {
+                                            return true;
+                                        }
+
+                                        @Override
+                                        public boolean failed() {
+                                            return false;
+                                        }
+                                    });
+
+                            return null;
+                        });
+
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+
+        exporter.handleRecordingUploadRequest(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        verify(rep).end("{\"name\":\"" + filename + "\"}");
     }
 
     @Test
