@@ -22,16 +22,9 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Random;
-import java.util.concurrent.CompletableFuture;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.file.FileSystem;
-import io.vertx.ext.web.FileUpload;
-import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -45,10 +38,15 @@ import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
 import com.google.gson.Gson;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -383,9 +381,9 @@ class WebServerTest {
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
 
-        Path basePath = mock(Path.class);
-        when(basePath.toString()).thenReturn(savePath + basename);
-        when(recordingsPath.resolve(basename)).thenReturn(basePath);
+        Path filePath = mock(Path.class);
+        when(filePath.toString()).thenReturn(savePath + filename);
+        when(recordingsPath.resolve(filename)).thenReturn(filePath);
 
         Vertx vertx = mock(Vertx.class);
         when(httpServer.getVertx()).thenReturn(vertx);
@@ -393,88 +391,96 @@ class WebServerTest {
         FileSystem fs = mock(FileSystem.class);
         when(vertx.fileSystem()).thenReturn(fs);
 
-        doAnswer(invocation -> {
-            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
-            handler.handle(new AsyncResult<>() {
-                @Override
-                public Boolean result() {
-                    return false;
-                }
+        doAnswer(
+                        invocation -> {
+                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
+                            handler.handle(
+                                    new AsyncResult<>() {
+                                        @Override
+                                        public Boolean result() {
+                                            return false;
+                                        }
 
-                @Override
-                public Throwable cause() {
-                    return null;
-                }
+                                        @Override
+                                        public Throwable cause() {
+                                            return null;
+                                        }
 
-                @Override
-                public boolean succeeded() {
-                    return true;
-                }
+                                        @Override
+                                        public boolean succeeded() {
+                                            return true;
+                                        }
 
-                @Override
-                public boolean failed() {
-                    return false;
-                }
-            });
+                                        @Override
+                                        public boolean failed() {
+                                            return false;
+                                        }
+                                    });
 
-            return null;
-        }).when(vertx).executeBlocking(any(Handler.class), any(Handler.class));
+                            return null;
+                        })
+                .when(vertx)
+                .executeBlocking(any(Handler.class), any(Handler.class));
 
         when(fs.exists(eq(savePath + filename), any(Handler.class)))
-            .thenAnswer(invocation -> {
-                Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
-                handler.handle(new AsyncResult<>() {
-                    @Override
-                    public Boolean result() {
-                        return false;
-                    }
+                .thenAnswer(
+                        invocation -> {
+                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
+                            handler.handle(
+                                    new AsyncResult<>() {
+                                        @Override
+                                        public Boolean result() {
+                                            return false;
+                                        }
 
-                    @Override
-                    public Throwable cause() {
-                        return null;
-                    }
+                                        @Override
+                                        public Throwable cause() {
+                                            return null;
+                                        }
 
-                    @Override
-                    public boolean succeeded() {
-                        return true;
-                    }
+                                        @Override
+                                        public boolean succeeded() {
+                                            return true;
+                                        }
 
-                    @Override
-                    public boolean failed() {
-                        return false;
-                    }
-                });
+                                        @Override
+                                        public boolean failed() {
+                                            return false;
+                                        }
+                                    });
 
-                return null;
-            });
+                            return null;
+                        });
 
         when(fs.move(eq("foo"), eq(savePath + filename), any(Handler.class)))
-            .thenAnswer(invocation -> {
-                Handler<AsyncResult<Boolean>> handler = invocation.getArgument(2);
-                handler.handle(new AsyncResult<>() {
-                    @Override
-                    public Boolean result() {
-                        return true;
-                    }
+                .thenAnswer(
+                        invocation -> {
+                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(2);
+                            handler.handle(
+                                    new AsyncResult<>() {
+                                        @Override
+                                        public Boolean result() {
+                                            return true;
+                                        }
 
-                    @Override
-                    public Throwable cause() {
-                        return null;
-                    }
+                                        @Override
+                                        public Throwable cause() {
+                                            return null;
+                                        }
 
-                    @Override
-                    public boolean succeeded() {
-                        return true;
-                    }
+                                        @Override
+                                        public boolean succeeded() {
+                                            return true;
+                                        }
 
-                    @Override
-                    public boolean failed() {
-                        return false;
-                    }
-                });
+                                        @Override
+                                        public boolean failed() {
+                                            return false;
+                                        }
+                                    });
 
-                return null;
-            });
+                            return null;
+                        });
 
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
@@ -482,7 +488,7 @@ class WebServerTest {
         exporter.handleRecordingUploadRequest(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"name\":\""+ savePath + filename + "\"}");
+        verify(rep).end("{\"name\":\"" + filename + "\"}");
     }
 
     @Test

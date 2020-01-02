@@ -24,8 +24,6 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import io.vertx.core.AsyncResult;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
@@ -35,6 +33,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -42,6 +41,7 @@ import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportGenerator;
 
 import com.google.gson.Gson;
+import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -69,7 +69,8 @@ public class WebServer implements ConnectionListener {
 
     private static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
-    private static final Pattern RECORDING_FILENAME_PATTERN = Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(.[\\d]+)?");
+    private static final Pattern RECORDING_FILENAME_PATTERN =
+            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(.[\\d]+)?");
 
     private final HttpServer server;
     private final NetworkConfiguration netConf;
@@ -170,19 +171,20 @@ public class WebServer implements ConnectionListener {
                                     : exception.getMessage();
 
                     ctx.response()
-                        .setStatusCode(exception.getStatusCode())
-                        .setStatusMessage(exception.getMessage());
+                            .setStatusCode(exception.getStatusCode())
+                            .setStatusMessage(exception.getMessage());
 
                     String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
-                    if (accept.contains(MIME_TYPE_JSON) && accept.indexOf(MIME_TYPE_JSON) < accept.indexOf(MIME_TYPE_PLAINTEXT)) {
-                        ctx.response()
-                            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+                    if (accept.contains(MIME_TYPE_JSON)
+                            && accept.indexOf(MIME_TYPE_JSON)
+                                    < accept.indexOf(MIME_TYPE_PLAINTEXT)) {
+                        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
                         endWithJsonKeyValue("message", payload, ctx.response());
                         return;
                     }
 
                     ctx.response()
-                        .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_PLAINTEXT)
+                            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_PLAINTEXT)
                             .end(payload);
                 };
 
@@ -216,9 +218,9 @@ public class WebServer implements ConnectionListener {
                 .failureHandler(failureHandler);
 
         router.post("/recordings")
-            .handler(BodyHandler.create(true))
-            .handler(this::handleRecordingUploadRequest)
-            .failureHandler(failureHandler);
+                .handler(BodyHandler.create(true))
+                .handler(this::handleRecordingUploadRequest)
+                .failureHandler(failureHandler);
 
         router.get("/reports/:name")
                 .blockingHandler(ctx -> this.handleReportPageRequest(ctx.pathParam("name"), ctx))
@@ -455,7 +457,6 @@ public class WebServer implements ConnectionListener {
         }
 
         FileUpload upload = null;
-
         for (FileUpload fu : ctx.fileUploads()) {
             // ignore unrecognized form fields
             if ("recording".equals(fu.name())) {
@@ -482,87 +483,36 @@ public class WebServer implements ConnectionListener {
             throw new HttpStatusException(400, "Incorrect recording file name pattern");
         }
 
-        String targetName  = m.group(1);
+        String targetName = m.group(1);
         String recordingName = m.group(2);
         String timestamp = m.group(3);
-        int count = m.group(4) == null || m.group(4).isEmpty() ? 0 : Integer.parseInt(m.group(4).substring(1));
+        int count =
+                m.group(4) == null || m.group(4).isEmpty()
+                        ? 0
+                        : Integer.parseInt(m.group(4).substring(1));
 
-        final String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
+        final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         final String uploadedFileName = upload.uploadedFileName();
-        final Runnable saveFileRunnable = new Runnable() {
-            String baseName = savedRecordingsPath.resolve(destination).toString();
-            int counter = count;
+        validateRecording(
+                upload.uploadedFileName(),
+                (res) ->
+                        saveRecording(
+                                basename,
+                                uploadedFileName,
+                                count,
+                                (res2) -> {
+                                    if (res2.failed()) {
+                                        ctx.fail(res2.cause());
+                                        return;
+                                    }
 
-            @Override
-            public void run() {
-                // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
-                // are also differentiated by second-resolution timestamp
-                if (counter >= Byte.MAX_VALUE) {
-                    ctx.fail(
-                        new IOException(
-                            "Recording could not be saved. File already exists and rename attempts were exhausted."));
-                    return;
-                }
-
-                final String file =
-                    counter > 1 ? baseName + "." + counter + ".jfr" : baseName + ".jfr";
-
-                server.getVertx()
-                    .fileSystem()
-                    .exists(
-                        file,
-                        (res) -> {
-                            if (res.failed()) {
-                                ctx.fail(res.cause());
-                                return;
-                            }
-
-                            if (res.result()) {
-                                counter++;
-                                run();
-                                return;
-                            }
-
-                            server.getVertx()
-                                .fileSystem()
-                                .move(
-                                    uploadedFileName,
-                                    file,
-                                    (res2) -> {
-                                        if (res2.failed()) {
-                                            ctx.fail(res2.cause());
-                                            return;
-                                        }
-
-                                        ctx.response()
+                                    ctx.response()
                                             .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-                                        endWithJsonKeyValue("name", file, ctx.response());
+                                    endWithJsonKeyValue("name", res2.result(), ctx.response());
 
-                                        logger.info(String.format("Recording saved as %s", file));
-                                    });
-                        });
-            }
-        };
-
-        server.getVertx().executeBlocking(event -> {
-            try {
-                JfrLoaderToolkit.loadEvents(new File(uploadedFileName)); // try loading events to see if it's a valid file
-                event.complete();
-            } catch (CouldNotLoadRecordingException | IOException e) {
-                event.fail(e);
-            }
-        }, (Handler<AsyncResult<Void>>) event -> {
-            if (event.failed()) {
-                if (event.cause() instanceof CouldNotLoadRecordingException) {
-                    ctx.fail(new HttpStatusException(400, "Not a valid JFR recording file",event.cause()));
-                } else {
-                    ctx.fail(event.cause());
-                }
-                return;
-            }
-
-            saveFileRunnable.run();
-        });
+                                    logger.info(
+                                            String.format("Recording saved as %s", res2.result()));
+                                }));
     }
 
     void handleRecordingDownloadRequest(String recordingName, RoutingContext ctx) {
@@ -647,6 +597,135 @@ public class WebServer implements ConnectionListener {
                     }
                     return matcher.group(1);
                 });
+    }
+
+    private <T> AsyncResult<T> makeAsyncResult(T result) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return result;
+            }
+
+            @Override
+            public Throwable cause() {
+                return null;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return true;
+            }
+
+            @Override
+            public boolean failed() {
+                return false;
+            }
+        };
+    }
+
+    private <T> AsyncResult<T> makeFailedAsyncResult(Throwable cause) {
+        return new AsyncResult<>() {
+            @Override
+            public T result() {
+                return null;
+            }
+
+            @Override
+            public Throwable cause() {
+                return cause;
+            }
+
+            @Override
+            public boolean succeeded() {
+                return false;
+            }
+
+            @Override
+            public boolean failed() {
+                return true;
+            }
+        };
+    }
+
+    private void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
+        server.getVertx()
+                .executeBlocking(
+                        event -> {
+                            try {
+                                JfrLoaderToolkit.loadEvents(
+                                        new File(recordingFile)); // try loading events to see if
+                                // it's a valid file
+                                event.complete();
+                            } catch (CouldNotLoadRecordingException | IOException e) {
+                                event.fail(e);
+                            }
+                        },
+                        res -> {
+                            if (res.failed()) {
+                                Throwable t;
+                                if (res.cause() instanceof CouldNotLoadRecordingException) {
+                                    t =
+                                            new HttpStatusException(
+                                                    400,
+                                                    "Not a valid JFR recording file",
+                                                    res.cause());
+                                } else {
+                                    t = res.cause();
+                                }
+
+                                handler.handle(makeFailedAsyncResult(t));
+                                return;
+                            }
+
+                            handler.handle(makeAsyncResult(null));
+                        });
+    }
+
+    private void saveRecording(
+            String basename, String tmpFile, int counter, Handler<AsyncResult<String>> handler) {
+        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
+        // are also differentiated by second-resolution timestamp
+        if (counter >= Byte.MAX_VALUE) {
+            handler.handle(
+                    makeFailedAsyncResult(
+                            new IOException(
+                                    "Recording could not be saved. File already exists and rename attempts were exhausted.")));
+            return;
+        }
+
+        String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
+
+        server.getVertx()
+                .fileSystem()
+                .exists(
+                        savedRecordingsPath.resolve(filename).toString(),
+                        (res) -> {
+                            if (res.failed()) {
+                                handler.handle(makeFailedAsyncResult(res.cause()));
+                                return;
+                            }
+
+                            if (res.result()) {
+                                saveRecording(basename, tmpFile, counter + 1, handler);
+                                return;
+                            }
+
+                            // verified no name clash at this time
+                            server.getVertx()
+                                    .fileSystem()
+                                    .move(
+                                            tmpFile,
+                                            savedRecordingsPath.resolve(filename).toString(),
+                                            (res2) -> {
+                                                if (res2.failed()) {
+                                                    handler.handle(
+                                                            makeFailedAsyncResult(res2.cause()));
+                                                    return;
+                                                }
+
+                                                handler.handle(makeAsyncResult(filename));
+                                            });
+                        });
     }
 
     private static class DownloadDescriptor {
