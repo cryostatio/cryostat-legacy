@@ -359,12 +359,17 @@ class WebServerTest {
     }
 
     @Test
-    void shouldHandleRecordingUploadRequest() {
+    void shouldHandleRecordingUploadRequest() throws Exception {
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
         String savePath = "/some/path/";
 
         RoutingContext ctx = mock(RoutingContext.class);
+
+        when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+
         Set<FileUpload> uploads = new HashSet<>();
         FileUpload upload = mock(FileUpload.class);
         uploads.add(upload);

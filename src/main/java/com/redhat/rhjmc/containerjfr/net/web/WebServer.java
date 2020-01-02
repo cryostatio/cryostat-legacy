@@ -438,6 +438,14 @@ public class WebServer implements ConnectionListener {
     }
 
     void handleRecordingUploadRequest(RoutingContext ctx) {
+        try {
+            if (!validateRequestAuthorization(ctx.request()).get()) {
+                throw new HttpStatusException(401);
+            }
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e);
+        }
+
         FileUpload upload = null;
 
         for (FileUpload fu : ctx.fileUploads()) {
