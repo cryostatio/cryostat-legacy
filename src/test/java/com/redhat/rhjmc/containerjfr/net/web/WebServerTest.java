@@ -68,6 +68,7 @@ class WebServerTest {
     @Mock NetworkConfiguration netConf;
     @Mock Environment env;
     @Mock Path recordingsPath;
+    @Mock com.redhat.rhjmc.containerjfr.core.sys.FileSystem fs;
     @Mock AuthManager authManager;
     Gson gson = MainModule.provideGson();
     @Mock Logger logger;
@@ -83,6 +84,7 @@ class WebServerTest {
                         netConf,
                         env,
                         recordingsPath,
+                        fs,
                         authManager,
                         gson,
                         reportGenerator,
@@ -105,6 +107,7 @@ class WebServerTest {
                                 netConf,
                                 env,
                                 recordingsPath,
+                                fs,
                                 authManager,
                                 gson,
                                 reportGenerator,
@@ -369,6 +372,8 @@ class WebServerTest {
         when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
+
+        when(fs.isDirectory(recordingsPath)).thenReturn(true);
 
         Set<FileUpload> uploads = new HashSet<>();
         FileUpload upload = mock(FileUpload.class);

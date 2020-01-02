@@ -24,6 +24,7 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import io.vertx.core.AsyncResult;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
@@ -74,6 +75,7 @@ public class WebServer implements ConnectionListener {
     private final NetworkConfiguration netConf;
     private final Environment env;
     private final Path savedRecordingsPath;
+    private final FileSystem fs;
     private final AuthManager auth;
     private final Gson gson;
     private final Logger logger;
@@ -88,6 +90,7 @@ public class WebServer implements ConnectionListener {
             NetworkConfiguration netConf,
             Environment env,
             Path savedRecordingsPath,
+            FileSystem fs,
             AuthManager auth,
             Gson gson,
             ReportGenerator reportGenerator,
@@ -96,6 +99,7 @@ public class WebServer implements ConnectionListener {
         this.netConf = netConf;
         this.env = env;
         this.savedRecordingsPath = savedRecordingsPath;
+        this.fs = fs;
         this.auth = auth;
         this.gson = gson;
         this.logger = logger;
@@ -444,6 +448,10 @@ public class WebServer implements ConnectionListener {
             }
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
+        }
+
+        if (!fs.isDirectory(savedRecordingsPath)) {
+            throw new HttpStatusException(503, "Recording saving not available");
         }
 
         FileUpload upload = null;
