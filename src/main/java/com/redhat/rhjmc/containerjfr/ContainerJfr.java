@@ -16,8 +16,27 @@ import dagger.Component;
 import org.apache.commons.lang3.StringUtils;
 
 class ContainerJfr {
+
+    private static final String LOG_LEVEL_ENV = "CONTAINER_JFR_LOG_LEVEL";
+
     public static void main(String[] args) throws Exception {
-        System.out.println(
+        ContainerJfrCore.initialize();
+
+        final Logger logger = Logger.INSTANCE;
+
+        final Environment environment = new Environment();
+        if (environment.hasEnv(LOG_LEVEL_ENV)) {
+            try {
+                logger.setLevel(Logger.Level.valueOf(environment.getEnv(LOG_LEVEL_ENV).trim()));
+            } catch (IllegalArgumentException e) {
+                logger.setLevel(Logger.Level.INFO);
+                logger.error(e);
+            }
+        }
+        logger.info(String.format("Logger level: %s", logger.getLevel()));
+        logger.trace(String.format("env: %s", environment.getEnv().toString()));
+
+        logger.info(
                 String.format(
                         "%s started. args: %s",
                         System.getProperty("java.rmi.server.hostname", "container-jfr"),
@@ -25,15 +44,7 @@ class ContainerJfr {
                                 .map(s -> "\"" + s + "\"")
                                 .collect(Collectors.toList())
                                 .toString()));
-        ContainerJfrCore.initialize();
 
-        final Environment environment = new Environment();
-        if (environment
-                .getProperty("com.redhat.rhjmc.containerjfr.debug", "false")
-                .equals("true")) {
-            System.out.println(String.format("env: %s", environment.getEnv().toString()));
-            Logger.INSTANCE.setLevel(Logger.Level.ALL);
-        }
         final ExecutionMode mode;
         final String clientArgs;
         final int port;
