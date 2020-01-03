@@ -22,6 +22,10 @@ fi
 
 echo -e "\n\nRunning $CONTAINER_JFR_IMAGE ...\n\n"
 
+if [ -z "$CONTAINER_JFR_LOG_LEVEL" ]; then
+    CONTAINER_JFR_LOG_LEVEL=ALL
+fi
+
 if [ -z "$CONTAINER_JFR_WEB_HOST" ]; then
     CONTAINER_JFR_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
 fi
@@ -55,6 +59,7 @@ docker run \
     --mount source=flightrecordings,target=/flightrecordings \
     -p $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
     -p $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
+    -e CONTAINER_JFR_LOG_LEVEL=$CONTAINER_JFR_LOG_LEVEL \
     -e CONTAINER_JFR_WEB_HOST=$CONTAINER_JFR_WEB_HOST \
     -e CONTAINER_JFR_WEB_PORT=$CONTAINER_JFR_WEB_PORT \
     -e CONTAINER_JFR_EXT_WEB_PORT=$CONTAINER_JFR_EXT_WEB_PORT \

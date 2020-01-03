@@ -44,10 +44,6 @@ A Docker image can be built to your local Docker image registry using
 `./gradlew jibDockerBuild`. Take note that the standard `./gradlew build`
 will not only build the image but will attempt to publish it to Dockerhub.
 
-If the environment variable `CONTAINER_JFR_DEBUG` is set to a non-empty
-string at build time then a debug image will be built, containing a debug shell
-environment within the image and enabling debug printing from the application.
-
 ## RUN
 For a basic development non-containerized smoketest, use `./gradlew run`, or
 `./gradlew run --args="client-args-here"`.
@@ -73,23 +69,26 @@ and accessible using the same mthods. Some client shell demo scripts are also
 available in the `demos` directory. These can be used with batch mode, ex.
 `sh run.sh "$(more demos/print_help)"`.
 
-There are six environment variables that the client checks during its
+There are seven environment variables that the client checks during its
 runtime: `CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
 `CONTAINER_JFR_EXT_WEB_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
-`CONTAINER_JFR_LISTEN_PORT` and `CONTAINER_JFR_EXT_LISTEN_PORT`. The former
-three are used by the embedded webserver for controlling the port and hostname
-used and reported when making recordings available for export (download). The
-latter three are used when running the client in daemon/socket mode and controls
-the port that the client listens for connections on and which port is reported
-should be used for connecting to the command channel socket. (Note: the
-WebSocket server always listens on `CONTAINER_JFR_WEB_PORT` and advertises
-`CONTAINER_JFR_EXT_WEB_PORT` regardless of `CONTAINER_JFR_LISTEN_PORT` and
-`CONTAINER_JFR_EXT_LISTEN_PORT`.) These may be set by setting the environment
-variable before invoking the `run.sh` shell script, or if this script is not
-used, by using the `-e` environment variable flag in the `docker` or `podman`
-command invocation. If the `EXT` variables are unspecified then they default to
-the value of their non-EXT counterparts. If `LISTEN_HOST` is unspecified then
-it defaults to the value of `WEB_HOST`.
+`CONTAINER_JFR_LISTEN_PORT`, `CONTAINER_JFR_EXT_LISTEN_PORT`, and
+`CONTAINER_JFR_LOG_LEVEL`. The former three are used by the embedded webserver
+for controlling the port and hostname used and reported when making recordings
+available for export (download). The latter three are used when running the
+client in daemon/socket mode and controls the port that the client listens for
+connections on and which port is reported should be used for connecting to the
+command channel socket. (Note: the WebSocket server always listens on
+`CONTAINER_JFR_WEB_PORT` and advertises `CONTAINER_JFR_EXT_WEB_PORT` regardless
+of `CONTAINER_JFR_LISTEN_PORT` and `CONTAINER_JFR_EXT_LISTEN_PORT`.) These may
+be set by setting the environment variable before invoking the `run.sh` shell
+script, or if this script is not used, by using the `-e` environment variable
+flag in the `docker` or `podman` command invocation. If the `EXT` variables are
+unspecified then they default to the value of their non-EXT counterparts. If
+`LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
+`CONTAINER_JFR_LOG_LEVEL` is used to control the level of messages which will be
+printed by the logging facility. Acceptable values are `OFF`, `ERROR`, `WARN`,
+`INFO`, `DEBUG`, `TRACE`, and `ALL`.
 
 The embedded webserver can be optionally configured to enable low memory
 pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty

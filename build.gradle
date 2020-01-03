@@ -74,12 +74,6 @@ if (minimalBuild) {
     processResources.dependsOn copyWebClient
 }
 
-def debugBuild = System.getenv('CONTAINER_JFR_DEBUG') != null;
-if (debugBuild) {
-    baseImage += '-debug'
-    version += '-debug';
-}
-
 jib {
     from {
         image = baseImage
@@ -102,12 +96,6 @@ jib {
             '-Dcom.sun.management.jmxremote.authenticate=false',
         ]
     }
-}
-
-if (debugBuild) {
-    jib.container.jvmFlags += '-Dcom.redhat.rhjmc.containerjfr.debug=true'
-    jib.container.jvmFlags += '-XX:+PrintCommandLineFlags'
-    jib.container.jvmFlags += '-XshowSettings:properties'
 }
 
 applicationDefaultJvmArgs = jib.container.jvmFlags
