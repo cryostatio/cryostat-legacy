@@ -30,9 +30,8 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     }
 
     /**
-     * Two args expected. First argument is recording name, second argument is recording length in
-     * seconds. Second argument is comma-separated event options list, ex.
-     * jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
+     * Two args expected. First argument is recording name, second argument is comma-separated event
+     * options list, ex. jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
      */
     @Override
     public void execute(String[] args) throws Exception {
