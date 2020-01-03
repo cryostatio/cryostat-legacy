@@ -4,8 +4,6 @@
 
 ## SEE ALSO
 
-[Trello](https://trello.com/b/zoQx1GxV/jmc-cloud) for project planning.
-
 See [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) for
 the core library providing a convenience wrapper and headless stubs for use of
 JFR using JDK Mission Control internals.
