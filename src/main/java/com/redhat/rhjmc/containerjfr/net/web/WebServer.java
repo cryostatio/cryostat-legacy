@@ -432,12 +432,18 @@ public class WebServer implements ConnectionListener {
     }
 
     void handleGrafanaDatasourceUrlRequest(RoutingContext ctx) {
+        if (!this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
+            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+        }
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
         endWithJsonKeyValue(
                 "grafanaDatasourceUrl", env.getEnv(GRAFANA_DATASOURCE_ENV, ""), ctx.response());
     }
 
     void handleGrafanaDashboardUrlRequest(RoutingContext ctx) {
+        if (!this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
+            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+        }
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
         endWithJsonKeyValue(
                 "grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV, ""), ctx.response());
