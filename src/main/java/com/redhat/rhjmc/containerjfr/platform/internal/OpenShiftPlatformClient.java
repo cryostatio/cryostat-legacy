@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -121,6 +124,35 @@ class OpenShiftPlatformClient implements PlatformClient {
                                 return false;
                             })
                     .orTimeout(15, TimeUnit.SECONDS);
+        }
+
+        private static final Map<Locale, Map<String, String>> documentationMessages;
+        static {
+            Map<Locale, Map<String, String>> messages = new HashMap<>();
+
+            Map<String, String> en = new HashMap<>();
+            en.put(DOC_MESSAGE_KEY_AUTH_DIALOG, "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account. You can enter the token given by \"oc whoami --show-token\"");
+            messages.put(Locale.ENGLISH, Collections.unmodifiableMap(en));
+
+            documentationMessages = Collections.unmodifiableMap(messages);
+        }
+
+        @Override
+        public Map<String, String> getDocumentationMessages(String langTags) {
+            Map<String, String> base = new HashMap<>(super.getDocumentationMessages(langTags));
+
+            List<Locale.LanguageRange> languageRanges = Locale.LanguageRange.parse(langTags);
+            Locale locale = Locale.lookup(languageRanges, documentationMessages.keySet());
+            Map<String, String> dictionary = documentationMessages.get(locale);
+            if (dictionary == null) {
+                dictionary = documentationMessages.get(Locale.ENGLISH);
+            }
+
+            for (Map.Entry<String, String> pair : dictionary.entrySet()) {
+                base.merge(pair.getKey(), pair.getValue(), (oldValue, newValue) -> newValue);
+            }
+
+            return base;
         }
     }
 }

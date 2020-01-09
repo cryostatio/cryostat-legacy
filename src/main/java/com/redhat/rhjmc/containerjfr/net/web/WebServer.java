@@ -196,6 +196,10 @@ public class WebServer implements ConnectionListener {
                 .handler(this::handleClientUrlRequest)
                 .failureHandler(failureHandler);
 
+        router.get("/documentation_messages")
+                .handler(this::handleDocumentationMessagesRequest)
+                .failureHandler(failureHandler);
+
         router.get("/grafana_datasource_url")
                 .handler(this::handleGrafanaDatasourceUrlRequest)
                 .failureHandler(failureHandler);
@@ -416,7 +420,7 @@ public class WebServer implements ConnectionListener {
     }
 
     void handleClientUrlRequest(RoutingContext ctx) {
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+
         try {
             endWithJsonKeyValue(
                     "clientUrl",
@@ -429,6 +433,16 @@ public class WebServer implements ConnectionListener {
         } catch (SocketException | UnknownHostException e) {
             throw new HttpStatusException(500, e);
         }
+    }
+
+    void handleDocumentationMessagesRequest(RoutingContext ctx) {
+        String langTags = ctx.request().getHeader(HttpHeaders.ACCEPT_LANGUAGE);
+        if (langTags == null || langTags.isEmpty()) {
+            langTags = "en";
+        }
+
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
+        ctx.response().end(gson.toJson(auth.getDocumentationMessages(langTags)));
     }
 
     void handleGrafanaDatasourceUrlRequest(RoutingContext ctx) {
