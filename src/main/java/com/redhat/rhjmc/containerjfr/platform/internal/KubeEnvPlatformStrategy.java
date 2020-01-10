@@ -2,15 +2,18 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 
 class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
 
     private final Logger logger;
     private final Environment env;
+    private final LocalizationManager lm;
 
-    KubeEnvPlatformStrategy(Logger logger, Environment env) {
+    KubeEnvPlatformStrategy(Logger logger, Environment env, LocalizationManager lm) {
         this.logger = logger;
         this.env = env;
+        this.lm = lm;
     }
 
     @Override
@@ -27,6 +30,6 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     @Override
     public KubeEnvPlatformClient get() {
         logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(logger, env);
+        return new KubeEnvPlatformClient(logger, env, lm);
     }
 }

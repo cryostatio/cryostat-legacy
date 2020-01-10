@@ -1,31 +1,25 @@
 package com.redhat.rhjmc.containerjfr.net;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.Supplier;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 
 public abstract class AbstractAuthManager implements AuthManager {
-
-    private static final Map<Locale, Map<String, String>> documentationMessages;
-    static {
-        Map<Locale, Map<String, String>> messages = new HashMap<>();
-
-        Map<String, String> en = new HashMap<>();
-        en.put(DOC_MESSAGE_KEY_AUTH_DIALOG, "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account.");
-        messages.put(Locale.ENGLISH, Collections.unmodifiableMap(en));
-
-        documentationMessages = Collections.unmodifiableMap(messages);
-    }
+    public static final String DOC_MESSAGE_KEY_AUTH_DIALOG = "AUTH_DIALOG";
 
     protected final Logger logger;
+    protected final LocalizationManager lm;
 
-    protected AbstractAuthManager(Logger logger) {
+    protected AbstractAuthManager(Logger logger, LocalizationManager lm) {
         this.logger = logger;
+        this.lm = lm;
+
+        lm.putMessage(
+                Locale.ENGLISH,
+                DOC_MESSAGE_KEY_AUTH_DIALOG,
+                "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account.");
     }
 
     @Override
@@ -60,17 +54,5 @@ public abstract class AbstractAuthManager implements AuthManager {
                 }
             }
         };
-    }
-
-    @Override
-    public Map<String, String> getDocumentationMessages(String langTags) {
-        List<Locale.LanguageRange> languageRanges = Locale.LanguageRange.parse(langTags);
-        Locale locale = Locale.lookup(languageRanges, documentationMessages.keySet());
-        Map<String, String> dictionary = documentationMessages.get(locale);
-        if (dictionary == null) {
-            dictionary = documentationMessages.get(Locale.ENGLISH);
-        }
-
-        return dictionary;
     }
 }

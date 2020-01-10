@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
@@ -20,10 +21,12 @@ class KubeEnvPlatformClient implements PlatformClient {
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
     private final Logger logger;
     private final Environment env;
+    private final LocalizationManager lm;
 
-    KubeEnvPlatformClient(Logger logger, Environment env) {
+    KubeEnvPlatformClient(Logger logger, Environment env, LocalizationManager lm) {
         this.logger = logger;
         this.env = env;
+        this.lm = lm;
     }
 
     @Override
@@ -46,6 +49,6 @@ class KubeEnvPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new NoopAuthManager(logger);
+        return new NoopAuthManager(logger, lm);
     }
 }

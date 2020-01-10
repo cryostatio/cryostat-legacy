@@ -9,6 +9,7 @@ import java.util.Map;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import org.hamcrest.MatcherAssert;
@@ -25,11 +26,12 @@ class KubeEnvPlatformClientTest {
 
     @Mock Logger logger;
     @Mock Environment env;
+    @Mock LocalizationManager lm;
     KubeEnvPlatformClient client;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(logger, env);
+        client = new KubeEnvPlatformClient(logger, env, lm);
     }
 
     @Nested

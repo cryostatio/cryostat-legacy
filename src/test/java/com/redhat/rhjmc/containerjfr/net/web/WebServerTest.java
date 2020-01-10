@@ -32,6 +32,7 @@ import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -74,6 +75,7 @@ class WebServerTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock ReportGenerator reportGenerator;
+    @Mock LocalizationManager lm;
 
     @BeforeEach
     void setup() {
@@ -87,7 +89,8 @@ class WebServerTest {
                         authManager,
                         gson,
                         reportGenerator,
-                        logger);
+                        logger,
+                        lm);
     }
 
     @Test
@@ -110,7 +113,8 @@ class WebServerTest {
                                 authManager,
                                 gson,
                                 reportGenerator,
-                                logger));
+                                logger,
+                                lm));
     }
 
     @Test

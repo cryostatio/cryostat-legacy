@@ -34,6 +34,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -80,6 +81,7 @@ public class WebServer implements ConnectionListener {
     private final AuthManager auth;
     private final Gson gson;
     private final Logger logger;
+    private final LocalizationManager lm;
     private IFlightRecorderService service;
 
     private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
@@ -95,7 +97,8 @@ public class WebServer implements ConnectionListener {
             AuthManager auth,
             Gson gson,
             ReportGenerator reportGenerator,
-            Logger logger) {
+            Logger logger,
+            LocalizationManager lm) {
         this.server = server;
         this.netConf = netConf;
         this.env = env;
@@ -104,6 +107,7 @@ public class WebServer implements ConnectionListener {
         this.auth = auth;
         this.gson = gson;
         this.logger = logger;
+        this.lm = lm;
         this.reportGenerator = reportGenerator;
 
         if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
@@ -420,7 +424,7 @@ public class WebServer implements ConnectionListener {
     }
 
     void handleClientUrlRequest(RoutingContext ctx) {
-
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         try {
             endWithJsonKeyValue(
                     "clientUrl",
@@ -442,7 +446,7 @@ public class WebServer implements ConnectionListener {
         }
 
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-        ctx.response().end(gson.toJson(auth.getDocumentationMessages(langTags)));
+        ctx.response().end(gson.toJson(lm.getAllMessages(lm.matchLocale(langTags))));
     }
 
     void handleGrafanaDatasourceUrlRequest(RoutingContext ctx) {

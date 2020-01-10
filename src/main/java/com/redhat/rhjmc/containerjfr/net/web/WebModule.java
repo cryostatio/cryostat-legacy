@@ -9,6 +9,7 @@ import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -41,7 +42,8 @@ public abstract class WebModule {
             ReportGenerator reportGenerator,
             AuthManager authManager,
             Gson gson,
-            Logger logger) {
+            Logger logger,
+            LocalizationManager lm) {
         return new WebServer(
                 httpServer,
                 netConf,
@@ -51,7 +53,8 @@ public abstract class WebModule {
                 authManager,
                 gson,
                 reportGenerator,
-                logger);
+                logger,
+                lm);
     }
 
     @Provides

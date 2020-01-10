@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
@@ -15,10 +16,12 @@ class DefaultPlatformClient implements PlatformClient {
 
     private final Logger log;
     private final JvmDiscoveryClient discoveryClient;
+    private final LocalizationManager lm;
 
-    DefaultPlatformClient(Logger log, JvmDiscoveryClient discoveryClient) {
+    DefaultPlatformClient(Logger log, JvmDiscoveryClient discoveryClient, LocalizationManager lm) {
         this.log = log;
         this.discoveryClient = discoveryClient;
+        this.lm = lm;
     }
 
     @Override
@@ -40,6 +43,6 @@ class DefaultPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new NoopAuthManager(log);
+        return new NoopAuthManager(log, lm);
     }
 }

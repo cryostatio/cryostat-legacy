@@ -4,10 +4,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -17,6 +15,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AbstractAuthManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
@@ -37,11 +36,17 @@ class OpenShiftPlatformClient implements PlatformClient {
     private final Logger logger;
     private final OpenShiftClient osClient;
     private final NetworkResolver resolver;
+    private final LocalizationManager lm;
 
-    OpenShiftPlatformClient(Logger logger, OpenShiftClient osClient, NetworkResolver resolver) {
+    OpenShiftPlatformClient(
+            Logger logger,
+            OpenShiftClient osClient,
+            NetworkResolver resolver,
+            LocalizationManager lm) {
         this.logger = logger;
         this.osClient = osClient;
         this.resolver = resolver;
+        this.lm = lm;
     }
 
     @Override
@@ -70,7 +75,7 @@ class OpenShiftPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new OpenShiftAuthManager(logger);
+        return new OpenShiftAuthManager(logger, lm);
     }
 
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {
@@ -90,8 +95,13 @@ class OpenShiftPlatformClient implements PlatformClient {
     }
 
     private static class OpenShiftAuthManager extends AbstractAuthManager {
-        OpenShiftAuthManager(Logger logger) {
-            super(logger);
+        OpenShiftAuthManager(Logger logger, LocalizationManager lm) {
+            super(logger, lm);
+
+            lm.putMessage(
+                    Locale.ENGLISH,
+                    AbstractAuthManager.DOC_MESSAGE_KEY_AUTH_DIALOG,
+                    "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account. You can enter the token given by \"oc whoami --show-token\"");
         }
 
         @Override
@@ -124,35 +134,6 @@ class OpenShiftPlatformClient implements PlatformClient {
                                 return false;
                             })
                     .orTimeout(15, TimeUnit.SECONDS);
-        }
-
-        private static final Map<Locale, Map<String, String>> documentationMessages;
-        static {
-            Map<Locale, Map<String, String>> messages = new HashMap<>();
-
-            Map<String, String> en = new HashMap<>();
-            en.put(DOC_MESSAGE_KEY_AUTH_DIALOG, "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account. You can enter the token given by \"oc whoami --show-token\"");
-            messages.put(Locale.ENGLISH, Collections.unmodifiableMap(en));
-
-            documentationMessages = Collections.unmodifiableMap(messages);
-        }
-
-        @Override
-        public Map<String, String> getDocumentationMessages(String langTags) {
-            Map<String, String> base = new HashMap<>(super.getDocumentationMessages(langTags));
-
-            List<Locale.LanguageRange> languageRanges = Locale.LanguageRange.parse(langTags);
-            Locale locale = Locale.lookup(languageRanges, documentationMessages.keySet());
-            Map<String, String> dictionary = documentationMessages.get(locale);
-            if (dictionary == null) {
-                dictionary = documentationMessages.get(Locale.ENGLISH);
-            }
-
-            for (Map.Entry<String, String> pair : dictionary.entrySet()) {
-                base.merge(pair.getKey(), pair.getValue(), (oldValue, newValue) -> newValue);
-            }
-
-            return base;
         }
     }
 }
