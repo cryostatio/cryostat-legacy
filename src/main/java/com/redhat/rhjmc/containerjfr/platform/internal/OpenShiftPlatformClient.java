@@ -100,7 +100,7 @@ class OpenShiftPlatformClient implements PlatformClient {
 
             lm.putMessage(
                     Locale.ENGLISH,
-                    AbstractAuthManager.DOC_MESSAGE_KEY_AUTH_DIALOG,
+                    AbstractAuthManager.DOC_MESSAGE_KEY_AUTH_DIALOG_MESSAGE,
                     "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account. You can enter the token given by \"oc whoami --show-token\"");
         }
 

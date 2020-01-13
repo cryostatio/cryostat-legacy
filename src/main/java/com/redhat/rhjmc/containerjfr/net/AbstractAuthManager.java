@@ -7,7 +7,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
 
 public abstract class AbstractAuthManager implements AuthManager {
-    public static final String DOC_MESSAGE_KEY_AUTH_DIALOG = "AUTH_DIALOG";
+    public static final String DOC_MESSAGE_KEY_AUTH_DIALOG_MESSAGE = "AUTH_DIALOG_MESSAGE";
 
     protected final Logger logger;
     protected final DocumentationMessageManager dmm;
@@ -18,7 +18,7 @@ public abstract class AbstractAuthManager implements AuthManager {
 
         dmm.putMessage(
                 Locale.ENGLISH,
-                DOC_MESSAGE_KEY_AUTH_DIALOG,
+            DOC_MESSAGE_KEY_AUTH_DIALOG_MESSAGE,
                 "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account.");
     }
 
