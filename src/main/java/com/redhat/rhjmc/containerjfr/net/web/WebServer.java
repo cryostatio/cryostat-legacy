@@ -201,7 +201,7 @@ public class WebServer implements ConnectionListener {
                 .failureHandler(failureHandler);
 
         router.get("/documentation_messages")
-                .handler(this::handleDocumentationMessagesRequest)
+                .handler(this::handleDocumentationMessageRequest)
                 .failureHandler(failureHandler);
 
         router.get("/grafana_datasource_url")
@@ -439,7 +439,7 @@ public class WebServer implements ConnectionListener {
         }
     }
 
-    void handleDocumentationMessagesRequest(RoutingContext ctx) {
+    void handleDocumentationMessageRequest(RoutingContext ctx) {
         String langTags = ctx.request().getHeader(HttpHeaders.ACCEPT_LANGUAGE);
         if (langTags == null || langTags.isEmpty()) {
             langTags = "en";

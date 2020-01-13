@@ -20,7 +20,10 @@ import java.net.SocketException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -591,5 +594,29 @@ class WebServerTest {
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         verify(rep).end(content);
+    }
+
+    @Test
+    void shouldHandleDocumentationMessageRequest() {
+        String acceptedLanguages = "en-CA,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6";
+        Locale matchedLocale = Locale.ENGLISH;
+        Map<String, String> messages = new HashMap<>();
+        messages.put("foo", "bar");
+        String repBody = gson.toJson(messages);
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.request()).thenReturn(req);
+        when(ctx.response()).thenReturn(rep);
+        when(req.getHeader(HttpHeaders.ACCEPT_LANGUAGE)).thenReturn(acceptedLanguages);
+
+        when(lm.matchLocale(acceptedLanguages)).thenReturn(matchedLocale);
+        when(lm.getAllMessages(matchedLocale)).thenReturn(messages);
+
+        exporter.handleDocumentationMessageRequest(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        verify(rep).end(repBody);
     }
 }
