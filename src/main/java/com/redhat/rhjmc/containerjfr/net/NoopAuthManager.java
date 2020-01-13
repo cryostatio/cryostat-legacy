@@ -5,12 +5,12 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
+import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
-    public NoopAuthManager(Logger logger, LocalizationManager lm) {
-        super(logger, lm);
+    public NoopAuthManager(Logger logger, DocumentationMessageManager dmm) {
+        super(logger, dmm);
     }
 
     @Override

@@ -9,7 +9,7 @@ import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
+import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -43,7 +43,7 @@ public abstract class WebModule {
             AuthManager authManager,
             Gson gson,
             Logger logger,
-            LocalizationManager lm) {
+            DocumentationMessageManager lm) {
         return new WebServer(
                 httpServer,
                 netConf,

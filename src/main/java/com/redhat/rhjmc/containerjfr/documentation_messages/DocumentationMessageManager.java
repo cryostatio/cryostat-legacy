@@ -1,4 +1,4 @@
-package com.redhat.rhjmc.containerjfr.localization;
+package com.redhat.rhjmc.containerjfr.documentation_messages;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -8,13 +8,13 @@ import java.util.Objects;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
-public class LocalizationManager {
+public class DocumentationMessageManager {
     private Logger logger;
 
     private Locale defaultLocale = Locale.getDefault();
     private Map<Locale, Map<String, String>> messages = new HashMap<>();
 
-    LocalizationManager(Logger logger) {
+    DocumentationMessageManager(Logger logger) {
         this.logger = logger;
     }
 

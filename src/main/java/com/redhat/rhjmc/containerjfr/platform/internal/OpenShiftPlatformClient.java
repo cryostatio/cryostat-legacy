@@ -15,7 +15,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
+import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
 import com.redhat.rhjmc.containerjfr.net.AbstractAuthManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
@@ -36,17 +36,17 @@ class OpenShiftPlatformClient implements PlatformClient {
     private final Logger logger;
     private final OpenShiftClient osClient;
     private final NetworkResolver resolver;
-    private final LocalizationManager lm;
+    private final DocumentationMessageManager dmm;
 
     OpenShiftPlatformClient(
             Logger logger,
             OpenShiftClient osClient,
             NetworkResolver resolver,
-            LocalizationManager lm) {
+            DocumentationMessageManager lm) {
         this.logger = logger;
         this.osClient = osClient;
         this.resolver = resolver;
-        this.lm = lm;
+        this.dmm = lm;
     }
 
     @Override
@@ -75,7 +75,7 @@ class OpenShiftPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new OpenShiftAuthManager(logger, lm);
+        return new OpenShiftAuthManager(logger, dmm);
     }
 
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {
@@ -95,7 +95,7 @@ class OpenShiftPlatformClient implements PlatformClient {
     }
 
     private static class OpenShiftAuthManager extends AbstractAuthManager {
-        OpenShiftAuthManager(Logger logger, LocalizationManager lm) {
+        OpenShiftAuthManager(Logger logger, DocumentationMessageManager lm) {
             super(logger, lm);
 
             lm.putMessage(

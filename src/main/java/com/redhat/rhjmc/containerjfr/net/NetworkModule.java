@@ -12,7 +12,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
+import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
@@ -103,12 +103,12 @@ public abstract class NetworkModule {
             ExecutionMode mode,
             @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> webSocketAuth,
             Logger logger,
-            LocalizationManager lm) {
+            DocumentationMessageManager dmm) {
         switch (mode) {
             case BATCH:
             case INTERACTIVE:
             case SOCKET:
-                return new NoopAuthManager(logger, lm);
+                return new NoopAuthManager(logger, dmm);
             case WEBSOCKET:
                 return webSocketAuth.get();
             default:

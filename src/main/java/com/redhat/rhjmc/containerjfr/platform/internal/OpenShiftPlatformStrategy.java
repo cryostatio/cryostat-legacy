@@ -5,7 +5,7 @@ import java.nio.file.Paths;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
+import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -17,14 +17,17 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<OpenShiftPl
 
     private final Logger logger;
     private final NetworkResolver resolver;
-    private final LocalizationManager lm;
+    private final DocumentationMessageManager dmm;
     private OpenShiftClient osClient;
 
     OpenShiftPlatformStrategy(
-            Logger logger, Environment env, NetworkResolver resolver, LocalizationManager lm) {
+            Logger logger,
+            Environment env,
+            NetworkResolver resolver,
+            DocumentationMessageManager dmm) {
         this.logger = logger;
         this.resolver = resolver;
-        this.lm = lm;
+        this.dmm = dmm;
         try {
             this.osClient = new DefaultOpenShiftClient();
         } catch (Exception e) {
@@ -65,7 +68,7 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<OpenShiftPl
     @Override
     public OpenShiftPlatformClient get() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new OpenShiftPlatformClient(logger, osClient, resolver, lm);
+        return new OpenShiftPlatformClient(logger, osClient, resolver, dmm);
     }
 
     public Logger getLogger() {

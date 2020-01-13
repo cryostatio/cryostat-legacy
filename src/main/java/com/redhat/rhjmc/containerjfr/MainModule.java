@@ -8,7 +8,7 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.localization.LocalizationModule;
+import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageModule;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
@@ -26,7 +26,7 @@ import dagger.Provides;
             SystemModule.class,
             CommandsModule.class,
             TuiModule.class,
-            LocalizationModule.class
+            DocumentationMessageModule.class
         })
 public abstract class MainModule {
     @Provides

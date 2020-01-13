@@ -4,19 +4,19 @@ import java.util.Locale;
 import java.util.function.Supplier;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
+import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
 
 public abstract class AbstractAuthManager implements AuthManager {
     public static final String DOC_MESSAGE_KEY_AUTH_DIALOG = "AUTH_DIALOG";
 
     protected final Logger logger;
-    protected final LocalizationManager lm;
+    protected final DocumentationMessageManager dmm;
 
-    protected AbstractAuthManager(Logger logger, LocalizationManager lm) {
+    protected AbstractAuthManager(Logger logger, DocumentationMessageManager dmm) {
         this.logger = logger;
-        this.lm = lm;
+        this.dmm = dmm;
 
-        lm.putMessage(
+        dmm.putMessage(
                 Locale.ENGLISH,
                 DOC_MESSAGE_KEY_AUTH_DIALOG,
                 "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account.");
