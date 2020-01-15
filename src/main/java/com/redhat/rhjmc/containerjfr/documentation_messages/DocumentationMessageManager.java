@@ -19,7 +19,7 @@ public class DocumentationMessageManager {
     }
 
     public void setDefaultLocale(Locale locale) {
-        Objects.requireNonNull(locale);
+        Objects.requireNonNull(locale, "locale must not be null");
         defaultLocale = locale;
     }
 
@@ -50,16 +50,12 @@ public class DocumentationMessageManager {
      * @return a map of message key-value pairs
      */
     public Map<String, String> getAllMessages(Locale locale) {
-        Map<String, String> defaultMessages = messages.get(defaultLocale);
+        Map<String, String> defaultMessages = messages.getOrDefault(defaultLocale, Map.of());
         if (locale == defaultLocale) {
             return new HashMap<>(defaultMessages);
         }
 
-        if (defaultMessages == null) {
-            defaultMessages = Map.of();
-        }
-
-        Map<String, String> ret = new HashMap<>(messages.get(locale));
+        Map<String, String> ret = new HashMap<>(messages.getOrDefault(locale, Map.of()));
         for (Map.Entry<String, String> entry : defaultMessages.entrySet()) {
             ret.merge(
                     entry.getKey(),
