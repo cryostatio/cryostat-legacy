@@ -2,12 +2,13 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
@@ -17,9 +18,6 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.vertx.core.http.ServerWebSocket;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 
 class MessagingServer {
 
@@ -49,47 +47,46 @@ class MessagingServer {
                     String remoteAddress = sws.remoteAddress().toString();
                     logger.info(String.format("Connected remote client %s", remoteAddress));
 
-                    try {
-                        authManager
-                                .doAuthenticated(() -> this.getHandshakeAuthToken(sws))
-                                .onSuccess(() -> this.acceptHandshake(sws))
-                                .onFailure(() -> this.rejectHandshake(sws))
-                                .execute();
-                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                        logger.error(e);
-                        sws.reject(500);
-                    }
+                    WsClientReaderWriter crw =
+                            new WsClientReaderWriter(this.logger, this.gson, sws);
+                    sws.closeHandler(
+                            (unused) -> {
+                                logger.info(
+                                        String.format(
+                                                "Disconnected remote client %s", remoteAddress));
+                                removeConnection(crw);
+                            });
+                    sws.textMessageHandler(
+                            msg -> {
+                                try {
+                                    String proto = sws.subProtocol();
+                                    authManager
+                                            .doAuthenticated(
+                                                    () -> getAuthTokenFromSubprotocol(proto))
+                                            .onSuccess(() -> crw.handle(msg))
+                                            // 1002: WebSocket "Protocol Error" close reason
+                                            .onFailure(
+                                                    () ->
+                                                            sws.close(
+                                                                    (short) 1002,
+                                                                    String.format(
+                                                                            "Invalid subprotocol \"%s\"",
+                                                                            proto)))
+                                            .execute();
+                                } catch (InterruptedException
+                                        | ExecutionException
+                                        | TimeoutException e) {
+                                    logger.info(e);
+                                    // 1011: WebSocket "Internal Error" close reason
+                                    sws.close(
+                                            (short) 1011,
+                                            String.format(
+                                                    "Internal error: \"%s\"", e.getMessage()));
+                                }
+                            });
+                    addConnection(crw);
+                    sws.accept();
                 });
-    }
-
-    String getHandshakeAuthToken(ServerWebSocket sws) {
-        return URLEncodedUtils.parse(sws.query(), StandardCharsets.UTF_8).stream()
-                .filter(p -> p.getName().equals("token"))
-                .findFirst()
-                .map(NameValuePair::getValue)
-                .orElse(null);
-    }
-
-    void acceptHandshake(ServerWebSocket sws) {
-        String remoteAddress = sws.remoteAddress().toString();
-        logger.info(String.format("Remote client %s passed token authentication", remoteAddress));
-        WsClientReaderWriter crw = new WsClientReaderWriter(this.logger, this.gson, sws);
-        sws.closeHandler(
-                (unused) -> {
-                    logger.info(String.format("Disconnected remote client %s", remoteAddress));
-                    removeConnection(crw);
-                });
-        sws.textMessageHandler(crw);
-        addConnection(crw);
-        sws.accept();
-    }
-
-    void rejectHandshake(ServerWebSocket sws) {
-        logger.info(
-                String.format(
-                        "Remote client %s failed token authentication",
-                        sws.remoteAddress().toString()));
-        sws.reject(401);
     }
 
     void addConnection(WsClientReaderWriter crw) {
@@ -104,6 +101,21 @@ class MessagingServer {
             semaphore.tryAcquire();
             crw.close();
         }
+    }
+
+    private String getAuthTokenFromSubprotocol(String subprotocol) {
+        if (subprotocol == null) {
+            return null;
+        }
+        Pattern pattern =
+                Pattern.compile(
+                        "base64url\\.bearer\\.authorization\\.containerjfr\\.([\\S]+)",
+                        Pattern.CASE_INSENSITIVE);
+        Matcher m = pattern.matcher(subprotocol);
+        if (!m.matches()) {
+            return null;
+        }
+        return m.group(1);
     }
 
     private void closeConnections() {

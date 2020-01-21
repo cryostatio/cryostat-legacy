@@ -9,6 +9,8 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -107,19 +109,26 @@ class MessagingServerTest {
     }
 
     @Test
-    void webSocketCloseHandlerShouldRemoveConnection() {
+    void webSocketCloseHandlerShouldRemoveConnection()
+            throws SocketException, UnknownHostException {
         SocketAddress addr = Mockito.mock(SocketAddress.class);
         when(addr.toString()).thenReturn("mockaddr");
         when(sws.remoteAddress()).thenReturn(addr);
-        server.acceptHandshake(sws);
+        when(sws.path()).thenReturn("/command");
+        server.start();
 
-        // TODO verify that the WsClientReaderWriter is closed
-        ArgumentCaptor<Handler> handlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        Mockito.verify(httpServer).websocketHandler(websocketHandlerCaptor.capture());
+        websocketHandlerCaptor.getValue().handle(sws);
+
+        ArgumentCaptor<Handler> closeHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
         InOrder inOrder = Mockito.inOrder(sws);
-        inOrder.verify(sws).closeHandler(handlerCaptor.capture());
-        inOrder.verify(sws).textMessageHandler(Mockito.any(WsClientReaderWriter.class));
+        inOrder.verify(sws).closeHandler(closeHandlerCaptor.capture());
+        inOrder.verify(sws).textMessageHandler(Mockito.any(Handler.class));
         inOrder.verify(sws).accept();
         inOrder.verifyNoMoreInteractions();
+        closeHandlerCaptor.getValue().handle(null);
+        // TODO verify that the WsClientReaderWriter is closed and removed
     }
 
     @Test
