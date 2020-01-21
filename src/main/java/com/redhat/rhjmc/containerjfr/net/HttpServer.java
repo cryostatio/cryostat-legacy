@@ -36,6 +36,7 @@ public class HttpServer {
                         sslConf.applyToHttpServerOptions(
                                 new HttpServerOptions()
                                         .setPort(netConf.getInternalWebServerPort())
+                                        .setWebsocketSubProtocols("*")
                                         .setCompressionSupported(true)
                                         .setLogActivity(true)));
 
