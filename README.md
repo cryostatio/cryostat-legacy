@@ -182,8 +182,10 @@ Using the platform detection mechanism described previously, ContainerJFR will
 attempt to select an appropriate authz manager to match the deployment
 platform. In all scenarios, the presence of an auth manager (other than
 NoopAuthManager) causes ContainerJFR to expect credentials on command channel
-WebSocket handshake via a `?token=TOKEN` query parameter, as well as with an
-`Authorization: Bearer TOKEN` header on recording download and report requests.
+WebSocket connection via a
+`Sec-WebSocket-Protocol: base64url.bearer.authorization.containerjfr.FOO`
+header , as well as with an `Authorization: Bearer TOKEN` header on recording
+download and report requests.
 
 The token is never stored in any form, only kept in-memory long enough to
 process the external token validation.
