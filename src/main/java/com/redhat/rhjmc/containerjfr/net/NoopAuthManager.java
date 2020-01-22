@@ -16,4 +16,14 @@ public class NoopAuthManager extends AbstractAuthManager {
     public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
         return CompletableFuture.completedFuture(true);
     }
+
+    @Override
+    public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
+        return CompletableFuture.completedFuture(true);
+    }
+
+    @Override
+    public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
+        return CompletableFuture.completedFuture(true);
+    }
 }

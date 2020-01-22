@@ -7,8 +7,6 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeoutException;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
@@ -62,7 +60,8 @@ class MessagingServer {
                                     String proto = sws.subProtocol();
                                     authManager
                                             .doAuthenticated(
-                                                    () -> getAuthTokenFromSubprotocol(proto))
+                                                    () -> proto,
+                                                    authManager::validateWebSocketSubProtocol)
                                             .onSuccess(() -> crw.handle(msg))
                                             // 1002: WebSocket "Protocol Error" close reason
                                             .onFailure(
@@ -101,21 +100,6 @@ class MessagingServer {
             semaphore.tryAcquire();
             crw.close();
         }
-    }
-
-    private String getAuthTokenFromSubprotocol(String subprotocol) {
-        if (subprotocol == null) {
-            return null;
-        }
-        Pattern pattern =
-                Pattern.compile(
-                        "base64url\\.bearer\\.authorization\\.containerjfr\\.([\\S]+)",
-                        Pattern.CASE_INSENSITIVE);
-        Matcher m = pattern.matcher(subprotocol);
-        if (!m.matches()) {
-            return null;
-        }
-        return m.group(1);
     }
 
     private void closeConnections() {

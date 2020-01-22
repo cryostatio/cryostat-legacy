@@ -1,5 +1,7 @@
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.util.concurrent.Future;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -13,7 +15,8 @@ public abstract class AbstractAuthManager implements AuthManager {
     }
 
     @Override
-    public AuthenticatedAction doAuthenticated(Supplier<String> tokenProvider) {
+    public AuthenticatedAction doAuthenticated(
+            Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator) {
         return new AuthenticatedAction() {
             private Runnable onSuccess;
             private Runnable onFailure;
@@ -33,7 +36,7 @@ public abstract class AbstractAuthManager implements AuthManager {
             @Override
             public void execute() {
                 try {
-                    if (validateToken(tokenProvider).get()) {
+                    if (validator.apply(provider).get()) {
                         this.onSuccess.run();
                     } else {
                         this.onFailure.run();

@@ -9,8 +9,9 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -92,8 +93,7 @@ class OpenShiftPlatformClient implements PlatformClient {
         }
 
         @Override
-        public Future<Boolean> validateToken(Supplier<String> tokenProvider)
-                throws TimeoutException {
+        public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
             String token = tokenProvider.get();
             if (StringUtils.isBlank(token)) {
                 return CompletableFuture.completedFuture(false);
@@ -121,6 +121,37 @@ class OpenShiftPlatformClient implements PlatformClient {
                                 return false;
                             })
                     .orTimeout(15, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
+            String authorization = headerProvider.get();
+            Pattern basicPattern = Pattern.compile("Bearer (.*)");
+            if (StringUtils.isBlank(authorization)) {
+                return CompletableFuture.completedFuture(false);
+            }
+            Matcher matcher = basicPattern.matcher(authorization);
+            if (!matcher.matches()) {
+                return CompletableFuture.completedFuture(false);
+            }
+            return validateToken(() -> matcher.group(1));
+        }
+
+        @Override
+        public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
+            String subprotocol = subProtocolProvider.get();
+            if (subprotocol == null) {
+                return null;
+            }
+            Pattern pattern =
+                    Pattern.compile(
+                            "base64url\\.bearer\\.authorization\\.containerjfr\\.([\\S]+)",
+                            Pattern.CASE_INSENSITIVE);
+            Matcher m = pattern.matcher(subprotocol);
+            if (!m.matches()) {
+                return null;
+            }
+            return validateToken(() -> m.group(1));
         }
     }
 }
