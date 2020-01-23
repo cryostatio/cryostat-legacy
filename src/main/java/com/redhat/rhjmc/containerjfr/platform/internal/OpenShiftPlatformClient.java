@@ -126,11 +126,11 @@ class OpenShiftPlatformClient implements PlatformClient {
         @Override
         public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
             String authorization = headerProvider.get();
-            Pattern basicPattern = Pattern.compile("Bearer (.*)");
             if (StringUtils.isBlank(authorization)) {
                 return CompletableFuture.completedFuture(false);
             }
-            Matcher matcher = basicPattern.matcher(authorization);
+            Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
+            Matcher matcher = bearerPattern.matcher(authorization);
             if (!matcher.matches()) {
                 return CompletableFuture.completedFuture(false);
             }
@@ -147,8 +147,8 @@ class OpenShiftPlatformClient implements PlatformClient {
                     Pattern.compile(
                             "base64url\\.bearer\\.authorization\\.containerjfr\\.([\\S]+)",
                             Pattern.CASE_INSENSITIVE);
-            Matcher m = pattern.matcher(subprotocol);
-            if (!m.matches()) {
+            Matcher matcher = pattern.matcher(subprotocol);
+            if (!matcher.matches()) {
                 return null;
             }
             return validateToken(() -> m.group(1));
