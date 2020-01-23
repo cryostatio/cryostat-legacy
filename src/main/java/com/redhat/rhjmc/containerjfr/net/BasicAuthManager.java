@@ -27,7 +27,6 @@ class BasicAuthManager extends AbstractAuthManager {
     private final Properties users;
     private volatile boolean configLoaded = false;
 
-    // TODO inject FileSystem, but this also means changing the assumed constructor signature
     // TODO salted hashes
     BasicAuthManager(Logger logger, FileSystem fs) {
         super(logger);
