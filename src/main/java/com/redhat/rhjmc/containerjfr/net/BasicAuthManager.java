@@ -23,15 +23,15 @@ class BasicAuthManager extends AbstractAuthManager {
 
     static final String USER_PROPERTIES_FILENAME = "container-jfr-users.properties";
 
-    private final Properties users;
     private final FileSystem fs;
+    private final Properties users;
 
     // TODO inject FileSystem, but this also means changing the assumed constructor signature
     // TODO salted hashes
-    BasicAuthManager(Logger logger) {
+    BasicAuthManager(Logger logger, FileSystem fs) {
         super(logger);
+        this.fs = fs;
         this.users = new Properties();
-        this.fs = new FileSystem();
         loadConfig();
     }
 

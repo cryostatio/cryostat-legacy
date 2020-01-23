@@ -106,6 +106,7 @@ public abstract class NetworkModule {
     static AuthManager provideAuthManager(
             ExecutionMode mode,
             Environment env,
+            FileSystem fs,
             @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> webSocketAuth,
             Logger logger) {
         try {
@@ -114,8 +115,9 @@ public abstract class NetworkModule {
                 logger.info(String.format("Selecting configured AuthManager \"%s\"", authClass));
                 Class<AuthManager> klazz =
                         (Class<AuthManager>) Class.forName(authClass).asSubclass(AuthManager.class);
-                Constructor<AuthManager> cons = klazz.getDeclaredConstructor(Logger.class);
-                return cons.newInstance(logger);
+                Constructor<AuthManager> cons =
+                        klazz.getDeclaredConstructor(Logger.class, FileSystem.class);
+                return cons.newInstance(logger, fs);
             }
         } catch (Exception e) {
             logger.error(e);
@@ -125,7 +127,7 @@ public abstract class NetworkModule {
             case BATCH:
             case INTERACTIVE:
             case SOCKET:
-                return new NoopAuthManager(logger);
+                return new NoopAuthManager(logger, fs);
             case WEBSOCKET:
                 return webSocketAuth.get();
             default:

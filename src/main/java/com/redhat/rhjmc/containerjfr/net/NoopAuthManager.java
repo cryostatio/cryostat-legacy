@@ -5,10 +5,15 @@ import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
     public NoopAuthManager(Logger logger) {
+        this(logger, null);
+    }
+
+    public NoopAuthManager(Logger logger, FileSystem unused) {
         super(logger);
     }
 
