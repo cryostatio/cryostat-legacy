@@ -16,6 +16,7 @@ import java.util.regex.Pattern;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
 class BasicAuthManager extends AbstractAuthManager {
@@ -26,7 +27,7 @@ class BasicAuthManager extends AbstractAuthManager {
     private final FileSystem fs;
 
     // TODO inject FileSystem, but this also means changing the assumed constructor signature
-    // TODO config file should contain password hashes, not cleartext passwords
+    // TODO salted hashes
     BasicAuthManager(Logger logger) {
         super(logger);
         this.users = new Properties();
@@ -44,7 +45,9 @@ class BasicAuthManager extends AbstractAuthManager {
         }
         String user = matcher.group(1);
         String pass = matcher.group(2);
-        return CompletableFuture.completedFuture(Objects.equals(users.getProperty(user), pass));
+        String passHashHex = DigestUtils.sha256Hex(pass);
+        return CompletableFuture.completedFuture(
+                Objects.equals(users.getProperty(user), passHashHex));
     }
 
     @Override

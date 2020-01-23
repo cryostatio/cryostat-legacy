@@ -22,7 +22,9 @@ dependencies {
     implementation 'com.google.dagger:dagger:2.21'
     annotationProcessor 'com.google.dagger:dagger-compiler:2.21'
 
-    implementation 'org.apache.commons:commons-lang3:3.8.1+'
+    implementation 'org.apache.commons:commons-lang3:3.8.1'
+
+    implementation 'commons-codec:commons-codec:1.13'
 
     implementation 'org.apache.httpcomponents:httpclient:4.5.9'
     implementation 'org.apache.httpcomponents:httpmime:4.5.9'
