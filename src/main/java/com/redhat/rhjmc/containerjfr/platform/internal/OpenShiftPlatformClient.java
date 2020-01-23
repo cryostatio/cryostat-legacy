@@ -141,7 +141,7 @@ class OpenShiftPlatformClient implements PlatformClient {
         @Override
         public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
             String subprotocol = subProtocolProvider.get();
-            if (subprotocol == null) {
+            if (StringUtils.isBlank(subprotocol)) {
                 return CompletableFuture.completedFuture(false);
             }
             Pattern pattern =
