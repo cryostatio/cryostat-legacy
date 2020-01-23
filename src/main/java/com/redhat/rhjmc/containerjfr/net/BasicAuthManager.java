@@ -25,6 +25,7 @@ class BasicAuthManager extends AbstractAuthManager {
 
     private final FileSystem fs;
     private final Properties users;
+    private volatile boolean configLoaded = false;
 
     // TODO inject FileSystem, but this also means changing the assumed constructor signature
     // TODO salted hashes
@@ -32,11 +33,13 @@ class BasicAuthManager extends AbstractAuthManager {
         super(logger);
         this.fs = fs;
         this.users = new Properties();
-        loadConfig();
     }
 
     @Override
     public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
+        if (!configLoaded) {
+            this.loadConfig();
+        }
         String credentials = tokenProvider.get();
         Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
         Matcher matcher = credentialsPattern.matcher(credentials);
@@ -95,7 +98,7 @@ class BasicAuthManager extends AbstractAuthManager {
         }
     }
 
-    private void loadConfig() {
+    synchronized void loadConfig() {
         Path properties = fs.pathOf(System.getProperty("user.home"), USER_PROPERTIES_FILENAME);
         if (!fs.exists(properties)) {
             logger.warn(String.format("User properties file \"%s\" does not exist", properties));
@@ -111,6 +114,7 @@ class BasicAuthManager extends AbstractAuthManager {
         }
         try (InputStream s = fs.newInputStream(properties)) {
             users.load(s);
+            this.configLoaded = true;
         } catch (IOException e) {
             logger.error(e);
         }
