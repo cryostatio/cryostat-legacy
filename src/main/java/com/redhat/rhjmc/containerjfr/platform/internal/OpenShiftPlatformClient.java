@@ -153,8 +153,12 @@ class OpenShiftPlatformClient implements PlatformClient {
                 return null;
             }
             String b64 = matcher.group(1);
-            String decoded = new String(Base64.getDecoder().decode(b64)).trim();
-            return validateToken(() -> decoded);
+            try {
+                String decoded = new String(Base64.getDecoder().decode(b64)).trim();
+                return validateToken(() -> decoded);
+            } catch (IllegalArgumentException e) {
+                return CompletableFuture.completedFuture(false);
+            }
         }
     }
 }
