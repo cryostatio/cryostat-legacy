@@ -2,6 +2,7 @@ package com.redhat.rhjmc.containerjfr.net;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Objects;
@@ -62,7 +63,8 @@ class BasicAuthManager extends AbstractAuthManager {
         }
         String b64 = matcher.group(1);
         try {
-            String decoded = new String(Base64.getDecoder().decode(b64)).trim();
+            String decoded =
+                    new String(Base64.getDecoder().decode(b64), StandardCharsets.UTF_8).trim();
             return validateToken(() -> decoded);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
@@ -85,7 +87,8 @@ class BasicAuthManager extends AbstractAuthManager {
         }
         String b64 = matcher.group(1);
         try {
-            String decoded = new String(Base64.getDecoder().decode(b64)).trim();
+            String decoded =
+                    new String(Base64.getDecoder().decode(b64), StandardCharsets.UTF_8).trim();
             return validateToken(() -> decoded);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);

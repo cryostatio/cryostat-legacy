@@ -1,6 +1,7 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
@@ -154,7 +155,8 @@ class OpenShiftPlatformClient implements PlatformClient {
             }
             String b64 = matcher.group(1);
             try {
-                String decoded = new String(Base64.getDecoder().decode(b64)).trim();
+                String decoded =
+                        new String(Base64.getDecoder().decode(b64), StandardCharsets.UTF_8).trim();
                 return validateToken(() -> decoded);
             } catch (IllegalArgumentException e) {
                 return CompletableFuture.completedFuture(false);
