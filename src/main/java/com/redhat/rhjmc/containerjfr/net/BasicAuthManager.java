@@ -71,7 +71,7 @@ class BasicAuthManager extends AbstractAuthManager {
     public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
         String subprotocol = subProtocolProvider.get();
         if (subprotocol == null) {
-            return null;
+            return CompletableFuture.completedFuture(false);
         }
         Pattern pattern =
                 Pattern.compile(
@@ -79,7 +79,7 @@ class BasicAuthManager extends AbstractAuthManager {
                         Pattern.CASE_INSENSITIVE);
         Matcher matcher = pattern.matcher(subprotocol);
         if (!matcher.matches()) {
-            return null;
+            return CompletableFuture.completedFuture(false);
         }
         String b64 = matcher.group(1);
         try {

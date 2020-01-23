@@ -142,7 +142,7 @@ class OpenShiftPlatformClient implements PlatformClient {
         public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
             String subprotocol = subProtocolProvider.get();
             if (subprotocol == null) {
-                return null;
+                return CompletableFuture.completedFuture(false);
             }
             Pattern pattern =
                     Pattern.compile(
@@ -150,7 +150,7 @@ class OpenShiftPlatformClient implements PlatformClient {
                             Pattern.CASE_INSENSITIVE);
             Matcher matcher = pattern.matcher(subprotocol);
             if (!matcher.matches()) {
-                return null;
+                return CompletableFuture.completedFuture(false);
             }
             String b64 = matcher.group(1);
             try {
