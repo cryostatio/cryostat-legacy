@@ -3,6 +3,7 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -151,7 +152,9 @@ class OpenShiftPlatformClient implements PlatformClient {
             if (!matcher.matches()) {
                 return null;
             }
-            return validateToken(() -> m.group(1));
+            String b64 = matcher.group(1);
+            String decoded = new String(Base64.getDecoder().decode(b64)).trim();
+            return validateToken(() -> decoded);
         }
     }
 }
