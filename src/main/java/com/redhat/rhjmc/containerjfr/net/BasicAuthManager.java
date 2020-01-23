@@ -2,7 +2,6 @@ package com.redhat.rhjmc.containerjfr.net;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Objects;
@@ -99,17 +98,15 @@ class BasicAuthManager extends AbstractAuthManager {
             logger.warn(String.format("User properties file \"%s\" does not exist", properties));
             return;
         }
-        // TODO abstract isRegularFile into FileSystem
-        if (!Files.isRegularFile(properties)) {
+        if (!fs.isRegularFile(properties)) {
             logger.warn(String.format("User properties path \"%s\" is not a file", properties));
             return;
         }
-        // TODO abstract isReadable into FileSystem
-        if (!Files.isReadable(properties)) {
+        if (!fs.isReadable(properties)) {
             logger.warn(String.format("User properties file \"%s\" is not readable", properties));
             return;
         }
-        try (InputStream s = Files.newInputStream(properties)) {
+        try (InputStream s = fs.newInputStream(properties)) {
             users.load(s);
         } catch (IOException e) {
             logger.error(e);
