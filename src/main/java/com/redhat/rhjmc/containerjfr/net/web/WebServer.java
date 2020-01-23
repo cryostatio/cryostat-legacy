@@ -587,7 +587,7 @@ public class WebServer implements ConnectionListener {
     }
 
     private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
-        return auth.validateHttpHeader(() -> req.getHeader("Authorization"));
+        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
     }
 
     private <T> AsyncResult<T> makeAsyncResult(T result) {
