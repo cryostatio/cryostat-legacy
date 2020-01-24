@@ -69,11 +69,13 @@ and accessible using the same mthods. Some client shell demo scripts are also
 available in the `demos` directory. These can be used with batch mode, ex.
 `sh run.sh "$(more demos/print_help)"`.
 
-There are seven environment variables that the client checks during its
-runtime: `CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
+There are six network-related environment variables that the client checks
+during its runtime:
+`CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
 `CONTAINER_JFR_EXT_WEB_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
 `CONTAINER_JFR_LISTEN_PORT`, `CONTAINER_JFR_EXT_LISTEN_PORT`, and
-`CONTAINER_JFR_LOG_LEVEL`. The former three are used by the embedded webserver
+`CONTAINER_JFR_LOG_LEVEL`.
+The former three are used by the embedded webserver
 for controlling the port and hostname used and reported when making recordings
 available for export (download). The latter three are used when running the
 client in daemon/socket mode and controls the port that the client listens for
@@ -86,9 +88,17 @@ script, or if this script is not used, by using the `-e` environment variable
 flag in the `docker` or `podman` command invocation. If the `EXT` variables are
 unspecified then they default to the value of their non-EXT counterparts. If
 `LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
-`CONTAINER_JFR_LOG_LEVEL` is used to control the level of messages which will be
-printed by the logging facility. Acceptable values are `OFF`, `ERROR`, `WARN`,
-`INFO`, `DEBUG`, `TRACE`, and `ALL`.
+
+The environment variable `CONTAINER_JFR_LOG_LEVEL` is used to control the level
+of messages which will be printed by the logging facility. Acceptable values are
+`OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, and `ALL`.
+
+The environment variable `CONTAINER_JFR_AUTH_MANAGER` is used to configure which
+authentication/authorization manager is used for validating user accesses. See
+the `USER AUTHENTICATION / AUTHORIZATION` section for more details. The value
+of this variable should be set to the fully-qualified class name of the
+auth manager implementation to use, ex.
+`com.redhat.rhjmc.containerjfr.net.NoopAuthManager`.
 
 The embedded webserver can be optionally configured to enable low memory
 pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty
@@ -190,10 +200,15 @@ download and report requests.
 The token is never stored in any form, only kept in-memory long enough to
 process the external token validation.
 
+The auth manager can be configured by environment variable. See the `RUN`
+section for more detail. If the environment variable is not set, or is set to an
+invalid value, then container-jfr will attempt to automatically select an
+appropriate auth manager based on the detected deployment platform.
+
 If the detected deployment platform is OpenShift then the selected auth manager
 will pass through the user's provided token to the OpenShift API for
 validation on each request, rejecting the request if the validation fails.
 
-If no appropriate auth manager can be automatically determined then the
-fallback is the NoopAuthManager, which does no external validation calls and
-simply accepts any provided token.
+If no appropriate auth manager is configured or can be automatically determined
+then the fallback is the NoopAuthManager, which does no external validation
+calls and simply accepts any provided token.

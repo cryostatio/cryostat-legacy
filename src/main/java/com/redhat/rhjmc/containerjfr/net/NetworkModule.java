@@ -1,5 +1,6 @@
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.lang.reflect.Constructor;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -31,6 +32,9 @@ import org.apache.http.ssl.SSLContextBuilder;
 
 @Module(includes = {ReportsModule.class})
 public abstract class NetworkModule {
+
+    static final String AUTH_MANAGER_ENV_VAR = "CONTAINER_JFR_AUTH_MANAGER";
+
     @Provides
     @Singleton
     static HttpServer provideHttpServer(
@@ -98,10 +102,25 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
+    @SuppressWarnings("unchecked")
     static AuthManager provideAuthManager(
             ExecutionMode mode,
+            Environment env,
             @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> webSocketAuth,
             Logger logger) {
+        try {
+            if (env.hasEnv(AUTH_MANAGER_ENV_VAR)) {
+                String authClass = env.getEnv(AUTH_MANAGER_ENV_VAR);
+                logger.info(String.format("Selecting configured AuthManager \"%s\"", authClass));
+                Class<AuthManager> klazz =
+                        (Class<AuthManager>) Class.forName(authClass).asSubclass(AuthManager.class);
+                Constructor<AuthManager> cons = klazz.getDeclaredConstructor(Logger.class);
+                return cons.newInstance(logger);
+            }
+        } catch (Exception e) {
+            logger.error(e);
+        }
+        logger.info("Selecting platform default AuthManager");
         switch (mode) {
             case BATCH:
             case INTERACTIVE:
