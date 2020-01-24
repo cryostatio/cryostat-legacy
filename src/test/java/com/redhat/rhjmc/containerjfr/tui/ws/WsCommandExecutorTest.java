@@ -328,7 +328,7 @@ class WsCommandExecutorTest {
     }
 
     @Test
-    void shouldSkipNullLines() throws Exception {
+    void shouldRespondToNullLines() throws Exception {
         when(cr.readLine())
                 .thenAnswer(
                         new Answer<String>() {
@@ -342,12 +342,12 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         verifyZeroInteractions(commandRegistry);
-        verifyZeroInteractions(server);
+        verify(server).flush(Mockito.any(MalformedMessageResponseMessage.class));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"", "\t", "  ", "\n", "null"})
-    void shouldSkipBlankLines(String s) throws Exception {
+    void shouldRespondToBlankLines(String s) throws Exception {
         when(cr.readLine())
                 .thenAnswer(
                         new Answer<String>() {
@@ -361,7 +361,7 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         verifyZeroInteractions(commandRegistry);
-        verifyZeroInteractions(server);
+        verify(server).flush(Mockito.any(MalformedMessageResponseMessage.class));
     }
 
     @Test

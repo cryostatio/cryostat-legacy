@@ -45,10 +45,12 @@ class WsCommandExecutor implements CommandExecutor {
                 try {
                     String rawMsg = cr.readLine();
                     if (StringUtils.isBlank(rawMsg)) {
+                        flush(new MalformedMessageResponseMessage(rawMsg));
                         continue;
                     }
                     CommandMessage commandMessage = gson.fromJson(rawMsg, CommandMessage.class);
                     if (commandMessage == null) {
+                        flush(new MalformedMessageResponseMessage(rawMsg));
                         continue;
                     }
                     if (commandMessage.args == null) {
