@@ -380,6 +380,24 @@ class WsCommandExecutorTest {
     }
 
     @Test
+    void shouldSkipTextWordNull() throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return "null";
+                            }
+                        });
+
+        executor.run(null);
+
+        verifyZeroInteractions(commandRegistry);
+        verifyZeroInteractions(server);
+    }
+
+    @Test
     void shouldInterpretMissingArgsAsEmpty() throws Exception {
         when(cr.readLine())
                 .thenAnswer(

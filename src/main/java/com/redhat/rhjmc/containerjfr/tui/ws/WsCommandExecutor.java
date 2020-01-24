@@ -12,6 +12,7 @@ import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
+import org.apache.commons.lang3.StringUtils;
 
 class WsCommandExecutor implements CommandExecutor {
 
@@ -43,10 +44,13 @@ class WsCommandExecutor implements CommandExecutor {
             while (running) {
                 try {
                     String rawMsg = cr.readLine();
-                    if (rawMsg == null) {
+                    if (StringUtils.isBlank(rawMsg)) {
                         continue;
                     }
                     CommandMessage commandMessage = gson.fromJson(rawMsg, CommandMessage.class);
+                    if (commandMessage == null) {
+                        continue;
+                    }
                     if (commandMessage.args == null) {
                         commandMessage.args = Collections.emptyList();
                     }
