@@ -344,6 +344,42 @@ class WsCommandExecutorTest {
     }
 
     @Test
+    void shouldSkipEmptyLines() throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return "";
+                            }
+                        });
+
+        executor.run(null);
+
+        verifyZeroInteractions(commandRegistry);
+        verifyZeroInteractions(server);
+    }
+
+    @Test
+    void shouldSkipBlankLines() throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return "\t ";
+                            }
+                        });
+
+        executor.run(null);
+
+        verifyZeroInteractions(commandRegistry);
+        verifyZeroInteractions(server);
+    }
+
+    @Test
     void shouldInterpretMissingArgsAsEmpty() throws Exception {
         when(cr.readLine())
                 .thenAnswer(
