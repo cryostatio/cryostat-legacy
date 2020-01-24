@@ -402,7 +402,8 @@ class WebServerTest {
 
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
+        when(authManager.validateHttpHeader(any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
@@ -528,7 +529,8 @@ class WebServerTest {
 
     @Test
     void shouldHandleRecordingDownloadRequest() throws Exception {
-        when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
+        when(authManager.validateHttpHeader(any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
@@ -564,7 +566,8 @@ class WebServerTest {
 
     @Test
     void shouldHandleReportPageRequest() throws Exception {
-        when(authManager.validateToken(any())).thenReturn(CompletableFuture.completedFuture(true));
+        when(authManager.validateHttpHeader(any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);

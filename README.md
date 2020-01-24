@@ -98,7 +98,7 @@ authentication/authorization manager is used for validating user accesses. See
 the `USER AUTHENTICATION / AUTHORIZATION` section for more details. The value
 of this variable should be set to the fully-qualified class name of the
 auth manager implementation to use, ex.
-`com.redhat.rhjmc.containerjfr.net.NoopAuthManager`.
+`com.redhat.rhjmc.containerjfr.net.BasicAuthManager`.
 
 The embedded webserver can be optionally configured to enable low memory
 pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty
@@ -188,27 +188,44 @@ self-signed or otherwise untrusted, set the environment variable
 
 ## USER AUTHENTICATION / AUTHORIZATION
 
-Using the platform detection mechanism described previously, ContainerJFR will
-attempt to select an appropriate authz manager to match the deployment
-platform. In all scenarios, the presence of an auth manager (other than
-NoopAuthManager) causes ContainerJFR to expect credentials on command channel
-WebSocket connection via a
-`Sec-WebSocket-Protocol: base64url.bearer.authorization.containerjfr.FOO`
-header , as well as with an `Authorization: Bearer TOKEN` header on recording
-download and report requests.
+ContainerJFR has multiple authz manager implementations for handling user
+authentication and authorization against various platforms and mechanisms. This
+can be controlled using an environment variable (see the `RUN` section above),
+or automatically using platform detection.
 
+In all scenarios, the presence of an auth manager (other than
+NoopAuthManager) causes ContainerJFR to expect a token or credentials on command
+channel WebSocket messages via a `Sec-WebSocket-Protocol` header , as well as
+an `Authorization` header on recording download and report requests.
+
+The OpenShiftPlatformClient.OpenShiftAuthManager uses token authentication.
+These tokens are passed through to the OpenShift API for authz and this result
+determines whether ContainerJFR accepts the request.
+
+The BasicAuthManager uses basic credential authentication configured with a
+standard Java properties file at `$HOME/container-jfr-users.properties`.  The
+credentials stored in the Java properties file are the user name and a SHA-256
+sum hex of the user's password. The property file contents should look like:
+```
+user1=abc123
+user2=def987
+```
+Where `abc123` and `def987` are substituted for the SHA-256 sum hexes of the
+desired user passwords. These can be obtained by ex.
+`echo -n PASS | sha256sum | cut -d' ' -f1'`.
+
+Token-based auth managers expect an HTTP `Authorization: Bearer TOKEN` header
+and a
+`Sec-WebSocket-Protocol: base64url.bearer.authorization.containerjfr.${base64(TOKEN)}`
+WebSocket SubProtocol header.
 The token is never stored in any form, only kept in-memory long enough to
 process the external token validation.
 
-The auth manager can be configured by environment variable. See the `RUN`
-section for more detail. If the environment variable is not set, or is set to an
-invalid value, then container-jfr will attempt to automatically select an
-appropriate auth manager based on the detected deployment platform.
-
-If the detected deployment platform is OpenShift then the selected auth manager
-will pass through the user's provided token to the OpenShift API for
-validation on each request, rejecting the request if the validation fails.
+Basic credentials-based auth managers expect an HTTP
+`Authorization: Basic ${base64(user:pass)}` header and a
+`Sec-WebSocket-Protocol: basic.authorization.containerjfr.${base64(user:pass)}`
+WebSocket SubProtocol header.
 
 If no appropriate auth manager is configured or can be automatically determined
 then the fallback is the NoopAuthManager, which does no external validation
-calls and simply accepts any provided token.
+calls and simply accepts any provided token or credentials.

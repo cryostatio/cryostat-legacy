@@ -53,7 +53,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.StringUtils;
 
 public class WebServer implements ConnectionListener {
 
@@ -402,8 +401,6 @@ public class WebServer implements ConnectionListener {
         boolean authd = false;
         try {
             authd = validateRequestAuthorization(ctx.request()).get();
-        } catch (HttpStatusException e) {
-            throw e;
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
@@ -590,19 +587,7 @@ public class WebServer implements ConnectionListener {
     }
 
     private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
-        return auth.validateToken(
-                () -> {
-                    String authorization = req.getHeader("Authorization");
-                    Pattern basicPattern = Pattern.compile("Bearer (.*)");
-                    if (StringUtils.isBlank(authorization)) {
-                        throw new HttpStatusException(401);
-                    }
-                    Matcher matcher = basicPattern.matcher(authorization);
-                    if (!matcher.matches()) {
-                        throw new HttpStatusException(401);
-                    }
-                    return matcher.group(1);
-                });
+        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
     }
 
     private <T> AsyncResult<T> makeAsyncResult(T result) {

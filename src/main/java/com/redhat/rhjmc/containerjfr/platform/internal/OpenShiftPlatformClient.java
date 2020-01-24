@@ -1,16 +1,19 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Base64;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -92,8 +95,7 @@ class OpenShiftPlatformClient implements PlatformClient {
         }
 
         @Override
-        public Future<Boolean> validateToken(Supplier<String> tokenProvider)
-                throws TimeoutException {
+        public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
             String token = tokenProvider.get();
             if (StringUtils.isBlank(token)) {
                 return CompletableFuture.completedFuture(false);
@@ -121,6 +123,44 @@ class OpenShiftPlatformClient implements PlatformClient {
                                 return false;
                             })
                     .orTimeout(15, TimeUnit.SECONDS);
+        }
+
+        @Override
+        public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
+            String authorization = headerProvider.get();
+            if (StringUtils.isBlank(authorization)) {
+                return CompletableFuture.completedFuture(false);
+            }
+            Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
+            Matcher matcher = bearerPattern.matcher(authorization);
+            if (!matcher.matches()) {
+                return CompletableFuture.completedFuture(false);
+            }
+            return validateToken(() -> matcher.group(1));
+        }
+
+        @Override
+        public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
+            String subprotocol = subProtocolProvider.get();
+            if (StringUtils.isBlank(subprotocol)) {
+                return CompletableFuture.completedFuture(false);
+            }
+            Pattern pattern =
+                    Pattern.compile(
+                            "base64url\\.bearer\\.authorization\\.containerjfr\\.([\\S]+)",
+                            Pattern.CASE_INSENSITIVE);
+            Matcher matcher = pattern.matcher(subprotocol);
+            if (!matcher.matches()) {
+                return CompletableFuture.completedFuture(false);
+            }
+            String b64 = matcher.group(1);
+            try {
+                String decoded =
+                        new String(Base64.getDecoder().decode(b64), StandardCharsets.UTF_8).trim();
+                return validateToken(() -> decoded);
+            } catch (IllegalArgumentException e) {
+                return CompletableFuture.completedFuture(false);
+            }
         }
     }
 }
