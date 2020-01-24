@@ -33,6 +33,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -343,51 +345,16 @@ class WsCommandExecutorTest {
         verifyZeroInteractions(server);
     }
 
-    @Test
-    void shouldSkipEmptyLines() throws Exception {
+    @ParameterizedTest
+    @ValueSource(strings = {"", "\t", "  ", "\n", "null"})
+    void shouldSkipBlankLines(String s) throws Exception {
         when(cr.readLine())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 executor.shutdown();
-                                return "";
-                            }
-                        });
-
-        executor.run(null);
-
-        verifyZeroInteractions(commandRegistry);
-        verifyZeroInteractions(server);
-    }
-
-    @Test
-    void shouldSkipBlankLines() throws Exception {
-        when(cr.readLine())
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock invocation) throws Throwable {
-                                executor.shutdown();
-                                return "\t ";
-                            }
-                        });
-
-        executor.run(null);
-
-        verifyZeroInteractions(commandRegistry);
-        verifyZeroInteractions(server);
-    }
-
-    @Test
-    void shouldSkipTextWordNull() throws Exception {
-        when(cr.readLine())
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock invocation) throws Throwable {
-                                executor.shutdown();
-                                return "null";
+                                return s;
                             }
                         });
 
