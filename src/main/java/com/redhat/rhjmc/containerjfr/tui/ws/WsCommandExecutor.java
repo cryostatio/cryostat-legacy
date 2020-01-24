@@ -56,7 +56,7 @@ class WsCommandExecutor implements CommandExecutor {
                     }
                     String commandName = commandMessage.command;
                     String[] args = commandMessage.args.toArray(new String[0]);
-                    if (commandName == null
+                    if (StringUtils.isBlank(commandName)
                             || !registry.get().getRegisteredCommandNames().contains(commandName)) {
                         flush(new InvalidCommandResponseMessage(commandName));
                         continue;
