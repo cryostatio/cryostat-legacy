@@ -1,7 +1,7 @@
 package com.redhat.rhjmc.containerjfr.net;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
@@ -111,8 +111,8 @@ class BasicAuthManager extends AbstractAuthManager {
             logger.warn(String.format("User properties file \"%s\" is not readable", properties));
             return;
         }
-        try (InputStream s = fs.newInputStream(properties)) {
-            users.load(s);
+        try (Reader br = fs.readFile(properties)) {
+            users.load(br);
             this.configLoaded = true;
         } catch (IOException e) {
             logger.error(e);
