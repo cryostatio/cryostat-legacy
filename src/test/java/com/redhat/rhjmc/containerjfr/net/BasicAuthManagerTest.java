@@ -172,6 +172,37 @@ class BasicAuthManagerTest {
             Assertions.assertFalse(mgr.validateToken(() -> "user2:pass").get());
             Mockito.verifyNoMoreInteractions(logger);
         }
+
+        @Test
+        void shouldIgnoreMalformedPropertiesLines() throws Exception {
+            Path mockPath = Mockito.mock(Path.class);
+            Mockito.when(
+                            fs.pathOf(
+                                    System.getProperty("user.home"),
+                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
+                    .thenReturn(mockPath);
+            Mockito.when(fs.exists(mockPath)).thenReturn(true);
+            Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
+            Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
+            String creds1 = "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1";
+            // malformed intentionally, '+' is not a valid key-value separator
+            String creds2 = "foo+fcde2b2edba56bf408601fb721fe9b5c338d10ee429ea04fae5511b68fbf8fb9";
+            String creds3 =
+                    "admin=8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+            InputStream props =
+                    new ByteArrayInputStream(
+                            String.join("\n", creds1, creds2, creds3)
+                                    .getBytes(StandardCharsets.UTF_8));
+            Mockito.when(fs.newInputStream(mockPath)).thenReturn(props);
+            Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
+            Assertions.assertFalse(mgr.validateToken(() -> "foo:bar").get());
+            Assertions.assertTrue(mgr.validateToken(() -> "admin:admin").get());
+            Mockito.verifyNoMoreInteractions(logger);
+
+            mgr.loadConfig();
+
+            Mockito.verifyZeroInteractions(logger);
+        }
     }
 
     @Nested
