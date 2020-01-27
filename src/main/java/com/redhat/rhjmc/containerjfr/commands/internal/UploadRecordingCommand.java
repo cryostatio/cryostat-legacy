@@ -1,8 +1,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Map;
@@ -118,7 +116,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
     Optional<InputStream> getBestRecordingForName(String recordingName)
-            throws FlightRecorderException, JMXConnectionException, FileNotFoundException {
+            throws FlightRecorderException, JMXConnectionException, IOException {
         if (super.isAvailable()) {
             Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(recordingName);
             if (currentRecording.isPresent()) {
@@ -126,9 +124,9 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             }
         }
 
-        File archivedRecording = recordingsPath.resolve(recordingName).toFile();
-        if (archivedRecording.isFile()) {
-            return Optional.of(new FileInputStream(archivedRecording));
+        Path archivedRecording = recordingsPath.resolve(recordingName);
+        if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
+            return Optional.of(fs.newInputStream(archivedRecording));
         }
 
         return Optional.empty();
