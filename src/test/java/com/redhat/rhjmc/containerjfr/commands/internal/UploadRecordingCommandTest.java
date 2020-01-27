@@ -1,23 +1,28 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import javax.inject.Provider;
-
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.internal.UploadRecordingCommand.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
+import org.apache.http.HttpEntity;
+import org.apache.http.StatusLine;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -29,6 +34,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -41,13 +47,13 @@ class UploadRecordingCommandTest {
     @Mock ClientWriter cw;
     @Mock FileSystem fs;
     @Mock Path path;
-    @Mock Provider<CloseableHttpClient> httpProvider;
+    @Mock CloseableHttpClient httpClient;
     @Mock JFRConnection conn;
     UploadRecordingCommand cmd;
 
     @BeforeEach
     void setup() {
-        this.cmd = new UploadRecordingCommand(cw, fs, path, httpProvider);
+        this.cmd = new UploadRecordingCommand(cw, fs, path, () -> httpClient);
     }
 
     @Test
@@ -188,6 +194,38 @@ class UploadRecordingCommandTest {
                     RecordingNotFoundException.class,
                     () -> cmd.execute(new String[] {rec.getName(), UPLOAD_URL}));
         }
+
+        @Test
+        void shouldDoUpload() throws Exception {
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(conn.getService()).thenReturn(svc);
+            Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
+            Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+
+            CloseableHttpResponse httpResp = Mockito.mock(CloseableHttpResponse.class);
+            HttpEntity entity = Mockito.mock(HttpEntity.class);
+            StatusLine status = Mockito.mock(StatusLine.class);
+            Mockito.when(httpClient.execute(Mockito.any())).thenReturn(httpResp);
+            Mockito.when(httpResp.getEntity()).thenReturn(entity);
+            Mockito.when(httpResp.getStatusLine()).thenReturn(status);
+            Mockito.when(status.toString()).thenReturn("status_line");
+            Mockito.when(entity.getContent())
+                    .thenReturn(new ByteArrayInputStream("entity_response".getBytes()));
+
+            cmd.connectionChanged(conn);
+            cmd.execute(new String[] {"foo", UPLOAD_URL});
+
+            ArgumentCaptor<HttpUriRequest> captor = ArgumentCaptor.forClass(HttpUriRequest.class);
+            Mockito.verify(httpClient).execute(captor.capture());
+            MatcherAssert.assertThat(captor.getValue(), Matchers.instanceOf(HttpPost.class));
+            HttpPost post = (HttpPost) captor.getValue();
+            MatcherAssert.assertThat(post.getURI().toString(), Matchers.equalTo(UPLOAD_URL));
+            MatcherAssert.assertThat(post.getEntity(), Matchers.notNullValue());
+            Mockito.verify(cw).println("[status_line] entity_response");
+        }
     }
 
     @Nested
@@ -204,6 +242,47 @@ class UploadRecordingCommandTest {
             cmd.connectionChanged(conn);
             Output<?> out = cmd.serializableExecute(new String[] {rec.getName(), UPLOAD_URL});
             MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
+        }
+
+        @Test
+        void shouldDoUpload() throws Exception {
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(conn.getService()).thenReturn(svc);
+            Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
+            Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+
+            CloseableHttpResponse httpResp = Mockito.mock(CloseableHttpResponse.class);
+            HttpEntity entity = Mockito.mock(HttpEntity.class);
+            StatusLine status = Mockito.mock(StatusLine.class);
+            Mockito.when(httpClient.execute(Mockito.any())).thenReturn(httpResp);
+            Mockito.when(httpResp.getEntity()).thenReturn(entity);
+            Mockito.when(httpResp.getStatusLine()).thenReturn(status);
+            Mockito.when(status.toString()).thenReturn("status_line");
+            Mockito.when(entity.getContent())
+                    .thenReturn(new ByteArrayInputStream("entity_response".getBytes()));
+
+            cmd.connectionChanged(conn);
+            Output<?> out = cmd.serializableExecute(new String[] {"foo", UPLOAD_URL});
+
+            MatcherAssert.assertThat(out, Matchers.instanceOf(MapOutput.class));
+            MatcherAssert.assertThat(
+                    out.getPayload().toString(),
+                    Matchers.allOf(
+                            Matchers.startsWith("{"),
+                            Matchers.endsWith("}"),
+                            Matchers.containsString("body=entity_response"),
+                            Matchers.containsString("status=status_line"),
+                            Matchers.containsString(", ")));
+
+            ArgumentCaptor<HttpUriRequest> captor = ArgumentCaptor.forClass(HttpUriRequest.class);
+            Mockito.verify(httpClient).execute(captor.capture());
+            MatcherAssert.assertThat(captor.getValue(), Matchers.instanceOf(HttpPost.class));
+            HttpPost post = (HttpPost) captor.getValue();
+            MatcherAssert.assertThat(post.getURI().toString(), Matchers.equalTo(UPLOAD_URL));
+            MatcherAssert.assertThat(post.getEntity(), Matchers.notNullValue());
         }
     }
 }
