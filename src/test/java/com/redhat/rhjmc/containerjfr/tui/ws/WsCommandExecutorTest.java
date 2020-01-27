@@ -346,7 +346,7 @@ class WsCommandExecutorTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"", "\t", "  ", "\n", "null"})
+    @ValueSource(strings = {"", "\t", "  ", "\n", "null", " null ", "null\n", "\r\n"})
     void shouldRespondToBlankLines(String s) throws Exception {
         when(cr.readLine())
                 .thenAnswer(
@@ -362,6 +362,42 @@ class WsCommandExecutorTest {
 
         verifyZeroInteractions(commandRegistry);
         verify(server).flush(Mockito.any(MalformedMessageResponseMessage.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "foo",
+                "hi",
+                "\0",
+                "nil",
+                "0",
+                "-1",
+                "{command:foo",
+                "{command;foo}",
+                "command:foo"
+            })
+    void shouldRespondToMalformedJson(String s) throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return s;
+                            }
+                        });
+
+        executor.run(null);
+
+        verifyZeroInteractions(commandRegistry);
+
+        ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor =
+                ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
+        verify(server).flush(messageCaptor.capture());
+        CommandExceptionResponseMessage response = messageCaptor.getValue();
+        MatcherAssert.assertThat(response.commandName, Matchers.equalTo(s));
+        MatcherAssert.assertThat(response.status, Matchers.equalTo(-2));
     }
 
     @Test
