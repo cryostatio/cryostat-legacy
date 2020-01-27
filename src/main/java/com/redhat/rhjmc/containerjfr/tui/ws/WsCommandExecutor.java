@@ -42,8 +42,8 @@ class WsCommandExecutor implements CommandExecutor {
         readingThread = Thread.currentThread();
         try (cr) {
             while (running) {
+                String rawMsg = cr.readLine();
                 try {
-                    String rawMsg = cr.readLine();
                     if (StringUtils.isBlank(rawMsg)) {
                         flush(new MalformedMessageResponseMessage(rawMsg));
                         continue;
@@ -94,7 +94,7 @@ class WsCommandExecutor implements CommandExecutor {
                         flush(new CommandExceptionResponseMessage(commandName, "internal error"));
                     }
                 } catch (JsonSyntaxException jse) {
-                    reportException(null, jse);
+                    reportException(rawMsg, jse);
                 }
             }
         } catch (IOException e) {
