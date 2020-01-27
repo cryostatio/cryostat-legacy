@@ -28,7 +28,6 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -92,7 +91,6 @@ class UploadRecordingCommandTest {
         Assertions.assertTrue(cmd.validate(new String[] {recordingName, UPLOAD_URL}));
     }
 
-    @Disabled("Bug #111")
     @ParameterizedTest
     @ValueSource(strings = {".", "some recording", ""})
     void shouldNotValidateInvalidRecordingNames(String recordingName) {

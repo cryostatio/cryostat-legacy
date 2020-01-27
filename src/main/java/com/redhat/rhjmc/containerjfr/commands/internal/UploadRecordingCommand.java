@@ -102,7 +102,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             return false;
         }
         if (!validateRecordingName(args[0])) {
-            cw.println("%s is an invalid recording name");
+            cw.println(String.format("%s is an invalid recording name", args[0]));
             return false;
         }
         return true;
