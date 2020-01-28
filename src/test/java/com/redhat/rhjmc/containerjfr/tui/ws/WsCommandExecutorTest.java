@@ -33,6 +33,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -326,7 +328,7 @@ class WsCommandExecutorTest {
     }
 
     @Test
-    void shouldSkipNullLines() throws Exception {
+    void shouldRespondToNullLines() throws Exception {
         when(cr.readLine())
                 .thenAnswer(
                         new Answer<String>() {
@@ -340,7 +342,62 @@ class WsCommandExecutorTest {
         executor.run(null);
 
         verifyZeroInteractions(commandRegistry);
-        verifyZeroInteractions(server);
+        verify(server).flush(Mockito.any(MalformedMessageResponseMessage.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "\t", "  ", "\n", "null", " null ", "null\n", "\r\n"})
+    void shouldRespondToBlankLines(String s) throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return s;
+                            }
+                        });
+
+        executor.run(null);
+
+        verifyZeroInteractions(commandRegistry);
+        verify(server).flush(Mockito.any(MalformedMessageResponseMessage.class));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "foo",
+                "hi",
+                "\0",
+                "nil",
+                "0",
+                "-1",
+                "{command:foo",
+                "{command;foo}",
+                "command:foo"
+            })
+    void shouldRespondToMalformedJson(String s) throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return s;
+                            }
+                        });
+
+        executor.run(null);
+
+        verifyZeroInteractions(commandRegistry);
+
+        ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor =
+                ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
+        verify(server).flush(messageCaptor.capture());
+        CommandExceptionResponseMessage response = messageCaptor.getValue();
+        MatcherAssert.assertThat(response.commandName, Matchers.equalTo(s));
+        MatcherAssert.assertThat(response.status, Matchers.equalTo(-2));
     }
 
     @Test

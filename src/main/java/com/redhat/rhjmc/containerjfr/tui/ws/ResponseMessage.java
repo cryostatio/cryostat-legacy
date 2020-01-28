@@ -1,6 +1,7 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @SuppressFBWarnings(
         value = "URF_UNREAD_FIELD",
@@ -15,5 +16,10 @@ abstract class ResponseMessage<T> extends WsMessage {
         this.commandName = commandName;
         this.status = status;
         this.payload = payload;
+    }
+
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this).append(status).append(commandName).append(payload).build();
     }
 }

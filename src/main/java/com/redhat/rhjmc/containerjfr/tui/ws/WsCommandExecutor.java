@@ -12,6 +12,7 @@ import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
+import org.apache.commons.lang3.StringUtils;
 
 class WsCommandExecutor implements CommandExecutor {
 
@@ -41,18 +42,23 @@ class WsCommandExecutor implements CommandExecutor {
         readingThread = Thread.currentThread();
         try (cr) {
             while (running) {
+                String rawMsg = cr.readLine();
                 try {
-                    String rawMsg = cr.readLine();
-                    if (rawMsg == null) {
+                    if (StringUtils.isBlank(rawMsg)) {
+                        flush(new MalformedMessageResponseMessage(rawMsg));
                         continue;
                     }
                     CommandMessage commandMessage = gson.fromJson(rawMsg, CommandMessage.class);
+                    if (commandMessage == null) {
+                        flush(new MalformedMessageResponseMessage(rawMsg));
+                        continue;
+                    }
                     if (commandMessage.args == null) {
                         commandMessage.args = Collections.emptyList();
                     }
                     String commandName = commandMessage.command;
                     String[] args = commandMessage.args.toArray(new String[0]);
-                    if (commandName == null
+                    if (StringUtils.isBlank(commandName)
                             || !registry.get().getRegisteredCommandNames().contains(commandName)) {
                         flush(new InvalidCommandResponseMessage(commandName));
                         continue;
@@ -88,7 +94,7 @@ class WsCommandExecutor implements CommandExecutor {
                         flush(new CommandExceptionResponseMessage(commandName, "internal error"));
                     }
                 } catch (JsonSyntaxException jse) {
-                    reportException(null, jse);
+                    reportException(rawMsg, jse);
                 }
             }
         } catch (IOException e) {
