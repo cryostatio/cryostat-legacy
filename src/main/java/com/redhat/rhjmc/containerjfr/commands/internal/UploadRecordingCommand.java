@@ -1,8 +1,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
+import java.io.BufferedInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Map;
@@ -104,7 +103,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             return false;
         }
         if (!validateRecordingName(args[0])) {
-            cw.println("%s is an invalid recording name");
+            cw.println(String.format("%s is an invalid recording name", args[0]));
             return false;
         }
         return true;
@@ -118,17 +117,17 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
     Optional<InputStream> getBestRecordingForName(String recordingName)
-            throws FlightRecorderException, JMXConnectionException, FileNotFoundException {
+            throws FlightRecorderException, JMXConnectionException, IOException {
         if (super.isAvailable()) {
             Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(recordingName);
             if (currentRecording.isPresent()) {
-                return Optional.of(getService().openStream(currentRecording.get(), true));
+                return Optional.of(getService().openStream(currentRecording.get(), false));
             }
         }
 
-        File archivedRecording = recordingsPath.resolve(recordingName).toFile();
-        if (archivedRecording.isFile()) {
-            return Optional.of(new FileInputStream(archivedRecording));
+        Path archivedRecording = recordingsPath.resolve(recordingName);
+        if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
+            return Optional.of(new BufferedInputStream(fs.newInputStream(archivedRecording)));
         }
 
         return Optional.empty();
