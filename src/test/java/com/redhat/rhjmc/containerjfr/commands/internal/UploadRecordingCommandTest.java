@@ -116,7 +116,7 @@ class UploadRecordingCommandTest {
 
             Assertions.assertTrue(res.isPresent());
             MatcherAssert.assertThat(res.get(), Matchers.sameInstance(stream));
-            Mockito.verify(svc).openStream(rec, true);
+            Mockito.verify(svc).openStream(rec, false);
         }
 
         @Test

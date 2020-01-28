@@ -120,7 +120,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         if (super.isAvailable()) {
             Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(recordingName);
             if (currentRecording.isPresent()) {
-                return Optional.of(getService().openStream(currentRecording.get(), true));
+                return Optional.of(getService().openStream(currentRecording.get(), false));
             }
         }
 
