@@ -1,5 +1,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -131,7 +132,7 @@ class UploadRecordingCommandTest {
             Optional<InputStream> res = cmd.getBestRecordingForName("foo");
 
             Assertions.assertTrue(res.isPresent());
-            MatcherAssert.assertThat(res.get(), Matchers.sameInstance(stream));
+            MatcherAssert.assertThat(res.get(), Matchers.instanceOf(BufferedInputStream.class));
         }
 
         @Test
@@ -151,7 +152,7 @@ class UploadRecordingCommandTest {
             Optional<InputStream> res = cmd.getBestRecordingForName("foo");
 
             Assertions.assertTrue(res.isPresent());
-            MatcherAssert.assertThat(res.get(), Matchers.sameInstance(stream));
+            MatcherAssert.assertThat(res.get(), Matchers.instanceOf(BufferedInputStream.class));
         }
 
         @Test

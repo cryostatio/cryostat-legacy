@@ -1,5 +1,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -126,7 +127,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         Path archivedRecording = recordingsPath.resolve(recordingName);
         if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
-            return Optional.of(fs.newInputStream(archivedRecording));
+            return Optional.of(new BufferedInputStream(fs.newInputStream(archivedRecording)));
         }
 
         return Optional.empty();
