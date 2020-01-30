@@ -5,6 +5,7 @@ import javax.inject.Singleton;
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -48,10 +49,10 @@ public class WsModule {
     @Provides
     @Singleton
     static MessagingServer provideWebSocketMessagingServer(
-            HttpServer server, AuthManager authManager, Logger logger, Gson gson) {
+            HttpServer server, Environment env, AuthManager authManager, Logger logger, Gson gson) {
         try {
             MessagingServer messagingServer =
-                    new MessagingServer(server, authManager, logger, gson);
+                    new MessagingServer(server, env, authManager, logger, gson);
             messagingServer.start();
             return messagingServer;
         } catch (Exception e) {
