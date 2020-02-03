@@ -18,7 +18,8 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
 
     private final ServerWebSocket sws;
-    private volatile Thread readingThread;
+    private final Object threadLock = new Object();
+    private Thread readingThread;
 
     WsClientReaderWriter(Logger logger, Gson gson, ServerWebSocket sws) {
         this.logger = logger;
@@ -35,8 +36,10 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
     @Override
     public void close() {
         inQ.clear();
-        if (readingThread != null) {
-            readingThread.interrupt();
+        synchronized(threadLock) {
+            if (readingThread != null) {
+                readingThread.interrupt();
+            }
         }
     }
 
@@ -58,12 +61,16 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
     @Override
     public String readLine() {
         try {
-            readingThread = Thread.currentThread();
+            synchronized(threadLock) {
+                readingThread = Thread.currentThread();
+            }
             return inQ.take();
         } catch (InterruptedException e) {
             return null;
         } finally {
-            readingThread = null;
+            synchronized(threadLock) {
+                readingThread = null;
+            }
         }
     }
 }
