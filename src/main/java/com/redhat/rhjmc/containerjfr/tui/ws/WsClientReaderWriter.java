@@ -16,10 +16,10 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
     private final Logger logger;
     private final Gson gson;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
-    private boolean running = true;
 
     private final ServerWebSocket sws;
-    private volatile Thread readingThread;
+    private final Object threadLock = new Object();
+    private Thread readingThread;
 
     WsClientReaderWriter(Logger logger, Gson gson, ServerWebSocket sws) {
         this.logger = logger;
@@ -35,11 +35,12 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
 
     @Override
     public void close() {
-        if (running && readingThread != null) {
-            inQ.clear();
-            readingThread.interrupt();
+        inQ.clear();
+        synchronized (threadLock) {
+            if (readingThread != null) {
+                readingThread.interrupt();
+            }
         }
-        running = false;
     }
 
     @Override
@@ -49,23 +50,27 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
 
     void flush(ResponseMessage<?> message) {
         if (!this.sws.isClosed()) {
-            this.sws.writeTextMessage(gson.toJson(message));
+            try {
+                this.sws.writeTextMessage(gson.toJson(message));
+            } catch (Exception e) {
+                logger.warn(e);
+            }
         }
     }
 
     @Override
     public String readLine() {
         try {
-            readingThread = Thread.currentThread();
+            synchronized (threadLock) {
+                readingThread = Thread.currentThread();
+            }
             return inQ.take();
         } catch (InterruptedException e) {
             return null;
         } finally {
-            readingThread = null;
+            synchronized (threadLock) {
+                readingThread = null;
+            }
         }
-    }
-
-    boolean hasMessage() {
-        return !inQ.isEmpty();
     }
 }

@@ -89,6 +89,15 @@ flag in the `docker` or `podman` command invocation. If the `EXT` variables are
 unspecified then they default to the value of their non-EXT counterparts. If
 `LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
 
+The environment variable `CONTAINER_JFR_MAX_WS_CONNECTIONS` is used to
+configure the maximum number of concurrent WebSocket client connections that
+will be allowed. If this is not set then the default value is 2. Once the
+maximum number of concurrent connections is reached, the server will reject
+handshakes for any new incoming connections until a previous connection is
+closed. The maximum acceptable value is 64 and the minimum acceptable value is
+1. Values outside of this range will be ignored and the default value set
+instead.
+
 The environment variable `CONTAINER_JFR_LOG_LEVEL` is used to control the level
 of messages which will be printed by the logging facility. Acceptable values are
 `OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, and `ALL`.

@@ -75,15 +75,4 @@ class WsClientReaderWriterTest extends TestBase {
                     MatcherAssert.assertThat(crw.readLine(), Matchers.equalTo(expected));
                 });
     }
-
-    @Test
-    void testHasMessage() {
-        when(sws.remoteAddress()).thenReturn(mock(SocketAddress.class));
-
-        MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(false));
-        crw.handle("hello world");
-        MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(true));
-        crw.readLine();
-        MatcherAssert.assertThat(crw.hasMessage(), Matchers.is(false));
-    }
 }

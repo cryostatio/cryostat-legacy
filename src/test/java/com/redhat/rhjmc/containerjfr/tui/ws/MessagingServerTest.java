@@ -16,6 +16,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
@@ -38,6 +39,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class MessagingServerTest {
 
     MessagingServer server;
+    @Mock Environment env;
     @Mock Logger logger;
     @Mock HttpServer httpServer;
     @Mock AuthManager authManager;
@@ -48,7 +50,9 @@ class MessagingServerTest {
 
     @BeforeEach
     void setup() {
-        server = new MessagingServer(httpServer, authManager, logger, gson);
+        when(env.getEnv(Mockito.eq(MessagingServer.MAX_CONNECTIONS_ENV_VAR), Mockito.anyString()))
+                .thenReturn("2");
+        server = new MessagingServer(httpServer, env, authManager, logger, gson);
     }
 
     @Test
@@ -63,11 +67,9 @@ class MessagingServerTest {
     @Test
     void repeatConnectionShouldNotClosePrevious() {
         server.addConnection(crw1);
-        verifyZeroInteractions(crw1);
 
         server.addConnection(crw2);
         verify(crw1, Mockito.never()).close();
-        verifyZeroInteractions(crw2);
     }
 
     @Test
@@ -84,9 +86,7 @@ class MessagingServerTest {
         assertTimeoutPreemptively(
                 Duration.ofNanos(expectedDelta * 3),
                 () -> {
-                    when(crw1.hasMessage()).thenReturn(false);
                     when(crw2.readLine()).thenReturn(expectedText);
-                    when(crw2.hasMessage()).thenReturn(true);
                     Executors.newSingleThreadScheduledExecutor()
                             .schedule(
                                     () -> {
@@ -134,17 +134,13 @@ class MessagingServerTest {
     @Test
     void shouldHandleRemovedConnections() {
         String expectedText = "hello world";
-        when(crw1.hasMessage()).thenReturn(false);
         when(crw2.readLine()).thenReturn(expectedText);
-        when(crw2.hasMessage()).thenReturn(true);
 
         server.addConnection(crw1);
         server.addConnection(crw2);
 
         MatcherAssert.assertThat(
                 server.getClientReader().readLine(), Matchers.equalTo(expectedText));
-        verify(crw1).hasMessage();
-        verify(crw2).hasMessage();
         verify(crw2).readLine();
 
         ResponseMessage<String> successResponseMessage =
@@ -158,12 +154,10 @@ class MessagingServerTest {
         verify(crw2).close();
 
         String newText = "another message";
-        when(crw1.hasMessage()).thenReturn(true);
         when(crw1.readLine()).thenReturn(newText);
 
         MatcherAssert.assertThat(server.getClientReader().readLine(), Matchers.equalTo(newText));
-        verify(crw1, Mockito.times(2)).hasMessage();
-        verify(crw1).readLine();
+        verify(crw1, Mockito.atLeastOnce()).readLine();
         verifyNoMoreInteractions(crw2);
 
         ResponseMessage<String> failureResponseMessage =
