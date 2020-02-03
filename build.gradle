@@ -19,20 +19,20 @@ dependencies {
     implementation 'io.fabric8:openshift-client:4.6.4'
     implementation 'io.kubernetes:client-java:5.0.0'
 
-    implementation 'com.google.dagger:dagger:2.21'
-    annotationProcessor 'com.google.dagger:dagger-compiler:2.21'
+    implementation 'com.google.dagger:dagger:2.26'
+    annotationProcessor 'com.google.dagger:dagger-compiler:2.26'
 
-    implementation 'org.apache.commons:commons-lang3:3.8.1'
+    implementation 'org.apache.commons:commons-lang3:3.9'
 
     implementation 'commons-codec:commons-codec:1.13'
 
-    implementation 'org.apache.httpcomponents:httpclient:4.5.9'
-    implementation 'org.apache.httpcomponents:httpmime:4.5.9'
+    implementation 'org.apache.httpcomponents:httpclient:4.5.11'
+    implementation 'org.apache.httpcomponents:httpmime:4.5.11'
     implementation 'org.jsoup:jsoup:1.12.1'
 
-    implementation 'io.vertx:vertx-web:3.8.3'
+    implementation 'io.vertx:vertx-web:3.8.5'
 
-    implementation 'com.google.code.gson:gson:2.8.5'
+    implementation 'com.google.code.gson:gson:2.8.6'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.1'
     testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.1'
