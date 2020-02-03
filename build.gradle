@@ -98,6 +98,9 @@ jib {
             '-Dcom.sun.management.jmxremote.authenticate=false',
         ]
     }
+    dockerClient {
+        executable = 'podman'
+    }
 }
 
 applicationDefaultJvmArgs = jib.container.jvmFlags
