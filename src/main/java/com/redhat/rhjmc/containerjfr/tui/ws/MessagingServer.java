@@ -57,56 +57,59 @@ class MessagingServer {
                         return;
                     }
                     String remoteAddress = sws.remoteAddress().toString();
-                    if (connections.size() >= maxConnections) {
-                        logger.info(
-                                String.format(
-                                        "Dropping remote client %s due to too many concurrent connections",
-                                        remoteAddress));
-                        sws.reject();
-                        return;
-                    }
-                    logger.info(String.format("Connected remote client %s", remoteAddress));
+                    synchronized (connections) {
+                        if (connections.size() >= maxConnections) {
+                            logger.info(
+                                    String.format(
+                                            "Dropping remote client %s due to too many concurrent connections",
+                                            remoteAddress));
+                            sws.reject();
+                            return;
+                        }
+                        logger.info(String.format("Connected remote client %s", remoteAddress));
 
-                    WsClientReaderWriter crw =
-                            new WsClientReaderWriter(this.logger, this.gson, sws);
-                    sws.closeHandler(
-                            (unused) -> {
-                                logger.info(
-                                        String.format(
-                                                "Disconnected remote client %s", remoteAddress));
-                                removeConnection(crw);
-                            });
-                    sws.textMessageHandler(
-                            msg -> {
-                                try {
-                                    String proto = sws.subProtocol();
-                                    authManager
-                                            .doAuthenticated(
-                                                    () -> proto,
-                                                    authManager::validateWebSocketSubProtocol)
-                                            .onSuccess(() -> crw.handle(msg))
-                                            // 1002: WebSocket "Protocol Error" close reason
-                                            .onFailure(
-                                                    () ->
-                                                            sws.close(
-                                                                    (short) 1002,
-                                                                    String.format(
-                                                                            "Invalid subprotocol \"%s\"",
-                                                                            proto)))
-                                            .execute();
-                                } catch (InterruptedException
-                                        | ExecutionException
-                                        | TimeoutException e) {
-                                    logger.info(e);
-                                    // 1011: WebSocket "Internal Error" close reason
-                                    sws.close(
-                                            (short) 1011,
+                        WsClientReaderWriter crw =
+                                new WsClientReaderWriter(this.logger, this.gson, sws);
+                        sws.closeHandler(
+                                (unused) -> {
+                                    logger.info(
                                             String.format(
-                                                    "Internal error: \"%s\"", e.getMessage()));
-                                }
-                            });
-                    addConnection(crw);
-                    sws.accept();
+                                                    "Disconnected remote client %s",
+                                                    remoteAddress));
+                                    removeConnection(crw);
+                                });
+                        sws.textMessageHandler(
+                                msg -> {
+                                    try {
+                                        String proto = sws.subProtocol();
+                                        authManager
+                                                .doAuthenticated(
+                                                        () -> proto,
+                                                        authManager::validateWebSocketSubProtocol)
+                                                .onSuccess(() -> crw.handle(msg))
+                                                // 1002: WebSocket "Protocol Error" close reason
+                                                .onFailure(
+                                                        () ->
+                                                                sws.close(
+                                                                        (short) 1002,
+                                                                        String.format(
+                                                                                "Invalid subprotocol \"%s\"",
+                                                                                proto)))
+                                                .execute();
+                                    } catch (InterruptedException
+                                            | ExecutionException
+                                            | TimeoutException e) {
+                                        logger.info(e);
+                                        // 1011: WebSocket "Internal Error" close reason
+                                        sws.close(
+                                                (short) 1011,
+                                                String.format(
+                                                        "Internal error: \"%s\"", e.getMessage()));
+                                    }
+                                });
+                        addConnection(crw);
+                        sws.accept();
+                    }
                 });
     }
 
