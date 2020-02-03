@@ -36,7 +36,7 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
     @Override
     public void close() {
         inQ.clear();
-        synchronized(threadLock) {
+        synchronized (threadLock) {
             if (readingThread != null) {
                 readingThread.interrupt();
             }
@@ -61,14 +61,14 @@ class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String
     @Override
     public String readLine() {
         try {
-            synchronized(threadLock) {
+            synchronized (threadLock) {
                 readingThread = Thread.currentThread();
             }
             return inQ.take();
         } catch (InterruptedException e) {
             return null;
         } finally {
-            synchronized(threadLock) {
+            synchronized (threadLock) {
                 readingThread = null;
             }
         }

@@ -25,6 +25,8 @@ import com.google.gson.Gson;
 class MessagingServer {
 
     static final String MAX_CONNECTIONS_ENV_VAR = "CONTAINER_JFR_MAX_WS_CONNECTIONS";
+    static final int MIN_CONNECTIONS = 1;
+    static final int MAX_CONNECTIONS = 64;
     static final int DEFAULT_MAX_CONNECTIONS = 2;
 
     private final int maxConnections;
@@ -194,8 +196,19 @@ class MessagingServer {
                             env.getEnv(
                                     MAX_CONNECTIONS_ENV_VAR,
                                     String.valueOf(DEFAULT_MAX_CONNECTIONS)));
-            if (maxConn > 64 || maxConn < 1) {
-                return DEFAULT_MAX_CONNECTIONS;
+            if (maxConn > MAX_CONNECTIONS) {
+                logger.info(
+                        String.format(
+                                "Requested maximum WebSocket connections %d is too large.",
+                                maxConn));
+                return MAX_CONNECTIONS;
+            }
+            if (maxConn < MIN_CONNECTIONS) {
+                logger.info(
+                        String.format(
+                                "Requested maximum WebSocket connections %d is too small.",
+                                maxConn));
+                return MIN_CONNECTIONS;
             }
             return maxConn;
         } catch (NumberFormatException nfe) {
