@@ -547,4 +547,68 @@ class WsCommandExecutorTest {
                         JsonSyntaxException.class.getName(),
                         MalformedJsonException.class.getName()));
     }
+
+    @Test
+    void shouldMirrorIdWhenProvided() throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return "{\"id\":\"msgId\",\"command\":\"help\",\"args\":[]}";
+                            }
+                        });
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
+                .thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
+                .thenReturn(new SuccessOutput());
+
+        executor.run(null);
+
+        InOrder inOrder = inOrder(commandRegistry, server);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[0]);
+        inOrder.verify(commandRegistry).execute("help", new String[0]);
+
+        ArgumentCaptor<SuccessResponseMessage<Void>> msgCaptor =
+                ArgumentCaptor.forClass(SuccessResponseMessage.class);
+        inOrder.verify(server).flush(msgCaptor.capture());
+        MatcherAssert.assertThat(msgCaptor.getValue().id, Matchers.equalTo("msgId"));
+    }
+
+    @Test
+    void shouldUseNullIdWhenNotProvided() throws Exception {
+        when(cr.readLine())
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                executor.shutdown();
+                                return "{\"command\":\"help\",\"args\":[]}";
+                            }
+                        });
+        when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
+        when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
+        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
+                .thenReturn(true);
+        when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
+                .thenReturn(new SuccessOutput());
+
+        executor.run(null);
+
+        InOrder inOrder = inOrder(commandRegistry, server);
+        inOrder.verify(commandRegistry).getRegisteredCommandNames();
+        inOrder.verify(commandRegistry).isCommandAvailable("help");
+        inOrder.verify(commandRegistry).validate("help", new String[0]);
+        inOrder.verify(commandRegistry).execute("help", new String[0]);
+
+        ArgumentCaptor<SuccessResponseMessage<Void>> msgCaptor =
+                ArgumentCaptor.forClass(SuccessResponseMessage.class);
+        inOrder.verify(server).flush(msgCaptor.capture());
+        MatcherAssert.assertThat(msgCaptor.getValue().id, Matchers.nullValue());
+    }
 }

@@ -9,6 +9,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         justification =
                 "This class will be (de)serialized by Gson, so not all fields may be accessed directly")
 class CommandMessage extends WsMessage {
+    String id;
     String command;
     List<String> args;
 }

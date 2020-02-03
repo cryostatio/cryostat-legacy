@@ -144,7 +144,7 @@ class MessagingServerTest {
         verify(crw2).readLine();
 
         ResponseMessage<String> successResponseMessage =
-                new SuccessResponseMessage<>("test", "message");
+                new SuccessResponseMessage<>("msgId", "test", "message");
         server.flush(successResponseMessage);
 
         verify(crw1).flush(successResponseMessage);
@@ -161,7 +161,7 @@ class MessagingServerTest {
         verifyNoMoreInteractions(crw2);
 
         ResponseMessage<String> failureResponseMessage =
-                new FailureResponseMessage("test", "failure");
+                new FailureResponseMessage("msgId", "test", "failure");
         server.flush(failureResponseMessage);
 
         verify(crw1).flush(failureResponseMessage);
@@ -189,7 +189,7 @@ class MessagingServerTest {
     void serverFlushShouldDelegateToAllClientWriters() {
         server.addConnection(crw1);
         server.addConnection(crw2);
-        ResponseMessage<String> message = new SuccessResponseMessage<>("test", "message");
+        ResponseMessage<String> message = new SuccessResponseMessage<>("msgId", "test", "message");
         server.flush(message);
         verify(crw1).flush(message);
         verify(crw2).flush(message);
