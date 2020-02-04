@@ -20,6 +20,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -128,12 +131,11 @@ public class CommandRegistryImplTest extends TestBase {
             assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
         }
 
-        @Test
-        public void shouldNotValidateInvalidCommands() throws Exception {
-            assertFalse(registry.validate("bar", new String[0]));
-            assertFalse(registry.validate(null, new String[0]));
-            assertFalse(registry.validate("", new String[0]));
-            assertFalse(registry.validate("  ", new String[0]));
+        @ParameterizedTest
+        @ValueSource(strings = {"bar", "", "  "})
+        @NullSource
+        public void shouldNotValidateInvalidCommands(String cmd) throws Exception {
+            assertFalse(registry.validate(cmd, new String[0]));
         }
 
         @Test
@@ -141,19 +143,11 @@ public class CommandRegistryImplTest extends TestBase {
             assertTrue(registry.validate("foo", new String[0]));
         }
 
-        @Test
-        public void shouldHandleNullCommandAvailability() throws Exception {
-            assertFalse(registry.isCommandAvailable(null));
-        }
-
-        @Test
-        public void shouldHandleEmptyCommandAvailability() throws Exception {
-            assertFalse(registry.isCommandAvailable(""));
-        }
-
-        @Test
-        public void shouldHandleBlankCommandAvailability() throws Exception {
-            assertFalse(registry.isCommandAvailable("  "));
+        @ParameterizedTest
+        @ValueSource(strings = {"", "  "})
+        @NullSource
+        public void shouldHandleBlankOrNullCommandAvailability(String cmd) throws Exception {
+            assertFalse(registry.isCommandAvailable(cmd));
         }
     }
 

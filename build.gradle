@@ -34,13 +34,13 @@ dependencies {
 
     implementation 'com.google.code.gson:gson:2.8.5'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.4.1'
-    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.4.1'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.4.1'
-    testImplementation 'org.hamcrest:hamcrest:2.1'
-    testImplementation 'org.mockito:mockito-junit-jupiter:2.25.1'
-    testImplementation 'org.mockito:mockito-inline:2.25.1'
-    implementation 'com.github.spotbugs:spotbugs-annotations:4.0.0-beta1'
+    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.6.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter-params:5.6.0'
+    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.6.0'
+    testImplementation 'org.hamcrest:hamcrest:2.2'
+    testImplementation 'org.mockito:mockito-junit-jupiter:3.2.4'
+    testImplementation 'org.mockito:mockito-inline:3.2.4'
+    implementation 'com.github.spotbugs:spotbugs-annotations:4.0.0-RC1'
 }
 
 mainClassName = 'com.redhat.rhjmc.containerjfr.ContainerJfr'

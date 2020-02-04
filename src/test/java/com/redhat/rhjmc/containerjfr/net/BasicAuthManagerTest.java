@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -242,13 +243,9 @@ class BasicAuthManagerTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"", "Bearer sometoken", "Basic (not_b64)"})
+        @NullSource
         void shouldFailBadCredentials(String s) throws Exception {
             Assertions.assertFalse(mgr.validateHttpHeader(() -> s).get());
-        }
-
-        @Test
-        void shouldFailNullHeader() throws Exception {
-            Assertions.assertFalse(mgr.validateHttpHeader(() -> null).get());
         }
     }
 
@@ -304,13 +301,9 @@ class BasicAuthManagerTest {
                     "basic.credentials.foo",
                     "basic.authorization.containerjfr.user:pass"
                 })
+        @NullSource
         void shouldFailBadCredentials(String s) throws Exception {
             Assertions.assertFalse(mgr.validateWebSocketSubProtocol(() -> s).get());
-        }
-
-        @Test
-        void shouldFailNullProtocol() throws Exception {
-            Assertions.assertFalse(mgr.validateWebSocketSubProtocol(() -> null).get());
         }
     }
 }

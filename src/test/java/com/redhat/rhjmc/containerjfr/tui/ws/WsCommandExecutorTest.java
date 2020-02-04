@@ -34,6 +34,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
@@ -327,26 +328,9 @@ class WsCommandExecutorTest {
         MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo("internal error"));
     }
 
-    @Test
-    void shouldRespondToNullLines() throws Exception {
-        when(cr.readLine())
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock invocation) throws Throwable {
-                                executor.shutdown();
-                                return null;
-                            }
-                        });
-
-        executor.run(null);
-
-        verifyZeroInteractions(commandRegistry);
-        verify(server).flush(Mockito.any(MalformedMessageResponseMessage.class));
-    }
-
     @ParameterizedTest
     @ValueSource(strings = {"", "\t", "  ", "\n", "null", " null ", "null\n", "\r\n"})
+    @NullSource
     void shouldRespondToBlankLines(String s) throws Exception {
         when(cr.readLine())
                 .thenAnswer(
