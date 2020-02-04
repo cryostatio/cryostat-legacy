@@ -5,7 +5,7 @@ import java.util.Set;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import dagger.Module;
@@ -22,11 +22,11 @@ public abstract class PlatformStrategyModule {
             NetworkResolver resolver,
             Environment env,
             JvmDiscoveryClient discoveryClient,
-            DocumentationMessageManager dmm) {
+            LocalizationManager lm) {
         return Set.of(
-                new OpenShiftPlatformStrategy(logger, env, resolver, dmm),
-                new KubeApiPlatformStrategy(logger, resolver, dmm),
-                new KubeEnvPlatformStrategy(logger, env, dmm),
-                new DefaultPlatformStrategy(logger, discoveryClient, dmm));
+                new OpenShiftPlatformStrategy(logger, env, resolver, lm),
+                new KubeApiPlatformStrategy(logger, resolver, lm),
+                new KubeEnvPlatformStrategy(logger, env, lm),
+                new DefaultPlatformStrategy(logger, discoveryClient, lm));
     }
 }

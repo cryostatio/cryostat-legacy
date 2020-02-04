@@ -35,7 +35,7 @@ import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -78,7 +78,7 @@ class WebServerTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock ReportGenerator reportGenerator;
-    @Mock DocumentationMessageManager dmm;
+    @Mock LocalizationManager lm;
 
     @BeforeEach
     void setup() {
@@ -93,7 +93,7 @@ class WebServerTest {
                         gson,
                         reportGenerator,
                         logger,
-                        dmm);
+                    lm);
     }
 
     @Test
@@ -117,7 +117,7 @@ class WebServerTest {
                                 gson,
                                 reportGenerator,
                                 logger,
-                                dmm));
+                            lm));
     }
 
     @Test
@@ -611,8 +611,8 @@ class WebServerTest {
         when(ctx.response()).thenReturn(rep);
         when(req.getHeader(HttpHeaders.ACCEPT_LANGUAGE)).thenReturn(acceptedLanguages);
 
-        when(dmm.matchLocale(acceptedLanguages)).thenReturn(matchedLocale);
-        when(dmm.getAllMessages(matchedLocale)).thenReturn(messages);
+        when(lm.matchLocale(acceptedLanguages)).thenReturn(matchedLocale);
+        when(lm.getAllMessages(matchedLocale)).thenReturn(messages);
 
         exporter.handleDocumentationMessageRequest(ctx);
 

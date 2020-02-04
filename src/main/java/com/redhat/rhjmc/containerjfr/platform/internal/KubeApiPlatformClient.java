@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
@@ -23,19 +23,19 @@ class KubeApiPlatformClient implements PlatformClient {
     private final CoreV1Api api;
     private final String namespace;
     private final NetworkResolver resolver;
-    private final DocumentationMessageManager dmm;
+    private final LocalizationManager lm;
 
     KubeApiPlatformClient(
             Logger logger,
             CoreV1Api api,
             String namespace,
             NetworkResolver resolver,
-            DocumentationMessageManager dmm) {
+            LocalizationManager lm) {
         this.logger = logger;
         this.api = api;
         this.namespace = namespace;
         this.resolver = resolver;
-        this.dmm = dmm;
+        this.lm = lm;
     }
 
     @Override
@@ -71,7 +71,7 @@ class KubeApiPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new NoopAuthManager(logger, dmm);
+        return new NoopAuthManager(logger, lm);
     }
 
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {

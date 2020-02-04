@@ -5,7 +5,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -20,10 +20,10 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     private CoreV1Api api;
     private final String namespace;
     private final NetworkResolver resolver;
-    private final DocumentationMessageManager dmm;
+    private final LocalizationManager lm;
 
     KubeApiPlatformStrategy(
-            Logger logger, NetworkResolver resolver, DocumentationMessageManager dmm) {
+            Logger logger, NetworkResolver resolver, LocalizationManager lm) {
         this.logger = logger;
         try {
             Configuration.setDefaultApiClient(Config.fromCluster());
@@ -33,7 +33,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         }
         this.namespace = getNamespace();
         this.resolver = resolver;
-        this.dmm = dmm;
+        this.lm = lm;
     }
 
     @Override
@@ -60,7 +60,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient get() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(logger, api, namespace, resolver, dmm);
+        return new KubeApiPlatformClient(logger, api, namespace, resolver, lm);
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")

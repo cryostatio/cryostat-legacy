@@ -1,4 +1,4 @@
-package com.redhat.rhjmc.containerjfr.documentation_messages;
+package com.redhat.rhjmc.containerjfr.localization;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,28 +21,28 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 
 @ExtendWith(MockitoExtension.class)
-public class DocumentationMessageManagerTest {
-    DocumentationMessageManager dmm;
+public class LocalizationManagerTest {
+    LocalizationManager lm;
 
     @Mock
     Logger logger;
 
     @BeforeEach
     void setup() {
-        dmm = new DocumentationMessageManager(logger);
+        lm = new LocalizationManager(logger);
     }
 
     @Test
     void shouldSuccessfullyInstantiate() {
         assertDoesNotThrow(
-            () -> new DocumentationMessageManager(logger)
+            () -> new LocalizationManager(logger)
         );
     }
 
     @Test
     void shouldSetDefaultLocaleThrowsIfNull() {
         assertThrows(NullPointerException.class, () ->
-            dmm.setDefaultLocale(null)
+            lm.setDefaultLocale(null)
         );
     }
 
@@ -50,20 +50,20 @@ public class DocumentationMessageManagerTest {
     void shouldGetSystemDefaultLocale() {
         Locale systemLocale = Locale.getDefault();
 
-        assertEquals(systemLocale, dmm.getDefaultLocale());
+        assertEquals(systemLocale, lm.getDefaultLocale());
     }
 
     @Test
     void shouldGetNewlySetLocale() {
         Locale newLocale = mock(Locale.class);
 
-        dmm.setDefaultLocale(newLocale);
-        assertEquals(newLocale, dmm.getDefaultLocale());
+        lm.setDefaultLocale(newLocale);
+        assertEquals(newLocale, lm.getDefaultLocale());
     }
 
     @Test
     void shouldGetEmptyAvailableLocales() {
-        assertTrue(dmm.getAvailableLocales().isEmpty());
+        assertTrue(lm.getAvailableLocales().isEmpty());
     }
 
     @Test
@@ -76,10 +76,10 @@ public class DocumentationMessageManagerTest {
         }
 
         for (Locale l : locales) {
-            dmm.putMessage(l, "foo", "bar");
+            lm.putMessage(l, "foo", "bar");
         }
 
-        assertEquals(locales, dmm.getAvailableLocales());
+        assertEquals(locales, lm.getAvailableLocales());
     }
 
     @Test
@@ -89,10 +89,10 @@ public class DocumentationMessageManagerTest {
         messages.put("foo2", "bar2");
         messages.put("foo3", "bar3");
         for (Map.Entry<String, String> entry : messages.entrySet()) {
-            dmm.putMessage(entry.getKey(), entry.getValue());
+            lm.putMessage(entry.getKey(), entry.getValue());
         }
 
-        assertEquals(messages, dmm.getAllMessages());
+        assertEquals(messages, lm.getAllMessages());
     }
 
     @Test
@@ -102,13 +102,13 @@ public class DocumentationMessageManagerTest {
         defaults.put("foo2", "default2");
         defaults.put("foo3", "default3");
         for (Map.Entry<String, String> entry : defaults.entrySet()) {
-            dmm.putMessage(Locale.ENGLISH, entry.getKey(), entry.getValue());
+            lm.putMessage(Locale.ENGLISH, entry.getKey(), entry.getValue());
         }
 
         Map<String, String> messages = new HashMap<>();
         messages.put("foo2", "messages2");
         for (Map.Entry<String, String> entry : messages.entrySet()) {
-            dmm.putMessage(Locale.FRENCH, entry.getKey(), entry.getValue());
+            lm.putMessage(Locale.FRENCH, entry.getKey(), entry.getValue());
         }
 
         Map<String, String> expected = new HashMap<>();
@@ -116,24 +116,24 @@ public class DocumentationMessageManagerTest {
         expected.put("foo2", "messages2");
         expected.put("foo3", "default3");
 
-        dmm.setDefaultLocale(Locale.ENGLISH);
-        assertEquals(expected, dmm.getAllMessages(Locale.FRENCH));
+        lm.setDefaultLocale(Locale.ENGLISH);
+        assertEquals(expected, lm.getAllMessages(Locale.FRENCH));
     }
 
     @Test
     void shouldPutMessageWorkWithDefaultLocale() {
-        dmm.putMessage("foo", "bar");
+        lm.putMessage("foo", "bar");
 
-        assertEquals("bar", dmm.getMessage(dmm.getDefaultLocale(), "foo"));
+        assertEquals("bar", lm.getMessage(lm.getDefaultLocale(), "foo"));
     }
 
     @Test
     void shouldPutMessageOverwriteOldValues() {
-        dmm.putMessage("foo", "old value");
-        assertEquals("old value", dmm.getMessage("foo"));
+        lm.putMessage("foo", "old value");
+        assertEquals("old value", lm.getMessage("foo"));
 
-        dmm.putMessage("foo", "new value");
-        assertEquals("new value", dmm.getMessage("foo"));
+        lm.putMessage("foo", "new value");
+        assertEquals("new value", lm.getMessage("foo"));
     }
 
     @Test
@@ -142,39 +142,39 @@ public class DocumentationMessageManagerTest {
         messages.put("foo", "bar");
         messages.put("foo2", "bar2");
         messages.put("foo3", "bar3");
-        dmm.putMessages(messages);
+        lm.putMessages(messages);
 
-        assertEquals(messages, dmm.getAllMessages());
+        assertEquals(messages, lm.getAllMessages());
     }
 
     @Test
     void shouldPutMessageFallbackToDefaultLocale() {
-        dmm.setDefaultLocale(Locale.ENGLISH);
-        dmm.putMessage("foo", "bar");
+        lm.setDefaultLocale(Locale.ENGLISH);
+        lm.putMessage("foo", "bar");
 
-        assertEquals("bar", dmm.getMessage(Locale.FRENCH, "foo"));
+        assertEquals("bar", lm.getMessage(Locale.FRENCH, "foo"));
 
-        dmm.setDefaultLocale(Locale.FRENCH);
-        assertNull(dmm.getMessage(Locale.FRENCH, "foo"));
+        lm.setDefaultLocale(Locale.FRENCH);
+        assertNull(lm.getMessage(Locale.FRENCH, "foo"));
     }
 
     @Test
     void shouldGetMessageByLanguageTags() {
-        
+
     }
 
     @Test
     void shouldMatchLocales() {
-        dmm.putMessage(Locale.ENGLISH, "foo", "bar");
-        dmm.putMessage(Locale.US, "foo", "bar");
-        dmm.putMessage(Locale.CANADA, "foo", "bar");
-        dmm.putMessage(Locale.FRENCH, "foo", "bar");
-        dmm.putMessage(Locale.CHINESE, "foo", "bar");
+        lm.putMessage(Locale.ENGLISH, "foo", "bar");
+        lm.putMessage(Locale.US, "foo", "bar");
+        lm.putMessage(Locale.CANADA, "foo", "bar");
+        lm.putMessage(Locale.FRENCH, "foo", "bar");
+        lm.putMessage(Locale.CHINESE, "foo", "bar");
 
-        assertEquals(Locale.CANADA, dmm.matchLocale("en-CA,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6"));
-        assertEquals(Locale.FRENCH, dmm.matchLocale("fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5"));
-        assertEquals(Locale.US, dmm.matchLocale("en-US,en;q=0.5"));
-        assertEquals(Locale.CHINESE, dmm.matchLocale("zh-CN;q=0.8,zh;q=0.7,ja;q=0.6"));
-        assertEquals(dmm.getDefaultLocale(), dmm.matchLocale("de-CH,de;q=0.9"));
+        assertEquals(Locale.CANADA, lm.matchLocale("en-CA,en;q=0.9,zh-CN;q=0.8,zh;q=0.7,ja;q=0.6"));
+        assertEquals(Locale.FRENCH, lm.matchLocale("fr-CH, fr;q=0.9, en;q=0.8, de;q=0.7, *;q=0.5"));
+        assertEquals(Locale.US, lm.matchLocale("en-US,en;q=0.5"));
+        assertEquals(Locale.CHINESE, lm.matchLocale("zh-CN;q=0.8,zh;q=0.7,ja;q=0.6"));
+        assertEquals(lm.getDefaultLocale(), lm.matchLocale("de-CH,de;q=0.9"));
     }
 }

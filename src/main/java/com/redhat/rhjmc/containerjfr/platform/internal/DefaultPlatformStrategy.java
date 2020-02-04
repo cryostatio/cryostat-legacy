@@ -4,19 +4,19 @@ import java.io.IOException;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
-import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 
 class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatformClient> {
 
     private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
-    private final DocumentationMessageManager dmm;
+    private final LocalizationManager lm;
 
     DefaultPlatformStrategy(
-            Logger logger, JvmDiscoveryClient discoveryClient, DocumentationMessageManager dmm) {
+            Logger logger, JvmDiscoveryClient discoveryClient, LocalizationManager lm) {
         this.logger = logger;
         this.discoveryClient = discoveryClient;
-        this.dmm = dmm;
+        this.lm = lm;
     }
 
     @Override
@@ -37,6 +37,6 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return new DefaultPlatformClient(logger, discoveryClient, dmm);
+        return new DefaultPlatformClient(logger, discoveryClient, lm);
     }
 }

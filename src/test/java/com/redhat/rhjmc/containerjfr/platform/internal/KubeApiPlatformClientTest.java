@@ -12,7 +12,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.documentation_messages.DocumentationMessageManager;
+import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
@@ -36,14 +36,14 @@ class KubeApiPlatformClientTest {
 
     @Mock Logger logger;
     @Mock CoreV1Api api;
-    @Mock DocumentationMessageManager dmm;
+    @Mock LocalizationManager lm;
     String namespace = "someNamespace";
     @Mock NetworkResolver resolver;
     KubeApiPlatformClient client;
 
     @BeforeEach
     void setup() {
-        client = new KubeApiPlatformClient(logger, api, namespace, resolver, dmm);
+        client = new KubeApiPlatformClient(logger, api, namespace, resolver, lm);
     }
 
     @Nested
