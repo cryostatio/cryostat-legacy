@@ -1,5 +1,6 @@
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.io.IOException;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -13,12 +14,15 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.localization.LocalizationManager;
+import com.redhat.rhjmc.containerjfr.localization.MessageLoader;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.ElementsIntoSet;
+import dagger.multibindings.IntoSet;
 import org.apache.http.config.Registry;
 import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
@@ -114,6 +118,16 @@ public abstract class NetworkModule {
             default:
                 throw new RuntimeException(
                         String.format("Unimplemented execution mode: %s", mode.toString()));
+        }
+    }
+
+    @Provides
+    @IntoSet
+    static MessageLoader provideMessageLoader() {
+        try {
+            return new MessageLoader(NetworkModule.class, "messages");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

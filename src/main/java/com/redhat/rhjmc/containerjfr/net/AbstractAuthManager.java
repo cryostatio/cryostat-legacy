@@ -1,6 +1,5 @@
 package com.redhat.rhjmc.containerjfr.net;
 
-import java.util.Locale;
 import java.util.function.Supplier;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -15,11 +14,6 @@ public abstract class AbstractAuthManager implements AuthManager {
     protected AbstractAuthManager(Logger logger, LocalizationManager lm) {
         this.logger = logger;
         this.lm = lm;
-
-        lm.putMessage(
-                Locale.ENGLISH,
-            DOC_MESSAGE_KEY_AUTH_DIALOG_MESSAGE,
-                "ContainerJFR connection requires a platform auth token to validate user authorization. Please enter a valid access token for your user account.");
     }
 
     @Override
