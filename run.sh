@@ -1,19 +1,6 @@
 #!/bin/sh
 
 set -x
-
-function cleanup() {
-    set +e
-    # TODO: better container management
-    docker kill $(docker ps -a -q --filter ancestor=quay.io/rh-jmc-team/container-jfr)
-    docker rm $(docker ps -a -q --filter ancestor=quay.io/rh-jmc-team/container-jfr)
-}
-
-cleanup
-trap cleanup EXIT
-
-set +e
-docker network create --attachable container-jfr
 set -e
 
 if [ -z "$CONTAINER_JFR_IMAGE" ]; then
@@ -50,13 +37,11 @@ if [ -z "$CONTAINER_JFR_EXT_LISTEN_PORT" ]; then
     CONTAINER_JFR_EXT_LISTEN_PORT="$CONTAINER_JFR_LISTEN_PORT"
 fi
 
-docker run \
-    --net container-jfr \
+podman run \
     --hostname container-jfr \
     --name container-jfr \
-    --memory 80M \
-    --cpus 1.0 \
-    --mount source=flightrecordings,target=/flightrecordings \
+    --mount type=tmpfs,target=/flightrecordings \
+    -p 9091:9091 \
     -p $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
     -p $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
     -e CONTAINER_JFR_LOG_LEVEL=$CONTAINER_JFR_LOG_LEVEL \

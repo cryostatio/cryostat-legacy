@@ -1,6 +1,6 @@
 # Container-JFR
 
-[![Docker Repository on Quay](https://quay.io/repository/rh-jmc-team/container-jfr/status "Docker Repository on Quay")](https://quay.io/repository/rh-jmc-team/container-jfr)
+[![Quay Repository](https://quay.io/repository/rh-jmc-team/container-jfr/status "Quay Repository")](https://quay.io/repository/rh-jmc-team/container-jfr)
 
 ## SEE ALSO
 
@@ -40,9 +40,9 @@ Once the `container-jfr-core` local dependency is made available,
 Tests can be run with `./gradlew check`, or for an interactive watch mode,
 `./gradlew -it test`.
 
-A Docker image can be built to your local Docker image registry using
+An OCI image can be built to your local `podman` image registry using
 `./gradlew jibDockerBuild`. Take note that the standard `./gradlew build`
-will not only build the image but will attempt to publish it to Dockerhub.
+will not only build the image but will attempt to publish it to Quay.
 
 ## RUN
 For a basic development non-containerized smoketest, use `./gradlew run`, or
@@ -60,10 +60,10 @@ invoke the client with no args (`./gradlew run --args="''"`) or with the flag
 `-it`: `./gradlew run --args="-it"`. And for interactive socket mode, pass the
 flag `-d`: `./gradlew run --args="-d"`.
 
-The `run.sh` script can be used to spin up a Docker container of the Container
+The `run.sh` script can be used to spin up a `podman` container of the Container
 JFR Client, running alone but set up so that it is able to introspect itself
 with JFR. This can be achieved by doing `sh run.sh -it` and then typing
-`connect container-jfr:9091` into the client shell that appears. When running in
+`connect localhost` into the client shell that appears. When running in
 this container, all three execution modes described above are still available
 and accessible using the same mthods. Some client shell demo scripts are also
 available in the `demos` directory. These can be used with batch mode, ex.
