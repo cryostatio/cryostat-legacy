@@ -5,13 +5,16 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
 public abstract class AbstractAuthManager implements AuthManager {
 
     protected final Logger logger;
+    protected final FileSystem fs;
 
-    protected AbstractAuthManager(Logger logger) {
+    protected AbstractAuthManager(Logger logger, FileSystem fs) {
         this.logger = logger;
+        this.fs = fs;
     }
 
     @Override

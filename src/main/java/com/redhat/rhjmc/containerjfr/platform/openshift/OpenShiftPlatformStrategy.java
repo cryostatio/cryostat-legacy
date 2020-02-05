@@ -1,26 +1,32 @@
-package com.redhat.rhjmc.containerjfr.platform.internal;
+package com.redhat.rhjmc.containerjfr.platform.openshift;
 
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
-class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<OpenShiftPlatformClient> {
+public class OpenShiftPlatformStrategy
+        implements PlatformDetectionStrategy<OpenShiftPlatformClient> {
 
     private final Logger logger;
     private final NetworkResolver resolver;
+    private final FileSystem fs;
     private OpenShiftClient osClient;
 
-    OpenShiftPlatformStrategy(Logger logger, Environment env, NetworkResolver resolver) {
+    public OpenShiftPlatformStrategy(
+            Logger logger, Environment env, NetworkResolver resolver, FileSystem fs) {
         this.logger = logger;
         this.resolver = resolver;
+        this.fs = fs;
         try {
             this.osClient = new DefaultOpenShiftClient();
         } catch (Exception e) {
@@ -61,22 +67,6 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<OpenShiftPl
     @Override
     public OpenShiftPlatformClient get() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new OpenShiftPlatformClient(logger, osClient, resolver);
-    }
-
-    public Logger getLogger() {
-        return logger;
-    }
-
-    public NetworkResolver getResolver() {
-        return resolver;
-    }
-
-    public OpenShiftClient getOsClient() {
-        return osClient;
-    }
-
-    public void setOsClient(OpenShiftClient osClient) {
-        this.osClient = osClient;
+        return new OpenShiftPlatformClient(logger, osClient, fs, resolver);
     }
 }

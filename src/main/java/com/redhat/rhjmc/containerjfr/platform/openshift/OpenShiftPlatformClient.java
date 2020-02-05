@@ -1,44 +1,45 @@
-package com.redhat.rhjmc.containerjfr.platform.internal;
+package com.redhat.rhjmc.containerjfr.platform.openshift;
 
+import java.io.IOException;
+import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
-import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Service;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.api.model.Service;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.openshift.client.OpenShiftClient;
+import org.apache.commons.lang3.StringUtils;
 
-class KubeApiPlatformClient implements PlatformClient {
+class OpenShiftPlatformClient implements PlatformClient {
 
     private final Logger logger;
-    private final CoreV1Api api;
-    private final String namespace;
+    private final OpenShiftClient osClient;
+    private final FileSystem fs;
     private final NetworkResolver resolver;
 
-    KubeApiPlatformClient(
-            Logger logger, CoreV1Api api, String namespace, NetworkResolver resolver) {
+    OpenShiftPlatformClient(
+            Logger logger, OpenShiftClient osClient, FileSystem fs, NetworkResolver resolver) {
         this.logger = logger;
-        this.api = api;
-        this.namespace = namespace;
+        this.osClient = osClient;
+        this.fs = fs;
         this.resolver = resolver;
     }
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
-            return api
-                    .listNamespacedService(
-                            namespace, null, null, null, null, null, null, null, null, null)
-                    .getItems().stream()
-                    .map(V1Service::getSpec)
+            return osClient.services().inNamespace(getNamespace()).list().getItems().stream()
+                    .map(Service::getSpec)
                     .peek(spec -> logger.trace("Service spec: " + spec.toString()))
                     .filter(s -> s.getPorts() != null)
                     .flatMap(
@@ -52,19 +53,15 @@ class KubeApiPlatformClient implements PlatformClient {
                     .map(this::resolveServiceRefHostname)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
-        } catch (ApiException e) {
-            logger.warn(e.getMessage());
-            logger.warn(e.getResponseBody());
-            return Collections.emptyList();
         } catch (Exception e) {
-            logger.warn(e);
+            logger.error(e);
             return Collections.emptyList();
         }
     }
 
     @Override
     public AuthManager getAuthManager() {
-        return new NoopAuthManager();
+        return new OpenShiftAuthManager(logger, fs);
     }
 
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {
@@ -76,5 +73,16 @@ class KubeApiPlatformClient implements PlatformClient {
             logger.debug(e);
             return null;
         }
+    }
+
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification = "Kubernetes namespace file path is well-known and absolute")
+    private String getNamespace() throws IOException {
+        return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
+                .lines()
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .get();
     }
 }
