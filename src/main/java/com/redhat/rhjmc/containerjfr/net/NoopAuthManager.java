@@ -9,12 +9,12 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
-    public NoopAuthManager(Logger logger) {
-        this(logger, null);
+    public NoopAuthManager(Logger logger, FileSystem fs) {
+        super(logger, fs);
     }
 
-    public NoopAuthManager(Logger logger, FileSystem unused) {
-        super(logger);
+    public NoopAuthManager() {
+        super(null, null);
     }
 
     @Override

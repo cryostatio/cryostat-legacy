@@ -40,6 +40,6 @@ class DefaultPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new NoopAuthManager(log);
+        return new NoopAuthManager();
     }
 }

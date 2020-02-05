@@ -46,6 +46,6 @@ class KubeEnvPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new NoopAuthManager(logger);
+        return new NoopAuthManager();
     }
 }

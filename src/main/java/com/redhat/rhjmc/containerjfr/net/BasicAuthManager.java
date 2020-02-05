@@ -23,14 +23,12 @@ class BasicAuthManager extends AbstractAuthManager {
 
     static final String USER_PROPERTIES_FILENAME = "container-jfr-users.properties";
 
-    private final FileSystem fs;
     private final Properties users;
     private volatile boolean configLoaded = false;
 
     // TODO salted hashes
     BasicAuthManager(Logger logger, FileSystem fs) {
-        super(logger);
-        this.fs = fs;
+        super(logger, fs);
         this.users = new Properties();
     }
 

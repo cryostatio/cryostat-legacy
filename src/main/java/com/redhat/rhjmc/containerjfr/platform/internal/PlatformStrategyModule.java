@@ -5,7 +5,9 @@ import java.util.Set;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftPlatformStrategy;
 
 import dagger.Module;
 import dagger.Provides;
@@ -20,9 +22,10 @@ public abstract class PlatformStrategyModule {
             Logger logger,
             NetworkResolver resolver,
             Environment env,
+            FileSystem fs,
             JvmDiscoveryClient discoveryClient) {
         return Set.of(
-                new OpenShiftPlatformStrategy(logger, env, resolver),
+                new OpenShiftPlatformStrategy(logger, env, resolver, fs),
                 new KubeApiPlatformStrategy(logger, resolver),
                 new KubeEnvPlatformStrategy(logger, env),
                 new DefaultPlatformStrategy(logger, discoveryClient));
