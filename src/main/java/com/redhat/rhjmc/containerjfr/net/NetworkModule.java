@@ -120,7 +120,7 @@ public abstract class NetworkModule {
                 return cons.newInstance(logger, fs);
             }
         } catch (Exception e) {
-            logger.error(e);
+            throw new RuntimeException(e);
         }
         logger.info("Selecting platform default AuthManager");
         switch (mode) {
