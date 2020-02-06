@@ -19,6 +19,9 @@ Build:
 - Git
 - JDK11+
 - Gradle
+- Podman
+- npm 6+
+- Node 12+
 
 Run:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
