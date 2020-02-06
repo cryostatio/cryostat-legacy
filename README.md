@@ -109,6 +109,15 @@ of this variable should be set to the fully-qualified class name of the
 auth manager implementation to use, ex.
 `com.redhat.rhjmc.containerjfr.net.BasicAuthManager`.
 
+The environment variable `CONTAINER_JFR_PLATFORM` is used to configure which
+platform client will be used for performing platform-specific actions, such as
+listing available target JVMs. If `CONTAINER_JFR_AUTH_MANAGER` is not specified
+then a default auth manager will also be selected corresponding to the platform,
+whether that platform is specified by the user or automatically detected. The
+value of this variable should be set to the fully-qualified name of the
+platform detection strategy implementation to use, ex.
+`com.redhat.rhjmc.containerjfr.platform.internal.KubeEnvPlatformStrategy`.
+
 The embedded webserver can be optionally configured to enable low memory
 pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty
 value, the webserver uses a single buffer when serving recording download
