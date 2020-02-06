@@ -60,38 +60,52 @@ class WsCommandExecutor implements CommandExecutor {
                     String[] args = commandMessage.args.toArray(new String[0]);
                     if (StringUtils.isBlank(commandName)
                             || !registry.get().getRegisteredCommandNames().contains(commandName)) {
-                        flush(new InvalidCommandResponseMessage(commandName));
+                        flush(new InvalidCommandResponseMessage(commandMessage.id, commandName));
                         continue;
                     }
                     if (!registry.get().isCommandAvailable(commandName)) {
-                        flush(new CommandUnavailableMessage(commandName));
+                        flush(new CommandUnavailableMessage(commandMessage.id, commandName));
                         continue;
                     }
                     if (!registry.get().validate(commandName, args)) {
-                        flush(new InvalidCommandArgumentsResponseMessage(commandName, args));
+                        flush(
+                                new InvalidCommandArgumentsResponseMessage(
+                                        commandMessage.id, commandName, args));
                         continue;
                     }
                     SerializableCommand.Output<?> out = registry.get().execute(commandName, args);
                     if (out instanceof SerializableCommand.SuccessOutput) {
-                        flush(new SuccessResponseMessage<Void>(commandName, null));
+                        flush(
+                                new SuccessResponseMessage<Void>(
+                                        commandMessage.id, commandName, null));
                     } else if (out instanceof SerializableCommand.FailureOutput) {
                         flush(
                                 new FailureResponseMessage(
+                                        commandMessage.id,
                                         commandName,
                                         ((SerializableCommand.FailureOutput) out).getPayload()));
                     } else if (out instanceof SerializableCommand.StringOutput) {
-                        flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
+                        flush(
+                                new SuccessResponseMessage<>(
+                                        commandMessage.id, commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.ListOutput) {
-                        flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
+                        flush(
+                                new SuccessResponseMessage<>(
+                                        commandMessage.id, commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.MapOutput) {
-                        flush(new SuccessResponseMessage<>(commandName, out.getPayload()));
+                        flush(
+                                new SuccessResponseMessage<>(
+                                        commandMessage.id, commandName, out.getPayload()));
                     } else if (out instanceof SerializableCommand.ExceptionOutput) {
                         flush(
                                 new CommandExceptionResponseMessage(
+                                        commandMessage.id,
                                         commandName,
                                         ((SerializableCommand.ExceptionOutput) out).getPayload()));
                     } else {
-                        flush(new CommandExceptionResponseMessage(commandName, "internal error"));
+                        flush(
+                                new CommandExceptionResponseMessage(
+                                        commandMessage.id, commandName, "internal error"));
                     }
                 } catch (JsonSyntaxException jse) {
                     reportException(rawMsg, jse);
@@ -110,9 +124,9 @@ class WsCommandExecutor implements CommandExecutor {
         }
     }
 
-    private void reportException(String commandName, Exception e) {
+    private void reportException(String rawMsg, Exception e) {
         logger.warn(e);
-        flush(new CommandExceptionResponseMessage(commandName, e));
+        flush(new CommandExceptionResponseMessage(null, rawMsg, e));
     }
 
     private void flush(ResponseMessage<?> message) {
