@@ -14,6 +14,10 @@
   <java.version>11</java.version>
   <maven.compiler.target>${java.version}</maven.compiler.target>
   <maven.compiler.source>${java.version}</maven.compiler.source>
+  <containerjfr.minimal>false</containerjfr.minimal>
+  <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
+  <containerjfr.webPort>8181</containerjfr.webPort>
+  <containerjfr.listenPort>9090</containerjfr.listenPort>
 </properties>
 
 <dependencies>
@@ -132,6 +136,29 @@
       <artifactId>maven-surefire-plugin</artifactId>
       <version>3.0.0-M4</version>
     </plugin>
+    <plugin>
+      <groupId>com.google.cloud.tools</groupId>
+      <artifactId>jib-maven-plugin</artifactId>
+      <version>2.1.0</version>
+      <configuration>
+        <dockerClient>
+          <!-- TODO don't hardcode podman path -->
+          <executable>/usr/bin/podman</executable>
+        </dockerClient>
+        <from>
+          <image>gcr.io/distroless/java:11</image>
+        </from>
+        <to>
+          <image>${containerjfr.imageStream}</image>
+          <tags>${project.version},latest</tags>
+        </to>
+        <container>
+          <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
+          <jvmFlags>-XX:+CrashOnOutOfMemoryError,-Dcom.sun.management.jmxremote.port=9091,-Dcom.sun.management.jmxremote.ssl=false,-Dcom.sun.management.jmxremote.authenticate=false</jvmFlags>
+          <ports>${containerjfr.webPort},${containerjfr.listenPort},9091</ports>
+        </container>
+      </configuration>
+    </plugin>
   </plugins>
 </build>
 
@@ -140,7 +167,7 @@
     <id>minimal</id>
     <activation>
       <property>
-        <name>minimal</name>
+        <name>containerjfr.minimal</name>
         <value>!true</value>
       </property>
     </activation>
