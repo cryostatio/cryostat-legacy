@@ -14,6 +14,7 @@
   <java.version>11</java.version>
   <maven.compiler.target>${java.version}</maven.compiler.target>
   <maven.compiler.source>${java.version}</maven.compiler.source>
+  <imageBuilder>/usr/bin/podman</imageBuilder>
   <containerjfr.minimal>false</containerjfr.minimal>
   <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
   <containerjfr.webPort>8181</containerjfr.webPort>
@@ -142,8 +143,7 @@
       <version>2.1.0</version>
       <configuration>
         <dockerClient>
-          <!-- TODO don't hardcode podman path -->
-          <executable>/usr/bin/podman</executable>
+          <executable>${imageBuilder}</executable>
         </dockerClient>
         <from>
           <image>gcr.io/distroless/java:11</image>
