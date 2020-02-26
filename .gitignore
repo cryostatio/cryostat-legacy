@@ -1,4 +1,7 @@
 .gradle/
+.classpath
+.project
+.settings/
 **/*.class
 build/
 target/
