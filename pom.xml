@@ -150,7 +150,7 @@
         </from>
         <to>
           <image>${containerjfr.imageStream}</image>
-          <tags>${project.version},latest</tags>
+          <tags>${containerjfr.imageVersion}</tags>
         </to>
         <container>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
@@ -168,9 +168,24 @@
     <activation>
       <property>
         <name>containerjfr.minimal</name>
+        <value>true</value>
+      </property>
+    </activation>
+    <properties>
+      <containerjfr.imageVersion>${project.version}-minimal</containerjfr.imageVersion>
+    </properties>
+  </profile>
+  <profile>
+    <id>non-minimal</id>
+    <activation>
+      <property>
+        <name>containerjfr.minimal</name>
         <value>!true</value>
       </property>
     </activation>
+    <properties>
+      <containerjfr.imageVersion>${project.version}</containerjfr.imageVersion>
+    </properties>
     <build>
       <plugins>
         <plugin>
