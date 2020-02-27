@@ -141,6 +141,15 @@
       <groupId>com.google.cloud.tools</groupId>
       <artifactId>jib-maven-plugin</artifactId>
       <version>2.1.0</version>
+      <executions>
+        <execution>
+          <id>build-oci-image</id>
+          <phase>package</phase>
+          <goals>
+            <goal>dockerBuild</goal>
+          </goals>
+        </execution>
+      </executions>
       <configuration>
         <dockerClient>
           <executable>${imageBuilder}</executable>
