@@ -173,8 +173,41 @@
         </extraDirectories>
       </configuration>
     </plugin>
+    <plugin>
+      <groupId>com.github.spotbugs</groupId>
+      <artifactId>spotbugs-maven-plugin</artifactId>
+      <version>3.1.12.2</version>
+      <executions>
+        <execution>
+          <goals>
+            <goal>check</goal>
+          </goals>
+          <phase>test</phase>
+        </execution>
+      </executions>
+    </plugin>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-site-plugin</artifactId>
+      <version>3.8.2</version>
+    </plugin>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-project-info-reports-plugin</artifactId>
+      <version>3.0.0</version>
+    </plugin>
   </plugins>
 </build>
+
+<reporting>
+  <plugins>
+    <plugin>
+      <groupId>com.github.spotbugs</groupId>
+      <artifactId>spotbugs-maven-plugin</artifactId>
+      <version>3.1.12.2</version>
+    </plugin>
+  </plugins>
+</reporting>
 
 <profiles>
   <profile>
