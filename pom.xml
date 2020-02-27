@@ -179,10 +179,11 @@
       <version>3.1.12.2</version>
       <executions>
         <execution>
+          <id>spotbugs</id>
+          <phase>verify</phase>
           <goals>
             <goal>check</goal>
           </goals>
-          <phase>test</phase>
         </execution>
       </executions>
     </plugin>
@@ -198,7 +199,7 @@
         </execution>
         <execution>
           <id>report</id>
-          <phase>test</phase>
+          <phase>verify</phase>
           <goals>
             <goal>report</goal>
           </goals>
@@ -211,10 +212,11 @@
       <version>1.27.0</version>
       <executions>
         <execution>
+          <id>spotless</id>
+          <phase>verify</phase>
           <goals>
             <goal>check</goal>
           </goals>
-          <phase>test</phase>
         </execution>
       </executions>
       <configuration>
@@ -299,7 +301,7 @@
           <executions>
             <execution>
               <id>update-web-client-deps</id>
-              <phase>compile</phase>
+              <phase>initialize</phase>
               <goals>
                 <goal>exec</goal>
               </goals>
@@ -313,7 +315,7 @@
             </execution>
             <execution>
               <id>build-web-client</id>
-              <phase>compile</phase>
+              <phase>prepare-package</phase>
               <goals>
                 <goal>exec</goal>
               </goals>
@@ -350,7 +352,7 @@
           <executions>
             <execution>
               <id>copy-web-client-resources</id>
-              <phase>compile</phase>
+              <phase>prepare-package</phase>
               <goals>
                 <goal>copy-resources</goal>
               </goals>
