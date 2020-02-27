@@ -3,6 +3,6 @@
 set -x
 set -e
 
-CONTAINER_JFR_MINIMAL=true ./gradlew jibDockerBuild
+mvn -Dcontainerjfr.minimal=true clean verify
 
-./gradlew jibDockerBuild
+mvn verify
