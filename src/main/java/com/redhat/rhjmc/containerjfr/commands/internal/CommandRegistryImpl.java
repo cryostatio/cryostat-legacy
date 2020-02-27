@@ -5,11 +5,11 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
-import org.apache.commons.lang3.StringUtils;
 
 class CommandRegistryImpl implements CommandRegistry {
 

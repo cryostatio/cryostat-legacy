@@ -1,7 +1,6 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-
 import dagger.Lazy;
 
 public interface PlatformDetectionStrategy<T extends PlatformClient>

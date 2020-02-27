@@ -11,15 +11,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
-import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +22,15 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 
 @ExtendWith(MockitoExtension.class)
 class SearchEventsCommandTest {

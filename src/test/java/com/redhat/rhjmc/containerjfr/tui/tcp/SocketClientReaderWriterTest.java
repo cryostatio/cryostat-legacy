@@ -8,8 +8,6 @@ import java.net.Socket;
 import java.util.Scanner;
 import java.util.concurrent.Semaphore;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -18,6 +16,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 @ExtendWith(MockitoExtension.class)
 class SocketClientReaderWriterTest {

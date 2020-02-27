@@ -12,16 +12,6 @@ import java.time.Instant;
 import java.time.temporal.TemporalUnit;
 import java.util.Collections;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Clock;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -34,6 +24,16 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class SaveRecordingCommandTest {

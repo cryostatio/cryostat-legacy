@@ -10,14 +10,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Clock;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +19,14 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.TestBase;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForDownloadCommandTest extends TestBase {

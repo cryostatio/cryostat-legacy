@@ -10,15 +10,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 
-import org.openjdk.jmc.common.unit.IOptionDescriptor;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +18,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.openjdk.jmc.common.unit.IOptionDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class ListRecordingOptionsCommandTest {

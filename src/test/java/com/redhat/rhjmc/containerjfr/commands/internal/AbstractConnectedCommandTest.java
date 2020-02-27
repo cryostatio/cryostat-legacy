@@ -15,11 +15,6 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Optional;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +25,11 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractConnectedCommandTest {

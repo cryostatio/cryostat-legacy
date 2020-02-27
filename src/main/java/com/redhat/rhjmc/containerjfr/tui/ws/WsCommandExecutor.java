@@ -3,16 +3,16 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 import java.io.IOException;
 import java.util.Collections;
 
+import org.apache.commons.lang3.StringUtils;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
-import org.apache.commons.lang3.StringUtils;
 
 class WsCommandExecutor implements CommandExecutor {
 

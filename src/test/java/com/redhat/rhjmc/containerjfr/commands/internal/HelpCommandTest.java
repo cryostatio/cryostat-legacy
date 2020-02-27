@@ -12,11 +12,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -25,6 +20,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class HelpCommandTest {

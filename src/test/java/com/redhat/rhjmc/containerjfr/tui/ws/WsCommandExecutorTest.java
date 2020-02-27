@@ -12,21 +12,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.StringOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.SuccessOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-import com.google.gson.stream.MalformedJsonException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -43,6 +28,21 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.stream.MalformedJsonException;
+
+import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.StringOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.SuccessOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 
 @ExtendWith(MockitoExtension.class)
 class WsCommandExecutorTest {

@@ -12,14 +12,6 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -27,6 +19,14 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Singleton
 class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {

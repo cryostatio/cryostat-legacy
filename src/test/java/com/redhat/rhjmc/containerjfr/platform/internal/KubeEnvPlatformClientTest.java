@@ -7,10 +7,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +15,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 @ExtendWith(MockitoExtension.class)
 class KubeEnvPlatformClientTest {

@@ -8,13 +8,6 @@ import java.time.Duration;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-
-import com.google.gson.Gson;
-import io.vertx.core.http.ServerWebSocket;
-import io.vertx.core.net.SocketAddress;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +15,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.google.gson.Gson;
+
+import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.TestBase;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+
+import io.vertx.core.http.ServerWebSocket;
+import io.vertx.core.net.SocketAddress;
 
 @ExtendWith(MockitoExtension.class)
 class WsClientReaderWriterTest extends TestBase {

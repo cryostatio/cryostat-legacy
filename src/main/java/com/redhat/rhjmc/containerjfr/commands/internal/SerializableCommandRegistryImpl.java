@@ -6,6 +6,8 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
@@ -13,8 +15,6 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.CommandRegistryImpl.CommandDefinitionException;
-
-import org.apache.commons.lang3.StringUtils;
 
 class SerializableCommandRegistryImpl implements SerializableCommandRegistry {
 

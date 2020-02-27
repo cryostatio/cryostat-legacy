@@ -5,8 +5,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +12,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class ExitCommandTest {

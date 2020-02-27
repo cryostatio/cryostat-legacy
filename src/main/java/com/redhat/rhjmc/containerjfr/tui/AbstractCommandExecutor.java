@@ -10,7 +10,6 @@ import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.ExitCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 import dagger.Lazy;
 
 public abstract class AbstractCommandExecutor implements CommandExecutor {

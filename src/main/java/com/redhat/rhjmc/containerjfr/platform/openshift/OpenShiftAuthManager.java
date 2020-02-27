@@ -11,6 +11,8 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AbstractAuthManager;
@@ -21,7 +23,6 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
-import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 

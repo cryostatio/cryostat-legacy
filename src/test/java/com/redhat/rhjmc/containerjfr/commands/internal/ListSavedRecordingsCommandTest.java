@@ -10,12 +10,6 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.jmc.serialization.SavedRecordingDescriptor;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -30,6 +24,12 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.jmc.serialization.SavedRecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
 class ListSavedRecordingsCommandTest {

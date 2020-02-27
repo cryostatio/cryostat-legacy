@@ -9,7 +9,6 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.tui.AbstractCommandExecutor;
-
 import dagger.Lazy;
 
 public class InteractiveShellExecutor extends AbstractCommandExecutor
