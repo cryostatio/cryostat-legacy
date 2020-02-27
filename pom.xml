@@ -157,6 +157,11 @@
           <jvmFlags>-XX:+CrashOnOutOfMemoryError,-Dcom.sun.management.jmxremote.port=9091,-Dcom.sun.management.jmxremote.ssl=false,-Dcom.sun.management.jmxremote.authenticate=false</jvmFlags>
           <ports>${containerjfr.webPort},${containerjfr.listenPort},9091</ports>
         </container>
+        <extraDirectories>
+          <paths>
+            <path>${project.build.directory}/assets</path>
+          </paths>
+        </extraDirectories>
       </configuration>
     </plugin>
   </plugins>
@@ -230,7 +235,7 @@
           <executions>
             <execution>
               <id>copy-web-client-resources</id>
-              <phase>package</phase>
+              <phase>compile</phase>
               <goals>
                 <goal>copy-resources</goal>
               </goals>
@@ -240,7 +245,7 @@
                     <directory>web-client/dist/container-jfr-web</directory>
                   </resource>
                 </resources>
-                <outputDirectory>${project.build.directory}/assets/com/redhat/rhjmc/containerjfr/net/web</outputDirectory>
+                <outputDirectory>${project.build.directory}/assets/app/resources/com/redhat/rhjmc/containerjfr/net/web</outputDirectory>
               </configuration>
             </execution>
           </executions>
