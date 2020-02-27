@@ -236,6 +236,22 @@
                 </arguments>
               </configuration>
             </execution>
+            <execution>
+              <id>clean-web-client</id>
+              <phase>clean</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <executable>rm</executable>
+                <workingDirectory>web-client</workingDirectory>
+                <arguments>
+                  <argument>-rf</argument>
+                  <argument>node_modules</argument>
+                  <argument>dist</argument>
+                </arguments>
+              </configuration>
+            </execution>
           </executions>
         </plugin>
         <plugin>
