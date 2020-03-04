@@ -15,104 +15,137 @@
   <java.version>11</java.version>
   <maven.compiler.target>${java.version}</maven.compiler.target>
   <maven.compiler.source>${java.version}</maven.compiler.source>
+
   <imageBuilder>/usr/bin/podman</imageBuilder>
+
   <containerjfr.minimal>false</containerjfr.minimal>
   <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
   <containerjfr.webPort>8181</containerjfr.webPort>
   <containerjfr.listenPort>9090</containerjfr.listenPort>
+
+  <org.apache.maven.plugins.compiler.version>3.6.1</org.apache.maven.plugins.compiler.version>
+  <org.apache.maven.plugins.surefire.version>3.0.0-M4</org.apache.maven.plugins.surefire.version>
+  <org.apache.maven.plugins.site.version>3.8.2</org.apache.maven.plugins.site.version>
+  <org.apache.maven.plugins.info.reports.version>3.0.0</org.apache.maven.plugins.info.reports.version>
+  <org.apache.maven.plugins.clean.version>3.1.0</org.apache.maven.plugins.clean.version>
+  <org.apache.maven.plugins.resources.version>3.1.0</org.apache.maven.plugins.resources.version>
+  <org.codehaus.mojo.exec.plugin.version>1.6.0</org.codehaus.mojo.exec.plugin.version>
+  <com.google.cloud.tools.jib.maven.plugin.version>2.1.0</com.google.cloud.tools.jib.maven.plugin.version>
+
+  <com.google.dagger.version>2.26</com.google.dagger.version>
+
+  <com.redhat.rhjmc.containerjfr.core.version>0.9.0</com.redhat.rhjmc.containerjfr.core.version>
+  <org.eclipse.core.runtime.version>3.15.0</org.eclipse.core.runtime.version>
+
+  <org.apache.commons.lang3.version>3.9</org.apache.commons.lang3.version>
+  <org.apache.commons.codec.version>1.13</org.apache.commons.codec.version>
+  <org.apache.httpcomponents.version>4.5.11</org.apache.httpcomponents.version>
+  <org.jsoup.version>1.12.1</org.jsoup.version>
+  <io.fabric8.openshift.client.version>4.6.4</io.fabric8.openshift.client.version>
+  <io.kubernetes.client.java.version>5.0.0</io.kubernetes.client.java.version>
+  <io.vertx.web.version>3.8.5</io.vertx.web.version>
+  <com.google.code.gson.version>2.8.6</com.google.code.gson.version>
+
+  <com.github.spotbugs.version>4.0.0-RC1</com.github.spotbugs.version>
+  <com.github.spotbugs.plugin.version>3.1.12.1</com.github.spotbugs.plugin.version>
+  <org.junit.jupiter.version>5.6.0</org.junit.jupiter.version>
+  <org.hamcrest.version>2.2</org.hamcrest.version>
+  <org.mockito.version>3.2.4</org.mockito.version>
+  <org.jacoco.maven.plugin.version>0.8.5</org.jacoco.maven.plugin.version>
+  <com.diffplug.spotless.maven.plugin.version>1.27.0</com.diffplug.spotless.maven.plugin.version>
 </properties>
 
 <dependencies>
   <dependency>
     <groupId>com.redhat.rhjmc</groupId>
     <artifactId>containerjfr-core</artifactId>
-    <version>0.9.0</version>
+    <version>${com.redhat.rhjmc.containerjfr.core.version}</version>
   </dependency>
   <dependency>
     <groupId>io.fabric8</groupId>
     <artifactId>openshift-client</artifactId>
-    <version>4.6.4</version>
+    <version>${io.fabric8.openshift.client.version}</version>
   </dependency>
   <dependency>
     <groupId>io.kubernetes</groupId>
     <artifactId>client-java</artifactId>
-    <version>5.0.0</version>
+    <version>${io.kubernetes.client.java.version}</version>
   </dependency>
   <dependency>
     <groupId>com.google.dagger</groupId>
     <artifactId>dagger</artifactId>
-    <version>2.26</version>
+    <version>${com.google.dagger.version}</version>
   </dependency>
   <dependency>
     <groupId>org.apache.commons</groupId>
     <artifactId>commons-lang3</artifactId>
-    <version>3.9</version>
+    <version>${org.apache.commons.lang3.version}</version>
   </dependency>
   <dependency>
     <groupId>commons-codec</groupId>
     <artifactId>commons-codec</artifactId>
-    <version>1.13</version>
+    <version>${org.apache.commons.codec.version}</version>
   </dependency>
   <dependency>
     <groupId>org.apache.httpcomponents</groupId>
     <artifactId>httpclient</artifactId>
-    <version>4.5.11</version>
+    <version>${org.apache.httpcomponents.version}</version>
   </dependency>
   <dependency>
     <groupId>org.apache.httpcomponents</groupId>
     <artifactId>httpmime</artifactId>
-    <version>4.5.11</version>
+    <version>${org.apache.httpcomponents.version}</version>
   </dependency>
   <dependency>
     <groupId>org.jsoup</groupId>
     <artifactId>jsoup</artifactId>
-    <version>1.12.1</version>
+    <version>${org.jsoup.version}</version>
   </dependency>
   <dependency>
     <groupId>io.vertx</groupId>
     <artifactId>vertx-web</artifactId>
-    <version>3.8.5</version>
+    <version>${io.vertx.web.version}</version>
   </dependency>
   <dependency>
     <groupId>com.google.code.gson</groupId>
     <artifactId>gson</artifactId>
-    <version>2.8.6</version>
+    <version>${com.google.code.gson.version}</version>
   </dependency>
   <dependency>
     <groupId>com.github.spotbugs</groupId>
     <artifactId>spotbugs-annotations</artifactId>
-    <version>4.0.0-RC1</version>
+    <version>${com.github.spotbugs.version}</version>
   </dependency>
 
   <!-- test deps -->
   <dependency>
     <groupId>org.junit.jupiter</groupId>
     <artifactId>junit-jupiter-api</artifactId>
-    <version>5.6.0</version>
+    <version>${org.junit.jupiter.version}</version>
     <scope>test</scope>
   </dependency>
   <dependency>
     <groupId>org.junit.jupiter</groupId>
     <artifactId>junit-jupiter-params</artifactId>
-    <version>5.6.0</version>
+    <version>${org.junit.jupiter.version}</version>
     <scope>test</scope>
   </dependency>
   <dependency>
     <groupId>org.hamcrest</groupId>
     <artifactId>hamcrest</artifactId>
-    <version>2.2</version>
+    <version>${org.hamcrest.version}</version>
     <scope>test</scope>
   </dependency>
   <dependency>
     <groupId>org.mockito</groupId>
     <artifactId>mockito-junit-jupiter</artifactId>
-    <version>3.2.4</version>
+    <version>${org.mockito.version}</version>
     <scope>test</scope>
   </dependency>
   <dependency>
     <groupId>org.mockito</groupId>
     <artifactId>mockito-inline</artifactId>
-    <version>3.2.4</version>
+    <version>${org.mockito.version}</version>
     <scope>test</scope>
   </dependency>
 </dependencies>
@@ -122,13 +155,13 @@
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-compiler-plugin</artifactId>
-      <version>3.6.1</version>
+      <version>${org.apache.maven.plugins.compiler.version}</version>
       <configuration>
         <annotationProcessorPaths>
           <path>
             <groupId>com.google.dagger</groupId>
             <artifactId>dagger-compiler</artifactId>
-            <version>2.26</version>
+            <version>${com.google.dagger.version}</version>
           </path>
         </annotationProcessorPaths>
       </configuration>
@@ -136,7 +169,7 @@
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-surefire-plugin</artifactId>
-      <version>3.0.0-M4</version>
+      <version>${org.apache.maven.plugins.surefire.version}</version>
       <configuration>
         <properties>
           <configurationParameters>
@@ -150,7 +183,7 @@
     <plugin>
       <groupId>com.google.cloud.tools</groupId>
       <artifactId>jib-maven-plugin</artifactId>
-      <version>2.1.0</version>
+      <version>${com.google.cloud.tools.jib.maven.plugin.version}</version>
       <executions>
         <execution>
           <id>build-oci-image</id>
@@ -186,7 +219,7 @@
     <plugin>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-maven-plugin</artifactId>
-      <version>3.1.12.2</version>
+      <version>${com.github.spotbugs.plugin.version}</version>
       <executions>
         <execution>
           <id>spotbugs</id>
@@ -200,7 +233,7 @@
     <plugin>
       <groupId>org.jacoco</groupId>
       <artifactId>jacoco-maven-plugin</artifactId>
-      <version>0.8.5</version>
+      <version>${org.jacoco.maven.plugin.version}</version>
       <executions>
         <execution>
           <goals>
@@ -219,7 +252,7 @@
     <plugin>
       <groupId>com.diffplug.spotless</groupId>
       <artifactId>spotless-maven-plugin</artifactId>
-      <version>1.27.0</version>
+      <version>${com.diffplug.spotless.maven.plugin.version}</version>
       <executions>
         <execution>
           <id>spotless</id>
@@ -247,12 +280,12 @@
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-site-plugin</artifactId>
-      <version>3.8.2</version>
+      <version>${org.apache.maven.plugins.site.version}</version>
     </plugin>
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-project-info-reports-plugin</artifactId>
-      <version>3.0.0</version>
+      <version>${org.apache.maven.plugins.info.reports.version}</version>
     </plugin>
   </plugins>
 </build>
@@ -262,11 +295,12 @@
     <plugin>
       <groupId>com.github.spotbugs</groupId>
       <artifactId>spotbugs-maven-plugin</artifactId>
-      <version>3.1.12.2</version>
+      <version>${com.github.spotbugs.plugin.version}</version>
     </plugin>
     <plugin>
       <groupId>org.jacoco</groupId>
       <artifactId>jacoco-maven-plugin</artifactId>
+      <version>${org.jacoco.maven.plugin.version}</version>
       <reportSets>
         <reportSet>
           <reports>
@@ -307,7 +341,7 @@
         <plugin>
           <groupId>org.codehaus.mojo</groupId>
           <artifactId>exec-maven-plugin</artifactId>
-          <version>1.6.0</version>
+          <version>${org.codehaus.mojo.exec.plugin.version}</version>
           <configuration>
             <mainClass>com.redhat.rhjmc.containerjfr.ContainerJfr</mainClass>
           </configuration>
@@ -345,7 +379,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-clean-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>${org.apache.maven.plugins.clean.version}</version>
           <configuration>
             <filesets>
               <fileset>
@@ -358,7 +392,7 @@
         </plugin>
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>
-          <version>3.1.0</version>
+          <version>${org.apache.maven.plugins.resources.version}</version>
           <executions>
             <execution>
               <id>copy-web-client-resources</id>
