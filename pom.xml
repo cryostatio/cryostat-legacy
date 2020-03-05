@@ -111,11 +111,6 @@
     <artifactId>gson</artifactId>
     <version>${com.google.code.gson.version}</version>
   </dependency>
-  <dependency>
-    <groupId>com.github.spotbugs</groupId>
-    <artifactId>spotbugs-annotations</artifactId>
-    <version>${com.github.spotbugs.version}</version>
-  </dependency>
 
   <!-- test deps -->
   <dependency>
@@ -147,6 +142,11 @@
     <artifactId>mockito-inline</artifactId>
     <version>${org.mockito.version}</version>
     <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>com.github.spotbugs</groupId>
+    <artifactId>spotbugs-annotations</artifactId>
+    <version>${com.github.spotbugs.version}</version>
   </dependency>
 </dependencies>
 
