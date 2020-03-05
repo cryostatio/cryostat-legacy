@@ -338,6 +338,9 @@
           <version>${org.codehaus.mojo.exec.plugin.version}</version>
           <configuration>
             <mainClass>com.redhat.rhjmc.containerjfr.ContainerJfr</mainClass>
+            <additionalClasspathElements>
+              <additionalClasspathElement>${project.build.directory}/assets/app/resources</additionalClasspathElement>
+            </additionalClasspathElements>
           </configuration>
           <executions>
             <execution>
