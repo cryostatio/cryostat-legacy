@@ -381,8 +381,10 @@
             <filesets>
               <fileset>
                 <directory>web-client</directory>
-                <includes>node_modules/**</includes>
-                <includes>dist/**</includes>
+                <includes>
+                    <include>node_modules/**</include>
+                    <include>dist/**</include>
+                </includes>
               </fileset>
             </filesets>
           </configuration>
