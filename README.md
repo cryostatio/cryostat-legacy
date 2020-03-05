@@ -51,7 +51,8 @@ in the OCI image, use `mvn -Dcontainerjfr.minimal=true clean package`. The
 client assets will still be included into the built image.
 
 ## RUN
-For a basic development non-containerized smoketest, use `mvn compile exec:java`.
+For a basic development non-containerized smoketest, use
+`mvn prepare-package exec:java`.
 
 For a Kubernetes/OpenShift deployment, see [container-jfr-operator](https://github.com/rh-jmc-team/container-jfr-operator).
 This will deploy container-jfr into your configured cluster in interactive
