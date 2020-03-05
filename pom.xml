@@ -40,7 +40,6 @@
   <org.apache.commons.lang3.version>3.9</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.13</org.apache.commons.codec.version>
   <org.apache.httpcomponents.version>4.5.11</org.apache.httpcomponents.version>
-  <org.jsoup.version>1.12.1</org.jsoup.version>
   <io.fabric8.openshift.client.version>4.6.4</io.fabric8.openshift.client.version>
   <io.kubernetes.client.java.version>5.0.0</io.kubernetes.client.java.version>
   <io.vertx.web.version>3.8.5</io.vertx.web.version>
@@ -95,11 +94,6 @@
     <groupId>org.apache.httpcomponents</groupId>
     <artifactId>httpmime</artifactId>
     <version>${org.apache.httpcomponents.version}</version>
-  </dependency>
-  <dependency>
-    <groupId>org.jsoup</groupId>
-    <artifactId>jsoup</artifactId>
-    <version>${org.jsoup.version}</version>
   </dependency>
   <dependency>
     <groupId>io.vertx</groupId>
