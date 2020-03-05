@@ -5,6 +5,8 @@ import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -13,7 +15,6 @@ import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
 import dagger.BindsInstance;
 import dagger.Component;
-import org.apache.commons.lang3.StringUtils;
 
 class ContainerJfr {
 

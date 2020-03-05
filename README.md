@@ -18,7 +18,7 @@ for multi-container demos of this project.
 Build:
 - Git
 - JDK11+
-- Gradle
+- Maven
 - Podman
 - npm 6+
 - Node 12+
@@ -38,30 +38,25 @@ Submodules must be initialized via `git submodule init && git submodule update`.
 must be prepared by running `pushd web-client; npm ci; popd`.
 
 Once the `container-jfr-core` local dependency is made available,
-`./gradlew build` will build the project.
+`mvn compile` will build the project.
 
-Tests can be run with `./gradlew check`, or for an interactive watch mode,
-`./gradlew -it test`.
+Tests can be run with `mvn test`. Additional quality tools can be run with
+`mvn verify`.
 
 An OCI image can be built to your local `podman` image registry using
-`./gradlew jibDockerBuild`. Take note that the standard `./gradlew build`
-will not only build the image but will attempt to publish it to Quay.
+`mvn package`. This will normally be a full-fledged image including built
+web-client assets. To skip building the web-client and not include its assets
+in the OCI image, use `mvn -Dcontainerjfr.minimal=true clean package`. The
+`clean` phase should always be specified here, or else previously-generated
+client assets will still be included into the built image.
 
 ## RUN
-For a basic development non-containerized smoketest, use `./gradlew run`, or
-`./gradlew run --args="client-args-here"`.
+For a basic development non-containerized smoketest, use
+`mvn prepare-package exec:java`.
 
 For a Kubernetes/OpenShift deployment, see [container-jfr-operator](https://github.com/rh-jmc-team/container-jfr-operator).
 This will deploy container-jfr into your configured cluster in interactive
 WebSocket mode with a web frontend.
-
-The client can operate in three different command execution modes. These are
-batch (scripted), interactive TTY, and interactive socket. To use batch mode,
-simply pass a single argument string to the client at runtime, ex.
-`./gradlew run --args="'help; ip; hostname'"`. For interactive TTY mode, either
-invoke the client with no args (`./gradlew run --args="''"`) or with the flag
-`-it`: `./gradlew run --args="-it"`. And for interactive socket mode, pass the
-flag `-d`: `./gradlew run --args="-d"`.
 
 The `run.sh` script can be used to spin up a `podman` container of the Container
 JFR Client, running alone but set up so that it is able to introspect itself

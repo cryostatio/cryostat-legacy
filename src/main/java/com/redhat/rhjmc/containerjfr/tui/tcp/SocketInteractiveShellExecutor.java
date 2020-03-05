@@ -4,7 +4,6 @@ import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.tui.tty.InteractiveShellExecutor;
-
 import dagger.Lazy;
 
 class SocketInteractiveShellExecutor extends InteractiveShellExecutor {

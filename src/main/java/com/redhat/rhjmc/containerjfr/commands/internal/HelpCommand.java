@@ -8,7 +8,6 @@ import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 import dagger.Lazy;
 
 class HelpCommand implements SerializableCommand {

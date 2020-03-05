@@ -5,6 +5,8 @@ import java.nio.file.Path;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
@@ -18,7 +20,6 @@ import com.redhat.rhjmc.containerjfr.net.NetworkModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
-import com.google.gson.Gson;
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;

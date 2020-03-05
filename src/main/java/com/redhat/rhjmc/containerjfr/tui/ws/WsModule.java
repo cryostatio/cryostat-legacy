@@ -2,6 +2,8 @@ package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import javax.inject.Singleton;
 
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -13,7 +15,6 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
-import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
