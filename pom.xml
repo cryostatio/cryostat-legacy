@@ -22,9 +22,11 @@
   <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
   <containerjfr.webPort>8181</containerjfr.webPort>
   <containerjfr.listenPort>9090</containerjfr.listenPort>
+  <containerjfr.itest.webPort>8181</containerjfr.itest.webPort>
 
   <org.apache.maven.plugins.compiler.version>3.6.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>3.0.0-M4</org.apache.maven.plugins.surefire.version>
+  <org.apache.maven.plugins.failsafe.version>3.0.0-M4</org.apache.maven.plugins.failsafe.version>
   <org.apache.maven.plugins.site.version>3.8.2</org.apache.maven.plugins.site.version>
   <org.apache.maven.plugins.info.reports.version>3.0.0</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.1.0</org.apache.maven.plugins.clean.version>
@@ -39,6 +41,7 @@
 
   <org.apache.commons.lang3.version>3.9</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.13</org.apache.commons.codec.version>
+  <org.apache.commons.io.version>2.6</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.11</org.apache.httpcomponents.version>
   <io.fabric8.openshift.client.version>4.6.4</io.fabric8.openshift.client.version>
   <io.kubernetes.client.java.version>5.0.0</io.kubernetes.client.java.version>
@@ -109,13 +112,7 @@
   <!-- test deps -->
   <dependency>
     <groupId>org.junit.jupiter</groupId>
-    <artifactId>junit-jupiter-api</artifactId>
-    <version>${org.junit.jupiter.version}</version>
-    <scope>test</scope>
-  </dependency>
-  <dependency>
-    <groupId>org.junit.jupiter</groupId>
-    <artifactId>junit-jupiter-params</artifactId>
+    <artifactId>junit-jupiter</artifactId>
     <version>${org.junit.jupiter.version}</version>
     <scope>test</scope>
   </dependency>
@@ -141,6 +138,12 @@
     <groupId>com.github.spotbugs</groupId>
     <artifactId>spotbugs-annotations</artifactId>
     <version>${com.github.spotbugs.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>commons-io</groupId>
+    <artifactId>commons-io</artifactId>
+    <version>${org.apache.commons.io.version}</version>
+    <scope>test</scope>
   </dependency>
 </dependencies>
 
@@ -172,6 +175,25 @@
             junit.jupiter.execution.parallel.mode.classes.default=concurrent
           </configurationParameters>
         </properties>
+      </configuration>
+    </plugin>
+    <plugin>
+      <groupId>org.apache.maven.plugins</groupId>
+      <artifactId>maven-failsafe-plugin</artifactId>
+      <version>${org.apache.maven.plugins.failsafe.version}</version>
+      <executions>
+        <execution>
+          <id>failsafe-tests</id>
+          <goals>
+            <goal>integration-test</goal>
+            <goal>verify</goal>
+          </goals>
+        </execution>
+      </executions>
+      <configuration>
+        <systemPropertyVariables>
+          <containerJfrWebPort>${containerjfr.itest.webPort}</containerJfrWebPort>
+        </systemPropertyVariables>
       </configuration>
     </plugin>
     <plugin>
@@ -369,6 +391,52 @@
                 <arguments>
                   <argument>run</argument>
                   <argument>build</argument>
+                </arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>start-container</id>
+              <phase>pre-integration-test</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <executable>${imageBuilder}</executable>
+                <arguments>
+                  <argument>run</argument>
+                  <argument>--hostname=container-jfr</argument>
+                  <argument>--name=container-jfr-itest</argument>
+                  <argument>--publish</argument>
+                  <argument>9091:9091</argument>
+                  <argument>--publish</argument>
+                  <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
+                  <argument>--env</argument>
+                  <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
+                  <argument>--env</argument>
+                  <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
+                  <argument>--env</argument>
+                  <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
+                  <argument>--env</argument>
+                  <argument>CONTAINER_JFR_WEB_PORT=${containerjfr.itest.webPort}</argument>
+                  <argument>--env</argument>
+                  <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
+                  <argument>--detach</argument>
+                  <argument>--rm</argument>
+                  <argument>${containerjfr.imageStream}:latest</argument>
+                </arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>stop-container</id>
+              <phase>post-integration-test</phase>
+              <goals>
+                <goal>exec</goal>
+              </goals>
+              <configuration>
+                <executable>${imageBuilder}</executable>
+                <arguments>
+                  <argument>kill</argument>
+                  <argument>container-jfr-itest</argument>
                 </arguments>
               </configuration>
             </execution>
