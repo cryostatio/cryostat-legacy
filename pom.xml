@@ -205,7 +205,7 @@
               <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
-              <argument>${containerjfr.imageStream}:latest</argument>
+              <argument>${containerjfr.imageStream}:${containerjfr.imageVersion}</argument>
             </arguments>
           </configuration>
         </execution>
