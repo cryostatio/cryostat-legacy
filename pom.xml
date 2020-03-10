@@ -17,6 +17,8 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
+  <node.version>v12.5.0</node.version>
+  <npm.version>6.13.4</npm.version>
 
   <containerjfr.minimal>false</containerjfr.minimal>
   <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
@@ -31,6 +33,7 @@
   <org.apache.maven.plugins.info.reports.version>3.0.0</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.1.0</org.apache.maven.plugins.clean.version>
   <org.apache.maven.plugins.resources.version>3.1.0</org.apache.maven.plugins.resources.version>
+  <com.github.eirslett.frontend.plugin.version>1.9.1</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>1.6.0</org.codehaus.mojo.exec.plugin.version>
   <com.google.cloud.tools.jib.maven.plugin.version>2.1.0</com.google.cloud.tools.jib.maven.plugin.version>
 
@@ -162,6 +165,65 @@
           </path>
         </annotationProcessorPaths>
       </configuration>
+    </plugin>
+    <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <version>${org.codehaus.mojo.exec.plugin.version}</version>
+      <configuration>
+        <mainClass>com.redhat.rhjmc.containerjfr.ContainerJfr</mainClass>
+        <additionalClasspathElements>
+          <additionalClasspathElement>${project.build.directory}/assets/app/resources</additionalClasspathElement>
+        </additionalClasspathElements>
+      </configuration>
+      <executions>
+        <execution>
+          <id>start-container</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>run</argument>
+              <argument>--hostname=container-jfr</argument>
+              <argument>--name=container-jfr-itest</argument>
+              <argument>--publish</argument>
+              <argument>9091:9091</argument>
+              <argument>--publish</argument>
+              <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>--detach</argument>
+              <argument>--rm</argument>
+              <argument>${containerjfr.imageStream}:${containerjfr.imageVersion}</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
+          <id>stop-container</id>
+          <phase>post-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>kill</argument>
+              <argument>container-jfr-itest</argument>
+            </arguments>
+          </configuration>
+        </execution>
+      </executions>
     </plugin>
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>
@@ -355,94 +417,6 @@
     <build>
       <plugins>
         <plugin>
-          <groupId>org.codehaus.mojo</groupId>
-          <artifactId>exec-maven-plugin</artifactId>
-          <version>${org.codehaus.mojo.exec.plugin.version}</version>
-          <configuration>
-            <mainClass>com.redhat.rhjmc.containerjfr.ContainerJfr</mainClass>
-            <additionalClasspathElements>
-              <additionalClasspathElement>${project.build.directory}/assets/app/resources</additionalClasspathElement>
-            </additionalClasspathElements>
-          </configuration>
-          <executions>
-            <execution>
-              <id>update-web-client-deps</id>
-              <phase>initialize</phase>
-              <goals>
-                <goal>exec</goal>
-              </goals>
-              <configuration>
-                <executable>npm</executable>
-                <workingDirectory>web-client</workingDirectory>
-                <arguments>
-                  <argument>ci</argument>
-                </arguments>
-              </configuration>
-            </execution>
-            <execution>
-              <id>build-web-client</id>
-              <phase>prepare-package</phase>
-              <goals>
-                <goal>exec</goal>
-              </goals>
-              <configuration>
-                <executable>npm</executable>
-                <workingDirectory>web-client</workingDirectory>
-                <arguments>
-                  <argument>run</argument>
-                  <argument>build</argument>
-                </arguments>
-              </configuration>
-            </execution>
-            <execution>
-              <id>start-container</id>
-              <phase>pre-integration-test</phase>
-              <goals>
-                <goal>exec</goal>
-              </goals>
-              <configuration>
-                <executable>${imageBuilder}</executable>
-                <arguments>
-                  <argument>run</argument>
-                  <argument>--hostname=container-jfr</argument>
-                  <argument>--name=container-jfr-itest</argument>
-                  <argument>--publish</argument>
-                  <argument>9091:9091</argument>
-                  <argument>--publish</argument>
-                  <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
-                  <argument>--env</argument>
-                  <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
-                  <argument>--env</argument>
-                  <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
-                  <argument>--env</argument>
-                  <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
-                  <argument>--env</argument>
-                  <argument>CONTAINER_JFR_WEB_PORT=${containerjfr.itest.webPort}</argument>
-                  <argument>--env</argument>
-                  <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
-                  <argument>--detach</argument>
-                  <argument>--rm</argument>
-                  <argument>${containerjfr.imageStream}:latest</argument>
-                </arguments>
-              </configuration>
-            </execution>
-            <execution>
-              <id>stop-container</id>
-              <phase>post-integration-test</phase>
-              <goals>
-                <goal>exec</goal>
-              </goals>
-              <configuration>
-                <executable>${imageBuilder}</executable>
-                <arguments>
-                  <argument>kill</argument>
-                  <argument>container-jfr-itest</argument>
-                </arguments>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
           <artifactId>maven-clean-plugin</artifactId>
           <version>${org.apache.maven.plugins.clean.version}</version>
           <configuration>
@@ -454,8 +428,56 @@
                     <include>dist/**</include>
                 </includes>
               </fileset>
+              <fileset>
+                <directory>bin</directory>
+                <includes>
+                  <include>node/**</include>
+                </includes>
+              </fileset>
             </filesets>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>com.github.eirslett</groupId>
+          <artifactId>frontend-maven-plugin</artifactId>
+          <version>${com.github.eirslett.frontend.plugin.version}</version>
+          <configuration>
+            <workingDirectory>${project.basedir}/web-client</workingDirectory>
+            <installDirectory>${project.basedir}/bin</installDirectory>
+          </configuration>
+          <executions>
+            <execution>
+              <id>install node and npm</id>
+              <phase>initialize</phase>
+              <goals>
+                <goal>install-node-and-npm</goal>
+              </goals>
+              <configuration>
+                <nodeVersion>${node.version}</nodeVersion>
+                <npmVersion>${npm.version}</npmVersion>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm ci</id>
+              <phase>initialize</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>ci</arguments>
+              </configuration>
+            </execution>
+            <execution>
+              <id>npm run build</id>
+              <phase>prepare-package</phase>
+              <goals>
+                <goal>npm</goal>
+              </goals>
+              <configuration>
+                <arguments>run build</arguments>
+              </configuration>
+            </execution>
+          </executions>
         </plugin>
         <plugin>
           <artifactId>maven-resources-plugin</artifactId>

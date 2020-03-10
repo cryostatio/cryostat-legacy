@@ -18,10 +18,8 @@ for multi-container demos of this project.
 Build:
 - Git
 - JDK11+
-- Maven
+- Maven 3+
 - Podman
-- npm 6+
-- Node 12+
 
 Run:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
@@ -32,13 +30,10 @@ required dependency, which is not currently published in an artefact repository
 and so must be built and installed into the Maven local repository.
 Instructions for doing so are available at that project's README.
 
-Submodules must be initialized via `git submodule init && git submodule update`.
-
-`container-jfr-web`, as a submodule located within the `web-client` directory,
-must be prepared by running `pushd web-client; npm ci; popd`.
-
 Once the `container-jfr-core` local dependency is made available,
 `mvn compile` will build the project.
+
+Submodules must be initialized via `git submodule init && git submodule update`.
 
 Tests can be run with `mvn test`. Additional quality tools can be run with
 `mvn verify`.
