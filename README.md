@@ -35,8 +35,12 @@ Once the `container-jfr-core` local dependency is made available,
 
 Submodules must be initialized via `git submodule init && git submodule update`.
 
-Tests can be run with `mvn test`. Additional quality tools can be run with
-`mvn verify`.
+Unit tests can be run with `mvn test`. Integration tests and additional quality
+tools can be run with `mvn verify`.
+
+To re-run integration tests without a rebuild, do
+`mvn exec:exec@start-container failsafe:integration-test
+exec:exec@stop-container`.
 
 An OCI image can be built to your local `podman` image registry using
 `mvn package`. This will normally be a full-fledged image including built
@@ -44,6 +48,10 @@ web-client assets. To skip building the web-client and not include its assets
 in the OCI image, use `mvn -Dcontainerjfr.minimal=true clean package`. The
 `clean` phase should always be specified here, or else previously-generated
 client assets will still be included into the built image.
+
+To use other OCI builders, use the `imageBuilder` Maven property, ex.
+`mvn -DimageBuilder=$(which docker) clean verify` to build to Docker instead of
+Podman.
 
 ## RUN
 For a basic development non-containerized smoketest, use
