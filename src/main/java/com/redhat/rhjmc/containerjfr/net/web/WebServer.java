@@ -165,6 +165,11 @@ public class WebServer implements ConnectionListener {
                         logger.error(exception);
                     }
 
+                    if (exception.getStatusCode() == 401) {
+                        // Use X- prefix so as to not trigger web-browser auth dialogs
+                        ctx.response().putHeader("X-WWW-Authenticate", auth.getScheme().toString());
+                    }
+
                     String payload =
                             exception.getPayload() != null
                                     ? exception.getPayload()
