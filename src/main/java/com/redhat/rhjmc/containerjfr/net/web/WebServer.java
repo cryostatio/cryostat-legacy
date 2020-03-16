@@ -67,6 +67,9 @@ public class WebServer implements ConnectionListener {
     private static final String MIME_TYPE_PLAINTEXT = "text/plain";
     private static final String MIME_TYPE_OCTET_STREAM = "application/octet-stream";
 
+    // Use X- prefix so as to not trigger web-browser auth dialogs
+    private static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
+
     private static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
@@ -163,6 +166,10 @@ public class WebServer implements ConnectionListener {
                         logger.warn(exception);
                     } else {
                         logger.error(exception);
+                    }
+
+                    if (exception.getStatusCode() == 401) {
+                        ctx.response().putHeader(AUTH_SCHEME_HEADER, auth.getScheme().toString());
                     }
 
                     String payload =

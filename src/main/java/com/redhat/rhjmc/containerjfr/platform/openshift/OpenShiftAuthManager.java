@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AbstractAuthManager;
+import com.redhat.rhjmc.containerjfr.net.AuthenticationScheme;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
@@ -28,6 +29,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     public OpenShiftAuthManager(Logger logger, FileSystem fs) {
         super(logger, fs);
+    }
+
+    @Override
+    public AuthenticationScheme getScheme() {
+        return AuthenticationScheme.BEARER;
     }
 
     @Override

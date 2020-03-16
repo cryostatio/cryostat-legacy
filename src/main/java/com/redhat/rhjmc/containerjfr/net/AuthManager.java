@@ -12,6 +12,8 @@ import java.util.function.Supplier;
  * so this requirement is subject to change.
  */
 public interface AuthManager {
+    AuthenticationScheme getScheme();
+
     Future<Boolean> validateToken(Supplier<String> tokenProvider);
 
     Future<Boolean> validateHttpHeader(Supplier<String> headerProvider);

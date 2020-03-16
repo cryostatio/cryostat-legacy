@@ -18,6 +18,12 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public AuthenticationScheme getScheme() {
+        // accepts everything and anything, so this is really meaningless
+        return AuthenticationScheme.BASIC;
+    }
+
+    @Override
     public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
         return CompletableFuture.completedFuture(true);
     }

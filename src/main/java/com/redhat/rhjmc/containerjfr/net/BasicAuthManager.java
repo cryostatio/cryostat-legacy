@@ -33,6 +33,11 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public AuthenticationScheme getScheme() {
+        return AuthenticationScheme.BASIC;
+    }
+
+    @Override
     public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
         if (!configLoaded) {
             this.loadConfig();
