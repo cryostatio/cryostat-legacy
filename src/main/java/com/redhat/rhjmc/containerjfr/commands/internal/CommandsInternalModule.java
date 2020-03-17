@@ -74,6 +74,10 @@ public abstract class CommandsInternalModule {
 
     @Binds
     @IntoSet
+    abstract Command bindListEventTemplatesCommand(ListEventTemplatesCommand command);
+
+    @Binds
+    @IntoSet
     abstract Command bindListSavedRecordingsCommand(ListSavedRecordingsCommand command);
 
     @Binds

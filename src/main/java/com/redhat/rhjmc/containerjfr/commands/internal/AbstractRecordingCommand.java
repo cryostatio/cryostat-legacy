@@ -12,6 +12,7 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
     private static final Pattern ALL_EVENTS_PATTERN = Pattern.compile("^ALL$", Pattern.MULTILINE);
+    private static final Pattern TEMPLATE_PATTERN = Pattern.compile("^template=([\\w]+)$");
     private static final Pattern EVENTS_PATTERN =
             Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
@@ -31,6 +32,10 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
     protected IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {
         if (ALL_EVENTS_PATTERN.matcher(events).matches()) {
             return enableAllEvents();
+        } else if (TEMPLATE_PATTERN.matcher(events).matches()) {
+            Matcher m = TEMPLATE_PATTERN.matcher(events);
+            m.find();
+            return getConnection().getTemplateService().getEventsByTemplateName(m.group(1));
         }
 
         return enableSelectedEvents(events);
@@ -65,6 +70,7 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
         // TODO better validation of entire events string (not just looking for one acceptable
         // setting)
         if (!ALL_EVENTS_PATTERN.matcher(events).matches()
+                && !TEMPLATE_PATTERN.matcher(events).matches()
                 && !EVENTS_PATTERN.matcher(events).find()) {
             cw.println(String.format("%s is an invalid events pattern", events));
             return false;
