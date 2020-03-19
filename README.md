@@ -55,7 +55,7 @@ Podman.
 
 ## RUN
 For a basic development non-containerized smoketest, use
-`mvn prepare-package exec:java`.
+`MAVEN_OPTS="-Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false" mvn clean prepare-package exec:java`.
 
 For a Kubernetes/OpenShift deployment, see [container-jfr-operator](https://github.com/rh-jmc-team/container-jfr-operator).
 This will deploy container-jfr into your configured cluster in interactive
