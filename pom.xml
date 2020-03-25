@@ -379,6 +379,15 @@
       <groupId>org.jacoco</groupId>
       <artifactId>jacoco-maven-plugin</artifactId>
       <version>${org.jacoco.maven.plugin.version}</version>
+      <configuration>
+        <excludes>
+          <exclude>**/*_Factory.*</exclude>
+          <exclude>**/*_Provide*Factory.*</exclude>
+          <exclude>**/Dagger*.*</exclude>
+          <exclude>**/*Module_*Factory.*</exclude>
+          <exclude>**/*Module.*</exclude>
+        </excludes>
+      </configuration>
       <reportSets>
         <reportSet>
           <reports>
