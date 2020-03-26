@@ -130,6 +130,9 @@ formatted as a JSON response.
     The syntax of the overall events string is `event1,event2,event3`, for
     N >= 1 events.
 
+    The event string may also be provided in the form `template=Foo`. This
+    format allows preset configurations of events and options to be enabled.
+
     The eventID is the fully qualified event name. For information about the
     events and options available, see `list-event-types` or `search-events`.
     ###### see also
