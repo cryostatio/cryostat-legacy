@@ -70,6 +70,9 @@ class ListEventTemplatesCommandTest {
         inOrder.verify(cw).println("\t[Foo Inc.]\tFoo:\ta foo-ing template");
         inOrder.verify(cw).println("\t[Bar Inc.]\tBar:\ta bar-ing template");
         inOrder.verify(cw).println("\t[Baz Inc.]\tBaz:\ta baz-ing template");
+        inOrder.verify(cw)
+                .println(
+                        "\t[ContainerJFR]\tALL:\tEnable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.");
         Mockito.verifyNoMoreInteractions(cw);
     }
 
@@ -79,13 +82,15 @@ class ListEventTemplatesCommandTest {
         Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
         Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
         Template baz = new Template("Baz", "a baz-ing template", "Baz Inc.");
-        List<Template> expectedList = List.of(foo, bar, baz);
-        Mockito.when(templateSvc.getTemplates()).thenReturn(expectedList);
+        List<Template> remoteList = List.of(foo, bar, baz);
+        Mockito.when(templateSvc.getTemplates()).thenReturn(remoteList);
 
         cmd.connectionChanged(connection);
 
         Output<?> output = cmd.serializableExecute(new String[0]);
         MatcherAssert.assertThat(output, Matchers.instanceOf(ListOutput.class));
+        List<Template> expectedList =
+                List.of(foo, bar, baz, AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
         List<Template> list = ((ListOutput<Template>) output).getPayload();
         MatcherAssert.assertThat(list, Matchers.equalTo(expectedList));
     }

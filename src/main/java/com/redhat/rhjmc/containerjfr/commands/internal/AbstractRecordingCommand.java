@@ -7,11 +7,17 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
-    private static final Pattern ALL_EVENTS_PATTERN = Pattern.compile("^ALL$", Pattern.MULTILINE);
+    static final Template ALL_EVENTS_TEMPLATE =
+            new Template(
+                    "ALL",
+                    "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.",
+                    "ContainerJFR");
+
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("^template=([\\w]+)$");
     private static final Pattern EVENTS_PATTERN =
             Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
@@ -30,12 +36,14 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
     }
 
     protected IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {
-        if (ALL_EVENTS_PATTERN.matcher(events).matches()) {
-            return enableAllEvents();
-        } else if (TEMPLATE_PATTERN.matcher(events).matches()) {
+        if (TEMPLATE_PATTERN.matcher(events).matches()) {
             Matcher m = TEMPLATE_PATTERN.matcher(events);
             m.find();
-            return getConnection().getTemplateService().getEventsByTemplateName(m.group(1));
+            String templateName = m.group(1);
+            if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
+                return enableAllEvents();
+            }
+            return getConnection().getTemplateService().getEventsByTemplateName(templateName);
         }
 
         return enableSelectedEvents(events);
@@ -69,9 +77,7 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
     protected boolean validateEvents(String events) {
         // TODO better validation of entire events string (not just looking for one acceptable
         // setting)
-        if (!ALL_EVENTS_PATTERN.matcher(events).matches()
-                && !TEMPLATE_PATTERN.matcher(events).matches()
-                && !EVENTS_PATTERN.matcher(events).find()) {
+        if (!TEMPLATE_PATTERN.matcher(events).matches() && !EVENTS_PATTERN.matcher(events).find()) {
             cw.println(String.format("%s is an invalid events pattern", events));
             return false;
         }

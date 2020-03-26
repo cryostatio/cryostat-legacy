@@ -1,9 +1,15 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
+import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
@@ -25,9 +31,7 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     @Override
     public void execute(String[] args) throws Exception {
         cw.println("Available recording templates:");
-        getConnection()
-                .getTemplateService()
-                .getTemplates()
+        getTemplates()
                 .forEach(
                         template ->
                                 cw.println(
@@ -41,7 +45,7 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return new ListOutput<>(getConnection().getTemplateService().getTemplates());
+            return new ListOutput<>(getTemplates());
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -54,5 +58,12 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
             return false;
         }
         return true;
+    }
+
+    private List<Template> getTemplates() throws FlightRecorderException, JMXConnectionException {
+        List<Template> templates =
+                new ArrayList<>(getConnection().getTemplateService().getTemplates());
+        templates.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
+        return Collections.unmodifiableList(templates);
     }
 }

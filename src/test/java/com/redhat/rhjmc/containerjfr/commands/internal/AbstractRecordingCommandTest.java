@@ -74,7 +74,7 @@ class AbstractRecordingCommandTest extends TestBase {
                 "foo.Event:prop=val",
                 "foo.Event:prop=val,bar.Event:thing=1",
                 "foo.class$Inner:prop=val",
-                "ALL"
+                "template=ALL"
             })
     void shouldValidateValidEventString(String events) {
         assertTrue(command.validateEvents(events));
@@ -143,7 +143,7 @@ class AbstractRecordingCommandTest extends TestBase {
                 .thenReturn((Collection) Collections.singletonList(mockEvent));
 
         command.connectionChanged(connection);
-        command.enableEvents("ALL");
+        command.enableEvents("template=ALL");
 
         verify(builder).addEvent("com.example.Event", "enabled", "true");
         verify(builder).build();
