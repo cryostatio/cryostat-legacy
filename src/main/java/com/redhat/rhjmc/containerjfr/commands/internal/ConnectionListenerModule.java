@@ -39,6 +39,10 @@ public abstract class ConnectionListenerModule {
 
     @Binds
     @IntoSet
+    abstract ConnectionListener bindListEventTemplatesCommand(ListEventTemplatesCommand command);
+
+    @Binds
+    @IntoSet
     abstract ConnectionListener bindRecordingOptionsCustomizerCommand(
             RecordingOptionsCustomizerCommand command);
 

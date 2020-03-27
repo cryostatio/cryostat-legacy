@@ -130,11 +130,15 @@ formatted as a JSON response.
     The syntax of the overall events string is `event1,event2,event3`, for
     N >= 1 events.
 
+    The event string may also be provided in the form `template=Foo`. This
+    format allows preset configurations of events and options to be enabled.
+
     The eventID is the fully qualified event name. For information about the
     events and options available, see `list-event-types` or `search-events`.
     ###### see also
     * [`list-event-types`](#list-event-types)
     * [`search-events`](#search-events)
+    * [`list-event-templates`](#list-event-templates)
     * [`dump`](#dump)
 
 * #### `stop`
@@ -231,6 +235,34 @@ formatted as a JSON response.
     ###### see also
     * [`start`](#start)
     * [`dump`](#dump)
+    * [`list-event-types`](#list-event-types)
+    * [`list-event-templates`](#list-event-templates)
+
+* #### `list-event-types`
+    ###### usage
+    `list-event-types`
+    ###### synopsis
+    Lists event types that can be produced by the target JVM.
+    This is useful for preparing event options strings.
+    ###### see also
+    * [`start`](#start)
+    * [`dump`](#dump)
+    * [`search-events`](#search-events)
+    * [`list-event-templates`](#list-event-templates)
+
+* #### `list-event-templates`
+    ###### usage
+    `list-event-templates`
+    ###### synopsis
+    Lists event templates, which are configurations of event types with
+    preset values for their associated options.
+    These may include templates defined and supported by the currently connected
+    remote target JVM as well as customized templates known to `container-jfr`.
+    ###### see also
+    * [`start`](#start)
+    * [`dump`](#dump)
+    * [`search-events`](#search-events)
+    * [`list-event-types`](#list-event-types)
 
 * #### `recording-option`
     ###### usage

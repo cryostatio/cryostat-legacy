@@ -14,6 +14,8 @@ import static org.mockito.Mockito.when;
 import java.util.Collection;
 import java.util.Collections;
 
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,12 +25,17 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
+import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateService.UnknownEventTemplateException;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -67,7 +74,7 @@ class AbstractRecordingCommandTest extends TestBase {
                 "foo.Event:prop=val",
                 "foo.Event:prop=val,bar.Event:thing=1",
                 "foo.class$Inner:prop=val",
-                "ALL"
+                "template=ALL"
             })
     void shouldValidateValidEventString(String events) {
         assertTrue(command.validateEvents(events));
@@ -94,6 +101,32 @@ class AbstractRecordingCommandTest extends TestBase {
     }
 
     @Test
+    void shouldBuildTemplateEventMap() throws Exception {
+        TemplateService templateSvc = mock(TemplateService.class);
+        when(connection.getTemplateService()).thenReturn(templateSvc);
+
+        IConstrainedMap<EventOptionID> templateMap = mock(IConstrainedMap.class);
+        when(templateSvc.getEventsByTemplateName(Mockito.anyString())).thenReturn(templateMap);
+
+        command.connectionChanged(connection);
+        IConstrainedMap<EventOptionID> result = command.enableEvents("template=Foo");
+        assertThat(result, Matchers.sameInstance(templateMap));
+    }
+
+    @Test
+    void shouldThrowExceptionForUnknownTemplate() throws Exception {
+        TemplateService templateSvc = mock(TemplateService.class);
+        when(connection.getTemplateService()).thenReturn(templateSvc);
+
+        when(templateSvc.getEventsByTemplateName(Mockito.anyString()))
+                .thenThrow(new FlightRecorderException(new UnknownEventTemplateException("Foo")));
+
+        command.connectionChanged(connection);
+        Assertions.assertThrows(
+                FlightRecorderException.class, () -> command.enableEvents("template=Foo"));
+    }
+
+    @Test
     void shouldBuildAllEventMap() throws Exception {
         verifyZeroInteractions(eventOptionsBuilderFactory);
 
@@ -110,7 +143,7 @@ class AbstractRecordingCommandTest extends TestBase {
                 .thenReturn((Collection) Collections.singletonList(mockEvent));
 
         command.connectionChanged(connection);
-        command.enableEvents("ALL");
+        command.enableEvents("template=ALL");
 
         verify(builder).addEvent("com.example.Event", "enabled", "true");
         verify(builder).build();
