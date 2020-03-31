@@ -27,8 +27,11 @@ import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
+    private final FileSystem fs;
+
     public OpenShiftAuthManager(Logger logger, FileSystem fs) {
-        super(logger, fs);
+        super(logger);
+        this.fs = fs;
     }
 
     @Override

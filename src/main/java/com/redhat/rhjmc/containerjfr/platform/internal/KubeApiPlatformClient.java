@@ -64,7 +64,7 @@ class KubeApiPlatformClient implements PlatformClient {
 
     @Override
     public AuthManager getAuthManager() {
-        return new NoopAuthManager();
+        return new NoopAuthManager(logger);
     }
 
     private ServiceRef resolveServiceRefHostname(ServiceRef in) {

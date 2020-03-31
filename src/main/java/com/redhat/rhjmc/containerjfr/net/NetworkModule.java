@@ -139,7 +139,7 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static NoopAuthManager provideNoopAuthManager(Logger logger, FileSystem fs) {
-        return new NoopAuthManager(logger, fs);
+        return new NoopAuthManager(logger);
     }
 
     @Binds
