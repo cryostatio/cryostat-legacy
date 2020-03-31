@@ -7,6 +7,8 @@ import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
+import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftPlatformStrategy;
 
 import dagger.Module;
@@ -20,14 +22,16 @@ public abstract class PlatformStrategyModule {
     @ElementsIntoSet
     static Set<PlatformDetectionStrategy<?>> providePlatformDetectionStrategies(
             Logger logger,
+            OpenShiftAuthManager openShiftAuthManager,
+            NoopAuthManager noopAuthManager,
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,
             JvmDiscoveryClient discoveryClient) {
         return Set.of(
-                new OpenShiftPlatformStrategy(logger, env, resolver, fs),
-                new KubeApiPlatformStrategy(logger, resolver),
-                new KubeEnvPlatformStrategy(logger, env),
-                new DefaultPlatformStrategy(logger, discoveryClient));
+                new OpenShiftPlatformStrategy(logger, openShiftAuthManager, env, resolver, fs),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, resolver),
+                new KubeEnvPlatformStrategy(logger, noopAuthManager, env),
+                new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
     }
 }

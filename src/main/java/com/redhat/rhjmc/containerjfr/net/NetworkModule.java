@@ -3,8 +3,6 @@ package com.redhat.rhjmc.containerjfr.net;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.util.Objects;
-import java.util.Set;
 
 import javax.inject.Singleton;
 
@@ -19,25 +17,20 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
-import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
 import dagger.Binds;
-import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 
 @Module(includes = {ReportsModule.class})
 public abstract class NetworkModule {
-
-    static final String AUTH_MANAGER_ENV_VAR = "CONTAINER_JFR_AUTH_MANAGER";
 
     @Provides
     @Singleton
@@ -102,38 +95,6 @@ public abstract class NetworkModule {
         } catch (SslConfiguration.SslConfigurationException e) {
             throw new RuntimeException(e); // @Provides methods may only throw unchecked exceptions
         }
-    }
-
-    @Provides
-    @Singleton
-    static AuthManager provideAuthManager(
-            ExecutionMode mode,
-            Environment env,
-            FileSystem fs,
-            Set<AuthManager> authManagers,
-            @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> platformAuthManager,
-            Logger logger) {
-        final String authManagerClass;
-        if (env.hasEnv(AUTH_MANAGER_ENV_VAR)) {
-            authManagerClass = env.getEnv(AUTH_MANAGER_ENV_VAR);
-            logger.info(String.format("Selecting configured AuthManager \"%s\"", authManagerClass));
-        } else if (ExecutionMode.WEBSOCKET.equals(mode)) {
-            authManagerClass = platformAuthManager.get().getClass().getCanonicalName();
-            logger.info(
-                    String.format(
-                            "Selecting platform default AuthManager \"%s\"", authManagerClass));
-        } else {
-            authManagerClass = NoopAuthManager.class.getCanonicalName();
-        }
-        return authManagers.stream()
-                .filter(mgr -> Objects.equals(mgr.getClass().getCanonicalName(), authManagerClass))
-                .findFirst()
-                .orElseThrow(
-                        () ->
-                                new RuntimeException(
-                                        String.format(
-                                                "Selected AuthManager \"%s\" is not available",
-                                                authManagerClass)));
     }
 
     @Provides
