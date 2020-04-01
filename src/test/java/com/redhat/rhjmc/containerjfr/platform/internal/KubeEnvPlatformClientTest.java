@@ -16,20 +16,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 @ExtendWith(MockitoExtension.class)
 class KubeEnvPlatformClientTest {
 
-    @Mock Logger logger;
     @Mock Environment env;
     KubeEnvPlatformClient client;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(logger, env);
+        client = new KubeEnvPlatformClient(env);
     }
 
     @Nested

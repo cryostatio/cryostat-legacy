@@ -2,14 +2,17 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
 
     private final Logger logger;
+    private final AuthManager authMgr;
     private final Environment env;
 
-    KubeEnvPlatformStrategy(Logger logger, Environment env) {
+    KubeEnvPlatformStrategy(Logger logger, AuthManager authMgr, Environment env) {
         this.logger = logger;
+        this.authMgr = authMgr;
         this.env = env;
     }
 
@@ -25,8 +28,13 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     }
 
     @Override
-    public KubeEnvPlatformClient get() {
+    public KubeEnvPlatformClient getPlatformClient() {
         logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(logger, env);
+        return new KubeEnvPlatformClient(env);
+    }
+
+    @Override
+    public AuthManager getAuthManager() {
+        return authMgr;
     }
 }

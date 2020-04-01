@@ -7,7 +7,6 @@ import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -17,8 +16,6 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
 import dagger.Binds;
 import dagger.Module;
@@ -53,12 +50,5 @@ public abstract class WebModule {
                 gson,
                 reportGenerator,
                 logger);
-    }
-
-    @Provides
-    @Singleton
-    @ConnectionMode(ExecutionMode.WEBSOCKET)
-    static AuthManager provideAuthManager(PlatformClient platform) {
-        return platform.getAuthManager();
     }
 }

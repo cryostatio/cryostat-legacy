@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
 
@@ -18,13 +19,19 @@ public class OpenShiftPlatformStrategy
         implements PlatformDetectionStrategy<OpenShiftPlatformClient> {
 
     private final Logger logger;
+    private final AuthManager authMgr;
     private final NetworkResolver resolver;
     private final FileSystem fs;
     private OpenShiftClient osClient;
 
     public OpenShiftPlatformStrategy(
-            Logger logger, Environment env, NetworkResolver resolver, FileSystem fs) {
+            Logger logger,
+            OpenShiftAuthManager authMgr,
+            Environment env,
+            NetworkResolver resolver,
+            FileSystem fs) {
         this.logger = logger;
+        this.authMgr = authMgr;
         this.resolver = resolver;
         this.fs = fs;
         try {
@@ -65,8 +72,13 @@ public class OpenShiftPlatformStrategy
     }
 
     @Override
-    public OpenShiftPlatformClient get() {
+    public OpenShiftPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
         return new OpenShiftPlatformClient(logger, osClient, fs, resolver);
+    }
+
+    @Override
+    public AuthManager getAuthManager() {
+        return authMgr;
     }
 }

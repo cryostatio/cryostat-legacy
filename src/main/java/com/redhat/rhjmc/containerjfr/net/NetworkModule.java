@@ -1,6 +1,5 @@
 package com.redhat.rhjmc.containerjfr.net;
 
-import java.lang.reflect.Constructor;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
@@ -18,23 +17,20 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 
-import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
-import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
-import dagger.Lazy;
+import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
+import dagger.multibindings.IntoSet;
 
 @Module(includes = {ReportsModule.class})
 public abstract class NetworkModule {
-
-    static final String AUTH_MANAGER_ENV_VAR = "CONTAINER_JFR_AUTH_MANAGER";
 
     @Provides
     @Singleton
@@ -103,37 +99,21 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    @SuppressWarnings("unchecked")
-    static AuthManager provideAuthManager(
-            ExecutionMode mode,
-            Environment env,
-            FileSystem fs,
-            @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> webSocketAuth,
-            Logger logger) {
-        try {
-            if (env.hasEnv(AUTH_MANAGER_ENV_VAR)) {
-                String authClass = env.getEnv(AUTH_MANAGER_ENV_VAR);
-                logger.info(String.format("Selecting configured AuthManager \"%s\"", authClass));
-                Class<AuthManager> klazz =
-                        (Class<AuthManager>) Class.forName(authClass).asSubclass(AuthManager.class);
-                Constructor<AuthManager> cons =
-                        klazz.getDeclaredConstructor(Logger.class, FileSystem.class);
-                return cons.newInstance(logger, fs);
-            }
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-        logger.info("Selecting platform default AuthManager");
-        switch (mode) {
-            case BATCH:
-            case INTERACTIVE:
-            case SOCKET:
-                return new NoopAuthManager(logger, fs);
-            case WEBSOCKET:
-                return webSocketAuth.get();
-            default:
-                throw new RuntimeException(
-                        String.format("Unimplemented execution mode: %s", mode.toString()));
-        }
+    static NoopAuthManager provideNoopAuthManager(Logger logger, FileSystem fs) {
+        return new NoopAuthManager(logger);
     }
+
+    @Binds
+    @IntoSet
+    abstract AuthManager bindNoopAuthManager(NoopAuthManager mgr);
+
+    @Provides
+    @Singleton
+    static BasicAuthManager provideBasicAuthManager(Logger logger, FileSystem fs) {
+        return new BasicAuthManager(logger, fs);
+    }
+
+    @Binds
+    @IntoSet
+    abstract AuthManager bindBasicAuthManager(BasicAuthManager mgr);
 }
