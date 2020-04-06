@@ -53,6 +53,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -98,6 +99,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class WebServer implements ConnectionListener {
 
+    private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
     private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     private static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV =
@@ -240,6 +242,17 @@ public class WebServer implements ConnectionListener {
                 .blockingHandler(this::handleAuthRequest, false)
                 .failureHandler(failureHandler);
 
+        if (isCorsEnabled()) {
+            router.options("/auth")
+                    .blockingHandler(
+                            ctx -> {
+                                enableCors(ctx.response());
+                                ctx.response().end();
+                            },
+                            false)
+                    .failureHandler(failureHandler);
+        }
+
         router.get("/clienturl")
                 .handler(this::handleClientUrlRequest)
                 .failureHandler(failureHandler);
@@ -294,6 +307,7 @@ public class WebServer implements ConnectionListener {
                                                             req.response().getStatusCode(),
                                                             Duration.between(start, Instant.now())
                                                                     .toMillis())));
+                    enableCors(req.response());
                     router.handle(req);
                 });
     }
@@ -637,6 +651,26 @@ public class WebServer implements ConnectionListener {
 
     private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
         return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+    }
+
+    private boolean isCorsEnabled() {
+        return this.env.hasEnv(ENABLE_CORS_ENV);
+    }
+
+    private void enableCors(HttpServerResponse response) {
+        if (isCorsEnabled()) {
+            response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:9000");
+            response.putHeader("Vary", "Origin");
+            response.putHeader(
+                    HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS, HEAD");
+            response.putHeader(
+                    HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+                    String.join(", ", Arrays.asList("authorization", "Authorization")));
+            response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+            response.putHeader(
+                    HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                    String.join(", ", Arrays.asList(AUTH_SCHEME_HEADER)));
+        }
     }
 
     private <T> AsyncResult<T> makeAsyncResult(T result) {
