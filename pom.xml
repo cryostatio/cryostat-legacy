@@ -35,6 +35,7 @@
   <org.apache.maven.plugins.resources.version>3.1.0</org.apache.maven.plugins.resources.version>
   <com.github.eirslett.frontend.plugin.version>1.9.1</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>1.6.0</org.codehaus.mojo.exec.plugin.version>
+  <org.codehaus.mojo.license.plugin.version>2.0.0</org.codehaus.mojo.license.plugin.version>
   <com.google.cloud.tools.jib.maven.plugin.version>2.1.0</com.google.cloud.tools.jib.maven.plugin.version>
 
   <com.google.dagger.version>2.26</com.google.dagger.version>
@@ -363,6 +364,32 @@
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-project-info-reports-plugin</artifactId>
       <version>${org.apache.maven.plugins.info.reports.version}</version>
+    </plugin>
+    <plugin>
+    <groupId>org.codehaus.mojo</groupId>
+    <artifactId>license-maven-plugin</artifactId>
+    <version>${org.codehaus.mojo.license.plugin.version}</version>
+    <configuration>
+      <licenseName>upl_v1</licenseName>
+      <licenseResolver>${project.baseUri}/src/license</licenseResolver>
+      <projectName>Container JFR</projectName>
+      <organizationName>Red Hat, Inc.</organizationName>
+      <inceptionYear>2020</inceptionYear>
+      <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
+      <roots>
+        <root>src/main/java</root>
+        <root>src/test/java</root>
+      </roots>
+    </configuration>
+    <executions>
+      <execution>
+        <id>update-license</id>
+        <goals>
+          <goal>update-file-header</goal>
+        </goals>
+        <phase>process-sources</phase>
+      </execution>
+    </executions>
     </plugin>
   </plugins>
 </build>
