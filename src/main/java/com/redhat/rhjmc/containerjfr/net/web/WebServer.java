@@ -99,6 +99,9 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class WebServer implements ConnectionListener {
 
+    private static final String WEB_CLIENT_ASSETS_BASE =
+            WebServer.class.getPackageName().replaceAll("\\.", "/");
+
     private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
     private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
@@ -288,9 +291,9 @@ public class WebServer implements ConnectionListener {
                 .failureHandler(failureHandler);
 
         router.get("/*")
-                .handler(
-                        StaticHandler.create(
-                                WebServer.class.getPackageName().replaceAll("\\.", "/")));
+                .handler(StaticHandler.create(WEB_CLIENT_ASSETS_BASE))
+                .handler(this::handleWebClientIndexRequest)
+                .failureHandler(failureHandler);
 
         this.server.requestHandler(
                 req -> {
@@ -473,6 +476,11 @@ public class WebServer implements ConnectionListener {
         } else {
             throw new HttpStatusException(401);
         }
+    }
+
+    void handleWebClientIndexRequest(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
+        ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
     }
 
     void handleClientUrlRequest(RoutingContext ctx) {
