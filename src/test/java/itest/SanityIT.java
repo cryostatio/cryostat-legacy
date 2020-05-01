@@ -77,7 +77,8 @@ public class SanityIT {
         @Test
         public void shouldReturn200() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 MatcherAssert.assertThat(
@@ -88,7 +89,8 @@ public class SanityIT {
         @Test
         public void shouldReturnOk() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 MatcherAssert.assertThat(
@@ -99,7 +101,8 @@ public class SanityIT {
         @Test
         public void shouldReturnContentTypeJson() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 Header header = resp.getEntity().getContentType();
@@ -110,7 +113,8 @@ public class SanityIT {
         @Test
         public void shouldReturnJsonMessage() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 InputStream content = resp.getEntity().getContent();
@@ -119,7 +123,7 @@ public class SanityIT {
                         body,
                         Matchers.equalTo(
                                 String.format(
-                                        "{\"clientUrl\":\"ws://0.0.0.0:%d/command\"}",
+                                        "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
                                         IntegrationTestUtils.WEB_PORT)));
             }
         }

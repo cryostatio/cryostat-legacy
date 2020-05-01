@@ -300,7 +300,7 @@ class WebServerTest {
 
         MatcherAssert.assertThat(
                 exporter.getDownloadURL(recordingName),
-                Matchers.equalTo("http://example.com:8181/recordings/" + recordingName));
+                Matchers.equalTo("http://example.com:8181/api/v1/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
@@ -314,7 +314,7 @@ class WebServerTest {
 
         MatcherAssert.assertThat(
                 exporter.getDownloadURL(recordingName),
-                Matchers.equalTo("https://example.com:8181/recordings/" + recordingName));
+                Matchers.equalTo("https://example.com:8181/api/v1/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
@@ -327,7 +327,7 @@ class WebServerTest {
 
         MatcherAssert.assertThat(
                 exporter.getReportURL(recordingName),
-                Matchers.equalTo("http://example.com:8181/reports/" + recordingName));
+                Matchers.equalTo("http://example.com:8181/api/v1/reports/" + recordingName));
     }
 
     @ParameterizedTest()
@@ -341,7 +341,7 @@ class WebServerTest {
 
         MatcherAssert.assertThat(
                 exporter.getReportURL(recordingName),
-                Matchers.equalTo("https://example.com:8181/reports/" + recordingName));
+                Matchers.equalTo("https://example.com:8181/api/v1/reports/" + recordingName));
     }
 
     @Test
@@ -355,7 +355,7 @@ class WebServerTest {
         exporter.handleClientUrlRequest(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"clientUrl\":\"ws://hostname:1/command\"}");
+        verify(rep).end("{\"clientUrl\":\"ws://hostname:1/api/v1/command\"}");
     }
 
     @Test
@@ -370,7 +370,7 @@ class WebServerTest {
         exporter.handleClientUrlRequest(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"clientUrl\":\"wss://hostname:1/command\"}");
+        verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/command\"}");
     }
 
     @Test

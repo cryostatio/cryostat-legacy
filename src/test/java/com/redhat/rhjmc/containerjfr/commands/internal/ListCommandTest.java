@@ -140,7 +140,8 @@ class ListCommandTest {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/%s", invocation.getArguments()[0]);
+                                        "http://example.com:1234/api/v1/recordings/%s",
+                                        invocation.getArguments()[0]);
                             }
                         });
         when(exporter.getReportURL(Mockito.anyString()))
@@ -149,7 +150,7 @@ class ListCommandTest {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/reports/%s",
+                                        "http://example.com:1234/api/v1/reports/%s",
                                         invocation.getArguments()[0]);
                             }
                         });
@@ -162,12 +163,12 @@ class ListCommandTest {
                         Arrays.asList(
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("foo"),
-                                        "http://example.com:1234/foo",
-                                        "http://example.com:1234/reports/foo"),
+                                        "http://example.com:1234/api/v1/recordings/foo",
+                                        "http://example.com:1234/api/v1/reports/foo"),
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("bar"),
-                                        "http://example.com:1234/bar",
-                                        "http://example.com:1234/reports/bar"))));
+                                        "http://example.com:1234/api/v1/recordings/bar",
+                                        "http://example.com:1234/api/v1/reports/bar"))));
     }
 
     @Test

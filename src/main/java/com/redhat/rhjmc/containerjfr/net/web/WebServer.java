@@ -238,12 +238,12 @@ public class WebServer implements ConnectionListener {
                             .end(payload);
                 };
 
-        router.post("/auth")
+        router.post("/api/v1/auth")
                 .blockingHandler(this::handleAuthRequest, false)
                 .failureHandler(failureHandler);
 
         if (isCorsEnabled()) {
-            router.options("/auth")
+            router.options("/api/v1/auth")
                     .blockingHandler(
                             ctx -> {
                                 enableCors(ctx.response());
@@ -253,19 +253,19 @@ public class WebServer implements ConnectionListener {
                     .failureHandler(failureHandler);
         }
 
-        router.get("/clienturl")
+        router.get("/api/v1/clienturl")
                 .handler(this::handleClientUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/grafana_datasource_url")
+        router.get("/api/v1/grafana_datasource_url")
                 .handler(this::handleGrafanaDatasourceUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/grafana_dashboard_url")
+        router.get("/api/v1/grafana_dashboard_url")
                 .handler(this::handleGrafanaDashboardUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/recordings/:name")
+        router.get("/api/v1/recordings/:name")
                 .blockingHandler(
                         ctx -> {
                             String recordingName = ctx.pathParam("name");
@@ -278,12 +278,12 @@ public class WebServer implements ConnectionListener {
                         false)
                 .failureHandler(failureHandler);
 
-        router.post("/recordings")
+        router.post("/api/v1/recordings")
                 .handler(BodyHandler.create(true))
                 .handler(this::handleRecordingUploadRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/reports/:name")
+        router.get("/api/v1/reports/:name")
                 .blockingHandler(ctx -> this.handleReportPageRequest(ctx.pathParam("name"), ctx))
                 .failureHandler(failureHandler);
 
@@ -343,12 +343,12 @@ public class WebServer implements ConnectionListener {
 
     public String getDownloadURL(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
-        return String.format("%s/recordings/%s", this.getHostUrl(), recordingName);
+        return String.format("%s/api/v1/recordings/%s", this.getHostUrl(), recordingName);
     }
 
     public String getReportURL(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
-        return String.format("%s/reports/%s", this.getHostUrl(), recordingName);
+        return String.format("%s/api/v1/reports/%s", this.getHostUrl(), recordingName);
     }
 
     private Optional<DownloadDescriptor> getDownloadDescriptor(String recordingName)
@@ -481,7 +481,7 @@ public class WebServer implements ConnectionListener {
             endWithJsonKeyValue(
                     "clientUrl",
                     String.format(
-                            "%s://%s:%d/command",
+                            "%s://%s:%d/api/v1/command",
                             server.isSsl() ? "wss" : "ws",
                             netConf.getWebServerHost(),
                             netConf.getExternalWebServerPort()),

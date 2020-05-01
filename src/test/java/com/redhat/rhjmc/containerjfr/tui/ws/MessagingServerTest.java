@@ -156,7 +156,7 @@ class MessagingServerTest {
         SocketAddress addr = Mockito.mock(SocketAddress.class);
         when(addr.toString()).thenReturn("mockaddr");
         when(sws.remoteAddress()).thenReturn(addr);
-        when(sws.path()).thenReturn("/command");
+        when(sws.path()).thenReturn("/api/v1/command");
         server.start();
 
         ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
