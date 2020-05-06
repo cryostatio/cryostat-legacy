@@ -49,6 +49,7 @@ import javax.inject.Singleton;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -80,6 +81,7 @@ public abstract class WebModule {
             ReportGenerator reportGenerator,
             AuthManager authManager,
             Gson gson,
+            JFRConnectionToolkit jfrConnectionToolkit,
             Logger logger) {
         return new WebServer(
                 httpServer,
@@ -90,6 +92,7 @@ public abstract class WebModule {
                 authManager,
                 gson,
                 reportGenerator,
+                jfrConnectionToolkit,
                 logger);
     }
 }
