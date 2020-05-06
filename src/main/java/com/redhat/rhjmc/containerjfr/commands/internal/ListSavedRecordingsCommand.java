@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -102,7 +103,7 @@ class ListSavedRecordingsCommand implements SerializableCommand {
                         new SavedRecordingDescriptor(
                                 name, exporter.getDownloadURL(name), exporter.getReportURL(name)));
             }
-        } catch (IOException e) {
+        } catch (IOException | URISyntaxException e) {
             return new ExceptionOutput(e);
         }
         return new ListOutput<>(recordings);

@@ -84,6 +84,7 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -117,6 +118,7 @@ class WebServerTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock ReportGenerator reportGenerator;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
 
     @BeforeEach
     void setup() {
@@ -130,6 +132,7 @@ class WebServerTest {
                         authManager,
                         gson,
                         reportGenerator,
+                        jfrConnectionToolkit,
                         logger);
     }
 
@@ -153,6 +156,7 @@ class WebServerTest {
                                 authManager,
                                 gson,
                                 reportGenerator,
+                                jfrConnectionToolkit,
                                 logger));
     }
 
