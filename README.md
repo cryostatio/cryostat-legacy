@@ -175,6 +175,18 @@ number and the deployment network configuration allows connections on the
 configured port. As noted above, the final caveat is that in non-Kube
 deployments, port 9091 is expected for automatic port-scanning target discovery.
 
+## ARCHIVING RECORDINGS
+
+`container-jfr` supports a concept of "archiving" recordings. This simply means
+taking the contents of a recording at a point in time and saving these contents
+to a file local to the `container-jfr` process (as opposed to "active"
+recordings, which exist within the memory of the JVM target and continue to grow
+over time). To enable `container-jfr` archive support ensure that the directory
+`/flightrecordings` exists and has appropriate permissions. `container-jfr` will
+automatically detect this path and enable related functionality. `run.sh` has an
+example of a `tmpfs` volume being mounted to this path and enabling the archive
+functionality.
+
 ## SECURING COMMUNICATION CHANNELS
 `container-jfr` can be optionally configured to secure HTTP and WebSocket
 traffics end-to-end with SSL/TLS.
