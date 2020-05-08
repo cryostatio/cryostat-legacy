@@ -246,7 +246,7 @@ public class WebServer implements ConnectionListener {
                 .failureHandler(failureHandler);
 
         if (isCorsEnabled()) {
-            router.options("/api/v1/auth")
+            router.options("/*")
                     .blockingHandler(
                             ctx -> {
                                 enableCors(ctx.response());
