@@ -48,6 +48,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
@@ -56,9 +57,10 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
     @Inject
     SnapshotCommand(
             ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(cw, jfrConnectionToolkit, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
     }
 
     @Override

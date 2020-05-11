@@ -281,11 +281,10 @@ formatted as a JSON response.
 
 * #### `list`
     ###### usage
-    `list`
+    `list target`
     ###### synopsis
-    Lists recordings in the target JVM. The name provided in this list is the
-    name that can be used to download the recording, as well as to pass to
-    other commands which operate upon recordings.
+    Lists recordings in the specified target JVM. The name provided in this list
+    is the name to pass to other commands which operate upon recordings.
     ###### see also
     [`list-saved`](#list-saved)
 

@@ -72,6 +72,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -79,6 +80,7 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 @ExtendWith(MockitoExtension.class)
 class SaveRecordingCommandTest {
 
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock ClientWriter cw;
     @Mock Clock clock;
     @Mock FileSystem fs;
@@ -89,7 +91,7 @@ class SaveRecordingCommandTest {
 
     @BeforeEach
     void setup() {
-        command = new SaveRecordingCommand(cw, clock, fs, recordingsPath);
+        command = new SaveRecordingCommand(cw, jfrConnectionToolkit, clock, fs, recordingsPath);
     }
 
     @Test

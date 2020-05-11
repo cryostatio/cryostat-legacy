@@ -50,6 +50,7 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
@@ -59,7 +60,8 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     private final ClientWriter cw;
 
     @Inject
-    ListEventTemplatesCommand(ClientWriter cw) {
+    ListEventTemplatesCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
     }
 

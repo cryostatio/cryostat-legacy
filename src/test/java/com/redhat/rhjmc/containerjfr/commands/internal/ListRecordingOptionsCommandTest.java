@@ -66,6 +66,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 
@@ -74,12 +75,13 @@ class ListRecordingOptionsCommandTest {
 
     ListRecordingOptionsCommand command;
     @Mock ClientWriter cw;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        command = new ListRecordingOptionsCommand(cw);
+        command = new ListRecordingOptionsCommand(cw, jfrConnectionToolkit);
         command.connectionChanged(connection);
     }
 

@@ -49,9 +49,12 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
+
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
@@ -63,7 +66,8 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
     private final WebServer exporter;
 
     @Inject
-    ListCommand(ClientWriter cw, WebServer exporter) {
+    ListCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit, WebServer exporter) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
         this.exporter = exporter;
     }
@@ -73,33 +77,43 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
         return "list";
     }
 
-    /** No args expected. Prints list of available recordings in target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("Available recordings:");
-        Collection<IRecordingDescriptor> recordings = getService().getAvailableRecordings();
-        if (recordings.isEmpty()) {
-            cw.println("\tNone");
-        }
-        for (IRecordingDescriptor recording : recordings) {
-            cw.println(toString(recording));
-        }
+        executeConnectedTask(
+                args[0],
+                connection -> {
+                    cw.println("Available recordings:");
+                    Collection<IRecordingDescriptor> recordings =
+                            connection.getService().getAvailableRecordings();
+                    if (recordings.isEmpty()) {
+                        cw.println("\tNone");
+                    }
+                    for (IRecordingDescriptor recording : recordings) {
+                        cw.println(toString(recording));
+                    }
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            List<IRecordingDescriptor> origDescriptors = getService().getAvailableRecordings();
-            List<HyperlinkedSerializableRecordingDescriptor> descriptors =
-                    new ArrayList<>(origDescriptors.size());
-            for (IRecordingDescriptor desc : origDescriptors) {
-                descriptors.add(
-                        new HyperlinkedSerializableRecordingDescriptor(
-                                desc,
-                                exporter.getDownloadURL(connection, desc.getName()),
-                                exporter.getReportURL(connection, desc.getName())));
-            }
-            return new ListOutput<>(descriptors);
+            return executeConnectedTask(
+                    args[0],
+                    connection -> {
+                        List<IRecordingDescriptor> origDescriptors =
+                                connection.getService().getAvailableRecordings();
+                        List<HyperlinkedSerializableRecordingDescriptor> descriptors =
+                                new ArrayList<>(origDescriptors.size());
+                        for (IRecordingDescriptor desc : origDescriptors) {
+                            descriptors.add(
+                                    new HyperlinkedSerializableRecordingDescriptor(
+                                            desc,
+                                            exporter.getDownloadURL(connection, desc.getName()),
+                                            exporter.getReportURL(connection, desc.getName())));
+                        }
+                        return new ListOutput<>(descriptors);
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -107,10 +121,19 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
+        if (args.length != 1 || StringUtils.isBlank(args[0])) {
+            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }
+        boolean isValidHostId = validateHostId(args[0]);
+        if (!isValidHostId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+        return isValidHostId;
+    }
+
+    @Override
+    public boolean isAvailable() {
         return true;
     }
 

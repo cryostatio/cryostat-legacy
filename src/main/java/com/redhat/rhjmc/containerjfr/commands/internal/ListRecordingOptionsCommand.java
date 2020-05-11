@@ -50,6 +50,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 
@@ -59,7 +60,8 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     private final ClientWriter cw;
 
     @Inject
-    ListRecordingOptionsCommand(ClientWriter cw) {
+    ListRecordingOptionsCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
     }
 

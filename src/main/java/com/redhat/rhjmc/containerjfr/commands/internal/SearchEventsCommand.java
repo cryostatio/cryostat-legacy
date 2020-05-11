@@ -55,6 +55,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 
@@ -64,7 +65,8 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     private final ClientWriter cw;
 
     @Inject
-    SearchEventsCommand(ClientWriter cw) {
+    SearchEventsCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
     }
 

@@ -71,6 +71,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
@@ -80,14 +81,14 @@ class ListCommandTest {
 
     ListCommand command;
     @Mock ClientWriter cw;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock WebServer exporter;
 
     @BeforeEach
     void setup() {
-        command = new ListCommand(cw, exporter);
-        command.connectionChanged(connection);
+        command = new ListCommand(cw, jfrConnectionToolkit, exporter);
     }
 
     @Test
@@ -96,20 +97,27 @@ class ListCommandTest {
     }
 
     @Test
-    void shouldExpectNoArgs() {
-        assertTrue(command.validate(new String[0]));
+    void shouldExpectOneArg() {
+        assertTrue(command.validate(new String[] {"foo:9091"}));
     }
 
     @Test
-    void shouldNotExpectArgs() {
-        assertFalse(command.validate(new String[1]));
+    void shouldNotExpectNoArgs() {
+        assertFalse(command.validate(new String[0]));
+    }
+
+    @Test
+    void shouldNotExpectTwoArgs() {
+        assertFalse(command.validate(new String[2]));
     }
 
     @Test
     void shouldHandleNoRecordings() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
-        command.execute(new String[0]);
+        command.execute(new String[] {"foo:9091"});
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recordings:");
         inOrder.verify(cw).println("\tNone");
@@ -117,11 +125,13 @@ class ListCommandTest {
 
     @Test
     void shouldPrintRecordingNames() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         List<IRecordingDescriptor> descriptors =
                 Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
         when(service.getAvailableRecordings()).thenReturn(descriptors);
-        command.execute(new String[0]);
+        command.execute(new String[] {"foo:9091"});
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recordings:");
         inOrder.verify(cw).println(Mockito.contains("getName\t\tfoo"));
@@ -130,6 +140,8 @@ class ListCommandTest {
 
     @Test
     void shouldReturnListOutput() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(connection.getHost()).thenReturn("fooHost");
         when(connection.getPort()).thenReturn(1);
@@ -161,7 +173,7 @@ class ListCommandTest {
                             }
                         });
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo:9091"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
@@ -179,10 +191,12 @@ class ListCommandTest {
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(FlightRecorderException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo:9091"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));

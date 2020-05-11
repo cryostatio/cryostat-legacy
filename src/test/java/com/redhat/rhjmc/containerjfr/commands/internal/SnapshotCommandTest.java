@@ -68,6 +68,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,6 +76,7 @@ class SnapshotCommandTest {
 
     SnapshotCommand command;
     @Mock ClientWriter cw;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
@@ -83,7 +85,11 @@ class SnapshotCommandTest {
     @BeforeEach
     void setup() {
         command =
-                new SnapshotCommand(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+                new SnapshotCommand(
+                        cw,
+                        jfrConnectionToolkit,
+                        eventOptionsBuilderFactory,
+                        recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 

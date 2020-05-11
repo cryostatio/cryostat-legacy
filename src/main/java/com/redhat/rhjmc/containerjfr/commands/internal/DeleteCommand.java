@@ -49,6 +49,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
@@ -57,7 +58,8 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     private final ClientWriter cw;
 
     @Inject
-    DeleteCommand(ClientWriter cw) {
+    DeleteCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
     }
 

@@ -55,6 +55,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -70,9 +71,11 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     @Inject
     SaveRecordingCommand(
             ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit,
             Clock clock,
             FileSystem fs,
             @Named("RECORDINGS_PATH") Path recordingsPath) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
         this.clock = clock;
         this.fs = fs;

@@ -47,6 +47,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
@@ -55,9 +56,10 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     @Inject
     DumpCommand(
             ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(cw, jfrConnectionToolkit, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
     }
 
     @Override
