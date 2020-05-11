@@ -156,20 +156,15 @@ class StartRecordingCommandTest {
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(recordingOptionsBuilder).name(nameCaptor.capture());
         verify(service).getAvailableRecordings();
         verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
-        verify(exporter).addRecording(descriptorCaptor.capture());
 
         String actualName = nameCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
-        IRecordingDescriptor recordingDescriptor = descriptorCaptor.getValue();
 
         MatcherAssert.assertThat(actualName, Matchers.equalTo("foo"));
-        MatcherAssert.assertThat(recordingDescriptor, Matchers.sameInstance(descriptor));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
@@ -202,7 +197,8 @@ class StartRecordingCommandTest {
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
         IConstrainedMap<EventOptionID> events = mock(IConstrainedMap.class);
         when(builder.build()).thenReturn(events);
-        when(exporter.getDownloadURL(Mockito.anyString())).thenReturn("example-url");
+        when(exporter.getDownloadURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
+                .thenReturn("example-url");
 
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
         when(service.start(Mockito.any(), Mockito.any())).thenReturn(descriptor);
@@ -221,20 +217,15 @@ class StartRecordingCommandTest {
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(recordingOptionsBuilder).name(nameCaptor.capture());
         verify(service).getAvailableRecordings();
         verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
-        verify(exporter).addRecording(descriptorCaptor.capture());
 
         String actualName = nameCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
-        IRecordingDescriptor recordingDescriptor = descriptorCaptor.getValue();
 
         MatcherAssert.assertThat(actualName, Matchers.equalTo("foo"));
-        MatcherAssert.assertThat(recordingDescriptor, Matchers.sameInstance(descriptor));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);

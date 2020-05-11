@@ -86,7 +86,7 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
 
         IConstrainedMap<String> recordingOptions =
                 recordingOptionsBuilderFactory.create(getService()).name(name).build();
-        this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
+        getService().start(recordingOptions, enableEvents(events));
     }
 
     @Override
@@ -102,8 +102,8 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
 
             IConstrainedMap<String> recordingOptions =
                     recordingOptionsBuilderFactory.create(getService()).name(name).build();
-            this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
-            return new StringOutput(this.exporter.getDownloadURL(name));
+            getService().start(recordingOptions, enableEvents(events));
+            return new StringOutput(this.exporter.getDownloadURL(connection, name));
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

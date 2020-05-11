@@ -47,7 +47,6 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
@@ -70,7 +69,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
 class DeleteCommandTest {
@@ -79,11 +77,10 @@ class DeleteCommandTest {
     @Mock ClientWriter cw;
     @Mock IRecordingDescriptor recordingDescriptor;
     @Mock JFRConnection connection;
-    @Mock WebServer exporter;
 
     @BeforeEach
     void setup() throws FlightRecorderException {
-        command = new DeleteCommand(cw, exporter);
+        command = new DeleteCommand(cw);
         command.connectionChanged(connection);
     }
 
@@ -102,7 +99,6 @@ class DeleteCommandTest {
 
         command.execute(new String[] {"foo-recording"});
         verify(connection.getService()).close(recordingDescriptor);
-        verify(exporter).removeRecording(recordingDescriptor);
     }
 
     @Test
@@ -118,7 +114,6 @@ class DeleteCommandTest {
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
         verify(connection.getService()).close(recordingDescriptor);
-        verify(exporter).removeRecording(recordingDescriptor);
     }
 
     @Test
@@ -131,7 +126,6 @@ class DeleteCommandTest {
 
         command.execute(new String[] {"bar-recording"});
         verify(connection.getService(), never()).close(recordingDescriptor);
-        verifyZeroInteractions(exporter);
         verify(cw).println("No recording with name \"bar-recording\" found");
     }
 
@@ -151,7 +145,6 @@ class DeleteCommandTest {
                 Matchers.equalTo("No recording with name \"bar-recording\" found"));
 
         verify(connection.getService(), never()).close(recordingDescriptor);
-        verifyZeroInteractions(exporter);
     }
 
     @Test

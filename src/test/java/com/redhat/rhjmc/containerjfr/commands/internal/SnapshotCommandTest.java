@@ -56,7 +56,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -70,7 +69,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
 class SnapshotCommandTest {
@@ -79,15 +77,13 @@ class SnapshotCommandTest {
     @Mock ClientWriter cw;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
-    @Mock WebServer exporter;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
         command =
-                new SnapshotCommand(
-                        cw, exporter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+                new SnapshotCommand(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 
@@ -128,7 +124,6 @@ class SnapshotCommandTest {
 
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
         verifyZeroInteractions(cw);
 
         command.execute(new String[0]);
@@ -136,12 +131,6 @@ class SnapshotCommandTest {
         verify(cw).println("Latest snapshot: \"snapshot-1\"");
         verify(service).getSnapshotRecording();
         verify(service).updateRecordingOptions(Mockito.same(snapshot), Mockito.same(builtMap));
-
-        ArgumentCaptor<IRecordingDescriptor> captor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
-        verify(exporter).addRecording(captor.capture());
-        IRecordingDescriptor renamed = captor.getValue();
-        MatcherAssert.assertThat(renamed.getName(), Matchers.equalTo("snapshot-1"));
     }
 
     @Test
@@ -160,7 +149,6 @@ class SnapshotCommandTest {
 
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
         verifyZeroInteractions(cw);
 
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
@@ -169,12 +157,6 @@ class SnapshotCommandTest {
 
         verify(service).getSnapshotRecording();
         verify(service).updateRecordingOptions(Mockito.same(snapshot), Mockito.same(builtMap));
-
-        ArgumentCaptor<IRecordingDescriptor> captor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
-        verify(exporter).addRecording(captor.capture());
-        IRecordingDescriptor renamed = captor.getValue();
-        MatcherAssert.assertThat(renamed.getName(), Matchers.equalTo("snapshot-1"));
     }
 
     @Test

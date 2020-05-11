@@ -48,21 +48,16 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
 class DumpCommand extends AbstractRecordingCommand implements SerializableCommand {
 
-    private final WebServer exporter;
-
     @Inject
     DumpCommand(
             ClientWriter cw,
-            WebServer exporter,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
-        this.exporter = exporter;
     }
 
     @Override
@@ -92,7 +87,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
                         .name(name)
                         .duration(1000 * seconds)
                         .build();
-        this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
+        getService().start(recordingOptions, enableEvents(events));
     }
 
     @Override
@@ -113,7 +108,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
                             .name(name)
                             .duration(1000 * seconds)
                             .build();
-            this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
+            getService().start(recordingOptions, enableEvents(events));
             return new SuccessOutput();
         } catch (Exception e) {
             return new ExceptionOutput(e);

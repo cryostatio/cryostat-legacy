@@ -48,23 +48,17 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.jmc.CopyRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
 class SnapshotCommand extends AbstractRecordingCommand implements SerializableCommand {
 
-    private final WebServer exporter;
-
     @Inject
     SnapshotCommand(
             ClientWriter cw,
-            WebServer exporter,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
-        this.exporter = exporter;
     }
 
     @Override
@@ -85,7 +79,6 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
         recordingOptionsBuilder.name(rename);
 
         getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
-        exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
     }
 
     @Override
@@ -101,7 +94,6 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
             recordingOptionsBuilder.name(rename);
 
             getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
-            exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
 
             return new StringOutput(rename);
         } catch (Exception e) {
@@ -116,19 +108,5 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
             return false;
         }
         return true;
-    }
-
-    private static class RenamedSnapshotDescriptor extends CopyRecordingDescriptor {
-        private final String rename;
-
-        RenamedSnapshotDescriptor(String rename, IRecordingDescriptor original) {
-            super(original);
-            this.rename = rename;
-        }
-
-        @Override
-        public String getName() {
-            return rename;
-        }
     }
 }

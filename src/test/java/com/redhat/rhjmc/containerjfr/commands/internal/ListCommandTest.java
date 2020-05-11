@@ -131,27 +131,33 @@ class ListCommandTest {
     @Test
     void shouldReturnListOutput() throws Exception {
         when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("fooHost");
+        when(connection.getPort()).thenReturn(1);
         List<IRecordingDescriptor> descriptors =
                 Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
         when(service.getAvailableRecordings()).thenReturn(descriptors);
-        when(exporter.getDownloadURL(Mockito.anyString()))
+        when(exporter.getDownloadURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/api/v1/recordings/%s",
-                                        invocation.getArguments()[0]);
+                                        "http://example.com:1234/api/v1/hosts/%s:%d/recordings/%s",
+                                        ((JFRConnection) invocation.getArguments()[0]).getHost(),
+                                        ((JFRConnection) invocation.getArguments()[0]).getPort(),
+                                        invocation.getArguments()[1]);
                             }
                         });
-        when(exporter.getReportURL(Mockito.anyString()))
+        when(exporter.getReportURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/api/v1/reports/%s",
-                                        invocation.getArguments()[0]);
+                                        "http://example.com:1234/api/v1/hosts/%s:%d/reports/%s",
+                                        ((JFRConnection) invocation.getArguments()[0]).getHost(),
+                                        ((JFRConnection) invocation.getArguments()[0]).getPort(),
+                                        invocation.getArguments()[1]);
                             }
                         });
 
@@ -163,12 +169,12 @@ class ListCommandTest {
                         Arrays.asList(
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("foo"),
-                                        "http://example.com:1234/api/v1/recordings/foo",
-                                        "http://example.com:1234/api/v1/reports/foo"),
+                                        "http://example.com:1234/api/v1/hosts/fooHost:1/recordings/foo",
+                                        "http://example.com:1234/api/v1/hosts/fooHost:1/reports/foo"),
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("bar"),
-                                        "http://example.com:1234/api/v1/recordings/bar",
-                                        "http://example.com:1234/api/v1/reports/bar"))));
+                                        "http://example.com:1234/api/v1/hosts/fooHost:1/recordings/bar",
+                                        "http://example.com:1234/api/v1/hosts/fooHost:1/reports/bar"))));
     }
 
     @Test
