@@ -475,32 +475,30 @@ public class WebServer {
                 new Runnable() {
                     @Override
                     public void run() {
-                        {
-                            int n;
-                            try {
-                                n = inputStream.read(buff);
-                            } catch (IOException e) {
-                                future.completeExceptionally(e);
-                                return;
-                            }
-
-                            if (n == -1) {
-                                future.complete(null);
-                                return;
-                            }
-
-                            chunk.setBytes(0, buff, 0, n);
-                            response.write(
-                                    chunk.slice(0, n),
-                                    (res) -> {
-                                        if (res.failed()) {
-                                            future.completeExceptionally(res.cause());
-                                            return;
-                                        }
-                                        worker.submit(
-                                                this); // recursive call on this runnable itself
-                                    });
+                        int n;
+                        try {
+                            n = inputStream.read(buff);
+                        } catch (IOException e) {
+                            future.completeExceptionally(e);
+                            return;
                         }
+
+                        if (n == -1) {
+                            future.complete(null);
+                            return;
+                        }
+
+                        chunk.setBytes(0, buff, 0, n);
+                        response.write(
+                                chunk.slice(0, n),
+                                (res) -> {
+                                    if (res.failed()) {
+                                        future.completeExceptionally(res.cause());
+                                        return;
+                                    }
+                                    worker.submit(
+                                            this); // recursive call on this runnable itself
+                                });
                     }
                 });
 
