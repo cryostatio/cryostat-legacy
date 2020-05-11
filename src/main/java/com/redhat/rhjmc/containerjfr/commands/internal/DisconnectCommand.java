@@ -47,6 +47,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import dagger.Lazy;
@@ -58,7 +59,11 @@ class DisconnectCommand extends AbstractConnectedCommand implements Serializable
     private final ClientWriter cw;
 
     @Inject
-    DisconnectCommand(Lazy<Set<ConnectionListener>> connectionListeners, ClientWriter cw) {
+    DisconnectCommand(
+            Lazy<Set<ConnectionListener>> connectionListeners,
+            ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit) {
+        super(jfrConnectionToolkit);
         this.connectionListeners = connectionListeners;
         this.cw = cw;
     }

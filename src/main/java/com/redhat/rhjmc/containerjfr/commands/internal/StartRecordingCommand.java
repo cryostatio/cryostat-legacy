@@ -47,6 +47,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
@@ -58,10 +59,11 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     @Inject
     StartRecordingCommand(
             ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit,
             WebServer exporter,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(cw, jfrConnectionToolkit, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 

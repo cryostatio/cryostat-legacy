@@ -49,6 +49,7 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
@@ -59,7 +60,8 @@ class WaitForCommand extends AbstractConnectedCommand {
     protected final Clock clock;
 
     @Inject
-    WaitForCommand(ClientWriter cw, Clock clock) {
+    WaitForCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit, Clock clock) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
         this.clock = clock;
     }

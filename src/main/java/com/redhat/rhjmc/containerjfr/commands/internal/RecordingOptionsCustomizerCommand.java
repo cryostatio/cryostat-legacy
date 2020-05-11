@@ -49,6 +49,7 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomizer.OptionKey;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
@@ -63,7 +64,11 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand
     private final RecordingOptionsCustomizer customizer;
 
     @Inject
-    RecordingOptionsCustomizerCommand(ClientWriter cw, RecordingOptionsCustomizer customizer) {
+    RecordingOptionsCustomizerCommand(
+            ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit,
+            RecordingOptionsCustomizer customizer) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
         this.customizer = customizer;
     }

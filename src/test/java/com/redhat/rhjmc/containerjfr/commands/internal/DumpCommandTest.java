@@ -70,6 +70,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -77,6 +78,7 @@ class DumpCommandTest {
 
     DumpCommand command;
     @Mock ClientWriter cw;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
@@ -84,7 +86,12 @@ class DumpCommandTest {
 
     @BeforeEach
     void setup() {
-        command = new DumpCommand(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        command =
+                new DumpCommand(
+                        cw,
+                        jfrConnectionToolkit,
+                        eventOptionsBuilderFactory,
+                        recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 

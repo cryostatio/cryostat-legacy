@@ -72,6 +72,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
@@ -80,6 +81,7 @@ class StartRecordingCommandTest {
 
     StartRecordingCommand command;
     @Mock ClientWriter cw;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock WebServer exporter;
@@ -90,7 +92,11 @@ class StartRecordingCommandTest {
     void setup() {
         command =
                 new StartRecordingCommand(
-                        cw, exporter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+                        cw,
+                        jfrConnectionToolkit,
+                        exporter,
+                        eventOptionsBuilderFactory,
+                        recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 

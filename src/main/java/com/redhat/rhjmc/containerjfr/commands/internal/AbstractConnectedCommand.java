@@ -41,7 +41,12 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.net.MalformedURLException;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.management.remote.JMXServiceURL;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -49,11 +54,20 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 
 abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 
+    private static final Pattern HOST_PORT_PAIR_PATTERN =
+            Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
+
+    protected final JFRConnectionToolkit jfrConnectionToolkit;
     protected JFRConnection connection;
+
+    AbstractConnectedCommand(JFRConnectionToolkit jfrConnectionToolkit) {
+        this.jfrConnectionToolkit = jfrConnectionToolkit;
+    }
 
     @Override
     public final void connectionChanged(JFRConnection connection) {
@@ -92,10 +106,57 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
         }
     }
 
+    protected boolean validateHostId(String hostId) {
+        boolean jmxServiceUrlMatch = true;
+        try {
+            new JMXServiceURL(hostId);
+        } catch (MalformedURLException e) {
+            jmxServiceUrlMatch = false;
+        }
+        boolean hostPatternMatch = HOST_PORT_PAIR_PATTERN.matcher(hostId).matches();
+        return jmxServiceUrlMatch || hostPatternMatch;
+    }
+
+    protected <T> T executeConnectedTask(String hostId, ConnectedTask<T> task) throws Exception {
+        try (JFRConnection connection = attemptConnect(hostId)) {
+            return task.execute(connection);
+        }
+    }
+
+    // TODO refactor, this is duplicated in WebServer
+    private JFRConnection attemptConnect(String hostId) throws Exception {
+        try {
+            return attemptConnectAsJMXServiceURL(hostId);
+        } catch (Exception e) {
+            return attemptConnectAsHostPortPair(hostId);
+        }
+    }
+
+    private JFRConnection attemptConnectAsJMXServiceURL(String url) throws Exception {
+        return jfrConnectionToolkit.connect(new JMXServiceURL(url));
+    }
+
+    private JFRConnection attemptConnectAsHostPortPair(String s) throws Exception {
+        Matcher m = HOST_PORT_PAIR_PATTERN.matcher(s);
+        if (!m.find()) {
+            return null;
+        }
+        String host = m.group(1);
+        String port = m.group(2);
+        if (port == null) {
+            port = "9091";
+        }
+        return jfrConnectionToolkit.connect(host, Integer.parseInt(port));
+    }
+
     @SuppressWarnings("serial")
     static class JMXConnectionException extends Exception {
         JMXConnectionException() {
             super("No active JMX connection");
         }
+    }
+
+    interface ConnectedTask<T> {
+        T execute(JFRConnection connection) throws Exception;
     }
 }

@@ -65,6 +65,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -80,9 +81,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     @Inject
     UploadRecordingCommand(
             ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit,
             FileSystem fs,
             @Named("RECORDINGS_PATH") Path recordingsPath,
             Provider<CloseableHttpClient> httpClientProvider) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;

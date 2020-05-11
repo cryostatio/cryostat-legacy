@@ -49,6 +49,7 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
@@ -57,7 +58,8 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
     private final ClientWriter cw;
 
     @Inject
-    StopRecordingCommand(ClientWriter cw) {
+    StopRecordingCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
     }
 

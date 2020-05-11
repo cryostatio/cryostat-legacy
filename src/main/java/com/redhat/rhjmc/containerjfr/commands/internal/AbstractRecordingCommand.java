@@ -48,6 +48,7 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
@@ -69,8 +70,10 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
     protected AbstractRecordingCommand(
             ClientWriter cw,
+            JFRConnectionToolkit jfrConnectionToolkit,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+        super(jfrConnectionToolkit);
         this.cw = cw;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;

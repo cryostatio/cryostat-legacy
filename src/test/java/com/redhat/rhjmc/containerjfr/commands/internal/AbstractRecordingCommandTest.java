@@ -75,6 +75,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService.UnknownEventTemplateException;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -83,6 +84,7 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 class AbstractRecordingCommandTest extends TestBase {
 
     AbstractRecordingCommand command;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -92,6 +94,7 @@ class AbstractRecordingCommandTest extends TestBase {
         command =
                 new BaseRecordingCommand(
                         mockClientWriter,
+                        jfrConnectionToolkit,
                         eventOptionsBuilderFactory,
                         recordingOptionsBuilderFactory);
     }
@@ -196,9 +199,14 @@ class AbstractRecordingCommandTest extends TestBase {
     static class BaseRecordingCommand extends AbstractRecordingCommand {
         BaseRecordingCommand(
                 ClientWriter cw,
+                JFRConnectionToolkit jfrConnectionToolkit,
                 EventOptionsBuilder.Factory eventOptionsBuilderFactory,
                 RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-            super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+            super(
+                    cw,
+                    jfrConnectionToolkit,
+                    eventOptionsBuilderFactory,
+                    recordingOptionsBuilderFactory);
         }
 
         @Override

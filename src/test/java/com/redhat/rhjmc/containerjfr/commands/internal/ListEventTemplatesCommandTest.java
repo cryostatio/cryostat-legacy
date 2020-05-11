@@ -59,6 +59,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -67,13 +68,14 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 class ListEventTemplatesCommandTest {
 
     ListEventTemplatesCommand cmd;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock TemplateService templateSvc;
     @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
-        cmd = new ListEventTemplatesCommand(cw);
+        cmd = new ListEventTemplatesCommand(cw, jfrConnectionToolkit);
     }
 
     @Test

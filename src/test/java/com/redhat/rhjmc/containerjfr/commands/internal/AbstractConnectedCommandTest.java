@@ -71,15 +71,17 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractConnectedCommandTest {
 
     AbstractConnectedCommand command;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
 
     @BeforeEach
     void setup() {
-        this.command = new BaseConnectedCommand();
+        this.command = new BaseConnectedCommand(jfrConnectionToolkit);
     }
 
     @Nested
@@ -206,6 +208,10 @@ class AbstractConnectedCommandTest {
     }
 
     static class BaseConnectedCommand extends AbstractConnectedCommand {
+
+        BaseConnectedCommand(JFRConnectionToolkit jfrConnectionToolkit) {
+            super(jfrConnectionToolkit);
+        }
 
         @Override
         public String getName() {

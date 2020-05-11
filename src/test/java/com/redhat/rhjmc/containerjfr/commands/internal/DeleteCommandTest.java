@@ -68,6 +68,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,12 +76,13 @@ class DeleteCommandTest {
 
     DeleteCommand command;
     @Mock ClientWriter cw;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock IRecordingDescriptor recordingDescriptor;
     @Mock JFRConnection connection;
 
     @BeforeEach
     void setup() throws FlightRecorderException {
-        command = new DeleteCommand(cw);
+        command = new DeleteCommand(cw, jfrConnectionToolkit);
         command.connectionChanged(connection);
     }
 

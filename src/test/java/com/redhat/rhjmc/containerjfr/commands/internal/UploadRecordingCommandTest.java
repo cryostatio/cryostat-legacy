@@ -77,6 +77,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.internal.UploadRecordingCommand.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
@@ -86,6 +87,7 @@ class UploadRecordingCommandTest {
     static final String UPLOAD_URL = "http://example.com/";
 
     @Mock ClientWriter cw;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock FileSystem fs;
     @Mock Path path;
     @Mock CloseableHttpClient httpClient;
@@ -94,7 +96,7 @@ class UploadRecordingCommandTest {
 
     @BeforeEach
     void setup() {
-        this.cmd = new UploadRecordingCommand(cw, fs, path, () -> httpClient);
+        this.cmd = new UploadRecordingCommand(cw, jfrConnectionToolkit, fs, path, () -> httpClient);
     }
 
     @Test

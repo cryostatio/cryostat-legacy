@@ -67,19 +67,21 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForCommandTest extends TestBase {
 
     WaitForCommand command;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock Clock clock;
 
     @BeforeEach
     void setup() {
-        command = new WaitForCommand(mockClientWriter, clock);
+        command = new WaitForCommand(mockClientWriter, jfrConnectionToolkit, clock);
         command.connectionChanged(connection);
     }
 

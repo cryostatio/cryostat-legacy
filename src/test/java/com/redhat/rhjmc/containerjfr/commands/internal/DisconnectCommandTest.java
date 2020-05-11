@@ -61,6 +61,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 
@@ -69,12 +70,15 @@ class DisconnectCommandTest {
 
     DisconnectCommand command;
     @Mock ConnectionListener listener;
+    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock JFRConnection connection;
     @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
-        command = new DisconnectCommand(() -> Collections.singleton(listener), cw);
+        command =
+                new DisconnectCommand(
+                        () -> Collections.singleton(listener), cw, jfrConnectionToolkit);
         command.connectionChanged(connection);
     }
 
