@@ -106,7 +106,8 @@ public class WebServer {
     private static final String WEB_CLIENT_ASSETS_BASE =
             WebServer.class.getPackageName().replaceAll("\\.", "/");
 
-    private static final Pattern HOST_PORT_PAIR_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
+    private static final Pattern HOST_PORT_PAIR_PATTERN =
+            Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
@@ -496,8 +497,7 @@ public class WebServer {
                                         future.completeExceptionally(res.cause());
                                         return;
                                     }
-                                    worker.submit(
-                                            this); // recursive call on this runnable itself
+                                    worker.submit(this); // recursive call on this runnable itself
                                 });
                     }
                 });
