@@ -71,14 +71,12 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
 class DumpCommandTest {
 
     DumpCommand command;
     @Mock ClientWriter cw;
-    @Mock WebServer exporter;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
@@ -86,9 +84,7 @@ class DumpCommandTest {
 
     @BeforeEach
     void setup() {
-        command =
-                new DumpCommand(
-                        cw, exporter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        command = new DumpCommand(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
         command.connectionChanged(connection);
     }
 
@@ -151,7 +147,6 @@ class DumpCommandTest {
 
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
 
         command.execute(new String[] {"foo", "30", "foo.Bar:enabled=true"});
 
@@ -161,23 +156,18 @@ class DumpCommandTest {
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(recordingOptionsBuilder).name(nameCaptor.capture());
         verify(recordingOptionsBuilder).duration(durationCaptor.capture());
         verify(service).getAvailableRecordings();
         verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
-        verify(exporter).addRecording(descriptorCaptor.capture());
 
         String actualName = nameCaptor.getValue();
         Long actualDuration = durationCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
-        IRecordingDescriptor recordingDescriptor = descriptorCaptor.getValue();
 
         MatcherAssert.assertThat(actualName, Matchers.equalTo("foo"));
         MatcherAssert.assertThat(actualDuration, Matchers.equalTo(30_000L));
-        MatcherAssert.assertThat(recordingDescriptor, Matchers.sameInstance(descriptor));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
@@ -193,7 +183,6 @@ class DumpCommandTest {
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test
@@ -218,7 +207,6 @@ class DumpCommandTest {
 
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
 
         SerializableCommand.Output out =
                 command.serializableExecute(new String[] {"foo", "30", "foo.Bar:enabled=true"});
@@ -230,23 +218,18 @@ class DumpCommandTest {
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(recordingOptionsBuilder).name(nameCaptor.capture());
         verify(recordingOptionsBuilder).duration(durationCaptor.capture());
         verify(service).getAvailableRecordings();
         verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
-        verify(exporter).addRecording(descriptorCaptor.capture());
 
         String actualName = nameCaptor.getValue();
         Long actualDuration = durationCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
-        IRecordingDescriptor recordingDescriptor = descriptorCaptor.getValue();
 
         MatcherAssert.assertThat(actualName, Matchers.equalTo("foo"));
         MatcherAssert.assertThat(actualDuration, Matchers.equalTo(30_000L));
-        MatcherAssert.assertThat(recordingDescriptor, Matchers.sameInstance(descriptor));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
@@ -262,7 +245,6 @@ class DumpCommandTest {
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test
@@ -275,7 +257,6 @@ class DumpCommandTest {
 
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
 
         command.execute(new String[] {"foo", "30", "foo.Bar:enabled=true"});
 
@@ -284,7 +265,6 @@ class DumpCommandTest {
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test
@@ -297,7 +277,6 @@ class DumpCommandTest {
 
         verifyZeroInteractions(connection);
         verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
 
         SerializableCommand.Output<?> out =
                 command.serializableExecute(new String[] {"foo", "30", "foo.Bar:enabled=true"});
@@ -310,7 +289,6 @@ class DumpCommandTest {
 
         verifyNoMoreInteractions(connection);
         verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test

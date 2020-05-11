@@ -96,8 +96,8 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
                 descriptors.add(
                         new HyperlinkedSerializableRecordingDescriptor(
                                 desc,
-                                exporter.getDownloadURL(desc.getName()),
-                                exporter.getReportURL(desc.getName())));
+                                exporter.getDownloadURL(connection, desc.getName()),
+                                exporter.getReportURL(connection, desc.getName())));
             }
             return new ListOutput<>(descriptors);
         } catch (Exception e) {

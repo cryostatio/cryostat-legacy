@@ -50,18 +50,15 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
-    private final WebServer exporter;
 
     @Inject
-    DeleteCommand(ClientWriter cw, WebServer exporter) {
+    DeleteCommand(ClientWriter cw) {
         this.cw = cw;
-        this.exporter = exporter;
     }
 
     @Override
@@ -76,7 +73,6 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
         Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);
         if (descriptor.isPresent()) {
             getService().close(descriptor.get());
-            exporter.removeRecording(descriptor.get());
         } else {
             cw.println(String.format("No recording with name \"%s\" found", recordingName));
         }
@@ -89,7 +85,6 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
             Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);
             if (descriptor.isPresent()) {
                 getService().close(descriptor.get());
-                exporter.removeRecording(descriptor.get());
                 return new SuccessOutput();
             } else {
                 return new FailureOutput(
