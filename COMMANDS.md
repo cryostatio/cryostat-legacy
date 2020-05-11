@@ -104,7 +104,6 @@ formatted as a JSON response.
     This information is also printed upon any successful connection to a target
     JVM.
     ###### see also
-    * [`wait-for-download`](#wait-for-download)
     * [`list`](#list)
 
 * #### `wait`
@@ -115,7 +114,6 @@ formatted as a JSON response.
     interrupted.
     ###### see also
     * [`wait-for`](#wait-for)
-    * [`wait-for-download`](#wait-for-download)
 
 ### Flight Recorder
 
@@ -318,16 +316,3 @@ formatted as a JSON response.
     another client to be connected in order to stop the recording. Once this
     command has begun awaiting completion of the recording it cannot be
     interrupted.
-
-* #### `wait-for-download`
-    ###### usage
-    `wait-for-download foo`
-    ###### synopsis
-    Waits until the client's embedded webserver services a request to download
-    the given recording (`foo`). This does _not_ imply that the recording has
-    completed - a fixed-duration recording may still be in progress, and a
-    non-fixed recording may be actively running. This command is mostly useful
-    for non-interactive client usage, ex. shell scripting. Once this command
-    has begun awaiting download of the recording it cannot be interrupted.
-    ###### see also
-    [`url](#url)

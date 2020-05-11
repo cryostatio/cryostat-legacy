@@ -114,8 +114,4 @@ public abstract class ConnectionListenerModule {
     @Binds
     @IntoSet
     abstract ConnectionListener bindWaitForCommand(WaitForCommand command);
-
-    @Binds
-    @IntoSet
-    abstract ConnectionListener bindWaitForDownloadCommand(WaitForDownloadCommand command);
 }

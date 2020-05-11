@@ -139,8 +139,6 @@ public class WebServer implements ConnectionListener {
     private IFlightRecorderService service;
     private JFRConnection connection;
 
-    private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
-    private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
     private final ReportGenerator reportGenerator;
     private final JFRConnectionToolkit jfrConnectionToolkit;
 
@@ -173,39 +171,17 @@ public class WebServer implements ConnectionListener {
         }
     }
 
-    private void refreshAvailableRecordings() throws FlightRecorderException {
-        recordings.clear();
-        downloadCounts.clear();
-
-        if (this.service != null) {
-            this.service.getAvailableRecordings().forEach(this::addRecording);
-        }
-    }
-
     @Override
     public void connectionChanged(JFRConnection connection) {
         this.connection = connection;
         if (connection != null) {
             this.service = connection.getService();
-
-            try {
-                refreshAvailableRecordings();
-            } catch (FlightRecorderException e) {
-                logger.warn(e);
-                throw new RuntimeException(e);
-            }
         } else {
             this.service = null;
         }
     }
 
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        // if (this.server.isAlive()) {
-        //     logger.info("Server already alive");
-        //     return;
-        // }
-
-        refreshAvailableRecordings();
         server.start();
 
         Router router =
@@ -336,23 +312,6 @@ public class WebServer implements ConnectionListener {
 
     public void stop() {
         this.server.requestHandler(null);
-
-        recordings.clear();
-        downloadCounts.clear();
-    }
-
-    public void addRecording(IRecordingDescriptor descriptor) {
-        recordings.put(descriptor.getName(), descriptor);
-        downloadCounts.put(descriptor.getName(), 0);
-    }
-
-    public void removeRecording(IRecordingDescriptor descriptor) {
-        recordings.remove(descriptor.getName());
-        downloadCounts.remove(descriptor.getName());
-    }
-
-    public int getDownloadCount(String recordingName) {
-        return this.downloadCounts.getOrDefault(recordingName, -1);
     }
 
     public URL getHostUrl()
@@ -687,7 +646,6 @@ public class WebServer implements ConnectionListener {
 
             ctx.response().setChunked(true);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
-            ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
             descriptor
                     .get()
                     .bytes
