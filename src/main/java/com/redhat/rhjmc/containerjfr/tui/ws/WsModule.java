@@ -92,13 +92,6 @@ public class WsModule {
     @Singleton
     static MessagingServer provideWebSocketMessagingServer(
             HttpServer server, Environment env, AuthManager authManager, Logger logger, Gson gson) {
-        try {
-            MessagingServer messagingServer =
-                    new MessagingServer(server, env, authManager, logger, gson);
-            messagingServer.start();
-            return messagingServer;
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+        return new MessagingServer(server, env, authManager, logger, gson);
     }
 }
