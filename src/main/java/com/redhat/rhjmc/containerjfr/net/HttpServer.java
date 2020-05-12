@@ -66,6 +66,7 @@ public class HttpServer {
             new HandlerDelegate<>();
 
     private final io.vertx.core.http.HttpServer server;
+    private volatile boolean isAlive;
 
     HttpServer(NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
         this.netConf = netConf;
@@ -113,6 +114,7 @@ public class HttpServer {
                         isSsl() ? "https" : "http",
                         netConf.getWebServerHost(),
                         netConf.getExternalWebServerPort()));
+        this.isAlive = true;
     }
 
     public void stop() {
@@ -131,6 +133,7 @@ public class HttpServer {
                     future.complete(null);
                 });
         future.join(); // wait for vertx to be closed
+        this.isAlive = false;
     }
 
     public boolean isSsl() {
@@ -146,7 +149,7 @@ public class HttpServer {
     }
 
     public boolean isAlive() {
-        return this.server.actualPort() != 0;
+        return isAlive;
     }
 
     public Vertx getVertx() {

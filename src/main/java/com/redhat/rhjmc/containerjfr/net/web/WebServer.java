@@ -170,8 +170,6 @@ public class WebServer {
     }
 
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        server.start();
-
         Router router =
                 Router.router(server.getVertx()); // a vertx is only available after server started
 
