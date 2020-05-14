@@ -92,10 +92,6 @@ public abstract class CommandsInternalModule {
 
     @Binds
     @IntoSet
-    abstract Command bindIsConnectedCommand(IsConnectedCommand command);
-
-    @Binds
-    @IntoSet
     abstract Command bindListCommand(ListCommand command);
 
     @Binds

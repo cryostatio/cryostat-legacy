@@ -89,7 +89,6 @@ class SnapshotCommandTest {
                         jfrConnectionToolkit,
                         eventOptionsBuilderFactory,
                         recordingOptionsBuilderFactory);
-        command.connectionChanged(connection);
     }
 
     @Test

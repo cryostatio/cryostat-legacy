@@ -86,7 +86,6 @@ class ListEventTypesCommandTest {
     @BeforeEach
     void setup() {
         command = new ListEventTypesCommand(cw, jfrConnectionToolkit);
-        command.connectionChanged(connection);
     }
 
     @Test

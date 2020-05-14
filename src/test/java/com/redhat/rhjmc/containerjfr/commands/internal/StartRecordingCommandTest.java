@@ -95,7 +95,6 @@ class StartRecordingCommandTest {
                         exporter,
                         eventOptionsBuilderFactory,
                         recordingOptionsBuilderFactory);
-        command.connectionChanged(connection);
     }
 
     @Test

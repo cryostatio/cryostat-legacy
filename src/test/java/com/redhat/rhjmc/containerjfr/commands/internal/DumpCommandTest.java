@@ -92,7 +92,6 @@ class DumpCommandTest {
                         jfrConnectionToolkit,
                         eventOptionsBuilderFactory,
                         recordingOptionsBuilderFactory);
-        command.connectionChanged(connection);
     }
 
     @Test
