@@ -83,7 +83,6 @@ class DeleteCommandTest {
     @BeforeEach
     void setup() throws FlightRecorderException {
         command = new DeleteCommand(cw, jfrConnectionToolkit);
-        command.connectionChanged(connection);
     }
 
     @Test

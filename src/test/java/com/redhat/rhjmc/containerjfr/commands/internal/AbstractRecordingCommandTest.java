@@ -153,7 +153,6 @@ class AbstractRecordingCommandTest extends TestBase {
         IConstrainedMap<EventOptionID> templateMap = mock(IConstrainedMap.class);
         when(templateSvc.getEventsByTemplateName(Mockito.anyString())).thenReturn(templateMap);
 
-        command.connectionChanged(connection);
         IConstrainedMap<EventOptionID> result = command.enableEvents(connection, "template=Foo");
         assertThat(result, Matchers.sameInstance(templateMap));
     }
@@ -166,7 +165,6 @@ class AbstractRecordingCommandTest extends TestBase {
         when(templateSvc.getEventsByTemplateName(Mockito.anyString()))
                 .thenThrow(new FlightRecorderException(new UnknownEventTemplateException("Foo")));
 
-        command.connectionChanged(connection);
         Assertions.assertThrows(
                 FlightRecorderException.class,
                 () -> command.enableEvents(connection, "template=Foo"));
@@ -188,7 +186,6 @@ class AbstractRecordingCommandTest extends TestBase {
         when(mockService.getAvailableEventTypes())
                 .thenReturn((Collection) Collections.singletonList(mockEvent));
 
-        command.connectionChanged(connection);
         command.enableEvents(connection, "template=ALL");
 
         verify(builder).addEvent("com.example.Event", "enabled", "true");

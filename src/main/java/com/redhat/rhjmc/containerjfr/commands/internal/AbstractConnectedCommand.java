@@ -53,9 +53,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 
-abstract class AbstractConnectedCommand implements Command, ConnectionListener {
+abstract class AbstractConnectedCommand implements Command {
 
     protected final JFRConnectionToolkit jfrConnectionToolkit;
     // maintain a short-lived cache of connections to allow Commands to nest ConnectedTasks
@@ -65,9 +64,6 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
     AbstractConnectedCommand(JFRConnectionToolkit jfrConnectionToolkit) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
     }
-
-    @Override
-    public final void connectionChanged(JFRConnection connection) {}
 
     @Override
     public boolean isAvailable() {

@@ -45,18 +45,14 @@ import java.util.NoSuchElementException;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.ExitCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.tui.AbstractCommandExecutor;
 import dagger.Lazy;
 
-public class InteractiveShellExecutor extends AbstractCommandExecutor
-        implements ConnectionListener {
+public class InteractiveShellExecutor extends AbstractCommandExecutor {
 
     private boolean running = true;
-    private boolean connected = false;
 
     public InteractiveShellExecutor(
             ClientReader cr, ClientWriter cw, Lazy<CommandRegistry> commandRegistry) {
@@ -64,16 +60,11 @@ public class InteractiveShellExecutor extends AbstractCommandExecutor
     }
 
     @Override
-    public void connectionChanged(JFRConnection connection) {
-        this.connected = connection != null;
-    }
-
-    @Override
     public void run(String unused) {
         try (cr) {
             String in;
             do {
-                cw.print(connected ? "> " : "- ");
+                cw.print("> ");
                 try {
                     in = cr.readLine();
                     if (in == null) {

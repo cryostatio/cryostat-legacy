@@ -82,7 +82,6 @@ class StopRecordingCommandTest {
     @BeforeEach
     void setup() {
         command = new StopRecordingCommand(cw, jfrConnectionToolkit);
-        command.connectionChanged(connection);
     }
 
     @Test

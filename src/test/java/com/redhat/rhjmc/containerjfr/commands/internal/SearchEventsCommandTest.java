@@ -85,7 +85,6 @@ class SearchEventsCommandTest {
     @BeforeEach
     void setup() {
         command = new SearchEventsCommand(cw, jfrConnectionToolkit);
-        command.connectionChanged(connection);
     }
 
     @Test

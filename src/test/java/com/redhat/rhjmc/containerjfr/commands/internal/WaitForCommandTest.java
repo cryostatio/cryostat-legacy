@@ -81,7 +81,6 @@ class WaitForCommandTest extends TestBase {
     @BeforeEach
     void setup() {
         command = new WaitForCommand(mockClientWriter, jfrConnectionToolkit, clock);
-        command.connectionChanged(connection);
     }
 
     @Test

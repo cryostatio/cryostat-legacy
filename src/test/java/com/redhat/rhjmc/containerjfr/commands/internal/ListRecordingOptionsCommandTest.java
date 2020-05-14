@@ -83,7 +83,6 @@ class ListRecordingOptionsCommandTest {
     @BeforeEach
     void setup() {
         command = new ListRecordingOptionsCommand(cw, jfrConnectionToolkit);
-        command.connectionChanged(connection);
     }
 
     @Test

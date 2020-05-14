@@ -47,15 +47,12 @@ import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
-import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import dagger.multibindings.IntoSet;
 
 @Module
 public abstract class TtyModule {
@@ -71,10 +68,6 @@ public abstract class TtyModule {
     static CommandExecutor provideCommandExecutor(InteractiveShellExecutor executor) {
         return executor;
     }
-
-    @Binds
-    @IntoSet
-    abstract ConnectionListener bindConnectionListener(InteractiveShellExecutor commandExecutor);
 
     @Provides
     @Singleton
