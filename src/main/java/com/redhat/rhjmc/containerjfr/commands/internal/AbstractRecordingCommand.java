@@ -80,7 +80,8 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
     }
 
-    protected IConstrainedMap<EventOptionID> enableEvents(JFRConnection connection, String events) throws Exception {
+    protected IConstrainedMap<EventOptionID> enableEvents(JFRConnection connection, String events)
+            throws Exception {
         if (TEMPLATE_PATTERN.matcher(events).matches()) {
             Matcher m = TEMPLATE_PATTERN.matcher(events);
             m.find();
@@ -94,7 +95,8 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
         return enableSelectedEvents(connection, events);
     }
 
-    protected IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection) throws Exception {
+    protected IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
+            throws Exception {
         EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
 
         for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
@@ -104,7 +106,8 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
         return builder.build();
     }
 
-    protected IConstrainedMap<EventOptionID> enableSelectedEvents(JFRConnection connection, String events) throws Exception {
+    protected IConstrainedMap<EventOptionID> enableSelectedEvents(
+            JFRConnection connection, String events) throws Exception {
         EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
 
         Matcher matcher = EVENTS_PATTERN.matcher(events);

@@ -49,6 +49,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.apache.commons.lang3.StringUtils;
+
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
@@ -74,24 +75,29 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
 
     @Override
     public void execute(String[] args) throws Exception {
-        executeConnectedTask(args[0], connection -> {
-            cw.println("Available event types:");
-            connection.getService().getAvailableEventTypes().forEach(this::printEvent);
-            return null;
-        });
+        executeConnectedTask(
+                args[0],
+                connection -> {
+                    cw.println("Available event types:");
+                    connection.getService().getAvailableEventTypes().forEach(this::printEvent);
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return executeConnectedTask(args[0], connection -> {
-                Collection<? extends IEventTypeInfo> origInfos = connection.getService().getAvailableEventTypes();
-                List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
-                for (IEventTypeInfo info : origInfos) {
-                    infos.add(new SerializableEventTypeInfo(info));
-                }
-                return new ListOutput<>(infos);
-            });
+            return executeConnectedTask(
+                    args[0],
+                    connection -> {
+                        Collection<? extends IEventTypeInfo> origInfos =
+                                connection.getService().getAvailableEventTypes();
+                        List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
+                        for (IEventTypeInfo info : origInfos) {
+                            infos.add(new SerializableEventTypeInfo(info));
+                        }
+                        return new ListOutput<>(infos);
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

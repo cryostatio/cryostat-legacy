@@ -46,8 +46,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -109,7 +107,8 @@ class StopRecordingCommandTest {
 
     @Test
     void shouldHandleNoRecordingFound() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
@@ -125,7 +124,8 @@ class StopRecordingCommandTest {
         IRecordingDescriptor barDescriptor = mock(IRecordingDescriptor.class);
         when(barDescriptor.getName()).thenReturn("bar");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
@@ -146,12 +146,14 @@ class StopRecordingCommandTest {
         IRecordingDescriptor barDescriptor = mock(IRecordingDescriptor.class);
         when(barDescriptor.getName()).thenReturn("bar");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
         ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
@@ -166,11 +168,13 @@ class StopRecordingCommandTest {
         IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
         when(fooDescriptor.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "bar"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "bar"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(), Matchers.equalTo("Recording with name \"bar\" not found"));
@@ -181,12 +185,14 @@ class StopRecordingCommandTest {
         IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
         when(fooDescriptor.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
         doThrow(FlightRecorderException.class).when(service).stop(Mockito.any());
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));

@@ -104,10 +104,7 @@ class StartRecordingCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            ints = {
-                0, 1, 2, 4, 5
-            })
+    @ValueSource(ints = {0, 1, 2, 4, 5})
     void shouldNotValidateWithIncorrectArgc(int argc) {
         assertFalse(command.validate(new String[argc]));
     }
@@ -131,7 +128,8 @@ class StartRecordingCommandTest {
 
     @Test
     void shouldStartRecordingOnExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -180,7 +178,8 @@ class StartRecordingCommandTest {
 
     @Test
     void shouldStartRecordingOnSerializableExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -200,7 +199,8 @@ class StartRecordingCommandTest {
         when(service.start(Mockito.any(), Mockito.any())).thenReturn(descriptor);
 
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("example-url"));
 
@@ -237,7 +237,8 @@ class StartRecordingCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
@@ -252,12 +253,14 @@ class StartRecordingCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(), Matchers.equalTo("Recording with name \"foo\" already exists"));

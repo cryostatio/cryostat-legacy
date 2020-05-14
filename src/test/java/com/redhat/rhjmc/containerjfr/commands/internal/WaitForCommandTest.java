@@ -111,13 +111,14 @@ class WaitForCommandTest extends TestBase {
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"fooHost:9091", "someRecording" }));
+        assertTrue(command.validate(new String[] {"fooHost:9091", "someRecording"}));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
     void shouldHandleRecordingNotFound() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
@@ -136,7 +137,8 @@ class WaitForCommandTest extends TestBase {
         when(descriptor.getName()).thenReturn("foo");
         when(descriptor.isContinuous()).thenReturn(true);
         when(descriptor.getState()).thenReturn(RecordingState.RUNNING);
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
@@ -171,7 +173,8 @@ class WaitForCommandTest extends TestBase {
                 .thenReturn(5_000L)
                 .thenReturn(5_001L)
                 .thenReturn(6_000L);
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
@@ -198,7 +201,8 @@ class WaitForCommandTest extends TestBase {
         when(descriptor.getState()).thenReturn(RecordingState.STOPPED);
         when(descriptor.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptor.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 

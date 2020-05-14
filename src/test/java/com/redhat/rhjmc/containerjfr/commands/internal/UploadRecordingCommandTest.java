@@ -114,7 +114,9 @@ class UploadRecordingCommandTest {
     @ValueSource(ints = {0, 1, 2, 4, 5})
     void shouldNotValidateWrongArgc(int c) {
         Assertions.assertFalse(cmd.validate(new String[c]));
-        Mockito.verify(cw).println("Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
+        Mockito.verify(cw)
+                .println(
+                        "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
     }
 
     @ParameterizedTest
@@ -140,7 +142,8 @@ class UploadRecordingCommandTest {
             IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
             InputStream stream = Mockito.mock(InputStream.class);
             Mockito.when(conn.getService()).thenReturn(svc);
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
             Mockito.when(rec.getName()).thenReturn("foo");
             Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
@@ -155,7 +158,8 @@ class UploadRecordingCommandTest {
         @Test
         void shouldReadFromDiskIfNotInTarget() throws Exception {
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
@@ -177,7 +181,8 @@ class UploadRecordingCommandTest {
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             InputStream stream = Mockito.mock(InputStream.class);
             Mockito.when(conn.getService()).thenReturn(svc);
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
             Path rec = Mockito.mock(Path.class);
@@ -196,7 +201,8 @@ class UploadRecordingCommandTest {
         void shouldReturnEmptyIfNotInMemoryAndNotFile() throws Exception {
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             Mockito.when(conn.getService()).thenReturn(svc);
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
             Path rec = Mockito.mock(Path.class);
@@ -211,7 +217,8 @@ class UploadRecordingCommandTest {
         void shouldReturnEmptyIfNotInMemoryAndNotReadable() throws Exception {
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             Mockito.when(conn.getService()).thenReturn(svc);
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
             Path rec = Mockito.mock(Path.class);
@@ -229,7 +236,8 @@ class UploadRecordingCommandTest {
 
         @Test
         void shouldThrowExceptionIfRecordingNotFound() throws Exception {
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
             Mockito.when(conn.getService()).thenReturn(svc);
@@ -243,7 +251,8 @@ class UploadRecordingCommandTest {
 
         @Test
         void shouldDoUpload() throws Exception {
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
             InputStream stream = Mockito.mock(InputStream.class);
@@ -279,20 +288,23 @@ class UploadRecordingCommandTest {
 
         @Test
         void shouldReturnExceptionIfRecordingNotFound() throws Exception {
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
             Mockito.when(rec.getName()).thenReturn("foo");
 
-            Output<?> out = cmd.serializableExecute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL});
+            Output<?> out =
+                    cmd.serializableExecute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL});
             MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
         }
 
         @Test
         void shouldDoUpload() throws Exception {
-            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(conn);
+            Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                    .thenReturn(conn);
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
             InputStream stream = Mockito.mock(InputStream.class);

@@ -41,20 +41,13 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Map;
-
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -67,9 +60,16 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class ListRecordingOptionsCommandTest {
@@ -99,7 +99,7 @@ class ListRecordingOptionsCommandTest {
 
     @Test
     void shouldValidateOneArg() {
-        assertTrue(command.validate(new String[]{ "fooHost:9091" }));
+        assertTrue(command.validate(new String[] {"fooHost:9091"}));
     }
 
     @Test
@@ -108,11 +108,12 @@ class ListRecordingOptionsCommandTest {
         when(descriptor.toString()).thenReturn("foo-option-toString");
         Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenReturn(options);
 
-        command.execute(new String[] { "fooHost:9091" });
+        command.execute(new String[] {"fooHost:9091"});
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recording options:");
         inOrder.verify(cw).println("\tfoo-option : foo-option-toString");
@@ -126,11 +127,13 @@ class ListRecordingOptionsCommandTest {
         when(descriptor.getDefault()).thenReturn("bar");
         Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenReturn(options);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[]{ "fooHost:9091" });
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.MapOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
@@ -140,11 +143,13 @@ class ListRecordingOptionsCommandTest {
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenThrow(FlightRecorderException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "fooHost:9091" });
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
