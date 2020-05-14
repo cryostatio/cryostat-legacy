@@ -79,21 +79,26 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         int seconds = Integer.parseInt(args[2]);
         String events = args[3];
 
-        executeConnectedTask(hostId, connection -> {
-            if (getDescriptorByName(hostId, name).isPresent()) {
-                cw.println(String.format("Recording with name \"%s\" already exists", name));
-                return null;
-            }
+        executeConnectedTask(
+                hostId,
+                connection -> {
+                    if (getDescriptorByName(hostId, name).isPresent()) {
+                        cw.println(
+                                String.format("Recording with name \"%s\" already exists", name));
+                        return null;
+                    }
 
-            IConstrainedMap<String> recordingOptions =
-                    recordingOptionsBuilderFactory
-                            .create(connection.getService())
-                            .name(name)
-                            .duration(1000 * seconds)
-                            .build();
-            connection.getService().start(recordingOptions, enableEvents(connection, events));
-            return null;
-        });
+                    IConstrainedMap<String> recordingOptions =
+                            recordingOptionsBuilderFactory
+                                    .create(connection.getService())
+                                    .name(name)
+                                    .duration(1000 * seconds)
+                                    .build();
+                    connection
+                            .getService()
+                            .start(recordingOptions, enableEvents(connection, events));
+                    return null;
+                });
     }
 
     @Override
@@ -104,21 +109,26 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             int seconds = Integer.parseInt(args[2]);
             String events = args[3];
 
-            return executeConnectedTask(hostId, connection -> {
-                if (getDescriptorByName(hostId, name).isPresent()) {
-                    return new FailureOutput(
-                            String.format("Recording with name \"%s\" already exists", name));
-                }
+            return executeConnectedTask(
+                    hostId,
+                    connection -> {
+                        if (getDescriptorByName(hostId, name).isPresent()) {
+                            return new FailureOutput(
+                                    String.format(
+                                            "Recording with name \"%s\" already exists", name));
+                        }
 
-                IConstrainedMap<String> recordingOptions =
-                        recordingOptionsBuilderFactory
-                                .create(connection.getService())
-                                .name(name)
-                                .duration(1000 * seconds)
-                                .build();
-                connection.getService().start(recordingOptions, enableEvents(connection, events));
-                return new SuccessOutput();
-            });
+                        IConstrainedMap<String> recordingOptions =
+                                recordingOptionsBuilderFactory
+                                        .create(connection.getService())
+                                        .name(name)
+                                        .duration(1000 * seconds)
+                                        .build();
+                        connection
+                                .getService()
+                                .start(recordingOptions, enableEvents(connection, events));
+                        return new SuccessOutput();
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

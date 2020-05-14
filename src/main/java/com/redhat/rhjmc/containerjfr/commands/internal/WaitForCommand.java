@@ -78,56 +78,69 @@ class WaitForCommand extends AbstractConnectedCommand {
     public void execute(String[] args) throws Exception {
         String hostId = args[0];
         String recordingName = args[1];
-        executeConnectedTask(hostId, connection -> {
-            Optional<IRecordingDescriptor> d = getDescriptorByName(hostId, recordingName);
-            if (!d.isPresent()) {
-                cw.println(String.format("Recording with name \"%s\" not found in target JVM", recordingName));
-                return null;
-            }
-            IRecordingDescriptor descriptor = d.get();
+        executeConnectedTask(
+                hostId,
+                connection -> {
+                    Optional<IRecordingDescriptor> d = getDescriptorByName(hostId, recordingName);
+                    if (!d.isPresent()) {
+                        cw.println(
+                                String.format(
+                                        "Recording with name \"%s\" not found in target JVM",
+                                        recordingName));
+                        return null;
+                    }
+                    IRecordingDescriptor descriptor = d.get();
 
-            if (descriptor.isContinuous()
-                    && !descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
-                cw.println(String.format("Recording \"%s\" is continuous, refusing to wait",
-                            recordingName));
-                return null;
-            }
-            long recordingStart = descriptor.getDataStartTime().longValue();
-            long recordingEnd = descriptor.getDataEndTime().longValue();
-            long recordingLength = recordingEnd - recordingStart;
-            int lastDots = 0;
-            boolean progressFlag = false;
-            while (!descriptor.getState().equals(IRecordingDescriptor.RecordingState.STOPPED)) {
-                long recordingElapsed =
-                        connection.getApproximateServerTime(clock) - recordingStart;
-                double elapsedProportion = ((double) recordingElapsed) / ((double) recordingLength);
-                int currentDots = (int) Math.ceil(10 * elapsedProportion);
-                if (currentDots > lastDots) {
-                    for (int i = 0; i < 2 * currentDots; i++) {
-                        cw.print('\b');
+                    if (descriptor.isContinuous()
+                            && !descriptor
+                                    .getState()
+                                    .equals(IRecordingDescriptor.RecordingState.STOPPED)) {
+                        cw.println(
+                                String.format(
+                                        "Recording \"%s\" is continuous, refusing to wait",
+                                        recordingName));
+                        return null;
                     }
-                    cw.print(". ".repeat(currentDots).trim());
-                    lastDots = currentDots;
-                } else {
-                    progressFlag = !progressFlag;
-                    if (progressFlag) {
-                        cw.print('\b');
-                    } else {
-                        cw.print('.');
+                    long recordingStart = descriptor.getDataStartTime().longValue();
+                    long recordingEnd = descriptor.getDataEndTime().longValue();
+                    long recordingLength = recordingEnd - recordingStart;
+                    int lastDots = 0;
+                    boolean progressFlag = false;
+                    while (!descriptor
+                            .getState()
+                            .equals(IRecordingDescriptor.RecordingState.STOPPED)) {
+                        long recordingElapsed =
+                                connection.getApproximateServerTime(clock) - recordingStart;
+                        double elapsedProportion =
+                                ((double) recordingElapsed) / ((double) recordingLength);
+                        int currentDots = (int) Math.ceil(10 * elapsedProportion);
+                        if (currentDots > lastDots) {
+                            for (int i = 0; i < 2 * currentDots; i++) {
+                                cw.print('\b');
+                            }
+                            cw.print(". ".repeat(currentDots).trim());
+                            lastDots = currentDots;
+                        } else {
+                            progressFlag = !progressFlag;
+                            if (progressFlag) {
+                                cw.print('\b');
+                            } else {
+                                cw.print('.');
+                            }
+                        }
+                        clock.sleep(TimeUnit.SECONDS, 1);
+                        descriptor = getDescriptorByName(hostId, recordingName).get();
                     }
-                }
-                clock.sleep(TimeUnit.SECONDS, 1);
-                descriptor = getDescriptorByName(hostId, recordingName).get();
-            }
-            cw.println();
-            return null;
-        });
+                    cw.println();
+                    return null;
+                });
     }
 
     @Override
     public boolean validate(String[] args) {
         if (args.length != 2) {
-            cw.println("Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+            cw.println(
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
 

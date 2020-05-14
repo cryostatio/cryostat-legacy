@@ -93,15 +93,20 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         String hostId = args[0];
         String name = args[1];
 
-        executeConnectedTask(hostId, connection -> {
-            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
-            if (descriptor.isPresent()) {
-                cw.println(String.format("Recording saved as \"%s\"", saveRecording(connection, descriptor.get())));
-            } else {
-                cw.println(String.format("Recording with name \"%s\" not found", name));
-            }
-            return null;
-        });
+        executeConnectedTask(
+                hostId,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+                    if (descriptor.isPresent()) {
+                        cw.println(
+                                String.format(
+                                        "Recording saved as \"%s\"",
+                                        saveRecording(connection, descriptor.get())));
+                    } else {
+                        cw.println(String.format("Recording with name \"%s\" not found", name));
+                    }
+                    return null;
+                });
     }
 
     @Override
@@ -110,15 +115,18 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         String name = args[1];
 
         try {
-            return executeConnectedTask(hostId, connection -> {
-                Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
-                if (descriptor.isPresent()) {
-                    return new StringOutput(saveRecording(connection, descriptor.get()));
-                } else {
-                    return new FailureOutput(
-                            String.format("Recording with name \"%s\" not found", name));
-                }
-            });
+            return executeConnectedTask(
+                    hostId,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                getDescriptorByName(hostId, name);
+                        if (descriptor.isPresent()) {
+                            return new StringOutput(saveRecording(connection, descriptor.get()));
+                        } else {
+                            return new FailureOutput(
+                                    String.format("Recording with name \"%s\" not found", name));
+                        }
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -127,7 +135,8 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     @Override
     public boolean validate(String[] args) {
         if (args.length != 2) {
-            cw.println("Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+            cw.println(
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
 

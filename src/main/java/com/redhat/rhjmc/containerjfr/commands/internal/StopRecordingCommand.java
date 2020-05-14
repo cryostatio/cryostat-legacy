@@ -73,15 +73,17 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
         String hostId = args[0];
         String name = args[1];
 
-        executeConnectedTask(hostId, connection -> {
-            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
-            if (descriptor.isPresent()) {
-                connection.getService().stop(descriptor.get());
-            } else {
-                cw.println(String.format("Recording with name \"%s\" not found", name));
-            }
-            return null;
-        });
+        executeConnectedTask(
+                hostId,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+                    if (descriptor.isPresent()) {
+                        connection.getService().stop(descriptor.get());
+                    } else {
+                        cw.println(String.format("Recording with name \"%s\" not found", name));
+                    }
+                    return null;
+                });
     }
 
     @Override
@@ -90,16 +92,19 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
             String hostId = args[0];
             String name = args[1];
 
-            return executeConnectedTask(hostId, connection -> {
-                Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
-                if (descriptor.isPresent()) {
-                    connection.getService().stop(descriptor.get());
-                    return new SuccessOutput();
-                } else {
-                    return new FailureOutput(
-                            String.format("Recording with name \"%s\" not found", name));
-                }
-            });
+            return executeConnectedTask(
+                    hostId,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                getDescriptorByName(hostId, name);
+                        if (descriptor.isPresent()) {
+                            connection.getService().stop(descriptor.get());
+                            return new SuccessOutput();
+                        } else {
+                            return new FailureOutput(
+                                    String.format("Recording with name \"%s\" not found", name));
+                        }
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

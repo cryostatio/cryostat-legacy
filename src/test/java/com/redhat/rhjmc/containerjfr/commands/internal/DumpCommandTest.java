@@ -111,27 +111,37 @@ class DumpCommandTest {
 
     @Test
     void shouldNotValidateRecordingNameInvalid() {
-        assertFalse(command.validate(new String[] {"fooHost:9091", ".", "30", "foo.Bar:enabled=true"}));
+        assertFalse(
+                command.validate(new String[] {"fooHost:9091", ".", "30", "foo.Bar:enabled=true"}));
     }
 
     @Test
     void shouldNotValidateRecordingLengthInvalid() {
-        assertFalse(command.validate(new String[] {"fooHost:9091", "recording", "nine", "foo.Bar:enabled=true"}));
+        assertFalse(
+                command.validate(
+                        new String[] {
+                            "fooHost:9091", "recording", "nine", "foo.Bar:enabled=true"
+                        }));
     }
 
     @Test
     void shouldNotValidateEventStringInvalid() {
-        assertFalse(command.validate(new String[] {"fooHost:9091", "recording", "30", "foo.Bar:=true"}));
+        assertFalse(
+                command.validate(
+                        new String[] {"fooHost:9091", "recording", "30", "foo.Bar:=true"}));
     }
 
     @Test
     void shouldValidateCorrectArgs() {
-        assertTrue(command.validate(new String[] {"fooHost:9091", "recording", "30", "foo.Bar:enabled=true"}));
+        assertTrue(
+                command.validate(
+                        new String[] {"fooHost:9091", "recording", "30", "foo.Bar:enabled=true"}));
     }
 
     @Test
     void shouldDumpRecordingOnExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -186,7 +196,8 @@ class DumpCommandTest {
 
     @Test
     void shouldDumpRecordingOnSerializableExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -206,7 +217,8 @@ class DumpCommandTest {
         when(service.start(Mockito.any(), Mockito.any())).thenReturn(descriptor);
 
         SerializableCommand.Output out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo", "30", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"fooHost:9091", "foo", "30", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
@@ -246,7 +258,8 @@ class DumpCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
@@ -261,12 +274,14 @@ class DumpCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo", "30", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"fooHost:9091", "foo", "30", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
         MatcherAssert.assertThat(
                 ((SerializableCommand.FailureOutput) out).getPayload(),
@@ -277,12 +292,14 @@ class DumpCommandTest {
 
     @Test
     void shouldHandleExceptionOnSerializableExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo", "30", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"fooHost:9091", "foo", "30", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(

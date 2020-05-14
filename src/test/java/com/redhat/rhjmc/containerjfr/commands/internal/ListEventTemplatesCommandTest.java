@@ -84,26 +84,27 @@ class ListEventTemplatesCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 2 })
+    @ValueSource(ints = {0, 2})
     void shouldNotValidateWrongArgc(int n) {
         Assertions.assertFalse(cmd.validate(new String[n]));
     }
 
     @Test
     void shouldValidateHostIdArg() {
-        Assertions.assertTrue(cmd.validate(new String[] { "fooHost:9091" }));
+        Assertions.assertTrue(cmd.validate(new String[] {"fooHost:9091"}));
     }
 
     @Test
     void executeShouldPrintListOfTemplateNames() throws Exception {
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
         Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
         Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
         Template baz = new Template("Baz", "a baz-ing template", "Baz Inc.");
         Mockito.when(templateSvc.getTemplates()).thenReturn(List.of(foo, bar, baz));
 
-        cmd.execute(new String[] { "fooHost:9091" });
+        cmd.execute(new String[] {"fooHost:9091"});
 
         InOrder inOrder = Mockito.inOrder(cw);
         inOrder.verify(cw).println("Available recording templates:");
@@ -117,7 +118,8 @@ class ListEventTemplatesCommandTest {
 
     @Test
     void serializableExecuteShouldReturnListOfTemplateNames() throws Exception {
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
         Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
         Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
@@ -125,7 +127,7 @@ class ListEventTemplatesCommandTest {
         List<Template> remoteList = List.of(foo, bar, baz);
         Mockito.when(templateSvc.getTemplates()).thenReturn(remoteList);
 
-        Output<?> output = cmd.serializableExecute(new String[] { "fooHost:9091" });
+        Output<?> output = cmd.serializableExecute(new String[] {"fooHost:9091"});
 
         MatcherAssert.assertThat(output, Matchers.instanceOf(ListOutput.class));
         List<Template> expectedList =

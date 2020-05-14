@@ -72,15 +72,20 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     public void execute(String[] args) throws Exception {
         final String hostId = args[0];
         final String recordingName = args[1];
-        executeConnectedTask(hostId, connection -> {
-            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, recordingName);
-            if (descriptor.isPresent()) {
-                connection.getService().close(descriptor.get());
-            } else {
-                cw.println(String.format("No recording with name \"%s\" found", recordingName));
-            }
-            return null;
-        });
+        executeConnectedTask(
+                hostId,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            getDescriptorByName(hostId, recordingName);
+                    if (descriptor.isPresent()) {
+                        connection.getService().close(descriptor.get());
+                    } else {
+                        cw.println(
+                                String.format(
+                                        "No recording with name \"%s\" found", recordingName));
+                    }
+                    return null;
+                });
     }
 
     @Override
@@ -88,16 +93,20 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
         final String hostId = args[0];
         final String recordingName = args[1];
         try {
-            return executeConnectedTask(hostId, connection -> {
-                Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, recordingName);
-                if (descriptor.isPresent()) {
-                    connection.getService().close(descriptor.get());
-                    return new SuccessOutput();
-                } else {
-                    return new FailureOutput(
-                            String.format("No recording with name \"%s\" found", recordingName));
-                }
-            });
+            return executeConnectedTask(
+                    hostId,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                getDescriptorByName(hostId, recordingName);
+                        if (descriptor.isPresent()) {
+                            connection.getService().close(descriptor.get());
+                            return new SuccessOutput();
+                        } else {
+                            return new FailureOutput(
+                                    String.format(
+                                            "No recording with name \"%s\" found", recordingName));
+                        }
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -106,7 +115,8 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     @Override
     public boolean validate(String[] args) {
         if (args.length != 2) {
-            cw.println("Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+            cw.println(
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
         boolean isValidHostId = validateHostId(args[0]);

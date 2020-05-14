@@ -48,12 +48,12 @@ import java.util.regex.Matcher;
 
 import javax.management.remote.JMXServiceURL;
 
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 
@@ -67,20 +67,22 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
     }
 
     @Override
-    public final void connectionChanged(JFRConnection connection) {
-    }
+    public final void connectionChanged(JFRConnection connection) {}
 
     @Override
     public boolean isAvailable() {
         return true;
     }
 
-    protected Optional<IRecordingDescriptor> getDescriptorByName(String hostId, String name) throws Exception {
-            return executeConnectedTask(hostId, connection -> {
-                return connection.getService().getAvailableRecordings().stream()
-                    .filter(recording -> recording.getName().equals(name))
-                    .findFirst();
-            });
+    protected Optional<IRecordingDescriptor> getDescriptorByName(String hostId, String name)
+            throws Exception {
+        return executeConnectedTask(
+                hostId,
+                connection -> {
+                    return connection.getService().getAvailableRecordings().stream()
+                            .filter(recording -> recording.getName().equals(name))
+                            .findFirst();
+                });
     }
 
     protected <T> T executeConnectedTask(String hostId, ConnectedTask<T> task) throws Exception {

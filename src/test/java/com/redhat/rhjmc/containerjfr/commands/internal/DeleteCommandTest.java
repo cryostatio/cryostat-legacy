@@ -44,7 +44,6 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -94,7 +93,8 @@ class DeleteCommandTest {
 
     @Test
     void shouldCloseNamedRecording() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -107,7 +107,8 @@ class DeleteCommandTest {
 
     @Test
     void shouldReturnSerializedSuccess() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -123,7 +124,8 @@ class DeleteCommandTest {
 
     @Test
     void shouldNotCloseUnnamedRecording() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -137,7 +139,8 @@ class DeleteCommandTest {
 
     @Test
     void shouldReturnSerializedFailure() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -156,7 +159,8 @@ class DeleteCommandTest {
 
     @Test
     void shouldReturnSerializedException() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -175,7 +179,7 @@ class DeleteCommandTest {
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] { "fooHost:9091", "recordingName" }));
+        assertTrue(command.validate(new String[] {"fooHost:9091", "recordingName"}));
     }
 
     @ParameterizedTest

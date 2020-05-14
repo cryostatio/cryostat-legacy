@@ -52,11 +52,6 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -64,8 +59,13 @@ import org.apache.http.entity.ContentType;
 import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
+
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Singleton
@@ -122,7 +122,8 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private ResponseMessage doPost(String hostId, String recordingName, String uploadUrl) throws Exception {
+    private ResponseMessage doPost(String hostId, String recordingName, String uploadUrl)
+            throws Exception {
         Optional<InputStream> recording = getBestRecordingForName(hostId, recordingName);
         if (!recording.isPresent()) {
             throw new RecordingNotFoundException(hostId, recordingName);
@@ -147,7 +148,8 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     @Override
     public boolean validate(String[] args) {
         if (args.length != 3) {
-            cw.println("Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
+            cw.println(
+                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
             return false;
         }
 
@@ -172,12 +174,17 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
-    Optional<InputStream> getBestRecordingForName(String hostId, String recordingName) throws Exception {
-        Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(hostId, recordingName);
+    Optional<InputStream> getBestRecordingForName(String hostId, String recordingName)
+            throws Exception {
+        Optional<IRecordingDescriptor> currentRecording =
+                getDescriptorByName(hostId, recordingName);
         if (currentRecording.isPresent()) {
-            return executeConnectedTask(hostId, connection -> {
-                return Optional.of(connection.getService().openStream(currentRecording.get(), false));
-            });
+            return executeConnectedTask(
+                    hostId,
+                    connection -> {
+                        return Optional.of(
+                                connection.getService().openStream(currentRecording.get(), false));
+                    });
         }
 
         Path archivedRecording = recordingsPath.resolve(recordingName);
@@ -202,7 +209,10 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         private static final long serialVersionUID = 1L;
 
         RecordingNotFoundException(String hostId, String recordingName) {
-            super(String.format("Recording \"%s\" could not be found at target \"%s\"", recordingName, hostId));
+            super(
+                    String.format(
+                            "Recording \"%s\" could not be found at target \"%s\"",
+                            recordingName, hostId));
         }
     }
 }

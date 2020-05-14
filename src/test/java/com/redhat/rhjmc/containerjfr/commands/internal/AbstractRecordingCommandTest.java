@@ -132,7 +132,8 @@ class AbstractRecordingCommandTest extends TestBase {
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
 
-        command.enableEvents(connection,
+        command.enableEvents(
+                connection,
                 "foo.Bar$Inner:prop=some,bar.Baz$Inner2:key=val,jdk.CPULoad:enabled=true");
 
         verify(builder).addEvent("foo.Bar$Inner", "prop", "some");
@@ -167,7 +168,8 @@ class AbstractRecordingCommandTest extends TestBase {
 
         command.connectionChanged(connection);
         Assertions.assertThrows(
-                FlightRecorderException.class, () -> command.enableEvents(connection, "template=Foo"));
+                FlightRecorderException.class,
+                () -> command.enableEvents(connection, "template=Foo"));
     }
 
     @Test

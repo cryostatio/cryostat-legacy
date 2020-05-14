@@ -49,9 +49,6 @@ import static org.mockito.Mockito.when;
 import java.util.Collections;
 import java.util.Optional;
 
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -60,8 +57,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractConnectedCommandTest {
@@ -82,28 +83,30 @@ class AbstractConnectedCommandTest {
 
     @Test
     void shouldGetMatchingDescriptorByName() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         IFlightRecorderService mockService = mock(IFlightRecorderService.class);
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(connection.getService()).thenReturn(mockService);
-        when(mockService.getAvailableRecordings())
-                .thenReturn(Collections.singletonList(recording));
+        when(mockService.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
         when(recording.getName()).thenReturn("foo");
-        Optional<IRecordingDescriptor> descriptor = command.getDescriptorByName("fooHost:9091", "foo");
+        Optional<IRecordingDescriptor> descriptor =
+                command.getDescriptorByName("fooHost:9091", "foo");
         assertTrue(descriptor.isPresent());
         MatcherAssert.assertThat(descriptor.get(), Matchers.sameInstance(recording));
     }
 
     @Test
     void shouldReturnEmptyOptionalIfNoMatchingDescriptorFound() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         IFlightRecorderService mockService = mock(IFlightRecorderService.class);
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(connection.getService()).thenReturn(mockService);
-        when(mockService.getAvailableRecordings())
-                .thenReturn(Collections.singletonList(recording));
+        when(mockService.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
         when(recording.getName()).thenReturn("foo");
-        Optional<IRecordingDescriptor> descriptor = command.getDescriptorByName("fooHost:9091", "bar");
+        Optional<IRecordingDescriptor> descriptor =
+                command.getDescriptorByName("fooHost:9091", "bar");
         assertFalse(descriptor.isPresent());
     }
 

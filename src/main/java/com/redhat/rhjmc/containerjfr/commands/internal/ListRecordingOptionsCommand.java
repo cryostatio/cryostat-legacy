@@ -48,6 +48,7 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import org.apache.commons.lang3.StringUtils;
+
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
@@ -74,25 +75,37 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     /** No args expected. Prints list of available recording options in target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
-        executeConnectedTask(args[0], connection -> {
-            cw.println("Available recording options:");
-            connection.getService().getAvailableRecordingOptions().entrySet().forEach(this::printOptions);
-            return null;
-        });
+        executeConnectedTask(
+                args[0],
+                connection -> {
+                    cw.println("Available recording options:");
+                    connection
+                            .getService()
+                            .getAvailableRecordingOptions()
+                            .entrySet()
+                            .forEach(this::printOptions);
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return executeConnectedTask(args[0], connection -> {
-                Map<String, IOptionDescriptor<?>> origOptions =
-                        connection.getService().getAvailableRecordingOptions();
-                Map<String, SerializableOptionDescriptor> options = new HashMap<>(origOptions.size());
-                for (Map.Entry<String, IOptionDescriptor<?>> entry : origOptions.entrySet()) {
-                    options.put(entry.getKey(), new SerializableOptionDescriptor(entry.getValue()));
-                }
-                return new MapOutput<>(options);
-            });
+            return executeConnectedTask(
+                    args[0],
+                    connection -> {
+                        Map<String, IOptionDescriptor<?>> origOptions =
+                                connection.getService().getAvailableRecordingOptions();
+                        Map<String, SerializableOptionDescriptor> options =
+                                new HashMap<>(origOptions.size());
+                        for (Map.Entry<String, IOptionDescriptor<?>> entry :
+                                origOptions.entrySet()) {
+                            options.put(
+                                    entry.getKey(),
+                                    new SerializableOptionDescriptor(entry.getValue()));
+                        }
+                        return new MapOutput<>(options);
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

@@ -48,14 +48,14 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
-import org.apache.commons.lang3.StringUtils;
 
 @Singleton
 class ListEventTemplatesCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -75,27 +75,31 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
 
     @Override
     public void execute(String[] args) throws Exception {
-        executeConnectedTask(args[0], connection -> {
-            cw.println("Available recording templates:");
-            getTemplates(connection)
-                    .forEach(
-                            template ->
-                                    cw.println(
-                                            String.format(
-                                                    "\t[%s]\t%s:\t%s",
-                                                    template.getProvider(),
-                                                    template.getName(),
-                                                    template.getDescription())));
-            return null;
-        });
+        executeConnectedTask(
+                args[0],
+                connection -> {
+                    cw.println("Available recording templates:");
+                    getTemplates(connection)
+                            .forEach(
+                                    template ->
+                                            cw.println(
+                                                    String.format(
+                                                            "\t[%s]\t%s:\t%s",
+                                                            template.getProvider(),
+                                                            template.getName(),
+                                                            template.getDescription())));
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return executeConnectedTask(args[0], connection -> {
-                return new ListOutput<>(getTemplates(connection));
-            });
+            return executeConnectedTask(
+                    args[0],
+                    connection -> {
+                        return new ListOutput<>(getTemplates(connection));
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -114,9 +118,9 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
         return isValidHostId;
     }
 
-    private List<Template> getTemplates(JFRConnection connection) throws FlightRecorderException, JMXConnectionException {
-        List<Template> templates =
-                new ArrayList<>(connection.getTemplateService().getTemplates());
+    private List<Template> getTemplates(JFRConnection connection)
+            throws FlightRecorderException, JMXConnectionException {
+        List<Template> templates = new ArrayList<>(connection.getTemplateService().getTemplates());
         templates.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
         return Collections.unmodifiableList(templates);
     }

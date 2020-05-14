@@ -121,7 +121,9 @@ class ContainerJfr {
         CommandExecutor commandExecutor();
 
         HttpServer httpServer();
+
         WebServer webServer();
+
         MessagingServer messagingServer();
 
         @Component.Builder

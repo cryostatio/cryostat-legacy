@@ -52,13 +52,6 @@ import java.time.Instant;
 import java.time.temporal.TemporalUnit;
 import java.util.Collections;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.core.sys.Clock;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -71,8 +64,16 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class SaveRecordingCommandTest {
@@ -100,7 +101,9 @@ class SaveRecordingCommandTest {
     @ValueSource(ints = {0, 1, 3})
     void shouldNotValidateWrongArgCounts(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
-        verify(cw).println("Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+        verify(cw)
+                .println(
+                        "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
     }
 
     @ParameterizedTest
@@ -130,7 +133,8 @@ class SaveRecordingCommandTest {
 
     @Test
     void shouldExecuteAndPrintMessageIfRecordingNotFound() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
@@ -146,7 +150,8 @@ class SaveRecordingCommandTest {
     void shouldExecuteAndSaveRecording() throws Exception {
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(connection.getHost()).thenReturn("some-host.svc.local");
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
@@ -173,7 +178,8 @@ class SaveRecordingCommandTest {
     void shouldExecuteAndSaveDuplicatedRecording() throws Exception {
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(connection.getHost()).thenReturn("some-host.svc.local");
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
@@ -208,7 +214,8 @@ class SaveRecordingCommandTest {
     void shouldExecuteAndSaveRecordingWithExtension() throws Exception {
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo.jfr");
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(connection.getHost()).thenReturn("some-host.svc.local");
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
@@ -233,11 +240,13 @@ class SaveRecordingCommandTest {
 
     @Test
     void shouldExecuteAndReturnSerializedFailureIfRecordingNotFound() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
@@ -249,11 +258,13 @@ class SaveRecordingCommandTest {
 
     @Test
     void shouldExecuteAndReturnSerializedException() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(NullPointerException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
@@ -265,7 +276,8 @@ class SaveRecordingCommandTest {
     void shouldExecuteAndSaveRecordingAndReturnSerializedRecordingName() throws Exception {
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(connection.getHost()).thenReturn("some-host.svc.local");
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
@@ -278,7 +290,8 @@ class SaveRecordingCommandTest {
         when(now.truncatedTo(Mockito.any(TemporalUnit.class))).thenReturn(now);
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
         MatcherAssert.assertThat(

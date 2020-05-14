@@ -45,7 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -96,21 +95,19 @@ class SearchEventsCommandTest {
 
     @Test
     void shouldValidateCorrectArgs() {
-        assertTrue(command.validate(new String[] { "fooHost:9091", "garbage" }));
+        assertTrue(command.validate(new String[] {"fooHost:9091", "garbage"}));
     }
 
     @ParameterizedTest
-    @ValueSource(
-            ints = {
-                0, 1, 3
-            })
+    @ValueSource(ints = {0, 1, 3})
     void shouldNotValidateIncorrectArgc(int c) {
         assertFalse(command.validate(new String[c]));
     }
 
     @Test
     void shouldHandleNoMatches() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
@@ -121,11 +118,13 @@ class SearchEventsCommandTest {
 
     @Test
     void shouldHandleNoSerializableMatches() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Collections.emptyList()));
     }
@@ -168,7 +167,8 @@ class SearchEventsCommandTest {
 
         List events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(events);
 
@@ -234,11 +234,13 @@ class SearchEventsCommandTest {
 
         List<IEventTypeInfo> events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
@@ -252,11 +254,13 @@ class SearchEventsCommandTest {
 
     @Test
     void shouldHandleSerializableException() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(NullPointerException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
