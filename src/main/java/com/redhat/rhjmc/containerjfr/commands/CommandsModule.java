@@ -44,6 +44,5 @@ package com.redhat.rhjmc.containerjfr.commands;
 import com.redhat.rhjmc.containerjfr.commands.internal.CommandsInternalModule;
 import dagger.Module;
 
-@Module(
-        includes = { CommandsInternalModule.class })
+@Module(includes = {CommandsInternalModule.class})
 public class CommandsModule {}
