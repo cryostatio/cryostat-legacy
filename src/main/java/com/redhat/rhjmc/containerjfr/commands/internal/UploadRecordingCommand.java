@@ -155,7 +155,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         String hostId = args[0];
         String recordingName = args[1];
-        String uploadUrl = args[2];
+        // String uploadUrl = args[2];
 
         boolean isValidHostId = validateHostId(hostId);
         if (!isValidHostId) {
