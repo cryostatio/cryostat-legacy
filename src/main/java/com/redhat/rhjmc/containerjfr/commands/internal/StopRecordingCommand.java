@@ -68,32 +68,38 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
         return "stop";
     }
 
-    /** Argument is recording name */
     @Override
     public void execute(String[] args) throws Exception {
-        String name = args[0];
+        String hostId = args[0];
+        String name = args[1];
 
-        Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
-        if (descriptor.isPresent()) {
-            getService().stop(descriptor.get());
-        } else {
-            cw.println(String.format("Recording with name \"%s\" not found", name));
-        }
+        executeConnectedTask(hostId, connection -> {
+            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+            if (descriptor.isPresent()) {
+                connection.getService().stop(descriptor.get());
+            } else {
+                cw.println(String.format("Recording with name \"%s\" not found", name));
+            }
+            return null;
+        });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            String name = args[0];
+            String hostId = args[0];
+            String name = args[1];
 
-            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
-            if (descriptor.isPresent()) {
-                getService().stop(descriptor.get());
-                return new SuccessOutput();
-            } else {
-                return new FailureOutput(
-                        String.format("Recording with name \"%s\" not found", name));
-            }
+            return executeConnectedTask(hostId, connection -> {
+                Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+                if (descriptor.isPresent()) {
+                    connection.getService().stop(descriptor.get());
+                    return new SuccessOutput();
+                } else {
+                    return new FailureOutput(
+                            String.format("Recording with name \"%s\" not found", name));
+                }
+            });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -101,18 +107,26 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 1) {
-            cw.println("Expected one argument: recording name");
+        if (args.length != 2) {
+            cw.println(
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
 
-        String name = args[0];
+        String hostId = args[0];
+        String name = args[1];
 
-        if (!validateRecordingName(name)) {
+        boolean isValidHostId = validateHostId(hostId);
+        boolean isValidName = validateRecordingName(name);
+
+        if (!isValidHostId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+
+        if (!isValidName) {
             cw.println(String.format("%s is an invalid recording name", name));
-            return false;
         }
 
-        return true;
+        return isValidHostId && isValidName;
     }
 }

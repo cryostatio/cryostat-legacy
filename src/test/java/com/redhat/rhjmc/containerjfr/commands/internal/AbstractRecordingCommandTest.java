@@ -132,7 +132,7 @@ class AbstractRecordingCommandTest extends TestBase {
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
 
-        command.enableEvents(
+        command.enableEvents(connection,
                 "foo.Bar$Inner:prop=some,bar.Baz$Inner2:key=val,jdk.CPULoad:enabled=true");
 
         verify(builder).addEvent("foo.Bar$Inner", "prop", "some");
@@ -153,7 +153,7 @@ class AbstractRecordingCommandTest extends TestBase {
         when(templateSvc.getEventsByTemplateName(Mockito.anyString())).thenReturn(templateMap);
 
         command.connectionChanged(connection);
-        IConstrainedMap<EventOptionID> result = command.enableEvents("template=Foo");
+        IConstrainedMap<EventOptionID> result = command.enableEvents(connection, "template=Foo");
         assertThat(result, Matchers.sameInstance(templateMap));
     }
 
@@ -167,7 +167,7 @@ class AbstractRecordingCommandTest extends TestBase {
 
         command.connectionChanged(connection);
         Assertions.assertThrows(
-                FlightRecorderException.class, () -> command.enableEvents("template=Foo"));
+                FlightRecorderException.class, () -> command.enableEvents(connection, "template=Foo"));
     }
 
     @Test
@@ -187,7 +187,7 @@ class AbstractRecordingCommandTest extends TestBase {
                 .thenReturn((Collection) Collections.singletonList(mockEvent));
 
         command.connectionChanged(connection);
-        command.enableEvents("template=ALL");
+        command.enableEvents(connection, "template=ALL");
 
         verify(builder).addEvent("com.example.Event", "enabled", "true");
         verify(builder).build();

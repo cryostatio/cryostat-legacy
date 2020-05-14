@@ -55,6 +55,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -89,28 +90,35 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     @Override
     public void execute(String[] args) throws Exception {
-        String name = args[0];
+        String hostId = args[0];
+        String name = args[1];
 
-        Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
-        if (descriptor.isPresent()) {
-            cw.println(String.format("Recording saved as \"%s\"", saveRecording(descriptor.get())));
-        } else {
-            cw.println(String.format("Recording with name \"%s\" not found", name));
-        }
+        executeConnectedTask(hostId, connection -> {
+            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+            if (descriptor.isPresent()) {
+                cw.println(String.format("Recording saved as \"%s\"", saveRecording(connection, descriptor.get())));
+            } else {
+                cw.println(String.format("Recording with name \"%s\" not found", name));
+            }
+            return null;
+        });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        String name = args[0];
+        String hostId = args[0];
+        String name = args[1];
 
         try {
-            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(name);
-            if (descriptor.isPresent()) {
-                return new StringOutput(saveRecording(descriptor.get()));
-            } else {
-                return new FailureOutput(
-                        String.format("Recording with name \"%s\" not found", name));
-            }
+            return executeConnectedTask(hostId, connection -> {
+                Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+                if (descriptor.isPresent()) {
+                    return new StringOutput(saveRecording(connection, descriptor.get()));
+                } else {
+                    return new FailureOutput(
+                            String.format("Recording with name \"%s\" not found", name));
+                }
+            });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -118,33 +126,39 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 1) {
-            cw.println("Expected one argument: recording name");
+        if (args.length != 2) {
+            cw.println("Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
 
-        String name = args[0];
+        String hostId = args[0];
+        String recordingName = args[1];
 
-        if (!validateRecordingName(name)) {
-            cw.println(String.format("%s is an invalid recording name", name));
-            return false;
+        boolean isValidHostId = validateHostId(hostId);
+        if (!isValidHostId) {
+            cw.println(String.format("%s is an invalid connection specifier", hostId));
         }
 
-        return true;
+        boolean isValidRecordingName = validateRecordingName(recordingName);
+        if (!isValidRecordingName) {
+            cw.println(String.format("%s is an invalid recording name", recordingName));
+        }
+
+        return isValidHostId && isValidRecordingName;
     }
 
     @Override
     public boolean isAvailable() {
-        return super.isAvailable() && fs.isDirectory(recordingsPath);
+        return fs.isDirectory(recordingsPath);
     }
 
-    private String saveRecording(IRecordingDescriptor descriptor)
+    private String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)
             throws IOException, FlightRecorderException, JMXConnectionException {
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);
         }
-        String targetName = getConnection().getHost().replaceAll("[\\._]+", "-");
+        String targetName = connection.getHost().replaceAll("[\\._]+", "-");
         String timestamp =
                 clock.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
@@ -160,7 +174,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
             }
         }
         destination += ".jfr";
-        try (InputStream stream = getService().openStream(descriptor, false)) {
+        try (InputStream stream = connection.getService().openStream(descriptor, false)) {
             fs.copy(stream, recordingsPath.resolve(destination));
         }
         return destination;

@@ -95,37 +95,37 @@ class SearchEventsCommandTest {
     }
 
     @Test
-    void shouldValidateCorrectArgc() {
-        assertTrue(command.validate(new String[1]));
-        verifyZeroInteractions(cw);
+    void shouldValidateCorrectArgs() {
+        assertTrue(command.validate(new String[] { "fooHost:9091", "garbage" }));
     }
 
     @ParameterizedTest
     @ValueSource(
             ints = {
-                0, 2,
+                0, 1, 3
             })
     void shouldNotValidateIncorrectArgc(int c) {
         assertFalse(command.validate(new String[c]));
-        verify(cw).println("Expected one argument: search term string");
     }
 
     @Test
     void shouldHandleNoMatches() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(cw).println("\tNo matches");
     }
 
     @Test
     void shouldHandleNoSerializableMatches() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Collections.emptyList()));
     }
@@ -168,10 +168,11 @@ class SearchEventsCommandTest {
 
         List events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(events);
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         StringBuilder sb = new StringBuilder();
         ArgumentCaptor<String> outCaptor = ArgumentCaptor.forClass(String.class);
@@ -233,10 +234,11 @@ class SearchEventsCommandTest {
 
         List<IEventTypeInfo> events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
@@ -250,10 +252,11 @@ class SearchEventsCommandTest {
 
     @Test
     void shouldHandleSerializableException() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(NullPointerException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));

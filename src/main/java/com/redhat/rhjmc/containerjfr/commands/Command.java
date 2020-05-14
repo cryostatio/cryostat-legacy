@@ -41,7 +41,15 @@
  */
 package com.redhat.rhjmc.containerjfr.commands;
 
+import java.net.MalformedURLException;
+import java.util.regex.Pattern;
+
+import javax.management.remote.JMXServiceURL;
+
 public interface Command {
+
+    static final Pattern HOST_PORT_PAIR_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
+
     String getName();
 
     void execute(String[] args) throws Exception;
@@ -49,4 +57,19 @@ public interface Command {
     boolean validate(String[] args);
 
     boolean isAvailable();
+
+    default boolean validateHostId(String hostId) {
+        boolean jmxServiceUrlMatch = true;
+        try {
+            new JMXServiceURL(hostId);
+        } catch (MalformedURLException e) {
+            jmxServiceUrlMatch = false;
+        }
+        boolean hostPatternMatch = HOST_PORT_PAIR_PATTERN.matcher(hostId).matches();
+        return jmxServiceUrlMatch || hostPatternMatch;
+    }
+
+    default boolean validateRecordingName(String name) {
+        return name.matches("[\\w-_]+(\\.jfr)?");
+    }
 }

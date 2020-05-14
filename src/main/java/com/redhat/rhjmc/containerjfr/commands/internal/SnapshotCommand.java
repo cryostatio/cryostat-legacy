@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -70,34 +71,40 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
 
     @Override
     public void execute(String[] args) throws Exception {
-        IRecordingDescriptor descriptor = getService().getSnapshotRecording();
+        executeConnectedTask(args[0], connection -> {
+            IRecordingDescriptor descriptor = connection.getService().getSnapshotRecording();
 
-        String rename =
-                String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
-        cw.println(String.format("Latest snapshot: \"%s\"", rename));
+            String rename =
+                    String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
+            cw.println(String.format("Latest snapshot: \"%s\"", rename));
 
-        RecordingOptionsBuilder recordingOptionsBuilder =
-                recordingOptionsBuilderFactory.create(getService());
-        recordingOptionsBuilder.name(rename);
+            RecordingOptionsBuilder recordingOptionsBuilder =
+                    recordingOptionsBuilderFactory.create(connection.getService());
+            recordingOptionsBuilder.name(rename);
 
-        getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
+            connection.getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
+
+            return null;
+        });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            IRecordingDescriptor descriptor = getService().getSnapshotRecording();
+            return executeConnectedTask(args[0], connection -> {
+                IRecordingDescriptor descriptor = connection.getService().getSnapshotRecording();
 
-            String rename =
-                    String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
+                String rename =
+                        String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
 
-            RecordingOptionsBuilder recordingOptionsBuilder =
-                    recordingOptionsBuilderFactory.create(getService());
-            recordingOptionsBuilder.name(rename);
+                RecordingOptionsBuilder recordingOptionsBuilder =
+                        recordingOptionsBuilderFactory.create(connection.getService());
+                recordingOptionsBuilder.name(rename);
 
-            getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
+                connection.getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
 
-            return new StringOutput(rename);
+                return new StringOutput(rename);
+            });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -105,10 +112,14 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
+        if (args.length != 1 || StringUtils.isBlank(args[0])) {
+            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }
-        return true;
+        boolean isValidHostId = validateHostId(args[0]);
+        if (!isValidHostId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+        return isValidHostId;
     }
 }

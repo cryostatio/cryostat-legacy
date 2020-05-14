@@ -95,78 +95,63 @@ class StopRecordingCommandTest {
     @Test
     void shouldNotExpectNoArg() {
         assertFalse(command.validate(new String[0]));
-        verify(cw).println("Expected one argument: recording name");
     }
 
     @Test
     void shouldNotExpectMalformedArg() {
-        assertFalse(command.validate(new String[] {"."}));
-        verify(cw).println(". is an invalid recording name");
+        assertFalse(command.validate(new String[] {"fooHost:9091", "."}));
     }
 
     @Test
     void shouldExpectRecordingNameArg() {
-        assertTrue(command.validate(new String[] {"foo"}));
-        verifyZeroInteractions(cw);
+        assertTrue(command.validate(new String[] {"fooHost:9091", "foo"}));
     }
 
     @Test
     void shouldHandleNoRecordingFound() throws Exception {
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(connection);
-
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(connection);
         verify(cw).println("Recording with name \"foo\" not found");
     }
 
     @Test
     void shouldHandleRecordingFound() throws Exception {
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(connection);
-
         IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
         when(fooDescriptor.getName()).thenReturn("foo");
         IRecordingDescriptor barDescriptor = mock(IRecordingDescriptor.class);
         when(barDescriptor.getName()).thenReturn("bar");
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
                 ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(service).stop(descriptorCaptor.capture());
         IRecordingDescriptor captured = descriptorCaptor.getValue();
         MatcherAssert.assertThat(captured, Matchers.sameInstance(fooDescriptor));
-
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(connection);
-        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldReturnSuccessOutput() throws Exception {
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(connection);
-
         IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
         when(fooDescriptor.getName()).thenReturn("foo");
         IRecordingDescriptor barDescriptor = mock(IRecordingDescriptor.class);
         when(barDescriptor.getName()).thenReturn("bar");
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Arrays.asList(barDescriptor, fooDescriptor));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
         ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
@@ -174,44 +159,34 @@ class StopRecordingCommandTest {
         verify(service).stop(descriptorCaptor.capture());
         IRecordingDescriptor captured = descriptorCaptor.getValue();
         MatcherAssert.assertThat(captured, Matchers.sameInstance(fooDescriptor));
-
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(connection);
     }
 
     @Test
     void shouldReturnFailureOutput() throws Exception {
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(connection);
-
         IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
         when(fooDescriptor.getName()).thenReturn("foo");
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"bar"});
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "bar"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(), Matchers.equalTo("Recording with name \"bar\" not found"));
-
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(connection);
     }
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(connection);
-
         IRecordingDescriptor fooDescriptor = mock(IRecordingDescriptor.class);
         when(fooDescriptor.getName()).thenReturn("foo");
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(fooDescriptor));
         doThrow(FlightRecorderException.class).when(service).stop(Mockito.any());
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"fooHost:9091", "foo"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));

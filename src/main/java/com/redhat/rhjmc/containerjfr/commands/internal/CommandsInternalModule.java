@@ -61,9 +61,6 @@ import dagger.multibindings.IntoSet;
 
 @Module
 public abstract class CommandsInternalModule {
-    @Binds
-    @IntoSet
-    abstract Command bindConnectCommand(ConnectCommand command);
 
     @Binds
     @IntoSet
@@ -72,10 +69,6 @@ public abstract class CommandsInternalModule {
     @Binds
     @IntoSet
     abstract Command bindDeleteSavedRecordingCommand(DeleteSavedRecordingCommand command);
-
-    @Binds
-    @IntoSet
-    abstract Command bindDisconnectCommand(DisconnectCommand command);
 
     @Binds
     @IntoSet

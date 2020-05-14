@@ -41,29 +41,26 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.net.MalformedURLException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.management.remote.JMXServiceURL;
-
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 
-    private static final Pattern HOST_PORT_PAIR_PATTERN =
-            Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
-
     protected final JFRConnectionToolkit jfrConnectionToolkit;
-    protected JFRConnection connection;
+    // maintain a short-lived cache of connections to allow Commands to nest ConnectedTasks
+    // without having to manage connection reuse
+    private final Map<String, JFRConnection> activeConnections = new HashMap<>();
 
     AbstractConnectedCommand(JFRConnectionToolkit jfrConnectionToolkit) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
@@ -71,55 +68,32 @@ abstract class AbstractConnectedCommand implements Command, ConnectionListener {
 
     @Override
     public final void connectionChanged(JFRConnection connection) {
-        this.connection = connection;
     }
 
     @Override
     public boolean isAvailable() {
-        return this.connection != null;
+        return true;
     }
 
-    protected JFRConnection getConnection() throws JMXConnectionException {
-        validateConnection();
-        return this.connection;
-    }
-
-    protected IFlightRecorderService getService() throws JMXConnectionException {
-        validateConnection();
-        return this.connection.getService();
-    }
-
-    protected boolean validateRecordingName(String name) {
-        return name.matches("[\\w-_]+(\\.jfr)?");
-    }
-
-    protected Optional<IRecordingDescriptor> getDescriptorByName(String name)
-            throws FlightRecorderException, JMXConnectionException {
-        return getService().getAvailableRecordings().stream()
-                .filter(recording -> recording.getName().equals(name))
-                .findFirst();
-    }
-
-    private void validateConnection() throws JMXConnectionException {
-        if (this.connection == null) {
-            throw new JMXConnectionException();
-        }
-    }
-
-    protected boolean validateHostId(String hostId) {
-        boolean jmxServiceUrlMatch = true;
-        try {
-            new JMXServiceURL(hostId);
-        } catch (MalformedURLException e) {
-            jmxServiceUrlMatch = false;
-        }
-        boolean hostPatternMatch = HOST_PORT_PAIR_PATTERN.matcher(hostId).matches();
-        return jmxServiceUrlMatch || hostPatternMatch;
+    protected Optional<IRecordingDescriptor> getDescriptorByName(String hostId, String name) throws Exception {
+            return executeConnectedTask(hostId, connection -> {
+                return connection.getService().getAvailableRecordings().stream()
+                    .filter(recording -> recording.getName().equals(name))
+                    .findFirst();
+            });
     }
 
     protected <T> T executeConnectedTask(String hostId, ConnectedTask<T> task) throws Exception {
-        try (JFRConnection connection = attemptConnect(hostId)) {
-            return task.execute(connection);
+        try {
+            if (activeConnections.containsKey(hostId)) {
+                return task.execute(activeConnections.get(hostId));
+            } else {
+                try (JFRConnection connection = attemptConnect(hostId)) {
+                    return task.execute(connection);
+                }
+            }
+        } finally {
+            activeConnections.remove(hostId);
         }
     }
 

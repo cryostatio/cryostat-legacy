@@ -84,30 +84,27 @@ class ListEventTemplatesCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {1, 2, 3})
+    @ValueSource(ints = {0, 2 })
     void shouldNotValidateWrongArgc(int n) {
         Assertions.assertFalse(cmd.validate(new String[n]));
-        Mockito.verify(cw).println("No arguments expected");
     }
 
     @Test
-    void shouldValidateNoArgs() {
-        Assertions.assertTrue(cmd.validate(new String[0]));
-        Mockito.verifyZeroInteractions(cw);
+    void shouldValidateHostIdArg() {
+        Assertions.assertTrue(cmd.validate(new String[] { "fooHost:9091" }));
     }
 
     @Test
     void executeShouldPrintListOfTemplateNames() throws Exception {
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
         Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
         Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
         Template baz = new Template("Baz", "a baz-ing template", "Baz Inc.");
         Mockito.when(templateSvc.getTemplates()).thenReturn(List.of(foo, bar, baz));
 
-        cmd.connectionChanged(connection);
+        cmd.execute(new String[] { "fooHost:9091" });
 
-        Mockito.verifyZeroInteractions(cw);
-        cmd.execute(new String[0]);
         InOrder inOrder = Mockito.inOrder(cw);
         inOrder.verify(cw).println("Available recording templates:");
         inOrder.verify(cw).println("\t[Foo Inc.]\tFoo:\ta foo-ing template");
@@ -116,11 +113,11 @@ class ListEventTemplatesCommandTest {
         inOrder.verify(cw)
                 .println(
                         "\t[ContainerJFR]\tALL:\tEnable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.");
-        Mockito.verifyNoMoreInteractions(cw);
     }
 
     @Test
     void serializableExecuteShouldReturnListOfTemplateNames() throws Exception {
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
         Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
         Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
@@ -128,9 +125,8 @@ class ListEventTemplatesCommandTest {
         List<Template> remoteList = List.of(foo, bar, baz);
         Mockito.when(templateSvc.getTemplates()).thenReturn(remoteList);
 
-        cmd.connectionChanged(connection);
+        Output<?> output = cmd.serializableExecute(new String[] { "fooHost:9091" });
 
-        Output<?> output = cmd.serializableExecute(new String[0]);
         MatcherAssert.assertThat(output, Matchers.instanceOf(ListOutput.class));
         List<Template> expectedList =
                 List.of(foo, bar, baz, AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
