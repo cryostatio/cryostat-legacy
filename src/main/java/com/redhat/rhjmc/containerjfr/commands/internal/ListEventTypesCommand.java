@@ -48,6 +48,7 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
@@ -71,22 +72,26 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
         return "list-event-types";
     }
 
-    /** No args expected. Prints a list of available event types in the target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("Available event types:");
-        getService().getAvailableEventTypes().forEach(this::printEvent);
+        executeConnectedTask(args[0], connection -> {
+            cw.println("Available event types:");
+            connection.getService().getAvailableEventTypes().forEach(this::printEvent);
+            return null;
+        });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            Collection<? extends IEventTypeInfo> origInfos = getService().getAvailableEventTypes();
-            List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
-            for (IEventTypeInfo info : origInfos) {
-                infos.add(new SerializableEventTypeInfo(info));
-            }
-            return new ListOutput<>(infos);
+            return executeConnectedTask(args[0], connection -> {
+                Collection<? extends IEventTypeInfo> origInfos = connection.getService().getAvailableEventTypes();
+                List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
+                for (IEventTypeInfo info : origInfos) {
+                    infos.add(new SerializableEventTypeInfo(info));
+                }
+                return new ListOutput<>(infos);
+            });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -94,11 +99,15 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
+        if (args.length != 1 || StringUtils.isBlank(args[0])) {
+            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }
-        return true;
+        boolean isValidHostId = validateHostId(args[0]);
+        if (!isValidHostId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+        return isValidHostId;
     }
 
     private void printEvent(IEventTypeInfo event) {

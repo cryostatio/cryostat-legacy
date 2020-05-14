@@ -74,44 +74,51 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
      */
     @Override
     public void execute(String[] args) throws Exception {
-        String name = args[0];
-        int seconds = Integer.parseInt(args[1]);
-        String events = args[2];
+        String hostId = args[0];
+        String name = args[1];
+        int seconds = Integer.parseInt(args[2]);
+        String events = args[3];
 
-        if (getDescriptorByName(name).isPresent()) {
-            cw.println(String.format("Recording with name \"%s\" already exists", name));
-            return;
-        }
+        executeConnectedTask(hostId, connection -> {
+            if (getDescriptorByName(hostId, name).isPresent()) {
+                cw.println(String.format("Recording with name \"%s\" already exists", name));
+                return null;
+            }
 
-        IConstrainedMap<String> recordingOptions =
-                recordingOptionsBuilderFactory
-                        .create(getService())
-                        .name(name)
-                        .duration(1000 * seconds)
-                        .build();
-        getService().start(recordingOptions, enableEvents(events));
+            IConstrainedMap<String> recordingOptions =
+                    recordingOptionsBuilderFactory
+                            .create(connection.getService())
+                            .name(name)
+                            .duration(1000 * seconds)
+                            .build();
+            connection.getService().start(recordingOptions, enableEvents(connection, events));
+            return null;
+        });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            String name = args[0];
-            int seconds = Integer.parseInt(args[1]);
-            String events = args[2];
+            String hostId = args[0];
+            String name = args[1];
+            int seconds = Integer.parseInt(args[2]);
+            String events = args[3];
 
-            if (getDescriptorByName(name).isPresent()) {
-                return new FailureOutput(
-                        String.format("Recording with name \"%s\" already exists", name));
-            }
+            return executeConnectedTask(hostId, connection -> {
+                if (getDescriptorByName(hostId, name).isPresent()) {
+                    return new FailureOutput(
+                            String.format("Recording with name \"%s\" already exists", name));
+                }
 
-            IConstrainedMap<String> recordingOptions =
-                    recordingOptionsBuilderFactory
-                            .create(getService())
-                            .name(name)
-                            .duration(1000 * seconds)
-                            .build();
-            getService().start(recordingOptions, enableEvents(events));
-            return new SuccessOutput();
+                IConstrainedMap<String> recordingOptions =
+                        recordingOptionsBuilderFactory
+                                .create(connection.getService())
+                                .name(name)
+                                .duration(1000 * seconds)
+                                .build();
+                connection.getService().start(recordingOptions, enableEvents(connection, events));
+                return new SuccessOutput();
+            });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -119,26 +126,38 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 3) {
+        if (args.length != 4) {
             cw.println(
-                    "Expected three arguments: recording name, recording length, and event types");
+                    "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types");
             return false;
         }
 
-        String name = args[0];
-        String seconds = args[1];
-        String events = args[2];
+        String hostId = args[0];
+        String name = args[1];
+        String seconds = args[2];
+        String events = args[3];
 
-        if (!validateRecordingName(name)) {
+        boolean isValidHostId = validateHostId(hostId);
+        boolean isValidName = validateRecordingName(name);
+        boolean isValidDuration = seconds.matches("\\d+");
+        boolean isValidEvents = validateEvents(events);
+
+        if (!isValidHostId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+
+        if (!isValidName) {
             cw.println(String.format("%s is an invalid recording name", name));
-            return false;
         }
 
-        if (!seconds.matches("\\d+")) {
+        if (!isValidDuration) {
             cw.println(String.format("%s is an invalid recording length", seconds));
-            return false;
         }
 
-        return validateEvents(events);
+        if (!isValidEvents) {
+            cw.println(String.format("%s is an invalid events specifier", events));
+        }
+
+        return isValidHostId && isValidName && isValidDuration && isValidEvents;
     }
 }

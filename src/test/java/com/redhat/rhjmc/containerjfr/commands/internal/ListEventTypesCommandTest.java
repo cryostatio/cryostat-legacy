@@ -58,8 +58,11 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
@@ -93,16 +96,11 @@ class ListEventTypesCommandTest {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("list-event-types"));
     }
 
-    @Test
-    void shouldExpectNoArgs() {
-        assertTrue(command.validate(new String[0]));
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
-    void shouldNotExpectArgs() {
-        assertFalse(command.validate(new String[1]));
-        verify(cw).println("No arguments expected");
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2})
+    void shouldNotValidateWrongArgc(int argc) {
+        assertFalse(command.validate(new String[argc]));
+        verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @SuppressWarnings("unchecked")
@@ -110,10 +108,11 @@ class ListEventTypesCommandTest {
     void shouldPrintEventTypes() throws Exception {
         Collection eventTypes = Arrays.asList(createEvent("foo"), createEvent("bar"));
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(eventTypes);
 
-        command.execute(new String[0]);
+        command.execute(new String[] { "fooHost:9091" });
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available event types:");
         inOrder.verify(cw).println("\tmocked toString: foo");
@@ -132,11 +131,12 @@ class ListEventTypesCommandTest {
         when(eventInfo.getHierarchicalCategory()).thenReturn(new String[] {"com", "example"});
         when(eventInfo.getOptionDescriptors()).thenReturn(Collections.emptyMap());
 
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes())
                 .thenReturn((Collection) Collections.singleton(eventInfo));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "fooHost:9091" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
@@ -146,10 +146,11 @@ class ListEventTypesCommandTest {
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(FlightRecorderException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "fooHost:9091" });
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));

@@ -55,10 +55,6 @@ public abstract class ConnectionListenerModule {
 
     @Binds
     @IntoSet
-    abstract ConnectionListener bindDisconnectCommand(DisconnectCommand command);
-
-    @Binds
-    @IntoSet
     abstract ConnectionListener bindDumpCommand(DumpCommand command);
 
     @Binds

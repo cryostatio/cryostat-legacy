@@ -99,24 +99,24 @@ class SnapshotCommandTest {
     }
 
     @Test
-    void shouldValidateCorrectArgc() {
-        assertTrue(command.validate(new String[0]));
-        verifyZeroInteractions(cw);
+    void shouldValidateCorrectArgs() {
+        assertTrue(command.validate(new String[] { "fooHost:9091" }));
     }
 
     @ParameterizedTest
     @ValueSource(
             ints = {
-                1, 2,
+                0, 2,
             })
     void shouldInvalidateIncorrectArgc(int c) {
         assertFalse(command.validate(new String[c]));
-        verify(cw).println("No arguments expected");
+        verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @Test
     void shouldRenameAndExportSnapshot() throws Exception {
         IRecordingDescriptor snapshot = mock(IRecordingDescriptor.class);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getSnapshotRecording()).thenReturn(snapshot);
         RecordingOptionsBuilder recordingOptionsBuilder = mock(RecordingOptionsBuilder.class);
@@ -128,11 +128,7 @@ class SnapshotCommandTest {
         when(snapshot.getName()).thenReturn("Snapshot");
         when(snapshot.getId()).thenReturn(1L);
 
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(cw);
-
-        command.execute(new String[0]);
+        command.execute(new String[] { "fooHost:9091" });
 
         verify(cw).println("Latest snapshot: \"snapshot-1\"");
         verify(service).getSnapshotRecording();
@@ -142,6 +138,7 @@ class SnapshotCommandTest {
     @Test
     void shouldReturnSerializedSuccessOutput() throws Exception {
         IRecordingDescriptor snapshot = mock(IRecordingDescriptor.class);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getSnapshotRecording()).thenReturn(snapshot);
         RecordingOptionsBuilder recordingOptionsBuilder = mock(RecordingOptionsBuilder.class);
@@ -153,11 +150,7 @@ class SnapshotCommandTest {
         when(snapshot.getName()).thenReturn("Snapshot");
         when(snapshot.getId()).thenReturn(1L);
 
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(cw);
-
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "fooHost:9091" });
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("snapshot-1"));
 
@@ -167,10 +160,11 @@ class SnapshotCommandTest {
 
     @Test
     void shouldReturnSerializedExceptionOutput() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         doThrow(FlightRecorderException.class).when(service).getSnapshotRecording();
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] { "fooHost:9091" });
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));

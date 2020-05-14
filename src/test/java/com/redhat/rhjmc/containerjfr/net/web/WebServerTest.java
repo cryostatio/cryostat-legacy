@@ -163,27 +163,6 @@ class WebServerTest {
     }
 
     @Test
-    void shouldThrowExceptionIfServerCannotStart() {
-        Throwable cause = new SocketException();
-        Exception e =
-                assertThrows(
-                        SocketException.class,
-                        () -> {
-                            doThrow(cause).when(httpServer).start();
-
-                            exporter.start();
-                        });
-        MatcherAssert.assertThat(e, Matchers.equalTo(cause));
-    }
-
-    @Test
-    void shouldStartEvenWhileDisconnectedFromTarget() throws Exception {
-        exporter.start();
-
-        verify(httpServer).start();
-    }
-
-    @Test
     void shouldUseConfiguredHost() throws Exception {
         int defaultPort = 1234;
         when(netConf.getExternalWebServerPort()).thenReturn(defaultPort);

@@ -98,15 +98,6 @@ class MessagingServerTest {
     }
 
     @Test
-    void startShouldStartHttpServer() throws Exception {
-        verifyZeroInteractions(httpServer);
-        server.start();
-        verify(httpServer, times(1)).start();
-        verify(httpServer, times(1)).websocketHandler(any());
-        verifyNoMoreInteractions(httpServer);
-    }
-
-    @Test
     void repeatConnectionShouldNotClosePrevious() {
         server.addConnection(crw1);
 

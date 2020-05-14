@@ -45,7 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -93,42 +92,42 @@ class WaitForCommandTest extends TestBase {
     @Test
     void shouldNotExpectZeroArgs() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldNotExpectTooManyArgs() {
-        assertFalse(command.validate(new String[2]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
+        assertFalse(command.validate(new String[3]));
+    }
+
+    @Test
+    void shouldNotValidateHostId() {
+        assertFalse(command.validate(new String[] {":9091", "."}));
     }
 
     @Test
     void shouldNotValidateMalformedRecordingName() {
-        assertFalse(command.validate(new String[] {"."}));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
+        assertFalse(command.validate(new String[] {"fooHost:9091", "."}));
     }
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"foo"}));
+        assertTrue(command.validate(new String[] {"fooHost:9091", "someRecording" }));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
     void shouldHandleRecordingNotFound() throws Exception {
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
         MatcherAssert.assertThat(
                 stdout(),
                 Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 
     @Test
@@ -137,18 +136,16 @@ class WaitForCommandTest extends TestBase {
         when(descriptor.getName()).thenReturn("foo");
         when(descriptor.isContinuous()).thenReturn(true);
         when(descriptor.getState()).thenReturn(RecordingState.RUNNING);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
         MatcherAssert.assertThat(
                 stdout(), Matchers.equalTo("Recording \"foo\" is continuous, refusing to wait\n"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 
     @Test
@@ -174,12 +171,13 @@ class WaitForCommandTest extends TestBase {
                 .thenReturn(5_000L)
                 .thenReturn(5_001L)
                 .thenReturn(6_000L);
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
-        verify(connection, Mockito.times(5)).getService();
+        verify(connection, Mockito.atLeastOnce()).getService();
         verify(service, Mockito.times(5)).getAvailableRecordings();
         // Use byte array constructor due to \b control characters in output
         String s =
@@ -190,9 +188,6 @@ class WaitForCommandTest extends TestBase {
                             46, 8, 46, 10
                         });
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(s));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 
     @Test
@@ -203,16 +198,14 @@ class WaitForCommandTest extends TestBase {
         when(descriptor.getState()).thenReturn(RecordingState.STOPPED);
         when(descriptor.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptor.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
+        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt())).thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
         MatcherAssert.assertThat(stdout(), Matchers.equalTo("\n"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 }
