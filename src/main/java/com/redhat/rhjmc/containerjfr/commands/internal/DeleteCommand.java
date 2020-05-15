@@ -49,8 +49,8 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -58,8 +58,8 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     private final ClientWriter cw;
 
     @Inject
-    DeleteCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
-        super(jfrConnectionToolkit);
+    DeleteCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+        super(targetConnectionManager);
         this.cw = cw;
     }
 
@@ -72,7 +72,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     public void execute(String[] args) throws Exception {
         final String hostId = args[0];
         final String recordingName = args[1];
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 hostId,
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor =
@@ -93,7 +93,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
         final String hostId = args[0];
         final String recordingName = args[1];
         try {
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     hostId,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =

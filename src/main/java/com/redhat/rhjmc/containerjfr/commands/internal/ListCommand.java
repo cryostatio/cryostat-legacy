@@ -54,9 +54,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
@@ -66,8 +66,9 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
     private final WebServer exporter;
 
     @Inject
-    ListCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit, WebServer exporter) {
-        super(jfrConnectionToolkit);
+    ListCommand(
+            ClientWriter cw, TargetConnectionManager targetConnectionManager, WebServer exporter) {
+        super(targetConnectionManager);
         this.cw = cw;
         this.exporter = exporter;
     }
@@ -79,7 +80,7 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
 
     @Override
     public void execute(String[] args) throws Exception {
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 args[0],
                 connection -> {
                     cw.println("Available recordings:");
@@ -98,7 +99,7 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     args[0],
                     connection -> {
                         List<IRecordingDescriptor> origDescriptors =

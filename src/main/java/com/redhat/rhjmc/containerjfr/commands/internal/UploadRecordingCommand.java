@@ -63,9 +63,9 @@ import org.apache.http.util.EntityUtils;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Singleton
@@ -79,11 +79,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     @Inject
     UploadRecordingCommand(
             ClientWriter cw,
-            JFRConnectionToolkit jfrConnectionToolkit,
+            TargetConnectionManager targetConnectionManager,
             FileSystem fs,
             @Named("RECORDINGS_PATH") Path recordingsPath,
             Provider<CloseableHttpClient> httpClientProvider) {
-        super(jfrConnectionToolkit);
+        super(targetConnectionManager);
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
@@ -179,7 +179,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         Optional<IRecordingDescriptor> currentRecording =
                 getDescriptorByName(hostId, recordingName);
         if (currentRecording.isPresent()) {
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     hostId,
                     connection -> {
                         return Optional.of(

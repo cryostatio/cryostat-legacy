@@ -49,12 +49,10 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomizer.OptionKey;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
-class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand
-        implements SerializableCommand {
+class RecordingOptionsCustomizerCommand implements SerializableCommand {
 
     private static final Pattern OPTIONS_PATTERN =
             Pattern.compile("^([\\w]+)=([\\w\\.-_]+)$", Pattern.MULTILINE);
@@ -64,11 +62,7 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand
     private final RecordingOptionsCustomizer customizer;
 
     @Inject
-    RecordingOptionsCustomizerCommand(
-            ClientWriter cw,
-            JFRConnectionToolkit jfrConnectionToolkit,
-            RecordingOptionsCustomizer customizer) {
-        super(jfrConnectionToolkit);
+    RecordingOptionsCustomizerCommand(ClientWriter cw, RecordingOptionsCustomizer customizer) {
         this.cw = cw;
         this.customizer = customizer;
     }
@@ -76,6 +70,11 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand
     @Override
     public String getName() {
         return "recording-option";
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return true;
     }
 
     @Override

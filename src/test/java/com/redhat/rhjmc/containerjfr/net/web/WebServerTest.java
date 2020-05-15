@@ -44,8 +44,8 @@ package com.redhat.rhjmc.containerjfr.net.web;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -85,12 +85,12 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -119,7 +119,7 @@ class WebServerTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock ReportGenerator reportGenerator;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
 
     @BeforeEach
     void setup() {
@@ -133,7 +133,7 @@ class WebServerTest {
                         authManager,
                         gson,
                         reportGenerator,
-                        jfrConnectionToolkit,
+                        targetConnectionManager,
                         logger);
     }
 
@@ -157,7 +157,7 @@ class WebServerTest {
                                 authManager,
                                 gson,
                                 reportGenerator,
-                                jfrConnectionToolkit,
+                                targetConnectionManager,
                                 logger));
     }
 
@@ -541,8 +541,7 @@ class WebServerTest {
                             return null;
                         });
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
 
         exporter.handleRecordingDownloadRequest("fooHost:0", recordingName, ctx);
 
@@ -571,8 +570,7 @@ class WebServerTest {
         when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
         when(reportGenerator.generateReport(ins)).thenReturn(content);
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
 
         exporter.handleReportPageRequest("fooHost:0", recordingName, ctx);
 

@@ -47,8 +47,8 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class DumpCommand extends AbstractRecordingCommand implements SerializableCommand {
@@ -56,10 +56,14 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     @Inject
     DumpCommand(
             ClientWriter cw,
-            JFRConnectionToolkit jfrConnectionToolkit,
+            TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(cw, jfrConnectionToolkit, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(
+                cw,
+                targetConnectionManager,
+                eventOptionsBuilderFactory,
+                recordingOptionsBuilderFactory);
     }
 
     @Override
@@ -79,7 +83,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         int seconds = Integer.parseInt(args[2]);
         String events = args[3];
 
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 hostId,
                 connection -> {
                     if (getDescriptorByName(hostId, name).isPresent()) {
@@ -109,7 +113,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             int seconds = Integer.parseInt(args[2]);
             String events = args[3];
 
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     hostId,
                     connection -> {
                         if (getDescriptorByName(hostId, name).isPresent()) {

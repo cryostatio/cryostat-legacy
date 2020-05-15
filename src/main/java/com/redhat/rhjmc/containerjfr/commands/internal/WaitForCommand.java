@@ -49,9 +49,9 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class WaitForCommand extends AbstractConnectedCommand {
@@ -60,8 +60,8 @@ class WaitForCommand extends AbstractConnectedCommand {
     protected final Clock clock;
 
     @Inject
-    WaitForCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit, Clock clock) {
-        super(jfrConnectionToolkit);
+    WaitForCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager, Clock clock) {
+        super(targetConnectionManager);
         this.cw = cw;
         this.clock = clock;
     }
@@ -78,7 +78,7 @@ class WaitForCommand extends AbstractConnectedCommand {
     public void execute(String[] args) throws Exception {
         String hostId = args[0];
         String recordingName = args[1];
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 hostId,
                 connection -> {
                     Optional<IRecordingDescriptor> d = getDescriptorByName(hostId, recordingName);

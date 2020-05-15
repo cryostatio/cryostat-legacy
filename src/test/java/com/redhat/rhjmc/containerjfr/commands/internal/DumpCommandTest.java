@@ -70,15 +70,16 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class DumpCommandTest {
 
     DumpCommand command;
     @Mock ClientWriter cw;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
@@ -89,7 +90,7 @@ class DumpCommandTest {
         command =
                 new DumpCommand(
                         cw,
-                        jfrConnectionToolkit,
+                        targetConnectionManager,
                         eventOptionsBuilderFactory,
                         recordingOptionsBuilderFactory);
     }
@@ -139,8 +140,9 @@ class DumpCommandTest {
 
     @Test
     void shouldDumpRecordingOnExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -195,8 +197,9 @@ class DumpCommandTest {
 
     @Test
     void shouldDumpRecordingOnSerializableExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -257,8 +260,9 @@ class DumpCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
@@ -273,8 +277,9 @@ class DumpCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
@@ -291,8 +296,9 @@ class DumpCommandTest {
 
     @Test
     void shouldHandleExceptionOnSerializableExecute() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
