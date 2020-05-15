@@ -66,21 +66,22 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForCommandTest extends TestBase {
 
     WaitForCommand command;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock Clock clock;
 
     @BeforeEach
     void setup() {
-        command = new WaitForCommand(mockClientWriter, jfrConnectionToolkit, clock);
+        command = new WaitForCommand(mockClientWriter, targetConnectionManager, clock);
     }
 
     @Test
@@ -116,8 +117,9 @@ class WaitForCommandTest extends TestBase {
 
     @Test
     void shouldHandleRecordingNotFound() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
@@ -132,12 +134,13 @@ class WaitForCommandTest extends TestBase {
 
     @Test
     void shouldHandleRecordingIsContinuousAndRunning() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
         when(descriptor.getName()).thenReturn("foo");
         when(descriptor.isContinuous()).thenReturn(true);
         when(descriptor.getState()).thenReturn(RecordingState.RUNNING);
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
@@ -172,8 +175,9 @@ class WaitForCommandTest extends TestBase {
                 .thenReturn(5_000L)
                 .thenReturn(5_001L)
                 .thenReturn(6_000L);
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
@@ -200,8 +204,9 @@ class WaitForCommandTest extends TestBase {
         when(descriptor.getState()).thenReturn(RecordingState.STOPPED);
         when(descriptor.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptor.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 

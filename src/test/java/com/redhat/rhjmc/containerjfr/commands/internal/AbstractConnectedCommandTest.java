@@ -62,18 +62,19 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractConnectedCommandTest {
 
     AbstractConnectedCommand command;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
 
     @BeforeEach
     void setup() {
-        this.command = new BaseConnectedCommand(jfrConnectionToolkit);
+        this.command = new BaseConnectedCommand(targetConnectionManager);
     }
 
     @Test
@@ -83,8 +84,9 @@ class AbstractConnectedCommandTest {
 
     @Test
     void shouldGetMatchingDescriptorByName() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IFlightRecorderService mockService = mock(IFlightRecorderService.class);
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(connection.getService()).thenReturn(mockService);
@@ -98,8 +100,9 @@ class AbstractConnectedCommandTest {
 
     @Test
     void shouldReturnEmptyOptionalIfNoMatchingDescriptorFound() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IFlightRecorderService mockService = mock(IFlightRecorderService.class);
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(connection.getService()).thenReturn(mockService);
@@ -112,8 +115,8 @@ class AbstractConnectedCommandTest {
 
     static class BaseConnectedCommand extends AbstractConnectedCommand {
 
-        BaseConnectedCommand(JFRConnectionToolkit jfrConnectionToolkit) {
-            super(jfrConnectionToolkit);
+        BaseConnectedCommand(TargetConnectionManager targetConnectionManager) {
+            super(targetConnectionManager);
         }
 
         @Override

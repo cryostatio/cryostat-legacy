@@ -69,22 +69,23 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class SearchEventsCommandTest {
 
     SearchEventsCommand command;
     @Mock ClientWriter cw;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        command = new SearchEventsCommand(cw, jfrConnectionToolkit);
+        command = new SearchEventsCommand(cw, targetConnectionManager);
     }
 
     @Test
@@ -105,8 +106,9 @@ class SearchEventsCommandTest {
 
     @Test
     void shouldHandleNoMatches() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
@@ -117,8 +119,9 @@ class SearchEventsCommandTest {
 
     @Test
     void shouldHandleNoSerializableMatches() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
@@ -166,8 +169,9 @@ class SearchEventsCommandTest {
 
         List events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(events);
 
@@ -233,8 +237,9 @@ class SearchEventsCommandTest {
 
         List<IEventTypeInfo> events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
@@ -253,8 +258,9 @@ class SearchEventsCommandTest {
 
     @Test
     void shouldHandleSerializableException() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(NullPointerException.class);
 

@@ -67,15 +67,16 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class SnapshotCommandTest {
 
     SnapshotCommand command;
     @Mock ClientWriter cw;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
@@ -86,7 +87,7 @@ class SnapshotCommandTest {
         command =
                 new SnapshotCommand(
                         cw,
-                        jfrConnectionToolkit,
+                        targetConnectionManager,
                         eventOptionsBuilderFactory,
                         recordingOptionsBuilderFactory);
     }
@@ -114,8 +115,9 @@ class SnapshotCommandTest {
     @Test
     void shouldRenameAndExportSnapshot() throws Exception {
         IRecordingDescriptor snapshot = mock(IRecordingDescriptor.class);
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getSnapshotRecording()).thenReturn(snapshot);
         RecordingOptionsBuilder recordingOptionsBuilder = mock(RecordingOptionsBuilder.class);
@@ -137,8 +139,9 @@ class SnapshotCommandTest {
     @Test
     void shouldReturnSerializedSuccessOutput() throws Exception {
         IRecordingDescriptor snapshot = mock(IRecordingDescriptor.class);
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getSnapshotRecording()).thenReturn(snapshot);
         RecordingOptionsBuilder recordingOptionsBuilder = mock(RecordingOptionsBuilder.class);
@@ -161,8 +164,9 @@ class SnapshotCommandTest {
 
     @Test
     void shouldReturnSerializedExceptionOutput() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         doThrow(FlightRecorderException.class).when(service).getSnapshotRecording();
 

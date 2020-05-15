@@ -47,8 +47,8 @@ import javax.inject.Singleton;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
@@ -59,11 +59,15 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     @Inject
     StartRecordingCommand(
             ClientWriter cw,
-            JFRConnectionToolkit jfrConnectionToolkit,
+            TargetConnectionManager targetConnectionManager,
             WebServer exporter,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(cw, jfrConnectionToolkit, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(
+                cw,
+                targetConnectionManager,
+                eventOptionsBuilderFactory,
+                recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 
@@ -77,7 +81,7 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
         String hostId = args[0];
         String name = args[1];
         String events = args[2];
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 hostId,
                 connection -> {
                     if (getDescriptorByName(hostId, name).isPresent()) {
@@ -106,7 +110,7 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
             String name = args[1];
             String events = args[2];
 
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     hostId,
                     connection -> {
                         if (getDescriptorByName(hostId, name).isPresent()) {

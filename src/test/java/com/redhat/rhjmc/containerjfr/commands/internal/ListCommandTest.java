@@ -71,9 +71,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
@@ -81,14 +82,14 @@ class ListCommandTest {
 
     ListCommand command;
     @Mock ClientWriter cw;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock WebServer exporter;
 
     @BeforeEach
     void setup() {
-        command = new ListCommand(cw, jfrConnectionToolkit, exporter);
+        command = new ListCommand(cw, targetConnectionManager, exporter);
     }
 
     @Test
@@ -113,8 +114,9 @@ class ListCommandTest {
 
     @Test
     void shouldHandleNoRecordings() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         command.execute(new String[] {"foo:9091"});
@@ -125,8 +127,9 @@ class ListCommandTest {
 
     @Test
     void shouldPrintRecordingNames() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         List<IRecordingDescriptor> descriptors =
                 Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
@@ -140,8 +143,9 @@ class ListCommandTest {
 
     @Test
     void shouldReturnListOutput() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(connection.getHost()).thenReturn("fooHost");
         when(connection.getPort()).thenReturn(1);
@@ -191,8 +195,9 @@ class ListCommandTest {
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(FlightRecorderException.class);
 

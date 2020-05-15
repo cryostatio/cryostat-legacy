@@ -67,22 +67,23 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class DeleteCommandTest {
 
     DeleteCommand command;
     @Mock ClientWriter cw;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock IRecordingDescriptor recordingDescriptor;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() throws FlightRecorderException {
-        command = new DeleteCommand(cw, jfrConnectionToolkit);
+        command = new DeleteCommand(cw, targetConnectionManager);
     }
 
     @Test
@@ -92,8 +93,9 @@ class DeleteCommandTest {
 
     @Test
     void shouldCloseNamedRecording() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -106,8 +108,9 @@ class DeleteCommandTest {
 
     @Test
     void shouldReturnSerializedSuccess() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -123,8 +126,9 @@ class DeleteCommandTest {
 
     @Test
     void shouldNotCloseUnnamedRecording() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -138,8 +142,9 @@ class DeleteCommandTest {
 
     @Test
     void shouldReturnSerializedFailure() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
@@ -158,8 +163,9 @@ class DeleteCommandTest {
 
     @Test
     void shouldReturnSerializedException() throws Exception {
-        when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));

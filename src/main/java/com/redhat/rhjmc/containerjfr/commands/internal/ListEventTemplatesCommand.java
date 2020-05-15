@@ -53,9 +53,9 @@ import org.apache.commons.lang3.StringUtils;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class ListEventTemplatesCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -63,8 +63,8 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     private final ClientWriter cw;
 
     @Inject
-    ListEventTemplatesCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
-        super(jfrConnectionToolkit);
+    ListEventTemplatesCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+        super(targetConnectionManager);
         this.cw = cw;
     }
 
@@ -75,7 +75,7 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
 
     @Override
     public void execute(String[] args) throws Exception {
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 args[0],
                 connection -> {
                     cw.println("Available recording templates:");
@@ -95,7 +95,7 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     args[0],
                     connection -> {
                         return new ListOutput<>(getTemplates(connection));
@@ -118,8 +118,7 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
         return isValidHostId;
     }
 
-    private List<Template> getTemplates(JFRConnection connection)
-            throws FlightRecorderException, JMXConnectionException {
+    private List<Template> getTemplates(JFRConnection connection) throws FlightRecorderException {
         List<Template> templates = new ArrayList<>(connection.getTemplateService().getTemplates());
         templates.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
         return Collections.unmodifiableList(templates);

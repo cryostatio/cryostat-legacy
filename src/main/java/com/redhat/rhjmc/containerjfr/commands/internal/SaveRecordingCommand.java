@@ -56,10 +56,10 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class SaveRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -72,11 +72,11 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     @Inject
     SaveRecordingCommand(
             ClientWriter cw,
-            JFRConnectionToolkit jfrConnectionToolkit,
+            TargetConnectionManager targetConnectionManager,
             Clock clock,
             FileSystem fs,
             @Named("RECORDINGS_PATH") Path recordingsPath) {
-        super(jfrConnectionToolkit);
+        super(targetConnectionManager);
         this.cw = cw;
         this.clock = clock;
         this.fs = fs;
@@ -93,7 +93,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         String hostId = args[0];
         String name = args[1];
 
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 hostId,
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
@@ -115,7 +115,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         String name = args[1];
 
         try {
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     hostId,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
@@ -162,7 +162,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     }
 
     private String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)
-            throws IOException, FlightRecorderException, JMXConnectionException {
+            throws IOException, FlightRecorderException {
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);

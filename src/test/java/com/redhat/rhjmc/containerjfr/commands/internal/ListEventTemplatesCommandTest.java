@@ -59,23 +59,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class ListEventTemplatesCommandTest {
 
     ListEventTemplatesCommand cmd;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock TemplateService templateSvc;
     @Mock ClientWriter cw;
 
     @BeforeEach
     void setup() {
-        cmd = new ListEventTemplatesCommand(cw, jfrConnectionToolkit);
+        cmd = new ListEventTemplatesCommand(cw, targetConnectionManager);
     }
 
     @Test
@@ -96,8 +97,11 @@ class ListEventTemplatesCommandTest {
 
     @Test
     void executeShouldPrintListOfTemplateNames() throws Exception {
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
         Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
         Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
@@ -118,8 +122,11 @@ class ListEventTemplatesCommandTest {
 
     @Test
     void serializableExecuteShouldReturnListOfTemplateNames() throws Exception {
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.anyString(), Mockito.anyInt()))
-                .thenReturn(connection);
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
         Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
         Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");

@@ -60,7 +60,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,12 +67,11 @@ class RecordingOptionsCustomizerCommandTest {
 
     RecordingOptionsCustomizerCommand command;
     @Mock ClientWriter cw;
-    @Mock JFRConnectionToolkit jfrConnectionToolkit;
     @Mock RecordingOptionsCustomizer customizer;
 
     @BeforeEach
     void setup() {
-        command = new RecordingOptionsCustomizerCommand(cw, jfrConnectionToolkit, customizer);
+        command = new RecordingOptionsCustomizerCommand(cw, customizer);
     }
 
     @Test

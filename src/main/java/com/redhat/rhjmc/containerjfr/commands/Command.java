@@ -42,13 +42,12 @@
 package com.redhat.rhjmc.containerjfr.commands;
 
 import java.net.MalformedURLException;
-import java.util.regex.Pattern;
 
 import javax.management.remote.JMXServiceURL;
 
-public interface Command {
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-    static final Pattern HOST_PORT_PAIR_PATTERN = Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
+public interface Command {
 
     String getName();
 
@@ -65,7 +64,8 @@ public interface Command {
         } catch (MalformedURLException e) {
             jmxServiceUrlMatch = false;
         }
-        boolean hostPatternMatch = HOST_PORT_PAIR_PATTERN.matcher(hostId).matches();
+        boolean hostPatternMatch =
+                TargetConnectionManager.HOST_PORT_PAIR_PATTERN.matcher(hostId).matches();
         return jmxServiceUrlMatch || hostPatternMatch;
     }
 

@@ -49,9 +49,9 @@ import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
@@ -71,10 +71,10 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
     protected AbstractRecordingCommand(
             ClientWriter cw,
-            JFRConnectionToolkit jfrConnectionToolkit,
+            TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(jfrConnectionToolkit);
+        super(targetConnectionManager);
         this.cw = cw;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;

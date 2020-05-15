@@ -66,8 +66,6 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.management.remote.JMXServiceURL;
-
 import org.apache.http.client.utils.URIBuilder;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
@@ -79,13 +77,13 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AsyncResult;
@@ -105,9 +103,6 @@ public class WebServer {
 
     private static final String WEB_CLIENT_ASSETS_BASE =
             WebServer.class.getPackageName().replaceAll("\\.", "/");
-
-    private static final Pattern HOST_PORT_PAIR_PATTERN =
-            Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
     private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
@@ -138,7 +133,7 @@ public class WebServer {
     private final Logger logger;
 
     private final ReportGenerator reportGenerator;
-    private final JFRConnectionToolkit jfrConnectionToolkit;
+    private final TargetConnectionManager targetConnectionManager;
 
     WebServer(
             HttpServer server,
@@ -149,7 +144,7 @@ public class WebServer {
             AuthManager auth,
             Gson gson,
             ReportGenerator reportGenerator,
-            JFRConnectionToolkit jfrConnectionToolkit,
+            TargetConnectionManager targetConnectionManager,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
@@ -160,7 +155,7 @@ public class WebServer {
         this.gson = gson;
         this.logger = logger;
         this.reportGenerator = reportGenerator;
-        this.jfrConnectionToolkit = jfrConnectionToolkit;
+        this.targetConnectionManager = targetConnectionManager;
 
         if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
             logger.info("low memory pressure streaming enabled for web server");
@@ -257,19 +252,6 @@ public class WebServer {
                         false)
                 .failureHandler(failureHandler);
 
-        router.get("/api/v1/recordings/:recordingName")
-                .blockingHandler(
-                        ctx -> {
-                            String recordingName = ctx.pathParam("recordingName");
-                            if (recordingName != null && recordingName.endsWith(".jfr")) {
-                                recordingName =
-                                        recordingName.substring(0, recordingName.length() - 4);
-                            }
-                            handleRecordingDownloadRequest(null, recordingName, ctx);
-                        },
-                        false)
-                .failureHandler(failureHandler);
-
         router.post("/api/v1/recordings")
                 .handler(BodyHandler.create(true))
                 .handler(this::handleRecordingUploadRequest)
@@ -282,11 +264,6 @@ public class WebServer {
                                         ctx.pathParam("hostId"),
                                         ctx.pathParam("recordingName"),
                                         ctx))
-                .failureHandler(failureHandler);
-
-        router.get("/api/v1/reports/:recordingName")
-                .blockingHandler(
-                        ctx -> handleReportPageRequest(null, ctx.pathParam("recordingName"), ctx))
                 .failureHandler(failureHandler);
 
         router.get("/*")
@@ -382,27 +359,23 @@ public class WebServer {
                 .or(() -> getSavedRecordingDescriptor(recordingName));
     }
 
-    // try-with-resources generates a "redundant" nullcheck in bytecode
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private Optional<DownloadDescriptor> getTargetRecordingDescriptor(
-            String hostId, String recordingName) {
-        if (hostId == null) {
+            String hostId, String recordingName) throws Exception {
+        JFRConnection connection = targetConnectionManager.connect(hostId);
+        Optional<IRecordingDescriptor> desc =
+                connection.getService().getAvailableRecordings().stream()
+                        .filter(r -> Objects.equals(recordingName, r.getName()))
+                        .findFirst();
+        if (desc.isPresent()) {
+            return Optional.of(
+                    new DownloadDescriptor(
+                            connection.getService().openStream(desc.get(), false),
+                            null,
+                            connection));
+        } else {
+            connection.close();
             return Optional.empty();
         }
-        try (JFRConnection connection = attemptConnect(hostId)) {
-            Optional<IRecordingDescriptor> desc =
-                    connection.getService().getAvailableRecordings().stream()
-                            .filter(r -> Objects.equals(recordingName, r.getName()))
-                            .findFirst();
-            if (desc.isPresent()) {
-                return Optional.of(
-                        new DownloadDescriptor(
-                                connection.getService().openStream(desc.get(), false), null));
-            }
-        } catch (Exception e) {
-            logger.error(e);
-        }
-        return Optional.empty();
     }
 
     private Optional<DownloadDescriptor> getSavedRecordingDescriptor(String recordingName) {
@@ -425,37 +398,13 @@ public class WebServer {
                 return Optional.of(
                         new DownloadDescriptor(
                                 Files.newInputStream(savedRecording.get(), StandardOpenOption.READ),
-                                Files.size(savedRecording.get())));
+                                Files.size(savedRecording.get()),
+                                null));
             }
         } catch (Exception e) {
             logger.error(e);
         }
         return Optional.empty();
-    }
-
-    private JFRConnection attemptConnect(String hostId) throws Exception {
-        try {
-            return attemptConnectAsJMXServiceURL(hostId);
-        } catch (Exception e) {
-            return attemptConnectAsHostPortPair(hostId);
-        }
-    }
-
-    private JFRConnection attemptConnectAsJMXServiceURL(String url) throws Exception {
-        return jfrConnectionToolkit.connect(new JMXServiceURL(url));
-    }
-
-    private JFRConnection attemptConnectAsHostPortPair(String s) throws Exception {
-        Matcher m = HOST_PORT_PAIR_PATTERN.matcher(s);
-        if (!m.find()) {
-            return null;
-        }
-        String host = m.group(1);
-        String port = m.group(2);
-        if (port == null) {
-            port = "9091";
-        }
-        return jfrConnectionToolkit.connect(host, Integer.parseInt(port));
     }
 
     private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
@@ -656,6 +605,8 @@ public class WebServer {
                                 }));
     }
 
+    // try-with-resources generates a "redundant" nullcheck in bytecode
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     void handleRecordingDownloadRequest(String hostId, String recordingName, RoutingContext ctx) {
         try {
             if (!validateRequestAuthorization(ctx.request()).get()) {
@@ -684,6 +635,18 @@ public class WebServer {
                     writeInputStream(stream, ctx.response());
                 }
                 ctx.response().end();
+            } finally {
+                descriptor
+                        .get()
+                        .resource
+                        .ifPresent(
+                                resource -> {
+                                    try {
+                                        resource.close();
+                                    } catch (Exception e) {
+                                        logger.warn(e);
+                                    }
+                                });
             }
         } catch (HttpStatusException e) {
             throw e;
@@ -879,10 +842,12 @@ public class WebServer {
     private static class DownloadDescriptor {
         final InputStream stream;
         final Optional<Long> bytes;
+        final Optional<AutoCloseable> resource;
 
-        DownloadDescriptor(InputStream stream, Long bytes) {
+        DownloadDescriptor(InputStream stream, Long bytes, AutoCloseable resource) {
             this.stream = Objects.requireNonNull(stream);
             this.bytes = Optional.ofNullable(bytes);
+            this.resource = Optional.ofNullable(resource);
         }
     }
 }

@@ -57,9 +57,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class SearchEventsCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -67,8 +67,8 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     private final ClientWriter cw;
 
     @Inject
-    SearchEventsCommand(ClientWriter cw, JFRConnectionToolkit jfrConnectionToolkit) {
-        super(jfrConnectionToolkit);
+    SearchEventsCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+        super(targetConnectionManager);
         this.cw = cw;
     }
 
@@ -95,7 +95,7 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     public void execute(String[] args) throws Exception {
         String hostId = args[0];
         String searchTerm = args[1];
-        executeConnectedTask(
+        targetConnectionManager.executeConnectedTask(
                 hostId,
                 connection -> {
                     Collection<? extends IEventTypeInfo> matchingEvents =
@@ -119,7 +119,7 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
         String hostId = args[0];
         String searchTerm = args[1];
         try {
-            return executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     hostId,
                     connection -> {
                         Collection<? extends IEventTypeInfo> matchingEvents =

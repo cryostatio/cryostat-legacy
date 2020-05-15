@@ -41,28 +41,19 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Optional;
-import java.util.regex.Matcher;
-
-import javax.management.remote.JMXServiceURL;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 abstract class AbstractConnectedCommand implements Command {
 
-    protected final JFRConnectionToolkit jfrConnectionToolkit;
-    // maintain a short-lived cache of connections to allow Commands to nest ConnectedTasks
-    // without having to manage connection reuse
-    private final Map<String, JFRConnection> activeConnections = new HashMap<>();
+    protected final TargetConnectionManager targetConnectionManager;
 
-    AbstractConnectedCommand(JFRConnectionToolkit jfrConnectionToolkit) {
-        this.jfrConnectionToolkit = jfrConnectionToolkit;
+    AbstractConnectedCommand(TargetConnectionManager targetConnectionManager) {
+        this.targetConnectionManager = targetConnectionManager;
     }
 
     @Override
@@ -72,63 +63,12 @@ abstract class AbstractConnectedCommand implements Command {
 
     protected Optional<IRecordingDescriptor> getDescriptorByName(String hostId, String name)
             throws Exception {
-        return executeConnectedTask(
+        return targetConnectionManager.executeConnectedTask(
                 hostId,
                 connection -> {
                     return connection.getService().getAvailableRecordings().stream()
                             .filter(recording -> recording.getName().equals(name))
                             .findFirst();
                 });
-    }
-
-    protected <T> T executeConnectedTask(String hostId, ConnectedTask<T> task) throws Exception {
-        try {
-            if (activeConnections.containsKey(hostId)) {
-                return task.execute(activeConnections.get(hostId));
-            } else {
-                try (JFRConnection connection = attemptConnect(hostId)) {
-                    return task.execute(connection);
-                }
-            }
-        } finally {
-            activeConnections.remove(hostId);
-        }
-    }
-
-    // TODO refactor, this is duplicated in WebServer
-    private JFRConnection attemptConnect(String hostId) throws Exception {
-        try {
-            return attemptConnectAsJMXServiceURL(hostId);
-        } catch (Exception e) {
-            return attemptConnectAsHostPortPair(hostId);
-        }
-    }
-
-    private JFRConnection attemptConnectAsJMXServiceURL(String url) throws Exception {
-        return jfrConnectionToolkit.connect(new JMXServiceURL(url));
-    }
-
-    private JFRConnection attemptConnectAsHostPortPair(String s) throws Exception {
-        Matcher m = HOST_PORT_PAIR_PATTERN.matcher(s);
-        if (!m.find()) {
-            return null;
-        }
-        String host = m.group(1);
-        String port = m.group(2);
-        if (port == null) {
-            port = "9091";
-        }
-        return jfrConnectionToolkit.connect(host, Integer.parseInt(port));
-    }
-
-    @SuppressWarnings("serial")
-    static class JMXConnectionException extends Exception {
-        JMXConnectionException() {
-            super("No active JMX connection");
-        }
-    }
-
-    interface ConnectedTask<T> {
-        T execute(JFRConnection connection) throws Exception;
     }
 }
