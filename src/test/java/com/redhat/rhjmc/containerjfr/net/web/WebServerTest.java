@@ -53,6 +53,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
@@ -65,6 +66,8 @@ import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import javax.management.remote.JMXServiceURL;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -203,25 +206,25 @@ class WebServerTest {
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(
-                exporter.getDownloadURL(recordingName),
+                exporter.getArchivedDownloadURL(recordingName),
                 Matchers.equalTo("http://example.com:8181/api/v1/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
-    void shouldProvideDownloadUrl(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException,
-                    URISyntaxException {
+    void shouldProvideDownloadUrl(String recordingName) throws URISyntaxException, IOException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        when(connection.getHost()).thenReturn("fooHost");
-        when(connection.getPort()).thenReturn(1);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
 
         MatcherAssert.assertThat(
                 exporter.getDownloadURL(connection, recordingName),
                 Matchers.equalTo(
-                        "http://example.com:8181/api/v1/targets/fooHost:1/recordings/"
+                        "http://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/"
                                 + recordingName));
     }
 
@@ -229,32 +232,37 @@ class WebServerTest {
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideDownloadUrlWithHttps(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException,
-                    URISyntaxException {
+            throws URISyntaxException, IOException {
+        when(httpServer.isSsl()).thenReturn(true);
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        when(httpServer.isSsl()).thenReturn(true);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
 
         MatcherAssert.assertThat(
-                exporter.getDownloadURL(recordingName),
-                Matchers.equalTo("https://example.com:8181/api/v1/recordings/" + recordingName));
+                exporter.getDownloadURL(connection, recordingName),
+                Matchers.equalTo(
+                        "https://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/"
+                                + recordingName));
     }
 
     @ParameterizedTest()
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
-    void shouldProvideReportUrl(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException,
-                    URISyntaxException {
+    void shouldProvideReportUrl(String recordingName) throws URISyntaxException, IOException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        when(connection.getHost()).thenReturn("fooHost");
-        when(connection.getPort()).thenReturn(1);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
 
         MatcherAssert.assertThat(
                 exporter.getReportURL(connection, recordingName),
                 Matchers.equalTo(
-                        "http://example.com:8181/api/v1/targets/fooHost:1/reports/"
+                        "http://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
                                 + recordingName));
     }
 
@@ -268,7 +276,7 @@ class WebServerTest {
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(
-                exporter.getReportURL(recordingName),
+                exporter.getArchivedReportURL(recordingName),
                 Matchers.equalTo("http://example.com:8181/api/v1/reports/" + recordingName));
     }
 
@@ -276,15 +284,20 @@ class WebServerTest {
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideReportUrlWithHttps(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException,
-                    URISyntaxException {
+            throws URISyntaxException, IOException {
+        when(httpServer.isSsl()).thenReturn(true);
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        when(httpServer.isSsl()).thenReturn(true);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
 
         MatcherAssert.assertThat(
-                exporter.getReportURL(recordingName),
-                Matchers.equalTo("https://example.com:8181/api/v1/reports/" + recordingName));
+                exporter.getReportURL(connection, recordingName),
+                Matchers.equalTo(
+                        "https://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
+                                + recordingName));
     }
 
     @Test
