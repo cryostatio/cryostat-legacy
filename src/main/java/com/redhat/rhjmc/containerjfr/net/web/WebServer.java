@@ -339,7 +339,7 @@ public class WebServer {
                 .normalize();
     }
 
-    public String getDownloadURL(String recordingName)
+    public String getArchivedDownloadURL(String recordingName)
             throws UnknownHostException, URISyntaxException, SocketException {
         return new URIBuilder(getHostUri())
                 .setScheme(server.isSsl() ? "https" : "http")
@@ -350,7 +350,7 @@ public class WebServer {
     }
 
     public String getDownloadURL(JFRConnection connection, String recordingName)
-            throws UnknownHostException, URISyntaxException, SocketException {
+            throws URISyntaxException, IOException {
         return new URIBuilder(getHostUri())
                 .setScheme(server.isSsl() ? "https" : "http")
                 .setPathSegments(
@@ -365,7 +365,7 @@ public class WebServer {
                 .toString();
     }
 
-    public String getReportURL(String recordingName)
+    public String getArchivedReportURL(String recordingName)
             throws SocketException, UnknownHostException, URISyntaxException {
         return new URIBuilder(getHostUri())
                 .setScheme(server.isSsl() ? "https" : "http")
@@ -376,7 +376,7 @@ public class WebServer {
     }
 
     public String getReportURL(JFRConnection connection, String recordingName)
-            throws SocketException, UnknownHostException, URISyntaxException {
+            throws URISyntaxException, IOException {
         return new URIBuilder(getHostUri())
                 .setScheme(server.isSsl() ? "https" : "http")
                 .setPathSegments(
@@ -386,9 +386,8 @@ public class WebServer {
                 .toString();
     }
 
-    private String getTargetId(JFRConnection conn) {
-        // FIXME replace this with the connection JMX service URL
-        return String.format("%s:%d", conn.getHost(), conn.getPort());
+    private String getTargetId(JFRConnection conn) throws IOException {
+        return conn.getJMXURL().toString();
     }
 
     private Optional<DownloadDescriptor> getRecordingDescriptor(
