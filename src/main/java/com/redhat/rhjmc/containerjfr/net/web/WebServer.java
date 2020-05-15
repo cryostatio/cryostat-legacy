@@ -342,6 +342,7 @@ public class WebServer {
     public String getDownloadURL(String recordingName)
             throws UnknownHostException, URISyntaxException, SocketException {
         return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
                 .setPathSegments("api", "v1", "recordings", recordingName)
                 .build()
                 .normalize()
@@ -351,6 +352,7 @@ public class WebServer {
     public String getDownloadURL(JFRConnection connection, String recordingName)
             throws UnknownHostException, URISyntaxException, SocketException {
         return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
                 .setPathSegments(
                         "api",
                         "v1",
@@ -366,6 +368,7 @@ public class WebServer {
     public String getReportURL(String recordingName)
             throws SocketException, UnknownHostException, URISyntaxException {
         return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
                 .setPathSegments("api", "v1", "reports", recordingName)
                 .build()
                 .normalize()
@@ -375,6 +378,7 @@ public class WebServer {
     public String getReportURL(JFRConnection connection, String recordingName)
             throws SocketException, UnknownHostException, URISyntaxException {
         return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
                 .setPathSegments(
                         "api", "v1", "targets", getTargetId(connection), "reports", recordingName)
                 .build()
