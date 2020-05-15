@@ -238,16 +238,16 @@ public class WebServer {
                 .handler(this::handleGrafanaDashboardUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/api/v1/hosts/:hostId/recordings/:recordingName")
+        router.get("/api/v1/targets/:targetId/recordings/:recordingName")
                 .blockingHandler(
                         ctx -> {
-                            String hostId = ctx.pathParam("hostId");
+                            String targetId = ctx.pathParam("targetId");
                             String recordingName = ctx.pathParam("recordingName");
                             if (recordingName != null && recordingName.endsWith(".jfr")) {
                                 recordingName =
                                         recordingName.substring(0, recordingName.length() - 4);
                             }
-                            handleRecordingDownloadRequest(hostId, recordingName, ctx);
+                            handleRecordingDownloadRequest(targetId, recordingName, ctx);
                         },
                         false)
                 .failureHandler(failureHandler);
@@ -257,11 +257,11 @@ public class WebServer {
                 .handler(this::handleRecordingUploadRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/api/v1/hosts/:hostId/reports/:recordingName")
+        router.get("/api/v1/targets/:targetId/reports/:recordingName")
                 .blockingHandler(
                         ctx ->
                                 handleReportPageRequest(
-                                        ctx.pathParam("hostId"),
+                                        ctx.pathParam("targetId"),
                                         ctx.pathParam("recordingName"),
                                         ctx))
                 .failureHandler(failureHandler);
@@ -323,7 +323,12 @@ public class WebServer {
             throws UnknownHostException, URISyntaxException, SocketException {
         return new URIBuilder(getHostUri())
                 .setPathSegments(
-                        "api", "v1", "hosts", getHostId(connection), "recordings", recordingName)
+                        "api",
+                        "v1",
+                        "targets",
+                        getTargetId(connection),
+                        "recordings",
+                        recordingName)
                 .build()
                 .normalize()
                 .toString();
@@ -342,26 +347,26 @@ public class WebServer {
             throws SocketException, UnknownHostException, URISyntaxException {
         return new URIBuilder(getHostUri())
                 .setPathSegments(
-                        "api", "v1", "hosts", getHostId(connection), "reports", recordingName)
+                        "api", "v1", "targets", getTargetId(connection), "reports", recordingName)
                 .build()
                 .normalize()
                 .toString();
     }
 
-    private String getHostId(JFRConnection conn) {
+    private String getTargetId(JFRConnection conn) {
         // FIXME replace this with the connection JMX service URL
         return String.format("%s:%d", conn.getHost(), conn.getPort());
     }
 
-    private Optional<DownloadDescriptor> getRecordingDescriptor(String hostId, String recordingName)
-            throws Exception {
-        return getTargetRecordingDescriptor(hostId, recordingName)
+    private Optional<DownloadDescriptor> getRecordingDescriptor(
+            String targetId, String recordingName) throws Exception {
+        return getTargetRecordingDescriptor(targetId, recordingName)
                 .or(() -> getSavedRecordingDescriptor(recordingName));
     }
 
     private Optional<DownloadDescriptor> getTargetRecordingDescriptor(
-            String hostId, String recordingName) throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(hostId);
+            String targetId, String recordingName) throws Exception {
+        JFRConnection connection = targetConnectionManager.connect(targetId);
         Optional<IRecordingDescriptor> desc =
                 connection.getService().getAvailableRecordings().stream()
                         .filter(r -> Objects.equals(recordingName, r.getName()))
@@ -607,13 +612,14 @@ public class WebServer {
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    void handleRecordingDownloadRequest(String hostId, String recordingName, RoutingContext ctx) {
+    void handleRecordingDownloadRequest(String targetId, String recordingName, RoutingContext ctx) {
         try {
             if (!validateRequestAuthorization(ctx.request()).get()) {
                 throw new HttpStatusException(401);
             }
 
-            Optional<DownloadDescriptor> descriptor = getRecordingDescriptor(hostId, recordingName);
+            Optional<DownloadDescriptor> descriptor =
+                    getRecordingDescriptor(targetId, recordingName);
             if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
@@ -658,12 +664,13 @@ public class WebServer {
         }
     }
 
-    void handleReportPageRequest(String hostId, String recordingName, RoutingContext ctx) {
+    void handleReportPageRequest(String targetId, String recordingName, RoutingContext ctx) {
         try {
             if (!validateRequestAuthorization(ctx.request()).get()) {
                 throw new HttpStatusException(401);
             }
-            Optional<DownloadDescriptor> descriptor = getRecordingDescriptor(hostId, recordingName);
+            Optional<DownloadDescriptor> descriptor =
+                    getRecordingDescriptor(targetId, recordingName);
             if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }

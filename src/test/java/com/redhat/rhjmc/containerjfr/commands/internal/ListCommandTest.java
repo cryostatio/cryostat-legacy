@@ -158,7 +158,7 @@ class ListCommandTest {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/api/v1/hosts/%s:%d/recordings/%s",
+                                        "http://example.com:1234/api/v1/targets/%s:%d/recordings/%s",
                                         ((JFRConnection) invocation.getArguments()[0]).getHost(),
                                         ((JFRConnection) invocation.getArguments()[0]).getPort(),
                                         invocation.getArguments()[1]);
@@ -170,7 +170,7 @@ class ListCommandTest {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/api/v1/hosts/%s:%d/reports/%s",
+                                        "http://example.com:1234/api/v1/targets/%s:%d/reports/%s",
                                         ((JFRConnection) invocation.getArguments()[0]).getHost(),
                                         ((JFRConnection) invocation.getArguments()[0]).getPort(),
                                         invocation.getArguments()[1]);
@@ -185,12 +185,12 @@ class ListCommandTest {
                         Arrays.asList(
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("foo"),
-                                        "http://example.com:1234/api/v1/hosts/fooHost:1/recordings/foo",
-                                        "http://example.com:1234/api/v1/hosts/fooHost:1/reports/foo"),
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/recordings/foo",
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/foo"),
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("bar"),
-                                        "http://example.com:1234/api/v1/hosts/fooHost:1/recordings/bar",
-                                        "http://example.com:1234/api/v1/hosts/fooHost:1/reports/bar"))));
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/recordings/bar",
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/bar"))));
     }
 
     @Test
