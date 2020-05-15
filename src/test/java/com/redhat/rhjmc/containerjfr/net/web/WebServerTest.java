@@ -221,7 +221,7 @@ class WebServerTest {
         MatcherAssert.assertThat(
                 exporter.getDownloadURL(connection, recordingName),
                 Matchers.equalTo(
-                        "http://example.com:8181/api/v1/hosts/fooHost:1/recordings/"
+                        "http://example.com:8181/api/v1/targets/fooHost:1/recordings/"
                                 + recordingName));
     }
 
@@ -254,7 +254,8 @@ class WebServerTest {
         MatcherAssert.assertThat(
                 exporter.getReportURL(connection, recordingName),
                 Matchers.equalTo(
-                        "http://example.com:8181/api/v1/hosts/fooHost:1/reports/" + recordingName));
+                        "http://example.com:8181/api/v1/targets/fooHost:1/reports/"
+                                + recordingName));
     }
 
     @ParameterizedTest()
