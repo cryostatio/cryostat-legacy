@@ -711,6 +711,18 @@ public class WebServer {
             try (InputStream stream = descriptor.get().stream) {
                 // blocking function, must be called from a blocking handler
                 ctx.response().end(reportGenerator.generateReport(stream));
+            } finally {
+                descriptor
+                        .get()
+                        .resource
+                        .ifPresent(
+                                resource -> {
+                                    try {
+                                        resource.close();
+                                    } catch (Exception e) {
+                                        logger.warn(e);
+                                    }
+                                });
             }
         } catch (HttpStatusException e) {
             throw e;
