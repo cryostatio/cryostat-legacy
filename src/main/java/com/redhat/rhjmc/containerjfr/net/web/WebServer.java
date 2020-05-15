@@ -252,6 +252,19 @@ public class WebServer {
                         false)
                 .failureHandler(failureHandler);
 
+        router.get("/api/v1/recordings/:recordingName")
+                .blockingHandler(
+                        ctx -> {
+                            String recordingName = ctx.pathParam("recordingName");
+                            if (recordingName != null && recordingName.endsWith(".jfr")) {
+                                recordingName =
+                                        recordingName.substring(0, recordingName.length() - 4);
+                            }
+                            handleRecordingDownloadRequest(null, recordingName, ctx);
+                        },
+                        false)
+                .failureHandler(failureHandler);
+
         router.post("/api/v1/recordings")
                 .handler(BodyHandler.create(true))
                 .handler(this::handleRecordingUploadRequest)
@@ -259,11 +272,27 @@ public class WebServer {
 
         router.get("/api/v1/targets/:targetId/reports/:recordingName")
                 .blockingHandler(
-                        ctx ->
-                                handleReportPageRequest(
-                                        ctx.pathParam("targetId"),
-                                        ctx.pathParam("recordingName"),
-                                        ctx))
+                        ctx -> {
+                            String targetId = ctx.pathParam("targetId");
+                            String recordingName = ctx.pathParam("recordingName");
+                            if (recordingName != null && recordingName.endsWith(".jfr")) {
+                                recordingName =
+                                        recordingName.substring(0, recordingName.length() - 4);
+                            }
+                            handleReportPageRequest(targetId, recordingName, ctx);
+                        })
+                .failureHandler(failureHandler);
+
+        router.get("/api/v1/reports/:recordingName")
+                .blockingHandler(
+                        ctx -> {
+                            String recordingName = ctx.pathParam("recordingName");
+                            if (recordingName != null && recordingName.endsWith(".jfr")) {
+                                recordingName =
+                                        recordingName.substring(0, recordingName.length() - 4);
+                            }
+                            handleReportPageRequest(null, recordingName, ctx);
+                        })
                 .failureHandler(failureHandler);
 
         router.get("/*")
@@ -366,6 +395,9 @@ public class WebServer {
 
     private Optional<DownloadDescriptor> getTargetRecordingDescriptor(
             String targetId, String recordingName) throws Exception {
+        if (targetId == null) {
+            return Optional.empty();
+        }
         JFRConnection connection = targetConnectionManager.connect(targetId);
         Optional<IRecordingDescriptor> desc =
                 connection.getService().getAvailableRecordings().stream()
