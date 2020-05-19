@@ -49,6 +49,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -65,6 +66,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -72,7 +74,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class DeleteCommandTest {
+class DeleteCommandTest implements ValidatesTargetId {
 
     DeleteCommand command;
     @Mock ClientWriter cw;
@@ -80,6 +82,16 @@ class DeleteCommandTest {
     @Mock IRecordingDescriptor recordingDescriptor;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME);
+    }
 
     @BeforeEach
     void setup() throws FlightRecorderException {

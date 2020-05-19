@@ -42,11 +42,12 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -65,6 +66,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -72,7 +74,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class SnapshotCommandTest {
+class SnapshotCommandTest implements ValidatesTargetId {
 
     SnapshotCommand command;
     @Mock ClientWriter cw;
@@ -81,6 +83,16 @@ class SnapshotCommandTest {
     @Mock IFlightRecorderService service;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID);
+    }
 
     @BeforeEach
     void setup() {
@@ -95,11 +107,6 @@ class SnapshotCommandTest {
     @Test
     void shouldBeNamedSnapshot() {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("snapshot"));
-    }
-
-    @Test
-    void shouldValidateCorrectArgs() {
-        assertTrue(command.validate(new String[] {"fooHost:9091"}));
     }
 
     @ParameterizedTest

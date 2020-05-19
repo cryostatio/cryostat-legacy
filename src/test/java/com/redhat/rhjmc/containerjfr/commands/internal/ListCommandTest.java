@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,9 +52,12 @@ import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -69,6 +71,7 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -78,7 +81,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
-class ListCommandTest {
+class ListCommandTest implements ValidatesTargetId {
 
     ListCommand command;
     @Mock ClientWriter cw;
@@ -87,9 +90,24 @@ class ListCommandTest {
     @Mock IFlightRecorderService service;
     @Mock WebServer exporter;
 
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID);
+    }
+
     @BeforeEach
     void setup() {
         command = new ListCommand(cw, targetConnectionManager, exporter);
+    }
+
+    @Test
+    void shouldBeAvailable() {
+        Assertions.assertTrue(command.isAvailable());
     }
 
     @Test
@@ -97,19 +115,10 @@ class ListCommandTest {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("list"));
     }
 
-    @Test
-    void shouldExpectOneArg() {
-        assertTrue(command.validate(new String[] {"foo:9091"}));
-    }
-
-    @Test
-    void shouldNotExpectNoArgs() {
-        assertFalse(command.validate(new String[0]));
-    }
-
-    @Test
-    void shouldNotExpectTwoArgs() {
-        assertFalse(command.validate(new String[2]));
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2})
+    void shouldNotValidateIncorrectArgc(int argc) {
+        assertFalse(command.validate(new String[argc]));
     }
 
     @Test

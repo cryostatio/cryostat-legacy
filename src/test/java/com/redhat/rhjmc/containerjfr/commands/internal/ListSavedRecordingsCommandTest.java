@@ -93,7 +93,7 @@ class ListSavedRecordingsCommandTest {
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
-    void shouldNotValidateWrongArgCounts(int count) {
+    void shouldNotValidateIncorrectArgc(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
         verify(cw).println("No arguments expected");
     }

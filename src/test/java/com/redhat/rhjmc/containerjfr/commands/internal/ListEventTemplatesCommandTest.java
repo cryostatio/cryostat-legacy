@@ -56,6 +56,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.redhat.rhjmc.containerjfr.TestException;
+import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ListOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
@@ -66,13 +69,23 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class ListEventTemplatesCommandTest {
+class ListEventTemplatesCommandTest implements ValidatesTargetId {
 
     ListEventTemplatesCommand cmd;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock TemplateService templateSvc;
     @Mock ClientWriter cw;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return cmd;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID);
+    }
 
     @BeforeEach
     void setup() {
@@ -88,11 +101,6 @@ class ListEventTemplatesCommandTest {
     @ValueSource(ints = {0, 2})
     void shouldNotValidateWrongArgc(int n) {
         Assertions.assertFalse(cmd.validate(new String[n]));
-    }
-
-    @Test
-    void shouldValidateTargetIdArg() {
-        Assertions.assertTrue(cmd.validate(new String[] {"fooHost:9091"}));
     }
 
     @Test
@@ -141,5 +149,17 @@ class ListEventTemplatesCommandTest {
                 List.of(foo, bar, baz, AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
         List<Template> list = ((ListOutput<Template>) output).getPayload();
         MatcherAssert.assertThat(list, Matchers.equalTo(expectedList));
+    }
+
+    @Test
+    void serializableExecuteShouldReturnExceptionOutputIfThrows() throws Exception {
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.anyString(), Mockito.any()))
+                .thenThrow(TestException.class);
+
+        Output<?> output = cmd.serializableExecute(new String[] {"fooHost:9091"});
+        MatcherAssert.assertThat(
+                output, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
     }
 }

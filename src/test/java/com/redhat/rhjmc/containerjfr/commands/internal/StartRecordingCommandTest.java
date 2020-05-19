@@ -42,13 +42,13 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -68,6 +68,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -76,7 +77,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
-class StartRecordingCommandTest {
+class StartRecordingCommandTest implements ValidatesTargetId {
 
     StartRecordingCommand command;
     @Mock ClientWriter cw;
@@ -86,6 +87,16 @@ class StartRecordingCommandTest {
     @Mock WebServer exporter;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME, RECORDING_EVENT_SPECIFIER);
+    }
 
     @BeforeEach
     void setup() {
@@ -119,11 +130,6 @@ class StartRecordingCommandTest {
     void shouldNotValidateBadEventString() {
         assertFalse(command.validate(new String[] {"fooHost:9091", "foo", "foo.Bar:=true"}));
         verify(cw).println("foo.Bar:=true is an invalid events pattern");
-    }
-
-    @Test
-    void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"}));
     }
 
     @Test

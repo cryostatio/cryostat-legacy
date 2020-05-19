@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -67,6 +66,7 @@ import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -75,13 +75,23 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class SearchEventsCommandTest {
+class SearchEventsCommandTest implements ValidatesTargetId {
 
     SearchEventsCommand command;
     @Mock ClientWriter cw;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, SEARCH_TERM);
+    }
 
     @BeforeEach
     void setup() {
@@ -93,15 +103,10 @@ class SearchEventsCommandTest {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("search-events"));
     }
 
-    @Test
-    void shouldValidateCorrectArgs() {
-        assertTrue(command.validate(new String[] {"fooHost:9091", "garbage"}));
-    }
-
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3})
-    void shouldNotValidateIncorrectArgc(int c) {
-        assertFalse(command.validate(new String[c]));
+    void shouldNotValidateIncorrectArgc(int argc) {
+        assertFalse(command.validate(new String[argc]));
     }
 
     @Test

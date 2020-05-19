@@ -51,6 +51,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.TemporalUnit;
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -68,6 +69,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
@@ -77,7 +79,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class SaveRecordingCommandTest {
+class SaveRecordingCommandTest implements ValidatesTargetId {
 
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock ClientWriter cw;
@@ -87,6 +89,16 @@ class SaveRecordingCommandTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     SaveRecordingCommand command;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME);
+    }
 
     @BeforeEach
     void setup() {
@@ -100,7 +112,7 @@ class SaveRecordingCommandTest {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3})
-    void shouldNotValidateWrongArgCounts(int count) {
+    void shouldNotValidateIncorrectArgc(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
         verify(cw)
                 .println(

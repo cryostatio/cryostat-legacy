@@ -72,6 +72,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
@@ -83,39 +84,49 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class UploadRecordingCommandTest {
+class UploadRecordingCommandTest implements ValidatesTargetId {
 
     static final String HOST_ID = "fooHost:9091";
     static final String UPLOAD_URL = "http://example.com/";
 
+    UploadRecordingCommand command;
     @Mock ClientWriter cw;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock FileSystem fs;
     @Mock Path path;
     @Mock CloseableHttpClient httpClient;
     @Mock JFRConnection conn;
-    UploadRecordingCommand cmd;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME, SEARCH_TERM);
+    }
 
     @BeforeEach
     void setup() {
-        this.cmd =
+        this.command =
                 new UploadRecordingCommand(cw, targetConnectionManager, fs, path, () -> httpClient);
     }
 
     @Test
     void shouldBeNamedUploadRecording() {
-        MatcherAssert.assertThat(cmd.getName(), Matchers.equalTo("upload-recording"));
+        MatcherAssert.assertThat(command.getName(), Matchers.equalTo("upload-recording"));
     }
 
     @Test
     void shouldBeAvailable() {
-        Assertions.assertTrue(cmd.isAvailable());
+        Assertions.assertTrue(command.isAvailable());
     }
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 4, 5})
     void shouldNotValidateWrongArgc(int c) {
-        Assertions.assertFalse(cmd.validate(new String[c]));
+        Assertions.assertFalse(command.validate(new String[c]));
         Mockito.verify(cw)
                 .println(
                         "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
@@ -125,13 +136,13 @@ class UploadRecordingCommandTest {
     @ValueSource(
             strings = {"foo", "foo.jfr", "recording", "some-name", "another_name", "123", "abc123"})
     void shouldValidateRecordingNames(String recordingName) {
-        Assertions.assertTrue(cmd.validate(new String[] {HOST_ID, recordingName, UPLOAD_URL}));
+        Assertions.assertTrue(command.validate(new String[] {HOST_ID, recordingName, UPLOAD_URL}));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {".", "some recording", ""})
     void shouldNotValidateInvalidRecordingNames(String recordingName) {
-        Assertions.assertFalse(cmd.validate(new String[] {HOST_ID, recordingName, UPLOAD_URL}));
+        Assertions.assertFalse(command.validate(new String[] {HOST_ID, recordingName, UPLOAD_URL}));
         Mockito.verify(cw).println(recordingName + " is an invalid recording name");
     }
 
@@ -153,7 +164,8 @@ class UploadRecordingCommandTest {
             Mockito.when(rec.getName()).thenReturn("foo");
             Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
 
-            Optional<InputStream> res = cmd.getBestRecordingForName("fooHost:9091", rec.getName());
+            Optional<InputStream> res =
+                    command.getBestRecordingForName("fooHost:9091", rec.getName());
 
             Assertions.assertTrue(res.isPresent());
             MatcherAssert.assertThat(res.get(), Matchers.sameInstance(stream));
@@ -178,7 +190,7 @@ class UploadRecordingCommandTest {
             Mockito.when(fs.isReadable(rec)).thenReturn(true);
             Mockito.when(fs.newInputStream(rec)).thenReturn(stream);
 
-            Optional<InputStream> res = cmd.getBestRecordingForName("fooHost:9091", "foo");
+            Optional<InputStream> res = command.getBestRecordingForName("fooHost:9091", "foo");
 
             Assertions.assertTrue(res.isPresent());
             MatcherAssert.assertThat(res.get(), Matchers.instanceOf(BufferedInputStream.class));
@@ -202,7 +214,7 @@ class UploadRecordingCommandTest {
             Mockito.when(fs.isReadable(rec)).thenReturn(true);
             Mockito.when(fs.newInputStream(rec)).thenReturn(stream);
 
-            Optional<InputStream> res = cmd.getBestRecordingForName("fooHost:9091", "foo");
+            Optional<InputStream> res = command.getBestRecordingForName("fooHost:9091", "foo");
 
             Assertions.assertTrue(res.isPresent());
             MatcherAssert.assertThat(res.get(), Matchers.instanceOf(BufferedInputStream.class));
@@ -223,7 +235,7 @@ class UploadRecordingCommandTest {
             Mockito.when(path.resolve(Mockito.anyString())).thenReturn(rec);
             Mockito.when(fs.isRegularFile(rec)).thenReturn(false);
 
-            Optional<InputStream> res = cmd.getBestRecordingForName("fooHost:9091", "foo");
+            Optional<InputStream> res = command.getBestRecordingForName("fooHost:9091", "foo");
             Assertions.assertFalse(res.isPresent());
         }
 
@@ -243,7 +255,7 @@ class UploadRecordingCommandTest {
             Mockito.when(fs.isRegularFile(rec)).thenReturn(true);
             Mockito.when(fs.isReadable(rec)).thenReturn(false);
 
-            Optional<InputStream> res = cmd.getBestRecordingForName("fooHost:9091", "foo");
+            Optional<InputStream> res = command.getBestRecordingForName("fooHost:9091", "foo");
             Assertions.assertFalse(res.isPresent());
         }
     }
@@ -266,7 +278,7 @@ class UploadRecordingCommandTest {
 
             Assertions.assertThrows(
                     RecordingNotFoundException.class,
-                    () -> cmd.execute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL}));
+                    () -> command.execute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL}));
         }
 
         @Test
@@ -294,7 +306,7 @@ class UploadRecordingCommandTest {
             Mockito.when(entity.getContent())
                     .thenReturn(new ByteArrayInputStream("entity_response".getBytes()));
 
-            cmd.execute(new String[] {HOST_ID, "foo", UPLOAD_URL});
+            command.execute(new String[] {HOST_ID, "foo", UPLOAD_URL});
 
             ArgumentCaptor<HttpUriRequest> captor = ArgumentCaptor.forClass(HttpUriRequest.class);
             Mockito.verify(httpClient).execute(captor.capture());
@@ -323,7 +335,7 @@ class UploadRecordingCommandTest {
             Mockito.when(rec.getName()).thenReturn("foo");
 
             Output<?> out =
-                    cmd.serializableExecute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL});
+                    command.serializableExecute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL});
             MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
         }
 
@@ -352,7 +364,7 @@ class UploadRecordingCommandTest {
             Mockito.when(entity.getContent())
                     .thenReturn(new ByteArrayInputStream("entity_response".getBytes()));
 
-            Output<?> out = cmd.serializableExecute(new String[] {HOST_ID, "foo", UPLOAD_URL});
+            Output<?> out = command.serializableExecute(new String[] {HOST_ID, "foo", UPLOAD_URL});
 
             MatcherAssert.assertThat(out, Matchers.instanceOf(MapOutput.class));
             MatcherAssert.assertThat(
