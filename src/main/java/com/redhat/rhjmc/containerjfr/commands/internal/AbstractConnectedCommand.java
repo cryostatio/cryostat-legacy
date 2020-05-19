@@ -61,10 +61,10 @@ abstract class AbstractConnectedCommand implements Command {
         return true;
     }
 
-    protected Optional<IRecordingDescriptor> getDescriptorByName(String hostId, String name)
+    protected Optional<IRecordingDescriptor> getDescriptorByName(String targetId, String name)
             throws Exception {
         return targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
                     return connection.getService().getAvailableRecordings().stream()
                             .filter(recording -> recording.getName().equals(name))

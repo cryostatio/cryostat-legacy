@@ -90,13 +90,13 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     @Override
     public void execute(String[] args) throws Exception {
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
 
         targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
-                    Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+                    Optional<IRecordingDescriptor> descriptor = getDescriptorByName(targetId, name);
                     if (descriptor.isPresent()) {
                         cw.println(
                                 String.format(
@@ -111,15 +111,15 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
 
         try {
             return targetConnectionManager.executeConnectedTask(
-                    hostId,
+                    targetId,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
-                                getDescriptorByName(hostId, name);
+                                getDescriptorByName(targetId, name);
                         if (descriptor.isPresent()) {
                             return new StringOutput(saveRecording(connection, descriptor.get()));
                         } else {
@@ -140,12 +140,12 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
             return false;
         }
 
-        String hostId = args[0];
+        String targetId = args[0];
         String recordingName = args[1];
 
-        boolean isValidHostId = validateHostId(hostId);
-        if (!isValidHostId) {
-            cw.println(String.format("%s is an invalid connection specifier", hostId));
+        boolean isValidTargetId = validateTargetId(targetId);
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", targetId));
         }
 
         boolean isValidRecordingName = validateRecordingName(recordingName);
@@ -153,7 +153,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
             cw.println(String.format("%s is an invalid recording name", recordingName));
         }
 
-        return isValidHostId && isValidRecordingName;
+        return isValidTargetId && isValidRecordingName;
     }
 
     @Override

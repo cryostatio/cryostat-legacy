@@ -84,19 +84,19 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
                     "Expected two arguments: target (hostname:port, ip:port, or JMX service URL) and search term");
             return false;
         }
-        boolean isValidHostId = validateHostId(args[0]);
-        if (!isValidHostId) {
+        boolean isValidTargetId = validateTargetId(args[0]);
+        if (!isValidTargetId) {
             cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
-        return isValidHostId;
+        return isValidTargetId;
     }
 
     @Override
     public void execute(String[] args) throws Exception {
-        String hostId = args[0];
+        String targetId = args[0];
         String searchTerm = args[1];
         targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
                     Collection<? extends IEventTypeInfo> matchingEvents =
                             connection.getService().getAvailableEventTypes().stream()
@@ -116,11 +116,11 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        String hostId = args[0];
+        String targetId = args[0];
         String searchTerm = args[1];
         try {
             return targetConnectionManager.executeConnectedTask(
-                    hostId,
+                    targetId,
                     connection -> {
                         Collection<? extends IEventTypeInfo> matchingEvents =
                                 connection.getService().getAvailableEventTypes().stream()

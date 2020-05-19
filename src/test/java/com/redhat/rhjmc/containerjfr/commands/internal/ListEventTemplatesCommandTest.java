@@ -91,7 +91,7 @@ class ListEventTemplatesCommandTest {
     }
 
     @Test
-    void shouldValidateHostIdArg() {
+    void shouldValidateTargetIdArg() {
         Assertions.assertTrue(cmd.validate(new String[] {"fooHost:9091"}));
     }
 

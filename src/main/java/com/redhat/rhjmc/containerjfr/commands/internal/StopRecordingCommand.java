@@ -70,13 +70,13 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
 
     @Override
     public void execute(String[] args) throws Exception {
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
 
         targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
-                    Optional<IRecordingDescriptor> descriptor = getDescriptorByName(hostId, name);
+                    Optional<IRecordingDescriptor> descriptor = getDescriptorByName(targetId, name);
                     if (descriptor.isPresent()) {
                         connection.getService().stop(descriptor.get());
                     } else {
@@ -89,14 +89,14 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            String hostId = args[0];
+            String targetId = args[0];
             String name = args[1];
 
             return targetConnectionManager.executeConnectedTask(
-                    hostId,
+                    targetId,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
-                                getDescriptorByName(hostId, name);
+                                getDescriptorByName(targetId, name);
                         if (descriptor.isPresent()) {
                             connection.getService().stop(descriptor.get());
                             return new SuccessOutput();
@@ -118,13 +118,13 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
             return false;
         }
 
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
 
-        boolean isValidHostId = validateHostId(hostId);
+        boolean isValidTargetId = validateTargetId(targetId);
         boolean isValidName = validateRecordingName(name);
 
-        if (!isValidHostId) {
+        if (!isValidTargetId) {
             cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
 
@@ -132,6 +132,6 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
             cw.println(String.format("%s is an invalid recording name", name));
         }
 
-        return isValidHostId && isValidName;
+        return isValidTargetId && isValidName;
     }
 }

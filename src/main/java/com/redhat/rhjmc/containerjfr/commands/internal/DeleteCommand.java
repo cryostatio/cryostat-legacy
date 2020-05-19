@@ -70,13 +70,13 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
 
     @Override
     public void execute(String[] args) throws Exception {
-        final String hostId = args[0];
+        final String targetId = args[0];
         final String recordingName = args[1];
         targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor =
-                            getDescriptorByName(hostId, recordingName);
+                            getDescriptorByName(targetId, recordingName);
                     if (descriptor.isPresent()) {
                         connection.getService().close(descriptor.get());
                     } else {
@@ -90,14 +90,14 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        final String hostId = args[0];
+        final String targetId = args[0];
         final String recordingName = args[1];
         try {
             return targetConnectionManager.executeConnectedTask(
-                    hostId,
+                    targetId,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
-                                getDescriptorByName(hostId, recordingName);
+                                getDescriptorByName(targetId, recordingName);
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
                             return new SuccessOutput();
@@ -119,14 +119,14 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
                     "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
-        boolean isValidHostId = validateHostId(args[0]);
-        if (!isValidHostId) {
+        boolean isValidTargetID = validateTargetId(args[0]);
+        if (!isValidTargetID) {
             cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
         boolean isValidRecordingName = validateRecordingName(args[1]);
         if (!isValidRecordingName) {
             cw.println(String.format("%s is an invalid recording name", args[1]));
         }
-        return isValidHostId && isValidRecordingName;
+        return isValidTargetID && isValidRecordingName;
     }
 }

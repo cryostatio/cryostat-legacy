@@ -97,20 +97,20 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     @Override
     public void execute(String[] args) throws Exception {
-        String hostId = args[0];
+        String targetId = args[0];
         String recordingName = args[1];
         String uploadUrl = args[2];
-        ResponseMessage response = doPost(hostId, recordingName, uploadUrl);
+        ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
         cw.println(String.format("[%s] %s", response.status, response.body));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
-        String hostId = args[0];
+        String targetId = args[0];
         String recordingName = args[1];
         String uploadUrl = args[2];
         try {
-            ResponseMessage response = doPost(hostId, recordingName, uploadUrl);
+            ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
             return new MapOutput<>(
                     Map.of(
                             "status", response.status,
@@ -122,11 +122,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private ResponseMessage doPost(String hostId, String recordingName, String uploadUrl)
+    private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
             throws Exception {
-        Optional<InputStream> recording = getBestRecordingForName(hostId, recordingName);
+        Optional<InputStream> recording = getBestRecordingForName(targetId, recordingName);
         if (!recording.isPresent()) {
-            throw new RecordingNotFoundException(hostId, recordingName);
+            throw new RecordingNotFoundException(targetId, recordingName);
         }
 
         InputStream stream = recording.get();
@@ -153,12 +153,12 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             return false;
         }
 
-        String hostId = args[0];
+        String targetId = args[0];
         String recordingName = args[1];
         // String uploadUrl = args[2];
 
-        boolean isValidHostId = validateHostId(hostId);
-        if (!isValidHostId) {
+        boolean isValidTargetId = validateTargetId(targetId);
+        if (!isValidTargetId) {
             cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
 
@@ -169,18 +169,18 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         // TODO validate upload URL
 
-        return isValidHostId && isValidRecordingName;
+        return isValidTargetId && isValidRecordingName;
     }
 
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
-    Optional<InputStream> getBestRecordingForName(String hostId, String recordingName)
+    Optional<InputStream> getBestRecordingForName(String targetId, String recordingName)
             throws Exception {
         Optional<IRecordingDescriptor> currentRecording =
-                getDescriptorByName(hostId, recordingName);
+                getDescriptorByName(targetId, recordingName);
         if (currentRecording.isPresent()) {
             return targetConnectionManager.executeConnectedTask(
-                    hostId,
+                    targetId,
                     connection -> {
                         return Optional.of(
                                 connection.getService().openStream(currentRecording.get(), false));
@@ -208,11 +208,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     static class RecordingNotFoundException extends Exception {
         private static final long serialVersionUID = 1L;
 
-        RecordingNotFoundException(String hostId, String recordingName) {
+        RecordingNotFoundException(String targetId, String recordingName) {
             super(
                     String.format(
                             "Recording \"%s\" could not be found at target \"%s\"",
-                            recordingName, hostId));
+                            recordingName, targetId));
         }
     }
 }

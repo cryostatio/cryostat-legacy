@@ -78,13 +78,13 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
 
     @Override
     public void execute(String[] args) throws Exception {
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
         String events = args[2];
         targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
-                    if (getDescriptorByName(hostId, name).isPresent()) {
+                    if (getDescriptorByName(targetId, name).isPresent()) {
                         cw.println(
                                 String.format("Recording with name \"%s\" already exists", name));
                         return null;
@@ -106,14 +106,14 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            String hostId = args[0];
+            String targetId = args[0];
             String name = args[1];
             String events = args[2];
 
             return targetConnectionManager.executeConnectedTask(
-                    hostId,
+                    targetId,
                     connection -> {
-                        if (getDescriptorByName(hostId, name).isPresent()) {
+                        if (getDescriptorByName(targetId, name).isPresent()) {
                             return new FailureOutput(
                                     String.format(
                                             "Recording with name \"%s\" already exists", name));
@@ -142,15 +142,15 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
             return false;
         }
 
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
         String events = args[2];
 
-        boolean isValidHostId = validateHostId(hostId);
+        boolean isValidTargetId = validateTargetId(targetId);
         boolean isValidName = validateRecordingName(name);
         boolean isValidEvents = validateEvents(events);
 
-        if (!isValidHostId) {
+        if (!isValidTargetId) {
             cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
 
@@ -162,6 +162,6 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
             cw.println(String.format("%s is an invalid events specifier", events));
         }
 
-        return isValidHostId && isValidName && isValidEvents;
+        return isValidTargetId && isValidName && isValidEvents;
     }
 }

@@ -57,15 +57,15 @@ public interface Command {
 
     boolean isAvailable();
 
-    default boolean validateHostId(String hostId) {
+    default boolean validateTargetId(String targetId) {
         boolean jmxServiceUrlMatch = true;
         try {
-            new JMXServiceURL(hostId);
+            new JMXServiceURL(targetId);
         } catch (MalformedURLException e) {
             jmxServiceUrlMatch = false;
         }
         boolean hostPatternMatch =
-                TargetConnectionManager.HOST_PORT_PAIR_PATTERN.matcher(hostId).matches();
+                TargetConnectionManager.HOST_PORT_PAIR_PATTERN.matcher(targetId).matches();
         return jmxServiceUrlMatch || hostPatternMatch;
     }
 

@@ -100,7 +100,7 @@ class WaitForCommandTest extends TestBase {
     }
 
     @Test
-    void shouldNotValidateHostId() {
+    void shouldNotValidateMalformedTargetId() {
         assertFalse(command.validate(new String[] {":9091", "."}));
     }
 

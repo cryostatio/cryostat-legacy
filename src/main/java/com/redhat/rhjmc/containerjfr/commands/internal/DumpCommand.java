@@ -78,15 +78,15 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
      */
     @Override
     public void execute(String[] args) throws Exception {
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
         int seconds = Integer.parseInt(args[2]);
         String events = args[3];
 
         targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
-                    if (getDescriptorByName(hostId, name).isPresent()) {
+                    if (getDescriptorByName(targetId, name).isPresent()) {
                         cw.println(
                                 String.format("Recording with name \"%s\" already exists", name));
                         return null;
@@ -108,15 +108,15 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            String hostId = args[0];
+            String targetId = args[0];
             String name = args[1];
             int seconds = Integer.parseInt(args[2]);
             String events = args[3];
 
             return targetConnectionManager.executeConnectedTask(
-                    hostId,
+                    targetId,
                     connection -> {
-                        if (getDescriptorByName(hostId, name).isPresent()) {
+                        if (getDescriptorByName(targetId, name).isPresent()) {
                             return new FailureOutput(
                                     String.format(
                                             "Recording with name \"%s\" already exists", name));
@@ -146,17 +146,17 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             return false;
         }
 
-        String hostId = args[0];
+        String targetId = args[0];
         String name = args[1];
         String seconds = args[2];
         String events = args[3];
 
-        boolean isValidHostId = validateHostId(hostId);
+        boolean isValidTargetId = validateTargetId(targetId);
         boolean isValidName = validateRecordingName(name);
         boolean isValidDuration = seconds.matches("\\d+");
         boolean isValidEvents = validateEvents(events);
 
-        if (!isValidHostId) {
+        if (!isValidTargetId) {
             cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
 
@@ -172,6 +172,6 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             cw.println(String.format("%s is an invalid events specifier", events));
         }
 
-        return isValidHostId && isValidName && isValidDuration && isValidEvents;
+        return isValidTargetId && isValidName && isValidDuration && isValidEvents;
     }
 }

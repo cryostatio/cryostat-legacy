@@ -72,17 +72,17 @@ public class TargetConnectionManager {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
     }
 
-    public <T> T executeConnectedTask(String hostId, ConnectedTask<T> task) throws Exception {
+    public <T> T executeConnectedTask(String targetId, ConnectedTask<T> task) throws Exception {
         try {
-            if (activeConnections.containsKey(hostId)) {
-                return task.execute(activeConnections.get(hostId));
+            if (activeConnections.containsKey(targetId)) {
+                return task.execute(activeConnections.get(targetId));
             } else {
-                try (JFRConnection connection = connect(hostId)) {
+                try (JFRConnection connection = connect(targetId)) {
                     return task.execute(connection);
                 }
             }
         } finally {
-            activeConnections.remove(hostId);
+            activeConnections.remove(targetId);
         }
     }
 

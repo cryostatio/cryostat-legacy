@@ -76,12 +76,12 @@ class WaitForCommand extends AbstractConnectedCommand {
      */
     @Override
     public void execute(String[] args) throws Exception {
-        String hostId = args[0];
+        String targetId = args[0];
         String recordingName = args[1];
         targetConnectionManager.executeConnectedTask(
-                hostId,
+                targetId,
                 connection -> {
-                    Optional<IRecordingDescriptor> d = getDescriptorByName(hostId, recordingName);
+                    Optional<IRecordingDescriptor> d = getDescriptorByName(targetId, recordingName);
                     if (!d.isPresent()) {
                         cw.println(
                                 String.format(
@@ -129,7 +129,7 @@ class WaitForCommand extends AbstractConnectedCommand {
                             }
                         }
                         clock.sleep(TimeUnit.SECONDS, 1);
-                        descriptor = getDescriptorByName(hostId, recordingName).get();
+                        descriptor = getDescriptorByName(targetId, recordingName).get();
                     }
                     cw.println();
                     return null;
@@ -144,12 +144,12 @@ class WaitForCommand extends AbstractConnectedCommand {
             return false;
         }
 
-        String hostId = args[0];
+        String targetID = args[0];
         String recordingName = args[1];
 
-        boolean isValidHostId = validateHostId(hostId);
-        if (!isValidHostId) {
-            cw.println(String.format("%s is an invalid connection specifier", hostId));
+        boolean isValidTargetId = validateTargetId(targetID);
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", targetID));
         }
 
         boolean isValidRecordingName = validateRecordingName(recordingName);
@@ -157,6 +157,6 @@ class WaitForCommand extends AbstractConnectedCommand {
             cw.println(String.format("%s is an invalid recording name", recordingName));
         }
 
-        return isValidHostId && isValidRecordingName;
+        return isValidTargetId && isValidRecordingName;
     }
 }

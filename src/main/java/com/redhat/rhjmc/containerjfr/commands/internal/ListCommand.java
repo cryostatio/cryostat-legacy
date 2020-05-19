@@ -126,11 +126,11 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
             cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }
-        boolean isValidHostId = validateHostId(args[0]);
-        if (!isValidHostId) {
+        boolean isValidTargetId = validateTargetId(args[0]);
+        if (!isValidTargetId) {
             cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
-        return isValidHostId;
+        return isValidTargetId;
     }
 
     @Override
