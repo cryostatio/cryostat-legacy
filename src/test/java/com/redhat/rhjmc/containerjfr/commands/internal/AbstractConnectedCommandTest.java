@@ -51,6 +51,7 @@ import java.util.Optional;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -61,6 +62,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.TestException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
@@ -111,6 +113,17 @@ class AbstractConnectedCommandTest {
         Optional<IRecordingDescriptor> descriptor =
                 command.getDescriptorByName("fooHost:9091", "bar");
         assertFalse(descriptor.isPresent());
+    }
+
+    @Test
+    void shouldThrowIfConnectionManagerThrows() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenThrow(TestException.class);
+        Assertions.assertThrows(
+                TestException.class,
+                () -> {
+                    command.getDescriptorByName("fooHost:9091", "bar");
+                });
     }
 
     static class BaseConnectedCommand extends AbstractConnectedCommand {
