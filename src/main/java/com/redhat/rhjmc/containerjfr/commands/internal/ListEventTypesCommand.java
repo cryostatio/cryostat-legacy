@@ -48,8 +48,6 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.StringUtils;
-
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
@@ -105,7 +103,7 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 1 || StringUtils.isBlank(args[0])) {
+        if (args.length != 1) {
             cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }

@@ -44,8 +44,6 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.StringUtils;
-
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -132,7 +130,7 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 1 || StringUtils.isBlank(args[0])) {
+        if (args.length != 1) {
             cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }

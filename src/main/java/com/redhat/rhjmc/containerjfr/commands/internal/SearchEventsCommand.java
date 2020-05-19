@@ -52,8 +52,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.StringUtils;
-
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
@@ -79,7 +77,7 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 2 || StringUtils.isBlank(args[0])) {
+        if (args.length != 2) {
             cw.println(
                     "Expected two arguments: target (hostname:port, ip:port, or JMX service URL) and search term");
             return false;
