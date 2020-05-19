@@ -84,7 +84,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class UploadRecordingCommandTest implements ValidatesTargetId {
+class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     static final String HOST_ID = "fooHost:9091";
     static final String UPLOAD_URL = "http://example.com/";

@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -74,7 +73,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class DeleteCommandTest implements ValidatesTargetId {
+class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     DeleteCommand command;
     @Mock ClientWriter cw;
@@ -101,6 +100,12 @@ class DeleteCommandTest implements ValidatesTargetId {
     @Test
     void shouldBeNamedDelete() {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("delete"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 3})
+    void shouldInvalidateIncorrectArgc(int c) {
+        assertFalse(command.validate(new String[c]));
     }
 
     @Test
@@ -192,16 +197,5 @@ class DeleteCommandTest implements ValidatesTargetId {
         MatcherAssert.assertThat(
                 (((SerializableCommand.ExceptionOutput) out).getPayload()),
                 Matchers.equalTo("FlightRecorderException: "));
-    }
-
-    @Test
-    void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"fooHost:9091", "recordingName"}));
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {0, 1, 3})
-    void shouldInvalidateIncorrectArgc(int c) {
-        assertFalse(command.validate(new String[c]));
     }
 }

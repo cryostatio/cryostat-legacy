@@ -77,7 +77,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class DumpCommandTest implements ValidatesTargetId {
+class DumpCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     DumpCommand command;
     @Mock ClientWriter cw;
@@ -119,12 +119,6 @@ class DumpCommandTest implements ValidatesTargetId {
         verify(cw)
                 .println(
                         "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types");
-    }
-
-    @Test
-    void shouldNotValidateRecordingNameInvalid() {
-        assertFalse(
-                command.validate(new String[] {"fooHost:9091", ".", "30", "foo.Bar:enabled=true"}));
     }
 
     @Test

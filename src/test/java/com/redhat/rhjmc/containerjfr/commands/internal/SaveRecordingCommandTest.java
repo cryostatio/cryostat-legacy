@@ -79,7 +79,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class SaveRecordingCommandTest implements ValidatesTargetId {
+class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock ClientWriter cw;
@@ -117,19 +117,6 @@ class SaveRecordingCommandTest implements ValidatesTargetId {
         verify(cw)
                 .println(
                         "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"foo", "recording", "some-name", "another_name", "123", "abc123"})
-    void shouldValidateRecordingNames(String recordingName) {
-        Assertions.assertTrue(command.validate(new String[] {"fooHost:9091", recordingName}));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {".", "some recording", ""})
-    void shouldNotValidateInvalidRecordingNames(String recordingName) {
-        Assertions.assertFalse(command.validate(new String[] {"fooHost:9091", recordingName}));
-        verify(cw).println(recordingName + " is an invalid recording name");
     }
 
     @Test

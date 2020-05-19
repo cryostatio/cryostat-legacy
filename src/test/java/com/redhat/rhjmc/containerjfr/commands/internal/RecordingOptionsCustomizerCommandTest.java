@@ -50,6 +50,7 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -77,6 +78,11 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldBeNamedRecordingOptions() {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("recording-option"));
+    }
+
+    @Test
+    void shouldBeAvailable() {
+        Assertions.assertTrue(command.isAvailable());
     }
 
     @Test

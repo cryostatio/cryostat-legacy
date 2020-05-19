@@ -45,15 +45,18 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-interface ValidatesTargetId extends ValidationTestable {
+interface ValidatesRecordingName extends ValidationTestable {
     @ParameterizedTest
     @ValueSource(
             strings = {
-                "localhost",
-                "localhost:123",
-                "service:jmx:rmi:///localhost/jndi/rmi://localhost:fooHost/jmxrmi"
+                "foo",
+                "some_recording",
+                "recording2",
+                "recording.jfr",
+                "1",
+                "hyphenated-name",
             })
-    default void shouldValidateAcceptableTargetId(String targetId) {
+    default void shouldValidateAcceptableRecordingNames(String recordingName) {
         Assertions.assertTrue(
                 commandForValidationTesting()
                         .validate(
@@ -61,16 +64,15 @@ interface ValidatesTargetId extends ValidationTestable {
                                         argumentSignature().stream()
                                                 .map(
                                                         arg ->
-                                                                TARGET_ID.equals(arg)
-                                                                        ? targetId
+                                                                RECORDING_NAME.equals(arg)
+                                                                        ? recordingName
                                                                         : arg))),
-                targetId);
+                recordingName);
     }
 
     @ParameterizedTest
-    @ValueSource(
-            strings = {"localhost:", ":123", "localhost:abc", ":abc", "http:///localhost:9091"})
-    default void shouldNotValidateUnacceptableTargetIds(String targetId) {
+    @ValueSource(strings = {"a recording", "", ".", ".jfr"})
+    default void shouldNotValidateUnacceptableRecordingNames(String recordingName) {
         Assertions.assertFalse(
                 commandForValidationTesting()
                         .validate(
@@ -78,9 +80,9 @@ interface ValidatesTargetId extends ValidationTestable {
                                         argumentSignature().stream()
                                                 .map(
                                                         arg ->
-                                                                TARGET_ID.equals(arg)
-                                                                        ? targetId
+                                                                RECORDING_NAME.equals(arg)
+                                                                        ? recordingName
                                                                         : arg))),
-                targetId);
+                recordingName);
     }
 }

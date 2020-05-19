@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -74,7 +73,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class StopRecordingCommandTest implements ValidatesTargetId {
+class StopRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     StopRecordingCommand command;
     @Mock ClientWriter cw;
@@ -105,16 +104,6 @@ class StopRecordingCommandTest implements ValidatesTargetId {
     @Test
     void shouldNotExpectNoArg() {
         assertFalse(command.validate(new String[0]));
-    }
-
-    @Test
-    void shouldNotExpectMalformedArg() {
-        assertFalse(command.validate(new String[] {"fooHost:9091", "."}));
-    }
-
-    @Test
-    void shouldExpectRecordingNameArg() {
-        assertTrue(command.validate(new String[] {"fooHost:9091", "foo"}));
     }
 
     @Test

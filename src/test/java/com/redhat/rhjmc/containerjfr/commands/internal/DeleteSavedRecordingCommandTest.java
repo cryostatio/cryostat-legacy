@@ -43,11 +43,11 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -61,17 +61,28 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
-class DeleteSavedRecordingCommandTest {
+class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
 
+    DeleteSavedRecordingCommand command;
     @Mock ClientWriter cw;
     @Mock FileSystem fs;
     @Mock Path recordingsPath;
-    DeleteSavedRecordingCommand command;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(RECORDING_NAME);
+    }
 
     @BeforeEach
     void setup() {
@@ -88,12 +99,6 @@ class DeleteSavedRecordingCommandTest {
     void shouldNotValidateWrongArgCounts(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
         verify(cw).println("Expected one argument: recording name");
-    }
-
-    @Test
-    void shouldValidateRecordingNameArg() {
-        Assertions.assertTrue(command.validate(new String[] {"foo"}));
-        verifyZeroInteractions(cw);
     }
 
     @Test
