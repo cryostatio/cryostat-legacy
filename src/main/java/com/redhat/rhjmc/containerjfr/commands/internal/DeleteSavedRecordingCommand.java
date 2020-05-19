@@ -104,7 +104,7 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
         }
         boolean isValidRecordingName = validateRecordingName(args[0]);
         if (!isValidRecordingName) {
-            cw.println(String.format("%s is an invalid recording name", args[1]));
+            cw.println(String.format("%s is an invalid recording name", args[0]));
         }
         return isValidRecordingName;
     }
