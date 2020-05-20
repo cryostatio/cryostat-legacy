@@ -59,7 +59,7 @@ public class SanityIT extends ITestBase {
         HttpRequest<Buffer> req;
 
         @BeforeEach
-        void setup() {
+        void createRequest() {
             req = webClient.get("/api/v1/clienturl");
         }
 
