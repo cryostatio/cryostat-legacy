@@ -41,91 +41,100 @@
  */
 package itest;
 
-import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-
-import org.apache.commons.io.IOUtils;
-import org.apache.http.Header;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.WebClient;
 
 public class SanityIT {
 
-    CloseableHttpClient http;
+    WebClient webClient;
 
     @BeforeEach
-    void setup() throws Exception {
-        http = IntegrationTestUtils.createHttpClient();
-        Thread.sleep(500);
+    void pause() throws Exception {
+        webClient = IntegrationTestUtils.createWebClient();
     }
 
     @AfterEach
     void cleanup() throws Exception {
-        http.close();
+        webClient.close();
     }
 
     @Nested
     class GetClientUrl {
 
-        @Test
-        public void shouldReturn200() throws Exception {
-            String url =
-                    String.format(
-                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
-            HttpGet get = new HttpGet(url);
-            try (CloseableHttpResponse resp = http.execute(get)) {
-                MatcherAssert.assertThat(
-                        resp.getStatusLine().getStatusCode(), Matchers.equalTo(200));
-            }
+        HttpRequest<Buffer> req;
+
+        @BeforeEach
+        void setup() {
+            req = webClient.get("/api/v1/clienturl");
         }
 
         @Test
-        public void shouldReturnOk() throws Exception {
-            String url =
-                    String.format(
-                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
-            HttpGet get = new HttpGet(url);
-            try (CloseableHttpResponse resp = http.execute(get)) {
-                MatcherAssert.assertThat(
-                        resp.getStatusLine().getReasonPhrase(), Matchers.equalTo("OK"));
-            }
+        public void shouldSucceed() throws Exception {
+            CompletableFuture<Integer> future = new CompletableFuture<>();
+            req.send(
+                    ar -> {
+                        if (ar.succeeded()) {
+                            future.complete(ar.result().statusCode());
+                        } else {
+                            future.completeExceptionally(ar.cause());
+                        }
+                    });
+            MatcherAssert.assertThat(future.get(), Matchers.equalTo(200));
+        }
+
+        @Test
+        public void shouldReturnOK() throws Exception {
+            CompletableFuture<String> future = new CompletableFuture<>();
+            req.send(
+                    ar -> {
+                        if (ar.succeeded()) {
+                            future.complete(ar.result().statusMessage());
+                        } else {
+                            future.completeExceptionally(ar.cause());
+                        }
+                    });
+            MatcherAssert.assertThat(future.get(), Matchers.equalTo("OK"));
         }
 
         @Test
         public void shouldReturnContentTypeJson() throws Exception {
-            String url =
-                    String.format(
-                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
-            HttpGet get = new HttpGet(url);
-            try (CloseableHttpResponse resp = http.execute(get)) {
-                Header header = resp.getEntity().getContentType();
-                MatcherAssert.assertThat(header.getValue(), Matchers.equalTo("application/json"));
-            }
+            CompletableFuture<String> future = new CompletableFuture<>();
+            req.send(
+                    ar -> {
+                        if (ar.succeeded()) {
+                            future.complete(ar.result().getHeader("Content-Type"));
+                        } else {
+                            future.completeExceptionally(ar.cause());
+                        }
+                    });
+            MatcherAssert.assertThat(future.get(), Matchers.equalTo("application/json"));
         }
 
         @Test
         public void shouldReturnJsonMessage() throws Exception {
-            String url =
-                    String.format(
-                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
-            HttpGet get = new HttpGet(url);
-            try (CloseableHttpResponse resp = http.execute(get)) {
-                InputStream content = resp.getEntity().getContent();
-                String body = IOUtils.toString(content, StandardCharsets.UTF_8);
-                MatcherAssert.assertThat(
-                        body,
-                        Matchers.equalTo(
-                                String.format(
-                                        "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
-                                        IntegrationTestUtils.WEB_PORT)));
-            }
+            CompletableFuture<String> future = new CompletableFuture<>();
+            req.send(
+                    ar -> {
+                        if (ar.succeeded()) {
+                            future.complete(ar.result().bodyAsString());
+                        } else {
+                            future.completeExceptionally(ar.cause());
+                        }
+                    });
+            MatcherAssert.assertThat(
+                    future.get(),
+                    Matchers.equalTo(
+                            String.format(
+                                    "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
+                                    IntegrationTestUtils.WEB_PORT)));
         }
     }
 }

@@ -109,6 +109,11 @@
     <version>${io.vertx.web.version}</version>
   </dependency>
   <dependency>
+    <groupId>io.vertx</groupId>
+    <artifactId>vertx-web-client</artifactId>
+    <version>${io.vertx.web.version}</version>
+  </dependency>
+  <dependency>
     <groupId>org.slf4j</groupId>
     <artifactId>slf4j-simple</artifactId>
     <version>${org.slf4j.version}</version>

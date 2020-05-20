@@ -41,9 +41,9 @@
  */
 package itest;
 
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
 public class IntegrationTestUtils {
 
@@ -63,7 +63,20 @@ public class IntegrationTestUtils {
         WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebPort"));
     }
 
-    public static CloseableHttpClient createHttpClient() {
-        return HttpClients.createMinimal(new BasicHttpClientConnectionManager());
+    static final WebClientOptions WEB_CLIENT_OPTIONS;
+
+    static {
+        WEB_CLIENT_OPTIONS =
+                new WebClientOptions()
+                        .setSsl(false)
+                        .setTrustAll(true)
+                        .setVerifyHost(false)
+                        .setDefaultHost("0.0.0.0")
+                        .setDefaultPort(WEB_PORT)
+                        .setLogActivity(true);
+    }
+
+    public static WebClient createWebClient() {
+        return WebClient.create(Vertx.vertx(), WEB_CLIENT_OPTIONS);
     }
 }
