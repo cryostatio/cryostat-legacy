@@ -46,6 +46,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -211,6 +212,40 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
         inOrder.verify(cw)
                 .println("Recording saved as \"some-host-svc-local_foo_20191129T112233Z.1.jfr\"");
         verifyNoMoreInteractions(service);
+    }
+
+    @Test
+    void shouldExecuteAndThrowWhenDuplicateRenamingExhausted() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
+        when(recording.getName()).thenReturn("foo");
+        when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("some-host.svc.local");
+        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+        Path savePath = mock(Path.class);
+        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(savePath);
+        Instant now = mock(Instant.class);
+        when(clock.now()).thenReturn(now);
+        when(now.truncatedTo(Mockito.any(TemporalUnit.class))).thenReturn(now);
+        when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
+        when(fs.exists(savePath)).thenReturn(true);
+
+        Assertions.assertThrows(
+                IOException.class,
+                () -> {
+                    command.execute(new String[] {"fooHost:9091", "foo"});
+                });
+
+        verify(recordingsPath, Mockito.atLeastOnce())
+                .resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
+        for (int i = 1; i < Byte.MAX_VALUE - 1; i++) {
+            verify(recordingsPath, Mockito.atLeastOnce())
+                    .resolve("some-host-svc-local_foo_20191129T112233Z." + i + ".jfr");
+        }
+        verifyNoMoreInteractions(service);
+        verifyNoMoreInteractions(fs);
     }
 
     @Test
