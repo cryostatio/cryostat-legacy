@@ -41,30 +41,17 @@
  */
 package itest;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.WebClient;
 
-public class SanityIT {
-
-    WebClient webClient;
-
-    @BeforeEach
-    void pause() throws Exception {
-        webClient = IntegrationTestUtils.createWebClient();
-    }
-
-    @AfterEach
-    void cleanup() throws Exception {
-        webClient.close();
-    }
+public class SanityIT extends ITestBase {
 
     @Nested
     class GetClientUrl {
