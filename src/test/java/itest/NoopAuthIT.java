@@ -42,6 +42,7 @@
 package itest;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -70,7 +71,8 @@ public class NoopAuthIT extends ITestBase {
                         future.completeExceptionally(ar.cause());
                     }
                 });
-        MatcherAssert.assertThat(future.get(), Matchers.equalTo(200));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(200));
     }
 
     @Test
@@ -84,6 +86,7 @@ public class NoopAuthIT extends ITestBase {
                         future.completeExceptionally(ar.cause());
                     }
                 });
-        MatcherAssert.assertThat(future.get(), Matchers.equalTo("OK"));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo("OK"));
     }
 }

@@ -41,9 +41,13 @@
  */
 package itest;
 
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+
 import io.vertx.ext.web.client.WebClient;
 
 public abstract class ITestBase {
 
+    static final int REQUEST_TIMEOUT_SECONDS = 30;
     static WebClient webClient = IntegrationTestUtils.getWebClient();
 }

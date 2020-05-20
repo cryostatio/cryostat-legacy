@@ -42,6 +42,7 @@
 package itest;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -70,6 +71,7 @@ public class GrafanaDashboardIT extends ITestBase {
                         future.completeExceptionally(ar.cause());
                     }
                 });
-        MatcherAssert.assertThat(future.get(), Matchers.equalTo(500));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(500));
     }
 }

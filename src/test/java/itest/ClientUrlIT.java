@@ -42,6 +42,7 @@
 package itest;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -70,7 +71,8 @@ public class ClientUrlIT extends ITestBase {
                         future.completeExceptionally(ar.cause());
                     }
                 });
-        MatcherAssert.assertThat(future.get(), Matchers.equalTo(200));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(200));
     }
 
     @Test
@@ -84,7 +86,8 @@ public class ClientUrlIT extends ITestBase {
                         future.completeExceptionally(ar.cause());
                     }
                 });
-        MatcherAssert.assertThat(future.get(), Matchers.equalTo("OK"));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo("OK"));
     }
 
     @Test
@@ -98,7 +101,9 @@ public class ClientUrlIT extends ITestBase {
                         future.completeExceptionally(ar.cause());
                     }
                 });
-        MatcherAssert.assertThat(future.get(), Matchers.equalTo("application/json"));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                Matchers.equalTo("application/json"));
     }
 
     @Test
@@ -113,7 +118,7 @@ public class ClientUrlIT extends ITestBase {
                     }
                 });
         MatcherAssert.assertThat(
-                future.get(),
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 Matchers.equalTo(
                         String.format(
                                 "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
