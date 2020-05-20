@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 interface ValidatesTargetId extends ValidationTestable {
@@ -68,6 +69,7 @@ interface ValidatesTargetId extends ValidationTestable {
     }
 
     @ParameterizedTest
+    @EmptySource
     @ValueSource(
             strings = {"localhost:", ":123", "localhost:abc", ":abc", "http:///localhost:9091"})
     default void shouldNotValidateUnacceptableTargetIds(String targetId) {

@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 interface ValidatesEventSpecifier extends ValidationTestable {
@@ -70,6 +71,7 @@ interface ValidatesEventSpecifier extends ValidationTestable {
     }
 
     @ParameterizedTest
+    @EmptySource
     @ValueSource(
             strings = {
                 "foo",
@@ -78,8 +80,7 @@ interface ValidatesEventSpecifier extends ValidationTestable {
                 ".Bar",
                 ":option=value",
                 "foo.Bar:option",
-                "foo.Bar=true",
-                ""
+                "foo.Bar=true"
             })
     default void shouldNotValidateUnacceptableEventSpecifiers(String eventSpecifier) {
         Assertions.assertFalse(

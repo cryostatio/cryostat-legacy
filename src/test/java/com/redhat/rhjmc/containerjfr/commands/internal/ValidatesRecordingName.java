@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 interface ValidatesRecordingName extends ValidationTestable {
@@ -71,7 +72,8 @@ interface ValidatesRecordingName extends ValidationTestable {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"a recording", "", ".", ".jfr"})
+    @EmptySource
+    @ValueSource(strings = {"a recording", ".", ".jfr"})
     default void shouldNotValidateUnacceptableRecordingNames(String recordingName) {
         Assertions.assertFalse(
                 commandForValidationTesting()
