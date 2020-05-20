@@ -76,7 +76,10 @@ public class IntegrationTestUtils {
                         .setLogActivity(true);
     }
 
-    public static WebClient createWebClient() {
-        return WebClient.create(Vertx.vertx(), WEB_CLIENT_OPTIONS);
+    private static final WebClient WEB_CLIENT_INSTANCE =
+            WebClient.create(Vertx.vertx(), WEB_CLIENT_OPTIONS);
+
+    public static WebClient getWebClient() {
+        return WEB_CLIENT_INSTANCE;
     }
 }

@@ -41,21 +41,9 @@
  */
 package itest;
 
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
 import io.vertx.ext.web.client.WebClient;
 
 public abstract class ITestBase {
 
-    static WebClient webClient;
-
-    @BeforeAll
-    static void setup() throws Exception {
-        webClient = IntegrationTestUtils.createWebClient();
-    }
-
-    @AfterAll
-    static void cleanup() throws Exception {
-        webClient.close();
-    }
+    static WebClient webClient = IntegrationTestUtils.getWebClient();
 }
