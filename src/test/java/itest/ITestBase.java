@@ -41,13 +41,81 @@
  */
 package itest;
 
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.vertx.core.http.WebSocket;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
 
 public abstract class ITestBase {
 
     static final int REQUEST_TIMEOUT_SECONDS = 30;
     static WebClient webClient = IntegrationTestUtils.getWebClient();
+
+    CompletableFuture<JsonObject> sendMessage(String command, String... args)
+            throws InterruptedException, ExecutionException, TimeoutException {
+        CompletableFuture<JsonObject> future = new CompletableFuture<>();
+
+        IntegrationTestUtils.HTTP_CLIENT.webSocket(
+                getClientUrl().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                ar -> {
+                    if (ar.failed()) {
+                        future.completeExceptionally(ar.cause());
+                        return;
+                    }
+                    WebSocket ws = ar.result();
+
+                    ws.handler(
+                            m -> {
+                                JsonObject resp = m.toJsonObject();
+                                String commandName = resp.getString("commandName");
+                                ws.end(
+                                        unused -> {
+                                            if (Objects.equals(command, commandName)) {
+                                                future.complete(resp);
+                                            } else {
+                                                future.completeExceptionally(
+                                                        new IllegalArgumentException(
+                                                                String.format(
+                                                                        "Unexpected command response for command: ",
+                                                                        commandName)));
+                                            }
+                                        });
+                            });
+
+                    ws.writeTextMessage(
+                            new JsonObject(Map.of("command", command, "args", Arrays.asList(args)))
+                                    .toString(),
+                            wsar -> {
+                                if (wsar.failed()) {
+                                    future.completeExceptionally(wsar.cause());
+                                }
+                            });
+                });
+
+        return future;
+    }
+
+    private Future<String> getClientUrl() {
+        CompletableFuture<String> future = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/clienturl")
+                .send(
+                        ar -> {
+                            if (ar.succeeded()) {
+                                future.complete(
+                                        ar.result().bodyAsJsonObject().getString("clientUrl"));
+                            } else {
+                                future.completeExceptionally(ar.cause());
+                            }
+                        });
+        return future;
+    }
 }

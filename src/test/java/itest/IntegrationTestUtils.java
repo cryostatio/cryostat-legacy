@@ -42,8 +42,9 @@
 package itest;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.http.HttpClient;
+import io.vertx.core.http.HttpClientOptions;
 import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.client.WebClientOptions;
 
 public class IntegrationTestUtils {
 
@@ -63,11 +64,11 @@ public class IntegrationTestUtils {
         WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebPort"));
     }
 
-    static final WebClientOptions WEB_CLIENT_OPTIONS;
+    static final HttpClientOptions HTTP_CLIENT_OPTIONS;
 
     static {
-        WEB_CLIENT_OPTIONS =
-                new WebClientOptions()
+        HTTP_CLIENT_OPTIONS =
+                new HttpClientOptions()
                         .setSsl(false)
                         .setTrustAll(true)
                         .setVerifyHost(false)
@@ -76,8 +77,9 @@ public class IntegrationTestUtils {
                         .setLogActivity(true);
     }
 
-    private static final WebClient WEB_CLIENT_INSTANCE =
-            WebClient.create(Vertx.vertx(), WEB_CLIENT_OPTIONS);
+    private static final Vertx VERTX = Vertx.vertx();
+    static final HttpClient HTTP_CLIENT = VERTX.createHttpClient(HTTP_CLIENT_OPTIONS);
+    private static final WebClient WEB_CLIENT_INSTANCE = WebClient.wrap(HTTP_CLIENT);
 
     public static WebClient getWebClient() {
         return WEB_CLIENT_INSTANCE;
