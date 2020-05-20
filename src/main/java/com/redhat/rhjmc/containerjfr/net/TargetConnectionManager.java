@@ -78,6 +78,7 @@ public class TargetConnectionManager {
                 return task.execute(activeConnections.get(targetId));
             } else {
                 try (JFRConnection connection = connect(targetId)) {
+                    activeConnections.put(targetId, connection);
                     return task.execute(connection);
                 }
             }
