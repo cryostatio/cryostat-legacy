@@ -527,7 +527,7 @@
               <configuration>
                 <resources>
                   <resource>
-                    <directory>web-client/dist/container-jfr-web</directory>
+                    <directory>web-client/dist</directory>
                   </resource>
                 </resources>
                 <outputDirectory>${project.build.directory}/assets/app/resources/com/redhat/rhjmc/containerjfr/net/web</outputDirectory>

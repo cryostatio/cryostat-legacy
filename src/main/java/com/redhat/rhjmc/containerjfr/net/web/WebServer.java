@@ -5,7 +5,7 @@
  * Copyright (C) 2020 Red Hat, Inc.
  * %%
  * The Universal Permissive License (UPL), Version 1.0
- * 
+ *
  * Subject to the condition set forth below, permission is hereby granted to any
  * person obtaining a copy of this software, associated documentation and/or data
  * (collectively the "Software"), free of charge and under any and all copyright
@@ -13,23 +13,23 @@
  * licensable by each licensor hereunder covering either (i) the unmodified
  * Software as contributed to or provided by such licensor, or (ii) the Larger
  * Works (as defined below), to deal in both
- * 
+ *
  * (a) the Software, and
  * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
  * one is included with the Software (each a "Larger Work" to which the Software
  * is contributed by such licensors),
- * 
+ *
  * without restriction, including without limitation the rights to copy, create
  * derivative works of, display, perform, and distribute the Software and make,
  * use, sell, offer for sale, import, export, have made, and have sold the
  * Software and the Larger Work(s), and to sublicense the foregoing rights on
  * either these or other terms.
- * 
+ *
  * This license is subject to the following condition:
  * The above copyright notice and either this complete permission notice or at
  * a minimum a reference to the UPL must be included in all copies or
  * substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,6 +53,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -98,6 +99,10 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class WebServer implements ConnectionListener {
 
+    private static final String WEB_CLIENT_ASSETS_BASE =
+            WebServer.class.getPackageName().replaceAll("\\.", "/");
+
+    private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
     private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     private static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV =
@@ -236,23 +241,34 @@ public class WebServer implements ConnectionListener {
                             .end(payload);
                 };
 
-        router.post("/auth")
+        router.post("/api/v1/auth")
                 .blockingHandler(this::handleAuthRequest, false)
                 .failureHandler(failureHandler);
 
-        router.get("/clienturl")
+        if (isCorsEnabled()) {
+            router.options("/*")
+                    .blockingHandler(
+                            ctx -> {
+                                enableCors(ctx.response());
+                                ctx.response().end();
+                            },
+                            false)
+                    .failureHandler(failureHandler);
+        }
+
+        router.get("/api/v1/clienturl")
                 .handler(this::handleClientUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/grafana_datasource_url")
+        router.get("/api/v1/grafana_datasource_url")
                 .handler(this::handleGrafanaDatasourceUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/grafana_dashboard_url")
+        router.get("/api/v1/grafana_dashboard_url")
                 .handler(this::handleGrafanaDashboardUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/recordings/:name")
+        router.get("/api/v1/recordings/:name")
                 .blockingHandler(
                         ctx -> {
                             String recordingName = ctx.pathParam("name");
@@ -265,19 +281,19 @@ public class WebServer implements ConnectionListener {
                         false)
                 .failureHandler(failureHandler);
 
-        router.post("/recordings")
+        router.post("/api/v1/recordings")
                 .handler(BodyHandler.create(true))
                 .handler(this::handleRecordingUploadRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/reports/:name")
+        router.get("/api/v1/reports/:name")
                 .blockingHandler(ctx -> this.handleReportPageRequest(ctx.pathParam("name"), ctx))
                 .failureHandler(failureHandler);
 
         router.get("/*")
-                .handler(
-                        StaticHandler.create(
-                                WebServer.class.getPackageName().replaceAll("\\.", "/")));
+                .handler(StaticHandler.create(WEB_CLIENT_ASSETS_BASE))
+                .handler(this::handleWebClientIndexRequest)
+                .failureHandler(failureHandler);
 
         this.server.requestHandler(
                 req -> {
@@ -294,6 +310,7 @@ public class WebServer implements ConnectionListener {
                                                             req.response().getStatusCode(),
                                                             Duration.between(start, Instant.now())
                                                                     .toMillis())));
+                    enableCors(req.response());
                     router.handle(req);
                 });
     }
@@ -329,12 +346,12 @@ public class WebServer implements ConnectionListener {
 
     public String getDownloadURL(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
-        return String.format("%s/recordings/%s", this.getHostUrl(), recordingName);
+        return String.format("%s/api/v1/recordings/%s", this.getHostUrl(), recordingName);
     }
 
     public String getReportURL(String recordingName)
             throws UnknownHostException, MalformedURLException, SocketException {
-        return String.format("%s/reports/%s", this.getHostUrl(), recordingName);
+        return String.format("%s/api/v1/reports/%s", this.getHostUrl(), recordingName);
     }
 
     private Optional<DownloadDescriptor> getDownloadDescriptor(String recordingName)
@@ -461,13 +478,18 @@ public class WebServer implements ConnectionListener {
         }
     }
 
+    void handleWebClientIndexRequest(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
+        ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
+    }
+
     void handleClientUrlRequest(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
         try {
             endWithJsonKeyValue(
                     "clientUrl",
                     String.format(
-                            "%s://%s:%d/command",
+                            "%s://%s:%d/api/v1/command",
                             server.isSsl() ? "wss" : "ws",
                             netConf.getWebServerHost(),
                             netConf.getExternalWebServerPort()),
@@ -637,6 +659,26 @@ public class WebServer implements ConnectionListener {
 
     private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
         return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+    }
+
+    private boolean isCorsEnabled() {
+        return this.env.hasEnv(ENABLE_CORS_ENV);
+    }
+
+    private void enableCors(HttpServerResponse response) {
+        if (isCorsEnabled()) {
+            response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:9000");
+            response.putHeader("Vary", "Origin");
+            response.putHeader(
+                    HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS, HEAD");
+            response.putHeader(
+                    HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
+                    String.join(", ", Arrays.asList("authorization", "Authorization")));
+            response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
+            response.putHeader(
+                    HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
+                    String.join(", ", Arrays.asList(AUTH_SCHEME_HEADER)));
+        }
     }
 
     private <T> AsyncResult<T> makeAsyncResult(T result) {

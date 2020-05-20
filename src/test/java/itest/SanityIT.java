@@ -5,7 +5,7 @@
  * Copyright (C) 2020 Red Hat, Inc.
  * %%
  * The Universal Permissive License (UPL), Version 1.0
- * 
+ *
  * Subject to the condition set forth below, permission is hereby granted to any
  * person obtaining a copy of this software, associated documentation and/or data
  * (collectively the "Software"), free of charge and under any and all copyright
@@ -13,23 +13,23 @@
  * licensable by each licensor hereunder covering either (i) the unmodified
  * Software as contributed to or provided by such licensor, or (ii) the Larger
  * Works (as defined below), to deal in both
- * 
+ *
  * (a) the Software, and
  * (b) any piece of software and/or hardware listed in the lrgrwrks.txt file if
  * one is included with the Software (each a "Larger Work" to which the Software
  * is contributed by such licensors),
- * 
+ *
  * without restriction, including without limitation the rights to copy, create
  * derivative works of, display, perform, and distribute the Software and make,
  * use, sell, offer for sale, import, export, have made, and have sold the
  * Software and the Larger Work(s), and to sublicense the foregoing rights on
  * either these or other terms.
- * 
+ *
  * This license is subject to the following condition:
  * The above copyright notice and either this complete permission notice or at
  * a minimum a reference to the UPL must be included in all copies or
  * substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -77,7 +77,8 @@ public class SanityIT {
         @Test
         public void shouldReturn200() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 MatcherAssert.assertThat(
@@ -88,7 +89,8 @@ public class SanityIT {
         @Test
         public void shouldReturnOk() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 MatcherAssert.assertThat(
@@ -99,7 +101,8 @@ public class SanityIT {
         @Test
         public void shouldReturnContentTypeJson() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 Header header = resp.getEntity().getContentType();
@@ -110,7 +113,8 @@ public class SanityIT {
         @Test
         public void shouldReturnJsonMessage() throws Exception {
             String url =
-                    String.format("http://0.0.0.0:%d/clienturl", IntegrationTestUtils.WEB_PORT);
+                    String.format(
+                            "http://0.0.0.0:%d/api/v1/clienturl", IntegrationTestUtils.WEB_PORT);
             HttpGet get = new HttpGet(url);
             try (CloseableHttpResponse resp = http.execute(get)) {
                 InputStream content = resp.getEntity().getContent();
@@ -119,7 +123,7 @@ public class SanityIT {
                         body,
                         Matchers.equalTo(
                                 String.format(
-                                        "{\"clientUrl\":\"ws://0.0.0.0:%d/command\"}",
+                                        "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
                                         IntegrationTestUtils.WEB_PORT)));
             }
         }
