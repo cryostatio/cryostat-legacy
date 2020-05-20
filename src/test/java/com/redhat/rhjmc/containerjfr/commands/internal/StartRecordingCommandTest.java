@@ -77,7 +77,8 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
-class StartRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingName {
+class StartRecordingCommandTest
+        implements ValidatesTargetId, ValidatesRecordingName, ValidatesEventSpecifier {
 
     StartRecordingCommand command;
     @Mock ClientWriter cw;
@@ -118,12 +119,6 @@ class StartRecordingCommandTest implements ValidatesTargetId, ValidatesRecording
     @ValueSource(ints = {0, 1, 2, 4, 5})
     void shouldNotValidateWithIncorrectArgc(int argc) {
         assertFalse(command.validate(new String[argc]));
-    }
-
-    @Test
-    void shouldNotValidateBadEventString() {
-        assertFalse(command.validate(new String[] {"fooHost:9091", "foo", "foo.Bar:=true"}));
-        verify(cw).println("foo.Bar:=true is an invalid events pattern");
     }
 
     @Test
