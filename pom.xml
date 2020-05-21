@@ -201,6 +201,8 @@
               <argument>run</argument>
               <argument>--hostname=container-jfr</argument>
               <argument>--name=container-jfr-itest</argument>
+              <argument>--mount </argument>
+              <argument>type=tmpfs,target=/flightrecordings</argument>
               <argument>--publish</argument>
               <argument>9091:9091</argument>
               <argument>--publish</argument>
