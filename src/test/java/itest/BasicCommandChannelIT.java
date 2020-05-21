@@ -58,15 +58,13 @@ public class BasicCommandChannelIT extends ITestBase {
     @Test
     public void shouldGetPingResponse() throws Exception {
         JsonObject resp = sendMessage("ping").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        int status = resp.getInteger("status");
-        MatcherAssert.assertThat(status, Matchers.equalTo(0));
+        assertResponseStatus(resp);
     }
 
     @Test
     public void shouldGetIPResponse() throws Exception {
         JsonObject resp = sendMessage("ip").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        int status = resp.getInteger("status");
-        MatcherAssert.assertThat(status, Matchers.equalTo(0));
+        assertResponseStatus(resp);
         String ip = resp.getString("payload");
         Assertions.assertDoesNotThrow(() -> InetAddress.getByName(ip));
     }
@@ -74,8 +72,7 @@ public class BasicCommandChannelIT extends ITestBase {
     @Test
     public void shouldGetHostnameResponse() throws Exception {
         JsonObject resp = sendMessage("hostname").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        int status = resp.getInteger("status");
-        MatcherAssert.assertThat(status, Matchers.equalTo(0));
+        assertResponseStatus(resp);
         String hostname = resp.getString("payload");
         MatcherAssert.assertThat(hostname, Matchers.equalTo("container-jfr"));
     }
@@ -83,8 +80,7 @@ public class BasicCommandChannelIT extends ITestBase {
     @Test
     public void shouldGetUrlResponse() throws Exception {
         JsonObject resp = sendMessage("url").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        int status = resp.getInteger("status");
-        MatcherAssert.assertThat(status, Matchers.equalTo(0));
+        assertResponseStatus(resp);
         String url = resp.getString("payload");
         MatcherAssert.assertThat(
                 url,
@@ -96,8 +92,7 @@ public class BasicCommandChannelIT extends ITestBase {
     public void shouldGetScanTargetsResponse() throws Exception {
         JsonObject resp =
                 sendMessage("scan-targets").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        int status = resp.getInteger("status");
-        MatcherAssert.assertThat(status, Matchers.equalTo(0));
+        assertResponseStatus(resp);
         JsonArray targets = resp.getJsonArray("payload");
         JsonObject selfRef =
                 new JsonObject(

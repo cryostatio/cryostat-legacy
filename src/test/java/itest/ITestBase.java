@@ -50,6 +50,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import io.vertx.core.http.WebSocket;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -82,10 +84,10 @@ public abstract class ITestBase {
                                                 future.complete(resp);
                                             } else {
                                                 future.completeExceptionally(
-                                                        new IllegalArgumentException(
+                                                        new Exception(
                                                                 String.format(
-                                                                        "Unexpected command response for command: ",
-                                                                        commandName)));
+                                                                        "Unexpected command response %s for command %s",
+                                                                        commandName, command)));
                                             }
                                         });
                             });
@@ -101,6 +103,14 @@ public abstract class ITestBase {
                 });
 
         return future;
+    }
+
+    void assertResponseStatus(JsonObject response) {
+        assertResponseStatus(response, 0);
+    }
+
+    void assertResponseStatus(JsonObject response, int status) {
+        MatcherAssert.assertThat(response.getInteger("status"), Matchers.equalTo(status));
     }
 
     private Future<String> getClientUrl() {
