@@ -42,6 +42,7 @@
 package itest;
 
 import io.vertx.core.Vertx;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.ext.web.client.WebClient;
@@ -83,5 +84,9 @@ public class IntegrationTestUtils {
 
     public static WebClient getWebClient() {
         return WEB_CLIENT_INSTANCE;
+    }
+
+    public static FileSystem getFileSystem() {
+        return VERTX.fileSystem();
     }
 }

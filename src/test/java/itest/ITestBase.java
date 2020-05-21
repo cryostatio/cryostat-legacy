@@ -41,6 +41,8 @@
  */
 package itest;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
@@ -52,8 +54,11 @@ import java.util.concurrent.TimeoutException;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.WebSocket;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 
 public abstract class ITestBase {
@@ -127,5 +132,29 @@ public abstract class ITestBase {
                             }
                         });
         return future;
+    }
+
+    CompletableFuture<Path> downloadFile(String url, String name, String suffix) {
+        CompletableFuture<Path> dlFuture = new CompletableFuture<>();
+        IntegrationTestUtils.getWebClient()
+                .getAbs(url)
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                dlFuture.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            HttpResponse<Buffer> resp = ar.result();
+                            if (resp.statusCode() != 200) {
+                                dlFuture.completeExceptionally(
+                                        new Exception(String.format("HTTP %d", resp.statusCode())));
+                                return;
+                            }
+                            FileSystem fs = IntegrationTestUtils.getFileSystem();
+                            String file = fs.createTempFileBlocking(name, suffix);
+                            fs.writeFileBlocking(file, ar.result().body());
+                            dlFuture.complete(Paths.get(file));
+                        });
+        return dlFuture;
     }
 }
