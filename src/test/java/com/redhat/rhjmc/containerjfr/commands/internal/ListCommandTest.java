@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -53,9 +52,12 @@ import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -69,25 +71,43 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
-class ListCommandTest {
+class ListCommandTest implements ValidatesTargetId {
 
     ListCommand command;
     @Mock ClientWriter cw;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock WebServer exporter;
 
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID);
+    }
+
     @BeforeEach
     void setup() {
-        command = new ListCommand(cw, exporter);
-        command.connectionChanged(connection);
+        command = new ListCommand(cw, targetConnectionManager, exporter);
+    }
+
+    @Test
+    void shouldBeAvailable() {
+        Assertions.assertTrue(command.isAvailable());
     }
 
     @Test
@@ -95,21 +115,20 @@ class ListCommandTest {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("list"));
     }
 
-    @Test
-    void shouldExpectNoArgs() {
-        assertTrue(command.validate(new String[0]));
-    }
-
-    @Test
-    void shouldNotExpectArgs() {
-        assertFalse(command.validate(new String[1]));
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2})
+    void shouldNotValidateIncorrectArgc(int argc) {
+        assertFalse(command.validate(new String[argc]));
     }
 
     @Test
     void shouldHandleNoRecordings() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
-        command.execute(new String[0]);
+        command.execute(new String[] {"foo:9091"});
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recordings:");
         inOrder.verify(cw).println("\tNone");
@@ -117,11 +136,14 @@ class ListCommandTest {
 
     @Test
     void shouldPrintRecordingNames() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         List<IRecordingDescriptor> descriptors =
                 Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
         when(service.getAvailableRecordings()).thenReturn(descriptors);
-        command.execute(new String[0]);
+        command.execute(new String[] {"foo:9091"});
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recordings:");
         inOrder.verify(cw).println(Mockito.contains("getName\t\tfoo"));
@@ -130,32 +152,41 @@ class ListCommandTest {
 
     @Test
     void shouldReturnListOutput() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("fooHost");
+        when(connection.getPort()).thenReturn(1);
         List<IRecordingDescriptor> descriptors =
                 Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
         when(service.getAvailableRecordings()).thenReturn(descriptors);
-        when(exporter.getDownloadURL(Mockito.anyString()))
+        when(exporter.getDownloadURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/api/v1/recordings/%s",
-                                        invocation.getArguments()[0]);
+                                        "http://example.com:1234/api/v1/targets/%s:%d/recordings/%s",
+                                        ((JFRConnection) invocation.getArguments()[0]).getHost(),
+                                        ((JFRConnection) invocation.getArguments()[0]).getPort(),
+                                        invocation.getArguments()[1]);
                             }
                         });
-        when(exporter.getReportURL(Mockito.anyString()))
+        when(exporter.getReportURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
                             public String answer(InvocationOnMock invocation) throws Throwable {
                                 return String.format(
-                                        "http://example.com:1234/api/v1/reports/%s",
-                                        invocation.getArguments()[0]);
+                                        "http://example.com:1234/api/v1/targets/%s:%d/reports/%s",
+                                        ((JFRConnection) invocation.getArguments()[0]).getHost(),
+                                        ((JFRConnection) invocation.getArguments()[0]).getPort(),
+                                        invocation.getArguments()[1]);
                             }
                         });
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo:9091"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
@@ -163,20 +194,23 @@ class ListCommandTest {
                         Arrays.asList(
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("foo"),
-                                        "http://example.com:1234/api/v1/recordings/foo",
-                                        "http://example.com:1234/api/v1/reports/foo"),
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/recordings/foo",
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/foo"),
                                 new HyperlinkedSerializableRecordingDescriptor(
                                         createDescriptor("bar"),
-                                        "http://example.com:1234/api/v1/recordings/bar",
-                                        "http://example.com:1234/api/v1/reports/bar"))));
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/recordings/bar",
+                                        "http://example.com:1234/api/v1/targets/fooHost:1/reports/bar"))));
     }
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(FlightRecorderException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo:9091"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));

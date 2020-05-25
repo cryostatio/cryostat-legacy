@@ -16,8 +16,9 @@ formatted as a JSON response.
     ###### usage
     `help`
     ###### synopsis
-    Lists available commands. The output may vary depending on whether the client
-    has an active connection to a target JVM.
+    Lists available commands. This may vary depending on various factors, such
+    as whether a recording archive directory exists and has appropriate
+    permissions.
 
 * #### `scan-targets`
     ###### usage
@@ -26,38 +27,6 @@ formatted as a JSON response.
     Scans for discoverable target JVMs. This may use various discovery
     mechanisms, including Kubernetes service discovery or JDP. For more details
     see [this document](https://github.com/rh-jmc-team/container-jfr#monitoring-applications).
-
-* #### `is-connected`
-    ###### usage
-    `is-connected`
-    ###### synopsis
-    Outputs the connection status of `container-jfr` to a target JVM. If no
-    target connection exists then the output is `Disconnected`. If a connection
-    does exist then the output is of the form `foo:1234`, where `foo` is the
-    hostname of the target and `1234` is the connected RJMX port.
-
-* #### `connect`
-    ###### usage
-    `connect foo` | `connect foo:1234` | `connect 10.130.0.4:1234`
-    ###### synopsis
-    Connect to a target JVM. One argument is expected, which is the hostname
-    (`foo`) or address (`10.130.0.4`) of the target JVM with an optional port
-    number (`1234`), or a JMX service URL. The default RJMX port used if
-    unspecified is 9091.
-    ###### see also
-    [`disconnect`](#disconnect)
-
-* #### `disconnect`
-    ###### usage
-    `disconnect`
-    ###### synopsis
-    Disconnect from the target JVM. Recording options (see `recording-option`)
-    are local to the _client_, so these are preserved across client
-    connections. Recordings are stored within the target JVM and so those are
-    also preserved after a disconnection, and will still be available upon
-    reconnection.
-    ###### see also
-    [`connect`](#connect)
 
 * #### `ping`
     ###### usage
@@ -101,10 +70,7 @@ formatted as a JSON response.
     Prints the embedded webserver download URL for the client. Recordings can
     be downloaded from `$URL/$RECORDING`, where `$URL` is the output from this
     command and `$RECORDING` is the name of a recording in the target JVM.
-    This information is also printed upon any successful connection to a target
-    JVM.
     ###### see also
-    * [`wait-for-download`](#wait-for-download)
     * [`list`](#list)
 
 * #### `wait`
@@ -115,16 +81,18 @@ formatted as a JSON response.
     interrupted.
     ###### see also
     * [`wait-for`](#wait-for)
-    * [`wait-for-download`](#wait-for-download)
 
 ### Flight Recorder
 
 * #### `start`
     ###### usage
-    `start foo jdk.SocketRead:enabled=true,jdk.PhysicalMemory:period=10ms`
+    `start targetId foo jdk.SocketRead:enabled=true,jdk.PhysicalMemory:period=10ms`
     ###### synopsis
     Starts a continuous recording in the target JVM with the given name
     (`foo`), which will record events as configured in the events string.
+
+    The targetID is a `hostname:port` or `service:rmi:jmx://` JMX Service URL
+    specifying the location of the remote target JVM to connect to.
 
     The syntax of an individual event string is `eventID:option=value`.
     The syntax of the overall events string is `event1,event2,event3`, for
@@ -143,19 +111,19 @@ formatted as a JSON response.
 
 * #### `stop`
     ###### usage
-    `stop foo`
+    `stop targetId foo`
     ###### synopsis
-    Stops the given recording (`foo`).
+    Stops the given recording (`foo`) in the specified target JVM.
     ###### see also
     [`start`](#start)
 
 * #### `dump`
     ###### usage
-    `dump foo 30 jdk.SocketRead:enabled=true`
+    `dump targetId foo 30 jdk.SocketRead:enabled=true`
     ###### synopsis
-    Starts a recording with the given name (`foo`) with a fixed duration of the
-    given number of seconds (`30`), recording events as configured in the
-    events string.
+    Starts a recording in the specified target JVM with the given name (`foo`),
+    with a fixed duration of the given number of seconds (`30`), and recording
+    events as configured in the events string.
     ###### see also
     [`start`](#start)
 
@@ -172,14 +140,14 @@ formatted as a JSON response.
 
 * #### `save`
     ###### usage
-    `save foo`
+    `save targetId foo`
     ###### synopsis
-    Saves the named recording to persistent storage attached to the
-    `container-jfr` container. The saved recording contains a snapshot of its
-    parent in-memory recording at the time of the save and is not updated
-    (unless overwritten by a new save in the future). A saved recording is not
-    tied to the lifecycle of the JVM which produced it - that is, the recording
-    will remain available even if the target JVM dies.
+    Saves the named recording in the specified target JVM to persistent storage
+    attached to the `container-jfr` container. The saved recording contains a
+    snapshot of its parent in-memory recording at the time of the save and is
+    not updated (unless overwritten by a new save in the future). A saved
+    recording is not tied to the lifecycle of the JVM which produced it - that
+    is, the recording will remain available even if the target JVM dies.
 
     For `container-jfr` to be able to save recordings to persistent storage,
     there must be persistent storage available to the container. The storage is
@@ -192,19 +160,19 @@ formatted as a JSON response.
 
 * #### `upload-recording`
     ###### usage
-    `upload-recording foo`
+    `upload-recording targetId foo url`
     ###### synopsis
-    Uploads the named recording to a jfr-datasource instance, which exposes the
-    information contained within the recording to its associated Grafana
-    instance. For information on setting environment variables to enable
-    uploading, see README.md .
+    Uploads the named recording from the specified target JVM to the specified
+    jfr-datasource instance, which exposes the information contained within the
+    recording to its associated Grafana instance. For information on setting
+    environment variables to enable uploading, see README.md .
     ###### see also
     * [`dump`](#dump)
     * [`start`](#start)
 
 * #### `delete`
     ###### usage
-    `delete foo`
+    `delete targetId foo`
     ###### synopsis
     Deletes the named recording, removing it from the target JVM and freeing
     the buffer memory used. The recording will be stopped automatically if it
@@ -218,20 +186,18 @@ formatted as a JSON response.
     `delete-saved foo.jfr`
     ###### synopsis
     Deletes the named recording from persistent storage. This does not affect
-    any recordings in the target JVM's JFR buffer, even if the named saved
-    recording was created from and named identically to the in-memory
-    recording.
+    any recordings in any target JVM's JFR buffer.
     ###### see also
     * [`save`](#save)
     * [`delete`](#delete)
 
 * #### `search-events`
     ###### usage
-    `search-events foo`
+    `search-events targetId foo`
     ###### synopsis
-    Searches for event types that can be produced by the target JVM where the
-    event name, category, label, etc. matches the given query (`foo`). This
-    is useful for preparing event options strings.
+    Searches for event types that can be produced by the specified target JVM
+    where the event name, category, label, etc. matches the given query (`foo`).
+    This is useful for preparing event options strings.
     ###### see also
     * [`start`](#start)
     * [`dump`](#dump)
@@ -240,9 +206,9 @@ formatted as a JSON response.
 
 * #### `list-event-types`
     ###### usage
-    `list-event-types`
+    `list-event-types targetId`
     ###### synopsis
-    Lists event types that can be produced by the target JVM.
+    Lists event types that can be produced by the specified target JVM.
     This is useful for preparing event options strings.
     ###### see also
     * [`start`](#start)
@@ -252,12 +218,13 @@ formatted as a JSON response.
 
 * #### `list-event-templates`
     ###### usage
-    `list-event-templates`
+    `list-event-templates targetId`
     ###### synopsis
-    Lists event templates, which are configurations of event types with
-    preset values for their associated options.
-    These may include templates defined and supported by the currently connected
-    remote target JVM as well as customized templates known to `container-jfr`.
+    Lists event templates known to the specified target JVM, which are
+    configurations of event types with preset values for their associated
+    options. These may include templates defined and supported by the
+    specified remote target JVM as well as customized templates known to
+    `container-jfr`.
     ###### see also
     * [`start`](#start)
     * [`dump`](#dump)
@@ -274,20 +241,18 @@ formatted as a JSON response.
     maxSize (bytes), destinationCompressed (boolean), and destinationFile
     (string).
 
-    These recording options are local to the client session, not the connected
+    These recording options are local to the client session, not any specific
     target JVM. In practical terms this means, for example, that setting
     `recording-option toDisk=true` will cause all subsequent `start`, `dump`,
-    and `snapshot` commands to save recording contents to disk, even if the
-    client is disconnected from the initial target JVM and connected to a second
-    target JVM.
+    and `snapshot` commands to save recording contents to disk, for all
+    subsequent target JVM connections.
 
 * #### `list`
     ###### usage
-    `list`
+    `list target`
     ###### synopsis
-    Lists recordings in the target JVM. The name provided in this list is the
-    name that can be used to download the recording, as well as to pass to
-    other commands which operate upon recordings.
+    Lists recordings in the specified target JVM. The name provided in this list
+    is the name to pass to other commands which operate upon recordings.
     ###### see also
     [`list-saved`](#list-saved)
 
@@ -301,9 +266,9 @@ formatted as a JSON response.
 
 * #### `list-recording-options`
     ###### usage
-    `list-recording-options`
+    `list-recording-options targetId`
     ###### synopsis
-    Lists recording options which may be set for recordings within the current
+    Lists recording options which may be set for recordings within the specified
     target JVM. Not all options are guaranteed to be supported by the client.
     ###### see also
     [`recording-option`](#recording-option)
@@ -318,16 +283,3 @@ formatted as a JSON response.
     another client to be connected in order to stop the recording. Once this
     command has begun awaiting completion of the recording it cannot be
     interrupted.
-
-* #### `wait-for-download`
-    ###### usage
-    `wait-for-download foo`
-    ###### synopsis
-    Waits until the client's embedded webserver services a request to download
-    the given recording (`foo`). This does _not_ imply that the recording has
-    completed - a fixed-duration recording may still be in progress, and a
-    non-fixed recording may be actively running. This command is mostly useful
-    for non-interactive client usage, ex. shell scripting. Once this command
-    has begun awaiting download of the recording it cannot be interrupted.
-    ###### see also
-    [`url](#url)

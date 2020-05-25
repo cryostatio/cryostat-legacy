@@ -52,6 +52,7 @@ import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class ListRecordingOptionsCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -59,7 +60,8 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     private final ClientWriter cw;
 
     @Inject
-    ListRecordingOptionsCommand(ClientWriter cw) {
+    ListRecordingOptionsCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+        super(targetConnectionManager);
         this.cw = cw;
     }
 
@@ -71,20 +73,37 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     /** No args expected. Prints list of available recording options in target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("Available recording options:");
-        getService().getAvailableRecordingOptions().entrySet().forEach(this::printOptions);
+        targetConnectionManager.executeConnectedTask(
+                args[0],
+                connection -> {
+                    cw.println("Available recording options:");
+                    connection
+                            .getService()
+                            .getAvailableRecordingOptions()
+                            .entrySet()
+                            .forEach(this::printOptions);
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            Map<String, IOptionDescriptor<?>> origOptions =
-                    getService().getAvailableRecordingOptions();
-            Map<String, SerializableOptionDescriptor> options = new HashMap<>(origOptions.size());
-            for (Map.Entry<String, IOptionDescriptor<?>> entry : origOptions.entrySet()) {
-                options.put(entry.getKey(), new SerializableOptionDescriptor(entry.getValue()));
-            }
-            return new MapOutput<>(options);
+            return targetConnectionManager.executeConnectedTask(
+                    args[0],
+                    connection -> {
+                        Map<String, IOptionDescriptor<?>> origOptions =
+                                connection.getService().getAvailableRecordingOptions();
+                        Map<String, SerializableOptionDescriptor> options =
+                                new HashMap<>(origOptions.size());
+                        for (Map.Entry<String, IOptionDescriptor<?>> entry :
+                                origOptions.entrySet()) {
+                            options.put(
+                                    entry.getKey(),
+                                    new SerializableOptionDescriptor(entry.getValue()));
+                        }
+                        return new MapOutput<>(options);
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -92,11 +111,15 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
+        if (args.length != 1) {
+            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }
-        return true;
+        boolean isValidTargetId = validateTargetId(args[0]);
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+        return isValidTargetId;
     }
 
     private void printOptions(Map.Entry<String, IOptionDescriptor<?>> entry) {

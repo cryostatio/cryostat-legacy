@@ -60,9 +60,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
@@ -85,51 +83,6 @@ class InteractiveShellExecutorTest extends TestBase {
     }
 
     @Test
-    void shouldExecuteAndChangePromptOnConnection() throws Exception {
-        verifyZeroInteractions(mockClientReader);
-        verifyZeroInteractions(mockRegistry);
-
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
-        when(mockClientReader.readLine())
-                .thenReturn("connect foo")
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock invocation) {
-                                executor.connectionChanged(mockConnection);
-                                return "disconnect";
-                            }
-                        })
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock invocation) throws Throwable {
-                                executor.connectionChanged(null);
-                                return "exit";
-                            }
-                        });
-
-        executor.run(null);
-
-        MatcherAssert.assertThat(
-                stdout(),
-                Matchers.equalTo(
-                        "- \n\"connect\" \"[foo]\"\n- \n\"disconnect\" \"[]\"\n> \n\"exit\" \"[]\"\n"));
-
-        verify(mockRegistry).validate("connect", new String[] {"foo"});
-        verify(mockRegistry).validate("exit", new String[0]);
-        verify(mockClientReader).close();
-
-        InOrder inOrder = inOrder(mockRegistry);
-        inOrder.verify(mockRegistry).execute("connect", new String[] {"foo"});
-        inOrder.verify(mockRegistry).execute("disconnect", new String[0]);
-        inOrder.verify(mockRegistry).execute("exit", new String[0]);
-
-        verifyNoMoreInteractions(mockClientReader);
-        verifyNoMoreInteractions(mockRegistry);
-    }
-
-    @Test
     void shouldPrintCommandExceptions() throws Exception {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
@@ -145,7 +98,7 @@ class InteractiveShellExecutorTest extends TestBase {
         MatcherAssert.assertThat(
                 stdout(),
                 Matchers.equalTo(
-                        "- \n\"help\" \"[]\"\nhelp operation failed due to null\njava.lang.UnsupportedOperationException\n\n- \n\"exit\" \"[]\"\n"));
+                        "> \n\"help\" \"[]\"\nhelp operation failed due to null\njava.lang.UnsupportedOperationException\n\n> \n\"exit\" \"[]\"\n"));
 
         verify(mockRegistry).validate("help", new String[0]);
         verify(mockRegistry).validate("exit", new String[0]);
@@ -169,7 +122,7 @@ class InteractiveShellExecutorTest extends TestBase {
         executor.run(null);
 
         MatcherAssert.assertThat(
-                stdout(), Matchers.equalTo("- java.lang.NullPointerException\n\n"));
+                stdout(), Matchers.equalTo("> java.lang.NullPointerException\n\n"));
         verify(mockClientReader).readLine();
         verify(mockClientReader).close();
 
@@ -187,7 +140,7 @@ class InteractiveShellExecutorTest extends TestBase {
 
         executor.run(null);
 
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("- \n\"exit\" \"[]\"\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("> \n\"exit\" \"[]\"\n"));
 
         verify(mockClientReader).readLine();
         verify(mockRegistry).validate("exit", new String[0]);
@@ -208,7 +161,7 @@ class InteractiveShellExecutorTest extends TestBase {
 
         executor.run(null);
 
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("- \n\"exit\" \"[]\"\n"));
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo("> \n\"exit\" \"[]\"\n"));
 
         verify(mockClientReader).readLine();
         verify(mockRegistry).validate("exit", new String[0]);

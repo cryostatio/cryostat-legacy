@@ -45,7 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
@@ -68,19 +67,21 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
 class WaitForCommandTest extends TestBase {
 
     WaitForCommand command;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock Clock clock;
 
     @BeforeEach
     void setup() {
-        command = new WaitForCommand(mockClientWriter, clock);
-        command.connectionChanged(connection);
+        command = new WaitForCommand(mockClientWriter, targetConnectionManager, clock);
     }
 
     @Test
@@ -91,46 +92,51 @@ class WaitForCommandTest extends TestBase {
     @Test
     void shouldNotExpectZeroArgs() {
         assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
     }
 
     @Test
     void shouldNotExpectTooManyArgs() {
-        assertFalse(command.validate(new String[2]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
+        assertFalse(command.validate(new String[3]));
+    }
+
+    @Test
+    void shouldNotValidateMalformedTargetId() {
+        assertFalse(command.validate(new String[] {":9091", "."}));
     }
 
     @Test
     void shouldNotValidateMalformedRecordingName() {
-        assertFalse(command.validate(new String[] {"."}));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo(". is an invalid recording name\n"));
+        assertFalse(command.validate(new String[] {"fooHost:9091", "."}));
     }
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"foo"}));
+        assertTrue(command.validate(new String[] {"fooHost:9091", "someRecording"}));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 
     @Test
     void shouldHandleRecordingNotFound() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
         MatcherAssert.assertThat(
                 stdout(),
                 Matchers.equalTo("Recording with name \"foo\" not found in target JVM\n"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 
     @Test
     void shouldHandleRecordingIsContinuousAndRunning() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
         when(descriptor.getName()).thenReturn("foo");
         when(descriptor.isContinuous()).thenReturn(true);
@@ -138,15 +144,12 @@ class WaitForCommandTest extends TestBase {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
         MatcherAssert.assertThat(
                 stdout(), Matchers.equalTo("Recording \"foo\" is continuous, refusing to wait\n"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 
     @Test
@@ -172,12 +175,15 @@ class WaitForCommandTest extends TestBase {
                 .thenReturn(5_000L)
                 .thenReturn(5_001L)
                 .thenReturn(6_000L);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(descriptorB, descriptorA));
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
-        verify(connection, Mockito.times(5)).getService();
+        verify(connection, Mockito.atLeastOnce()).getService();
         verify(service, Mockito.times(5)).getAvailableRecordings();
         // Use byte array constructor due to \b control characters in output
         String s =
@@ -188,9 +194,6 @@ class WaitForCommandTest extends TestBase {
                             46, 8, 46, 10
                         });
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(s));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 
     @Test
@@ -201,16 +204,16 @@ class WaitForCommandTest extends TestBase {
         when(descriptor.getState()).thenReturn(RecordingState.STOPPED);
         when(descriptor.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptor.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(descriptor));
 
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(connection).getService();
         verify(service).getAvailableRecordings();
         MatcherAssert.assertThat(stdout(), Matchers.equalTo("\n"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
     }
 }

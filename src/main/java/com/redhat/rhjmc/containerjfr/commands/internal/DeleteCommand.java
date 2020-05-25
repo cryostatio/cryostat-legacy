@@ -50,18 +50,17 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
-    private final WebServer exporter;
 
     @Inject
-    DeleteCommand(ClientWriter cw, WebServer exporter) {
+    DeleteCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+        super(targetConnectionManager);
         this.cw = cw;
-        this.exporter = exporter;
     }
 
     @Override
@@ -69,32 +68,45 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
         return "delete";
     }
 
-    /** One arg expected. Deletes recordings in target JVM by recording name. */
     @Override
     public void execute(String[] args) throws Exception {
-        final String recordingName = args[0];
-        Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);
-        if (descriptor.isPresent()) {
-            getService().close(descriptor.get());
-            exporter.removeRecording(descriptor.get());
-        } else {
-            cw.println(String.format("No recording with name \"%s\" found", recordingName));
-        }
+        final String targetId = args[0];
+        final String recordingName = args[1];
+        targetConnectionManager.executeConnectedTask(
+                targetId,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            getDescriptorByName(targetId, recordingName);
+                    if (descriptor.isPresent()) {
+                        connection.getService().close(descriptor.get());
+                    } else {
+                        cw.println(
+                                String.format(
+                                        "No recording with name \"%s\" found", recordingName));
+                    }
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
+        final String targetId = args[0];
+        final String recordingName = args[1];
         try {
-            final String recordingName = args[0];
-            Optional<IRecordingDescriptor> descriptor = getDescriptorByName(recordingName);
-            if (descriptor.isPresent()) {
-                getService().close(descriptor.get());
-                exporter.removeRecording(descriptor.get());
-                return new SuccessOutput();
-            } else {
-                return new FailureOutput(
-                        String.format("No recording with name \"%s\" found", recordingName));
-            }
+            return targetConnectionManager.executeConnectedTask(
+                    targetId,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                getDescriptorByName(targetId, recordingName);
+                        if (descriptor.isPresent()) {
+                            connection.getService().close(descriptor.get());
+                            return new SuccessOutput();
+                        } else {
+                            return new FailureOutput(
+                                    String.format(
+                                            "No recording with name \"%s\" found", recordingName));
+                        }
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -102,10 +114,19 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 1) {
-            cw.println("Expected one argument: recording name");
+        if (args.length != 2) {
+            cw.println(
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
-        return true;
+        boolean isValidTargetID = validateTargetId(args[0]);
+        if (!isValidTargetID) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+        boolean isValidRecordingName = validateRecordingName(args[1]);
+        if (!isValidRecordingName) {
+            cw.println(String.format("%s is an invalid recording name", args[1]));
+        }
+        return isValidTargetID && isValidRecordingName;
     }
 }

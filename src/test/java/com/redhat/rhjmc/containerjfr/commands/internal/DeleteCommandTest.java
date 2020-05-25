@@ -42,15 +42,13 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -67,24 +65,36 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class DeleteCommandTest {
+class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     DeleteCommand command;
     @Mock ClientWriter cw;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock IRecordingDescriptor recordingDescriptor;
     @Mock JFRConnection connection;
-    @Mock WebServer exporter;
+    @Mock IFlightRecorderService service;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME);
+    }
 
     @BeforeEach
     void setup() throws FlightRecorderException {
-        command = new DeleteCommand(cw, exporter);
-        command.connectionChanged(connection);
+        command = new DeleteCommand(cw, targetConnectionManager);
     }
 
     @Test
@@ -92,71 +102,88 @@ class DeleteCommandTest {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("delete"));
     }
 
+    @ParameterizedTest
+    @ValueSource(ints = {0, 1, 3})
+    void shouldInvalidateIncorrectArgc(int c) {
+        assertFalse(command.validate(new String[c]));
+    }
+
     @Test
     void shouldCloseNamedRecording() throws Exception {
-        IFlightRecorderService service = mock(IFlightRecorderService.class);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
         when(connection.getService()).thenReturn(service);
         when(recordingDescriptor.getName()).thenReturn("foo-recording");
 
-        command.execute(new String[] {"foo-recording"});
+        command.execute(new String[] {"fooHost:9091", "foo-recording"});
         verify(connection.getService()).close(recordingDescriptor);
-        verify(exporter).removeRecording(recordingDescriptor);
     }
 
     @Test
     void shouldReturnSerializedSuccess() throws Exception {
-        IFlightRecorderService service = mock(IFlightRecorderService.class);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
         when(connection.getService()).thenReturn(service);
         when(recordingDescriptor.getName()).thenReturn("foo-recording");
 
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"foo-recording"});
+                command.serializableExecute(new String[] {"fooHost:9091", "foo-recording"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
         verify(connection.getService()).close(recordingDescriptor);
-        verify(exporter).removeRecording(recordingDescriptor);
     }
 
     @Test
     void shouldNotCloseUnnamedRecording() throws Exception {
-        IFlightRecorderService service = mock(IFlightRecorderService.class);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
         when(connection.getService()).thenReturn(service);
         when(recordingDescriptor.getName()).thenReturn("foo-recording");
 
-        command.execute(new String[] {"bar-recording"});
+        command.execute(new String[] {"fooHost:9091", "bar-recording"});
         verify(connection.getService(), never()).close(recordingDescriptor);
-        verifyZeroInteractions(exporter);
         verify(cw).println("No recording with name \"bar-recording\" found");
     }
 
     @Test
     void shouldReturnSerializedFailure() throws Exception {
-        IFlightRecorderService service = mock(IFlightRecorderService.class);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
         when(connection.getService()).thenReturn(service);
         when(recordingDescriptor.getName()).thenReturn("foo-recording");
 
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"bar-recording"});
+                command.serializableExecute(new String[] {"fooHost:9091", "bar-recording"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
         MatcherAssert.assertThat(
                 (((SerializableCommand.FailureOutput) out).getPayload()),
                 Matchers.equalTo("No recording with name \"bar-recording\" found"));
 
         verify(connection.getService(), never()).close(recordingDescriptor);
-        verifyZeroInteractions(exporter);
     }
 
     @Test
     void shouldReturnSerializedException() throws Exception {
-        IFlightRecorderService service = mock(IFlightRecorderService.class);
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings())
                 .thenReturn(Collections.singletonList(recordingDescriptor));
         when(connection.getService()).thenReturn(service);
@@ -164,23 +191,11 @@ class DeleteCommandTest {
         doThrow(FlightRecorderException.class).when(service).close(Mockito.any());
 
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"foo-recording"});
+                command.serializableExecute(new String[] {"fooHost:9091", "foo-recording"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(
                 (((SerializableCommand.ExceptionOutput) out).getPayload()),
                 Matchers.equalTo("FlightRecorderException: "));
-    }
-
-    @Test
-    void shouldValidateCorrectArgc() {
-        assertTrue(command.validate(new String[1]));
-    }
-
-    @ParameterizedTest
-    @ValueSource(ints = {0, 2})
-    void shouldInvalidateIncorrectArgc(int c) {
-        assertFalse(command.validate(new String[c]));
-        verify(cw).println("Expected one argument: recording name");
     }
 }

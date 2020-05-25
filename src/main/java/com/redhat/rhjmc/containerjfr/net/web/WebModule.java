@@ -53,22 +53,16 @@ import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
-import dagger.multibindings.IntoSet;
 
 @Module(includes = {NetworkModule.class})
 public abstract class WebModule {
-    @Binds
-    @IntoSet
-    abstract ConnectionListener bindWebServer(WebServer exporter);
-
     @Provides
     @Singleton
     static WebServer provideWebServer(
@@ -80,6 +74,7 @@ public abstract class WebModule {
             ReportGenerator reportGenerator,
             AuthManager authManager,
             Gson gson,
+            TargetConnectionManager targetConnectionManager,
             Logger logger) {
         return new WebServer(
                 httpServer,
@@ -90,6 +85,7 @@ public abstract class WebModule {
                 authManager,
                 gson,
                 reportGenerator,
+                targetConnectionManager,
                 logger);
     }
 }

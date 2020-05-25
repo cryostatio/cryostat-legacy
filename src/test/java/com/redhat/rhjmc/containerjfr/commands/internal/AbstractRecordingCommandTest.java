@@ -78,11 +78,13 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService.UnknownEventTemplateException;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractRecordingCommandTest extends TestBase {
 
     AbstractRecordingCommand command;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -92,6 +94,7 @@ class AbstractRecordingCommandTest extends TestBase {
         command =
                 new BaseRecordingCommand(
                         mockClientWriter,
+                        targetConnectionManager,
                         eventOptionsBuilderFactory,
                         recordingOptionsBuilderFactory);
     }
@@ -130,6 +133,7 @@ class AbstractRecordingCommandTest extends TestBase {
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
 
         command.enableEvents(
+                connection,
                 "foo.Bar$Inner:prop=some,bar.Baz$Inner2:key=val,jdk.CPULoad:enabled=true");
 
         verify(builder).addEvent("foo.Bar$Inner", "prop", "some");
@@ -149,8 +153,7 @@ class AbstractRecordingCommandTest extends TestBase {
         IConstrainedMap<EventOptionID> templateMap = mock(IConstrainedMap.class);
         when(templateSvc.getEventsByTemplateName(Mockito.anyString())).thenReturn(templateMap);
 
-        command.connectionChanged(connection);
-        IConstrainedMap<EventOptionID> result = command.enableEvents("template=Foo");
+        IConstrainedMap<EventOptionID> result = command.enableEvents(connection, "template=Foo");
         assertThat(result, Matchers.sameInstance(templateMap));
     }
 
@@ -162,9 +165,9 @@ class AbstractRecordingCommandTest extends TestBase {
         when(templateSvc.getEventsByTemplateName(Mockito.anyString()))
                 .thenThrow(new FlightRecorderException(new UnknownEventTemplateException("Foo")));
 
-        command.connectionChanged(connection);
         Assertions.assertThrows(
-                FlightRecorderException.class, () -> command.enableEvents("template=Foo"));
+                FlightRecorderException.class,
+                () -> command.enableEvents(connection, "template=Foo"));
     }
 
     @Test
@@ -183,8 +186,7 @@ class AbstractRecordingCommandTest extends TestBase {
         when(mockService.getAvailableEventTypes())
                 .thenReturn((Collection) Collections.singletonList(mockEvent));
 
-        command.connectionChanged(connection);
-        command.enableEvents("template=ALL");
+        command.enableEvents(connection, "template=ALL");
 
         verify(builder).addEvent("com.example.Event", "enabled", "true");
         verify(builder).build();
@@ -196,9 +198,14 @@ class AbstractRecordingCommandTest extends TestBase {
     static class BaseRecordingCommand extends AbstractRecordingCommand {
         BaseRecordingCommand(
                 ClientWriter cw,
+                TargetConnectionManager targetConnectionManager,
                 EventOptionsBuilder.Factory eventOptionsBuilderFactory,
                 RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-            super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+            super(
+                    cw,
+                    targetConnectionManager,
+                    eventOptionsBuilderFactory,
+                    recordingOptionsBuilderFactory);
         }
 
         @Override

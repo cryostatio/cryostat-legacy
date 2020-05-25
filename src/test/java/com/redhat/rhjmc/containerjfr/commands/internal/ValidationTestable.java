@@ -39,10 +39,50 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net;
+package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
-public interface ConnectionListener {
-    void connectionChanged(JFRConnection connection);
+import com.redhat.rhjmc.containerjfr.commands.Command;
+
+interface ValidationTestable {
+    static final String TARGET_ID = "TARGET_ID";
+    static final String RECORDING_NAME = "RECORDING_NAME";
+    static final String RECORDING_DURATION = "RECORDING_DURATION";
+    static final String RECORDING_EVENT_SPECIFIER = "RECORDING_EVENT_SPECIFIER";
+    static final String SEARCH_TERM = "SEARCH_TERM";
+
+    static final String MOCK_TARGET_ID = "someHost:9091";
+    static final String MOCK_RECORDING_NAME = "fooRecording";
+    static final String MOCK_RECORDING_DURATION = "30";
+    static final String MOCK_RECORDING_EVENT_SPECIFIER = "template=ALL";
+    static final String MOCK_SEARCH_TERM = "searchTerm";
+
+    Command commandForValidationTesting();
+
+    List<String> argumentSignature();
+
+    default String[] getArgs(Stream<String> args) {
+        return args.map(
+                        arg -> {
+                            switch (arg) {
+                                case TARGET_ID:
+                                    return MOCK_TARGET_ID;
+                                case RECORDING_NAME:
+                                    return MOCK_RECORDING_NAME;
+                                case RECORDING_DURATION:
+                                    return MOCK_RECORDING_DURATION;
+                                case RECORDING_EVENT_SPECIFIER:
+                                    return MOCK_RECORDING_EVENT_SPECIFIER;
+                                case SEARCH_TERM:
+                                    return MOCK_SEARCH_TERM;
+                                default:
+                                    return arg;
+                            }
+                        })
+                .collect(Collectors.toList())
+                .toArray(new String[0]);
+    }
 }

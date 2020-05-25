@@ -93,7 +93,7 @@ class ListSavedRecordingsCommandTest {
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
-    void shouldNotValidateWrongArgCounts(int count) {
+    void shouldNotValidateIncorrectArgc(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
         verify(cw).println("No arguments expected");
     }
@@ -170,7 +170,7 @@ class ListSavedRecordingsCommandTest {
     @Test
     void shouldExecuteAndReturnSerializedRecordingInfo() throws Exception {
         when(fs.listDirectoryChildren(recordingsPath)).thenReturn(Arrays.asList("foo", "bar"));
-        when(exporter.getDownloadURL(Mockito.anyString()))
+        when(exporter.getArchivedDownloadURL(Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -178,7 +178,7 @@ class ListSavedRecordingsCommandTest {
                                 return invocation.getArguments()[0] + ".jfr";
                             }
                         });
-        when(exporter.getReportURL(Mockito.anyString()))
+        when(exporter.getArchivedReportURL(Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
                             @Override

@@ -41,65 +41,48 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
-
-@Singleton
-class IsConnectedCommand implements ConnectionListener, SerializableCommand {
-
-    private final ClientWriter cw;
-    private JFRConnection connection;
-
-    @Inject
-    IsConnectedCommand(ClientWriter cw) {
-        this.cw = cw;
+interface ValidatesTargetId extends ValidationTestable {
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "localhost",
+                "localhost:123",
+                "service:jmx:rmi:///localhost/jndi/rmi://localhost:fooHost/jmxrmi"
+            })
+    default void shouldValidateAcceptableTargetId(String targetId) {
+        Assertions.assertTrue(
+                commandForValidationTesting()
+                        .validate(
+                                getArgs(
+                                        argumentSignature().stream()
+                                                .map(
+                                                        arg ->
+                                                                TARGET_ID.equals(arg)
+                                                                        ? targetId
+                                                                        : arg))),
+                targetId);
     }
 
-    @Override
-    public String getName() {
-        return "is-connected";
-    }
-
-    @Override
-    public void connectionChanged(JFRConnection connection) {
-        this.connection = connection;
-    }
-
-    @Override
-    public void execute(String[] args) throws Exception {
-        cw.println(
-                "\t"
-                        + (connection != null
-                                ? String.format("%s:%d", connection.getHost(), connection.getPort())
-                                : "Disconnected"));
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
-        if (connection != null) {
-            return new StringOutput(
-                    String.format("%s:%d", connection.getHost(), connection.getPort()));
-        } else {
-            return new StringOutput("false");
-        }
-    }
-
-    @Override
-    public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public boolean isAvailable() {
-        return true;
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(
+            strings = {"localhost:", ":123", "localhost:abc", ":abc", "http:///localhost:9091"})
+    default void shouldNotValidateUnacceptableTargetIds(String targetId) {
+        Assertions.assertFalse(
+                commandForValidationTesting()
+                        .validate(
+                                getArgs(
+                                        argumentSignature().stream()
+                                                .map(
+                                                        arg ->
+                                                                TARGET_ID.equals(arg)
+                                                                        ? targetId
+                                                                        : arg))),
+                targetId);
     }
 }

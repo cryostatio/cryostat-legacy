@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.BufferedInputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Map;
@@ -61,12 +60,12 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Singleton
@@ -80,9 +79,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     @Inject
     UploadRecordingCommand(
             ClientWriter cw,
+            TargetConnectionManager targetConnectionManager,
             FileSystem fs,
             @Named("RECORDINGS_PATH") Path recordingsPath,
             Provider<CloseableHttpClient> httpClientProvider) {
+        super(targetConnectionManager);
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
@@ -96,14 +97,20 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     @Override
     public void execute(String[] args) throws Exception {
-        ResponseMessage response = doPost(args[0], args[1]);
+        String targetId = args[0];
+        String recordingName = args[1];
+        String uploadUrl = args[2];
+        ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
         cw.println(String.format("[%s] %s", response.status, response.body));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
+        String targetId = args[0];
+        String recordingName = args[1];
+        String uploadUrl = args[2];
         try {
-            ResponseMessage response = doPost(args[0], args[1]);
+            ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
             return new MapOutput<>(
                     Map.of(
                             "status", response.status,
@@ -115,10 +122,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private ResponseMessage doPost(String recordingName, String uploadUrl) throws Exception {
-        Optional<InputStream> recording = getBestRecordingForName(recordingName);
+    private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
+            throws Exception {
+        Optional<InputStream> recording = getBestRecordingForName(targetId, recordingName);
         if (!recording.isPresent()) {
-            throw new RecordingNotFoundException(recordingName);
+            throw new RecordingNotFoundException(targetId, recordingName);
         }
 
         InputStream stream = recording.get();
@@ -139,31 +147,44 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 2) {
-            cw.println("Expected two arguments: recording name and upload URL");
+        if (args.length != 3) {
+            cw.println(
+                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
             return false;
         }
-        if (!validateRecordingName(args[0])) {
-            cw.println(String.format("%s is an invalid recording name", args[0]));
-            return false;
-        }
-        return true;
-    }
 
-    @Override
-    public boolean isAvailable() {
-        return super.isAvailable() || fs.isDirectory(recordingsPath);
+        String targetId = args[0];
+        String recordingName = args[1];
+        // String uploadUrl = args[2];
+
+        boolean isValidTargetId = validateTargetId(targetId);
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+
+        boolean isValidRecordingName = validateRecordingName(recordingName);
+        if (!isValidRecordingName) {
+            cw.println(String.format("%s is an invalid recording name", recordingName));
+        }
+
+        // TODO validate upload URL
+
+        return isValidTargetId && isValidRecordingName;
     }
 
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
-    Optional<InputStream> getBestRecordingForName(String recordingName)
-            throws FlightRecorderException, JMXConnectionException, IOException {
-        if (super.isAvailable()) {
-            Optional<IRecordingDescriptor> currentRecording = getDescriptorByName(recordingName);
-            if (currentRecording.isPresent()) {
-                return Optional.of(getService().openStream(currentRecording.get(), false));
-            }
+    Optional<InputStream> getBestRecordingForName(String targetId, String recordingName)
+            throws Exception {
+        Optional<IRecordingDescriptor> currentRecording =
+                getDescriptorByName(targetId, recordingName);
+        if (currentRecording.isPresent()) {
+            return targetConnectionManager.executeConnectedTask(
+                    targetId,
+                    connection -> {
+                        return Optional.of(
+                                connection.getService().openStream(currentRecording.get(), false));
+                    });
         }
 
         Path archivedRecording = recordingsPath.resolve(recordingName);
@@ -187,8 +208,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     static class RecordingNotFoundException extends Exception {
         private static final long serialVersionUID = 1L;
 
-        RecordingNotFoundException(String recordingName) {
-            super(String.format("Recording \"%s\" could not be found", recordingName));
+        RecordingNotFoundException(String targetId, String recordingName) {
+            super(
+                    String.format(
+                            "Recording \"%s\" could not be found at target \"%s\"",
+                            recordingName, targetId));
         }
     }
 }

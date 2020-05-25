@@ -51,8 +51,10 @@ import org.apache.commons.lang3.StringUtils;
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
+import com.redhat.rhjmc.containerjfr.tui.ws.MessagingServer;
 
 import dagger.BindsInstance;
 import dagger.Component;
@@ -106,7 +108,9 @@ class ContainerJfr {
 
         Client client = DaggerContainerJfr_Client.builder().mode(mode).build();
 
+        client.httpServer().start();
         client.webServer().start();
+        client.messagingServer().start();
 
         client.commandExecutor().run(clientArgs);
     }
@@ -116,7 +120,11 @@ class ContainerJfr {
     interface Client {
         CommandExecutor commandExecutor();
 
+        HttpServer httpServer();
+
         WebServer webServer();
+
+        MessagingServer messagingServer();
 
         @Component.Builder
         interface Builder {

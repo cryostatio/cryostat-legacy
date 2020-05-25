@@ -44,14 +44,15 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.TemporalUnit;
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -66,19 +67,22 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class SaveRecordingCommandTest {
+class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock ClientWriter cw;
     @Mock Clock clock;
     @Mock FileSystem fs;
@@ -87,9 +91,19 @@ class SaveRecordingCommandTest {
     @Mock IFlightRecorderService service;
     SaveRecordingCommand command;
 
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME);
+    }
+
     @BeforeEach
     void setup() {
-        command = new SaveRecordingCommand(cw, clock, fs, recordingsPath);
+        command = new SaveRecordingCommand(cw, targetConnectionManager, clock, fs, recordingsPath);
     }
 
     @Test
@@ -98,51 +112,35 @@ class SaveRecordingCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 2})
-    void shouldNotValidateWrongArgCounts(int count) {
+    @ValueSource(ints = {0, 1, 3})
+    void shouldNotValidateIncorrectArgc(int count) {
         Assertions.assertFalse(command.validate(new String[count]));
-        verify(cw).println("Expected one argument: recording name");
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {"foo", "recording", "some-name", "another_name", "123", "abc123"})
-    void shouldValidateRecordingNames(String recordingName) {
-        Assertions.assertTrue(command.validate(new String[] {recordingName}));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {".", "some recording", ""})
-    void shouldNotValidateInvalidRecordingNames(String recordingName) {
-        Assertions.assertFalse(command.validate(new String[] {recordingName}));
-        verify(cw).println(recordingName + " is an invalid recording name");
+        verify(cw)
+                .println(
+                        "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
     }
 
     @Test
-    void shouldNotBeAvailableWhenDisconnected() {
-        Assertions.assertFalse(command.isAvailable());
-    }
-
-    @Test
-    void shouldNotBeAvailableWhenConnectedButRecordingsPathNotDirectory() {
-        command.connectionChanged(connection);
+    void shouldNotBeAvailableWhenRecordingsPathNotDirectory() {
         when(fs.isDirectory(Mockito.any())).thenReturn(false);
         Assertions.assertFalse(command.isAvailable());
     }
 
     @Test
     void shouldBeAvailableWhenConnectedAndRecordingsPathIsDirectory() {
-        command.connectionChanged(connection);
         when(fs.isDirectory(Mockito.any())).thenReturn(true);
         Assertions.assertTrue(command.isAvailable());
     }
 
     @Test
     void shouldExecuteAndPrintMessageIfRecordingNotFound() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.connectionChanged(connection);
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
@@ -152,6 +150,9 @@ class SaveRecordingCommandTest {
 
     @Test
     void shouldExecuteAndSaveRecording() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
         when(connection.getService()).thenReturn(service);
@@ -166,8 +167,7 @@ class SaveRecordingCommandTest {
         when(now.truncatedTo(Mockito.any(TemporalUnit.class))).thenReturn(now);
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
 
-        command.connectionChanged(connection);
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath);
@@ -179,6 +179,9 @@ class SaveRecordingCommandTest {
 
     @Test
     void shouldExecuteAndSaveDuplicatedRecording() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
         when(connection.getService()).thenReturn(service);
@@ -194,9 +197,8 @@ class SaveRecordingCommandTest {
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
         when(fs.exists(savePath)).thenReturn(false).thenReturn(true).thenReturn(false);
 
-        command.connectionChanged(connection);
-        command.execute(new String[] {"foo"});
-        command.execute(new String[] {"foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
+        command.execute(new String[] {"fooHost:9091", "foo"});
 
         verify(service, Mockito.times(2)).getAvailableRecordings();
         verify(fs, Mockito.times(2)).copy(recordingStream, savePath);
@@ -213,7 +215,44 @@ class SaveRecordingCommandTest {
     }
 
     @Test
+    void shouldExecuteAndThrowWhenDuplicateRenamingExhausted() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
+        when(recording.getName()).thenReturn("foo");
+        when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("some-host.svc.local");
+        when(service.getAvailableRecordings()).thenReturn(Collections.singletonList(recording));
+        Path savePath = mock(Path.class);
+        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(savePath);
+        Instant now = mock(Instant.class);
+        when(clock.now()).thenReturn(now);
+        when(now.truncatedTo(Mockito.any(TemporalUnit.class))).thenReturn(now);
+        when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
+        when(fs.exists(savePath)).thenReturn(true);
+
+        Assertions.assertThrows(
+                IOException.class,
+                () -> {
+                    command.execute(new String[] {"fooHost:9091", "foo"});
+                });
+
+        verify(recordingsPath, Mockito.atLeastOnce())
+                .resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
+        for (int i = 1; i < Byte.MAX_VALUE - 1; i++) {
+            verify(recordingsPath, Mockito.atLeastOnce())
+                    .resolve("some-host-svc-local_foo_20191129T112233Z." + i + ".jfr");
+        }
+        verifyNoMoreInteractions(service);
+        verifyNoMoreInteractions(fs);
+    }
+
+    @Test
     void shouldExecuteAndSaveRecordingWithExtension() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo.jfr");
         when(connection.getService()).thenReturn(service);
@@ -228,8 +267,7 @@ class SaveRecordingCommandTest {
         when(now.truncatedTo(Mockito.any(TemporalUnit.class))).thenReturn(now);
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
 
-        command.connectionChanged(connection);
-        command.execute(new String[] {"foo.jfr"});
+        command.execute(new String[] {"fooHost:9091", "foo.jfr"});
 
         verify(service).getAvailableRecordings();
         verify(fs).copy(recordingStream, savePath);
@@ -240,13 +278,15 @@ class SaveRecordingCommandTest {
     }
 
     @Test
-    void shouldExecuteAndReturnSerializedFailureIfRecordingNotFound()
-            throws FlightRecorderException {
+    void shouldExecuteAndReturnSerializedFailureIfRecordingNotFound() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
 
-        command.connectionChanged(connection);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
@@ -254,26 +294,30 @@ class SaveRecordingCommandTest {
         MatcherAssert.assertThat(
                 ((SerializableCommand.FailureOutput) out).getPayload(),
                 Matchers.equalTo("Recording with name \"foo\" not found"));
-        verifyZeroInteractions(cw);
     }
 
     @Test
-    void shouldExecuteAndReturnSerializedException() throws FlightRecorderException {
+    void shouldExecuteAndReturnSerializedException() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(NullPointerException.class);
 
-        command.connectionChanged(connection);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
 
         verify(service).getAvailableRecordings();
         verifyNoMoreInteractions(service);
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
-        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldExecuteAndSaveRecordingAndReturnSerializedRecordingName() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
         when(recording.getName()).thenReturn("foo");
         when(connection.getService()).thenReturn(service);
@@ -288,8 +332,8 @@ class SaveRecordingCommandTest {
         when(now.truncatedTo(Mockito.any(TemporalUnit.class))).thenReturn(now);
         when(now.toString()).thenReturn("2019-11-29T11:22:33Z");
 
-        command.connectionChanged(connection);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[] {"foo"});
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
 
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
         MatcherAssert.assertThat(
@@ -301,6 +345,5 @@ class SaveRecordingCommandTest {
         verify(recordingsPath, Mockito.atLeastOnce())
                 .resolve("some-host-svc-local_foo_20191129T112233Z.jfr");
         verifyNoMoreInteractions(service);
-        verifyZeroInteractions(cw);
     }
 }

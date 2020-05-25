@@ -48,6 +48,7 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
@@ -58,10 +59,15 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     @Inject
     StartRecordingCommand(
             ClientWriter cw,
+            TargetConnectionManager targetConnectionManager,
             WebServer exporter,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
+        super(
+                cw,
+                targetConnectionManager,
+                eventOptionsBuilderFactory,
+                recordingOptionsBuilderFactory);
         this.exporter = exporter;
     }
 
@@ -70,40 +76,59 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
         return "start";
     }
 
-    /**
-     * Two args expected. First argument is recording name, second argument is comma-separated event
-     * options list, ex. jdk.SocketWrite:enabled=true,com.foo:ratio=95.2
-     */
     @Override
     public void execute(String[] args) throws Exception {
-        String name = args[0];
-        String events = args[1];
+        String targetId = args[0];
+        String name = args[1];
+        String events = args[2];
+        targetConnectionManager.executeConnectedTask(
+                targetId,
+                connection -> {
+                    if (getDescriptorByName(targetId, name).isPresent()) {
+                        cw.println(
+                                String.format("Recording with name \"%s\" already exists", name));
+                        return null;
+                    }
 
-        if (getDescriptorByName(name).isPresent()) {
-            cw.println(String.format("Recording with name \"%s\" already exists", name));
-            return;
-        }
+                    IConstrainedMap<String> recordingOptions =
+                            recordingOptionsBuilderFactory
+                                    .create(connection.getService())
+                                    .name(name)
+                                    .build();
+                    connection
+                            .getService()
+                            .start(recordingOptions, enableEvents(connection, events));
 
-        IConstrainedMap<String> recordingOptions =
-                recordingOptionsBuilderFactory.create(getService()).name(name).build();
-        this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            String name = args[0];
-            String events = args[1];
+            String targetId = args[0];
+            String name = args[1];
+            String events = args[2];
 
-            if (getDescriptorByName(name).isPresent()) {
-                return new FailureOutput(
-                        String.format("Recording with name \"%s\" already exists", name));
-            }
+            return targetConnectionManager.executeConnectedTask(
+                    targetId,
+                    connection -> {
+                        if (getDescriptorByName(targetId, name).isPresent()) {
+                            return new FailureOutput(
+                                    String.format(
+                                            "Recording with name \"%s\" already exists", name));
+                        }
 
-            IConstrainedMap<String> recordingOptions =
-                    recordingOptionsBuilderFactory.create(getService()).name(name).build();
-            this.exporter.addRecording(getService().start(recordingOptions, enableEvents(events)));
-            return new StringOutput(this.exporter.getDownloadURL(name));
+                        IConstrainedMap<String> recordingOptions =
+                                recordingOptionsBuilderFactory
+                                        .create(connection.getService())
+                                        .name(name)
+                                        .build();
+                        connection
+                                .getService()
+                                .start(recordingOptions, enableEvents(connection, events));
+                        return new StringOutput(this.exporter.getDownloadURL(connection, name));
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -111,19 +136,32 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 2) {
-            cw.println("Expected two arguments: recording name and event types");
+        if (args.length != 3) {
+            cw.println(
+                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and event types");
             return false;
         }
 
-        String name = args[0];
-        String events = args[1];
+        String targetId = args[0];
+        String name = args[1];
+        String events = args[2];
 
-        if (!validateRecordingName(name)) {
+        boolean isValidTargetId = validateTargetId(targetId);
+        boolean isValidName = validateRecordingName(name);
+        boolean isValidEvents = validateEvents(events);
+
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+
+        if (!isValidName) {
             cw.println(String.format("%s is an invalid recording name", name));
-            return false;
         }
 
-        return validateEvents(events);
+        if (!isValidEvents) {
+            cw.println(String.format("%s is an invalid events specifier", events));
+        }
+
+        return isValidTargetId && isValidName && isValidEvents;
     }
 }

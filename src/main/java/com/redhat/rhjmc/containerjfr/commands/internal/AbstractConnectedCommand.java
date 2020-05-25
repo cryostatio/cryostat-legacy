@@ -43,59 +43,32 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.util.Optional;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-abstract class AbstractConnectedCommand implements Command, ConnectionListener {
+abstract class AbstractConnectedCommand implements Command {
 
-    protected JFRConnection connection;
+    protected final TargetConnectionManager targetConnectionManager;
 
-    @Override
-    public final void connectionChanged(JFRConnection connection) {
-        this.connection = connection;
+    AbstractConnectedCommand(TargetConnectionManager targetConnectionManager) {
+        this.targetConnectionManager = targetConnectionManager;
     }
 
     @Override
     public boolean isAvailable() {
-        return this.connection != null;
+        return true;
     }
 
-    protected JFRConnection getConnection() throws JMXConnectionException {
-        validateConnection();
-        return this.connection;
-    }
-
-    protected IFlightRecorderService getService() throws JMXConnectionException {
-        validateConnection();
-        return this.connection.getService();
-    }
-
-    protected boolean validateRecordingName(String name) {
-        return name.matches("[\\w-_]+(\\.jfr)?");
-    }
-
-    protected Optional<IRecordingDescriptor> getDescriptorByName(String name)
-            throws FlightRecorderException, JMXConnectionException {
-        return getService().getAvailableRecordings().stream()
-                .filter(recording -> recording.getName().equals(name))
-                .findFirst();
-    }
-
-    private void validateConnection() throws JMXConnectionException {
-        if (this.connection == null) {
-            throw new JMXConnectionException();
-        }
-    }
-
-    @SuppressWarnings("serial")
-    static class JMXConnectionException extends Exception {
-        JMXConnectionException() {
-            super("No active JMX connection");
-        }
+    protected Optional<IRecordingDescriptor> getDescriptorByName(String targetId, String name)
+            throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                targetId,
+                connection -> {
+                    return connection.getService().getAvailableRecordings().stream()
+                            .filter(recording -> recording.getName().equals(name))
+                            .findFirst();
+                });
     }
 }

@@ -41,7 +41,14 @@
  */
 package com.redhat.rhjmc.containerjfr.commands;
 
+import java.net.MalformedURLException;
+
+import javax.management.remote.JMXServiceURL;
+
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+
 public interface Command {
+
     String getName();
 
     void execute(String[] args) throws Exception;
@@ -49,4 +56,20 @@ public interface Command {
     boolean validate(String[] args);
 
     boolean isAvailable();
+
+    default boolean validateTargetId(String targetId) {
+        boolean jmxServiceUrlMatch = true;
+        try {
+            new JMXServiceURL(targetId);
+        } catch (MalformedURLException e) {
+            jmxServiceUrlMatch = false;
+        }
+        boolean hostPatternMatch =
+                TargetConnectionManager.HOST_PORT_PAIR_PATTERN.matcher(targetId).matches();
+        return jmxServiceUrlMatch || hostPatternMatch;
+    }
+
+    default boolean validateRecordingName(String name) {
+        return name.matches("[\\w-_]+(\\.jfr)?");
+    }
 }

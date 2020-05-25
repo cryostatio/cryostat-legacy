@@ -53,6 +53,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class ListEventTypesCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -60,7 +61,8 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
     private final ClientWriter cw;
 
     @Inject
-    ListEventTypesCommand(ClientWriter cw) {
+    ListEventTypesCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+        super(targetConnectionManager);
         this.cw = cw;
     }
 
@@ -69,22 +71,31 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
         return "list-event-types";
     }
 
-    /** No args expected. Prints a list of available event types in the target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
-        cw.println("Available event types:");
-        getService().getAvailableEventTypes().forEach(this::printEvent);
+        targetConnectionManager.executeConnectedTask(
+                args[0],
+                connection -> {
+                    cw.println("Available event types:");
+                    connection.getService().getAvailableEventTypes().forEach(this::printEvent);
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            Collection<? extends IEventTypeInfo> origInfos = getService().getAvailableEventTypes();
-            List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
-            for (IEventTypeInfo info : origInfos) {
-                infos.add(new SerializableEventTypeInfo(info));
-            }
-            return new ListOutput<>(infos);
+            return targetConnectionManager.executeConnectedTask(
+                    args[0],
+                    connection -> {
+                        Collection<? extends IEventTypeInfo> origInfos =
+                                connection.getService().getAvailableEventTypes();
+                        List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
+                        for (IEventTypeInfo info : origInfos) {
+                            infos.add(new SerializableEventTypeInfo(info));
+                        }
+                        return new ListOutput<>(infos);
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -92,11 +103,15 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
+        if (args.length != 1) {
+            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }
-        return true;
+        boolean isValidTargetId = validateTargetId(args[0]);
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+        return isValidTargetId;
     }
 
     private void printEvent(IEventTypeInfo event) {

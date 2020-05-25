@@ -61,9 +61,6 @@ import dagger.multibindings.IntoSet;
 
 @Module
 public abstract class CommandsInternalModule {
-    @Binds
-    @IntoSet
-    abstract Command bindConnectCommand(ConnectCommand command);
 
     @Binds
     @IntoSet
@@ -72,10 +69,6 @@ public abstract class CommandsInternalModule {
     @Binds
     @IntoSet
     abstract Command bindDeleteSavedRecordingCommand(DeleteSavedRecordingCommand command);
-
-    @Binds
-    @IntoSet
-    abstract Command bindDisconnectCommand(DisconnectCommand command);
 
     @Binds
     @IntoSet
@@ -96,10 +89,6 @@ public abstract class CommandsInternalModule {
     @Binds
     @IntoSet
     abstract Command bindIpCommand(IpCommand command);
-
-    @Binds
-    @IntoSet
-    abstract Command bindIsConnectedCommand(IsConnectedCommand command);
 
     @Binds
     @IntoSet
@@ -169,10 +158,6 @@ public abstract class CommandsInternalModule {
     @Binds
     @IntoSet
     abstract Command bindWaitForCommand(WaitForCommand command);
-
-    @Binds
-    @IntoSet
-    abstract Command bindWaitForDownloadCommand(WaitForDownloadCommand command);
 
     @Provides
     static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {

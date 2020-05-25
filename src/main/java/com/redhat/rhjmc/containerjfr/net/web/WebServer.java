@@ -46,6 +46,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Files;
@@ -54,22 +56,21 @@ import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.http.client.utils.URIBuilder;
+
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.google.gson.Gson;
@@ -80,10 +81,11 @@ import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionListener;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -97,7 +99,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-public class WebServer implements ConnectionListener {
+public class WebServer {
 
     private static final String WEB_CLIENT_ASSETS_BASE =
             WebServer.class.getPackageName().replaceAll("\\.", "/");
@@ -129,11 +131,9 @@ public class WebServer implements ConnectionListener {
     private final AuthManager auth;
     private final Gson gson;
     private final Logger logger;
-    private IFlightRecorderService service;
 
-    private final Map<String, IRecordingDescriptor> recordings = new ConcurrentHashMap<>();
-    private final Map<String, Integer> downloadCounts = new ConcurrentHashMap<>();
     private final ReportGenerator reportGenerator;
+    private final TargetConnectionManager targetConnectionManager;
 
     WebServer(
             HttpServer server,
@@ -144,6 +144,7 @@ public class WebServer implements ConnectionListener {
             AuthManager auth,
             Gson gson,
             ReportGenerator reportGenerator,
+            TargetConnectionManager targetConnectionManager,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
@@ -154,6 +155,7 @@ public class WebServer implements ConnectionListener {
         this.gson = gson;
         this.logger = logger;
         this.reportGenerator = reportGenerator;
+        this.targetConnectionManager = targetConnectionManager;
 
         if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
             logger.info("low memory pressure streaming enabled for web server");
@@ -162,39 +164,7 @@ public class WebServer implements ConnectionListener {
         }
     }
 
-    private void refreshAvailableRecordings() throws FlightRecorderException {
-        recordings.clear();
-        downloadCounts.clear();
-
-        if (this.service != null) {
-            this.service.getAvailableRecordings().forEach(this::addRecording);
-        }
-    }
-
-    @Override
-    public void connectionChanged(JFRConnection connection) {
-        if (connection != null) {
-            this.service = connection.getService();
-
-            try {
-                refreshAvailableRecordings();
-            } catch (FlightRecorderException e) {
-                logger.warn(e);
-                throw new RuntimeException(e);
-            }
-        } else {
-            this.service = null;
-        }
-    }
-
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        if (this.server.isAlive()) {
-            return;
-        }
-
-        refreshAvailableRecordings();
-        server.start();
-
         Router router =
                 Router.router(server.getVertx()); // a vertx is only available after server started
 
@@ -268,15 +238,29 @@ public class WebServer implements ConnectionListener {
                 .handler(this::handleGrafanaDashboardUrlRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/api/v1/recordings/:name")
+        router.get("/api/v1/targets/:targetId/recordings/:recordingName")
                 .blockingHandler(
                         ctx -> {
-                            String recordingName = ctx.pathParam("name");
+                            String targetId = ctx.pathParam("targetId");
+                            String recordingName = ctx.pathParam("recordingName");
                             if (recordingName != null && recordingName.endsWith(".jfr")) {
                                 recordingName =
                                         recordingName.substring(0, recordingName.length() - 4);
                             }
-                            handleRecordingDownloadRequest(recordingName, ctx);
+                            handleRecordingDownloadRequest(targetId, recordingName, ctx);
+                        },
+                        false)
+                .failureHandler(failureHandler);
+
+        router.get("/api/v1/recordings/:recordingName")
+                .blockingHandler(
+                        ctx -> {
+                            String recordingName = ctx.pathParam("recordingName");
+                            if (recordingName != null && recordingName.endsWith(".jfr")) {
+                                recordingName =
+                                        recordingName.substring(0, recordingName.length() - 4);
+                            }
+                            handleRecordingDownloadRequest(null, recordingName, ctx);
                         },
                         false)
                 .failureHandler(failureHandler);
@@ -286,8 +270,29 @@ public class WebServer implements ConnectionListener {
                 .handler(this::handleRecordingUploadRequest)
                 .failureHandler(failureHandler);
 
-        router.get("/api/v1/reports/:name")
-                .blockingHandler(ctx -> this.handleReportPageRequest(ctx.pathParam("name"), ctx))
+        router.get("/api/v1/targets/:targetId/reports/:recordingName")
+                .blockingHandler(
+                        ctx -> {
+                            String targetId = ctx.pathParam("targetId");
+                            String recordingName = ctx.pathParam("recordingName");
+                            if (recordingName != null && recordingName.endsWith(".jfr")) {
+                                recordingName =
+                                        recordingName.substring(0, recordingName.length() - 4);
+                            }
+                            handleReportPageRequest(targetId, recordingName, ctx);
+                        })
+                .failureHandler(failureHandler);
+
+        router.get("/api/v1/reports/:recordingName")
+                .blockingHandler(
+                        ctx -> {
+                            String recordingName = ctx.pathParam("recordingName");
+                            if (recordingName != null && recordingName.endsWith(".jfr")) {
+                                recordingName =
+                                        recordingName.substring(0, recordingName.length() - 4);
+                            }
+                            handleReportPageRequest(null, recordingName, ctx);
+                        })
                 .failureHandler(failureHandler);
 
         router.get("/*")
@@ -317,50 +322,103 @@ public class WebServer implements ConnectionListener {
 
     public void stop() {
         this.server.requestHandler(null);
-
-        recordings.clear();
-        downloadCounts.clear();
     }
 
-    public void addRecording(IRecordingDescriptor descriptor) {
-        recordings.put(descriptor.getName(), descriptor);
-        downloadCounts.put(descriptor.getName(), 0);
+    public URL getHostUrl()
+            throws MalformedURLException, SocketException, UnknownHostException,
+                    URISyntaxException {
+        return getHostUri().toURL();
     }
 
-    public void removeRecording(IRecordingDescriptor descriptor) {
-        recordings.remove(descriptor.getName());
-        downloadCounts.remove(descriptor.getName());
+    URI getHostUri() throws SocketException, UnknownHostException, URISyntaxException {
+        return new URIBuilder()
+                .setScheme(server.isSsl() ? "https" : "http")
+                .setHost(netConf.getWebServerHost())
+                .setPort(netConf.getExternalWebServerPort())
+                .build()
+                .normalize();
     }
 
-    public int getDownloadCount(String recordingName) {
-        return this.downloadCounts.getOrDefault(recordingName, -1);
+    public String getArchivedDownloadURL(String recordingName)
+            throws UnknownHostException, URISyntaxException, SocketException {
+        return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
+                .setPathSegments("api", "v1", "recordings", recordingName)
+                .build()
+                .normalize()
+                .toString();
     }
 
-    public URL getHostUrl() throws UnknownHostException, MalformedURLException, SocketException {
-        return new URL(
-                "http" + (server.isSsl() ? "s" : ""),
-                netConf.getWebServerHost(),
-                netConf.getExternalWebServerPort(),
-                "");
+    public String getDownloadURL(JFRConnection connection, String recordingName)
+            throws URISyntaxException, IOException {
+        return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
+                .setPathSegments(
+                        "api",
+                        "v1",
+                        "targets",
+                        getTargetId(connection),
+                        "recordings",
+                        recordingName)
+                .build()
+                .normalize()
+                .toString();
     }
 
-    public String getDownloadURL(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException {
-        return String.format("%s/api/v1/recordings/%s", this.getHostUrl(), recordingName);
+    public String getArchivedReportURL(String recordingName)
+            throws SocketException, UnknownHostException, URISyntaxException {
+        return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
+                .setPathSegments("api", "v1", "reports", recordingName)
+                .build()
+                .normalize()
+                .toString();
     }
 
-    public String getReportURL(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException {
-        return String.format("%s/api/v1/reports/%s", this.getHostUrl(), recordingName);
+    public String getReportURL(JFRConnection connection, String recordingName)
+            throws URISyntaxException, IOException {
+        return new URIBuilder(getHostUri())
+                .setScheme(server.isSsl() ? "https" : "http")
+                .setPathSegments(
+                        "api", "v1", "targets", getTargetId(connection), "reports", recordingName)
+                .build()
+                .normalize()
+                .toString();
     }
 
-    private Optional<DownloadDescriptor> getDownloadDescriptor(String recordingName)
-            throws FlightRecorderException {
-        if (recordings.containsKey(recordingName)) {
+    private String getTargetId(JFRConnection conn) throws IOException {
+        return conn.getJMXURL().toString();
+    }
+
+    private Optional<DownloadDescriptor> getRecordingDescriptor(
+            String targetId, String recordingName) throws Exception {
+        return getTargetRecordingDescriptor(targetId, recordingName)
+                .or(() -> getSavedRecordingDescriptor(recordingName));
+    }
+
+    private Optional<DownloadDescriptor> getTargetRecordingDescriptor(
+            String targetId, String recordingName) throws Exception {
+        if (targetId == null) {
+            return Optional.empty();
+        }
+        JFRConnection connection = targetConnectionManager.connect(targetId);
+        Optional<IRecordingDescriptor> desc =
+                connection.getService().getAvailableRecordings().stream()
+                        .filter(r -> Objects.equals(recordingName, r.getName()))
+                        .findFirst();
+        if (desc.isPresent()) {
             return Optional.of(
                     new DownloadDescriptor(
-                            service.openStream(recordings.get(recordingName), false), null));
+                            connection.getService().openStream(desc.get(), false),
+                            null,
+                            connection));
+        } else {
+            connection.close();
+            return Optional.empty();
         }
+    }
+
+    private Optional<DownloadDescriptor> getSavedRecordingDescriptor(String recordingName) {
         try {
             // TODO refactor Files calls into FileSystem for testability
             Optional<Path> savedRecording =
@@ -380,7 +438,8 @@ public class WebServer implements ConnectionListener {
                 return Optional.of(
                         new DownloadDescriptor(
                                 Files.newInputStream(savedRecording.get(), StandardOpenOption.READ),
-                                Files.size(savedRecording.get())));
+                                Files.size(savedRecording.get()),
+                                null));
             }
         } catch (Exception e) {
             logger.error(e);
@@ -404,32 +463,29 @@ public class WebServer implements ConnectionListener {
                 new Runnable() {
                     @Override
                     public void run() {
-                        {
-                            int n;
-                            try {
-                                n = inputStream.read(buff);
-                            } catch (IOException e) {
-                                future.completeExceptionally(e);
-                                return;
-                            }
-
-                            if (n == -1) {
-                                future.complete(null);
-                                return;
-                            }
-
-                            chunk.setBytes(0, buff, 0, n);
-                            response.write(
-                                    chunk.slice(0, n),
-                                    (res) -> {
-                                        if (res.failed()) {
-                                            future.completeExceptionally(res.cause());
-                                            return;
-                                        }
-                                        worker.submit(
-                                                this); // recursive call on this runnable itself
-                                    });
+                        int n;
+                        try {
+                            n = inputStream.read(buff);
+                        } catch (IOException e) {
+                            future.completeExceptionally(e);
+                            return;
                         }
+
+                        if (n == -1) {
+                            future.complete(null);
+                            return;
+                        }
+
+                        chunk.setBytes(0, buff, 0, n);
+                        response.write(
+                                chunk.slice(0, n),
+                                (res) -> {
+                                    if (res.failed()) {
+                                        future.completeExceptionally(res.cause());
+                                        return;
+                                    }
+                                    worker.submit(this); // recursive call on this runnable itself
+                                });
                     }
                 });
 
@@ -589,20 +645,22 @@ public class WebServer implements ConnectionListener {
                                 }));
     }
 
-    void handleRecordingDownloadRequest(String recordingName, RoutingContext ctx) {
+    // try-with-resources generates a "redundant" nullcheck in bytecode
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    void handleRecordingDownloadRequest(String targetId, String recordingName, RoutingContext ctx) {
         try {
             if (!validateRequestAuthorization(ctx.request()).get()) {
                 throw new HttpStatusException(401);
             }
 
-            Optional<DownloadDescriptor> descriptor = getDownloadDescriptor(recordingName);
+            Optional<DownloadDescriptor> descriptor =
+                    getRecordingDescriptor(targetId, recordingName);
             if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
 
             ctx.response().setChunked(true);
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
-            ctx.response().endHandler((e) -> downloadCounts.merge(recordingName, 1, Integer::sum));
             descriptor
                     .get()
                     .bytes
@@ -618,6 +676,18 @@ public class WebServer implements ConnectionListener {
                     writeInputStream(stream, ctx.response());
                 }
                 ctx.response().end();
+            } finally {
+                descriptor
+                        .get()
+                        .resource
+                        .ifPresent(
+                                resource -> {
+                                    try {
+                                        resource.close();
+                                    } catch (Exception e) {
+                                        logger.warn(e);
+                                    }
+                                });
             }
         } catch (HttpStatusException e) {
             throw e;
@@ -629,12 +699,13 @@ public class WebServer implements ConnectionListener {
         }
     }
 
-    void handleReportPageRequest(String recordingName, RoutingContext ctx) {
+    void handleReportPageRequest(String targetId, String recordingName, RoutingContext ctx) {
         try {
             if (!validateRequestAuthorization(ctx.request()).get()) {
                 throw new HttpStatusException(401);
             }
-            Optional<DownloadDescriptor> descriptor = getDownloadDescriptor(recordingName);
+            Optional<DownloadDescriptor> descriptor =
+                    getRecordingDescriptor(targetId, recordingName);
             if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
@@ -643,6 +714,18 @@ public class WebServer implements ConnectionListener {
             try (InputStream stream = descriptor.get().stream) {
                 // blocking function, must be called from a blocking handler
                 ctx.response().end(reportGenerator.generateReport(stream));
+            } finally {
+                descriptor
+                        .get()
+                        .resource
+                        .ifPresent(
+                                resource -> {
+                                    try {
+                                        resource.close();
+                                    } catch (Exception e) {
+                                        logger.warn(e);
+                                    }
+                                });
             }
         } catch (HttpStatusException e) {
             throw e;
@@ -813,10 +896,12 @@ public class WebServer implements ConnectionListener {
     private static class DownloadDescriptor {
         final InputStream stream;
         final Optional<Long> bytes;
+        final Optional<AutoCloseable> resource;
 
-        DownloadDescriptor(InputStream stream, Long bytes) {
+        DownloadDescriptor(InputStream stream, Long bytes, AutoCloseable resource) {
             this.stream = Objects.requireNonNull(stream);
             this.bytes = Optional.ofNullable(bytes);
+            this.resource = Optional.ofNullable(resource);
         }
     }
 }

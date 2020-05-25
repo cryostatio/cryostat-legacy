@@ -57,6 +57,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class SearchEventsCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -64,7 +65,8 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     private final ClientWriter cw;
 
     @Inject
-    SearchEventsCommand(ClientWriter cw) {
+    SearchEventsCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+        super(targetConnectionManager);
         this.cw = cw;
     }
 
@@ -75,39 +77,63 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
 
     @Override
     public boolean validate(String[] args) {
-        // TODO better validation of search term string
-        if (args.length != 1) {
-            cw.println("Expected one argument: search term string");
+        if (args.length != 2) {
+            cw.println(
+                    "Expected two arguments: target (hostname:port, ip:port, or JMX service URL) and search term");
             return false;
         }
-        return true;
+        boolean isValidTargetId = validateTargetId(args[0]);
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        }
+        return isValidTargetId;
     }
 
     @Override
     public void execute(String[] args) throws Exception {
-        Collection<? extends IEventTypeInfo> matchingEvents =
-                getService().getAvailableEventTypes().stream()
-                        .filter(event -> eventMatchesSearchTerm(event, args[0].toLowerCase()))
-                        .collect(Collectors.toList());
+        String targetId = args[0];
+        String searchTerm = args[1];
+        targetConnectionManager.executeConnectedTask(
+                targetId,
+                connection -> {
+                    Collection<? extends IEventTypeInfo> matchingEvents =
+                            connection.getService().getAvailableEventTypes().stream()
+                                    .filter(
+                                            event ->
+                                                    eventMatchesSearchTerm(
+                                                            event, searchTerm.toLowerCase()))
+                                    .collect(Collectors.toList());
 
-        if (matchingEvents.isEmpty()) {
-            cw.println("\tNo matches");
-        }
-        matchingEvents.forEach(this::printEvent);
+                    if (matchingEvents.isEmpty()) {
+                        cw.println("\tNo matches");
+                    }
+                    matchingEvents.forEach(this::printEvent);
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
+        String targetId = args[0];
+        String searchTerm = args[1];
         try {
-            Collection<? extends IEventTypeInfo> matchingEvents =
-                    getService().getAvailableEventTypes().stream()
-                            .filter(event -> eventMatchesSearchTerm(event, args[0].toLowerCase()))
-                            .collect(Collectors.toList());
-            List<SerializableEventTypeInfo> events = new ArrayList<>(matchingEvents.size());
-            for (IEventTypeInfo info : matchingEvents) {
-                events.add(new SerializableEventTypeInfo(info));
-            }
-            return new ListOutput<>(events);
+            return targetConnectionManager.executeConnectedTask(
+                    targetId,
+                    connection -> {
+                        Collection<? extends IEventTypeInfo> matchingEvents =
+                                connection.getService().getAvailableEventTypes().stream()
+                                        .filter(
+                                                event ->
+                                                        eventMatchesSearchTerm(
+                                                                event, searchTerm.toLowerCase()))
+                                        .collect(Collectors.toList());
+                        List<SerializableEventTypeInfo> events =
+                                new ArrayList<>(matchingEvents.size());
+                        for (IEventTypeInfo info : matchingEvents) {
+                            events.add(new SerializableEventTypeInfo(info));
+                        }
+                        return new ListOutput<>(events);
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

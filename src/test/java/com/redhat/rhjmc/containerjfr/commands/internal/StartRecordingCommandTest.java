@@ -42,15 +42,13 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -70,28 +68,46 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @ExtendWith(MockitoExtension.class)
-class StartRecordingCommandTest {
+class StartRecordingCommandTest
+        implements ValidatesTargetId, ValidatesRecordingName, ValidatesEventSpecifier {
 
     StartRecordingCommand command;
     @Mock ClientWriter cw;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock WebServer exporter;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME, RECORDING_EVENT_SPECIFIER);
+    }
+
     @BeforeEach
     void setup() {
         command =
                 new StartRecordingCommand(
-                        cw, exporter, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
-        command.connectionChanged(connection);
+                        cw,
+                        targetConnectionManager,
+                        exporter,
+                        eventOptionsBuilderFactory,
+                        recordingOptionsBuilderFactory);
     }
 
     @Test
@@ -100,35 +116,16 @@ class StartRecordingCommandTest {
     }
 
     @ParameterizedTest
-    @ValueSource(
-            ints = {
-                0, 1, 3,
-            })
+    @ValueSource(ints = {0, 1, 2, 4, 5})
     void shouldNotValidateWithIncorrectArgc(int argc) {
         assertFalse(command.validate(new String[argc]));
-        verify(cw).println("Expected two arguments: recording name and event types");
-    }
-
-    @Test
-    void shouldNotValidateBadRecordingName() {
-        assertFalse(command.validate(new String[] {".", "foo.Bar:enabled=true"}));
-        verify(cw).println(". is an invalid recording name");
-    }
-
-    @Test
-    void shouldNotValidateBadEventString() {
-        assertFalse(command.validate(new String[] {"foo", "foo.Bar:=true"}));
-        verify(cw).println("foo.Bar:=true is an invalid events pattern");
-    }
-
-    @Test
-    void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"foo", "foo.Bar:enabled=true"}));
-        verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldStartRecordingOnExecute() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -145,31 +142,22 @@ class StartRecordingCommandTest {
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
         when(service.start(Mockito.any(), Mockito.any())).thenReturn(descriptor);
 
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
-
-        command.execute(new String[] {"foo", "foo.Bar:enabled=true"});
+        command.execute(new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
 
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(recordingOptionsBuilder).name(nameCaptor.capture());
         verify(service).getAvailableRecordings();
         verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
-        verify(exporter).addRecording(descriptorCaptor.capture());
 
         String actualName = nameCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
-        IRecordingDescriptor recordingDescriptor = descriptorCaptor.getValue();
 
         MatcherAssert.assertThat(actualName, Matchers.equalTo("foo"));
-        MatcherAssert.assertThat(recordingDescriptor, Matchers.sameInstance(descriptor));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
@@ -182,14 +170,13 @@ class StartRecordingCommandTest {
         MatcherAssert.assertThat(eventCaptor.getValue(), Matchers.equalTo("foo.Bar"));
         MatcherAssert.assertThat(optionCaptor.getValue(), Matchers.equalTo("enabled"));
         MatcherAssert.assertThat(valueCaptor.getValue(), Matchers.equalTo("true"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test
     void shouldStartRecordingOnSerializableExecute() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
         IConstrainedMap<String> recordingOptions = mock(IConstrainedMap.class);
@@ -202,17 +189,15 @@ class StartRecordingCommandTest {
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
         IConstrainedMap<EventOptionID> events = mock(IConstrainedMap.class);
         when(builder.build()).thenReturn(events);
-        when(exporter.getDownloadURL(Mockito.anyString())).thenReturn("example-url");
+        when(exporter.getDownloadURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
+                .thenReturn("example-url");
 
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
         when(service.start(Mockito.any(), Mockito.any())).thenReturn(descriptor);
 
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
-
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"foo", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("example-url"));
 
@@ -221,20 +206,15 @@ class StartRecordingCommandTest {
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        ArgumentCaptor<IRecordingDescriptor> descriptorCaptor =
-                ArgumentCaptor.forClass(IRecordingDescriptor.class);
         verify(recordingOptionsBuilder).name(nameCaptor.capture());
         verify(service).getAvailableRecordings();
         verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
-        verify(exporter).addRecording(descriptorCaptor.capture());
 
         String actualName = nameCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
-        IRecordingDescriptor recordingDescriptor = descriptorCaptor.getValue();
 
         MatcherAssert.assertThat(actualName, Matchers.equalTo("foo"));
-        MatcherAssert.assertThat(recordingDescriptor, Matchers.sameInstance(descriptor));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
@@ -247,10 +227,6 @@ class StartRecordingCommandTest {
         MatcherAssert.assertThat(eventCaptor.getValue(), Matchers.equalTo("foo.Bar"));
         MatcherAssert.assertThat(optionCaptor.getValue(), Matchers.equalTo("enabled"));
         MatcherAssert.assertThat(valueCaptor.getValue(), Matchers.equalTo("true"));
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test
@@ -258,21 +234,16 @@ class StartRecordingCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
-
-        command.execute(new String[] {"foo", "foo.Bar:enabled=true"});
+        command.execute(new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
 
         verify(service).getAvailableRecordings();
         verify(cw).println("Recording with name \"foo\" already exists");
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test
@@ -280,33 +251,30 @@ class StartRecordingCommandTest {
         IRecordingDescriptor existingRecording = mock(IRecordingDescriptor.class);
         when(existingRecording.getName()).thenReturn("foo");
 
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
 
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(exporter);
-
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"foo", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"fooHost:9091", "foo", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.FailureOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(), Matchers.equalTo("Recording with name \"foo\" already exists"));
 
         verify(service).getAvailableRecordings();
-
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-        verifyNoMoreInteractions(exporter);
     }
 
     @Test
     void shouldHandleExceptionOnSerializableExecute() throws Exception {
-        when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordings()).thenReturn(Collections.emptyList());
-
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"foo", "30", "foo.Bar:enabled=true"});
+                command.serializableExecute(
+                        new String[] {"localhost:9091", "foo", "30", "foo.Bar:enabled=true"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));

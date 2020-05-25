@@ -52,8 +52,7 @@ import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomize
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
-class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand
-        implements SerializableCommand {
+class RecordingOptionsCustomizerCommand implements SerializableCommand {
 
     private static final Pattern OPTIONS_PATTERN =
             Pattern.compile("^([\\w]+)=([\\w\\.-_]+)$", Pattern.MULTILINE);
@@ -71,6 +70,11 @@ class RecordingOptionsCustomizerCommand extends AbstractConnectedCommand
     @Override
     public String getName() {
         return "recording-option";
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return true;
     }
 
     @Override

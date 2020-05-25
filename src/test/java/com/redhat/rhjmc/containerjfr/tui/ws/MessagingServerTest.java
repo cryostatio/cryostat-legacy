@@ -42,11 +42,8 @@
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -95,15 +92,6 @@ class MessagingServerTest {
         when(env.getEnv(Mockito.eq(MessagingServer.MAX_CONNECTIONS_ENV_VAR), Mockito.anyString()))
                 .thenReturn("2");
         server = new MessagingServer(httpServer, env, authManager, logger, gson);
-    }
-
-    @Test
-    void startShouldStartHttpServer() throws Exception {
-        verifyZeroInteractions(httpServer);
-        server.start();
-        verify(httpServer, times(1)).start();
-        verify(httpServer, times(1)).websocketHandler(any());
-        verifyNoMoreInteractions(httpServer);
     }
 
     @Test

@@ -44,27 +44,30 @@ package com.redhat.rhjmc.containerjfr.net.web;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+
+import javax.management.remote.JMXServiceURL;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -74,6 +77,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -89,6 +93,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -117,6 +122,7 @@ class WebServerTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock ReportGenerator reportGenerator;
+    @Mock TargetConnectionManager targetConnectionManager;
 
     @BeforeEach
     void setup() {
@@ -130,6 +136,7 @@ class WebServerTest {
                         authManager,
                         gson,
                         reportGenerator,
+                        targetConnectionManager,
                         logger);
     }
 
@@ -153,109 +160,8 @@ class WebServerTest {
                                 authManager,
                                 gson,
                                 reportGenerator,
+                                targetConnectionManager,
                                 logger));
-    }
-
-    @Test
-    void shouldRefreshRecordingsOnConnectionChange() throws Exception {
-        when(connection.getService()).thenReturn(service);
-
-        exporter.connectionChanged(connection);
-
-        verify(connection).getService();
-        verify(service).getAvailableRecordings();
-
-        verifyNoMoreInteractions(httpServer);
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-    }
-
-    @Test
-    void shouldThrowExceptionIfServerCannotStart() {
-        Throwable cause = new SocketException();
-        Exception e =
-                assertThrows(
-                        SocketException.class,
-                        () -> {
-                            doThrow(cause).when(httpServer).start();
-
-                            exporter.start();
-                        });
-        MatcherAssert.assertThat(e, Matchers.equalTo(cause));
-    }
-
-    @Test
-    void shouldStartEvenWhileDisconnectedFromTarget() throws Exception {
-        exporter.start();
-
-        verify(httpServer).start();
-    }
-
-    @Test
-    void shouldDoNothingIfStartedWhileRunning() throws Exception {
-        when(httpServer.isAlive()).thenReturn(true);
-
-        exporter.start();
-
-        verifyNoMoreInteractions(httpServer);
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-    }
-
-    @Test
-    void shouldDoNothingIfStartedWhileDisconnected() throws Exception {
-        when(httpServer.isAlive()).thenReturn(true);
-
-        exporter.connectionChanged(null);
-
-        verifyNoMoreInteractions(httpServer);
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-
-        exporter.start();
-
-        verifyNoMoreInteractions(httpServer);
-        verifyNoMoreInteractions(connection);
-        verifyNoMoreInteractions(service);
-    }
-
-    @Test
-    void shouldInitializeDownloadCountsToZero() throws Exception {
-        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
-        when(descriptor.getName()).thenReturn("foo");
-
-        exporter.addRecording(descriptor);
-
-        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.equalTo(0));
-
-        verifyZeroInteractions(httpServer);
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-    }
-
-    @Test
-    void shouldReportNegativeDownloadsForUnknownRecordings() throws Exception {
-        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
-
-        verifyZeroInteractions(httpServer);
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-    }
-
-    @Test
-    void shouldAllowRemovingRecordings() throws Exception {
-        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
-        when(descriptor.getName()).thenReturn("foo");
-
-        exporter.addRecording(descriptor);
-        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.equalTo(0));
-
-        exporter.removeRecording(descriptor);
-        MatcherAssert.assertThat(exporter.getDownloadCount("foo"), Matchers.lessThan(0));
-
-        verifyZeroInteractions(httpServer);
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
     }
 
     @Test
@@ -293,40 +199,84 @@ class WebServerTest {
     @ParameterizedTest()
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
-    void shouldProvideDownloadUrl(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException {
+    void shouldProvideSavedDownloadUrl(String recordingName)
+            throws UnknownHostException, MalformedURLException, SocketException,
+                    URISyntaxException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(
-                exporter.getDownloadURL(recordingName),
+                exporter.getArchivedDownloadURL(recordingName),
                 Matchers.equalTo("http://example.com:8181/api/v1/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
-    void shouldProvideDownloadUrlWithHttps(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException {
+    void shouldProvideDownloadUrl(String recordingName) throws URISyntaxException, IOException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        when(httpServer.isSsl()).thenReturn(true);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
 
         MatcherAssert.assertThat(
-                exporter.getDownloadURL(recordingName),
-                Matchers.equalTo("https://example.com:8181/api/v1/recordings/" + recordingName));
+                exporter.getDownloadURL(connection, recordingName),
+                Matchers.equalTo(
+                        "http://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/"
+                                + recordingName));
     }
 
     @ParameterizedTest()
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
-    void shouldProvideReportUrl(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException {
+    void shouldProvideDownloadUrlWithHttps(String recordingName)
+            throws URISyntaxException, IOException {
+        when(httpServer.isSsl()).thenReturn(true);
+        when(netConf.getWebServerHost()).thenReturn("example.com");
+        when(netConf.getExternalWebServerPort()).thenReturn(8181);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
+
+        MatcherAssert.assertThat(
+                exporter.getDownloadURL(connection, recordingName),
+                Matchers.equalTo(
+                        "https://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/"
+                                + recordingName));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(
+            strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
+    void shouldProvideReportUrl(String recordingName) throws URISyntaxException, IOException {
+        when(netConf.getWebServerHost()).thenReturn("example.com");
+        when(netConf.getExternalWebServerPort()).thenReturn(8181);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
+
+        MatcherAssert.assertThat(
+                exporter.getReportURL(connection, recordingName),
+                Matchers.equalTo(
+                        "http://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
+                                + recordingName));
+    }
+
+    @ParameterizedTest()
+    @ValueSource(
+            strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
+    void shouldProvideSavedReportUrl(String recordingName)
+            throws UnknownHostException, MalformedURLException, SocketException,
+                    URISyntaxException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(
-                exporter.getReportURL(recordingName),
+                exporter.getArchivedReportURL(recordingName),
                 Matchers.equalTo("http://example.com:8181/api/v1/reports/" + recordingName));
     }
 
@@ -334,14 +284,20 @@ class WebServerTest {
     @ValueSource(
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideReportUrlWithHttps(String recordingName)
-            throws UnknownHostException, MalformedURLException, SocketException {
+            throws URISyntaxException, IOException {
+        when(httpServer.isSsl()).thenReturn(true);
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        when(httpServer.isSsl()).thenReturn(true);
+        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
+        when(mockJmxUrl.toString())
+                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
 
         MatcherAssert.assertThat(
-                exporter.getReportURL(recordingName),
-                Matchers.equalTo("https://example.com:8181/api/v1/reports/" + recordingName));
+                exporter.getReportURL(connection, recordingName),
+                Matchers.equalTo(
+                        "https://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
+                                + recordingName));
     }
 
     @Test
@@ -577,9 +533,8 @@ class WebServerTest {
 
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-        when(rep.endHandler(any())).thenReturn(rep);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
@@ -589,9 +544,10 @@ class WebServerTest {
         String recordingName = "foo";
         when(descriptor.getName()).thenReturn(recordingName);
         when(service.openStream(descriptor, false)).thenReturn(new ByteArrayInputStream(src));
+        when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
         Buffer dst = Buffer.buffer(1024 * 1024);
-        when(rep.write(any(Buffer.class)))
+        when(resp.write(any(Buffer.class)))
                 .thenAnswer(
                         invocation -> {
                             Buffer chunk = invocation.getArgument(0);
@@ -599,11 +555,11 @@ class WebServerTest {
                             return null;
                         });
 
-        exporter.connectionChanged(connection);
-        exporter.addRecording(descriptor);
-        exporter.handleRecordingDownloadRequest(recordingName, ctx);
+        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
 
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
+        exporter.handleRecordingDownloadRequest("fooHost:0", recordingName, ctx);
+
+        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
         assertArrayEquals(src, dst.getBytes());
     }
 
@@ -625,11 +581,12 @@ class WebServerTest {
         String content = "foobar";
         when(descriptor.getName()).thenReturn(recordingName);
         when(service.openStream(descriptor, false)).thenReturn(ins);
+        when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
         when(reportGenerator.generateReport(ins)).thenReturn(content);
 
-        exporter.connectionChanged(connection);
-        exporter.addRecording(descriptor);
-        exporter.handleReportPageRequest(recordingName, ctx);
+        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+
+        exporter.handleReportPageRequest("fooHost:0", recordingName, ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
         verify(rep).end(content);

@@ -63,7 +63,7 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
-class MessagingServer {
+public class MessagingServer {
 
     static final String MAX_CONNECTIONS_ENV_VAR = "CONTAINER_JFR_MAX_WS_CONNECTIONS";
     static final int MIN_CONNECTIONS = 1;
@@ -89,8 +89,7 @@ class MessagingServer {
         this.listenerPool = Executors.newScheduledThreadPool(maxConnections);
     }
 
-    void start() throws SocketException, UnknownHostException {
-        server.start();
+    public void start() throws SocketException, UnknownHostException {
         logger.info(String.format("Max concurrent WebSocket connections: %d", maxConnections));
 
         server.websocketHandler(

@@ -48,23 +48,23 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.jmc.CopyRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
 class SnapshotCommand extends AbstractRecordingCommand implements SerializableCommand {
 
-    private final WebServer exporter;
-
     @Inject
     SnapshotCommand(
             ClientWriter cw,
-            WebServer exporter,
+            TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        super(cw, eventOptionsBuilderFactory, recordingOptionsBuilderFactory);
-        this.exporter = exporter;
+        super(
+                cw,
+                targetConnectionManager,
+                eventOptionsBuilderFactory,
+                recordingOptionsBuilderFactory);
     }
 
     @Override
@@ -74,36 +74,55 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
 
     @Override
     public void execute(String[] args) throws Exception {
-        IRecordingDescriptor descriptor = getService().getSnapshotRecording();
+        targetConnectionManager.executeConnectedTask(
+                args[0],
+                connection -> {
+                    IRecordingDescriptor descriptor =
+                            connection.getService().getSnapshotRecording();
 
-        String rename =
-                String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
-        cw.println(String.format("Latest snapshot: \"%s\"", rename));
+                    String rename =
+                            String.format(
+                                    "%s-%d",
+                                    descriptor.getName().toLowerCase(), descriptor.getId());
+                    cw.println(String.format("Latest snapshot: \"%s\"", rename));
 
-        RecordingOptionsBuilder recordingOptionsBuilder =
-                recordingOptionsBuilderFactory.create(getService());
-        recordingOptionsBuilder.name(rename);
+                    RecordingOptionsBuilder recordingOptionsBuilder =
+                            recordingOptionsBuilderFactory.create(connection.getService());
+                    recordingOptionsBuilder.name(rename);
 
-        getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
-        exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
+                    connection
+                            .getService()
+                            .updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
+
+                    return null;
+                });
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            IRecordingDescriptor descriptor = getService().getSnapshotRecording();
+            return targetConnectionManager.executeConnectedTask(
+                    args[0],
+                    connection -> {
+                        IRecordingDescriptor descriptor =
+                                connection.getService().getSnapshotRecording();
 
-            String rename =
-                    String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
+                        String rename =
+                                String.format(
+                                        "%s-%d",
+                                        descriptor.getName().toLowerCase(), descriptor.getId());
 
-            RecordingOptionsBuilder recordingOptionsBuilder =
-                    recordingOptionsBuilderFactory.create(getService());
-            recordingOptionsBuilder.name(rename);
+                        RecordingOptionsBuilder recordingOptionsBuilder =
+                                recordingOptionsBuilderFactory.create(connection.getService());
+                        recordingOptionsBuilder.name(rename);
 
-            getService().updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
-            exporter.addRecording(new RenamedSnapshotDescriptor(rename, descriptor));
+                        connection
+                                .getService()
+                                .updateRecordingOptions(
+                                        descriptor, recordingOptionsBuilder.build());
 
-            return new StringOutput(rename);
+                        return new StringOutput(rename);
+                    });
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -111,24 +130,14 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
+        if (args.length != 1) {
+            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
             return false;
         }
-        return true;
-    }
-
-    private static class RenamedSnapshotDescriptor extends CopyRecordingDescriptor {
-        private final String rename;
-
-        RenamedSnapshotDescriptor(String rename, IRecordingDescriptor original) {
-            super(original);
-            this.rename = rename;
+        boolean isValidTargetId = validateTargetId(args[0]);
+        if (!isValidTargetId) {
+            cw.println(String.format("%s is an invalid connection specifier", args[0]));
         }
-
-        @Override
-        public String getName() {
-            return rename;
-        }
+        return isValidTargetId;
     }
 }

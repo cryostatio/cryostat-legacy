@@ -48,8 +48,10 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
@@ -69,38 +71,43 @@ abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
     protected AbstractRecordingCommand(
             ClientWriter cw,
+            TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+        super(targetConnectionManager);
         this.cw = cw;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
     }
 
-    protected IConstrainedMap<EventOptionID> enableEvents(String events) throws Exception {
+    protected IConstrainedMap<EventOptionID> enableEvents(JFRConnection connection, String events)
+            throws Exception {
         if (TEMPLATE_PATTERN.matcher(events).matches()) {
             Matcher m = TEMPLATE_PATTERN.matcher(events);
             m.find();
             String templateName = m.group(1);
             if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
-                return enableAllEvents();
+                return enableAllEvents(connection);
             }
-            return getConnection().getTemplateService().getEventsByTemplateName(templateName);
+            return connection.getTemplateService().getEventsByTemplateName(templateName);
         }
 
-        return enableSelectedEvents(events);
+        return enableSelectedEvents(connection, events);
     }
 
-    protected IConstrainedMap<EventOptionID> enableAllEvents() throws Exception {
+    protected IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
+            throws Exception {
         EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
 
-        for (IEventTypeInfo eventTypeInfo : getService().getAvailableEventTypes()) {
+        for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
             builder.addEvent(eventTypeInfo.getEventTypeID().getFullKey(), "enabled", "true");
         }
 
         return builder.build();
     }
 
-    protected IConstrainedMap<EventOptionID> enableSelectedEvents(String events) throws Exception {
+    protected IConstrainedMap<EventOptionID> enableSelectedEvents(
+            JFRConnection connection, String events) throws Exception {
         EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
 
         Matcher matcher = EVENTS_PATTERN.matcher(events);

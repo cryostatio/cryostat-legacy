@@ -42,24 +42,26 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
@@ -67,23 +69,36 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class ListEventTypesCommandTest {
+class ListEventTypesCommandTest implements ValidatesTargetId {
 
     ListEventTypesCommand command;
     @Mock ClientWriter cw;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID);
+    }
+
     @BeforeEach
     void setup() {
-        command = new ListEventTypesCommand(cw);
-        command.connectionChanged(connection);
+        command = new ListEventTypesCommand(cw, targetConnectionManager);
     }
 
     @Test
@@ -91,16 +106,11 @@ class ListEventTypesCommandTest {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("list-event-types"));
     }
 
-    @Test
-    void shouldExpectNoArgs() {
-        assertTrue(command.validate(new String[0]));
-        verifyZeroInteractions(cw);
-    }
-
-    @Test
-    void shouldNotExpectArgs() {
-        assertFalse(command.validate(new String[1]));
-        verify(cw).println("No arguments expected");
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2})
+    void shouldNotValidateWrongArgc(int argc) {
+        assertFalse(command.validate(new String[argc]));
+        verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
     }
 
     @SuppressWarnings("unchecked")
@@ -108,10 +118,13 @@ class ListEventTypesCommandTest {
     void shouldPrintEventTypes() throws Exception {
         Collection eventTypes = Arrays.asList(createEvent("foo"), createEvent("bar"));
 
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(eventTypes);
 
-        command.execute(new String[0]);
+        command.execute(new String[] {"fooHost:9091"});
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available event types:");
         inOrder.verify(cw).println("\tmocked toString: foo");
@@ -130,11 +143,15 @@ class ListEventTypesCommandTest {
         when(eventInfo.getHierarchicalCategory()).thenReturn(new String[] {"com", "example"});
         when(eventInfo.getOptionDescriptors()).thenReturn(Collections.emptyMap());
 
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes())
                 .thenReturn((Collection) Collections.singleton(eventInfo));
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
@@ -144,10 +161,14 @@ class ListEventTypesCommandTest {
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(FlightRecorderException.class);
 
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
+        SerializableCommand.Output<?> out =
+                command.serializableExecute(new String[] {"fooHost:9091"});
         MatcherAssert.assertThat(
                 out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
