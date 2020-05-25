@@ -61,8 +61,8 @@ public class RecordingWorkflowIT extends ITestBase {
     @Test
     public void testWorkflow() throws Exception {
         // Check preconditions
-        sendMessage("connect", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        JsonObject listResp = sendMessage("list").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonObject listResp =
+                sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertResponseStatus(listResp);
         MatcherAssert.assertThat(
                 listResp.getJsonArray("payload"), Matchers.equalTo(new JsonArray(List.of())));
@@ -70,12 +70,13 @@ public class RecordingWorkflowIT extends ITestBase {
         try {
             // create an in-memory recording
             JsonObject dumpResp =
-                    sendMessage("dump", TEST_RECORDING_NAME, "5", "template=ALL")
+                    sendMessage("dump", TARGET_ID, TEST_RECORDING_NAME, "5", "template=ALL")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertResponseStatus(dumpResp);
 
             // verify in-memory recording created
-            listResp = sendMessage("list").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            listResp =
+                    sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertResponseStatus(listResp);
             JsonArray recordingInfos = listResp.getJsonArray("payload");
             MatcherAssert.assertThat(
@@ -91,12 +92,13 @@ public class RecordingWorkflowIT extends ITestBase {
 
             // save a copy of the partial recording dump
             JsonObject saveResp =
-                    sendMessage("save", TEST_RECORDING_NAME)
+                    sendMessage("save", TARGET_ID, TEST_RECORDING_NAME)
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertResponseStatus(saveResp);
 
             // check that the in-memory recording list hasn't changed
-            listResp = sendMessage("list").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            listResp =
+                    sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertResponseStatus(listResp);
             recordingInfos = listResp.getJsonArray("payload");
             MatcherAssert.assertThat(
@@ -126,7 +128,8 @@ public class RecordingWorkflowIT extends ITestBase {
             Thread.sleep(3_000L); // wait for the dump to complete
 
             // verify the in-memory recording list has not changed, except recording is now stopped
-            listResp = sendMessage("list").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            listResp =
+                    sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             assertResponseStatus(listResp);
             recordingInfos = listResp.getJsonArray("payload");
             MatcherAssert.assertThat(
@@ -165,7 +168,7 @@ public class RecordingWorkflowIT extends ITestBase {
             MatcherAssert.assertThat(reportPath.toFile().length(), Matchers.greaterThan(0L));
         } finally {
             // Clean up what we created
-            sendMessage("delete", TEST_RECORDING_NAME)
+            sendMessage("delete", TARGET_ID, TEST_RECORDING_NAME)
                     .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             JsonObject savedResp =
                     sendMessage("list-saved").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
@@ -187,7 +190,6 @@ public class RecordingWorkflowIT extends ITestBase {
                             e.printStackTrace();
                         }
                     });
-            sendMessage("disconnect").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 }
