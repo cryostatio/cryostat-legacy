@@ -144,10 +144,10 @@ public class RecordingWorkflowIT extends ITestBase {
             // the fully completed in-memory recording is larger than the saved partial copy
             String inMemoryDownloadUrl = recordingInfo.getString("downloadUrl");
             Path inMemoryDownloadPath =
-                    downloadFile(inMemoryDownloadUrl, TEST_RECORDING_NAME, ".jfr")
+                    downloadFileAbs(inMemoryDownloadUrl, TEST_RECORDING_NAME, ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Path savedDownloadPath =
-                    downloadFile(savedDownloadUrl, TEST_RECORDING_NAME + "_saved", ".jfr")
+                    downloadFileAbs(savedDownloadUrl, TEST_RECORDING_NAME + "_saved", ".jfr")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             MatcherAssert.assertThat(
                     inMemoryDownloadPath.toFile().length(), Matchers.greaterThan(0L));
@@ -160,7 +160,7 @@ public class RecordingWorkflowIT extends ITestBase {
             // (TODO: verify response body is a valid HTML document)
             String reportUrl = recordingInfo.getString("reportUrl");
             Path reportPath =
-                    downloadFile(reportUrl, TEST_RECORDING_NAME + "_report", ".html")
+                    downloadFileAbs(reportUrl, TEST_RECORDING_NAME + "_report", ".html")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             MatcherAssert.assertThat(reportPath.toFile().length(), Matchers.greaterThan(0L));
         } finally {

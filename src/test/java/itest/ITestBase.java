@@ -64,7 +64,7 @@ import io.vertx.ext.web.client.WebClient;
 public abstract class ITestBase {
 
     static final int REQUEST_TIMEOUT_SECONDS = 30;
-    static WebClient webClient = IntegrationTestUtils.getWebClient();
+    static final WebClient webClient = IntegrationTestUtils.getWebClient();
 
     CompletableFuture<JsonObject> sendMessage(String command, String... args)
             throws InterruptedException, ExecutionException, TimeoutException {
@@ -134,7 +134,7 @@ public abstract class ITestBase {
         return future;
     }
 
-    CompletableFuture<Path> downloadFile(String url, String name, String suffix) {
+    CompletableFuture<Path> downloadFileAbs(String url, String name, String suffix) {
         CompletableFuture<Path> dlFuture = new CompletableFuture<>();
         IntegrationTestUtils.getWebClient()
                 .getAbs(url)
