@@ -58,6 +58,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.WebSocket;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 
@@ -66,7 +67,7 @@ public abstract class ITestBase {
     static final int REQUEST_TIMEOUT_SECONDS = 30;
     static final WebClient webClient = IntegrationTestUtils.getWebClient();
 
-    CompletableFuture<JsonObject> sendMessage(String command, String... args)
+    static CompletableFuture<JsonObject> sendMessage(String command, String... args)
             throws InterruptedException, ExecutionException, TimeoutException {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
 
@@ -110,15 +111,15 @@ public abstract class ITestBase {
         return future;
     }
 
-    void assertResponseStatus(JsonObject response) {
+    static void assertResponseStatus(JsonObject response) {
         assertResponseStatus(response, 0);
     }
 
-    void assertResponseStatus(JsonObject response, int status) {
+    static void assertResponseStatus(JsonObject response, int status) {
         MatcherAssert.assertThat(response.getInteger("status"), Matchers.equalTo(status));
     }
 
-    private Future<String> getClientUrl() {
+    private static Future<String> getClientUrl() {
         CompletableFuture<String> future = new CompletableFuture<>();
         webClient
                 .get("/api/v1/clienturl")
@@ -134,27 +135,34 @@ public abstract class ITestBase {
         return future;
     }
 
-    CompletableFuture<Path> downloadFileAbs(String url, String name, String suffix) {
-        CompletableFuture<Path> dlFuture = new CompletableFuture<>();
-        IntegrationTestUtils.getWebClient()
-                .getAbs(url)
-                .send(
-                        ar -> {
-                            if (ar.failed()) {
-                                dlFuture.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> resp = ar.result();
-                            if (resp.statusCode() != 200) {
-                                dlFuture.completeExceptionally(
-                                        new Exception(String.format("HTTP %d", resp.statusCode())));
-                                return;
-                            }
-                            FileSystem fs = IntegrationTestUtils.getFileSystem();
-                            String file = fs.createTempFileBlocking(name, suffix);
-                            fs.writeFileBlocking(file, ar.result().body());
-                            dlFuture.complete(Paths.get(file));
-                        });
-        return dlFuture;
+    static CompletableFuture<Path> downloadFile(String url, String name, String suffix) {
+        return fireDownloadRequest(webClient.get(url), name, suffix);
+    }
+
+    static CompletableFuture<Path> downloadFileAbs(String url, String name, String suffix) {
+        return fireDownloadRequest(webClient.getAbs(url), name, suffix);
+    }
+
+    private static CompletableFuture<Path> fireDownloadRequest(
+            HttpRequest<Buffer> request, String filename, String fileSuffix) {
+        CompletableFuture<Path> future = new CompletableFuture<>();
+        request.send(
+                ar -> {
+                    if (ar.failed()) {
+                        future.completeExceptionally(ar.cause());
+                        return;
+                    }
+                    HttpResponse<Buffer> resp = ar.result();
+                    if (resp.statusCode() != 200) {
+                        future.completeExceptionally(
+                                new Exception(String.format("HTTP %d", resp.statusCode())));
+                        return;
+                    }
+                    FileSystem fs = IntegrationTestUtils.getFileSystem();
+                    String file = fs.createTempFileBlocking(filename, fileSuffix);
+                    fs.writeFileBlocking(file, ar.result().body());
+                    future.complete(Paths.get(file));
+                });
+        return future;
     }
 }
