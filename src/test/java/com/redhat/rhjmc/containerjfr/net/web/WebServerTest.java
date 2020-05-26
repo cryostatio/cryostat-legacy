@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.web;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -105,7 +104,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class WebServerTest {
@@ -300,38 +298,6 @@ class WebServerTest {
                 Matchers.equalTo(
                         "https://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
                                 + recordingName));
-    }
-
-    @Test
-    void shouldHandleGrafanaDashboardUrlRequest() {
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-
-        String url = "http://hostname:1/path?query=value";
-        when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
-        when(env.getEnv("GRAFANA_DASHBOARD_URL", "")).thenReturn(url);
-
-        exporter.handleGrafanaDashboardUrlRequest(ctx);
-
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"grafanaDashboardUrl\":\"" + url + "\"}");
-    }
-
-    @Test
-    void shouldHandleGrafanaDashboardUrlRequestWithoutEnvVar() {
-        RoutingContext ctx = mock(RoutingContext.class);
-
-        when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(false);
-
-        HttpStatusException e =
-                assertThrows(
-                        HttpStatusException.class,
-                        () -> exporter.handleGrafanaDashboardUrlRequest(ctx));
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("Internal Server Error"));
-        MatcherAssert.assertThat(
-                e.getPayload(), Matchers.equalTo("Deployment has no Grafana " + "configuration"));
-        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(500));
     }
 
     @Test
