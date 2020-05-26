@@ -216,6 +216,9 @@ public class WebServer {
 
         requestHandlers.forEach(
                 handler -> {
+                    if (!handler.isAvailable()) {
+                        return;
+                    }
                     Route route = getHandlerRoute(router, handler);
                     if (handler.isAsync()) {
                         route = route.handler(handler);
