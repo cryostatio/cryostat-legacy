@@ -151,6 +151,52 @@ class ListCommandTest implements ValidatesTargetId {
     }
 
     @Test
+    void shouldPrintDownloadAndReportURL() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("fooHost");
+        when(connection.getPort()).thenReturn(1);
+        List<IRecordingDescriptor> descriptors =
+                Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
+        when(service.getAvailableRecordings()).thenReturn(descriptors);
+        when(exporter.getDownloadURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return String.format(
+                                        "http://example.com:1234/api/v1/targets/%s:%d/recordings/%s",
+                                        ((JFRConnection) invocation.getArguments()[0]).getHost(),
+                                        ((JFRConnection) invocation.getArguments()[0]).getPort(),
+                                        invocation.getArguments()[1]);
+                            }
+                        });
+        when(exporter.getReportURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return String.format(
+                                        "http://example.com:1234/api/v1/targets/%s:%d/reports/%s",
+                                        ((JFRConnection) invocation.getArguments()[0]).getHost(),
+                                        ((JFRConnection) invocation.getArguments()[0]).getPort(),
+                                        invocation.getArguments()[1]);
+                            }
+                        });
+        command.execute(new String[] {"foo:9091"});
+        InOrder inOrder = inOrder(cw);
+        inOrder.verify(cw).println("Available recordings:");
+        inOrder.verify(cw).println(Mockito.contains(
+                "\tgetDownloadURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/foo\n"
+                + "\tgetReportURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/foo"));
+        inOrder.verify(cw).println(Mockito.contains(
+                "\tgetDownloadURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/bar\n"
+                + "\tgetReportURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/bar"));
+    }
+
+    @Test
     void shouldReturnListOutput() throws Exception {
         when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
                 .thenAnswer(

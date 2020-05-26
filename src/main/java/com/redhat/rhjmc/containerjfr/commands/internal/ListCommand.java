@@ -88,7 +88,13 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
                         cw.println("\tNone");
                     }
                     for (IRecordingDescriptor recording : recordings) {
-                        cw.println(toString(recording));
+                        String downloadURL =
+                                "\tgetDownloadURL\t\t"
+                                + exporter.getDownloadURL(connection, recording.getName());
+                        String reportURL =
+                                "\tgetReportURL\t\t"
+                                + exporter.getReportURL(connection, recording.getName());
+                        cw.println(toString(recording) + downloadURL + "\n" + reportURL);
                     }
                     return null;
                 });
