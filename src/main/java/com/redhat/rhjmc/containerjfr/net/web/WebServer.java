@@ -109,7 +109,6 @@ public class WebServer {
 
     private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
     private static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
-    private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     private static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV =
             "USE_LOW_MEM_PRESSURE_STREAMING";
 
@@ -241,10 +240,6 @@ public class WebServer {
                             false)
                     .failureHandler(failureHandler);
         }
-
-        router.get("/api/v1/grafana_datasource_url")
-                .handler(this::handleGrafanaDatasourceUrlRequest)
-                .failureHandler(failureHandler);
 
         router.get("/api/v1/grafana_dashboard_url")
                 .handler(this::handleGrafanaDashboardUrlRequest)
@@ -574,15 +569,6 @@ public class WebServer {
     void handleWebClientIndexRequest(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
         ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
-    }
-
-    void handleGrafanaDatasourceUrlRequest(RoutingContext ctx) {
-        if (!this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
-        }
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-        endWithJsonKeyValue(
-                "grafanaDatasourceUrl", env.getEnv(GRAFANA_DATASOURCE_ENV, ""), ctx.response());
     }
 
     void handleGrafanaDashboardUrlRequest(RoutingContext ctx) {

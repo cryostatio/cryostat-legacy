@@ -303,38 +303,6 @@ class WebServerTest {
     }
 
     @Test
-    void shouldHandleGrafanaDatasourceUrlRequest() {
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-
-        String url = "http://hostname:1/path?query=value";
-        when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
-        when(env.getEnv("GRAFANA_DATASOURCE_URL", "")).thenReturn(url);
-
-        exporter.handleGrafanaDatasourceUrlRequest(ctx);
-
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"grafanaDatasourceUrl\":\"" + url + "\"}");
-    }
-
-    @Test
-    void shouldHandleGrafanaDatasourceUrlRequestWithoutEnvVar() {
-        RoutingContext ctx = mock(RoutingContext.class);
-
-        when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
-
-        HttpStatusException e =
-                assertThrows(
-                        HttpStatusException.class,
-                        () -> exporter.handleGrafanaDatasourceUrlRequest(ctx));
-        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo("Internal Server Error"));
-        MatcherAssert.assertThat(
-                e.getPayload(), Matchers.equalTo("Deployment has no Grafana " + "configuration"));
-        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(500));
-    }
-
-    @Test
     void shouldHandleGrafanaDashboardUrlRequest() {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);

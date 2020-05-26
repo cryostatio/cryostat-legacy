@@ -41,19 +41,50 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class RequestHandlersModule {
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
-            GrafanaDatasourceUrlGetHandler handler);
+class GrafanaDatasourceUrlGetHandler implements RequestHandler {
+
+    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+
+    private final Environment env;
+    private final ResponseUtils responseUtils;
+
+    @Inject
+    GrafanaDatasourceUrlGetHandler(Environment env, ResponseUtils responseUtils) {
+        this.env = env;
+        this.responseUtils = responseUtils;
+    }
+
+    @Override
+    public String path() {
+        return "/api/v1/grafana_datasource_url";
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        if (!this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
+            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+        }
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ResponseUtils.MIME_TYPE_JSON);
+        responseUtils.endWithJsonKeyValue(
+                "grafanaDatasourceUrl", env.getEnv(GRAFANA_DATASOURCE_ENV), ctx.response());
+    }
 }
