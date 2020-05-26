@@ -41,14 +41,22 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class RequestHandlersModule {
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpServerResponse;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+class ResponseUtils {
+
+    static final String MIME_TYPE_JSON = "application/json";
+    private final Gson gson;
+
+    @Inject
+    ResponseUtils(Gson gson) {
+        this.gson = gson;
+    }
+
+    <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
+        response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
+    }
 }

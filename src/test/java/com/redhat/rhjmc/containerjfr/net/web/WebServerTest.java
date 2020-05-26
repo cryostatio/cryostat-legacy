@@ -303,35 +303,6 @@ class WebServerTest {
     }
 
     @Test
-    void shouldHandleClientUrlRequest() throws SocketException, UnknownHostException {
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-        when(netConf.getWebServerHost()).thenReturn("hostname");
-        when(netConf.getExternalWebServerPort()).thenReturn(1);
-
-        exporter.handleClientUrlRequest(ctx);
-
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"clientUrl\":\"ws://hostname:1/api/v1/command\"}");
-    }
-
-    @Test
-    void shouldHandleClientUrlRequestWithWss() throws SocketException, UnknownHostException {
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-        when(netConf.getWebServerHost()).thenReturn("hostname");
-        when(netConf.getExternalWebServerPort()).thenReturn(1);
-        when(httpServer.isSsl()).thenReturn(true);
-
-        exporter.handleClientUrlRequest(ctx);
-
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/command\"}");
-    }
-
-    @Test
     void shouldHandleGrafanaDatasourceUrlRequest() {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);

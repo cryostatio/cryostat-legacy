@@ -41,14 +41,63 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
-@Module
-public abstract class RequestHandlersModule {
+import javax.inject.Inject;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
+
+class ClientUrlGetHandler implements RequestHandler {
+
+    private final ResponseUtils utils;
+    private final boolean isSsl;
+    private final NetworkConfiguration netConf;
+
+    @Inject
+    ClientUrlGetHandler(ResponseUtils utils, HttpServer server, NetworkConfiguration netConf) {
+        this.utils = utils;
+        this.isSsl = server.isSsl();
+        this.netConf = netConf;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public String path() {
+        return "/api/v1/clienturl";
+    }
+
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ResponseUtils.MIME_TYPE_JSON);
+        try {
+            // TODO replace String.format with URIBuilder or something else than manual string
+            // construction
+            utils.endWithJsonKeyValue(
+                    "clientUrl",
+                    String.format(
+                            "%s://%s:%d/api/v1/command",
+                            isSsl ? "wss" : "ws",
+                            netConf.getWebServerHost(),
+                            netConf.getExternalWebServerPort()),
+                    ctx.response());
+        } catch (SocketException | UnknownHostException e) {
+            throw new HttpStatusException(500, e);
+        }
+    }
 }

@@ -242,10 +242,6 @@ public class WebServer {
                     .failureHandler(failureHandler);
         }
 
-        router.get("/api/v1/clienturl")
-                .handler(this::handleClientUrlRequest)
-                .failureHandler(failureHandler);
-
         router.get("/api/v1/grafana_datasource_url")
                 .handler(this::handleGrafanaDatasourceUrlRequest)
                 .failureHandler(failureHandler);
@@ -578,22 +574,6 @@ public class WebServer {
     void handleWebClientIndexRequest(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
         ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
-    }
-
-    void handleClientUrlRequest(RoutingContext ctx) {
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-        try {
-            endWithJsonKeyValue(
-                    "clientUrl",
-                    String.format(
-                            "%s://%s:%d/api/v1/command",
-                            server.isSsl() ? "wss" : "ws",
-                            netConf.getWebServerHost(),
-                            netConf.getExternalWebServerPort()),
-                    ctx.response());
-        } catch (SocketException | UnknownHostException e) {
-            throw new HttpStatusException(500, e);
-        }
     }
 
     void handleGrafanaDatasourceUrlRequest(RoutingContext ctx) {

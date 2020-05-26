@@ -46,7 +46,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
 public interface RequestHandler extends Handler<RoutingContext> {
-
     String path();
 
     HttpMethod httpMethod();
