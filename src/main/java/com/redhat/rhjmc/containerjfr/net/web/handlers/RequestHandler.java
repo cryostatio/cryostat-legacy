@@ -39,58 +39,27 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.nio.file.Path;
-import java.util.Set;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+public interface RequestHandler extends Handler<RoutingContext> {
 
-import com.google.gson.Gson;
+    String path();
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
+    HttpMethod httpMethod();
 
-import dagger.Module;
-import dagger.Provides;
+    default boolean isAvailable() {
+        return true;
+    }
 
-@Module(includes = {NetworkModule.class, RequestHandlersModule.class})
-public abstract class WebModule {
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Environment env,
-            @Named("RECORDINGS_PATH") Path recordingsPath,
-            FileSystem fs,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            TargetConnectionManager targetConnectionManager,
-            ReportGenerator reportGenerator,
-            Logger logger) {
-        return new WebServer(
-                httpServer,
-                netConf,
-                env,
-                recordingsPath,
-                fs,
-                requestHandlers,
-                gson,
-                authManager,
-                targetConnectionManager,
-                reportGenerator,
-                logger);
+    default boolean isAsync() {
+        return false;
+    }
+
+    default boolean isOrdered() {
+        return false;
     }
 }

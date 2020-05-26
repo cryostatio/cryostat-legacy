@@ -133,10 +133,11 @@ class WebServerTest {
                         env,
                         recordingsPath,
                         fs,
-                        authManager,
+                        Set.of(),
                         gson,
-                        reportGenerator,
+                        authManager,
                         targetConnectionManager,
+                        reportGenerator,
                         logger);
     }
 
@@ -157,10 +158,11 @@ class WebServerTest {
                                 env,
                                 recordingsPath,
                                 fs,
-                                authManager,
+                                Set.of(),
                                 gson,
-                                reportGenerator,
+                                authManager,
                                 targetConnectionManager,
+                                reportGenerator,
                                 logger));
     }
 

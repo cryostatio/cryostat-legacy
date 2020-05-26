@@ -58,6 +58,7 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
@@ -84,6 +85,7 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AsyncResult;
@@ -93,6 +95,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
+import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
@@ -128,12 +131,12 @@ public class WebServer {
     private final Environment env;
     private final Path savedRecordingsPath;
     private final FileSystem fs;
-    private final AuthManager auth;
+    private final Set<RequestHandler> requestHandlers;
     private final Gson gson;
-    private final Logger logger;
-
-    private final ReportGenerator reportGenerator;
+    private final AuthManager auth;
     private final TargetConnectionManager targetConnectionManager;
+    private final ReportGenerator reportGenerator;
+    private final Logger logger;
 
     WebServer(
             HttpServer server,
@@ -141,21 +144,23 @@ public class WebServer {
             Environment env,
             Path savedRecordingsPath,
             FileSystem fs,
-            AuthManager auth,
+            Set<RequestHandler> requestHandlers,
             Gson gson,
-            ReportGenerator reportGenerator,
+            AuthManager auth,
             TargetConnectionManager targetConnectionManager,
+            ReportGenerator reportGenerator,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
         this.env = env;
         this.savedRecordingsPath = savedRecordingsPath;
         this.fs = fs;
-        this.auth = auth;
+        this.requestHandlers = requestHandlers;
         this.gson = gson;
-        this.logger = logger;
-        this.reportGenerator = reportGenerator;
+        this.auth = auth;
         this.targetConnectionManager = targetConnectionManager;
+        this.reportGenerator = reportGenerator;
+        this.logger = logger;
 
         if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
             logger.info("low memory pressure streaming enabled for web server");
@@ -210,6 +215,17 @@ public class WebServer {
                             .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_PLAINTEXT)
                             .end(payload);
                 };
+
+        requestHandlers.forEach(
+                handler -> {
+                    Route route = getHandlerRoute(router, handler);
+                    if (handler.isAsync()) {
+                        route = route.handler(handler);
+                    } else {
+                        route = route.blockingHandler(handler, handler.isOrdered());
+                    }
+                    route.failureHandler(failureHandler);
+                });
 
         router.post("/api/v1/auth")
                 .blockingHandler(this::handleAuthRequest, false)
@@ -318,6 +334,31 @@ public class WebServer {
                     enableCors(req.response());
                     router.handle(req);
                 });
+    }
+
+    Route getHandlerRoute(Router router, RequestHandler handler) {
+        switch (handler.httpMethod()) {
+            case CONNECT:
+                return router.connect(handler.path());
+            case DELETE:
+                return router.delete(handler.path());
+            case GET:
+                return router.get(handler.path());
+            case HEAD:
+                return router.head(handler.path());
+            case OPTIONS:
+                return router.options(handler.path());
+            case PATCH:
+                return router.patch(handler.path());
+            case POST:
+                return router.post(handler.path());
+            case PUT:
+                return router.put(handler.path());
+            case TRACE:
+                return router.trace(handler.path());
+            default:
+                throw new IllegalArgumentException(handler.httpMethod().toString());
+        }
     }
 
     public void stop() {
