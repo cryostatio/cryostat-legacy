@@ -83,9 +83,6 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class WebServer {
 
-    private static final String WEB_CLIENT_ASSETS_BASE =
-            WebServer.class.getPackageName().replaceAll("\\.", "/");
-
     private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
 
     public static final String MIME_TYPE_JSON = "application/json";
@@ -198,11 +195,6 @@ public class WebServer {
                             false)
                     .failureHandler(failureHandler);
         }
-
-        router.get("/*")
-                .handler(StaticHandler.create(WEB_CLIENT_ASSETS_BASE))
-                .handler(this::handleWebClientIndexRequest)
-                .failureHandler(failureHandler);
 
         this.server.requestHandler(
                 req -> {
@@ -321,11 +313,6 @@ public class WebServer {
 
     private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
         response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
-    }
-
-    void handleWebClientIndexRequest(RoutingContext ctx) {
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
-        ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
     }
 
     private boolean isCorsEnabled() {

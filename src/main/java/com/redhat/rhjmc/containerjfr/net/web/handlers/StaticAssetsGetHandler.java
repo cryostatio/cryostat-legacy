@@ -41,60 +41,38 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class RequestHandlersModule {
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.StaticHandler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+class StaticAssetsGetHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+    private final StaticHandler staticHandler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
-            GrafanaDatasourceUrlGetHandler handler);
+    @Inject
+    StaticAssetsGetHandler() {
+        this.staticHandler = StaticHandler.create(WebClientAssetsGetHandler.WEB_CLIENT_ASSETS_BASE);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDashboardUrlGetHandler(
-            GrafanaDashboardUrlGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+    @Override
+    public String path() {
+        return "/*";
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+    @Override
+    public void handle(RoutingContext ctx) {
+        staticHandler.handle(ctx);
+    }
 }

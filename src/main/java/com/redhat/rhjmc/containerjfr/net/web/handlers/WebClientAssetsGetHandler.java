@@ -41,60 +41,45 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class RequestHandlersModule {
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+class WebClientAssetsGetHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
-            GrafanaDatasourceUrlGetHandler handler);
+    static final String WEB_CLIENT_ASSETS_BASE =
+            WebServer.class.getPackageName().replaceAll("\\.", "/");
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDashboardUrlGetHandler(
-            GrafanaDashboardUrlGetHandler handler);
+    @Inject
+    WebClientAssetsGetHandler() {}
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY + 10;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
+    @Override
+    public String path() {
+        return "/*";
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, WebServer.MIME_TYPE_HTML);
+        ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
+    }
 }
