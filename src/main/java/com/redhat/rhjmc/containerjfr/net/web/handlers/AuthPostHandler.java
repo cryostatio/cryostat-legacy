@@ -41,40 +41,47 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.concurrent.Future;
+import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
+class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final AuthManager auth;
-
-    AbstractAuthenticatedRequestHandler(AuthManager auth) {
-        this.auth = auth;
+    @Inject
+    AuthPostHandler(AuthManager auth) {
+        super(auth);
     }
 
-    abstract void handleAuthenticated(RoutingContext ctx);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public String path() {
+        return "/api/v1/auth";
+    }
 
     @Override
     public void handle(RoutingContext ctx) {
+        boolean authd = false;
         try {
-            if (!validateRequestAuthorization(ctx.request()).get()) {
-                throw new HttpStatusException(401);
-            }
-        } catch (HttpStatusException e) {
-            throw e;
+            authd = validateRequestAuthorization(ctx.request()).get();
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
-        handleAuthenticated(ctx);
+        if (authd) {
+            ctx.response().setStatusCode(200);
+            ctx.response().end();
+        } else {
+            throw new HttpStatusException(401);
+        }
     }
 
-    protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
-        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
-    }
+    @Override
+    void handleAuthenticated(RoutingContext ctx) {}
 }

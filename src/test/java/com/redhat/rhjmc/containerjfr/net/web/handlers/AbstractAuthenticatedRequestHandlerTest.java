@@ -41,40 +41,78 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.concurrent.Future;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.util.concurrent.CompletableFuture;
+
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
+@ExtendWith(MockitoExtension.class)
+class AbstractAuthenticatedRequestHandlerTest {
 
-    private final AuthManager auth;
+    AuthenticatedHandler handler;
+    @Mock AuthManager auth;
 
-    AbstractAuthenticatedRequestHandler(AuthManager auth) {
-        this.auth = auth;
+    @BeforeEach
+    void setup() {
+        this.handler = new AuthenticatedHandler(auth);
     }
 
-    abstract void handleAuthenticated(RoutingContext ctx);
+    @Test
+    void shouldThrow401IfAuthFails() {
+        when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(false));
 
-    @Override
-    public void handle(RoutingContext ctx) {
-        try {
-            if (!validateRequestAuthorization(ctx.request()).get()) {
-                throw new HttpStatusException(401);
-            }
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+    }
+
+    @Test
+    void shouldThrow500IfAuthThrows() {
+        when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+    }
+
+    static class AuthenticatedHandler extends AbstractAuthenticatedRequestHandler {
+        AuthenticatedHandler(AuthManager auth) {
+            super(auth);
         }
-        handleAuthenticated(ctx);
-    }
 
-    protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
-        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+        @Override
+        public String path() {
+            return null;
+        }
+
+        @Override
+        public HttpMethod httpMethod() {
+            return null;
+        }
+
+        @Override
+        void handleAuthenticated(RoutingContext ctx) {}
     }
 }

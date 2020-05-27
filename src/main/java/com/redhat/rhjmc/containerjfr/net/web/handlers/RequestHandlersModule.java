@@ -50,6 +50,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
 
     @Binds

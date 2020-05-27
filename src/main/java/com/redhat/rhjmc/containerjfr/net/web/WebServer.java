@@ -203,10 +203,6 @@ public class WebServer {
                     route.failureHandler(failureHandler);
                 });
 
-        router.post("/api/v1/auth")
-                .blockingHandler(this::handleAuthRequest, false)
-                .failureHandler(failureHandler);
-
         if (isCorsEnabled()) {
             router.options("/*")
                     .blockingHandler(
@@ -345,21 +341,6 @@ public class WebServer {
 
     private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
         response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
-    }
-
-    void handleAuthRequest(RoutingContext ctx) {
-        boolean authd = false;
-        try {
-            authd = validateRequestAuthorization(ctx.request()).get();
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
-        if (authd) {
-            ctx.response().setStatusCode(200);
-            ctx.response().end();
-        } else {
-            throw new HttpStatusException(401);
-        }
     }
 
     void handleWebClientIndexRequest(RoutingContext ctx) {
