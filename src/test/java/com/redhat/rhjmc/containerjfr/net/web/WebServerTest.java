@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
-import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,7 +50,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -62,7 +60,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -97,7 +94,6 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -431,43 +427,6 @@ class WebServerTest {
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         verify(rep).end("{\"name\":\"" + filename + "\"}");
-    }
-
-    @Test
-    void shouldHandleRecordingDownloadRequest() throws Exception {
-        when(authManager.validateHttpHeader(any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        when(connection.getService()).thenReturn(service);
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-
-        byte[] src = new byte[1024 * 1024];
-        new Random(123456).nextBytes(src);
-        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
-        String recordingName = "foo";
-        when(descriptor.getName()).thenReturn(recordingName);
-        when(service.openStream(descriptor, false)).thenReturn(new ByteArrayInputStream(src));
-        when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-
-        Buffer dst = Buffer.buffer(1024 * 1024);
-        when(resp.write(any(Buffer.class)))
-                .thenAnswer(
-                        invocation -> {
-                            Buffer chunk = invocation.getArgument(0);
-                            dst.appendBuffer(chunk);
-                            return null;
-                        });
-
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
-
-        exporter.handleRecordingDownloadRequest("fooHost:0", recordingName, ctx);
-
-        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
-        assertArrayEquals(src, dst.getBytes());
     }
 
     @Test

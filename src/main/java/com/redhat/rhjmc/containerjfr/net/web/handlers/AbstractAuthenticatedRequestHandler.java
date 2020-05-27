@@ -41,32 +41,40 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import java.util.concurrent.Future;
 
-@Module
-public abstract class RequestHandlersModule {
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
-            GrafanaDatasourceUrlGetHandler handler);
+abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDashboardUrlGetHandler(
-            GrafanaDashboardUrlGetHandler handler);
+    private final AuthManager auth;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+    AbstractAuthenticatedRequestHandler(AuthManager auth) {
+        this.auth = auth;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+    abstract void handleAuthenticated(RoutingContext ctx);
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        try {
+            if (!validateRequestAuthorization(ctx.request()).get()) {
+                throw new HttpStatusException(401);
+            }
+        } catch (HttpStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e);
+        }
+        handleAuthenticated(ctx);
+    }
+
+    private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
+        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+    }
 }

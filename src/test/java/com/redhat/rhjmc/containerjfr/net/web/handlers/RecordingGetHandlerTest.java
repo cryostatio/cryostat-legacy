@@ -41,32 +41,49 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import java.nio.file.Path;
 
-@Module
-public abstract class RequestHandlersModule {
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import io.vertx.core.http.HttpMethod;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
-            GrafanaDatasourceUrlGetHandler handler);
+@ExtendWith(MockitoExtension.class)
+class RecordingGetHandlerTest {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDashboardUrlGetHandler(
-            GrafanaDashboardUrlGetHandler handler);
+    TargetRecordingGetHandler handler;
+    @Mock AuthManager authManager;
+    @Mock Environment env;
+    @Mock Path savedRecordingsPath;
+    @Mock Logger logger;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+    @BeforeEach
+    void setup() {
+        this.handler = new RecordingGetHandler(authManager, env, savedRecordingsPath, logger);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+    @Test
+    void shouldHandleGETRequest() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    }
+
+    @Test
+    void shouldHandleCorrectPath() {
+        MatcherAssert.assertThat(
+                handler.path(), Matchers.equalTo("/api/v1/recordings/:recordingName"));
+    }
+
+    @Test
+    void shouldNotBeAsync() {
+        Assertions.assertFalse(handler.isAsync());
+    }
 }

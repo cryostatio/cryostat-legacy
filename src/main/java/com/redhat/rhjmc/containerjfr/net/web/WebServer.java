@@ -59,10 +59,6 @@ import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,10 +83,8 @@ import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -118,8 +112,6 @@ public class WebServer {
 
     // Use X- prefix so as to not trigger web-browser auth dialogs
     private static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
-
-    private static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(.[\\d]+)?");
@@ -159,12 +151,6 @@ public class WebServer {
         this.targetConnectionManager = targetConnectionManager;
         this.reportGenerator = reportGenerator;
         this.logger = logger;
-
-        if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-            logger.info("low memory pressure streaming enabled for web server");
-        } else {
-            logger.info("low memory pressure streaming disabled for web server");
-        }
     }
 
     public void start() throws FlightRecorderException, SocketException, UnknownHostException {
@@ -242,33 +228,6 @@ public class WebServer {
                             false)
                     .failureHandler(failureHandler);
         }
-
-        router.get("/api/v1/targets/:targetId/recordings/:recordingName")
-                .blockingHandler(
-                        ctx -> {
-                            String targetId = ctx.pathParam("targetId");
-                            String recordingName = ctx.pathParam("recordingName");
-                            if (recordingName != null && recordingName.endsWith(".jfr")) {
-                                recordingName =
-                                        recordingName.substring(0, recordingName.length() - 4);
-                            }
-                            handleRecordingDownloadRequest(targetId, recordingName, ctx);
-                        },
-                        false)
-                .failureHandler(failureHandler);
-
-        router.get("/api/v1/recordings/:recordingName")
-                .blockingHandler(
-                        ctx -> {
-                            String recordingName = ctx.pathParam("recordingName");
-                            if (recordingName != null && recordingName.endsWith(".jfr")) {
-                                recordingName =
-                                        recordingName.substring(0, recordingName.length() - 4);
-                            }
-                            handleRecordingDownloadRequest(null, recordingName, ctx);
-                        },
-                        false)
-                .failureHandler(failureHandler);
 
         router.post("/api/v1/recordings")
                 .handler(BodyHandler.create(true))
@@ -481,74 +440,6 @@ public class WebServer {
         response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
     }
 
-    private HttpServerResponse writeInputStreamLowMemPressure(
-            InputStream inputStream, HttpServerResponse response) throws IOException {
-        // blocking function, must be called from a blocking handler
-        byte[] buff = new byte[WRITE_BUFFER_SIZE];
-        Buffer chunk = Buffer.buffer();
-
-        ExecutorService worker = Executors.newSingleThreadExecutor();
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        worker.submit(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        int n;
-                        try {
-                            n = inputStream.read(buff);
-                        } catch (IOException e) {
-                            future.completeExceptionally(e);
-                            return;
-                        }
-
-                        if (n == -1) {
-                            future.complete(null);
-                            return;
-                        }
-
-                        chunk.setBytes(0, buff, 0, n);
-                        response.write(
-                                chunk.slice(0, n),
-                                (res) -> {
-                                    if (res.failed()) {
-                                        future.completeExceptionally(res.cause());
-                                        return;
-                                    }
-                                    worker.submit(this); // recursive call on this runnable itself
-                                });
-                    }
-                });
-
-        try {
-            future.join();
-            worker.shutdownNow();
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            } else {
-                throw e;
-            }
-        }
-
-        return response;
-    }
-
-    private HttpServerResponse writeInputStream(
-            InputStream inputStream, HttpServerResponse response) throws IOException {
-        // blocking function, must be called from a blocking handler
-        byte[] buff = new byte[WRITE_BUFFER_SIZE]; // 64 KB
-        int n;
-        while (true) {
-            n = inputStream.read(buff);
-            if (n == -1) {
-                break;
-            }
-            response.write(Buffer.buffer().appendBytes(buff, 0, n));
-        }
-
-        return response;
-    }
-
     void handleAuthRequest(RoutingContext ctx) {
         boolean authd = false;
         try {
@@ -639,60 +530,6 @@ public class WebServer {
                                     logger.info(
                                             String.format("Recording saved as %s", res2.result()));
                                 }));
-    }
-
-    // try-with-resources generates a "redundant" nullcheck in bytecode
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    void handleRecordingDownloadRequest(String targetId, String recordingName, RoutingContext ctx) {
-        try {
-            if (!validateRequestAuthorization(ctx.request()).get()) {
-                throw new HttpStatusException(401);
-            }
-
-            Optional<DownloadDescriptor> descriptor =
-                    getRecordingDescriptor(targetId, recordingName);
-            if (descriptor.isEmpty()) {
-                throw new HttpStatusException(404, String.format("%s not found", recordingName));
-            }
-
-            ctx.response().setChunked(true);
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
-            descriptor
-                    .get()
-                    .bytes
-                    .ifPresent(
-                            b ->
-                                    ctx.response()
-                                            .putHeader(
-                                                    HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
-            try (InputStream stream = descriptor.get().stream) {
-                if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-                    writeInputStreamLowMemPressure(stream, ctx.response());
-                } else {
-                    writeInputStream(stream, ctx.response());
-                }
-                ctx.response().end();
-            } finally {
-                descriptor
-                        .get()
-                        .resource
-                        .ifPresent(
-                                resource -> {
-                                    try {
-                                        resource.close();
-                                    } catch (Exception e) {
-                                        logger.warn(e);
-                                    }
-                                });
-            }
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (FlightRecorderException e) {
-            throw new HttpStatusException(
-                    500, String.format("%s could not be opened", recordingName), e);
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
     }
 
     void handleReportPageRequest(String targetId, String recordingName, RoutingContext ctx) {
@@ -889,12 +726,12 @@ public class WebServer {
                         });
     }
 
-    private static class DownloadDescriptor {
-        final InputStream stream;
-        final Optional<Long> bytes;
-        final Optional<AutoCloseable> resource;
+    public static class DownloadDescriptor {
+        public final InputStream stream;
+        public final Optional<Long> bytes;
+        public final Optional<AutoCloseable> resource;
 
-        DownloadDescriptor(InputStream stream, Long bytes, AutoCloseable resource) {
+        public DownloadDescriptor(InputStream stream, Long bytes, AutoCloseable resource) {
             this.stream = Objects.requireNonNull(stream);
             this.bytes = Optional.ofNullable(bytes);
             this.resource = Optional.ofNullable(resource);
