@@ -50,14 +50,12 @@ import javax.inject.Singleton;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
 
@@ -77,8 +75,6 @@ public abstract class WebModule {
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager authManager,
-            TargetConnectionManager targetConnectionManager,
-            ReportGenerator reportGenerator,
             Logger logger) {
         return new WebServer(
                 httpServer,
@@ -89,8 +85,6 @@ public abstract class WebModule {
                 requestHandlers,
                 gson,
                 authManager,
-                targetConnectionManager,
-                reportGenerator,
                 logger);
     }
 }

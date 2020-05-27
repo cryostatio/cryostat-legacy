@@ -50,9 +50,7 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -68,19 +66,16 @@ import org.apache.http.client.utils.URIBuilder;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
 
 import io.vertx.core.AsyncResult;
@@ -106,7 +101,7 @@ public class WebServer {
             "USE_LOW_MEM_PRESSURE_STREAMING";
 
     private static final String MIME_TYPE_JSON = "application/json";
-    private static final String MIME_TYPE_HTML = "text/html";
+    public static final String MIME_TYPE_HTML = "text/html";
     private static final String MIME_TYPE_PLAINTEXT = "text/plain";
     private static final String MIME_TYPE_OCTET_STREAM = "application/octet-stream";
 
@@ -124,8 +119,6 @@ public class WebServer {
     private final Set<RequestHandler> requestHandlers;
     private final Gson gson;
     private final AuthManager auth;
-    private final TargetConnectionManager targetConnectionManager;
-    private final ReportGenerator reportGenerator;
     private final Logger logger;
 
     WebServer(
@@ -137,8 +130,6 @@ public class WebServer {
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            ReportGenerator reportGenerator,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
@@ -148,8 +139,6 @@ public class WebServer {
         this.requestHandlers = requestHandlers;
         this.gson = gson;
         this.auth = auth;
-        this.targetConnectionManager = targetConnectionManager;
-        this.reportGenerator = reportGenerator;
         this.logger = logger;
     }
 
@@ -232,31 +221,6 @@ public class WebServer {
         router.post("/api/v1/recordings")
                 .handler(BodyHandler.create(true))
                 .handler(this::handleRecordingUploadRequest)
-                .failureHandler(failureHandler);
-
-        router.get("/api/v1/targets/:targetId/reports/:recordingName")
-                .blockingHandler(
-                        ctx -> {
-                            String targetId = ctx.pathParam("targetId");
-                            String recordingName = ctx.pathParam("recordingName");
-                            if (recordingName != null && recordingName.endsWith(".jfr")) {
-                                recordingName =
-                                        recordingName.substring(0, recordingName.length() - 4);
-                            }
-                            handleReportPageRequest(targetId, recordingName, ctx);
-                        })
-                .failureHandler(failureHandler);
-
-        router.get("/api/v1/reports/:recordingName")
-                .blockingHandler(
-                        ctx -> {
-                            String recordingName = ctx.pathParam("recordingName");
-                            if (recordingName != null && recordingName.endsWith(".jfr")) {
-                                recordingName =
-                                        recordingName.substring(0, recordingName.length() - 4);
-                            }
-                            handleReportPageRequest(null, recordingName, ctx);
-                        })
                 .failureHandler(failureHandler);
 
         router.get("/*")
@@ -379,63 +343,6 @@ public class WebServer {
         return conn.getJMXURL().toString();
     }
 
-    private Optional<DownloadDescriptor> getRecordingDescriptor(
-            String targetId, String recordingName) throws Exception {
-        return getTargetRecordingDescriptor(targetId, recordingName)
-                .or(() -> getSavedRecordingDescriptor(recordingName));
-    }
-
-    private Optional<DownloadDescriptor> getTargetRecordingDescriptor(
-            String targetId, String recordingName) throws Exception {
-        if (targetId == null) {
-            return Optional.empty();
-        }
-        JFRConnection connection = targetConnectionManager.connect(targetId);
-        Optional<IRecordingDescriptor> desc =
-                connection.getService().getAvailableRecordings().stream()
-                        .filter(r -> Objects.equals(recordingName, r.getName()))
-                        .findFirst();
-        if (desc.isPresent()) {
-            return Optional.of(
-                    new DownloadDescriptor(
-                            connection.getService().openStream(desc.get(), false),
-                            null,
-                            connection));
-        } else {
-            connection.close();
-            return Optional.empty();
-        }
-    }
-
-    private Optional<DownloadDescriptor> getSavedRecordingDescriptor(String recordingName) {
-        try {
-            // TODO refactor Files calls into FileSystem for testability
-            Optional<Path> savedRecording =
-                    Files.list(savedRecordingsPath)
-                            .filter(
-                                    saved ->
-                                            saved.getFileName()
-                                                            .toFile()
-                                                            .getName()
-                                                            .equals(recordingName)
-                                                    || saved.getFileName()
-                                                            .toFile()
-                                                            .getName()
-                                                            .equals(recordingName + ".jfr"))
-                            .findFirst();
-            if (savedRecording.isPresent()) {
-                return Optional.of(
-                        new DownloadDescriptor(
-                                Files.newInputStream(savedRecording.get(), StandardOpenOption.READ),
-                                Files.size(savedRecording.get()),
-                                null));
-            }
-        } catch (Exception e) {
-            logger.error(e);
-        }
-        return Optional.empty();
-    }
-
     private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
         response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
     }
@@ -530,47 +437,6 @@ public class WebServer {
                                     logger.info(
                                             String.format("Recording saved as %s", res2.result()));
                                 }));
-    }
-
-    void handleReportPageRequest(String targetId, String recordingName, RoutingContext ctx) {
-        try {
-            if (!validateRequestAuthorization(ctx.request()).get()) {
-                throw new HttpStatusException(401);
-            }
-            Optional<DownloadDescriptor> descriptor =
-                    getRecordingDescriptor(targetId, recordingName);
-            if (descriptor.isEmpty()) {
-                throw new HttpStatusException(404, String.format("%s not found", recordingName));
-            }
-
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_HTML);
-            try (InputStream stream = descriptor.get().stream) {
-                // blocking function, must be called from a blocking handler
-                ctx.response().end(reportGenerator.generateReport(stream));
-            } finally {
-                descriptor
-                        .get()
-                        .resource
-                        .ifPresent(
-                                resource -> {
-                                    try {
-                                        resource.close();
-                                    } catch (Exception e) {
-                                        logger.warn(e);
-                                    }
-                                });
-            }
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (FlightRecorderException e) {
-            throw new HttpStatusException(
-                    500, String.format("%s could not be opened", recordingName), e);
-        } catch (CouldNotLoadRecordingException e) {
-            throw new HttpStatusException(
-                    500, String.format("%s could not be loaded", recordingName), e);
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
     }
 
     private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {

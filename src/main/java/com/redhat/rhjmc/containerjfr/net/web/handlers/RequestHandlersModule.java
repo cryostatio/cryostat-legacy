@@ -69,4 +69,12 @@ public abstract class RequestHandlersModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
 }

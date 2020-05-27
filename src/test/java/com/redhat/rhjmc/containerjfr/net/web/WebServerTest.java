@@ -51,7 +51,6 @@ import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URISyntaxException;
@@ -59,7 +58,6 @@ import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -77,19 +75,16 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -115,8 +110,6 @@ class WebServerTest {
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
-    @Mock ReportGenerator reportGenerator;
-    @Mock TargetConnectionManager targetConnectionManager;
 
     @BeforeEach
     void setup() {
@@ -130,8 +123,6 @@ class WebServerTest {
                         Set.of(),
                         gson,
                         authManager,
-                        targetConnectionManager,
-                        reportGenerator,
                         logger);
     }
 
@@ -155,8 +146,6 @@ class WebServerTest {
                                 Set.of(),
                                 gson,
                                 authManager,
-                                targetConnectionManager,
-                                reportGenerator,
                                 logger));
     }
 
@@ -427,34 +416,5 @@ class WebServerTest {
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
         verify(rep).end("{\"name\":\"" + filename + "\"}");
-    }
-
-    @Test
-    void shouldHandleReportPageRequest() throws Exception {
-        when(authManager.validateHttpHeader(any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        when(connection.getService()).thenReturn(service);
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-
-        InputStream ins = mock(InputStream.class);
-        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
-        String recordingName = "foo";
-        String content = "foobar";
-        when(descriptor.getName()).thenReturn(recordingName);
-        when(service.openStream(descriptor, false)).thenReturn(ins);
-        when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        when(reportGenerator.generateReport(ins)).thenReturn(content);
-
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
-
-        exporter.handleReportPageRequest("fooHost:0", recordingName, ctx);
-
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
-        verify(rep).end(content);
     }
 }
