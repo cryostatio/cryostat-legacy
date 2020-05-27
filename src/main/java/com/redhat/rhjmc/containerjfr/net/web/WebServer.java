@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -50,21 +49,18 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.nio.file.Path;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.apache.http.client.utils.URIBuilder;
 
-import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
 import com.google.gson.Gson;
@@ -72,23 +68,17 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
 
-import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
-import io.vertx.ext.web.handler.StaticHandler;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class WebServer {
@@ -97,26 +87,18 @@ public class WebServer {
             WebServer.class.getPackageName().replaceAll("\\.", "/");
 
     private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
-    private static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV =
-            "USE_LOW_MEM_PRESSURE_STREAMING";
 
-    private static final String MIME_TYPE_JSON = "application/json";
+    public static final String MIME_TYPE_JSON = "application/json";
     public static final String MIME_TYPE_HTML = "text/html";
     private static final String MIME_TYPE_PLAINTEXT = "text/plain";
-    private static final String MIME_TYPE_OCTET_STREAM = "application/octet-stream";
 
     // Use X- prefix so as to not trigger web-browser auth dialogs
     private static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
 
-    private static final Pattern RECORDING_FILENAME_PATTERN =
-            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(.[\\d]+)?");
-
     private final HttpServer server;
     private final NetworkConfiguration netConf;
     private final Environment env;
-    private final Path savedRecordingsPath;
-    private final FileSystem fs;
-    private final Set<RequestHandler> requestHandlers;
+    private final List<RequestHandler> requestHandlers;
     private final Gson gson;
     private final AuthManager auth;
     private final Logger logger;
@@ -125,8 +107,6 @@ public class WebServer {
             HttpServer server,
             NetworkConfiguration netConf,
             Environment env,
-            Path savedRecordingsPath,
-            FileSystem fs,
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager auth,
@@ -134,9 +114,9 @@ public class WebServer {
         this.server = server;
         this.netConf = netConf;
         this.env = env;
-        this.savedRecordingsPath = savedRecordingsPath;
-        this.fs = fs;
-        this.requestHandlers = requestHandlers;
+        this.requestHandlers = new ArrayList<>(requestHandlers);
+        Collections.sort(
+                this.requestHandlers, (a, b) -> Integer.compare(a.getPriority(), b.getPriority()));
         this.gson = gson;
         this.auth = auth;
         this.logger = logger;
@@ -191,7 +171,12 @@ public class WebServer {
 
         requestHandlers.forEach(
                 handler -> {
+                    logger.trace(
+                            String.format(
+                                    "Registering request handler (priority %d) for [%s]\t%s",
+                                    handler.getPriority(), handler.httpMethod(), handler.path()));
                     if (!handler.isAvailable()) {
+                        logger.trace("Handler unavailable");
                         return;
                     }
                     Route route = getHandlerRoute(router, handler);
@@ -213,11 +198,6 @@ public class WebServer {
                             false)
                     .failureHandler(failureHandler);
         }
-
-        router.post("/api/v1/recordings")
-                .handler(BodyHandler.create(true))
-                .handler(this::handleRecordingUploadRequest)
-                .failureHandler(failureHandler);
 
         router.get("/*")
                 .handler(StaticHandler.create(WEB_CLIENT_ASSETS_BASE))
@@ -348,82 +328,6 @@ public class WebServer {
         ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
     }
 
-    void handleRecordingUploadRequest(RoutingContext ctx) {
-        try {
-            if (!validateRequestAuthorization(ctx.request()).get()) {
-                throw new HttpStatusException(401);
-            }
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
-
-        if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpStatusException(503, "Recording saving not available");
-        }
-
-        FileUpload upload = null;
-        for (FileUpload fu : ctx.fileUploads()) {
-            // ignore unrecognized form fields
-            if ("recording".equals(fu.name())) {
-                upload = fu;
-                break;
-            }
-        }
-
-        if (upload == null) {
-            throw new HttpStatusException(400, "No recording submission");
-        }
-
-        String fileName = upload.fileName();
-        if (fileName == null || fileName.isEmpty()) {
-            throw new HttpStatusException(400, "Recording name must not be empty");
-        }
-
-        if (fileName.endsWith(".jfr")) {
-            fileName = fileName.substring(0, fileName.length() - 4);
-        }
-
-        Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
-        if (!m.matches()) {
-            throw new HttpStatusException(400, "Incorrect recording file name pattern");
-        }
-
-        String targetName = m.group(1);
-        String recordingName = m.group(2);
-        String timestamp = m.group(3);
-        int count =
-                m.group(4) == null || m.group(4).isEmpty()
-                        ? 0
-                        : Integer.parseInt(m.group(4).substring(1));
-
-        final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
-        final String uploadedFileName = upload.uploadedFileName();
-        validateRecording(
-                upload.uploadedFileName(),
-                (res) ->
-                        saveRecording(
-                                basename,
-                                uploadedFileName,
-                                count,
-                                (res2) -> {
-                                    if (res2.failed()) {
-                                        ctx.fail(res2.cause());
-                                        return;
-                                    }
-
-                                    ctx.response()
-                                            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-                                    endWithJsonKeyValue("name", res2.result(), ctx.response());
-
-                                    logger.info(
-                                            String.format("Recording saved as %s", res2.result()));
-                                }));
-    }
-
-    private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
-        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
-    }
-
     private boolean isCorsEnabled() {
         return this.env.hasEnv(ENABLE_CORS_ENV);
     }
@@ -442,135 +346,6 @@ public class WebServer {
                     HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
                     String.join(", ", Arrays.asList(AUTH_SCHEME_HEADER)));
         }
-    }
-
-    private <T> AsyncResult<T> makeAsyncResult(T result) {
-        return new AsyncResult<>() {
-            @Override
-            public T result() {
-                return result;
-            }
-
-            @Override
-            public Throwable cause() {
-                return null;
-            }
-
-            @Override
-            public boolean succeeded() {
-                return true;
-            }
-
-            @Override
-            public boolean failed() {
-                return false;
-            }
-        };
-    }
-
-    private <T> AsyncResult<T> makeFailedAsyncResult(Throwable cause) {
-        return new AsyncResult<>() {
-            @Override
-            public T result() {
-                return null;
-            }
-
-            @Override
-            public Throwable cause() {
-                return cause;
-            }
-
-            @Override
-            public boolean succeeded() {
-                return false;
-            }
-
-            @Override
-            public boolean failed() {
-                return true;
-            }
-        };
-    }
-
-    private void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
-        server.getVertx()
-                .executeBlocking(
-                        event -> {
-                            try {
-                                JfrLoaderToolkit.loadEvents(
-                                        new File(recordingFile)); // try loading events to see if
-                                // it's a valid file
-                                event.complete();
-                            } catch (CouldNotLoadRecordingException | IOException e) {
-                                event.fail(e);
-                            }
-                        },
-                        res -> {
-                            if (res.failed()) {
-                                Throwable t;
-                                if (res.cause() instanceof CouldNotLoadRecordingException) {
-                                    t =
-                                            new HttpStatusException(
-                                                    400,
-                                                    "Not a valid JFR recording file",
-                                                    res.cause());
-                                } else {
-                                    t = res.cause();
-                                }
-
-                                handler.handle(makeFailedAsyncResult(t));
-                                return;
-                            }
-
-                            handler.handle(makeAsyncResult(null));
-                        });
-    }
-
-    private void saveRecording(
-            String basename, String tmpFile, int counter, Handler<AsyncResult<String>> handler) {
-        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
-        // are also differentiated by second-resolution timestamp
-        if (counter >= Byte.MAX_VALUE) {
-            handler.handle(
-                    makeFailedAsyncResult(
-                            new IOException(
-                                    "Recording could not be saved. File already exists and rename attempts were exhausted.")));
-            return;
-        }
-
-        String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
-
-        server.getVertx()
-                .fileSystem()
-                .exists(
-                        savedRecordingsPath.resolve(filename).toString(),
-                        (res) -> {
-                            if (res.failed()) {
-                                handler.handle(makeFailedAsyncResult(res.cause()));
-                                return;
-                            }
-
-                            if (res.result()) {
-                                saveRecording(basename, tmpFile, counter + 1, handler);
-                                return;
-                            }
-
-                            // verified no name clash at this time
-                            server.getVertx()
-                                    .fileSystem()
-                                    .move(
-                                            tmpFile,
-                                            savedRecordingsPath.resolve(filename).toString(),
-                                            (res2) -> {
-                                                if (res2.failed()) {
-                                                    handler.handle(
-                                                            makeFailedAsyncResult(res2.cause()));
-                                                    return;
-                                                }
-
-                                                handler.handle(makeAsyncResult(filename));
-                                            });
-                        });
     }
 
     public static class DownloadDescriptor {

@@ -41,31 +41,36 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import io.vertx.core.Handler;
+import javax.inject.Inject;
+
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-public interface RequestHandler extends Handler<RoutingContext> {
-    /** Lower number == higher priority handler */
-    static final int DEFAULT_PRIORITY = 100;
+class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    default int getPriority() {
-        return DEFAULT_PRIORITY;
+    private final BodyHandler bodyHandler;
+
+    @Inject
+    RecordingsPostBodyHandler(AuthManager auth) {
+        super(auth);
+        this.bodyHandler = BodyHandler.create(true);
     }
 
-    String path();
-
-    HttpMethod httpMethod();
-
-    default boolean isAvailable() {
-        return true;
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
     }
 
-    default boolean isAsync() {
-        return false;
+    @Override
+    public String path() {
+        return "/api/v1/recordings";
     }
 
-    default boolean isOrdered() {
-        return false;
+    @Override
+    void handleAuthenticated(RoutingContext ctx) {
+        this.bodyHandler.handle(ctx);
     }
 }

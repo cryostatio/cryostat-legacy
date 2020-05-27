@@ -41,17 +41,14 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
-import java.nio.file.Path;
 import java.util.Set;
 
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -70,21 +67,10 @@ public abstract class WebModule {
             HttpServer httpServer,
             NetworkConfiguration netConf,
             Environment env,
-            @Named("RECORDINGS_PATH") Path recordingsPath,
-            FileSystem fs,
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager authManager,
             Logger logger) {
-        return new WebServer(
-                httpServer,
-                netConf,
-                env,
-                recordingsPath,
-                fs,
-                requestHandlers,
-                gson,
-                authManager,
-                logger);
+        return new WebServer(httpServer, netConf, env, requestHandlers, gson, authManager, logger);
     }
 }

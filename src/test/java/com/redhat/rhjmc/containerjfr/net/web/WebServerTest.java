@@ -42,11 +42,6 @@
 package com.redhat.rhjmc.containerjfr.net.web;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
@@ -56,10 +51,7 @@ import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
-import java.nio.file.Path;
-import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -86,16 +78,6 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.Vertx;
-import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.FileUpload;
-import io.vertx.ext.web.RoutingContext;
-
 @ExtendWith(MockitoExtension.class)
 class WebServerTest {
 
@@ -103,8 +85,6 @@ class WebServerTest {
     @Mock HttpServer httpServer;
     @Mock NetworkConfiguration netConf;
     @Mock Environment env;
-    @Mock Path recordingsPath;
-    @Mock com.redhat.rhjmc.containerjfr.core.sys.FileSystem fs;
     @Mock AuthManager authManager;
     Gson gson = MainModule.provideGson();
     @Mock Logger logger;
@@ -113,17 +93,7 @@ class WebServerTest {
 
     @BeforeEach
     void setup() {
-        exporter =
-                new WebServer(
-                        httpServer,
-                        netConf,
-                        env,
-                        recordingsPath,
-                        fs,
-                        Set.of(),
-                        gson,
-                        authManager,
-                        logger);
+        exporter = new WebServer(httpServer, netConf, env, Set.of(), gson, authManager, logger);
     }
 
     @Test
@@ -136,17 +106,7 @@ class WebServerTest {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         assertDoesNotThrow(
-                () ->
-                        new WebServer(
-                                httpServer,
-                                netConf,
-                                env,
-                                recordingsPath,
-                                fs,
-                                Set.of(),
-                                gson,
-                                authManager,
-                                logger));
+                () -> new WebServer(httpServer, netConf, env, Set.of(), gson, authManager, logger));
     }
 
     @Test
@@ -283,138 +243,5 @@ class WebServerTest {
                 Matchers.equalTo(
                         "https://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
                                 + recordingName));
-    }
-
-    @Test
-    void shouldHandleRecordingUploadRequest() throws Exception {
-        String basename = "localhost_test_20191219T213834Z";
-        String filename = basename + ".jfr";
-        String savePath = "/some/path/";
-
-        RoutingContext ctx = mock(RoutingContext.class);
-
-        when(authManager.validateHttpHeader(any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-
-        when(fs.isDirectory(recordingsPath)).thenReturn(true);
-
-        Set<FileUpload> uploads = new HashSet<>();
-        FileUpload upload = mock(FileUpload.class);
-        uploads.add(upload);
-        when(ctx.fileUploads()).thenReturn(uploads);
-        when(upload.name()).thenReturn("recording");
-        when(upload.fileName()).thenReturn(filename);
-        when(upload.uploadedFileName()).thenReturn("foo");
-
-        Path filePath = mock(Path.class);
-        when(filePath.toString()).thenReturn(savePath + filename);
-        when(recordingsPath.resolve(filename)).thenReturn(filePath);
-
-        Vertx vertx = mock(Vertx.class);
-        when(httpServer.getVertx()).thenReturn(vertx);
-
-        FileSystem fs = mock(FileSystem.class);
-        when(vertx.fileSystem()).thenReturn(fs);
-
-        doAnswer(
-                        invocation -> {
-                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
-                            handler.handle(
-                                    new AsyncResult<>() {
-                                        @Override
-                                        public Boolean result() {
-                                            return false;
-                                        }
-
-                                        @Override
-                                        public Throwable cause() {
-                                            return null;
-                                        }
-
-                                        @Override
-                                        public boolean succeeded() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public boolean failed() {
-                                            return false;
-                                        }
-                                    });
-
-                            return null;
-                        })
-                .when(vertx)
-                .executeBlocking(any(Handler.class), any(Handler.class));
-
-        when(fs.exists(eq(savePath + filename), any(Handler.class)))
-                .thenAnswer(
-                        invocation -> {
-                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(1);
-                            handler.handle(
-                                    new AsyncResult<>() {
-                                        @Override
-                                        public Boolean result() {
-                                            return false;
-                                        }
-
-                                        @Override
-                                        public Throwable cause() {
-                                            return null;
-                                        }
-
-                                        @Override
-                                        public boolean succeeded() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public boolean failed() {
-                                            return false;
-                                        }
-                                    });
-
-                            return null;
-                        });
-
-        when(fs.move(eq("foo"), eq(savePath + filename), any(Handler.class)))
-                .thenAnswer(
-                        invocation -> {
-                            Handler<AsyncResult<Boolean>> handler = invocation.getArgument(2);
-                            handler.handle(
-                                    new AsyncResult<>() {
-                                        @Override
-                                        public Boolean result() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public Throwable cause() {
-                                            return null;
-                                        }
-
-                                        @Override
-                                        public boolean succeeded() {
-                                            return true;
-                                        }
-
-                                        @Override
-                                        public boolean failed() {
-                                            return false;
-                                        }
-                                    });
-
-                            return null;
-                        });
-
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-
-        exporter.handleRecordingUploadRequest(ctx);
-
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-        verify(rep).end("{\"name\":\"" + filename + "\"}");
     }
 }
