@@ -73,7 +73,6 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -84,7 +83,6 @@ class WebServerTest {
     WebServer exporter;
     @Mock HttpServer httpServer;
     @Mock NetworkConfiguration netConf;
-    @Mock Environment env;
     @Mock AuthManager authManager;
     Gson gson = MainModule.provideGson();
     @Mock Logger logger;
@@ -93,7 +91,7 @@ class WebServerTest {
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(httpServer, netConf, env, Set.of(), gson, authManager, logger);
+        exporter = new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger);
     }
 
     @Test
@@ -106,7 +104,7 @@ class WebServerTest {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         assertDoesNotThrow(
-                () -> new WebServer(httpServer, netConf, env, Set.of(), gson, authManager, logger));
+                () -> new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger));
     }
 
     @Test

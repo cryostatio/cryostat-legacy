@@ -52,7 +52,6 @@ import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -67,7 +66,6 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -83,18 +81,15 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class WebServer {
 
-    private static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
-
     public static final String MIME_TYPE_JSON = "application/json";
     public static final String MIME_TYPE_HTML = "text/html";
     private static final String MIME_TYPE_PLAINTEXT = "text/plain";
 
     // Use X- prefix so as to not trigger web-browser auth dialogs
-    private static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
+    public static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
 
     private final HttpServer server;
     private final NetworkConfiguration netConf;
-    private final Environment env;
     private final List<RequestHandler> requestHandlers;
     private final Gson gson;
     private final AuthManager auth;
@@ -103,14 +98,12 @@ public class WebServer {
     WebServer(
             HttpServer server,
             NetworkConfiguration netConf,
-            Environment env,
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager auth,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
-        this.env = env;
         this.requestHandlers = new ArrayList<>(requestHandlers);
         Collections.sort(this.requestHandlers, (a, b) -> a.path().compareTo(b.path()));
         this.gson = gson;
@@ -190,17 +183,6 @@ public class WebServer {
                     }
                 });
 
-        if (isCorsEnabled()) {
-            router.options("/*")
-                    .blockingHandler(
-                            ctx -> {
-                                enableCors(ctx.response());
-                                ctx.response().end();
-                            },
-                            false)
-                    .failureHandler(failureHandler);
-        }
-
         this.server.requestHandler(
                 req -> {
                     Instant start = Instant.now();
@@ -216,7 +198,6 @@ public class WebServer {
                                                             req.response().getStatusCode(),
                                                             Duration.between(start, Instant.now())
                                                                     .toMillis())));
-                    enableCors(req.response());
                     router.handle(req);
                 });
     }
@@ -293,26 +274,6 @@ public class WebServer {
 
     private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
         response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
-    }
-
-    private boolean isCorsEnabled() {
-        return this.env.hasEnv(ENABLE_CORS_ENV);
-    }
-
-    private void enableCors(HttpServerResponse response) {
-        if (isCorsEnabled()) {
-            response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, "http://localhost:9000");
-            response.putHeader("Vary", "Origin");
-            response.putHeader(
-                    HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET, POST, OPTIONS, HEAD");
-            response.putHeader(
-                    HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS,
-                    String.join(", ", Arrays.asList("authorization", "Authorization")));
-            response.putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-            response.putHeader(
-                    HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
-                    String.join(", ", Arrays.asList(AUTH_SCHEME_HEADER)));
-        }
     }
 
     public static class DownloadDescriptor {

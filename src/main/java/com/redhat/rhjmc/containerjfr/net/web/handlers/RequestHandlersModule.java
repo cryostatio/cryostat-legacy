@@ -50,6 +50,14 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
 
     @Binds
