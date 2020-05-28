@@ -112,8 +112,7 @@ public class WebServer {
         this.netConf = netConf;
         this.env = env;
         this.requestHandlers = new ArrayList<>(requestHandlers);
-        Collections.sort(
-                this.requestHandlers, (a, b) -> Integer.compare(a.getPriority(), b.getPriority()));
+        Collections.sort(this.requestHandlers, (a, b) -> a.path().compareTo(b.path()));
         this.gson = gson;
         this.auth = auth;
         this.logger = logger;
@@ -172,7 +171,8 @@ public class WebServer {
                             String.format(
                                     "Registering request handler (priority %d) for [%s]\t%s",
                                     handler.getPriority(), handler.httpMethod(), handler.path()));
-                    Route route = router.route(handler.httpMethod(), handler.path());
+                    Route route = router.route(handler.httpMethod(),
+                            handler.path()).order(handler.getPriority());
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {
