@@ -84,6 +84,16 @@ class ReportGetHandler extends TargetReportGetHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) {
         String recordingName = ctx.pathParam("recordingName");
         handleReportPageRequest(null, recordingName, ctx);

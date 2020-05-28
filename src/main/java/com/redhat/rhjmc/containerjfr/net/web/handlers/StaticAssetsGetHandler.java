@@ -67,11 +67,6 @@ class StaticAssetsGetHandler implements RequestHandler {
     }
 
     @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
     public void handle(RoutingContext ctx) {
         staticHandler.handle(ctx);
     }

@@ -75,6 +75,16 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return false;
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) {
         String recordingName = ctx.pathParam("recordingName");
         handleRecordingDownloadRequest(null, recordingName, ctx);

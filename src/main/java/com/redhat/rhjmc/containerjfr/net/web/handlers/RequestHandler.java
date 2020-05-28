@@ -62,10 +62,10 @@ public interface RequestHandler extends Handler<RoutingContext> {
     }
 
     default boolean isAsync() {
-        return false;
+        return true;
     }
 
     default boolean isOrdered() {
-        return false;
+        return true;
     }
 }

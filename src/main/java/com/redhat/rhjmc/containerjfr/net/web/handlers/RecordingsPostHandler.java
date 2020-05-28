@@ -111,6 +111,16 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) {
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new HttpStatusException(503, "Recording saving not available");

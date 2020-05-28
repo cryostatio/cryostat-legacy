@@ -74,11 +74,6 @@ class GrafanaDatasourceUrlGetHandler implements RequestHandler {
     }
 
     @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
     public void handle(RoutingContext ctx) {
         if (!this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
             throw new HttpStatusException(500, "Deployment has no Grafana configuration");

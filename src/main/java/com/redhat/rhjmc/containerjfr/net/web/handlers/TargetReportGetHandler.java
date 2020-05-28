@@ -93,6 +93,11 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");

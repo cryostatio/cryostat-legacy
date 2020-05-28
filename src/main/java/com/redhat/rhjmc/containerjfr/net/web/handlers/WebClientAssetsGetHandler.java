@@ -73,11 +73,6 @@ class WebClientAssetsGetHandler implements RequestHandler {
     }
 
     @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
     public void handle(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, WebServer.MIME_TYPE_HTML);
         ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");

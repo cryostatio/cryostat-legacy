@@ -78,11 +78,6 @@ class ClientUrlGetHandler implements RequestHandler {
     }
 
     @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
     public void handle(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ResponseUtils.MIME_TYPE_JSON);
         try {
