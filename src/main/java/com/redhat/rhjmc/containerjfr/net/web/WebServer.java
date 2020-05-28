@@ -172,17 +172,17 @@ public class WebServer {
                             String.format(
                                     "Registering request handler (priority %d) for [%s]\t%s",
                                     handler.getPriority(), handler.httpMethod(), handler.path()));
-                    if (!handler.isAvailable()) {
-                        logger.trace("Handler unavailable");
-                        return;
-                    }
                     Route route = router.route(handler.httpMethod(), handler.path());
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {
                         route = route.blockingHandler(handler, handler.isOrdered());
                     }
-                    route.failureHandler(failureHandler);
+                    route = route.failureHandler(failureHandler);
+                    if (!handler.isAvailable()) {
+                        logger.trace("Handler disabled");
+                        route = route.disable();
+                    }
                 });
 
         if (isCorsEnabled()) {
