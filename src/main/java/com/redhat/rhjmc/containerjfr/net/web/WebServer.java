@@ -176,7 +176,7 @@ public class WebServer {
                         logger.trace("Handler unavailable");
                         return;
                     }
-                    Route route = getHandlerRoute(router, handler);
+                    Route route = router.route(handler.httpMethod(), handler.path());
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {
@@ -214,31 +214,6 @@ public class WebServer {
                     enableCors(req.response());
                     router.handle(req);
                 });
-    }
-
-    Route getHandlerRoute(Router router, RequestHandler handler) {
-        switch (handler.httpMethod()) {
-            case CONNECT:
-                return router.connect(handler.path());
-            case DELETE:
-                return router.delete(handler.path());
-            case GET:
-                return router.get(handler.path());
-            case HEAD:
-                return router.head(handler.path());
-            case OPTIONS:
-                return router.options(handler.path());
-            case PATCH:
-                return router.patch(handler.path());
-            case POST:
-                return router.post(handler.path());
-            case PUT:
-                return router.put(handler.path());
-            case TRACE:
-                return router.trace(handler.path());
-            default:
-                throw new IllegalArgumentException(handler.httpMethod().toString());
-        }
     }
 
     public void stop() {
