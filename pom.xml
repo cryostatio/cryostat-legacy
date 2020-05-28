@@ -17,6 +17,7 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
+  <baseImage>registry.access.redhat.com/ubi8/openjdk-11</baseImage>
   <node.version>v12.5.0</node.version>
   <npm.version>6.13.4</npm.version>
 
@@ -276,7 +277,7 @@
           <executable>${imageBuilder}</executable>
         </dockerClient>
         <from>
-          <image>gcr.io/distroless/java:11</image>
+          <image>${baseImage}</image>
         </from>
         <to>
           <image>${containerjfr.imageStream}</image>
