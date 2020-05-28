@@ -171,8 +171,13 @@ public class WebServer {
                             String.format(
                                     "Registering request handler (priority %d) for [%s]\t%s",
                                     handler.getPriority(), handler.httpMethod(), handler.path()));
-                    Route route = router.route(handler.httpMethod(),
-                            handler.path()).order(handler.getPriority());
+                    Route route;
+                    if (RequestHandler.ALL_PATHS.equals(handler.path())) {
+                        route = router.route();
+                    } else {
+                        route = router.route(handler.httpMethod(), handler.path());
+                    }
+                    route = route.order(handler.getPriority());
                     if (handler.isAsync()) {
                         route = route.handler(handler);
                     } else {

@@ -49,6 +49,8 @@ public interface RequestHandler extends Handler<RoutingContext> {
     /** Lower number == higher priority handler */
     static final int DEFAULT_PRIORITY = 100;
 
+    static final String ALL_PATHS = "ALL_PATHS";
+
     default int getPriority() {
         return DEFAULT_PRIORITY;
     }
