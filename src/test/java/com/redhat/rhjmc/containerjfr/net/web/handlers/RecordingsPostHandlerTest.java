@@ -66,6 +66,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -96,7 +97,7 @@ class RecordingsPostHandlerTest {
                         httpServer,
                         cjfrFs,
                         recordingsPath,
-                        new ResponseUtils(MainModule.provideGson()),
+                        MainModule.provideGson(),
                         logger);
     }
 
@@ -229,11 +230,12 @@ class RecordingsPostHandlerTest {
 
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         handler.handle(ctx);
 
         InOrder inOrder = Mockito.inOrder(rep);
-        inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         inOrder.verify(rep).end("{\"name\":\"" + filename + "\"}");
     }
 }

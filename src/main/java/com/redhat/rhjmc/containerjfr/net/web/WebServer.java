@@ -54,6 +54,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
@@ -73,17 +74,12 @@ import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class WebServer {
-
-    public static final String MIME_TYPE_JSON = "application/json";
-    public static final String MIME_TYPE_HTML = "text/html";
-    private static final String MIME_TYPE_PLAINTEXT = "text/plain";
 
     // Use X- prefix so as to not trigger web-browser auth dialogs
     public static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
@@ -145,16 +141,17 @@ public class WebServer {
                             .setStatusMessage(exception.getMessage());
 
                     String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
-                    if (accept.contains(MIME_TYPE_JSON)
-                            && accept.indexOf(MIME_TYPE_JSON)
-                                    < accept.indexOf(MIME_TYPE_PLAINTEXT)) {
-                        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_JSON);
-                        endWithJsonKeyValue("message", payload, ctx.response());
+                    if (accept.contains(HttpMimeType.JSON.mime())
+                            && accept.indexOf(HttpMimeType.JSON.mime())
+                                    < accept.indexOf(HttpMimeType.PLAINTEXT.mime())) {
+                        ctx.response()
+                                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                                .end(gson.toJson(Map.of("message", payload)));
                         return;
                     }
 
                     ctx.response()
-                            .putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_PLAINTEXT)
+                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime())
                             .end(payload);
                 };
 
@@ -272,10 +269,6 @@ public class WebServer {
 
     private String getTargetId(JFRConnection conn) throws IOException {
         return conn.getJMXURL().toString();
-    }
-
-    private <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
-        response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
     }
 
     public static class DownloadDescriptor {

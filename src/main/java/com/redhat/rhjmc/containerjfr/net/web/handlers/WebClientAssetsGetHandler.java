@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import javax.inject.Inject;
 
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 import io.vertx.core.http.HttpHeaders;
@@ -74,7 +75,7 @@ class WebClientAssetsGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, WebServer.MIME_TYPE_HTML);
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
     }
 }

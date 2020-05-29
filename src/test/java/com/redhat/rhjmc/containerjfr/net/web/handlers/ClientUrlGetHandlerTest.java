@@ -58,10 +58,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -76,13 +78,13 @@ class ClientUrlGetHandlerTest {
     class WithoutSsl {
 
         ClientUrlGetHandler handler;
-        ResponseUtils utils = new ResponseUtils(MainModule.provideGson());
+        Gson gson = MainModule.provideGson();
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
 
         @BeforeEach
         void setup() {
-            this.handler = new ClientUrlGetHandler(utils, httpServer, netConf);
+            this.handler = new ClientUrlGetHandler(gson, httpServer, netConf);
         }
 
         @Test
@@ -111,7 +113,7 @@ class ClientUrlGetHandlerTest {
             handler.handle(ctx);
 
             InOrder inOrder = inOrder(rep);
-            inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             inOrder.verify(rep).end("{\"clientUrl\":\"ws://hostname:1/api/v1/command\"}");
         }
 
@@ -130,14 +132,14 @@ class ClientUrlGetHandlerTest {
     class WithSsl {
 
         ClientUrlGetHandler handler;
-        ResponseUtils utils = new ResponseUtils(MainModule.provideGson());
+        Gson gson = MainModule.provideGson();
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
 
         @BeforeEach
         void setup() {
             when(httpServer.isSsl()).thenReturn(true);
-            this.handler = new ClientUrlGetHandler(utils, httpServer, netConf);
+            this.handler = new ClientUrlGetHandler(gson, httpServer, netConf);
         }
 
         @Test
@@ -151,7 +153,7 @@ class ClientUrlGetHandlerTest {
             handler.handle(ctx);
 
             InOrder inOrder = inOrder(rep);
-            inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             inOrder.verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/command\"}");
         }
     }

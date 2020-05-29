@@ -55,7 +55,7 @@ import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 
 import io.vertx.core.http.HttpHeaders;
@@ -115,7 +115,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
 
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, WebServer.MIME_TYPE_HTML);
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             try (InputStream stream = descriptor.get().stream) {
                 // blocking function, must be called from a blocking handler
                 ctx.response().end(reportGenerator.generateReport(stream));

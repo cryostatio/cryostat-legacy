@@ -39,24 +39,21 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.handlers;
+package com.redhat.rhjmc.containerjfr.net.web;
 
-import javax.inject.Inject;
+public enum HttpMimeType {
+    PLAINTEXT("text/plain"),
+    HTML("text/html"),
+    JSON("application/json"),
+    OCTET_STREAM("application/octet-stream");
 
-import com.google.gson.Gson;
-import io.vertx.core.http.HttpServerResponse;
+    private final String mime;
 
-class ResponseUtils {
-
-    static final String MIME_TYPE_JSON = "application/json";
-    private final Gson gson;
-
-    @Inject
-    ResponseUtils(Gson gson) {
-        this.gson = gson;
+    HttpMimeType(String mime) {
+        this.mime = mime;
     }
 
-    <T> void endWithJsonKeyValue(String key, T value, HttpServerResponse response) {
-        response.end(String.format("{\"%s\":%s}", key, gson.toJson(value)));
+    public String mime() {
+        return mime;
     }
 }

@@ -68,6 +68,7 @@ import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -140,7 +141,7 @@ class TargetReportGetHandlerTest {
 
         handler.handle(ctx);
 
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         verify(rep).end(content);
     }
 
@@ -172,7 +173,7 @@ class TargetReportGetHandlerTest {
 
         handler.handle(ctx);
 
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         verify(rep).end(content);
     }
 

@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -53,11 +54,13 @@ import javax.inject.Named;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -76,7 +79,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Vertx vertx;
     private final FileSystem fs;
     private final Path savedRecordingsPath;
-    private final ResponseUtils utils;
+    private final Gson gson;
     private final Logger logger;
 
     @Inject
@@ -85,13 +88,13 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             HttpServer httpServer,
             FileSystem fs,
             @Named("RECORDINGS_PATH") Path savedRecordingsPath,
-            ResponseUtils utils,
+            Gson gson,
             Logger logger) {
         super(auth);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
-        this.utils = utils;
+        this.gson = gson;
         this.logger = logger;
     }
 
@@ -179,9 +182,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     ctx.response()
                                             .putHeader(
                                                     HttpHeaders.CONTENT_TYPE,
-                                                    WebServer.MIME_TYPE_JSON);
-                                    utils.endWithJsonKeyValue(
-                                            "name", res2.result(), ctx.response());
+                                                    HttpMimeType.JSON.mime())
+                                            .end(gson.toJson(Map.of("name", res2.result())));
 
                                     logger.info(
                                             String.format("Recording saved as %s", res2.result()));

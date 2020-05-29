@@ -59,6 +59,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -70,7 +71,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
-    static final String MIME_TYPE_OCTET_STREAM = "application/octet-stream";
     static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV = "USE_LOW_MEM_PRESSURE_STREAMING";
 
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
@@ -132,7 +132,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             }
 
             ctx.response().setChunked(true);
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, MIME_TYPE_OCTET_STREAM);
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
             descriptor
                     .get()
                     .bytes

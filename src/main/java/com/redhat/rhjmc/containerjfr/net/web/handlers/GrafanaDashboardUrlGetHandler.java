@@ -41,9 +41,14 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.Map;
+
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -55,12 +60,12 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
     static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
     private final Environment env;
-    private final ResponseUtils responseUtils;
+    private final Gson gson;
 
     @Inject
-    GrafanaDashboardUrlGetHandler(Environment env, ResponseUtils responseUtils) {
+    GrafanaDashboardUrlGetHandler(Environment env, Gson gson) {
         this.env = env;
-        this.responseUtils = responseUtils;
+        this.gson = gson;
     }
 
     @Override
@@ -78,8 +83,8 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
         if (!this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
             throw new HttpStatusException(500, "Deployment has no Grafana configuration");
         }
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ResponseUtils.MIME_TYPE_JSON);
-        responseUtils.endWithJsonKeyValue(
-                "grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV), ctx.response());
+        ctx.response()
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                .end(gson.toJson(Map.of("grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV))));
     }
 }

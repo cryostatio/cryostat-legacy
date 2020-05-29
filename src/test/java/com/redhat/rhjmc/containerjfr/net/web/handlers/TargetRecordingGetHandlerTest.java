@@ -70,6 +70,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -152,7 +153,7 @@ class TargetRecordingGetHandlerTest {
 
         handler.handle(ctx);
 
-        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
+        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
         Assertions.assertArrayEquals(src, dst.getBytes());
     }
 

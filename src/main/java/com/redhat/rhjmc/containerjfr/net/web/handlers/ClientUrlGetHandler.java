@@ -43,11 +43,15 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -56,13 +60,13 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class ClientUrlGetHandler implements RequestHandler {
 
-    private final ResponseUtils utils;
+    private final Gson gson;
     private final boolean isSsl;
     private final NetworkConfiguration netConf;
 
     @Inject
-    ClientUrlGetHandler(ResponseUtils utils, HttpServer server, NetworkConfiguration netConf) {
-        this.utils = utils;
+    ClientUrlGetHandler(Gson gson, HttpServer server, NetworkConfiguration netConf) {
+        this.gson = gson;
         this.isSsl = server.isSsl();
         this.netConf = netConf;
     }
@@ -79,18 +83,17 @@ class ClientUrlGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, ResponseUtils.MIME_TYPE_JSON);
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         try {
             // TODO replace String.format with URIBuilder or something else than manual string
             // construction
-            utils.endWithJsonKeyValue(
-                    "clientUrl",
+            String clientUrl =
                     String.format(
                             "%s://%s:%d/api/v1/command",
                             isSsl ? "wss" : "ws",
                             netConf.getWebServerHost(),
-                            netConf.getExternalWebServerPort()),
-                    ctx.response());
+                            netConf.getExternalWebServerPort());
+            ctx.response().end(gson.toJson(Map.of("clientUrl", clientUrl)));
         } catch (SocketException | UnknownHostException e) {
             throw new HttpStatusException(500, e);
         }

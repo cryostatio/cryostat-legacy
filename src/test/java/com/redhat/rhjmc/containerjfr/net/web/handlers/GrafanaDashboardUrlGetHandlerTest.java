@@ -52,10 +52,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -67,12 +70,12 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class GrafanaDashboardUrlGetHandlerTest {
 
     GrafanaDashboardUrlGetHandler handler;
-    ResponseUtils utils = new ResponseUtils(MainModule.provideGson());
+    Gson gson = MainModule.provideGson();
     @Mock Environment env;
 
     @BeforeEach
     void setup() {
-        this.handler = new GrafanaDashboardUrlGetHandler(env, utils);
+        this.handler = new GrafanaDashboardUrlGetHandler(env, gson);
     }
 
     @Test
@@ -95,6 +98,7 @@ class GrafanaDashboardUrlGetHandlerTest {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
         String url = "http://hostname:1/path?query=value";
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
@@ -102,7 +106,7 @@ class GrafanaDashboardUrlGetHandlerTest {
 
         handler.handle(ctx);
 
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         verify(rep).end("{\"grafanaDashboardUrl\":\"" + url + "\"}");
     }
 
