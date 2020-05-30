@@ -189,11 +189,11 @@ class ListCommandTest implements ValidatesTargetId {
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recordings:");
         inOrder.verify(cw).println(Mockito.contains(
-                "\tgetDownloadURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/foo\n"
-                + "\tgetReportURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/foo"));
+                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/foo\n"
+                + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/foo"));
         inOrder.verify(cw).println(Mockito.contains(
-                "\tgetDownloadURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/bar\n"
-                + "\tgetReportURL\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/bar"));
+                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/bar\n"
+                + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/bar"));
     }
 
     @Test
