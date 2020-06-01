@@ -49,6 +49,8 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.ArrayUtils;
+
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
@@ -88,7 +90,12 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
                         cw.println("\tNone");
                     }
                     for (IRecordingDescriptor recording : recordings) {
-                        cw.println(toString(recording));
+                        HyperlinkedSerializableRecordingDescriptor descriptor =
+                                new HyperlinkedSerializableRecordingDescriptor(
+                                        recording,
+                                        exporter.getDownloadURL(connection, recording.getName()),
+                                        exporter.getReportURL(connection, recording.getName()));
+                        cw.println(toString(descriptor));
                     }
                     return null;
                 });
@@ -136,10 +143,13 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
         return true;
     }
 
-    private static String toString(IRecordingDescriptor descriptor) throws Exception {
+    private static String toString(HyperlinkedSerializableRecordingDescriptor descriptor)
+            throws Exception {
         StringBuilder sb = new StringBuilder();
-
-        for (Method m : descriptor.getClass().getDeclaredMethods()) {
+        Method[] methods = ArrayUtils.addAll(
+                descriptor.getClass().getSuperclass().getDeclaredMethods(),
+                descriptor.getClass().getDeclaredMethods());
+        for (Method m : methods) {
             if (m.getParameterTypes().length == 0
                     && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
                 sb.append("\t");
