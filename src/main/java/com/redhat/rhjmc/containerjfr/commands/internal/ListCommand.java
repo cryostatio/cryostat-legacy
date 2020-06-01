@@ -146,9 +146,10 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
     private static String toString(HyperlinkedSerializableRecordingDescriptor descriptor)
             throws Exception {
         StringBuilder sb = new StringBuilder();
-        Method[] methods = ArrayUtils.addAll(
-                descriptor.getClass().getSuperclass().getDeclaredMethods(),
-                descriptor.getClass().getDeclaredMethods());
+        Method[] methods =
+                ArrayUtils.addAll(
+                        descriptor.getClass().getSuperclass().getDeclaredMethods(),
+                        descriptor.getClass().getDeclaredMethods());
         for (Method m : methods) {
             if (m.getParameterTypes().length == 0
                     && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
