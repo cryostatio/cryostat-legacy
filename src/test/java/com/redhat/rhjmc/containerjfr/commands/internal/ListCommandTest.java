@@ -188,12 +188,16 @@ class ListCommandTest implements ValidatesTargetId {
         command.execute(new String[] {"foo:9091"});
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Available recordings:");
-        inOrder.verify(cw).println(Mockito.contains(
-                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/foo\n"
-                + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/foo"));
-        inOrder.verify(cw).println(Mockito.contains(
-                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/bar\n"
-                + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/bar"));
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/foo\n"
+                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/foo"));
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/bar\n"
+                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/bar"));
     }
 
     @Test
