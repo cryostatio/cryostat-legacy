@@ -59,6 +59,7 @@ import com.redhat.rhjmc.containerjfr.tui.TuiModule;
 
 import dagger.Module;
 import dagger.Provides;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Module(
         includes = {
@@ -69,6 +70,8 @@ import dagger.Provides;
             TuiModule.class
         })
 public abstract class MainModule {
+    public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
+
     @Provides
     @Singleton
     static Logger provideLogger() {
@@ -82,9 +85,10 @@ public abstract class MainModule {
         return new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
     }
 
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
-    @Named("RECORDINGS_PATH")
+    @Named(RECORDINGS_PATH)
     static Path provideSavedRecordingsPath() {
-        return Paths.get("flightrecordings");
+        return Paths.get("/", "flightrecordings");
     }
 }

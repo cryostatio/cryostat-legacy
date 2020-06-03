@@ -49,6 +49,7 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -63,7 +64,7 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     RecordingGetHandler(
             AuthManager auth,
             Environment env,
-            @Named("RECORDINGS_PATH") Path savedRecordingsPath,
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Logger logger) {
         super(auth, env, null, logger);
         this.savedRecordingsPath = savedRecordingsPath;
