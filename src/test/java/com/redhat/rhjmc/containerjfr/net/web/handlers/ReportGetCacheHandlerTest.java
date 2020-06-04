@@ -55,12 +55,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpHeaders;
@@ -144,7 +148,18 @@ class ReportGetCacheHandlerTest {
         when(req.path()).thenReturn(handler.path());
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(fs.existsBlocking(Mockito.anyString())).thenReturn(true);
+        when(fs.exists(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock arg0) throws Throwable {
+                                AsyncResult<Boolean> res = mock(AsyncResult.class);
+                                when(res.failed()).thenReturn(false);
+                                when(res.result()).thenReturn(true);
+                                ((Handler) arg0.getArgument(1)).handle(res);
+                                return null;
+                            }
+                        });
 
         handler.handle(ctx);
 
@@ -160,7 +175,18 @@ class ReportGetCacheHandlerTest {
         HttpServerResponse res = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(res);
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(fs.existsBlocking(Mockito.anyString())).thenReturn(false);
+        when(fs.exists(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock arg0) throws Throwable {
+                                AsyncResult<Boolean> res = mock(AsyncResult.class);
+                                when(res.failed()).thenReturn(false);
+                                when(res.result()).thenReturn(false);
+                                ((Handler) arg0.getArgument(1)).handle(res);
+                                return null;
+                            }
+                        });
 
         handler.handle(ctx);
 

@@ -58,6 +58,7 @@ import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @Singleton
 public class ReportGetCacheHandler extends AbstractAuthenticatedRequestHandler {
@@ -98,17 +99,24 @@ public class ReportGetCacheHandler extends AbstractAuthenticatedRequestHandler {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         String recordingName = ctx.pathParam("recordingName");
         String cachedFile = getCachedReportPath(reportCachePath, recordingName);
-        if (fs.existsBlocking(cachedFile)) {
-            logger.info(
-                    String.format(
-                            "(%s): %s %s served from reports cache",
-                            ctx.request().remoteAddress().toString(),
-                            ctx.request().method().toString(),
-                            ctx.request().path()));
-            ctx.response().sendFile(cachedFile);
-        } else {
-            ctx.next();
-        }
+        fs.exists(
+                cachedFile,
+                res -> {
+                    if (res.failed()) {
+                        throw new HttpStatusException(500, res.cause());
+                    }
+                    if (res.result()) {
+                        logger.info(
+                                String.format(
+                                        "(%s): %s %s served from reports cache",
+                                        ctx.request().remoteAddress().toString(),
+                                        ctx.request().method().toString(),
+                                        ctx.request().path()));
+                        ctx.response().sendFile(cachedFile);
+                    } else {
+                        ctx.next();
+                    }
+                });
     }
 
     public void deleteCachedReport(String recordingName) {
