@@ -47,7 +47,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
-import java.util.function.Supplier;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -58,6 +57,7 @@ import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 
 import io.vertx.core.buffer.Buffer;
@@ -79,6 +79,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
     ReportGetHandler(
             AuthManager auth,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webserverTempPath,
             ReportGenerator reportGenerator,
             HttpServer httpServer,
             Logger logger) {
@@ -87,7 +88,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         this.reportGenerator = reportGenerator;
         this.fs = httpServer.getVertx().fileSystem();
         this.logger = logger;
-        this.reportCachePath = this.fs.createTempDirectoryBlocking("reports");
+        this.reportCachePath = webserverTempPath.toString();
     }
 
     @Override

@@ -41,8 +41,11 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
@@ -60,6 +63,8 @@ import dagger.Provides;
 
 @Module(includes = {NetworkModule.class, RequestHandlersModule.class})
 public abstract class WebModule {
+    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+
     @Provides
     @Singleton
     static WebServer provideWebServer(
@@ -70,5 +75,14 @@ public abstract class WebModule {
             AuthManager authManager,
             Logger logger) {
         return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    }
+
+    @Provides
+    @Singleton
+    @Named(WEBSERVER_TEMP_DIR_PATH)
+    static Path provideWebServerTempDirPath(HttpServer server) {
+        return Paths.get(
+                        server.getVertx().fileSystem().createTempDirectoryBlocking("container-jfr"))
+                .toAbsolutePath();
     }
 }

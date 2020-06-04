@@ -78,6 +78,7 @@ class ReportGetHandlerTest {
     ReportGetHandler handler;
     @Mock AuthManager authManager;
     @Mock Path savedRecordingsPath;
+    @Mock Path webserverTempPath;
     @Mock ReportGenerator reportGenerator;
     @Mock HttpServer httpServer;
     @Mock Vertx vertx;
@@ -90,9 +91,15 @@ class ReportGetHandlerTest {
     void setup() {
         Mockito.when(httpServer.getVertx()).thenReturn(vertx);
         Mockito.when(vertx.fileSystem()).thenReturn(fs);
+        Mockito.when(webserverTempPath.toAbsolutePath()).thenReturn(webserverTempPath);
         this.handler =
                 new ReportGetHandler(
-                        authManager, savedRecordingsPath, reportGenerator, httpServer, logger);
+                        authManager,
+                        savedRecordingsPath,
+                        webserverTempPath,
+                        reportGenerator,
+                        httpServer,
+                        logger);
     }
 
     @Test
