@@ -39,36 +39,56 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Set;
+import java.util.Map;
 
-import javax.inject.Singleton;
+import javax.inject.Inject;
 
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
-import dagger.Module;
-import dagger.Provides;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-@Module(includes = {NetworkModule.class, RequestHandlersModule.class})
-public abstract class WebModule {
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+class GrafanaDatasourceUrlGetHandler implements RequestHandler {
+
+    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+
+    private final Environment env;
+    private final Gson gson;
+
+    @Inject
+    GrafanaDatasourceUrlGetHandler(Environment env, Gson gson) {
+        this.env = env;
+        this.gson = gson;
+    }
+
+    @Override
+    public String path() {
+        return "/api/v1/grafana_datasource_url";
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        if (!this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
+            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+        }
+        ctx.response()
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                .end(
+                        gson.toJson(
+                                Map.of(
+                                        "grafanaDatasourceUrl",
+                                        env.getEnv(GRAFANA_DATASOURCE_ENV))));
     }
 }

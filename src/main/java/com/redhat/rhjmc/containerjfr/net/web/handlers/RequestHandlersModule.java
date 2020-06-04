@@ -39,36 +39,70 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Set;
-
-import javax.inject.Singleton;
-
-import com.google.gson.Gson;
-
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
-
+import dagger.Binds;
 import dagger.Module;
-import dagger.Provides;
+import dagger.multibindings.IntoSet;
 
-@Module(includes = {NetworkModule.class, RequestHandlersModule.class})
-public abstract class WebModule {
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
-    }
+@Module
+public abstract class RequestHandlersModule {
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
+            GrafanaDatasourceUrlGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindGrafanaDashboardUrlGetHandler(
+            GrafanaDashboardUrlGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
 }

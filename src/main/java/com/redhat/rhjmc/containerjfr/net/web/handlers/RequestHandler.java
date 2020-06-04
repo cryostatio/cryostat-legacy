@@ -39,36 +39,35 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Set;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-import javax.inject.Singleton;
+public interface RequestHandler extends Handler<RoutingContext> {
+    /** Lower number == higher priority handler */
+    static final int DEFAULT_PRIORITY = 100;
 
-import com.google.gson.Gson;
+    static final String ALL_PATHS = "*";
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
+    default int getPriority() {
+        return DEFAULT_PRIORITY;
+    }
 
-import dagger.Module;
-import dagger.Provides;
+    String path();
 
-@Module(includes = {NetworkModule.class, RequestHandlersModule.class})
-public abstract class WebModule {
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    HttpMethod httpMethod();
+
+    default boolean isAvailable() {
+        return true;
+    }
+
+    default boolean isAsync() {
+        return true;
+    }
+
+    default boolean isOrdered() {
+        return true;
     }
 }

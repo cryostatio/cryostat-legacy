@@ -39,36 +39,59 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Set;
+import javax.inject.Inject;
 
-import javax.inject.Singleton;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
-import com.google.gson.Gson;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.CorsHandler;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
+class CorsEnablingHandler implements RequestHandler {
+    protected static final String DEV_ORIGIN = "http://localhost:9000";
+    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
+    protected final CorsHandler corsHandler;
+    protected final Environment env;
 
-import dagger.Module;
-import dagger.Provides;
+    @Inject
+    CorsEnablingHandler(Environment env) {
+        this.corsHandler =
+                CorsHandler.create(getOrigin())
+                        .allowedHeader("Authorization")
+                        .allowedMethod(HttpMethod.GET)
+                        .allowedMethod(HttpMethod.POST)
+                        .allowedMethod(HttpMethod.OPTIONS)
+                        .allowedMethod(HttpMethod.HEAD)
+                        .allowCredentials(true)
+                        .exposedHeader(WebServer.AUTH_SCHEME_HEADER);
+        this.env = env;
+    }
 
-@Module(includes = {NetworkModule.class, RequestHandlersModule.class})
-public abstract class WebModule {
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    @Override
+    public boolean isAvailable() {
+        return this.env.hasEnv(ENABLE_CORS_ENV);
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.OTHER; // unused for ALL_PATHS handlers
+    }
+
+    @Override
+    public String path() {
+        return ALL_PATHS;
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        this.corsHandler.handle(ctx);
+    }
+
+    String getOrigin() {
+        // TODO make the origin configurable
+        return DEV_ORIGIN;
     }
 }

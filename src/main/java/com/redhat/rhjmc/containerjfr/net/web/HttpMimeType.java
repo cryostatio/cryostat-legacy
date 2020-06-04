@@ -41,34 +41,19 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
-import java.util.Set;
+public enum HttpMimeType {
+    PLAINTEXT("text/plain"),
+    HTML("text/html"),
+    JSON("application/json"),
+    OCTET_STREAM("application/octet-stream");
 
-import javax.inject.Singleton;
+    private final String mime;
 
-import com.google.gson.Gson;
+    HttpMimeType(String mime) {
+        this.mime = mime;
+    }
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
-
-import dagger.Module;
-import dagger.Provides;
-
-@Module(includes = {NetworkModule.class, RequestHandlersModule.class})
-public abstract class WebModule {
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    public String mime() {
+        return mime;
     }
 }

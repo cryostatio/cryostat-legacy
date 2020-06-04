@@ -39,36 +39,42 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Set;
+import java.util.concurrent.Future;
 
-import javax.inject.Singleton;
-
-import com.google.gson.Gson;
-
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandlersModule;
 
-import dagger.Module;
-import dagger.Provides;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-@Module(includes = {NetworkModule.class, RequestHandlersModule.class})
-public abstract class WebModule {
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
+
+    private final AuthManager auth;
+
+    AbstractAuthenticatedRequestHandler(AuthManager auth) {
+        this.auth = auth;
+    }
+
+    abstract void handleAuthenticated(RoutingContext ctx);
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        try {
+            if (!validateRequestAuthorization(ctx.request()).get()) {
+                throw new HttpStatusException(401);
+            }
+        } catch (HttpStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e);
+        }
+        handleAuthenticated(ctx);
+    }
+
+    protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
+        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
     }
 }
