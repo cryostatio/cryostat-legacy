@@ -49,6 +49,7 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -66,7 +67,7 @@ class ReportGetHandler extends TargetReportGetHandler {
     ReportGetHandler(
             AuthManager auth,
             Environment env,
-            @Named("RECORDINGS_PATH") Path savedRecordingsPath,
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             ReportGenerator reportGenerator,
             Logger logger) {
         super(auth, env, null, reportGenerator, logger);

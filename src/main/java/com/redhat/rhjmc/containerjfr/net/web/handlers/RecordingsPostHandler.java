@@ -56,6 +56,7 @@ import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 
 import com.google.gson.Gson;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -87,7 +88,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             HttpServer httpServer,
             FileSystem fs,
-            @Named("RECORDINGS_PATH") Path savedRecordingsPath,
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
             Logger logger) {
         super(auth);

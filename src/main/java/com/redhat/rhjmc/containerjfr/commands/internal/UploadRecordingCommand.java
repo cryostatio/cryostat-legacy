@@ -62,6 +62,7 @@ import org.apache.http.util.EntityUtils;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -81,7 +82,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             ClientWriter cw,
             TargetConnectionManager targetConnectionManager,
             FileSystem fs,
-            @Named("RECORDINGS_PATH") Path recordingsPath,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             Provider<CloseableHttpClient> httpClientProvider) {
         super(targetConnectionManager);
         this.cw = cw;

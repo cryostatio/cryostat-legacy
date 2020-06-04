@@ -51,6 +51,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -69,7 +70,7 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     ListSavedRecordingsCommand(
             ClientWriter cw,
             FileSystem fs,
-            @Named("RECORDINGS_PATH") Path recordingsPath,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             WebServer exporter) {
         this.cw = cw;
         this.fs = fs;
