@@ -47,7 +47,6 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -67,21 +66,8 @@ class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public void handle(RoutingContext ctx) {
-        boolean authd = false;
-        try {
-            authd = validateRequestAuthorization(ctx.request()).get();
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
-        if (authd) {
-            ctx.response().setStatusCode(200);
-            ctx.response().end();
-        } else {
-            throw new HttpStatusException(401);
-        }
+    void handleAuthenticated(RoutingContext ctx) {
+        ctx.response().setStatusCode(200);
+        ctx.response().end();
     }
-
-    @Override
-    void handleAuthenticated(RoutingContext ctx) {}
 }
