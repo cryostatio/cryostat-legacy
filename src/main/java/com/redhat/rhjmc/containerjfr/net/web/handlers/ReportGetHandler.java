@@ -44,7 +44,6 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 
@@ -56,13 +55,11 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -125,27 +122,20 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
 
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-            if (fs.existsBlocking(getCachedReportPath(recordingName))) {
-                // TODO sendFile bypasses Vertx and streams from the OS directly out on the wire, so
-                // we don't get Vertx request tracing
-                ctx.response().sendFile(getCachedReportPath(recordingName));
-            } else {
-                try (InputStream stream = descriptor.get().stream) {
-                    ctx.response().end(reportFromStream(recordingName, stream));
-                } finally {
-                    descriptor
-                            .get()
-                            .resource
-                            .ifPresent(
-                                    resource -> {
-                                        try {
-                                            resource.close();
-                                        } catch (Exception e) {
-                                            logger.warn(e);
-                                        }
-                                    });
-                }
+            try (InputStream stream = descriptor.get().stream) {
+                ctx.response().end(reportFromStream(recordingName, stream));
+            } finally {
+                descriptor
+                        .get()
+                        .resource
+                        .ifPresent(
+                                resource -> {
+                                    try {
+                                        resource.close();
+                                    } catch (Exception e) {
+                                        logger.warn(e);
+                                    }
+                                });
             }
         } catch (HttpStatusException e) {
             throw e;
@@ -180,14 +170,9 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         return Optional.empty();
     }
 
-    String getCachedReportPath(String recordingName) {
-        String fileName = recordingName + ".report.html";
-        String filePath = Paths.get(reportCachePath, fileName).toAbsolutePath().toString();
-        return filePath;
-    }
-
     Buffer reportFromStream(String recordingName, InputStream stream) {
-        String cachedReport = getCachedReportPath(recordingName);
+        String cachedReport =
+                ReportGetCacheHandler.getCachedReportPath(reportCachePath, recordingName);
         Buffer reportBuffer = Buffer.buffer(reportGenerator.generateReport(stream));
         fs.createFileBlocking(cachedReport).writeFileBlocking(cachedReport, reportBuffer);
 
