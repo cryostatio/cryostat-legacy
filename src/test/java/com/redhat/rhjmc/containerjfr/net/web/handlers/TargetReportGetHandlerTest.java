@@ -65,7 +65,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
@@ -82,7 +81,6 @@ class TargetReportGetHandlerTest {
 
     TargetReportGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Environment env;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock ReportGenerator reportGenerator;
     @Mock Logger logger;
@@ -93,7 +91,7 @@ class TargetReportGetHandlerTest {
     void setup() {
         this.handler =
                 new TargetReportGetHandler(
-                        authManager, env, targetConnectionManager, reportGenerator, logger);
+                        authManager, targetConnectionManager, reportGenerator, logger);
     }
 
     @Test

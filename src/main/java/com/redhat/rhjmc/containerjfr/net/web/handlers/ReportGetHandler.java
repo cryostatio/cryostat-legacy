@@ -41,10 +41,13 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -52,26 +55,39 @@ import javax.inject.Named;
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.file.FileSystem;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class ReportGetHandler extends TargetReportGetHandler {
+class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Path savedRecordingsPath;
+    private final ReportGenerator reportGenerator;
+    private final FileSystem fs;
+    private final Logger logger;
+    private final String reportCachePath;
 
     @Inject
     ReportGetHandler(
             AuthManager auth,
-            Environment env,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             ReportGenerator reportGenerator,
+            HttpServer httpServer,
             Logger logger) {
-        super(auth, env, null, reportGenerator, logger);
+        super(auth);
         this.savedRecordingsPath = savedRecordingsPath;
+        this.reportGenerator = reportGenerator;
+        this.fs = httpServer.getVertx().fileSystem();
+        this.logger = logger;
+        this.reportCachePath = this.fs.createTempDirectoryBlocking("reports");
     }
 
     @Override
@@ -100,8 +116,41 @@ class ReportGetHandler extends TargetReportGetHandler {
         handleReportPageRequest(null, recordingName, ctx);
     }
 
+    void handleReportPageRequest(String targetId, String recordingName, RoutingContext ctx) {
+        try {
+            Optional<DownloadDescriptor> descriptor =
+                    getRecordingDescriptor(targetId, recordingName);
+            if (descriptor.isEmpty()) {
+                throw new HttpStatusException(404, String.format("%s not found", recordingName));
+            }
+
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+            try (InputStream stream = descriptor.get().stream) {
+                Buffer report =
+                        reportFromCache(
+                                recordingName, () -> reportGenerator.generateReport(stream));
+                ctx.response().end(report);
+            } finally {
+                descriptor
+                        .get()
+                        .resource
+                        .ifPresent(
+                                resource -> {
+                                    try {
+                                        resource.close();
+                                    } catch (Exception e) {
+                                        logger.warn(e);
+                                    }
+                                });
+            }
+        } catch (HttpStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e);
+        }
+    }
+
     // TODO refactor, this is duplicated from RecordingGetRequestHandler
-    @Override
     Optional<DownloadDescriptor> getRecordingDescriptor(String targetId, String recordingName) {
         try {
             // TODO refactor Files calls into FileSystem for testability
@@ -125,5 +174,21 @@ class ReportGetHandler extends TargetReportGetHandler {
             logger.error(e);
         }
         return Optional.empty();
+    }
+
+    Buffer reportFromCache(String recordingName, Supplier<String> reportSupplier) {
+        String fileName = recordingName + ".report.html";
+        String filePath = Paths.get(reportCachePath, fileName).toAbsolutePath().toString();
+        if (fs.existsBlocking(filePath)) {
+            logger.info("Found existing report " + filePath);
+            return fs.readFileBlocking(filePath);
+        }
+
+        logger.info(String.format("Saving %s to %s", fileName, filePath));
+
+        Buffer reportBuffer = Buffer.buffer(reportSupplier.get());
+        fs.createFileBlocking(filePath).writeFileBlocking(filePath, reportBuffer);
+
+        return reportBuffer;
     }
 }

@@ -52,7 +52,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
@@ -72,7 +71,6 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Inject
     TargetReportGetHandler(
             AuthManager auth,
-            Environment env,
             TargetConnectionManager targetConnectionManager,
             ReportGenerator reportGenerator,
             Logger logger) {
@@ -95,6 +93,11 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public boolean isAsync() {
         return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
     }
 
     @Override

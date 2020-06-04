@@ -62,9 +62,11 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
+import io.vertx.core.Vertx;
+import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
@@ -75,18 +77,22 @@ class ReportGetHandlerTest {
 
     ReportGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Environment env;
     @Mock Path savedRecordingsPath;
     @Mock ReportGenerator reportGenerator;
+    @Mock HttpServer httpServer;
+    @Mock Vertx vertx;
+    @Mock FileSystem fs;
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
+        Mockito.when(httpServer.getVertx()).thenReturn(vertx);
+        Mockito.when(vertx.fileSystem()).thenReturn(fs);
         this.handler =
                 new ReportGetHandler(
-                        authManager, env, savedRecordingsPath, reportGenerator, logger);
+                        authManager, savedRecordingsPath, reportGenerator, httpServer, logger);
     }
 
     @Test
