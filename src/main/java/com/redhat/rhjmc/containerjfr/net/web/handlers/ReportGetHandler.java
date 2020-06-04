@@ -125,23 +125,26 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
             }
 
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-            try (InputStream stream = descriptor.get().stream) {
-                Buffer report =
-                        reportFromCache(
-                                recordingName, () -> reportGenerator.generateReport(stream));
-                ctx.response().end(report);
-            } finally {
-                descriptor
-                        .get()
-                        .resource
-                        .ifPresent(
-                                resource -> {
-                                    try {
-                                        resource.close();
-                                    } catch (Exception e) {
-                                        logger.warn(e);
-                                    }
-                                });
+            if (fs.existsBlocking(getCachedReportPath(recordingName))) {
+                // TODO sendFile bypasses Vertx and streams from the OS directly out on the wire, so
+                // we don't get Vertx request tracing
+                ctx.response().sendFile(getCachedReportPath(recordingName));
+            } else {
+                try (InputStream stream = descriptor.get().stream) {
+                    ctx.response().end(reportFromStream(recordingName, stream));
+                } finally {
+                    descriptor
+                            .get()
+                            .resource
+                            .ifPresent(
+                                    resource -> {
+                                        try {
+                                            resource.close();
+                                        } catch (Exception e) {
+                                            logger.warn(e);
+                                        }
+                                    });
+                }
             }
         } catch (HttpStatusException e) {
             throw e;
@@ -176,18 +179,16 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         return Optional.empty();
     }
 
-    Buffer reportFromCache(String recordingName, Supplier<String> reportSupplier) {
+    String getCachedReportPath(String recordingName) {
         String fileName = recordingName + ".report.html";
         String filePath = Paths.get(reportCachePath, fileName).toAbsolutePath().toString();
-        if (fs.existsBlocking(filePath)) {
-            logger.info("Found existing report " + filePath);
-            return fs.readFileBlocking(filePath);
-        }
+        return filePath;
+    }
 
-        logger.info(String.format("Saving %s to %s", fileName, filePath));
-
-        Buffer reportBuffer = Buffer.buffer(reportSupplier.get());
-        fs.createFileBlocking(filePath).writeFileBlocking(filePath, reportBuffer);
+    Buffer reportFromStream(String recordingName, InputStream stream) {
+        String cachedReport = getCachedReportPath(recordingName);
+        Buffer reportBuffer = Buffer.buffer(reportGenerator.generateReport(stream));
+        fs.createFileBlocking(cachedReport).writeFileBlocking(cachedReport, reportBuffer);
 
         return reportBuffer;
     }
