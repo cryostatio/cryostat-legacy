@@ -65,6 +65,7 @@ import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.web.handlers.ReportGetCacheHandler;
 
 @ExtendWith(MockitoExtension.class)
 class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
@@ -73,6 +74,7 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
     @Mock ClientWriter cw;
     @Mock FileSystem fs;
     @Mock Path recordingsPath;
+    @Mock ReportGetCacheHandler cacheHandler;
 
     @Override
     public Command commandForValidationTesting() {
@@ -86,7 +88,7 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
 
     @BeforeEach
     void setup() {
-        command = new DeleteSavedRecordingCommand(cw, fs, recordingsPath);
+        command = new DeleteSavedRecordingCommand(cw, fs, recordingsPath, cacheHandler);
     }
 
     @Test
@@ -129,6 +131,7 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
 
         verify(recordingsPath).resolve("foo");
         verify(fs).deleteIfExists(filePath);
+        verify(cacheHandler).deleteCachedReport("foo");
         verify(cw).println("\"foo\" deleted");
     }
 
@@ -157,6 +160,7 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
 
         verify(recordingsPath).resolve("foo");
         verify(fs).deleteIfExists(filePath);
+        verify(cacheHandler).deleteCachedReport("foo");
     }
 
     @Test

@@ -46,6 +46,7 @@ import java.nio.file.Paths;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -58,7 +59,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class ReportGetCacheHandler extends AbstractAuthenticatedRequestHandler {
+@Singleton
+public class ReportGetCacheHandler extends AbstractAuthenticatedRequestHandler {
 
     private final FileSystem fs;
     private final String reportCachePath;
@@ -107,6 +109,21 @@ class ReportGetCacheHandler extends AbstractAuthenticatedRequestHandler {
         } else {
             ctx.next();
         }
+    }
+
+    public void deleteCachedReport(String recordingName) {
+        String recordingPath = getCachedReportPath(reportCachePath, recordingName);
+        fs.exists(
+                recordingPath,
+                res -> {
+                    if (res.succeeded() && res.result()) {
+                        fs.delete(
+                                recordingPath,
+                                res2 -> {
+                                    logger.info(String.format("Deleted %s", recordingPath));
+                                });
+                    }
+                });
     }
 
     static String getCachedReportPath(String path, String recordingName) {
