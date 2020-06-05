@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.SortedMap;
 import java.util.TreeMap;
 
 import javax.inject.Inject;
@@ -54,6 +53,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.CloseableHttpClient;
 import com.google.gson.Gson;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
@@ -70,12 +70,18 @@ class HealthGetHandler implements RequestHandler {
     private final Provider<CloseableHttpClient> httpClientProvider;
     private final Environment env;
     private final Gson gson;
+    private final Logger logger;
 
     @Inject
-    HealthGetHandler(Provider<CloseableHttpClient> httpClientProvider, Environment env, Gson gson) {
+    HealthGetHandler(
+            Provider<CloseableHttpClient> httpClientProvider,
+            Environment env,
+            Gson gson,
+            Logger logger) {
         this.httpClientProvider = httpClientProvider;
         this.env = env;
         this.gson = gson;
+        this.logger = logger;
     }
 
     @Override
@@ -96,28 +102,39 @@ class HealthGetHandler implements RequestHandler {
         boolean dashboardAvailable = false;
 
         if (this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            try (CloseableHttpResponse response = this.httpClientProvider.get()
-                    .execute(new HttpGet(this.env.getEnv(GRAFANA_DATASOURCE_ENV)));) {
+            try (CloseableHttpResponse response =
+                    this.httpClientProvider
+                            .get()
+                            .execute(new HttpGet(this.env.getEnv(GRAFANA_DATASOURCE_ENV))); ) {
                 if (response.getStatusLine().getStatusCode() == 200) {
                     datasourceAvailable = true;
                 }
             } catch (IOException e) {
-                // Do nothing
+                logger.warn(e);
             }
         }
 
         if (this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
             String url = this.env.getEnv(GRAFANA_DASHBOARD_ENV) + "/api/health";
-            try (CloseableHttpResponse response = this.httpClientProvider.get().execute(new HttpGet(url));) {
+            try (CloseableHttpResponse response =
+                    this.httpClientProvider.get().execute(new HttpGet(url)); ) {
                 if (response.getStatusLine().getStatusCode() == 200) {
                     dashboardAvailable = true;
                 }
             } catch (IOException e) {
-                // Do nothing
+                logger.warn(e);
             }
         }
 
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime()).end(gson
-                .toJson(new TreeMap<>(Map.of("dashboardAvailable", dashboardAvailable, "datasourceAvailable", datasourceAvailable))));
+        ctx.response()
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                .end(
+                        gson.toJson(
+                                new TreeMap<>(
+                                        Map.of(
+                                                "dashboardAvailable",
+                                                dashboardAvailable,
+                                                "datasourceAvailable",
+                                                datasourceAvailable))));
     }
 }
