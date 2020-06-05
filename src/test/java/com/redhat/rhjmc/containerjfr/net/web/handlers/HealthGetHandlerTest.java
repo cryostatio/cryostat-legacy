@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -113,7 +114,7 @@ class HealthGetHandlerTest {
         handler.handle(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        verify(rep).end("{\"datasourceAvailable\":false}");
+        verify(rep).end("{\"dashboardAvailable\":false,\"datasourceAvailable\":false}");
     }
 
     @Test
@@ -126,6 +127,34 @@ class HealthGetHandlerTest {
         String url = "http://hostname:1/path?query=value";
         when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
         when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(url);
+        when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(false);
+
+        CloseableHttpResponse datasourceRep = mock(CloseableHttpResponse.class);
+        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
+        StatusLine mockLine = mock(StatusLine.class);
+
+        when(httpClientProvider.get()).thenReturn(httpClient);
+        when(httpClient.execute(any(HttpGet.class))).thenReturn(datasourceRep);
+        when(datasourceRep.getStatusLine()).thenReturn(mockLine);
+        when(mockLine.getStatusCode()).thenReturn(200);
+
+        handler.handle(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+        verify(rep).end("{\"dashboardAvailable\":false,\"datasourceAvailable\":true}");
+    }
+
+    @Test
+    void shouldHandleHealthRequestWithDashboardUrl() throws ClientProtocolException, IOException {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        String url = "http://hostname:1/path?query=value";
+        when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
+        when(env.getEnv("GRAFANA_DASHBOARD_URL")).thenReturn(url);
+        when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
 
         CloseableHttpResponse grafanaRep = mock(CloseableHttpResponse.class);
         CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
@@ -139,6 +168,6 @@ class HealthGetHandlerTest {
         handler.handle(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        verify(rep).end("{\"datasourceAvailable\":true}");
+        verify(rep).end("{\"dashboardAvailable\":true,\"datasourceAvailable\":false}");
     }
 }

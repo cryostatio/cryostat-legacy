@@ -43,6 +43,8 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -63,6 +65,7 @@ import io.vertx.ext.web.RoutingContext;
 class HealthGetHandler implements RequestHandler {
 
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+    static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
     private final Provider<CloseableHttpClient> httpClientProvider;
     private final Environment env;
@@ -90,12 +93,11 @@ class HealthGetHandler implements RequestHandler {
     @Override
     public void handle(RoutingContext ctx) {
         boolean datasourceAvailable = false;
+        boolean dashboardAvailable = false;
 
         if (this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            try (CloseableHttpResponse response =
-                    this.httpClientProvider
-                            .get()
-                            .execute(new HttpGet(this.env.getEnv(GRAFANA_DATASOURCE_ENV))); ) {
+            try (CloseableHttpResponse response = this.httpClientProvider.get()
+                    .execute(new HttpGet(this.env.getEnv(GRAFANA_DATASOURCE_ENV)));) {
                 if (response.getStatusLine().getStatusCode() == 200) {
                     datasourceAvailable = true;
                 }
@@ -104,8 +106,18 @@ class HealthGetHandler implements RequestHandler {
             }
         }
 
-        ctx.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                .end(gson.toJson(Map.of("datasourceAvailable", datasourceAvailable)));
+        if (this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
+            String url = this.env.getEnv(GRAFANA_DASHBOARD_ENV) + "/api/health";
+            try (CloseableHttpResponse response = this.httpClientProvider.get().execute(new HttpGet(url));) {
+                if (response.getStatusLine().getStatusCode() == 200) {
+                    dashboardAvailable = true;
+                }
+            } catch (IOException e) {
+                // Do nothing
+            }
+        }
+
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime()).end(gson
+                .toJson(new TreeMap<>(Map.of("dashboardAvailable", dashboardAvailable, "datasourceAvailable", datasourceAvailable))));
     }
 }
