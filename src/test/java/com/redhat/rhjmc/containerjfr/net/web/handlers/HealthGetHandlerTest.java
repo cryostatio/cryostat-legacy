@@ -67,6 +67,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
@@ -82,10 +83,11 @@ class HealthGetHandlerTest {
     Gson gson = MainModule.provideGson();
     @Mock Provider<CloseableHttpClient> httpClientProvider;
     @Mock Environment env;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new HealthGetHandler(httpClientProvider, env, gson);
+        this.handler = new HealthGetHandler(httpClientProvider, env, gson, logger);
     }
 
     @Test
