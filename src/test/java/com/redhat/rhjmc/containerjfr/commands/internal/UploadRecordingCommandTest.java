@@ -47,7 +47,6 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.StatusLine;
@@ -154,6 +153,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
             InputStream stream = Mockito.mock(InputStream.class);
+
             Mockito.when(
                             targetConnectionManager.executeConnectedTask(
                                     Mockito.anyString(), Mockito.any()))
@@ -178,16 +178,16 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
         @Test
         void shouldReadFromDiskIfNotInMemory() throws Exception {
             InputStream stream = Mockito.mock(InputStream.class);
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            Path rec = Mockito.mock(Path.class);
+
             Mockito.when(
                             targetConnectionManager.executeConnectedTask(
                                     Mockito.anyString(), Mockito.any()))
                     .thenAnswer(
                             arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
-            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
-
-            Path rec = Mockito.mock(Path.class);
             Mockito.when(path.resolve(Mockito.anyString())).thenReturn(rec);
             Mockito.when(fs.isRegularFile(rec)).thenReturn(true);
             Mockito.when(fs.isReadable(rec)).thenReturn(true);
@@ -198,27 +198,28 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
 
             Assertions.assertTrue(res.getStream().isPresent());
             Assertions.assertFalse(res.getConnection().isPresent());
-            MatcherAssert.assertThat(res.getStream().get(),
-                    Matchers.instanceOf(BufferedInputStream.class));
+            MatcherAssert.assertThat(
+                    res.getStream().get(), Matchers.instanceOf(BufferedInputStream.class));
         }
 
         @Test
         void shouldReturnEmptyIfNotInMemoryAndNotFile() throws Exception {
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            Path rec = Mockito.mock(Path.class);
+
             Mockito.when(
                             targetConnectionManager.executeConnectedTask(
                                     Mockito.anyString(), Mockito.any()))
                     .thenAnswer(
                             arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
-            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
-
-            Path rec = Mockito.mock(Path.class);
             Mockito.when(path.resolve(Mockito.anyString())).thenReturn(rec);
             Mockito.when(fs.isRegularFile(rec)).thenReturn(false);
 
             UploadRecordingCommand.RecordingConnection res =
-                command.getBestRecordingForName(HOST_ID, "foo");
+                    command.getBestRecordingForName(HOST_ID, "foo");
+
             Assertions.assertFalse(res.getStream().isPresent());
             Assertions.assertFalse(res.getConnection().isPresent());
         }
@@ -226,6 +227,8 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
         @Test
         void shouldReturnEmptyIfNotInMemoryAndNotReadable() throws Exception {
             IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            Path rec = Mockito.mock(Path.class);
+
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(
                             targetConnectionManager.executeConnectedTask(
@@ -233,14 +236,13 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
                     .thenAnswer(
                             arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
-
-            Path rec = Mockito.mock(Path.class);
             Mockito.when(path.resolve(Mockito.anyString())).thenReturn(rec);
             Mockito.when(fs.isRegularFile(rec)).thenReturn(true);
             Mockito.when(fs.isReadable(rec)).thenReturn(false);
 
             UploadRecordingCommand.RecordingConnection res =
-                command.getBestRecordingForName(HOST_ID, "foo");
+                    command.getBestRecordingForName(HOST_ID, "foo");
+
             Assertions.assertFalse(res.getStream().isPresent());
             Assertions.assertFalse(res.getConnection().isPresent());
         }
