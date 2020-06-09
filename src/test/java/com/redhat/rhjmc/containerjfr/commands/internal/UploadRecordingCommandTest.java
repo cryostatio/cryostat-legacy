@@ -176,34 +176,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
         }
 
         @Test
-        void shouldReadFromDiskIfNotInTarget() throws Exception {
-            InputStream stream = Mockito.mock(InputStream.class);
-            Mockito.when(
-                            targetConnectionManager.executeConnectedTask(
-                                    Mockito.anyString(), Mockito.any()))
-                    .thenAnswer(
-                            arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
-            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
-            Mockito.when(conn.getService()).thenReturn(svc);
-            Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
-
-            Path rec = Mockito.mock(Path.class);
-            Mockito.when(path.resolve(Mockito.anyString())).thenReturn(rec);
-            Mockito.when(fs.isRegularFile(rec)).thenReturn(true);
-            Mockito.when(fs.isReadable(rec)).thenReturn(true);
-            Mockito.when(fs.newInputStream(rec)).thenReturn(stream);
-
-            UploadRecordingCommand.RecordingConnection res =
-                    command.getBestRecordingForName(HOST_ID, "foo");
-
-            Assertions.assertTrue(res.getStream().isPresent());
-            Assertions.assertFalse(res.getConnection().isPresent());
-            MatcherAssert.assertThat(res.getStream().get(),
-                    Matchers.instanceOf(BufferedInputStream.class));
-        }
-
-        @Test
-        void shouldFallThroughToDiskIfNotInMemory() throws Exception {
+        void shouldReadFromDiskIfNotInMemory() throws Exception {
             InputStream stream = Mockito.mock(InputStream.class);
             Mockito.when(
                             targetConnectionManager.executeConnectedTask(
