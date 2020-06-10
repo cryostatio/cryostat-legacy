@@ -64,6 +64,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -125,12 +126,12 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
             throws Exception {
-        Optional<InputStream> recording = getBestRecordingForName(targetId, recordingName);
-        if (!recording.isPresent()) {
+        RecordingConnection recordingConnection = getBestRecordingForName(targetId, recordingName);
+        if (!recordingConnection.getStream().isPresent()) {
             throw new RecordingNotFoundException(targetId, recordingName);
         }
 
-        InputStream stream = recording.get();
+        InputStream stream = recordingConnection.getStream().get();
         HttpPost post = new HttpPost(uploadUrl);
         post.setEntity(
                 MultipartEntityBuilder.create()
@@ -143,6 +144,8 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
                 stream) {
             return new ResponseMessage(
                     response.getStatusLine(), EntityUtils.toString(response.getEntity()));
+        } finally {
+            recordingConnection.getConnection().ifPresent(JFRConnection::close);
         }
     }
 
@@ -175,25 +178,44 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
-    Optional<InputStream> getBestRecordingForName(String targetId, String recordingName)
+    RecordingConnection getBestRecordingForName(String targetId, String recordingName)
             throws Exception {
         Optional<IRecordingDescriptor> currentRecording =
                 getDescriptorByName(targetId, recordingName);
         if (currentRecording.isPresent()) {
-            return targetConnectionManager.executeConnectedTask(
-                    targetId,
-                    connection -> {
-                        return Optional.of(
-                                connection.getService().openStream(currentRecording.get(), false));
-                    });
+            JFRConnection connection = targetConnectionManager.connect(targetId);
+            return new RecordingConnection(
+                    Optional.of(connection.getService().openStream(currentRecording.get(), false)),
+                    Optional.of(connection));
         }
 
         Path archivedRecording = recordingsPath.resolve(recordingName);
         if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
-            return Optional.of(new BufferedInputStream(fs.newInputStream(archivedRecording)));
+            return new RecordingConnection(
+                    Optional.of(new BufferedInputStream(fs.newInputStream(archivedRecording))),
+                    Optional.empty());
         }
 
-        return Optional.empty();
+        return new RecordingConnection(Optional.empty(), Optional.empty());
+    }
+
+    static class RecordingConnection {
+        private final Optional<InputStream> stream;
+        private final Optional<JFRConnection> connection;
+
+        RecordingConnection(
+                Optional<InputStream> stream, Optional<JFRConnection> connection) {
+            this.stream = stream;
+            this.connection = connection;
+        }
+
+        Optional<InputStream> getStream() {
+            return stream;
+        }
+
+        Optional<JFRConnection> getConnection() {
+            return connection;
+        }
     }
 
     private static class ResponseMessage {
