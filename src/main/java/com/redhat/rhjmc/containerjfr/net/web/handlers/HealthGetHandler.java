@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.TreeMap;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -130,11 +129,10 @@ class HealthGetHandler implements RequestHandler {
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
                 .end(
                         gson.toJson(
-                                new TreeMap<>(
-                                        Map.of(
-                                                "dashboardAvailable",
-                                                dashboardAvailable,
-                                                "datasourceAvailable",
-                                                datasourceAvailable))));
+                                Map.of(
+                                        "dashboardAvailable",
+                                        dashboardAvailable,
+                                        "datasourceAvailable",
+                                        datasourceAvailable)));
     }
 }

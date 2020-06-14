@@ -47,6 +47,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.Map;
 
 import javax.inject.Provider;
 
@@ -61,10 +62,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -115,7 +118,15 @@ class HealthGetHandlerTest {
         handler.handle(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        verify(rep).end("{\"dashboardAvailable\":false,\"datasourceAvailable\":false}");
+        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rep).end(responseCaptor.capture());
+
+        Map<String, Boolean> responseMap =
+                gson.fromJson(
+                        responseCaptor.getValue(),
+                        new TypeToken<Map<String, Boolean>>() {}.getType());
+        Assertions.assertEquals(responseMap.get("dashboardAvailable"), false);
+        Assertions.assertEquals(responseMap.get("datasourceAvailable"), false);
     }
 
     @Test
@@ -142,7 +153,15 @@ class HealthGetHandlerTest {
         handler.handle(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        verify(rep).end("{\"dashboardAvailable\":false,\"datasourceAvailable\":true}");
+        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rep).end(responseCaptor.capture());
+
+        Map<String, Boolean> responseMap =
+                gson.fromJson(
+                        responseCaptor.getValue(),
+                        new TypeToken<Map<String, Boolean>>() {}.getType());
+        Assertions.assertEquals(responseMap.get("dashboardAvailable"), false);
+        Assertions.assertEquals(responseMap.get("datasourceAvailable"), true);
     }
 
     @Test
@@ -169,6 +188,14 @@ class HealthGetHandlerTest {
         handler.handle(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        verify(rep).end("{\"dashboardAvailable\":true,\"datasourceAvailable\":false}");
+        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rep).end(responseCaptor.capture());
+
+        Map<String, Boolean> responseMap =
+                gson.fromJson(
+                        responseCaptor.getValue(),
+                        new TypeToken<Map<String, Boolean>>() {}.getType());
+        Assertions.assertEquals(responseMap.get("dashboardAvailable"), true);
+        Assertions.assertEquals(responseMap.get("datasourceAvailable"), false);
     }
 }
