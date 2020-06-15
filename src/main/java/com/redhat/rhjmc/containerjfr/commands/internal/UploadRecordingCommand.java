@@ -203,8 +203,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         private final Optional<InputStream> stream;
         private final Optional<JFRConnection> connection;
 
-        RecordingConnection(
-                Optional<InputStream> stream, Optional<JFRConnection> connection) {
+        RecordingConnection(Optional<InputStream> stream, Optional<JFRConnection> connection) {
             this.stream = stream;
             this.connection = connection;
         }
