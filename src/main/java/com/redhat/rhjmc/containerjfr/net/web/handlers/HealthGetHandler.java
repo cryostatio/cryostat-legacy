@@ -101,10 +101,10 @@ class HealthGetHandler implements RequestHandler {
         boolean dashboardAvailable = false;
 
         if (this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            try (CloseableHttpResponse response =
-                    this.httpClientProvider
-                            .get()
-                            .execute(new HttpGet(this.env.getEnv(GRAFANA_DATASOURCE_ENV))); ) {
+            try (CloseableHttpClient httpClient = httpClientProvider.get();
+                    CloseableHttpResponse response =
+                            httpClient.execute(
+                                    new HttpGet(this.env.getEnv(GRAFANA_DATASOURCE_ENV))); ) {
                 if (response.getStatusLine().getStatusCode() == 200) {
                     datasourceAvailable = true;
                 }
@@ -115,8 +115,8 @@ class HealthGetHandler implements RequestHandler {
 
         if (this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
             String url = this.env.getEnv(GRAFANA_DASHBOARD_ENV) + "/api/health";
-            try (CloseableHttpResponse response =
-                    this.httpClientProvider.get().execute(new HttpGet(url)); ) {
+            try (CloseableHttpClient httpClient = httpClientProvider.get();
+                    CloseableHttpResponse response = httpClient.execute(new HttpGet(url)); ) {
                 if (response.getStatusLine().getStatusCode() == 200) {
                     dashboardAvailable = true;
                 }
