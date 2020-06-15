@@ -62,6 +62,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
 
     @Binds
