@@ -53,9 +53,10 @@ import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
+public abstract class AbstractRecordingCommand extends AbstractConnectedCommand {
 
-    static final Template ALL_EVENTS_TEMPLATE =
+    // TODO extract this somewhere more appropriate
+    public static final Template ALL_EVENTS_TEMPLATE =
             new Template(
                     "ALL",
                     "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.",
