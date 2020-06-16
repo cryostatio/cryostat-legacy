@@ -41,76 +41,40 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class RequestHandlersModule {
+import com.google.gson.Gson;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
+    private final PlatformClient platformClient;
+    private final Gson gson;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+    @Inject
+    TargetsGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
+        super(auth);
+        this.platformClient = platformClient;
+        this.gson = gson;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDatasourceUrlGetHandler(
-            GrafanaDatasourceUrlGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindGrafanaDashboardUrlGetHandler(
-            GrafanaDashboardUrlGetHandler handler);
+    @Override
+    public String path() {
+        return "/api/v1/targets";
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetsGetHandler(TargetsGetHandler handler);
+    @Override
+    void handleAuthenticated(RoutingContext ctx) {
+        ctx.response().end(gson.toJson(this.platformClient.listDiscoverableServices()));
+    }
 }
