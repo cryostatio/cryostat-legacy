@@ -113,4 +113,8 @@ public abstract class RequestHandlersModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindTargetsGetHandler(TargetsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingsGetHandler(TargetRecordingsGetHandler handler);
 }
