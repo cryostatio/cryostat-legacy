@@ -96,6 +96,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRecordingsGetHandler(RecordingsGetHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
 
     @Binds
