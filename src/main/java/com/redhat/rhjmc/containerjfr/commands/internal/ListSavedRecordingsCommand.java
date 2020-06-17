@@ -58,6 +58,8 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SavedRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
+/** @deprecated Use HTTP GET /api/v1/recordings */
+@Deprecated
 @Singleton
 class ListSavedRecordingsCommand implements SerializableCommand {
 

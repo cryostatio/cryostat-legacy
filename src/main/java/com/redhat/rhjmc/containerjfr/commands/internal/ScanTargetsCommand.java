@@ -48,6 +48,8 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
+/** @deprecated Use HTTP GET /api/v1/targets */
+@Deprecated
 @Singleton
 class ScanTargetsCommand implements SerializableCommand {
 

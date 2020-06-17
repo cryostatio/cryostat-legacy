@@ -55,6 +55,8 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
+/** @deprecated Use HTTP GET /api/v1/targets/:targetId/events */
+@Deprecated
 @Singleton
 class ListEventTypesCommand extends AbstractConnectedCommand implements SerializableCommand {
 
