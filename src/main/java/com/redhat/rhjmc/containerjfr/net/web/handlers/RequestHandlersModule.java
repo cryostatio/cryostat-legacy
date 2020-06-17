@@ -121,4 +121,8 @@ public abstract class RequestHandlersModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindTargetTemplatesGetHandler(TargetTemplatesGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetEventsGetHandler(TargetEventsGetHandler handler);
 }
