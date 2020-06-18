@@ -52,6 +52,7 @@ import com.google.gson.GsonBuilder;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
@@ -88,7 +89,9 @@ public abstract class MainModule {
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
     @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath() {
-        return Paths.get("/", "flightrecordings");
+    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
+        String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
+        logger.info(String.format("Local save path for flight recordings set as %s", ARCHIVE_PATH));
+        return Paths.get(ARCHIVE_PATH);
     }
 }
