@@ -90,17 +90,16 @@ public abstract class MainModule {
     @Named(RECORDINGS_PATH)
     static Path provideSavedRecordingsPath() {
         String ARCHIVE_PATH = null;
-        final Logger logger = Logger.INSTANCE;
+        final Logger logger = provideLogger();
         try {
             ARCHIVE_PATH = System.getenv("ARCHIVE_PATH");
         } catch (Exception SecurityException) {
             logger.warn("Denied access to ARCHIVE_PATH env variable");
+        } finally {
+            if (ARCHIVE_PATH == null) {
+                ARCHIVE_PATH = "/flightrecordings";
+            }
         }
-
-        if (ARCHIVE_PATH == null) {
-            ARCHIVE_PATH = "/flightrecordings-test";
-        }
-
         return Paths.get(ARCHIVE_PATH);
     }
 }
