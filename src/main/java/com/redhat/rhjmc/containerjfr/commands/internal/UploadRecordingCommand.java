@@ -41,34 +41,33 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
-
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.multipart.MultipartForm;
 
 @Singleton
 class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
@@ -76,7 +75,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     private final ClientWriter cw;
     private final FileSystem fs;
     private final Path recordingsPath;
-    private final Provider<CloseableHttpClient> httpClientProvider;
+    private final Provider<WebClient> webClientProvider;
 
     @Inject
     UploadRecordingCommand(
@@ -84,12 +83,12 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             TargetConnectionManager targetConnectionManager,
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            Provider<CloseableHttpClient> httpClientProvider) {
+            Provider<WebClient> webClientProvider) {
         super(targetConnectionManager);
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
-        this.httpClientProvider = httpClientProvider;
+        this.webClientProvider = webClientProvider;
     }
 
     @Override
@@ -103,7 +102,9 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         String recordingName = args[1];
         String uploadUrl = args[2];
         ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
-        cw.println(String.format("[%s] %s", response.status, response.body));
+        cw.println(
+                String.format(
+                        "[%d %s] %s", response.statusCode, response.statusMessage, response.body));
     }
 
     @Override
@@ -115,38 +116,50 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
             return new MapOutput<>(
                     Map.of(
-                            "status", response.status,
+                            "status", response.statusCode,
                             "body", response.body));
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
     }
 
-    // try-with-resources generates a "redundant" nullcheck in bytecode
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
             throws Exception {
-        RecordingConnection recordingConnection = getBestRecordingForName(targetId, recordingName);
-        if (!recordingConnection.getStream().isPresent()) {
+        Optional<Path> recordingPath = getBestRecordingForName(targetId, recordingName);
+        if (!recordingPath.isPresent()) {
             throw new RecordingNotFoundException(targetId, recordingName);
         }
 
-        InputStream stream = recordingConnection.getStream().get();
-        HttpPost post = new HttpPost(uploadUrl);
-        post.setEntity(
-                MultipartEntityBuilder.create()
-                        .addBinaryBody(
-                                "file", stream, ContentType.APPLICATION_OCTET_STREAM, recordingName)
-                        .build());
+        CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
 
-        try (CloseableHttpClient httpClient = httpClientProvider.get();
-                CloseableHttpResponse response = httpClient.execute(post);
-                stream) {
-            return new ResponseMessage(
-                    response.getStatusLine(), EntityUtils.toString(response.getEntity()));
-        } finally {
-            recordingConnection.getConnection().ifPresent(JFRConnection::close);
-        }
+        Path tempFile = recordingPath.get();
+        String tempFileName = tempFile.getFileName().toString();
+        String tempFilePath = tempFile.toAbsolutePath().toString();
+
+        MultipartForm form = MultipartForm.create();
+        form.binaryFileUpload(
+                "file",
+                tempFileName,
+                tempFilePath,
+                HttpMimeType.OCTET_STREAM.toString());
+
+        WebClient client = webClientProvider.get();
+        client.postAbs(uploadUrl)
+                .sendMultipartForm(
+                        form,
+                        uploadHandler -> {
+                            if (uploadHandler.failed()) {
+                                future.completeExceptionally(uploadHandler.cause());
+                                return;
+                            }
+                            HttpResponse<Buffer> response = uploadHandler.result();
+                            future.complete(
+                                    new ResponseMessage(
+                                            response.statusCode(),
+                                            response.statusMessage(),
+                                            response.bodyAsString()));
+                        });
+        return future.get();
     }
 
     @Override
@@ -178,51 +191,43 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
-    RecordingConnection getBestRecordingForName(String targetId, String recordingName)
-            throws Exception {
+    Optional<Path> getBestRecordingForName(String targetId, String recordingName) throws Exception {
         Optional<IRecordingDescriptor> currentRecording =
                 getDescriptorByName(targetId, recordingName);
         if (currentRecording.isPresent()) {
-            JFRConnection connection = targetConnectionManager.connect(targetId);
-            return new RecordingConnection(
-                    Optional.of(connection.getService().openStream(currentRecording.get(), false)),
-                    Optional.of(connection));
+            // TODO delete this file after the upload is complete
+            Path tempFile = Files.createTempFile(null, null);
+            return Optional.of(
+                    targetConnectionManager.executeConnectedTask(
+                            targetId,
+                            connection -> {
+                                InputStream stream =
+                                        connection
+                                                .getService()
+                                                .openStream(currentRecording.get(), false);
+                                try (stream) {
+                                    Files.copy(
+                                            stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+                                }
+                                return tempFile;
+                            }));
         }
 
         Path archivedRecording = recordingsPath.resolve(recordingName);
         if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
-            return new RecordingConnection(
-                    Optional.of(new BufferedInputStream(fs.newInputStream(archivedRecording))),
-                    Optional.empty());
+            return Optional.of(archivedRecording);
         }
-
-        return new RecordingConnection(Optional.empty(), Optional.empty());
-    }
-
-    static class RecordingConnection {
-        private final Optional<InputStream> stream;
-        private final Optional<JFRConnection> connection;
-
-        RecordingConnection(Optional<InputStream> stream, Optional<JFRConnection> connection) {
-            this.stream = stream;
-            this.connection = connection;
-        }
-
-        Optional<InputStream> getStream() {
-            return stream;
-        }
-
-        Optional<JFRConnection> getConnection() {
-            return connection;
-        }
+        return Optional.empty();
     }
 
     private static class ResponseMessage {
-        final StatusLine status;
+        final int statusCode;
+        final String statusMessage;
         final String body;
 
-        ResponseMessage(StatusLine status, String body) {
-            this.status = status;
+        ResponseMessage(int statusCode, String statusMessage, String body) {
+            this.statusCode = statusCode;
+            this.statusMessage = statusMessage;
             this.body = body;
         }
     }
