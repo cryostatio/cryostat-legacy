@@ -182,12 +182,12 @@ taking the contents of a recording at a point in time and saving these contents
 to a file local to the `container-jfr` process (as opposed to "active"
 recordings, which exist within the memory of the JVM target and continue to grow
 over time). The default directory used is `/flightrecordings`, but the environment
-variable `ARCHIVE_PATH` can be used to specify a different path. To enable 
-`container-jfr` archive support ensure that the directory specified by `ARCHIVE_PATH`
-(or `/flightrecordings` if not set) exists and has appropriate permissions. 
-`container-jfr` will detect the path and enable related functionality. `run.sh` has 
-an example of a `tmpfs` volume being mounted with the default path and enabling the 
-archive functionality.
+variable `CONTAINER_JFR_ARCHIVE_PATH` can be used to specify a different path. To 
+enable `container-jfr` archive support ensure that the directory specified by 
+`CONTAINER_JFR_ARCHIVE_PATH` (or `/flightrecordings` if not set) exists and has 
+appropriate permissions. `container-jfr` will detect the path and enable related 
+functionality. `run.sh` has an example of a `tmpfs` volume being mounted with the 
+default path and enabling the archive functionality.
 
 ## SECURING COMMUNICATION CHANNELS
 `container-jfr` can be optionally configured to secure HTTP and WebSocket

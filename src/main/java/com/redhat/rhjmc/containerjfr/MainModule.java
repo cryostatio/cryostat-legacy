@@ -52,6 +52,7 @@ import com.google.gson.GsonBuilder;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
@@ -88,18 +89,7 @@ public abstract class MainModule {
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
     @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath() {
-        String ARCHIVE_PATH = null;
-        final Logger logger = provideLogger();
-        try {
-            ARCHIVE_PATH = System.getenv("ARCHIVE_PATH");
-        } catch (Exception SecurityException) {
-            logger.warn("Denied access to ARCHIVE_PATH env variable");
-        } finally {
-            if (ARCHIVE_PATH == null) {
-                ARCHIVE_PATH = "/flightrecordings";
-            }
-        }
-        return Paths.get(ARCHIVE_PATH);
+    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
+        return Paths.get(env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings"));
     }
 }
