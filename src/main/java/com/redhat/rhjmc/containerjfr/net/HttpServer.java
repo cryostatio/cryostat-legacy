@@ -68,11 +68,11 @@ public class HttpServer {
     private final io.vertx.core.http.HttpServer server;
     private volatile boolean isAlive;
 
-    HttpServer(NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
+    HttpServer(Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
+        this.vertx = vertx;
         this.netConf = netConf;
         this.sslConf = sslConf;
         this.logger = logger;
-        this.vertx = Vertx.vertx();
         this.server =
                 vertx.createHttpServer(
                         sslConf.applyToHttpServerOptions(
