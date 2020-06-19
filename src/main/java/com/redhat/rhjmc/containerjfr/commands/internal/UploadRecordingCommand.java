@@ -54,6 +54,8 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
@@ -125,14 +127,15 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
             throws Exception {
-        Optional<Path> recordingPath = getBestRecordingForName(targetId, recordingName);
+        Optional<Pair<Path, Boolean>> recordingPath =
+                getBestRecordingForName(targetId, recordingName);
         if (!recordingPath.isPresent()) {
             throw new RecordingNotFoundException(targetId, recordingName);
         }
 
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
 
-        Path tempFile = recordingPath.get();
+        Path tempFile = recordingPath.get().getLeft();
         String tempFileName = tempFile.getFileName().toString();
         String tempFilePath = tempFile.toAbsolutePath().toString();
 
@@ -143,23 +146,29 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
                 tempFilePath,
                 HttpMimeType.OCTET_STREAM.toString());
 
-        WebClient client = webClientProvider.get();
-        client.postAbs(uploadUrl)
-                .sendMultipartForm(
-                        form,
-                        uploadHandler -> {
-                            if (uploadHandler.failed()) {
-                                future.completeExceptionally(uploadHandler.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> response = uploadHandler.result();
-                            future.complete(
-                                    new ResponseMessage(
-                                            response.statusCode(),
-                                            response.statusMessage(),
-                                            response.bodyAsString()));
-                        });
-        return future.get();
+        try {
+            WebClient client = webClientProvider.get();
+            client.postAbs(uploadUrl)
+                    .sendMultipartForm(
+                            form,
+                            uploadHandler -> {
+                                if (uploadHandler.failed()) {
+                                    future.completeExceptionally(uploadHandler.cause());
+                                    return;
+                                }
+                                HttpResponse<Buffer> response = uploadHandler.result();
+                                future.complete(
+                                        new ResponseMessage(
+                                                response.statusCode(),
+                                                response.statusMessage(),
+                                                response.bodyAsString()));
+                            });
+            return future.get();
+        } finally {
+            if (recordingPath.get().getRight()) {
+                Files.deleteIfExists(tempFile);
+            }
+        }
     }
 
     @Override
@@ -191,11 +200,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // returned stream should be cleaned up by HttpClient
     @SuppressFBWarnings("OBL_UNSATISFIED_OBLIGATION")
-    Optional<Path> getBestRecordingForName(String targetId, String recordingName) throws Exception {
+    Optional<Pair<Path, Boolean>> getBestRecordingForName(String targetId, String recordingName)
+            throws Exception {
         Optional<IRecordingDescriptor> currentRecording =
                 getDescriptorByName(targetId, recordingName);
         if (currentRecording.isPresent()) {
-            // TODO delete this file after the upload is complete
             Path tempFile = Files.createTempFile(null, null);
             return Optional.of(
                     targetConnectionManager.executeConnectedTask(
@@ -209,13 +218,13 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
                                     Files.copy(
                                             stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
                                 }
-                                return tempFile;
+                                return Pair.of(tempFile, true);
                             }));
         }
 
         Path archivedRecording = recordingsPath.resolve(recordingName);
         if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
-            return Optional.of(archivedRecording);
+            return Optional.of(Pair.of(archivedRecording, false));
         }
         return Optional.empty();
     }
