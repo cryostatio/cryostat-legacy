@@ -137,8 +137,48 @@ class ListSavedRecordingsCommandTest {
 
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Saved recordings:");
-        inOrder.verify(cw).println("\tfoo");
-        inOrder.verify(cw).println("\tbar");
+        inOrder.verify(cw).println(Mockito.contains("getName\t\tfoo"));
+        inOrder.verify(cw).println(Mockito.contains("getName\t\tbar"));
+    }
+
+    @Test
+    void shouldPrintURLs() throws Exception {
+        when(fs.listDirectoryChildren(recordingsPath)).thenReturn(Arrays.asList("foo", "bar"));
+        when(exporter.getArchivedDownloadURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return String.format(
+                                        "http://example.com:1234/api/v1/recordings/%s",
+                                        invocation.getArguments()[0]);
+                            }
+                        });
+        when(exporter.getArchivedReportURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return String.format(
+                                        "http://example.com:1234/api/v1/reports/%s",
+                                        invocation.getArguments()[0]);
+                            }
+                        });
+
+        command.execute(new String[0]);
+
+        InOrder inOrder = inOrder(cw);
+        inOrder.verify(cw).println("Saved recordings:");
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/recordings/foo\n"
+                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/reports/foo"));
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/recordings/bar\n"
+                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/reports/bar"));
     }
 
     @Test

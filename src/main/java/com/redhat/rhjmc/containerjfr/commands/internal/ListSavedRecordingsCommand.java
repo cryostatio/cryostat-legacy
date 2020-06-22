@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -50,6 +51,8 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+
+import org.apache.commons.lang3.ArrayUtils;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
@@ -91,7 +94,12 @@ class ListSavedRecordingsCommand implements SerializableCommand {
             cw.println("\tNone");
         }
         for (String file : saved) {
-            cw.println(String.format("\t%s", file));
+            SavedRecordingDescriptor descriptor =
+                    new SavedRecordingDescriptor(
+                            file,
+                            exporter.getArchivedDownloadURL(file),
+                            exporter.getArchivedReportURL(file));
+            cw.println(toString(descriptor));
         }
     }
 
@@ -124,5 +132,24 @@ class ListSavedRecordingsCommand implements SerializableCommand {
     @Override
     public boolean isAvailable() {
         return fs.isDirectory(recordingsPath);
+    }
+
+    private static String toString(SavedRecordingDescriptor descriptor) throws Exception {
+        StringBuilder sb = new StringBuilder();
+        Method[] methods = ArrayUtils.addAll(descriptor.getClass().getDeclaredMethods());
+        for (Method m : methods) {
+            if (m.getParameterTypes().length == 0
+                    && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
+                sb.append("\t");
+                sb.append(m.getName());
+
+                sb.append("\t\t");
+                sb.append(m.invoke(descriptor));
+
+                sb.append("\n");
+            }
+        }
+
+        return sb.toString();
     }
 }
