@@ -58,7 +58,6 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
-import io.vertx.core.http.HttpClientOptions;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
@@ -68,8 +67,8 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static HttpServer provideHttpServer(
-            NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
-        return new HttpServer(netConf, sslConf, logger);
+            Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
+        return new HttpServer(vertx, netConf, sslConf, logger);
     }
 
     @Provides

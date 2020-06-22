@@ -118,8 +118,10 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
             return new MapOutput<>(
                     Map.of(
-                            "status", response.statusCode,
-                            "body", response.body));
+                            "status",
+                            String.format("%d %s", response.statusCode, response.statusMessage),
+                            "body",
+                            response.body));
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
@@ -141,10 +143,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         MultipartForm form = MultipartForm.create();
         form.binaryFileUpload(
-                "file",
-                tempFileName,
-                tempFilePath,
-                HttpMimeType.OCTET_STREAM.toString());
+                "file", tempFileName, tempFilePath, HttpMimeType.OCTET_STREAM.toString());
 
         try {
             WebClient client = webClientProvider.get();
@@ -166,7 +165,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             return future.get();
         } finally {
             if (recordingPath.get().getRight()) {
-                Files.deleteIfExists(tempFile);
+                fs.deleteIfExists(tempFile);
             }
         }
     }
@@ -205,6 +204,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         Optional<IRecordingDescriptor> currentRecording =
                 getDescriptorByName(targetId, recordingName);
         if (currentRecording.isPresent()) {
+            // FIXME extract createTempFile wrapper into FileSystem
             Path tempFile = Files.createTempFile(null, null);
             return Optional.of(
                     targetConnectionManager.executeConnectedTask(
@@ -215,8 +215,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
                                                 .getService()
                                                 .openStream(currentRecording.get(), false);
                                 try (stream) {
-                                    Files.copy(
-                                            stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
+                                    fs.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
                                 }
                                 return Pair.of(tempFile, true);
                             }));
