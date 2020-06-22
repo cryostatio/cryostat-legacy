@@ -137,8 +137,8 @@ class ListSavedRecordingsCommandTest {
 
         InOrder inOrder = inOrder(cw);
         inOrder.verify(cw).println("Saved recordings:");
-        inOrder.verify(cw).println("\tfoo");
-        inOrder.verify(cw).println("\tbar");
+        inOrder.verify(cw).println(Mockito.contains("getName\t\tfoo"));
+        inOrder.verify(cw).println(Mockito.contains("getName\t\tbar"));
     }
 
     @Test
