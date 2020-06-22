@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -129,22 +130,25 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
             throws Exception {
-        Optional<Pair<Path, Boolean>> recordingPath =
-                getBestRecordingForName(targetId, recordingName);
-        if (!recordingPath.isPresent()) {
-            throw new RecordingNotFoundException(targetId, recordingName);
+        Pair<Path, Boolean> recordingPath =
+                getBestRecordingForName(targetId, recordingName)
+                        .orElseThrow(() -> new RecordingNotFoundException(targetId, recordingName));
+
+        Path path = recordingPath.getLeft();
+        if (path == null) {
+            throw new IOException("Recording path could not be determined");
         }
-
-        CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
-
-        Path tempFile = recordingPath.get().getLeft();
-        String tempFileName = tempFile.getFileName().toString();
-        String tempFilePath = tempFile.toAbsolutePath().toString();
+        Path fileName = path.getFileName();
+        path = path.toAbsolutePath();
+        if (fileName == null || path == null) {
+            throw new IOException("File name or path could not be determined");
+        }
 
         MultipartForm form = MultipartForm.create();
         form.binaryFileUpload(
-                "file", tempFileName, tempFilePath, HttpMimeType.OCTET_STREAM.toString());
+                "file", fileName.toString(), path.toString(), HttpMimeType.OCTET_STREAM.toString());
 
+        CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         try {
             WebClient client = webClientProvider.get();
             client.postAbs(uploadUrl)
@@ -164,8 +168,8 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
                             });
             return future.get();
         } finally {
-            if (recordingPath.get().getRight()) {
-                fs.deleteIfExists(tempFile);
+            if (recordingPath.getRight()) {
+                fs.deleteIfExists(path);
             }
         }
     }
