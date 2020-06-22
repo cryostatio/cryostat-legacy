@@ -212,6 +212,8 @@ public class WebServer {
     }
 
     URI getHostUri() throws SocketException, UnknownHostException, URISyntaxException {
+        // FIXME replace URIBuilder with another implementation. This is the only remaining use
+        // of the Apache HttpComponents dependency
         return new URIBuilder()
                 .setScheme(server.isSsl() ? "https" : "http")
                 .setHost(netConf.getWebServerHost())
