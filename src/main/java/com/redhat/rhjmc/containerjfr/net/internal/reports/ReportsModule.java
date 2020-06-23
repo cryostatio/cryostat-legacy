@@ -43,9 +43,12 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.util.Set;
 
+import javax.inject.Singleton;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import dagger.Module;
 import dagger.Provides;
@@ -57,8 +60,18 @@ import dagger.Provides;
 public abstract class ReportsModule {
 
     @Provides
+    @Singleton
     static ReportGenerator provideReportGenerator(
             Logger logger, Set<ReportTransformer> transformers) {
         return new ReportGenerator(logger, transformers);
+    }
+
+    @Provides
+    @Singleton
+    static ReportCache provideReportCache(
+            TargetConnectionManager targetConnectionManager,
+            ReportGenerator reportGenerator,
+            Logger logger) {
+        return new ReportCache(targetConnectionManager, reportGenerator, logger);
     }
 }

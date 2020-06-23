@@ -91,7 +91,6 @@ class ReportGetHandlerTest {
     void setup() {
         Mockito.when(httpServer.getVertx()).thenReturn(vertx);
         Mockito.when(vertx.fileSystem()).thenReturn(fs);
-        Mockito.when(webserverTempPath.toAbsolutePath()).thenReturn(webserverTempPath);
         this.handler =
                 new ReportGetHandler(
                         authManager,

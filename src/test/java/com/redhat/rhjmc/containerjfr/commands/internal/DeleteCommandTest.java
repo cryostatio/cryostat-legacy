@@ -71,6 +71,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportCache;
 
 @ExtendWith(MockitoExtension.class)
 class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
@@ -78,6 +79,7 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
     DeleteCommand command;
     @Mock ClientWriter cw;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock ReportCache reportCache;
     @Mock IRecordingDescriptor recordingDescriptor;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -94,7 +96,7 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     @BeforeEach
     void setup() throws FlightRecorderException {
-        command = new DeleteCommand(cw, targetConnectionManager);
+        command = new DeleteCommand(cw, targetConnectionManager, reportCache);
     }
 
     @Test
@@ -121,6 +123,7 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
         command.execute(new String[] {"fooHost:9091", "foo-recording"});
         verify(connection.getService()).close(recordingDescriptor);
+        verify(reportCache).delete("fooHost:9091", "foo-recording");
     }
 
     @Test
@@ -139,6 +142,7 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
         verify(connection.getService()).close(recordingDescriptor);
+        verify(reportCache).delete("fooHost:9091", "foo-recording");
     }
 
     @Test

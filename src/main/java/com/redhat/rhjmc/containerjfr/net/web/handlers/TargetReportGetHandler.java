@@ -41,25 +41,12 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.InputStream;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
-
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.tuple.Pair;
-
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportCache;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportCache.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
@@ -69,30 +56,14 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    protected final TargetConnectionManager targetConnectionManager;
-    protected final ReportGenerator reportGenerator;
-    protected final LoadingCache<String, String> cache;
+    protected final ReportCache reportCache;
     protected final Logger logger;
 
     @Inject
-    TargetReportGetHandler(
-            AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            ReportGenerator reportGenerator,
-            Logger logger) {
+    TargetReportGetHandler(AuthManager auth, ReportCache reportCache, Logger logger) {
         super(auth);
-        this.targetConnectionManager = targetConnectionManager;
-        this.reportGenerator = reportGenerator;
+        this.reportCache = reportCache;
         this.logger = logger;
-
-        // TODO somehow allow for explicit invalidation when recordings are deleted
-        this.cache =
-                Caffeine.newBuilder()
-                        .initialCapacity(4)
-                        .expireAfterAccess(30, TimeUnit.MINUTES)
-                        .refreshAfterWrite(5, TimeUnit.MINUTES)
-                        .softValues()
-                        .build(this::getReportFromKey);
     }
 
     @Override
@@ -109,47 +80,19 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     void handleAuthenticated(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
-        String key = recordingName + "@" + targetId;
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        ctx.response().end(cache.get(key));
-    }
-
-    String getReportFromKey(String key) throws Exception {
-        String[] keyParts = key.split("@");
-        String recordingName = keyParts[0];
-        String targetId = keyParts[1];
-        Pair<Optional<InputStream>, JFRConnection> pair =
-                getRecordingStream(targetId, recordingName);
-        try (JFRConnection c = pair.getRight();
-                InputStream stream =
-                        pair.getLeft()
-                                .orElseThrow(
-                                        () ->
-                                                new HttpStatusException(
-                                                        404,
-                                                        String.format(
-                                                                "%s not found", recordingName)))) {
-            return reportGenerator.generateReport(stream);
+        try {
+            ctx.response().end(reportCache.get(targetId, recordingName));
+        } catch (RecordingNotFoundException rnfe) {
+            throw new HttpStatusException(404, rnfe);
         }
     }
 
-    Pair<Optional<InputStream>, JFRConnection> getRecordingStream(
-            String targetId, String recordingName) throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(targetId);
-        Optional<InputStream> desc =
-                connection.getService().getAvailableRecordings().stream()
-                        .filter(rec -> Objects.equals(recordingName, rec.getName()))
-                        .findFirst()
-                        .flatMap(
-                                rec -> {
-                                    try {
-                                        return Optional.of(
-                                                connection.getService().openStream(rec, false));
-                                    } catch (FlightRecorderException e) {
-                                        logger.warn(e);
-                                        return Optional.empty();
-                                    }
-                                });
-        return Pair.of(desc, connection);
+    public ReportCache getReportCache() {
+        return reportCache;
+    }
+
+    public Logger getLogger() {
+        return logger;
     }
 }
