@@ -39,66 +39,42 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.commands.internal;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.google.gson.Gson;
+
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
-/** @deprecated Use HTTP GET /api/v1/targets */
-@Deprecated
-@Singleton
-class ScanTargetsCommand implements SerializableCommand {
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+
+class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final PlatformClient platformClient;
-    private final ClientWriter cw;
+    private final Gson gson;
 
     @Inject
-    ScanTargetsCommand(PlatformClient platformClient, ClientWriter cw) {
+    TargetsGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
+        super(auth);
         this.platformClient = platformClient;
-        this.cw = cw;
+        this.gson = gson;
     }
 
     @Override
-    public String getName() {
-        return "scan-targets";
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
     }
 
     @Override
-    public boolean isAvailable() {
-        return true;
+    public String path() {
+        return "/api/v1/targets";
     }
 
     @Override
-    public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public void execute(String[] args) throws Exception {
-        platformClient
-                .listDiscoverableServices()
-                .forEach(
-                        s ->
-                                cw.println(
-                                        String.format(
-                                                "%s -> %s:%d",
-                                                s.getAlias(), s.getConnectUrl(), s.getPort())));
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
-        try {
-            return new ListOutput<>(platformClient.listDiscoverableServices());
-        } catch (Exception e) {
-            return new ExceptionOutput(e);
-        }
+    void handleAuthenticated(RoutingContext ctx) {
+        ctx.response().end(gson.toJson(this.platformClient.listDiscoverableServices()));
     }
 }

@@ -59,6 +59,8 @@ import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRe
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
+/** @deprecated Use HTTP GET /api/v1/targets/:targetId/recordings */
+@Deprecated
 @Singleton
 class ListCommand extends AbstractConnectedCommand implements SerializableCommand {
 

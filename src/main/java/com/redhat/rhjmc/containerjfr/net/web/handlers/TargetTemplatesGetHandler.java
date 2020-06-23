@@ -39,66 +39,64 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.commands.internal;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.google.gson.Gson;
 
-/** @deprecated Use HTTP GET /api/v1/targets */
-@Deprecated
-@Singleton
-class ScanTargetsCommand implements SerializableCommand {
+import com.redhat.rhjmc.containerjfr.commands.internal.AbstractRecordingCommand;
+import com.redhat.rhjmc.containerjfr.core.templates.Template;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-    private final PlatformClient platformClient;
-    private final ClientWriter cw;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
+
+class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
+
+    private final TargetConnectionManager connectionManager;
+    private final Gson gson;
 
     @Inject
-    ScanTargetsCommand(PlatformClient platformClient, ClientWriter cw) {
-        this.platformClient = platformClient;
-        this.cw = cw;
+    TargetTemplatesGetHandler(
+            AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
+        super(auth);
+        this.connectionManager = connectionManager;
+        this.gson = gson;
     }
 
     @Override
-    public String getName() {
-        return "scan-targets";
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
     }
 
     @Override
-    public boolean isAvailable() {
-        return true;
+    public String path() {
+        return "/api/v1/targets/:targetId/templates";
     }
 
     @Override
-    public boolean validate(String[] args) {
-        if (args.length != 0) {
-            cw.println("No arguments expected");
-            return false;
-        }
-        return true;
-    }
-
-    @Override
-    public void execute(String[] args) throws Exception {
-        platformClient
-                .listDiscoverableServices()
-                .forEach(
-                        s ->
-                                cw.println(
-                                        String.format(
-                                                "%s -> %s:%d",
-                                                s.getAlias(), s.getConnectUrl(), s.getPort())));
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
+    void handleAuthenticated(RoutingContext ctx) {
         try {
-            return new ListOutput<>(platformClient.listDiscoverableServices());
+            String targetId = ctx.pathParam("targetId");
+            List<Template> templates =
+                    connectionManager.executeConnectedTask(
+                            targetId,
+                            connection -> {
+                                List<Template> list =
+                                        new ArrayList<>(
+                                                connection.getTemplateService().getTemplates());
+                                list.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
+                                return list;
+                            });
+            ctx.response().end(gson.toJson(templates));
         } catch (Exception e) {
-            return new ExceptionOutput(e);
+            throw new HttpStatusException(500, e);
         }
     }
 }

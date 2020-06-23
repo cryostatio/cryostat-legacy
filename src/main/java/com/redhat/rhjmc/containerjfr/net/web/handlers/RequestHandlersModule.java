@@ -96,6 +96,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRecordingsGetHandler(RecordingsGetHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindRecordingsPostBodyHandler(RecordingsPostBodyHandler handler);
 
     @Binds
@@ -109,4 +113,20 @@ public abstract class RequestHandlersModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetsGetHandler(TargetsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingsGetHandler(TargetRecordingsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetTemplatesGetHandler(TargetTemplatesGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetEventsGetHandler(TargetEventsGetHandler handler);
 }

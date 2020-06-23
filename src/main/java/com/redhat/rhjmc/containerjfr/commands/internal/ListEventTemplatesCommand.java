@@ -55,6 +55,8 @@ import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
+/** @deprecated Use HTTP GET /api/v1/targets/:targetId/templates */
+@Deprecated
 @Singleton
 class ListEventTemplatesCommand extends AbstractConnectedCommand implements SerializableCommand {
 

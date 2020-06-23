@@ -39,84 +39,68 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.commands.internal;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-/** @deprecated Use HTTP GET /api/v1/targets/:targetId/events */
-@Deprecated
-@Singleton
-class ListEventTypesCommand extends AbstractConnectedCommand implements SerializableCommand {
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-    private final ClientWriter cw;
+class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
+
+    private final TargetConnectionManager connectionManager;
+    private final Gson gson;
 
     @Inject
-    ListEventTypesCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
-        super(targetConnectionManager);
-        this.cw = cw;
+    TargetEventsGetHandler(AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
+        super(auth);
+        this.connectionManager = connectionManager;
+        this.gson = gson;
     }
 
     @Override
-    public String getName() {
-        return "list-event-types";
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
     }
 
     @Override
-    public void execute(String[] args) throws Exception {
-        targetConnectionManager.executeConnectedTask(
-                args[0],
-                connection -> {
-                    cw.println("Available event types:");
-                    connection.getService().getAvailableEventTypes().forEach(this::printEvent);
-                    return null;
-                });
+    public String path() {
+        return "/api/v1/targets/:targetId/events";
     }
 
     @Override
-    public Output<?> serializableExecute(String[] args) {
+    void handleAuthenticated(RoutingContext ctx) {
         try {
-            return targetConnectionManager.executeConnectedTask(
-                    args[0],
-                    connection -> {
-                        Collection<? extends IEventTypeInfo> origInfos =
-                                connection.getService().getAvailableEventTypes();
-                        List<SerializableEventTypeInfo> infos = new ArrayList<>(origInfos.size());
-                        for (IEventTypeInfo info : origInfos) {
-                            infos.add(new SerializableEventTypeInfo(info));
-                        }
-                        return new ListOutput<>(infos);
-                    });
+            String targetId = ctx.pathParam("targetId");
+            List<SerializableEventTypeInfo> templates =
+                    connectionManager.executeConnectedTask(
+                            targetId,
+                            connection -> {
+                                Collection<? extends IEventTypeInfo> origInfos =
+                                        connection.getService().getAvailableEventTypes();
+                                List<SerializableEventTypeInfo> infos =
+                                        new ArrayList<>(origInfos.size());
+                                for (IEventTypeInfo info : origInfos) {
+                                    infos.add(new SerializableEventTypeInfo(info));
+                                }
+                                return infos;
+                            });
+            ctx.response().end(gson.toJson(templates));
         } catch (Exception e) {
-            return new ExceptionOutput(e);
+            throw new HttpStatusException(500, e);
         }
-    }
-
-    @Override
-    public boolean validate(String[] args) {
-        if (args.length != 1) {
-            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
-            return false;
-        }
-        boolean isValidTargetId = validateTargetId(args[0]);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
-        }
-        return isValidTargetId;
-    }
-
-    private void printEvent(IEventTypeInfo event) {
-        cw.println(String.format("\t%s", event));
     }
 }
