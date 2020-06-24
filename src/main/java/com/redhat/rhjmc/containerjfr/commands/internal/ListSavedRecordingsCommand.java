@@ -143,7 +143,7 @@ class ListSavedRecordingsCommand implements SerializableCommand {
         for (Method m : methods) {
             if (m.getParameterTypes().length == 0
                     && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
-                if (m.getName().contains("Url")) {
+                if (m.getName().toLowerCase().contains("url")) {
                     urls.add(String.format("\t%s\t\t%s%n", m.getName(), m.invoke(descriptor)));
                 } else {
                     sb.append(String.format("\t%s\t\t%s%n", m.getName(), m.invoke(descriptor)));
