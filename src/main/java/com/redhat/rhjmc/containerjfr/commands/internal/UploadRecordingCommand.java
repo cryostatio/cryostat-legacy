@@ -61,6 +61,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -75,6 +77,8 @@ import io.vertx.ext.web.multipart.MultipartForm;
 @Singleton
 class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 
+    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+
     private final ClientWriter cw;
     private final FileSystem fs;
     private final Path recordingsPath;
@@ -85,11 +89,13 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             ClientWriter cw,
             TargetConnectionManager targetConnectionManager,
             FileSystem fs,
+            Environment env,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             WebClient webClient) {
         super(targetConnectionManager);
         this.cw = cw;
         this.fs = fs;
+        this.env = env;
         this.recordingsPath = recordingsPath;
         this.webClient = webClient;
     }
@@ -103,20 +109,31 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     public void execute(String[] args) throws Exception {
         String targetId = args[0];
         String recordingName = args[1];
-        String uploadUrl = args[2];
-        ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
-        cw.println(
-                String.format(
-                        "[%d %s] %s", response.statusCode, response.statusMessage, response.body));
+
+        if (env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
+            String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+            ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
+            cw.println(
+                    String.format(
+                            "[%d %s] %s", response.statusCode, response.statusMessage, response.body));
+        } else {
+            cw.println(String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
+        }
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         String targetId = args[0];
         String recordingName = args[1];
-        String uploadUrl = args[2];
+
+        if (!env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
+            return new FailureOutput(
+                    String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
+        }
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+
         try {
-            ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
+            ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
             return new MapOutput<>(
                     Map.of(
                             "status",
@@ -128,7 +145,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         }
     }
 
-    private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
+    private ResponseMessage doPost(String targetId, String recordingName, String datasourceUrl)
             throws Exception {
         Pair<Path, Boolean> recordingPath =
                 getBestRecordingForName(targetId, recordingName)
@@ -176,16 +193,15 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     @Override
     public void validate(String[] args) throws FailedValidationException {
-        if (args.length != 3) {
+        if (args.length != 2) {
             String errorMessage =
-                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL";
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];
         String recordingName = args[1];
-        // String uploadUrl = args[2];
         StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
         if (!validateTargetId(targetId)) {
