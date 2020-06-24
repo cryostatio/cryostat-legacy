@@ -65,6 +65,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -73,21 +74,26 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Singleton
 class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 
+    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+
     private final ClientWriter cw;
     private final FileSystem fs;
     private final Path recordingsPath;
     private final Provider<CloseableHttpClient> httpClientProvider;
+    private final Environment env;
 
     @Inject
     UploadRecordingCommand(
             ClientWriter cw,
             TargetConnectionManager targetConnectionManager,
             FileSystem fs,
+            Environment env,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             Provider<CloseableHttpClient> httpClientProvider) {
         super(targetConnectionManager);
         this.cw = cw;
         this.fs = fs;
+        this.env = env;
         this.recordingsPath = recordingsPath;
         this.httpClientProvider = httpClientProvider;
     }
@@ -101,18 +107,29 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     public void execute(String[] args) throws Exception {
         String targetId = args[0];
         String recordingName = args[1];
-        String uploadUrl = args[2];
-        ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
-        cw.println(String.format("[%s] %s", response.status, response.body));
+
+        if (env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
+            String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+            ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
+            cw.println(String.format("[%s] %s", response.status, response.body));
+        } else {
+            cw.println(String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
+        }
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         String targetId = args[0];
         String recordingName = args[1];
-        String uploadUrl = args[2];
+
+        if (!env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
+            return new FailureOutput(
+                    String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
+        }
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+
         try {
-            ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
+            ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
             return new MapOutput<>(
                     Map.of(
                             "status", response.status,
@@ -124,7 +141,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    private ResponseMessage doPost(String targetId, String recordingName, String uploadUrl)
+    private ResponseMessage doPost(String targetId, String recordingName, String datasourceUrl)
             throws Exception {
         RecordingConnection recordingConnection = getBestRecordingForName(targetId, recordingName);
         if (!recordingConnection.getStream().isPresent()) {
@@ -132,7 +149,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         }
 
         InputStream stream = recordingConnection.getStream().get();
-        HttpPost post = new HttpPost(uploadUrl);
+        HttpPost post = new HttpPost(datasourceUrl);
         post.setEntity(
                 MultipartEntityBuilder.create()
                         .addBinaryBody(
@@ -151,15 +168,14 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     @Override
     public boolean validate(String[] args) {
-        if (args.length != 3) {
+        if (args.length != 2) {
             cw.println(
-                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
             return false;
         }
 
         String targetId = args[0];
         String recordingName = args[1];
-        // String uploadUrl = args[2];
 
         boolean isValidTargetId = validateTargetId(targetId);
         if (!isValidTargetId) {
@@ -171,7 +187,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             cw.println(String.format("%s is an invalid recording name", recordingName));
         }
 
-        // TODO validate upload URL
+        // TODO validate datasource URL
 
         return isValidTargetId && isValidRecordingName;
     }
