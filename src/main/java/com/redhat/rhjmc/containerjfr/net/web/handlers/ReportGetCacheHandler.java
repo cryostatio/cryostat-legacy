@@ -95,6 +95,16 @@ public class ReportGetCacheHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         String recordingName = ctx.pathParam("recordingName");

@@ -118,6 +118,11 @@ class ReportGetHandlerTest {
     }
 
     @Test
+    void shouldBeOrdered() {
+        Assertions.assertTrue(handler.isOrdered());
+    }
+
+    @Test
     void shouldRespond404IfRecordingNameNotFound() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));

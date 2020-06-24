@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -175,27 +174,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
         String cachedReport =
                 ReportGetCacheHandler.getCachedReportPath(reportCachePath, recordingName);
         Buffer reportBuffer = Buffer.buffer(reportGenerator.generateReport(stream));
-        fs.createFile(
-                cachedReport,
-                res -> {
-                    if (res.failed()) {
-                        logger.error(new IOException(res.cause()));
-                        return;
-                    }
-                    fs.writeFile(
-                            cachedReport,
-                            reportBuffer,
-                            res2 -> {
-                                if (res2.failed()) {
-                                    logger.error(new IOException(res2.cause()));
-                                    return;
-                                }
-                                logger.trace(
-                                        String.format(
-                                                "Report for %s written to cache file %s",
-                                                recordingName, cachedReport));
-                            });
-                });
+        fs.createFileBlocking(cachedReport).writeFileBlocking(cachedReport, reportBuffer);
 
         return reportBuffer;
     }

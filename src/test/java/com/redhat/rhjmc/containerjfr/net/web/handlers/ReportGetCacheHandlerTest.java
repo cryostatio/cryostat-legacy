@@ -112,8 +112,13 @@ class ReportGetCacheHandlerTest {
     }
 
     @Test
-    void shouldBeAsync() {
-        Assertions.assertTrue(handler.isAsync());
+    void shouldNotBeAsync() {
+        Assertions.assertFalse(handler.isAsync());
+    }
+
+    @Test
+    void shouldBeOrdered() {
+        Assertions.assertTrue(handler.isOrdered());
     }
 
     @Test
