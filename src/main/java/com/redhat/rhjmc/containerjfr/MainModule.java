@@ -88,6 +88,7 @@ public abstract class MainModule {
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
+    @Singleton
     @Named(RECORDINGS_PATH)
     static Path provideSavedRecordingsPath(Logger logger, Environment env) {
         String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
