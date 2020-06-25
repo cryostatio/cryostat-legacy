@@ -43,11 +43,15 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 
 import javax.inject.Named;
+
+import org.apache.commons.io.input.ReaderInputStream;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -94,7 +98,14 @@ class ArchivedRecordingReportCache {
                                                 recordingName));
                                 try (InputStream stream = fs.newInputStream(recording)) {
                                     String report = reportGenerator.generateReport(stream);
-                                    Files.writeString(dest, report);
+                                    try (ReaderInputStream ris =
+                                            new ReaderInputStream(
+                                                    new StringReader(report),
+                                                    StandardCharsets.UTF_8)) {
+                                        // TODO use an abstraction over Files.write and avoid this
+                                        // intermediate stream
+                                        fs.copy(ris, dest, StandardCopyOption.REPLACE_EXISTING);
+                                    }
                                     return Optional.of(dest);
                                 } catch (IOException ioe) {
                                     logger.warn(ioe);

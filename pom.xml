@@ -96,6 +96,11 @@
     <version>${org.apache.commons.codec.version}</version>
   </dependency>
   <dependency>
+    <groupId>commons-io</groupId>
+    <artifactId>commons-io</artifactId>
+    <version>${org.apache.commons.io.version}</version>
+  </dependency>
+  <dependency>
     <groupId>org.apache.httpcomponents</groupId>
     <artifactId>httpclient</artifactId>
     <version>${org.apache.httpcomponents.version}</version>
@@ -160,12 +165,6 @@
     <groupId>com.github.spotbugs</groupId>
     <artifactId>spotbugs-annotations</artifactId>
     <version>${com.github.spotbugs.version}</version>
-  </dependency>
-  <dependency>
-    <groupId>commons-io</groupId>
-    <artifactId>commons-io</artifactId>
-    <version>${org.apache.commons.io.version}</version>
-    <scope>test</scope>
   </dependency>
   <dependency>
     <groupId>org.jsoup</groupId>
