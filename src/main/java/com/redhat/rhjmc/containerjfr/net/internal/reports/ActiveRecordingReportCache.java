@@ -58,15 +58,16 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 
-public class ReportCache {
+class ActiveRecordingReportCache {
 
     protected final TargetConnectionManager targetConnectionManager;
     protected final ReportGenerator reportGenerator;
-    protected final Logger logger;
     protected final LoadingCache<String, String> cache;
+    protected final Logger logger;
 
-    ReportCache(
+    ActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
             ReportGenerator reportGenerator,
             Logger logger) {
@@ -84,16 +85,24 @@ public class ReportCache {
                         .build(k -> getReport(keyParts(k)));
     }
 
-    public String get(String targetId, String recordingName) {
+    String get(String targetId, String recordingName) {
         return cache.get(key(targetId, recordingName));
     }
 
-    public void delete(String targetId, String recordingName) {
-        cache.invalidate(key(targetId, recordingName));
+    boolean delete(String targetId, String recordingName) {
+        logger.trace(String.format("Invalidating active report cache for %s", recordingName));
+        String key = key(targetId, recordingName);
+        boolean hasKey = cache.asMap().containsKey(key);
+        cache.invalidate(key);
+        return hasKey;
     }
 
     protected String key(String targetId, String recordingName) {
         return targetId + "@" + recordingName;
+    }
+
+    protected String key(Pair<String, String> key) {
+        return key(key.getLeft(), key.getRight());
     }
 
     protected Pair<String, String> keyParts(String key) {
@@ -107,6 +116,7 @@ public class ReportCache {
         try (JFRConnection c = pair.getRight();
                 InputStream stream =
                         pair.getLeft().orElseThrow(() -> new RecordingNotFoundException(key))) {
+            logger.trace(String.format("Active report cache miss for %s", key));
             return reportGenerator.generateReport(stream);
         }
     }
@@ -129,15 +139,5 @@ public class ReportCache {
                                     }
                                 });
         return Pair.of(desc, connection);
-    }
-
-    public static class RecordingNotFoundException extends RuntimeException {
-        public RecordingNotFoundException(String targetId, String recordingName) {
-            super(String.format("Recording %s not found in target %s", targetId, recordingName));
-        }
-
-        public RecordingNotFoundException(Pair<String, String> key) {
-            this(key.getLeft(), key.getRight());
-        }
     }
 }

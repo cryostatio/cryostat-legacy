@@ -44,7 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.file.Path;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
@@ -57,16 +57,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
@@ -77,28 +71,12 @@ class ReportGetHandlerTest {
 
     ReportGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Path savedRecordingsPath;
-    @Mock Path webserverTempPath;
-    @Mock ReportGenerator reportGenerator;
-    @Mock HttpServer httpServer;
-    @Mock Vertx vertx;
-    @Mock FileSystem fs;
+    @Mock ReportService reportService;
     @Mock Logger logger;
-    @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        Mockito.when(httpServer.getVertx()).thenReturn(vertx);
-        Mockito.when(vertx.fileSystem()).thenReturn(fs);
-        this.handler =
-                new ReportGetHandler(
-                        authManager,
-                        savedRecordingsPath,
-                        webserverTempPath,
-                        reportGenerator,
-                        httpServer,
-                        logger);
+        this.handler = new ReportGetHandler(authManager, reportService, logger);
     }
 
     @Test
@@ -132,6 +110,7 @@ class ReportGetHandlerTest {
         when(ctx.request()).thenReturn(req);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        when(reportService.get(Mockito.anyString())).thenReturn(Optional.empty());
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

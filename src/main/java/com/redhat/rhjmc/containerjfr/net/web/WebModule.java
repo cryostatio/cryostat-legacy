@@ -41,8 +41,9 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 
 import javax.inject.Named;
@@ -51,6 +52,7 @@ import javax.inject.Singleton;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -80,9 +82,11 @@ public abstract class WebModule {
     @Provides
     @Singleton
     @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(HttpServer server) {
-        return Paths.get(
-                        server.getVertx().fileSystem().createTempDirectoryBlocking("container-jfr"))
-                .toAbsolutePath();
+    static Path provideWebServerTempDirPath(FileSystem fs) {
+        try {
+            return Files.createTempDirectory("container-jfr").toAbsolutePath();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 }

@@ -41,14 +41,19 @@
  */
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
+import java.nio.file.Path;
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 
 import dagger.Module;
 import dagger.Provides;
@@ -68,10 +73,29 @@ public abstract class ReportsModule {
 
     @Provides
     @Singleton
-    static ReportCache provideReportCache(
+    static ActiveRecordingReportCache provideActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
             ReportGenerator reportGenerator,
             Logger logger) {
-        return new ReportCache(targetConnectionManager, reportGenerator, logger);
+        return new ActiveRecordingReportCache(targetConnectionManager, reportGenerator, logger);
+    }
+
+    @Provides
+    @Singleton
+    static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempDir,
+            FileSystem fs,
+            ReportGenerator reportGenerator,
+            Logger logger) {
+        return new ArchivedRecordingReportCache(
+                savedRecordingsPath, webServerTempDir, fs, reportGenerator, logger);
+    }
+
+    @Provides
+    @Singleton
+    static ReportService provideReportService(
+            ActiveRecordingReportCache activeCache, ArchivedRecordingReportCache archivedCache) {
+        return new ReportService(activeCache, archivedCache);
     }
 }

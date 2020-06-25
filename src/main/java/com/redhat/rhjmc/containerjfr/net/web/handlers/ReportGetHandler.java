@@ -41,51 +41,28 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.InputStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebModule;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final Path savedRecordingsPath;
-    private final ReportGenerator reportGenerator;
-    private final FileSystem fs;
-    private final Logger logger;
-    private final String reportCachePath;
+    private final ReportService reportService;
 
     @Inject
-    ReportGetHandler(
-            AuthManager auth,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webserverTempPath,
-            ReportGenerator reportGenerator,
-            HttpServer httpServer,
-            Logger logger) {
+    ReportGetHandler(AuthManager auth, ReportService reportService, Logger logger) {
         super(auth);
-        this.savedRecordingsPath = savedRecordingsPath;
-        this.reportGenerator = reportGenerator;
-        this.fs = httpServer.getVertx().fileSystem();
-        this.logger = logger;
-        this.reportCachePath = webserverTempPath.toString();
+        this.reportService = reportService;
     }
 
     @Override
@@ -111,71 +88,11 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     void handleAuthenticated(RoutingContext ctx) {
         String recordingName = ctx.pathParam("recordingName");
-        handleReportPageRequest(null, recordingName, ctx);
-    }
-
-    void handleReportPageRequest(String targetId, String recordingName, RoutingContext ctx) {
-        try {
-            Optional<DownloadDescriptor> descriptor =
-                    getRecordingDescriptor(targetId, recordingName);
-            if (descriptor.isEmpty()) {
-                throw new HttpStatusException(404, String.format("%s not found", recordingName));
-            }
-
-            try (InputStream stream = descriptor.get().stream) {
-                ctx.response().end(reportFromStream(recordingName, stream));
-            } finally {
-                descriptor
-                        .get()
-                        .resource
-                        .ifPresent(
-                                resource -> {
-                                    try {
-                                        resource.close();
-                                    } catch (Exception e) {
-                                        logger.warn(e);
-                                    }
-                                });
-            }
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
-    }
-
-    // TODO refactor, this is duplicated from RecordingGetRequestHandler
-    Optional<DownloadDescriptor> getRecordingDescriptor(String targetId, String recordingName) {
-        try {
-            // TODO refactor Files calls into FileSystem for testability
-            Optional<Path> savedRecording =
-                    Files.list(savedRecordingsPath)
-                            .filter(
-                                    saved ->
-                                            saved.getFileName()
-                                                    .toFile()
-                                                    .getName()
-                                                    .equals(recordingName))
-                            .findFirst();
-            if (savedRecording.isPresent()) {
-                return Optional.of(
-                        new DownloadDescriptor(
-                                Files.newInputStream(savedRecording.get(), StandardOpenOption.READ),
-                                Files.size(savedRecording.get()),
-                                null));
-            }
-        } catch (Exception e) {
-            logger.error(e);
-        }
-        return Optional.empty();
-    }
-
-    Buffer reportFromStream(String recordingName, InputStream stream) {
-        String cachedReport =
-                ReportGetCacheHandler.getCachedReportPath(reportCachePath, recordingName);
-        Buffer reportBuffer = Buffer.buffer(reportGenerator.generateReport(stream));
-        fs.createFileBlocking(cachedReport).writeFileBlocking(cachedReport, reportBuffer);
-
-        return reportBuffer;
+        Optional<Path> report = reportService.get(recordingName);
+        report.ifPresentOrElse(
+                path -> ctx.response().sendFile(path.toAbsolutePath().toString()),
+                () -> {
+                    throw new HttpStatusException(404);
+                });
     }
 }

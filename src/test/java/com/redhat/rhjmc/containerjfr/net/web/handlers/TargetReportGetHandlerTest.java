@@ -59,8 +59,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportCache;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportCache.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
@@ -75,12 +75,12 @@ class TargetReportGetHandlerTest {
 
     TargetReportGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock ReportCache reportCache;
+    @Mock ReportService reportService;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetReportGetHandler(authManager, reportCache, logger);
+        this.handler = new TargetReportGetHandler(authManager, reportService, logger);
     }
 
     @Test
@@ -109,7 +109,7 @@ class TargetReportGetHandlerTest {
         String targetId = "fooHost:0";
         String recordingName = "foo";
         String content = "foobar";
-        when(reportCache.get(Mockito.anyString(), Mockito.anyString())).thenReturn(content);
+        when(reportService.get(Mockito.anyString(), Mockito.anyString())).thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
@@ -131,7 +131,7 @@ class TargetReportGetHandlerTest {
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
 
-        when(reportCache.get(Mockito.anyString(), Mockito.anyString()))
+        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
                 .thenThrow(new RecordingNotFoundException("fooHost:0", "someRecording"));
 
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");

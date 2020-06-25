@@ -51,7 +51,7 @@ import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.ReportGetCacheHandler;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
 @Singleton
 class DeleteSavedRecordingCommand implements SerializableCommand {
@@ -59,18 +59,18 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
     private final ClientWriter cw;
     private final FileSystem fs;
     private final Path recordingsPath;
-    private final ReportGetCacheHandler cacheHandler;
+    private final ReportService reportService;
 
     @Inject
     DeleteSavedRecordingCommand(
             ClientWriter cw,
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            ReportGetCacheHandler cacheHandler) {
+            ReportService reportService) {
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
-        this.cacheHandler = cacheHandler;
+        this.reportService = reportService;
     }
 
     @Override
@@ -82,7 +82,7 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
     public void execute(String[] args) throws Exception {
         String name = args[0];
         if (fs.deleteIfExists(recordingsPath.resolve(name))) {
-            cacheHandler.deleteCachedReport(name);
+            reportService.delete(name);
             cw.println(String.format("\"%s\" deleted", name));
         } else {
             cw.println(String.format("Could not delete saved recording \"%s\"", name));
@@ -94,7 +94,7 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
         try {
             String name = args[0];
             if (fs.deleteIfExists(recordingsPath.resolve(name))) {
-                cacheHandler.deleteCachedReport(name);
+                reportService.delete(name);
                 return new SuccessOutput();
             } else {
                 return new FailureOutput(
