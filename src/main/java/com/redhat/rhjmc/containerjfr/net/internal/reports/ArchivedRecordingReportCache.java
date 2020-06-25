@@ -48,6 +48,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Optional;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
 
@@ -65,6 +66,7 @@ class ArchivedRecordingReportCache {
     protected final Path archivedRecordingsReportPath;
     protected final FileSystem fs;
     protected final ReportGenerator reportGenerator;
+    protected final ReentrantLock generationLock;
     protected final Logger logger;
 
     ArchivedRecordingReportCache(
@@ -72,11 +74,13 @@ class ArchivedRecordingReportCache {
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempPath,
             FileSystem fs,
             ReportGenerator reportGenerator,
+            @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         this.savedRecordingsPath = savedRecordingsPath;
         this.archivedRecordingsReportPath = webServerTempPath;
         this.fs = fs;
         this.reportGenerator = reportGenerator;
+        this.generationLock = generationLock;
         this.logger = logger;
     }
 
@@ -86,6 +90,12 @@ class ArchivedRecordingReportCache {
             return Optional.of(dest);
         }
         try {
+            generationLock.lock();
+            // check again in case the previous lock holder already created the cached file
+            if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
+                return Optional.of(dest);
+            }
+
             return fs.listDirectoryChildren(savedRecordingsPath).stream()
                     .filter(name -> name.equals(recordingName))
                     .map(savedRecordingsPath::resolve)
@@ -114,8 +124,10 @@ class ArchivedRecordingReportCache {
                             });
         } catch (IOException ioe) {
             logger.warn(ioe);
+            return Optional.empty();
+        } finally {
+            generationLock.unlock();
         }
-        return Optional.empty();
     }
 
     boolean delete(String recordingName) {

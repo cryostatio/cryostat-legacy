@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -64,6 +65,8 @@ import dagger.Provides;
         })
 public abstract class ReportsModule {
 
+    static final String REPORT_GENERATION_LOCK = "REPORT_GENERATION_LOCK";
+
     @Provides
     @Singleton
     static ReportGenerator provideReportGenerator(
@@ -73,11 +76,21 @@ public abstract class ReportsModule {
 
     @Provides
     @Singleton
+    @Named(REPORT_GENERATION_LOCK)
+    /** Used to ensure that only one report is generated at a time */
+    static ReentrantLock provideReportGenerationLock() {
+        return new ReentrantLock();
+    }
+
+    @Provides
+    @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
             ReportGenerator reportGenerator,
+            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
-        return new ActiveRecordingReportCache(targetConnectionManager, reportGenerator, logger);
+        return new ActiveRecordingReportCache(
+                targetConnectionManager, reportGenerator, generationLock, logger);
     }
 
     @Provides
@@ -87,9 +100,10 @@ public abstract class ReportsModule {
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempDir,
             FileSystem fs,
             ReportGenerator reportGenerator,
+            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         return new ArchivedRecordingReportCache(
-                savedRecordingsPath, webServerTempDir, fs, reportGenerator, logger);
+                savedRecordingsPath, webServerTempDir, fs, reportGenerator, generationLock, logger);
     }
 
     @Provides

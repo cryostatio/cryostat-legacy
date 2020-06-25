@@ -44,7 +44,11 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
+
+import javax.inject.Named;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -64,19 +68,23 @@ class ActiveRecordingReportCache {
 
     protected final TargetConnectionManager targetConnectionManager;
     protected final ReportGenerator reportGenerator;
+    protected final ReentrantLock generationLock;
     protected final LoadingCache<String, String> cache;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
             ReportGenerator reportGenerator,
+            @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.reportGenerator = reportGenerator;
+        this.generationLock = generationLock;
         this.logger = logger;
 
         this.cache =
                 Caffeine.newBuilder()
+                        .executor(Executors.newSingleThreadExecutor())
                         .initialCapacity(4)
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterWrite(30, TimeUnit.MINUTES)
@@ -112,12 +120,17 @@ class ActiveRecordingReportCache {
     }
 
     protected String getReport(Pair<String, String> key) throws Exception {
-        Pair<Optional<InputStream>, JFRConnection> pair = getRecordingStream(key);
-        try (JFRConnection c = pair.getRight();
-                InputStream stream =
-                        pair.getLeft().orElseThrow(() -> new RecordingNotFoundException(key))) {
-            logger.trace(String.format("Active report cache miss for %s", key));
-            return reportGenerator.generateReport(stream);
+        try {
+            generationLock.lock();
+            Pair<Optional<InputStream>, JFRConnection> pair = getRecordingStream(key);
+            try (JFRConnection c = pair.getRight();
+                    InputStream stream =
+                            pair.getLeft().orElseThrow(() -> new RecordingNotFoundException(key))) {
+                logger.trace(String.format("Active report cache miss for %s", key));
+                return reportGenerator.generateReport(stream);
+            }
+        } finally {
+            generationLock.unlock();
         }
     }
 
