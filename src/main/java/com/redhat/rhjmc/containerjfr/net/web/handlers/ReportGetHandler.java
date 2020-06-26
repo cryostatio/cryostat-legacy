@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.util.Optional;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
