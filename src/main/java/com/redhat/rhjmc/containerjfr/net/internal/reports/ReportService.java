@@ -73,6 +73,7 @@ public class ReportService {
         return activeCache.delete(targetId, recordingName);
     }
 
+    // FIXME This is basically duplicated from UploadRecordingCommand
     public static class RecordingNotFoundException extends RuntimeException {
         public RecordingNotFoundException(String targetId, String recordingName) {
             super(String.format("Recording %s not found in target %s", targetId, recordingName));
