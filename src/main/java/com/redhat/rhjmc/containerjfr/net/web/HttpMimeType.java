@@ -45,7 +45,8 @@ public enum HttpMimeType {
     PLAINTEXT("text/plain"),
     HTML("text/html"),
     JSON("application/json"),
-    OCTET_STREAM("application/octet-stream");
+    OCTET_STREAM("application/octet-stream"),
+    JFC("application/jfc+xml");
 
     private final String mime;
 

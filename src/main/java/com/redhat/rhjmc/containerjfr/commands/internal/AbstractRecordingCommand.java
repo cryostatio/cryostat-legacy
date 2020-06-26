@@ -90,7 +90,10 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
             if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
                 return enableAllEvents(connection);
             }
-            return connection.getTemplateService().getEventsByTemplateName(templateName);
+            return connection
+                    .getTemplateService()
+                    .getEventsByTemplateName(templateName)
+                    .orElseThrow(() -> new IllegalArgumentException(templateName));
         }
 
         return enableSelectedEvents(connection, events);

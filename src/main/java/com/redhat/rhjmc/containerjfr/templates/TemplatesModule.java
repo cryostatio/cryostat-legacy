@@ -39,62 +39,24 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.templates;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.web.WebModule;
-import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
-import com.redhat.rhjmc.containerjfr.sys.SystemModule;
-import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
-import com.redhat.rhjmc.containerjfr.tui.TuiModule;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
 
 import dagger.Module;
 import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Module(
-        includes = {
-            PlatformModule.class,
-            WebModule.class,
-            SystemModule.class,
-            CommandsModule.class,
-            TuiModule.class,
-            TemplatesModule.class,
-        })
-public abstract class MainModule {
-    public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
+@Module
+public abstract class TemplatesModule {
 
     @Provides
     @Singleton
-    static Logger provideLogger() {
-        return Logger.INSTANCE;
-    }
-
-    // public since this is useful to use directly in tests
-    @Provides
-    @Singleton
-    public static Gson provideGson() {
-        return new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
-    }
-
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    @Provides
-    @Singleton
-    @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
-        logger.info(String.format("Local save path for flight recordings set as %s", ARCHIVE_PATH));
-        return Paths.get(ARCHIVE_PATH);
+    static LocalStorageTemplateService provideLocalStorageTemplateService(
+            FileSystem fs, Environment env) {
+        return new LocalStorageTemplateService(fs, env);
     }
 }

@@ -86,8 +86,9 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static TargetConnectionManager provideTargetConnectionManager(Logger logger, ClientWriter cw) {
-        return new TargetConnectionManager(logger, new JFRConnectionToolkit(cw));
+    static TargetConnectionManager provideTargetConnectionManager(
+            Logger logger, ClientWriter cw, FileSystem fs, Environment env) {
+        return new TargetConnectionManager(logger, new JFRConnectionToolkit(cw, fs, env));
     }
 
     @Provides

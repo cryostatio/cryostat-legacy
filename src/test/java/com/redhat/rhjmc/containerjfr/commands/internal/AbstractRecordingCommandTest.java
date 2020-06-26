@@ -54,6 +54,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Optional;
 
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -73,10 +74,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
-import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
-import com.redhat.rhjmc.containerjfr.core.templates.TemplateService.UnknownEventTemplateException;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
@@ -151,7 +150,8 @@ class AbstractRecordingCommandTest extends TestBase {
         when(connection.getTemplateService()).thenReturn(templateSvc);
 
         IConstrainedMap<EventOptionID> templateMap = mock(IConstrainedMap.class);
-        when(templateSvc.getEventsByTemplateName(Mockito.anyString())).thenReturn(templateMap);
+        when(templateSvc.getEventsByTemplateName(Mockito.anyString()))
+                .thenReturn(Optional.of(templateMap));
 
         IConstrainedMap<EventOptionID> result = command.enableEvents(connection, "template=Foo");
         assertThat(result, Matchers.sameInstance(templateMap));
@@ -162,11 +162,10 @@ class AbstractRecordingCommandTest extends TestBase {
         TemplateService templateSvc = mock(TemplateService.class);
         when(connection.getTemplateService()).thenReturn(templateSvc);
 
-        when(templateSvc.getEventsByTemplateName(Mockito.anyString()))
-                .thenThrow(new FlightRecorderException(new UnknownEventTemplateException("Foo")));
+        when(templateSvc.getEventsByTemplateName(Mockito.anyString())).thenReturn(Optional.empty());
 
         Assertions.assertThrows(
-                FlightRecorderException.class,
+                IllegalArgumentException.class,
                 () -> command.enableEvents(connection, "template=Foo"));
     }
 
