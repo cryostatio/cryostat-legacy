@@ -41,52 +41,52 @@
  */
 package itest;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.ext.web.client.WebClient;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-public class IntegrationTestUtils {
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpRequest;
 
-    static final boolean EXTRA_DEBUG =
-            Boolean.valueOf(System.getProperty("containerJfrITestExtraDebug", "false"));
+public class NoopAuthIT extends ITestBase {
 
-    static {
-        if (EXTRA_DEBUG) {
-            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
-            System.setProperty("org.slf4j.simpleLogger.levelInBrackets", "true");
-        }
+    HttpRequest<Buffer> req;
+
+    @BeforeEach
+    void createRequest() {
+        req = webClient.post("/api/v1/auth");
     }
 
-    public static final int WEB_PORT;
-
-    static {
-        WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebPort"));
+    @Test
+    public void shouldSucceed() throws Exception {
+        CompletableFuture<Integer> future = new CompletableFuture<>();
+        req.send(
+                ar -> {
+                    if (ar.succeeded()) {
+                        future.complete(ar.result().statusCode());
+                    } else {
+                        future.completeExceptionally(ar.cause());
+                    }
+                });
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(200));
     }
 
-    static final HttpClientOptions HTTP_CLIENT_OPTIONS;
-
-    static {
-        HTTP_CLIENT_OPTIONS =
-                new HttpClientOptions()
-                        .setSsl(false)
-                        .setTrustAll(true)
-                        .setVerifyHost(false)
-                        .setDefaultHost("0.0.0.0")
-                        .setDefaultPort(WEB_PORT)
-                        .setLogActivity(true);
-    }
-
-    private static final Vertx VERTX = Vertx.vertx();
-    static final HttpClient HTTP_CLIENT = VERTX.createHttpClient(HTTP_CLIENT_OPTIONS);
-    private static final WebClient WEB_CLIENT_INSTANCE = WebClient.wrap(HTTP_CLIENT);
-
-    public static WebClient getWebClient() {
-        return WEB_CLIENT_INSTANCE;
-    }
-
-    public static FileSystem getFileSystem() {
-        return VERTX.fileSystem();
+    @Test
+    public void shouldReturnOK() throws Exception {
+        CompletableFuture<String> future = new CompletableFuture<>();
+        req.send(
+                ar -> {
+                    if (ar.succeeded()) {
+                        future.complete(ar.result().statusMessage());
+                    } else {
+                        future.completeExceptionally(ar.cause());
+                    }
+                });
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo("OK"));
     }
 }

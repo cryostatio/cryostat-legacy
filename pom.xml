@@ -50,6 +50,7 @@
   <io.fabric8.openshift.client.version>4.6.4</io.fabric8.openshift.client.version>
   <io.kubernetes.client.java.version>5.0.0</io.kubernetes.client.java.version>
   <io.vertx.web.version>3.8.5</io.vertx.web.version>
+  <org.slf4j.version>1.7.30</org.slf4j.version>
   <com.google.code.gson.version>2.8.6</com.google.code.gson.version>
 
   <com.github.spotbugs.version>4.0.0-RC1</com.github.spotbugs.version>
@@ -59,6 +60,7 @@
   <org.mockito.version>3.2.4</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.5</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>1.27.0</com.diffplug.spotless.maven.plugin.version>
+  <org.jsoup.version>1.12.1</org.jsoup.version>
 </properties>
 
 <dependencies>
@@ -108,6 +110,16 @@
     <version>${io.vertx.web.version}</version>
   </dependency>
   <dependency>
+    <groupId>io.vertx</groupId>
+    <artifactId>vertx-web-client</artifactId>
+    <version>${io.vertx.web.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>org.slf4j</groupId>
+    <artifactId>slf4j-simple</artifactId>
+    <version>${org.slf4j.version}</version>
+  </dependency>
+  <dependency>
     <groupId>com.google.code.gson</groupId>
     <artifactId>gson</artifactId>
     <version>${com.google.code.gson.version}</version>
@@ -147,6 +159,12 @@
     <groupId>commons-io</groupId>
     <artifactId>commons-io</artifactId>
     <version>${org.apache.commons.io.version}</version>
+    <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>org.jsoup</groupId>
+    <artifactId>jsoup</artifactId>
+    <version>${org.jsoup.version}</version>
     <scope>test</scope>
   </dependency>
 </dependencies>
@@ -190,6 +208,8 @@
               <argument>run</argument>
               <argument>--hostname=container-jfr</argument>
               <argument>--name=container-jfr-itest</argument>
+              <argument>--mount </argument>
+              <argument>type=tmpfs,target=/flightrecordings</argument>
               <argument>--publish</argument>
               <argument>9091:9091</argument>
               <argument>--publish</argument>

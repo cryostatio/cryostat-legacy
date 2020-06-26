@@ -41,52 +41,52 @@
  */
 package itest;
 
-import io.vertx.core.Vertx;
-import io.vertx.core.file.FileSystem;
-import io.vertx.core.http.HttpClient;
-import io.vertx.core.http.HttpClientOptions;
-import io.vertx.ext.web.client.WebClient;
+import java.io.File;
+import java.util.concurrent.TimeUnit;
 
-public class IntegrationTestUtils {
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
-    static final boolean EXTRA_DEBUG =
-            Boolean.valueOf(System.getProperty("containerJfrITestExtraDebug", "false"));
+public class ClientAssetsIT extends ITestBase {
 
-    static {
-        if (EXTRA_DEBUG) {
-            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
-            System.setProperty("org.slf4j.simpleLogger.levelInBrackets", "true");
-        }
+    static File file;
+    static Document doc;
+
+    @BeforeAll
+    static void setup() throws Exception {
+        file =
+                downloadFile("/index.html", "index", "html")
+                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                        .toFile();
+        doc = Jsoup.parse(file, "UTF-8");
     }
 
-    public static final int WEB_PORT;
-
-    static {
-        WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebPort"));
+    @Test
+    public void indexHtmlShouldReturnClient() {
+        MatcherAssert.assertThat(file.length(), Matchers.greaterThan(0L));
     }
 
-    static final HttpClientOptions HTTP_CLIENT_OPTIONS;
-
-    static {
-        HTTP_CLIENT_OPTIONS =
-                new HttpClientOptions()
-                        .setSsl(false)
-                        .setTrustAll(true)
-                        .setVerifyHost(false)
-                        .setDefaultHost("0.0.0.0")
-                        .setDefaultPort(WEB_PORT)
-                        .setLogActivity(true);
+    @Test
+    public void indexHtmlShouldHaveTitle() {
+        Elements head = doc.getElementsByTag("head");
+        MatcherAssert.assertThat(head.size(), Matchers.equalTo(1));
+        Elements titles = head.first().getElementsByTag("title");
+        MatcherAssert.assertThat(titles.size(), Matchers.equalTo(1));
+        MatcherAssert.assertThat(titles.first().text(), Matchers.equalTo("ContainerJFR"));
     }
 
-    private static final Vertx VERTX = Vertx.vertx();
-    static final HttpClient HTTP_CLIENT = VERTX.createHttpClient(HTTP_CLIENT_OPTIONS);
-    private static final WebClient WEB_CLIENT_INSTANCE = WebClient.wrap(HTTP_CLIENT);
-
-    public static WebClient getWebClient() {
-        return WEB_CLIENT_INSTANCE;
-    }
-
-    public static FileSystem getFileSystem() {
-        return VERTX.fileSystem();
+    @Test
+    public void indexHtmlShouldHaveScriptTag() {
+        Elements body = doc.getElementsByTag("body");
+        MatcherAssert.assertThat(body.size(), Matchers.equalTo(1));
+        Elements script = body.first().getElementsByTag("script");
+        MatcherAssert.assertThat(script.size(), Matchers.equalTo(1));
+        MatcherAssert.assertThat(script.first().attr("type"), Matchers.equalTo("text/javascript"));
+        MatcherAssert.assertThat(script.first().attr("src"), Matchers.equalTo("app.bundle.js"));
     }
 }
