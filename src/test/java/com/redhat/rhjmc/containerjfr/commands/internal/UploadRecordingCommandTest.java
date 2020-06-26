@@ -153,20 +153,6 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
-    @ParameterizedTest
-    @ValueSource(
-            strings = {"foo", "foo.jfr", "recording", "some-name", "another_name", "123", "abc123"})
-    void shouldValidateRecordingNames(String recordingName) {
-        Assertions.assertTrue(command.validate(new String[] {HOST_ID, recordingName}));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {".", "some recording", ""})
-    void shouldNotValidateInvalidRecordingNames(String recordingName) {
-        Assertions.assertFalse(command.validate(new String[] {HOST_ID, recordingName}));
-        Mockito.verify(cw).println(recordingName + " is an invalid recording name");
-    }
-
     @Nested
     class RecordingSelection {
 
