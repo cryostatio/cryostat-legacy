@@ -207,7 +207,16 @@ class UploadRecordingCommandTest {
 
     @ParameterizedTest
     @EmptySource
-    @ValueSource(strings = {"foo", "localhost:8080"})
+    @ValueSource(
+            strings = {
+                "foo",
+                "localhost:8080",
+                "http:///localhost",
+                "http:://localhost",
+                " http://localhost",
+                "http:// localhost",
+                "http://local host"
+            })
     void shouldNotValidateUnacceptableDatasourceUrls(String datasourceUrl) {
         Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(datasourceUrl);
         Assertions.assertFalse(command.validate(new String[] {HOST_ID, "foo"}));
