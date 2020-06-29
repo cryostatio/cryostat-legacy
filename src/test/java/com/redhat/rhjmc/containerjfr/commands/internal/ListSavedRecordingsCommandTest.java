@@ -142,7 +142,7 @@ class ListSavedRecordingsCommandTest {
     }
 
     @Test
-    void shouldPrintURLs() throws Exception {
+    void shouldPrintDownloadURL() throws Exception {
         when(fs.listDirectoryChildren(recordingsPath)).thenReturn(Arrays.asList("foo", "bar"));
         when(exporter.getArchivedDownloadURL(Mockito.anyString()))
                 .thenAnswer(
@@ -154,6 +154,24 @@ class ListSavedRecordingsCommandTest {
                                         invocation.getArguments()[0]);
                             }
                         });
+
+        command.execute(new String[0]);
+
+        InOrder inOrder = inOrder(cw);
+        inOrder.verify(cw).println("Saved recordings:");
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/recordings/foo"));
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/recordings/bar"));
+    }
+
+    @Test
+    void shouldPrintReportURL() throws Exception {
+        when(fs.listDirectoryChildren(recordingsPath)).thenReturn(Arrays.asList("foo", "bar"));
         when(exporter.getArchivedReportURL(Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
@@ -172,13 +190,11 @@ class ListSavedRecordingsCommandTest {
         inOrder.verify(cw)
                 .println(
                         Mockito.contains(
-                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/recordings/foo\n"
-                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/reports/foo"));
+                                "\tgetReportUrl\t\thttp://example.com:1234/api/v1/reports/foo"));
         inOrder.verify(cw)
                 .println(
                         Mockito.contains(
-                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/recordings/bar\n"
-                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/reports/bar"));
+                                "\tgetReportUrl\t\thttp://example.com:1234/api/v1/reports/bar"));
     }
 
     @Test
