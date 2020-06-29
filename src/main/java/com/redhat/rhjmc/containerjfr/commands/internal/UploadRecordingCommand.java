@@ -167,6 +167,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         String targetId = args[0];
         String recordingName = args[1];
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
 
         boolean isValidTargetId = validateTargetId(targetId);
         if (!isValidTargetId) {
@@ -179,10 +180,12 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         }
 
         boolean isValidDatasourceUrl =
-                new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS)
-                        .isValid(env.getEnv(GRAFANA_DATASOURCE_ENV));
+                new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(datasourceUrl);
         if (!isValidDatasourceUrl) {
-            cw.println(String.format("%s is an invalid datasource URL", GRAFANA_DATASOURCE_ENV));
+            cw.println(
+                    String.format(
+                            "$%s=%s is an invalid datasource URL",
+                            GRAFANA_DATASOURCE_ENV, datasourceUrl));
         }
 
         return isValidTargetId && isValidRecordingName && isValidDatasourceUrl;

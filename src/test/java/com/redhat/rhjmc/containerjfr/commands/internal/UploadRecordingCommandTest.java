@@ -202,6 +202,11 @@ class UploadRecordingCommandTest {
     void shouldNotValidateUnacceptableDatasourceUrls(String datasourceUrl) {
         Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(datasourceUrl);
         Assertions.assertFalse(command.validate(new String[] {HOST_ID, "foo"}));
+        Mockito.verify(cw)
+                .println(
+                        String.format(
+                                "$%s=%s is an invalid datasource URL",
+                                GRAFANA_DATASOURCE_ENV, datasourceUrl));
     }
 
     @Nested
