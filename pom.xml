@@ -45,6 +45,7 @@
 
   <org.apache.commons.lang3.version>3.9</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.13</org.apache.commons.codec.version>
+  <org.apache.commons.validator.version>1.6</org.apache.commons.validator.version>
   <org.apache.commons.io.version>2.6</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.11</org.apache.httpcomponents.version>
   <io.fabric8.openshift.client.version>4.6.4</io.fabric8.openshift.client.version>
@@ -93,6 +94,11 @@
     <groupId>commons-codec</groupId>
     <artifactId>commons-codec</artifactId>
     <version>${org.apache.commons.codec.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>commons-validator</groupId>
+    <artifactId>commons-validator</artifactId>
+    <version>${org.apache.commons.validator.version}</version>
   </dependency>
   <dependency>
     <groupId>org.apache.httpcomponents</groupId>

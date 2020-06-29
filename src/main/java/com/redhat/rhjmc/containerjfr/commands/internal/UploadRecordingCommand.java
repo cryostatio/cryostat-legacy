@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
-import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -53,6 +52,7 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import org.apache.commons.validator.routines.UrlValidator;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -178,12 +178,11 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             cw.println(String.format("%s is an invalid recording name", recordingName));
         }
 
-        boolean isValidDatasourceUrl = true;
-        try {
-            new java.net.URL(env.getEnv(GRAFANA_DATASOURCE_ENV));
-        } catch (MalformedURLException e) {
+        boolean isValidDatasourceUrl =
+                new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS)
+                        .isValid(env.getEnv(GRAFANA_DATASOURCE_ENV));
+        if (!isValidDatasourceUrl) {
             cw.println(String.format("%s is an invalid datasource URL", GRAFANA_DATASOURCE_ENV));
-            isValidDatasourceUrl = false;
         }
 
         return isValidTargetId && isValidRecordingName && isValidDatasourceUrl;
@@ -191,7 +190,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     @Override
     public boolean isAvailable() {
-        return env.hasEnv(GRAFANA_DATASOURCE_ENV);
+        return super.isAvailable() && env.hasEnv(GRAFANA_DATASOURCE_ENV);
     }
 
     // returned stream should be cleaned up by HttpClient
