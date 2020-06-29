@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
+import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
@@ -109,27 +110,17 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     public void execute(String[] args) throws Exception {
         String targetId = args[0];
         String recordingName = args[1];
-
-        if (env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
-            ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
-            cw.println(
-                    String.format(
-                            "[%d %s] %s", response.statusCode, response.statusMessage, response.body));
-        } else {
-            cw.println(String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
-        }
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+        ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
+        cw.println(
+                String.format(
+                        "[%d %s] %s", response.statusCode, response.statusMessage, response.body));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         String targetId = args[0];
         String recordingName = args[1];
-
-        if (!env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            return new FailureOutput(
-                    String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
-        }
         String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
 
         try {
@@ -220,7 +211,20 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             throw new FailedValidationException(combinedErrorMessage.toString());
         }
 
-        // TODO validate upload URL
+        boolean isValidDatasourceUrl = true;
+        try {
+            new java.net.URL(env.getEnv(GRAFANA_DATASOURCE_ENV));
+        } catch (MalformedURLException e) {
+            cw.println(String.format("%s is an invalid datasource URL", GRAFANA_DATASOURCE_ENV));
+            isValidDatasourceUrl = false;
+        }
+
+        return isValidTargetId && isValidRecordingName && isValidDatasourceUrl;
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return env.hasEnv(GRAFANA_DATASOURCE_ENV);
     }
 
     // returned stream should be cleaned up by HttpClient
