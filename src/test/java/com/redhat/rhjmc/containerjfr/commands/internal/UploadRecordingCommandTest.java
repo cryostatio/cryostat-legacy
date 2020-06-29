@@ -62,6 +62,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -71,9 +72,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.internal.UploadRecordingCommand.RecordingNotFoundException;
@@ -85,10 +84,11 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingName {
+class UploadRecordingCommandTest {
 
     static final String HOST_ID = "fooHost:9091";
     static final String DATASOURCE_URL = "http://localhost:8080/load";
+    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
 
     UploadRecordingCommand command;
     @Mock ClientWriter cw;
@@ -98,16 +98,6 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
     @Mock Path path;
     @Mock CloseableHttpClient httpClient;
     @Mock JFRConnection conn;
-
-    @Override
-    public Command commandForValidationTesting() {
-        return command;
-    }
-
-    @Override
-    public List<String> argumentSignature() {
-        return List.of(TARGET_ID, RECORDING_NAME);
-    }
 
     @BeforeEach
     void setup() {
@@ -122,8 +112,15 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
     }
 
     @Test
-    void shouldBeAvailable() {
+    void shouldBeAvailableIfEnvVarExists() {
+        Mockito.when(env.hasEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(true);
         Assertions.assertTrue(command.isAvailable());
+    }
+
+    @Test
+    void shouldNotBeAvailableIfNoEnvVar() {
+        Mockito.when(env.hasEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(false);
+        Assertions.assertFalse(command.isAvailable());
     }
 
     @ParameterizedTest
@@ -133,6 +130,69 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
         Mockito.verify(cw)
                 .println(
                         "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "localhost",
+                "localhost:123",
+                "service:jmx:rmi:///localhost/jndi/rmi://localhost:fooHost/jmxrmi"
+            })
+    void shouldValidateAcceptableTargetId(String targetId) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Assertions.assertTrue(command.validate(new String[] {targetId, "foo"}));
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(
+            strings = {"localhost:", ":123", "localhost:abc", ":abc", "http:///localhost:9091"})
+    void shouldNotValidateUnacceptableTargetIds(String targetId) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Assertions.assertFalse(command.validate(new String[] {targetId, "foo"}));
+        Mockito.verify(cw)
+                .println(String.format("%s is an invalid connection specifier", targetId));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "foo",
+                "some_recording",
+                "recording2",
+                "recording.jfr",
+                "1",
+                "hyphenated-name"
+            })
+    void shouldValidateAcceptableRecordingNames(String recordingName) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Assertions.assertTrue(command.validate(new String[] {HOST_ID, recordingName}));
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(strings = {"a recording", ".", ".jfr"})
+    void shouldNotValidateUnacceptableRecordingNames(String recordingName) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Assertions.assertFalse(command.validate(new String[] {HOST_ID, recordingName}));
+        Mockito.verify(cw).println(String.format("%s is an invalid recording name", recordingName));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"http://localhost:8080/load", "http://localhost:8080", "http://localhost"})
+    void shouldValidateAcceptableDatasourceUrls(String datasourceUrl) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(datasourceUrl);
+        Assertions.assertTrue(command.validate(new String[] {HOST_ID, "foo"}));
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(strings = {"foo", "localhost:8080"})
+    void shouldNotValidateUnacceptableDatasourceUrls(String datasourceUrl) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(datasourceUrl);
+        Assertions.assertFalse(command.validate(new String[] {HOST_ID, "foo"}));
     }
 
     @Nested
@@ -242,13 +302,6 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
     class ExecutionTest {
 
         @Test
-        void shouldPrintErrorIfEnvVarNotFound() throws Exception {
-            Mockito.when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
-            command.execute(new String[] {HOST_ID, "foo"});
-            Mockito.verify(cw).println("Missing environment variable GRAFANA_DATASOURCE_URL");
-        }
-
-        @Test
         void shouldThrowExceptionIfRecordingNotFound() throws Exception {
             Mockito.when(
                             targetConnectionManager.executeConnectedTask(
@@ -260,8 +313,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
             Mockito.when(rec.getName()).thenReturn("foo");
-            Mockito.when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
-            Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
             Assertions.assertThrows(
                     RecordingNotFoundException.class,
@@ -284,8 +336,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(command.targetConnectionManager.connect(Mockito.anyString()))
                     .thenReturn(conn);
             Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
-            Mockito.when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
-            Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
             CloseableHttpResponse httpResp = Mockito.mock(CloseableHttpResponse.class);
             HttpEntity entity = Mockito.mock(HttpEntity.class);
@@ -313,13 +364,6 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
     class SerializableExecutionTest {
 
         @Test
-        void shouldReturnFailureIfEnvVarNotFound() throws Exception {
-            Mockito.when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
-            Output<?> out = command.serializableExecute(new String[] {HOST_ID, "foo"});
-            MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
-        }
-
-        @Test
         void shouldReturnExceptionIfRecordingNotFound() throws Exception {
             Mockito.when(
                             targetConnectionManager.executeConnectedTask(
@@ -331,8 +375,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
             Mockito.when(rec.getName()).thenReturn("foo");
-            Mockito.when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
-            Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
             Output<?> out = command.serializableExecute(new String[] {HOST_ID, rec.getName()});
             MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
@@ -354,8 +397,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(command.targetConnectionManager.connect(Mockito.anyString()))
                     .thenReturn(conn);
             Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
-            Mockito.when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
-            Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
             CloseableHttpResponse httpResp = Mockito.mock(CloseableHttpResponse.class);
             HttpEntity entity = Mockito.mock(HttpEntity.class);

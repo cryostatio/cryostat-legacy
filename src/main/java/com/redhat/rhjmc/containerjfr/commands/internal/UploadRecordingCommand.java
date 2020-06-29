@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.io.BufferedInputStream;
 import java.io.InputStream;
+import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
@@ -107,25 +108,15 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     public void execute(String[] args) throws Exception {
         String targetId = args[0];
         String recordingName = args[1];
-
-        if (env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
-            ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
-            cw.println(String.format("[%s] %s", response.status, response.body));
-        } else {
-            cw.println(String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
-        }
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+        ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
+        cw.println(String.format("[%s] %s", response.status, response.body));
     }
 
     @Override
     public Output<?> serializableExecute(String[] args) {
         String targetId = args[0];
         String recordingName = args[1];
-
-        if (!env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            return new FailureOutput(
-                    String.format("Missing environment variable %s", GRAFANA_DATASOURCE_ENV));
-        }
         String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
 
         try {
@@ -179,7 +170,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         boolean isValidTargetId = validateTargetId(targetId);
         if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+            cw.println(String.format("%s is an invalid connection specifier", targetId));
         }
 
         boolean isValidRecordingName = validateRecordingName(recordingName);
@@ -187,9 +178,20 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             cw.println(String.format("%s is an invalid recording name", recordingName));
         }
 
-        // TODO validate datasource URL
+        boolean isValidDatasourceUrl = true;
+        try {
+            new java.net.URL(env.getEnv(GRAFANA_DATASOURCE_ENV));
+        } catch (MalformedURLException e) {
+            cw.println(String.format("%s is an invalid datasource URL", GRAFANA_DATASOURCE_ENV));
+            isValidDatasourceUrl = false;
+        }
 
-        return isValidTargetId && isValidRecordingName;
+        return isValidTargetId && isValidRecordingName && isValidDatasourceUrl;
+    }
+
+    @Override
+    public boolean isAvailable() {
+        return env.hasEnv(GRAFANA_DATASOURCE_ENV);
     }
 
     // returned stream should be cleaned up by HttpClient
