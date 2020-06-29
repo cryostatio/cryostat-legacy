@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -152,17 +153,22 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
                 ArrayUtils.addAll(
                         descriptor.getClass().getSuperclass().getDeclaredMethods(),
                         descriptor.getClass().getDeclaredMethods());
+
+        List<String> urls = new ArrayList<String>();
         for (Method m : methods) {
             if (m.getParameterTypes().length == 0
                     && (m.getName().startsWith("get") || m.getName().startsWith("is"))) {
-                sb.append("\t");
-                sb.append(m.getName());
-
-                sb.append("\t\t");
-                sb.append(m.invoke(descriptor));
-
-                sb.append("\n");
+                if (m.getName().toLowerCase().contains("url")) {
+                    urls.add(String.format("\t%s\t\t%s%n", m.getName(), m.invoke(descriptor)));
+                } else {
+                    sb.append(String.format("\t%s\t\t%s%n", m.getName(), m.invoke(descriptor)));
+                }
             }
+        }
+
+        Collections.sort(urls);
+        for (String s : urls) {
+            sb.append(s);
         }
 
         return sb.toString();

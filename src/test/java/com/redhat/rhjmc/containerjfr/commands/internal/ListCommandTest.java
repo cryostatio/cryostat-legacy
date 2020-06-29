@@ -151,7 +151,7 @@ class ListCommandTest implements ValidatesTargetId {
     }
 
     @Test
-    void shouldPrintDownloadAndReportURL() throws Exception {
+    void shouldPrintDownloadURL() throws Exception {
         when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
@@ -173,6 +173,31 @@ class ListCommandTest implements ValidatesTargetId {
                                         invocation.getArguments()[1]);
                             }
                         });
+
+        command.execute(new String[] {"foo:9091"});
+        InOrder inOrder = inOrder(cw);
+        inOrder.verify(cw).println("Available recordings:");
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/foo"));
+        inOrder.verify(cw)
+                .println(
+                        Mockito.contains(
+                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/bar"));
+    }
+
+    @Test
+    void shouldPrintReportURL() throws Exception {
+        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        when(connection.getService()).thenReturn(service);
+        when(connection.getHost()).thenReturn("fooHost");
+        when(connection.getPort()).thenReturn(1);
+        List<IRecordingDescriptor> descriptors =
+                Arrays.asList(createDescriptor("foo"), createDescriptor("bar"));
+        when(service.getAvailableRecordings()).thenReturn(descriptors);
         when(exporter.getReportURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
                 .thenAnswer(
                         new Answer<String>() {
@@ -191,13 +216,11 @@ class ListCommandTest implements ValidatesTargetId {
         inOrder.verify(cw)
                 .println(
                         Mockito.contains(
-                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/foo\n"
-                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/foo"));
+                                "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/foo"));
         inOrder.verify(cw)
                 .println(
                         Mockito.contains(
-                                "\tgetDownloadUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/recordings/bar\n"
-                                        + "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/bar"));
+                                "\tgetReportUrl\t\thttp://example.com:1234/api/v1/targets/fooHost:1/reports/bar"));
     }
 
     @Test
