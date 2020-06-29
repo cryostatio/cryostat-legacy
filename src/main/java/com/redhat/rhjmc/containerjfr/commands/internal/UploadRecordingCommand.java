@@ -201,6 +201,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         String targetId = args[0];
         String recordingName = args[1];
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
         StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
         if (!validateTargetId(targetId)) {
@@ -215,18 +216,17 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             combinedErrorMessage.add(errorMessage);
         }
 
+        boolean isValidDatasourceUrl =
+                new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(datasourceUrl);
+        if (!isValidDatasourceUrl) {
+            String errorMessage = String.format("$%s=%s is an invalid datasource URL", GRAFANA_DATASOURCE_ENV, datasourceUrl);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
+        }
+
         if (combinedErrorMessage.length() > 0) {
             throw new FailedValidationException(combinedErrorMessage.toString());
         }
-
-        boolean isValidDatasourceUrl =
-                new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS)
-                        .isValid(env.getEnv(GRAFANA_DATASOURCE_ENV));
-        if (!isValidDatasourceUrl) {
-            cw.println(String.format("%s is an invalid datasource URL", GRAFANA_DATASOURCE_ENV));
-        }
-
-        return isValidTargetId && isValidRecordingName && isValidDatasourceUrl;
     }
 
     @Override
