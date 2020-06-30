@@ -128,6 +128,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindTemplatesBodyHandler(TemplatesBodyHandler handler);
 
     @Binds
@@ -136,7 +140,7 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
+    abstract RequestHandler bindTemplateDeleteHandler(TemplateDeleteHandler handler);
 
     @Binds
     @IntoSet

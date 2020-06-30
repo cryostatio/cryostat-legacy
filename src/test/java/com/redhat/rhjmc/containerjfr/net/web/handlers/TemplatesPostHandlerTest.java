@@ -46,12 +46,6 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.util.Set;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -61,6 +55,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -104,7 +104,9 @@ class TemplatesPostHandlerTest {
 
         Mockito.when(fs.newInputStream(Mockito.any())).thenThrow(IOException.class);
 
-        HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -126,7 +128,9 @@ class TemplatesPostHandlerTest {
 
         Mockito.doThrow(InvalidXmlException.class).when(templateService).addTemplate(stream);
 
-        HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         Mockito.verify(fs).deleteIfExists(uploadPath);
     }
@@ -167,5 +171,4 @@ class TemplatesPostHandlerTest {
         Mockito.verify(ctx).response();
         Mockito.verify(resp).end();
     }
-
 }

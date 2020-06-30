@@ -43,15 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.Optional;
 
-import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
-import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.nodes.Document;
@@ -64,6 +55,15 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+
+import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
+import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -93,7 +93,9 @@ class TargetTemplateGetHandlerTest {
 
     @Test
     void shouldHandleCorrectPath() {
-        MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v1/targets/:targetId/templates/:templateName"));
+        MatcherAssert.assertThat(
+                handler.path(),
+                Matchers.equalTo("/api/v1/targets/:targetId/templates/:templateName"));
     }
 
     @Test
@@ -102,10 +104,14 @@ class TargetTemplateGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("localhost");
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any())).thenThrow(FlightRecorderException.class);
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.anyString(), Mockito.any()))
+                .thenThrow(FlightRecorderException.class);
 
-        HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
-                handler.handleAuthenticated(ctx));
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -118,16 +124,22 @@ class TargetTemplateGetHandlerTest {
         Mockito.when(conn.getTemplateService()).thenReturn(templateService);
         Mockito.when(templateService.getXml("FooTemplate")).thenReturn(Optional.empty());
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any())).thenAnswer(new Answer<>() {
-            @Override
-            public Optional<Document> answer(InvocationOnMock args) throws Throwable {
-                ConnectedTask ct = (ConnectedTask) args.getArguments()[1];
-                return (Optional<Document>) ct.execute(conn);
-            }
-        });
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Optional<Document> answer(InvocationOnMock args)
+                                    throws Throwable {
+                                ConnectedTask ct = (ConnectedTask) args.getArguments()[1];
+                                return (Optional<Document>) ct.execute(conn);
+                            }
+                        });
 
-        HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
-                handler.handleAuthenticated(ctx));
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -146,13 +158,18 @@ class TargetTemplateGetHandlerTest {
         Mockito.when(templateService.getXml("FooTemplate")).thenReturn(Optional.of(doc));
         Mockito.when(doc.toString()).thenReturn("Mock Document XML");
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any())).thenAnswer(new Answer<>() {
-            @Override
-            public Optional<Document> answer(InvocationOnMock args) throws Throwable {
-                ConnectedTask ct = (ConnectedTask) args.getArguments()[1];
-                return (Optional<Document>) ct.execute(conn);
-            }
-        });
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.anyString(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Optional<Document> answer(InvocationOnMock args)
+                                    throws Throwable {
+                                ConnectedTask ct = (ConnectedTask) args.getArguments()[1];
+                                return (Optional<Document>) ct.execute(conn);
+                            }
+                        });
 
         handler.handleAuthenticated(ctx);
 
@@ -160,5 +177,4 @@ class TargetTemplateGetHandlerTest {
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JFC.mime());
         Mockito.verify(resp).end("Mock Document XML");
     }
-
 }
