@@ -79,6 +79,8 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
                 args[0],
                 connection -> {
                     cw.println("Available recording templates:");
+                    // TODO format printed output to include template types as "headers" or row
+                    // labels
                     getTemplates(connection)
                             .forEach(
                                     template ->

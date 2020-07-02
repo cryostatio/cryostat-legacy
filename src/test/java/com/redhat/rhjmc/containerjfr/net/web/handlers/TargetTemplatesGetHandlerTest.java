@@ -62,6 +62,7 @@ import com.redhat.rhjmc.containerjfr.commands.internal.AbstractRecordingCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
@@ -114,8 +115,10 @@ class TargetTemplatesGetHandlerTest {
         JFRConnection connection = Mockito.mock(JFRConnection.class);
         TemplateService templateService = Mockito.mock(TemplateService.class);
 
-        Template template1 = new Template("FooTemplate", "Template for foo-ing", "Test 1");
-        Template template2 = new Template("BarTemplate", "Template for bar-ing", "Test 2");
+        Template template1 =
+                new Template("FooTemplate", "Template for foo-ing", "Test 1", TemplateType.TARGET);
+        Template template2 =
+                new Template("BarTemplate", "Template for bar-ing", "Test 2", TemplateType.CUSTOM);
 
         Mockito.when(connectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
                 .thenAnswer(

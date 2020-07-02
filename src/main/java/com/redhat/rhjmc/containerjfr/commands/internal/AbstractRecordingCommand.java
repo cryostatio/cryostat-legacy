@@ -50,6 +50,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
@@ -60,7 +61,8 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
             new Template(
                     "ALL",
                     "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.",
-                    "ContainerJFR");
+                    "ContainerJFR",
+                    TemplateType.TARGET);
 
     private static final Pattern TEMPLATE_PATTERN = Pattern.compile("^template=([\\w]+)$");
     private static final Pattern EVENTS_PATTERN =
