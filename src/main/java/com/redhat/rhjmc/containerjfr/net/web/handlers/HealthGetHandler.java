@@ -43,13 +43,11 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -60,24 +58,22 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.WebClient;
 
 class HealthGetHandler implements RequestHandler {
 
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
-    private final Provider<CloseableHttpClient> httpClientProvider;
+    private final Provider<WebClient> webClientProvider;
     private final Environment env;
     private final Gson gson;
     private final Logger logger;
 
     @Inject
     HealthGetHandler(
-            Provider<CloseableHttpClient> httpClientProvider,
-            Environment env,
-            Gson gson,
-            Logger logger) {
-        this.httpClientProvider = httpClientProvider;
+            Provider<WebClient> webClientProvider, Environment env, Gson gson, Logger logger) {
+        this.webClientProvider = webClientProvider;
         this.env = env;
         this.gson = gson;
         this.logger = logger;
@@ -97,42 +93,45 @@ class HealthGetHandler implements RequestHandler {
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
     public void handle(RoutingContext ctx) {
-        boolean datasourceAvailable = false;
-        boolean dashboardAvailable = false;
+        CompletableFuture<Boolean> datasourceAvailable = new CompletableFuture<>();
+        CompletableFuture<Boolean> dashboardAvailable = new CompletableFuture<>();
 
-        if (this.env.hasEnv(GRAFANA_DATASOURCE_ENV)) {
-            try (CloseableHttpClient httpClient = httpClientProvider.get();
-                    CloseableHttpResponse response =
-                            httpClient.execute(
-                                    new HttpGet(this.env.getEnv(GRAFANA_DATASOURCE_ENV))); ) {
-                if (response.getStatusLine().getStatusCode() == 200) {
-                    datasourceAvailable = true;
-                }
-            } catch (IOException e) {
-                logger.warn(e);
-            }
+        WebClient client = webClientProvider.get();
+        try {
+            checkUri(client, GRAFANA_DATASOURCE_ENV, "", datasourceAvailable);
+            checkUri(client, GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
+
+            ctx.response()
+                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                    .end(
+                            gson.toJson(
+                                    Map.of(
+                                            "dashboardAvailable",
+                                            dashboardAvailable.join(),
+                                            "datasourceAvailable",
+                                            datasourceAvailable.join())));
+        } finally {
+            client.close();
         }
+    }
 
-        if (this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
-            String url = this.env.getEnv(GRAFANA_DASHBOARD_ENV) + "/api/health";
-            try (CloseableHttpClient httpClient = httpClientProvider.get();
-                    CloseableHttpResponse response = httpClient.execute(new HttpGet(url)); ) {
-                if (response.getStatusLine().getStatusCode() == 200) {
-                    dashboardAvailable = true;
-                }
-            } catch (IOException e) {
-                logger.warn(e);
-            }
+    private void checkUri(
+            WebClient client, String envName, String path, CompletableFuture<Boolean> future) {
+        if (this.env.hasEnv(envName)) {
+            String uri = this.env.getEnv(envName) + path;
+            client.getAbs(uri)
+                    .timeout(5000)
+                    .send(
+                            handler -> {
+                                if (handler.failed()) {
+                                    future.complete(false);
+                                    this.logger.info(new IOException(handler.cause()));
+                                    return;
+                                }
+                                future.complete(handler.result().statusCode() == 200);
+                            });
+        } else {
+            future.complete(false);
         }
-
-        ctx.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                .end(
-                        gson.toJson(
-                                Map.of(
-                                        "dashboardAvailable",
-                                        dashboardAvailable,
-                                        "datasourceAvailable",
-                                        datasourceAvailable)));
     }
 }

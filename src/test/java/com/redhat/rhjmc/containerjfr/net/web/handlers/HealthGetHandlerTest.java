@@ -41,21 +41,12 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
 import java.util.Map;
 
-import javax.inject.Provider;
-
-import org.apache.http.StatusLine;
-import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -65,7 +56,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
@@ -74,23 +67,29 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
 class HealthGetHandlerTest {
 
     HealthGetHandler handler;
     Gson gson = MainModule.provideGson();
-    @Mock Provider<CloseableHttpClient> httpClientProvider;
+    @Mock WebClient webClient;
     @Mock Environment env;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new HealthGetHandler(httpClientProvider, env, gson, logger);
+        this.handler = new HealthGetHandler(() -> webClient, env, gson, logger);
     }
 
     @Test
@@ -130,7 +129,7 @@ class HealthGetHandlerTest {
     }
 
     @Test
-    void shouldHandleHealthRequestWithDatasourceUrl() throws ClientProtocolException, IOException {
+    void shouldHandleHealthRequestWithDatasourceUrl() {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
@@ -141,14 +140,25 @@ class HealthGetHandlerTest {
         when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(url);
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(false);
 
-        CloseableHttpResponse datasourceRep = mock(CloseableHttpResponse.class);
-        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
-        StatusLine mockLine = mock(StatusLine.class);
-
-        when(httpClientProvider.get()).thenReturn(httpClient);
-        when(httpClient.execute(any(HttpGet.class))).thenReturn(datasourceRep);
-        when(datasourceRep.getStatusLine()).thenReturn(mockLine);
-        when(mockLine.getStatusCode()).thenReturn(200);
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.getAbs(Mockito.anyString())).thenReturn(req);
+        Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.statusCode()).thenReturn(200);
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
 
         handler.handle(ctx);
 
@@ -165,7 +175,7 @@ class HealthGetHandlerTest {
     }
 
     @Test
-    void shouldHandleHealthRequestWithDashboardUrl() throws ClientProtocolException, IOException {
+    void shouldHandleHealthRequestWithDashboardUrl() {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
@@ -176,14 +186,25 @@ class HealthGetHandlerTest {
         when(env.getEnv("GRAFANA_DASHBOARD_URL")).thenReturn(url);
         when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
 
-        CloseableHttpResponse grafanaRep = mock(CloseableHttpResponse.class);
-        CloseableHttpClient httpClient = mock(CloseableHttpClient.class);
-        StatusLine mockLine = mock(StatusLine.class);
-
-        when(httpClientProvider.get()).thenReturn(httpClient);
-        when(httpClient.execute(any(HttpGet.class))).thenReturn(grafanaRep);
-        when(grafanaRep.getStatusLine()).thenReturn(mockLine);
-        when(mockLine.getStatusCode()).thenReturn(200);
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.getAbs(Mockito.anyString())).thenReturn(req);
+        Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.statusCode()).thenReturn(200);
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
 
         handler.handle(ctx);
 

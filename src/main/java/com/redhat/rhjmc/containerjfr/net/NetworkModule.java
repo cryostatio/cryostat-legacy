@@ -41,22 +41,10 @@
  */
 package com.redhat.rhjmc.containerjfr.net;
 
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 
 import javax.inject.Singleton;
-
-import org.apache.http.config.Registry;
-import org.apache.http.config.RegistryBuilder;
-import org.apache.http.conn.socket.ConnectionSocketFactory;
-import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustAllStrategy;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.impl.conn.BasicHttpClientConnectionManager;
-import org.apache.http.ssl.SSLContextBuilder;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
@@ -69,6 +57,9 @@ import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
 @Module(includes = {ReportsModule.class})
 public abstract class NetworkModule {
@@ -76,8 +67,8 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static HttpServer provideHttpServer(
-            NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
-        return new HttpServer(netConf, sslConf, logger);
+            Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
+        return new HttpServer(vertx, netConf, sslConf, logger);
     }
 
     @Provides
@@ -100,30 +91,25 @@ public abstract class NetworkModule {
     }
 
     @Provides
-    static CloseableHttpClient provideHttpClient(NetworkConfiguration netConf) {
-        if (!netConf.isUntrustedSslAllowed()) {
-            return HttpClients.createMinimal(new BasicHttpClientConnectionManager());
-        }
+    @Singleton
+    static Vertx provideVertx() {
+        return Vertx.vertx();
+    }
 
+    @Provides
+    @Singleton
+    static WebClient provideWebClient(Vertx vertx, NetworkConfiguration netConf) {
         try {
-            SSLConnectionSocketFactory sslSocketFactory =
-                    new SSLConnectionSocketFactory(
-                            new SSLContextBuilder()
-                                    .loadTrustMaterial(null, new TrustAllStrategy())
-                                    .build(),
-                            SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
-
-            Registry<ConnectionSocketFactory> registry =
-                    RegistryBuilder.<ConnectionSocketFactory>create()
-                            .register("http", new PlainConnectionSocketFactory())
-                            .register("https", sslSocketFactory)
-                            .build();
-
-            return HttpClients.custom()
-                    .setSSLSocketFactory(sslSocketFactory)
-                    .setConnectionManager(new BasicHttpClientConnectionManager(registry))
-                    .build();
-        } catch (NoSuchAlgorithmException | KeyStoreException | KeyManagementException e) {
+            WebClientOptions opts =
+                    new WebClientOptions()
+                            .setSsl(true)
+                            .setDefaultHost(netConf.getWebServerHost())
+                            .setDefaultPort(netConf.getExternalWebServerPort());
+            if (!netConf.isUntrustedSslAllowed()) {
+                opts = opts.setTrustAll(true).setVerifyHost(false);
+            }
+            return WebClient.create(vertx, opts);
+        } catch (SocketException | UnknownHostException e) {
             throw new RuntimeException(e); // @Provides methods may only throw unchecked exceptions
         }
     }

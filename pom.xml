@@ -106,11 +106,6 @@
     <version>${org.apache.httpcomponents.version}</version>
   </dependency>
   <dependency>
-    <groupId>org.apache.httpcomponents</groupId>
-    <artifactId>httpmime</artifactId>
-    <version>${org.apache.httpcomponents.version}</version>
-  </dependency>
-  <dependency>
     <groupId>io.vertx</groupId>
     <artifactId>vertx-web</artifactId>
     <version>${io.vertx.web.version}</version>
