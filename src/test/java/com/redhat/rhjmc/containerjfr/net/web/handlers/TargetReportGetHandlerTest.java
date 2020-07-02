@@ -45,8 +45,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.InputStream;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
@@ -59,15 +57,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
@@ -82,18 +75,12 @@ class TargetReportGetHandlerTest {
 
     TargetReportGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Environment env;
-    @Mock TargetConnectionManager targetConnectionManager;
-    @Mock ReportGenerator reportGenerator;
+    @Mock ReportService reportService;
     @Mock Logger logger;
-    @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new TargetReportGetHandler(
-                        authManager, env, targetConnectionManager, reportGenerator, logger);
+        this.handler = new TargetReportGetHandler(authManager, reportService, logger);
     }
 
     @Test
@@ -109,72 +96,28 @@ class TargetReportGetHandlerTest {
     }
 
     @Test
-    void shouldNotBeAsync() {
-        Assertions.assertFalse(handler.isAsync());
-    }
-
-    @Test
     void shouldHandleRecordingDownloadRequest() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
 
-        InputStream ins = mock(InputStream.class);
-        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
+        String targetId = "fooHost:0";
         String recordingName = "foo";
         String content = "foobar";
-        when(descriptor.getName()).thenReturn(recordingName);
-        when(service.openStream(descriptor, false)).thenReturn(ins);
-        when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        when(reportGenerator.generateReport(ins)).thenReturn(content);
+        when(reportService.get(Mockito.anyString(), Mockito.anyString())).thenReturn(content);
 
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
+        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
-
         handler.handle(ctx);
 
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        verify(rep).end(content);
-    }
-
-    @Test
-    void shouldHandleRecordingDownloadRequestWithJfrSuffix() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        when(connection.getService()).thenReturn(service);
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerResponse rep = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(rep);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-
-        InputStream ins = mock(InputStream.class);
-        IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
-        String recordingName = "foo";
-        String content = "foobar";
-        when(descriptor.getName()).thenReturn(recordingName);
-        when(service.openStream(descriptor, false)).thenReturn(ins);
-        when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        when(reportGenerator.generateReport(ins)).thenReturn(content);
-
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName + ".jfr");
-
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
-
-        handler.handle(ctx);
-
-        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        verify(rep).end(content);
+        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
+        verify(resp).end(content);
     }
 
     @Test
@@ -185,39 +128,17 @@ class TargetReportGetHandlerTest {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
 
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
-        when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordings()).thenReturn(List.of());
+        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
+                .thenThrow(new RecordingNotFoundException("fooHost:0", "someRecording"));
 
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        ex.printStackTrace();
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-    }
-
-    @Test
-    void shouldResponse500IfUnexpectedExceptionThrown() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
-        when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordings()).thenThrow(NullPointerException.class);
-
-        when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
-        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        ex.printStackTrace();
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 }

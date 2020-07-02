@@ -71,6 +71,11 @@ class CorsEnablingHandler implements RequestHandler {
     }
 
     @Override
+    public int getPriority() {
+        return 0;
+    }
+
+    @Override
     public boolean isAvailable() {
         return this.env.hasEnv(ENABLE_CORS_ENV);
     }

@@ -44,7 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.nio.file.Path;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
@@ -57,13 +57,9 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -75,18 +71,12 @@ class ReportGetHandlerTest {
 
     ReportGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Environment env;
-    @Mock Path savedRecordingsPath;
-    @Mock ReportGenerator reportGenerator;
+    @Mock ReportService reportService;
     @Mock Logger logger;
-    @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new ReportGetHandler(
-                        authManager, env, savedRecordingsPath, reportGenerator, logger);
+        this.handler = new ReportGetHandler(authManager, reportService, logger);
     }
 
     @Test
@@ -106,6 +96,11 @@ class ReportGetHandlerTest {
     }
 
     @Test
+    void shouldBeOrdered() {
+        Assertions.assertTrue(handler.isOrdered());
+    }
+
+    @Test
     void shouldRespond404IfRecordingNameNotFound() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
@@ -115,6 +110,7 @@ class ReportGetHandlerTest {
         when(ctx.request()).thenReturn(req);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        when(reportService.get(Mockito.anyString())).thenReturn(Optional.empty());
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

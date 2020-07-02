@@ -41,11 +41,20 @@
  */
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
+import java.nio.file.Path;
 import java.util.Set;
+import java.util.concurrent.locks.ReentrantLock;
 
+import javax.inject.Named;
+import javax.inject.Singleton;
+
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 
 import dagger.Module;
 import dagger.Provides;
@@ -56,9 +65,51 @@ import dagger.Provides;
         })
 public abstract class ReportsModule {
 
+    static final String REPORT_GENERATION_LOCK = "REPORT_GENERATION_LOCK";
+
     @Provides
+    @Singleton
     static ReportGenerator provideReportGenerator(
             Logger logger, Set<ReportTransformer> transformers) {
         return new ReportGenerator(logger, transformers);
+    }
+
+    @Provides
+    @Singleton
+    @Named(REPORT_GENERATION_LOCK)
+    /** Used to ensure that only one report is generated at a time */
+    static ReentrantLock provideReportGenerationLock() {
+        return new ReentrantLock();
+    }
+
+    @Provides
+    @Singleton
+    static ActiveRecordingReportCache provideActiveRecordingReportCache(
+            TargetConnectionManager targetConnectionManager,
+            ReportGenerator reportGenerator,
+            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
+            Logger logger) {
+        return new ActiveRecordingReportCache(
+                targetConnectionManager, reportGenerator, generationLock, logger);
+    }
+
+    @Provides
+    @Singleton
+    static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempDir,
+            FileSystem fs,
+            ReportGenerator reportGenerator,
+            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
+            Logger logger) {
+        return new ArchivedRecordingReportCache(
+                savedRecordingsPath, webServerTempDir, fs, reportGenerator, generationLock, logger);
+    }
+
+    @Provides
+    @Singleton
+    static ReportService provideReportService(
+            ActiveRecordingReportCache activeCache, ArchivedRecordingReportCache archivedCache) {
+        return new ReportService(activeCache, archivedCache);
     }
 }

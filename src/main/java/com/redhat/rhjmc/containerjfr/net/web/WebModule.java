@@ -41,13 +41,18 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -60,6 +65,8 @@ import dagger.Provides;
 
 @Module(includes = {NetworkModule.class, RequestHandlersModule.class})
 public abstract class WebModule {
+    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+
     @Provides
     @Singleton
     static WebServer provideWebServer(
@@ -70,5 +77,16 @@ public abstract class WebModule {
             AuthManager authManager,
             Logger logger) {
         return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    }
+
+    @Provides
+    @Singleton
+    @Named(WEBSERVER_TEMP_DIR_PATH)
+    static Path provideWebServerTempDirPath(FileSystem fs) {
+        try {
+            return Files.createTempDirectory("container-jfr").toAbsolutePath();
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 }

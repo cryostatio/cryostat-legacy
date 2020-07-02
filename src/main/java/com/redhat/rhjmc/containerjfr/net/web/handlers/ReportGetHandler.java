@@ -41,37 +41,27 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
-import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class ReportGetHandler extends TargetReportGetHandler {
+class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final Path savedRecordingsPath;
+    private final ReportService reportService;
 
     @Inject
-    ReportGetHandler(
-            AuthManager auth,
-            Environment env,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            ReportGenerator reportGenerator,
-            Logger logger) {
-        super(auth, env, null, reportGenerator, logger);
-        this.savedRecordingsPath = savedRecordingsPath;
+    ReportGetHandler(AuthManager auth, ReportService reportService, Logger logger) {
+        super(auth);
+        this.reportService = reportService;
     }
 
     @Override
@@ -97,33 +87,11 @@ class ReportGetHandler extends TargetReportGetHandler {
     @Override
     void handleAuthenticated(RoutingContext ctx) {
         String recordingName = ctx.pathParam("recordingName");
-        handleReportPageRequest(null, recordingName, ctx);
-    }
-
-    // TODO refactor, this is duplicated from RecordingGetRequestHandler
-    @Override
-    Optional<DownloadDescriptor> getRecordingDescriptor(String targetId, String recordingName) {
-        try {
-            // TODO refactor Files calls into FileSystem for testability
-            Optional<Path> savedRecording =
-                    Files.list(savedRecordingsPath)
-                            .filter(
-                                    saved ->
-                                            saved.getFileName()
-                                                    .toFile()
-                                                    .getName()
-                                                    .equals(recordingName))
-                            .findFirst();
-            if (savedRecording.isPresent()) {
-                return Optional.of(
-                        new DownloadDescriptor(
-                                Files.newInputStream(savedRecording.get(), StandardOpenOption.READ),
-                                Files.size(savedRecording.get()),
-                                null));
-            }
-        } catch (Exception e) {
-            logger.error(e);
-        }
-        return Optional.empty();
+        Optional<Path> report = reportService.get(recordingName);
+        report.ifPresentOrElse(
+                path -> ctx.response().sendFile(path.toAbsolutePath().toString()),
+                () -> {
+                    throw new HttpStatusException(404);
+                });
     }
 }

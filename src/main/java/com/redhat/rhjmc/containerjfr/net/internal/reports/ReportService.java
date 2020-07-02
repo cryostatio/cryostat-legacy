@@ -39,62 +39,48 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.handlers;
+package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
-import javax.inject.Inject;
+import java.nio.file.Path;
+import java.util.Optional;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
-import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
+import org.apache.commons.lang3.tuple.Pair;
 
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+public class ReportService {
 
-class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
+    private final ActiveRecordingReportCache activeCache;
+    private final ArchivedRecordingReportCache archivedCache;
 
-    protected final ReportService reportService;
-    protected final Logger logger;
-
-    @Inject
-    TargetReportGetHandler(AuthManager auth, ReportService reportService, Logger logger) {
-        super(auth);
-        this.reportService = reportService;
-        this.logger = logger;
+    ReportService(
+            ActiveRecordingReportCache activeCache, ArchivedRecordingReportCache archivedCache) {
+        this.activeCache = activeCache;
+        this.archivedCache = archivedCache;
     }
 
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+    public Optional<Path> get(String recordingName) {
+        return archivedCache.get(recordingName);
     }
 
-    @Override
-    public String path() {
-        return "/api/v1/targets/:targetId/reports/:recordingName";
+    public boolean delete(String recordingName) {
+        return archivedCache.delete(recordingName);
     }
 
-    @Override
-    public boolean isAsync() {
-        return false;
+    public String get(String targetId, String recordingName) {
+        return activeCache.get(targetId, recordingName);
     }
 
-    @Override
-    public boolean isOrdered() {
-        return true;
+    public boolean delete(String targetId, String recordingName) {
+        return activeCache.delete(targetId, recordingName);
     }
 
-    @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
-        String recordingName = ctx.pathParam("recordingName");
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        try {
-            ctx.response().end(reportService.get(targetId, recordingName));
-        } catch (RecordingNotFoundException rnfe) {
-            throw new HttpStatusException(404, rnfe);
+    // FIXME This is basically duplicated from UploadRecordingCommand
+    public static class RecordingNotFoundException extends RuntimeException {
+        public RecordingNotFoundException(String targetId, String recordingName) {
+            super(String.format("Recording %s not found in target %s", targetId, recordingName));
+        }
+
+        public RecordingNotFoundException(Pair<String, String> key) {
+            this(key.getLeft(), key.getRight());
         }
     }
 }

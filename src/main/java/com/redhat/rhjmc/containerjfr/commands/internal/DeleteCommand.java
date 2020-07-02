@@ -51,16 +51,22 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {
 
     private final ClientWriter cw;
+    private final ReportService reportService;
 
     @Inject
-    DeleteCommand(ClientWriter cw, TargetConnectionManager targetConnectionManager) {
+    DeleteCommand(
+            ClientWriter cw,
+            TargetConnectionManager targetConnectionManager,
+            ReportService reportService) {
         super(targetConnectionManager);
         this.cw = cw;
+        this.reportService = reportService;
     }
 
     @Override
@@ -79,6 +85,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
                             getDescriptorByName(targetId, recordingName);
                     if (descriptor.isPresent()) {
                         connection.getService().close(descriptor.get());
+                        reportService.delete(targetId, recordingName);
                     } else {
                         cw.println(
                                 String.format(
@@ -100,6 +107,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
                                 getDescriptorByName(targetId, recordingName);
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
+                            reportService.delete(targetId, recordingName);
                             return new SuccessOutput();
                         } else {
                             return new FailureOutput(
