@@ -65,6 +65,7 @@ class CorsEnablingHandler implements RequestHandler {
                         .allowedMethod(HttpMethod.POST)
                         .allowedMethod(HttpMethod.OPTIONS)
                         .allowedMethod(HttpMethod.HEAD)
+                        .allowedMethod(HttpMethod.DELETE)
                         .allowCredentials(true)
                         .exposedHeader(WebServer.AUTH_SCHEME_HEADER);
         this.env = env;
