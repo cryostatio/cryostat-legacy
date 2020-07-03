@@ -44,7 +44,6 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
-import java.net.MalformedURLException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
@@ -58,19 +57,11 @@ import javax.inject.Singleton;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.validator.routines.UrlValidator;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.mime.MultipartEntityBuilder;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -90,6 +81,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
     private final ClientWriter cw;
     private final FileSystem fs;
+    private final Environment env;
     private final Path recordingsPath;
     private final WebClient webClient;
 
@@ -167,7 +159,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         try {
             webClient
-                    .postAbs(uploadUrl)
+                    .postAbs(datasourceUrl)
                     .sendMultipartForm(
                             form,
                             uploadHandler -> {

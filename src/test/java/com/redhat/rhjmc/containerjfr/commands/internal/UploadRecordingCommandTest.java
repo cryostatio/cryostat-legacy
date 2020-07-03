@@ -105,7 +105,8 @@ class UploadRecordingCommandTest {
 
     @BeforeEach
     void setup() {
-        this.command = new UploadRecordingCommand(cw, targetConnectionManager, fs, path, webClient);
+        this.command =
+                new UploadRecordingCommand(cw, targetConnectionManager, fs, env, path, webClient);
     }
 
     @Test
