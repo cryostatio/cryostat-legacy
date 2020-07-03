@@ -104,22 +104,18 @@ class HealthGetHandler implements RequestHandler {
         CompletableFuture<Boolean> dashboardAvailable = new CompletableFuture<>();
 
         WebClient client = webClientProvider.get();
-        try {
-            checkUri(client, GRAFANA_DATASOURCE_ENV, "", datasourceAvailable);
-            checkUri(client, GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
+        checkUri(client, GRAFANA_DATASOURCE_ENV, "/", datasourceAvailable);
+        checkUri(client, GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
 
-            ctx.response()
-                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                    .end(
-                            gson.toJson(
-                                    Map.of(
-                                            "dashboardAvailable",
-                                            dashboardAvailable.join(),
-                                            "datasourceAvailable",
-                                            datasourceAvailable.join())));
-        } finally {
-            client.close();
-        }
+        ctx.response()
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                .end(
+                        gson.toJson(
+                                Map.of(
+                                        "dashboardAvailable",
+                                        dashboardAvailable.join(),
+                                        "datasourceAvailable",
+                                        datasourceAvailable.join())));
     }
 
     private void checkUri(
