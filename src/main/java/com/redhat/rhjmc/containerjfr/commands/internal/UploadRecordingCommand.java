@@ -52,7 +52,6 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -150,7 +149,8 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         try {
-            webClient.postAbs(uploadUrl)
+            webClient
+                    .postAbs(uploadUrl)
                     .sendMultipartForm(
                             form,
                             uploadHandler -> {

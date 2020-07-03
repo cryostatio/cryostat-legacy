@@ -55,7 +55,6 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -72,8 +71,7 @@ class HealthGetHandler implements RequestHandler {
     private final Logger logger;
 
     @Inject
-    HealthGetHandler(
-            WebClient webClient, Environment env, Gson gson, Logger logger) {
+    HealthGetHandler(WebClient webClient, Environment env, Gson gson, Logger logger) {
         this.webClient = webClient;
         this.env = env;
         this.gson = gson;
@@ -124,7 +122,8 @@ class HealthGetHandler implements RequestHandler {
                 future.complete(false);
                 return;
             }
-            webClient.get(uri.getPort(), uri.getHost(), path)
+            webClient
+                    .get(uri.getPort(), uri.getHost(), path)
                     .ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
                     .send(

@@ -142,7 +142,8 @@ class HealthGetHandlerTest {
 
         HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
         Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
         Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
         Mockito.doAnswer(
@@ -189,7 +190,8 @@ class HealthGetHandlerTest {
 
         HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
         Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
         Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
         Mockito.doAnswer(

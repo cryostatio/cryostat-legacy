@@ -112,8 +112,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
 
     @BeforeEach
     void setup() {
-        this.command =
-                new UploadRecordingCommand(cw, targetConnectionManager, fs, path, webClient);
+        this.command = new UploadRecordingCommand(cw, targetConnectionManager, fs, path, webClient);
     }
 
     @Test
