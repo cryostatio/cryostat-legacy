@@ -89,6 +89,11 @@ class HealthGetHandler implements RequestHandler {
         return HttpMethod.GET;
     }
 
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     @Override
