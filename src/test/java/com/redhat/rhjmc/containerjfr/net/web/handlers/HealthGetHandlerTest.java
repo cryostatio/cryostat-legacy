@@ -89,7 +89,7 @@ class HealthGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new HealthGetHandler(() -> webClient, env, gson, logger);
+        this.handler = new HealthGetHandler(webClient, env, gson, logger);
     }
 
     @Test

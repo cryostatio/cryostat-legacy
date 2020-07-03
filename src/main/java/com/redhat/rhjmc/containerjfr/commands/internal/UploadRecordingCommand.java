@@ -78,7 +78,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     private final ClientWriter cw;
     private final FileSystem fs;
     private final Path recordingsPath;
-    private final Provider<WebClient> webClientProvider;
+    private final WebClient webClient;
 
     @Inject
     UploadRecordingCommand(
@@ -86,12 +86,12 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             TargetConnectionManager targetConnectionManager,
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            Provider<WebClient> webClientProvider) {
+            WebClient webClient) {
         super(targetConnectionManager);
         this.cw = cw;
         this.fs = fs;
         this.recordingsPath = recordingsPath;
-        this.webClientProvider = webClientProvider;
+        this.webClient = webClient;
     }
 
     @Override
@@ -150,8 +150,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         try {
-            WebClient client = webClientProvider.get();
-            client.postAbs(uploadUrl)
+            webClient.postAbs(uploadUrl)
                     .sendMultipartForm(
                             form,
                             uploadHandler -> {

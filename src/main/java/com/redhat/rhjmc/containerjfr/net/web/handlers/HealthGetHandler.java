@@ -48,7 +48,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
 
 import com.google.gson.Gson;
 
@@ -67,15 +66,15 @@ class HealthGetHandler implements RequestHandler {
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
-    private final Provider<WebClient> webClientProvider;
+    private final WebClient webClient;
     private final Environment env;
     private final Gson gson;
     private final Logger logger;
 
     @Inject
     HealthGetHandler(
-            Provider<WebClient> webClientProvider, Environment env, Gson gson, Logger logger) {
-        this.webClientProvider = webClientProvider;
+            WebClient webClient, Environment env, Gson gson, Logger logger) {
+        this.webClient = webClient;
         this.env = env;
         this.gson = gson;
         this.logger = logger;
@@ -101,9 +100,8 @@ class HealthGetHandler implements RequestHandler {
         CompletableFuture<Boolean> datasourceAvailable = new CompletableFuture<>();
         CompletableFuture<Boolean> dashboardAvailable = new CompletableFuture<>();
 
-        WebClient client = webClientProvider.get();
-        checkUri(client, GRAFANA_DATASOURCE_ENV, "/", datasourceAvailable);
-        checkUri(client, GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
+        checkUri(GRAFANA_DATASOURCE_ENV, "/", datasourceAvailable);
+        checkUri(GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
 
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
@@ -116,8 +114,7 @@ class HealthGetHandler implements RequestHandler {
                                         datasourceAvailable.join())));
     }
 
-    private void checkUri(
-            WebClient client, String envName, String path, CompletableFuture<Boolean> future) {
+    private void checkUri(String envName, String path, CompletableFuture<Boolean> future) {
         if (this.env.hasEnv(envName)) {
             URI uri;
             try {
@@ -127,7 +124,7 @@ class HealthGetHandler implements RequestHandler {
                 future.complete(false);
                 return;
             }
-            client.get(uri.getPort(), uri.getHost(), path)
+            webClient.get(uri.getPort(), uri.getHost(), path)
                     .ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
                     .send(
