@@ -42,6 +42,8 @@
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
@@ -123,8 +125,16 @@ class HealthGetHandler implements RequestHandler {
     private void checkUri(
             WebClient client, String envName, String path, CompletableFuture<Boolean> future) {
         if (this.env.hasEnv(envName)) {
-            String uri = this.env.getEnv(envName) + path;
-            client.getAbs(uri)
+            URI uri;
+            try {
+                uri = new URI(this.env.getEnv(envName));
+            } catch (URISyntaxException e) {
+                logger.warn(e);
+                future.complete(false);
+                return;
+            }
+            client.get(uri.getPort(), uri.getHost(), path)
+                    .ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
                     .send(
                             handler -> {
