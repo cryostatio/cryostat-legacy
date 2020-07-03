@@ -89,7 +89,7 @@ class HealthGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new HealthGetHandler(() -> webClient, env, gson, logger);
+        this.handler = new HealthGetHandler(webClient, env, gson, logger);
     }
 
     @Test
@@ -103,8 +103,8 @@ class HealthGetHandlerTest {
     }
 
     @Test
-    void shouldBeAsync() {
-        Assertions.assertTrue(handler.isAsync());
+    void shouldNotBeAsync() {
+        Assertions.assertFalse(handler.isAsync());
     }
 
     @Test
@@ -135,14 +135,16 @@ class HealthGetHandlerTest {
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
-        String url = "http://hostname:1/path?query=value";
+        String url = "http://hostname:1/";
         when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
         when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(url);
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(false);
 
         HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.getAbs(Mockito.anyString())).thenReturn(req);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
+        Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
         Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
         Mockito.doAnswer(
                         new Answer<Void>() {
@@ -181,14 +183,16 @@ class HealthGetHandlerTest {
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
-        String url = "http://hostname:1/path?query=value";
+        String url = "http://hostname:1/";
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
         when(env.getEnv("GRAFANA_DASHBOARD_URL")).thenReturn(url);
         when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
 
         HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
-        Mockito.when(webClient.getAbs(Mockito.anyString())).thenReturn(req);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
+        Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
         Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
         Mockito.doAnswer(
                         new Answer<Void>() {

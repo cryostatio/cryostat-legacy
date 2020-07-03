@@ -42,11 +42,12 @@
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
-import javax.inject.Provider;
 
 import com.google.gson.Gson;
 
@@ -54,7 +55,6 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -65,15 +65,14 @@ class HealthGetHandler implements RequestHandler {
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
-    private final Provider<WebClient> webClientProvider;
+    private final WebClient webClient;
     private final Environment env;
     private final Gson gson;
     private final Logger logger;
 
     @Inject
-    HealthGetHandler(
-            Provider<WebClient> webClientProvider, Environment env, Gson gson, Logger logger) {
-        this.webClientProvider = webClientProvider;
+    HealthGetHandler(WebClient webClient, Environment env, Gson gson, Logger logger) {
+        this.webClient = webClient;
         this.env = env;
         this.gson = gson;
         this.logger = logger;
@@ -89,37 +88,43 @@ class HealthGetHandler implements RequestHandler {
         return HttpMethod.GET;
     }
 
-    // try-with-resources generates a "redundant" nullcheck in bytecode
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
     @Override
     public void handle(RoutingContext ctx) {
         CompletableFuture<Boolean> datasourceAvailable = new CompletableFuture<>();
         CompletableFuture<Boolean> dashboardAvailable = new CompletableFuture<>();
 
-        WebClient client = webClientProvider.get();
-        try {
-            checkUri(client, GRAFANA_DATASOURCE_ENV, "", datasourceAvailable);
-            checkUri(client, GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
+        checkUri(GRAFANA_DATASOURCE_ENV, "/", datasourceAvailable);
+        checkUri(GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
 
-            ctx.response()
-                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                    .end(
-                            gson.toJson(
-                                    Map.of(
-                                            "dashboardAvailable",
-                                            dashboardAvailable.join(),
-                                            "datasourceAvailable",
-                                            datasourceAvailable.join())));
-        } finally {
-            client.close();
-        }
+        ctx.response()
+                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                .end(
+                        gson.toJson(
+                                Map.of(
+                                        "dashboardAvailable",
+                                        dashboardAvailable.join(),
+                                        "datasourceAvailable",
+                                        datasourceAvailable.join())));
     }
 
-    private void checkUri(
-            WebClient client, String envName, String path, CompletableFuture<Boolean> future) {
+    private void checkUri(String envName, String path, CompletableFuture<Boolean> future) {
         if (this.env.hasEnv(envName)) {
-            String uri = this.env.getEnv(envName) + path;
-            client.getAbs(uri)
+            URI uri;
+            try {
+                uri = new URI(this.env.getEnv(envName));
+            } catch (URISyntaxException e) {
+                logger.warn(e);
+                future.complete(false);
+                return;
+            }
+            webClient
+                    .get(uri.getPort(), uri.getHost(), path)
+                    .ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
                     .send(
                             handler -> {
