@@ -174,30 +174,27 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 3) {
-            cw.println(
+            throw new FailedValidationException(
                     "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
-            return false;
         }
 
         String targetId = args[0];
         String recordingName = args[1];
         // String uploadUrl = args[2];
 
-        boolean isValidTargetId = validateTargetId(targetId);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(targetId)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid connection specifier", args[0]));
         }
 
-        boolean isValidRecordingName = validateRecordingName(recordingName);
-        if (!isValidRecordingName) {
-            cw.println(String.format("%s is an invalid recording name", recordingName));
+        if (!validateRecordingName(recordingName)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid recording name", recordingName));
         }
 
         // TODO validate upload URL
-
-        return isValidTargetId && isValidRecordingName;
     }
 
     // returned stream should be cleaned up by HttpClient

@@ -80,12 +80,10 @@ class PrintUrlCommand implements SerializableCommand {
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 0) {
-            cw.println("No arguments expected");
-            return false;
+            throw new FailedValidationException("No arguments expected");
         }
-        return true;
     }
 
     @Override

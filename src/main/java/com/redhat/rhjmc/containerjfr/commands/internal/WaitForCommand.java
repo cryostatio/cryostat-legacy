@@ -137,26 +137,23 @@ class WaitForCommand extends AbstractConnectedCommand {
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            cw.println(
+            throw new FailedValidationException(
                     "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
-            return false;
         }
 
         String targetID = args[0];
         String recordingName = args[1];
 
-        boolean isValidTargetId = validateTargetId(targetID);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", targetID));
+        if (!validateTargetId(targetID)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid connection specifier", targetID));
         }
 
-        boolean isValidRecordingName = validateRecordingName(recordingName);
-        if (!isValidRecordingName) {
-            cw.println(String.format("%s is an invalid recording name", recordingName));
+        if (!validateRecordingName(recordingName)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid recording name", recordingName));
         }
-
-        return isValidTargetId && isValidRecordingName;
     }
 }

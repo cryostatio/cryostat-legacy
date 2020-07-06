@@ -135,33 +135,29 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 3) {
-            cw.println(
+            throw new FailedValidationException(
                     "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and event types");
-            return false;
         }
 
         String targetId = args[0];
         String name = args[1];
         String events = args[2];
 
-        boolean isValidTargetId = validateTargetId(targetId);
-        boolean isValidName = validateRecordingName(name);
-        boolean isValidEvents = validateEvents(events);
-
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(targetId)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid connection specifier", args[0]));
         }
 
-        if (!isValidName) {
-            cw.println(String.format("%s is an invalid recording name", name));
+        if (!validateRecordingName(name)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid recording name", name));
         }
 
-        if (!isValidEvents) {
-            cw.println(String.format("%s is an invalid events specifier", events));
+        if (!validateEvents(events)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid events specifier", events));
         }
-
-        return isValidTargetId && isValidName && isValidEvents;
     }
 }

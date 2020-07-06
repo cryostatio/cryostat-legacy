@@ -108,16 +108,15 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 1) {
-            cw.println("Expected one argument: hostname:port, ip:port, or JMX service URL");
-            return false;
+            throw new FailedValidationException(
+                    "Expected one argument: hostname:port, ip:port, or JMX service URL");
         }
-        boolean isValidTargetId = validateTargetId(args[0]);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(args[0])) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid connection specifier", args[0]));
         }
-        return isValidTargetId;
     }
 
     private List<Template> getTemplates(JFRConnection connection) throws FlightRecorderException {

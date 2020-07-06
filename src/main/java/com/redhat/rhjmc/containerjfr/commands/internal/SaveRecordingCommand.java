@@ -134,27 +134,24 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            cw.println(
+            throw new FailedValidationException(
                     "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
-            return false;
         }
 
         String targetId = args[0];
         String recordingName = args[1];
 
-        boolean isValidTargetId = validateTargetId(targetId);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", targetId));
+        if (!validateTargetId(targetId)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid connection specifier", targetId));
         }
 
-        boolean isValidRecordingName = validateRecordingName(recordingName);
-        if (!isValidRecordingName) {
-            cw.println(String.format("%s is an invalid recording name", recordingName));
+        if (!validateRecordingName(recordingName)) {
+            throw new FailedValidationException(
+                    String.format("%s is an invalid recording name", recordingName));
         }
-
-        return isValidTargetId && isValidRecordingName;
     }
 
     @Override

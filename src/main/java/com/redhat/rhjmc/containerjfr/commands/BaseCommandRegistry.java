@@ -43,12 +43,14 @@ package com.redhat.rhjmc.containerjfr.commands;
 
 import java.util.Set;
 
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
+
 public interface BaseCommandRegistry {
     Set<String> getRegisteredCommandNames();
 
     Set<String> getAvailableCommandNames();
 
-    boolean validate(String commandName, String[] args);
+    void validate(String commandName, String[] args) throws FailedValidationException;
 
     boolean isCommandAvailable(String commandName);
 }
