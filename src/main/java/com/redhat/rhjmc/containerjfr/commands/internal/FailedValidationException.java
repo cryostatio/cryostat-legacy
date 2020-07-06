@@ -43,6 +43,11 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 @SuppressWarnings("serial")
 public class FailedValidationException extends Exception {
+
+    FailedValidationException() {
+        super();
+    }
+
     FailedValidationException(String errorMessage) {
         super(errorMessage);
     }

@@ -108,8 +108,12 @@ class SerializableCommandRegistryImpl implements SerializableCommandRegistry {
     }
 
     @Override
-    public boolean validate(String commandName, String[] args) {
-        return isCommandRegistered(commandName) && commandMap.get(commandName).validate(args);
+    public void validate(String commandName, String[] args) throws FailedValidationException {
+        if (!isCommandRegistered(commandName)) {
+            throw new FailedValidationException(
+                    String.format("Command \"%s\" not recognized", commandName));
+        }
+        commandMap.get(commandName).validate(args);
     }
 
     private boolean isCommandRegistered(String commandName) {
