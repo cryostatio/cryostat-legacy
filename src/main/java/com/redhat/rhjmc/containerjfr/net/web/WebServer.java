@@ -138,7 +138,7 @@ public class WebServer {
 
                     ctx.response()
                             .setStatusCode(exception.getStatusCode())
-                            .setStatusMessage(exception.getMessage());
+                            .setStatusMessage(payload);
 
                     String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
                     if (accept.contains(HttpMimeType.JSON.mime())

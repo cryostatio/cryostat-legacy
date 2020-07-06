@@ -105,9 +105,9 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                 }
             }
         } catch (IOException ioe) {
-            throw new HttpStatusException(500, ioe);
+            throw new HttpStatusException(500, ioe.getMessage(), ioe);
         } catch (InvalidXmlException | InvalidEventTemplateException e) {
-            throw new HttpStatusException(400, e);
+            throw new HttpStatusException(400, e.getMessage(), e);
         }
         ctx.response().end();
     }

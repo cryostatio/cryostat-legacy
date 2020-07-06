@@ -46,6 +46,7 @@ import java.io.IOException;
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpMethod;
@@ -79,7 +80,9 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
             this.templateService.deleteTemplate(templateName);
             ctx.response().end();
         } catch (IOException ioe) {
-            throw new HttpStatusException(500, ioe);
+            throw new HttpStatusException(500, ioe.getMessage(), ioe);
+        } catch (InvalidEventTemplateException iete) {
+            throw new HttpStatusException(400, iete.getMessage(), iete);
         }
     }
 }
