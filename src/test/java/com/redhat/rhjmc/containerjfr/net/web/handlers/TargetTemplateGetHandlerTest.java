@@ -60,6 +60,7 @@ import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
@@ -95,7 +96,8 @@ class TargetTemplateGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(),
-                Matchers.equalTo("/api/v1/targets/:targetId/templates/:templateName"));
+                Matchers.equalTo(
+                        "/api/v1/targets/:targetId/templates/:templateName/type/:templateType"));
     }
 
     @Test
@@ -103,6 +105,7 @@ class TargetTemplateGetHandlerTest {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("localhost");
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
+        Mockito.when(ctx.pathParam("templateType")).thenReturn("CUSTOM");
 
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -120,9 +123,11 @@ class TargetTemplateGetHandlerTest {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("localhost");
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
+        Mockito.when(ctx.pathParam("templateType")).thenReturn("TARGET");
 
         Mockito.when(conn.getTemplateService()).thenReturn(templateService);
-        Mockito.when(templateService.getXml("FooTemplate")).thenReturn(Optional.empty());
+        Mockito.when(templateService.getXml("FooTemplate", TemplateType.TARGET))
+                .thenReturn(Optional.empty());
 
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -148,6 +153,7 @@ class TargetTemplateGetHandlerTest {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("localhost");
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
+        Mockito.when(ctx.pathParam("templateType")).thenReturn("CUSTOM");
 
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
@@ -155,7 +161,8 @@ class TargetTemplateGetHandlerTest {
         Mockito.when(conn.getTemplateService()).thenReturn(templateService);
 
         Document doc = Mockito.mock(Document.class);
-        Mockito.when(templateService.getXml("FooTemplate")).thenReturn(Optional.of(doc));
+        Mockito.when(templateService.getXml("FooTemplate", TemplateType.CUSTOM))
+                .thenReturn(Optional.of(doc));
         Mockito.when(doc.toString()).thenReturn("Mock Document XML");
 
         Mockito.when(

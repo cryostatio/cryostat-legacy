@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
@@ -73,17 +74,19 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return "/api/v1/targets/:targetId/templates/:templateName";
+        return "/api/v1/targets/:targetId/templates/:templateName/type/:templateType";
     }
 
     @Override
     void handleAuthenticated(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
         String templateName = ctx.pathParam("templateName");
+        TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));
         try {
             targetConnectionManager
                     .executeConnectedTask(
-                            targetId, conn -> conn.getTemplateService().getXml(templateName))
+                            targetId,
+                            conn -> conn.getTemplateService().getXml(templateName, templateType))
                     .ifPresentOrElse(
                             doc -> {
                                 ctx.response()
