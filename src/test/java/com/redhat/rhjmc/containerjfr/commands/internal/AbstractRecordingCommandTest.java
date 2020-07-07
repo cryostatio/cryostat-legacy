@@ -150,7 +150,7 @@ class AbstractRecordingCommandTest extends TestBase {
         when(connection.getTemplateService()).thenReturn(templateSvc);
 
         IConstrainedMap<EventOptionID> templateMap = mock(IConstrainedMap.class);
-        when(templateSvc.getEventsByTemplateName(Mockito.anyString()))
+        when(templateSvc.getEvents(Mockito.anyString(), Mockito.any()))
                 .thenReturn(Optional.of(templateMap));
 
         IConstrainedMap<EventOptionID> result = command.enableEvents(connection, "template=Foo");
@@ -162,7 +162,8 @@ class AbstractRecordingCommandTest extends TestBase {
         TemplateService templateSvc = mock(TemplateService.class);
         when(connection.getTemplateService()).thenReturn(templateSvc);
 
-        when(templateSvc.getEventsByTemplateName(Mockito.anyString())).thenReturn(Optional.empty());
+        when(templateSvc.getEvents(Mockito.anyString(), Mockito.any()))
+                .thenReturn(Optional.empty());
 
         Assertions.assertThrows(
                 IllegalArgumentException.class,

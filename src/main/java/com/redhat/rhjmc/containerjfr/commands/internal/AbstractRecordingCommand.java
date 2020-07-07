@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,6 +49,7 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
@@ -92,9 +94,23 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
             if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
                 return enableAllEvents(connection);
             }
+            // if a template name is specified, try to find a Custom template by that name. If none,
+            // fall back on finding a target built-in template by that name. If not, throw an
+            // exception and bail out.
             return connection
                     .getTemplateService()
-                    .getEventsByTemplateName(templateName)
+                    .getEvents(templateName, TemplateType.CUSTOM)
+                    .or(
+                            () -> {
+                                try {
+                                    return connection
+                                            .getTemplateService()
+                                            .getEvents(templateName, TemplateType.TARGET);
+                                } catch (FlightRecorderException e) {
+                                    cw.println(e);
+                                    return Optional.empty();
+                                }
+                            })
                     .orElseThrow(() -> new IllegalArgumentException(templateName));
         }
 
