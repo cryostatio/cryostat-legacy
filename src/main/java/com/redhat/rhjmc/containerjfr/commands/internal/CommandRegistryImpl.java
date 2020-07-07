@@ -93,7 +93,8 @@ class CommandRegistryImpl implements CommandRegistry {
     @Override
     public void validate(String commandName, String[] args) throws FailedValidationException {
         if (!isCommandRegistered(commandName)) {
-            throw new FailedValidationException();
+            throw new FailedValidationException(
+                    String.format("Command \"%s\" not recognized", commandName));
         }
         commandMap.get(commandName).validate(args);
     }
