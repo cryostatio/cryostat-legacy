@@ -112,7 +112,7 @@ public abstract class AbstractCommandExecutor implements CommandExecutor {
             } catch (FailedValidationException e) {
                 cw.println(
                         String.format(
-                                "Could not validate %s command; %s",
+                                "Could not validate \"%s\" command; %s",
                                 commandLine.command, e.getMessage()));
                 allValid = false;
             }

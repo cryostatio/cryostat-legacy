@@ -41,6 +41,9 @@
  */
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -82,6 +85,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.StringOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.SuccessOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 
@@ -113,8 +117,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new SuccessOutput());
 
@@ -141,8 +143,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new SuccessOutput());
 
@@ -169,8 +169,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new FailureOutput("some reason"));
 
@@ -203,8 +201,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new StringOutput("some reason"));
 
@@ -237,8 +233,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new ListOutput<Integer>(Arrays.asList(3, 1, 4, 1, 5, 9)));
 
@@ -272,8 +266,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new MapOutput<String, String>(Map.of("foo", "bar")));
 
@@ -307,8 +299,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new ExceptionOutput(new IOException("broken pipe")));
 
@@ -342,8 +332,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(
                         new Output<Void>() {
@@ -438,8 +426,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new SuccessOutput());
 
@@ -510,8 +496,10 @@ class WsCommandExecutorTest {
                                 return "{\"command\":\"foo\"}";
                             }
                         });
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(false);
+        doThrow(new FailedValidationException("bar could not be found"))
+                .when(commandRegistry)
+                .validate(eq("foo"), any(String[].class));
+
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("foo"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
 
@@ -528,6 +516,9 @@ class WsCommandExecutorTest {
         verify(server).flush(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
+        MatcherAssert.assertThat(
+                message.payload,
+                Matchers.equalTo("Could not validate \"foo\" command; bar could not be found"));
     }
 
     @Test
@@ -602,8 +593,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new SuccessOutput());
 
@@ -634,8 +623,6 @@ class WsCommandExecutorTest {
                         });
         when(commandRegistry.getRegisteredCommandNames()).thenReturn(Collections.singleton("help"));
         when(commandRegistry.isCommandAvailable(Mockito.anyString())).thenReturn(true);
-        when(commandRegistry.validate(Mockito.anyString(), Mockito.any(String[].class)))
-                .thenReturn(true);
         when(commandRegistry.execute(Mockito.anyString(), Mockito.any(String[].class)))
                 .thenReturn(new SuccessOutput());
 

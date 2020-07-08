@@ -47,6 +47,6 @@ class FailedValidationResponseMessage extends ResponseMessage<String> {
                 id,
                 -1,
                 commandName,
-                String.format("Could not validate %s command; %s", commandName, errorMessage));
+                String.format("Could not validate \"%s\" command; %s", commandName, errorMessage));
     }
 }

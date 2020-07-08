@@ -45,11 +45,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -64,6 +65,7 @@ import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
@@ -84,8 +86,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
-
         executor.run("");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("\"exit\" \"[]\""));
@@ -103,8 +103,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
-
         executor.run("# This should be a comment ;");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("\"exit\" \"[]\""));
@@ -121,9 +119,6 @@ class BatchModeExecutorTest extends TestBase {
     void shouldValidateAndExecuteSingleCommand() throws Exception {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
-
-        when(mockRegistry.validate(eq("help"), any(String[].class))).thenReturn(true);
-        when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
 
         executor.run("help");
 
@@ -149,8 +144,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
-
         executor.run("; ;; help;; ");
 
         MatcherAssert.assertThat(
@@ -170,12 +163,12 @@ class BatchModeExecutorTest extends TestBase {
         verifyNoMoreInteractions(mockRegistry);
     }
 
+    // TODO: change connect/disconnect to other commands
+
     @Test
     void shouldValidateAndExecuteMultipleCommands() throws Exception {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
-
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
 
         executor.run("help; connect foo; disconnect;");
 
@@ -207,8 +200,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
-
         executor.run("help;\n# Connect to foo-host;\nconnect foo;\ndisconnect;");
 
         MatcherAssert.assertThat(
@@ -239,20 +230,17 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class)))
-                .thenAnswer(
-                        new Answer<Boolean>() {
-                            @Override
-                            public Boolean answer(InvocationOnMock invocation) {
-                                String cmd = (String) invocation.getArguments()[0];
-                                return !cmd.equals("connect");
-                            }
-                        });
+        doNothing().when(mockRegistry).validate(anyString(), any(String[].class));
+        doThrow(new FailedValidationException("\"[foo]\" are invalid arguments to connect"))
+                .when(mockRegistry)
+                .validate(eq("connect"), any(String[].class));
 
         executor.run("help; connect foo; disconnect;");
 
         MatcherAssert.assertThat(
-                stdout(), Matchers.containsString("\"[foo]\" are invalid arguments to connect"));
+                stdout(),
+                Matchers.containsString(
+                        "Could not validate \"connect\" command; \"[foo]\" are invalid arguments to connect"));
 
         verify(mockRegistry).validate("help", new String[0]);
         verify(mockRegistry).validate("connect", new String[] {"foo"});
@@ -269,7 +257,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
         doAnswer(
                         new Answer<Void>() {
                             @Override

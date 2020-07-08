@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.tui.tty;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
@@ -87,7 +86,6 @@ class InteractiveShellExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
         when(mockClientReader.readLine()).thenReturn("help").thenReturn("exit");
         doThrow(UnsupportedOperationException.class)
                 .when(mockRegistry)
@@ -135,7 +133,6 @@ class InteractiveShellExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
         when(mockClientReader.readLine()).thenThrow(NoSuchElementException.class);
 
         executor.run(null);
@@ -156,7 +153,6 @@ class InteractiveShellExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
         when(mockClientReader.readLine()).thenReturn(null);
 
         executor.run(null);
