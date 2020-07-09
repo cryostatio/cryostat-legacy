@@ -177,13 +177,13 @@ deployments, port 9091 is expected for automatic port-scanning target discovery.
 
 ## EVENT TEMPLATES
 
-JDK Flight Recorder has a concept of "event templates", which are a sort of
-preset definition of a set of events, and for each a set of options and option
-values. A given JVM is likely to have some built-in templates ready for use
-out-of-the-box, but ContainerJFR also hosts its own small catalog of templates
-within its own local storage. This catalog is stored at the path specified by
-the environment variable `CONTAINER_JFR_TEMPLATE_PATH`. Templates can be
-uploaded to ContainerJFR and then used to create recordings.
+JDK Flight Recorder has event templates, which are preset definition of a set of
+events, and for each a set of options and option values. A given JVM is likely
+to have some built-in templates ready for use out-of-the-box, but ContainerJFR
+also hosts its own small catalog of templates within its own local storage. This
+catalog is stored at the path specified by the environment variable
+`CONTAINER_JFR_TEMPLATE_PATH`. Templates can be uploaded to ContainerJFR and
+then used to create recordings.
 
 ## ARCHIVING RECORDINGS
 
