@@ -41,7 +41,6 @@ if [ -z "$CONTAINER_JFR_AUTH_MANAGER" ]; then
     CONTAINER_JFR_AUTH_MANAGER="com.redhat.rhjmc.containerjfr.net.NoopAuthManager"
 fi
 
-
 podman run \
     --hostname container-jfr \
     --name container-jfr \
