@@ -117,7 +117,10 @@ class AbstractRecordingCommandTest extends TestBase {
                 "foo.Event:prop=val",
                 "foo.Event:prop=val,bar.Event:thing=1",
                 "foo.class$Inner:prop=val",
-                "template=ALL"
+                "template=ALL",
+                "template=Foo",
+                "template=Continuous,type=TARGET",
+                "template=Foo,type=CUSTOM",
             })
     void shouldValidateValidEventString(String events) {
         assertTrue(command.validateEvents(events));

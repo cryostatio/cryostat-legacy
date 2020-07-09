@@ -66,7 +66,8 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
                     "ContainerJFR",
                     TemplateType.TARGET);
 
-    private static final Pattern TEMPLATE_PATTERN = Pattern.compile("^template=([\\w]+)$");
+    private static final Pattern TEMPLATE_PATTERN =
+            Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
     private static final Pattern EVENTS_PATTERN =
             Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
@@ -91,11 +92,23 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
             Matcher m = TEMPLATE_PATTERN.matcher(events);
             m.find();
             String templateName = m.group(1);
+            String typeName = m.group(2);
             if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
                 return enableAllEvents(connection);
             }
-            // if a template name is specified, try to find a Custom template by that name. If none,
-            // fall back on finding a target built-in template by that name. If not, throw an
+            if (typeName != null) {
+                return connection
+                        .getTemplateService()
+                        .getEvents(templateName, TemplateType.valueOf(typeName))
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                String.format(
+                                                        "No template \"%s\" found with type %s",
+                                                        templateName, typeName)));
+            }
+            // if template type not specified, try to find a Custom template by that name. If none,
+            // fall back on finding a Target built-in template by the name. If not, throw an
             // exception and bail out.
             return connection
                     .getTemplateService()
