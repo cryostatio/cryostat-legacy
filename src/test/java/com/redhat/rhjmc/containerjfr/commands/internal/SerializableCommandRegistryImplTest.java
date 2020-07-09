@@ -49,7 +49,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,6 +60,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
@@ -101,7 +104,11 @@ public class SerializableCommandRegistryImplTest {
 
         @Test
         public void shouldNotValidateCommands() throws Exception {
-            assertFalse(registry.validate("foo", new String[0]));
+            Exception e =
+                    Assertions.assertThrows(
+                            FailedValidationException.class,
+                            () -> registry.validate("foo", new String[0]));
+            assertThat(e.getMessage(), equalTo("Command \"foo\" not recognized"));
         }
     }
 
@@ -180,35 +187,33 @@ public class SerializableCommandRegistryImplTest {
 
         @Test
         public void shouldNotValidateUnknownCommands() throws Exception {
-            assertFalse(registry.validate("baz", new String[0]));
+            Exception e =
+                    Assertions.assertThrows(
+                            FailedValidationException.class,
+                            () -> registry.validate("baz", new String[0]));
+            assertThat(e.getMessage(), equalTo("Command \"baz\" not recognized"));
         }
 
-        @Test
-        public void shouldNotValidateInvalidCommands() throws Exception {
-            assertFalse(registry.validate("bar", new String[0]));
-            assertFalse(registry.validate(null, new String[0]));
-            assertFalse(registry.validate("", new String[0]));
-            assertFalse(registry.validate("  ", new String[0]));
+        @ParameterizedTest
+        @ValueSource(strings = {"bar", "  "})
+        @NullAndEmptySource
+        public void shouldNotValidateInvalidCommands(String cmd) throws Exception {
+            Exception e =
+                    assertThrows(
+                            FailedValidationException.class,
+                            () -> registry.validate(cmd, new String[0]));
         }
 
         @Test
         public void shouldValidateCommands() throws Exception {
-            assertTrue(registry.validate("foo", new String[0]));
+            assertDoesNotThrow(() -> registry.validate("foo", new String[0]));
         }
 
-        @Test
-        public void shouldHandleNullCommandAvailability() throws Exception {
-            assertFalse(registry.isCommandAvailable(null));
-        }
-
-        @Test
-        public void shouldHandleEmptyCommandAvailability() throws Exception {
-            assertFalse(registry.isCommandAvailable(""));
-        }
-
-        @Test
-        public void shouldHandleBlankCommandAvailability() throws Exception {
-            assertFalse(registry.isCommandAvailable("  "));
+        @ParameterizedTest
+        @ValueSource(strings = {"  "})
+        @NullAndEmptySource
+        public void shouldHandleBlankOrNullCommandAvailability(String cmd) throws Exception {
+            assertFalse(registry.isCommandAvailable(cmd));
         }
     }
 
@@ -250,8 +255,8 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public boolean validate(String[] args) {
-            return true;
+        public void validate(String[] args) throws FailedValidationException {
+            return;
         }
 
         @Override
@@ -280,8 +285,8 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public boolean validate(String[] args) {
-            return false;
+        public void validate(String[] args) throws FailedValidationException {
+            throw new FailedValidationException("foo could not be found");
         }
 
         @Override
@@ -310,8 +315,8 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public boolean validate(String[] args) {
-            return false;
+        public void validate(String[] args) throws FailedValidationException {
+            throw new FailedValidationException("fizz could not be found");
         }
 
         @Override
@@ -332,8 +337,8 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public boolean validate(String[] args) {
-            return true;
+        public void validate(String[] args) throws FailedValidationException {
+            return;
         }
 
         @Override

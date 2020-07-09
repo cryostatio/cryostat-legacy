@@ -46,8 +46,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -59,7 +60,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -103,8 +104,12 @@ public class CommandRegistryImplTest extends TestBase {
 
         @Test
         public void shouldNotValidateCommands() throws Exception {
-            assertFalse(registry.validate("foo", new String[0]));
+            Exception e =
+                    Assertions.assertThrows(
+                            FailedValidationException.class,
+                            () -> registry.validate("foo", new String[0]));
             assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
+            assertThat(e.getMessage(), equalTo("Command \"foo\" not recognized"));
         }
     }
 
@@ -168,25 +173,32 @@ public class CommandRegistryImplTest extends TestBase {
 
         @Test
         public void shouldNotValidateUnknownCommands() throws Exception {
-            assertFalse(registry.validate("baz", new String[0]));
+            Exception e =
+                    Assertions.assertThrows(
+                            FailedValidationException.class,
+                            () -> registry.validate("baz", new String[0]));
             assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
+            assertThat(e.getMessage(), equalTo("Command \"baz\" not recognized"));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"bar", "", "  "})
-        @NullSource
+        @ValueSource(strings = {"bar", "  "})
+        @NullAndEmptySource
         public void shouldNotValidateInvalidCommands(String cmd) throws Exception {
-            assertFalse(registry.validate(cmd, new String[0]));
+            Exception e =
+                    assertThrows(
+                            FailedValidationException.class,
+                            () -> registry.validate(cmd, new String[0]));
         }
 
         @Test
         public void shouldValidateCommands() throws Exception {
-            assertTrue(registry.validate("foo", new String[0]));
+            assertDoesNotThrow(() -> registry.validate("foo", new String[0]));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"", "  "})
-        @NullSource
+        @ValueSource(strings = {"  "})
+        @NullAndEmptySource
         public void shouldHandleBlankOrNullCommandAvailability(String cmd) throws Exception {
             assertFalse(registry.isCommandAvailable(cmd));
         }
@@ -231,8 +243,8 @@ public class CommandRegistryImplTest extends TestBase {
         }
 
         @Override
-        public boolean validate(String[] args) {
-            return true;
+        public void validate(String[] args) throws FailedValidationException {
+            return;
         }
 
         @Override
@@ -255,8 +267,8 @@ public class CommandRegistryImplTest extends TestBase {
         }
 
         @Override
-        public boolean validate(String[] args) {
-            return false;
+        public void validate(String[] args) throws FailedValidationException {
+            throw new FailedValidationException("foo could not be found");
         }
 
         @Override
