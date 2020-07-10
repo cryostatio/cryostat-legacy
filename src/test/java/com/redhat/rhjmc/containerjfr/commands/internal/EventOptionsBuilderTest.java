@@ -66,7 +66,6 @@ import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
@@ -109,21 +108,21 @@ class EventOptionsBuilderTest extends TestBase {
     }
 
     @Test
-    void shouldWarnV1Unsupported() throws FlightRecorderException {
+    void shouldWarnV1Unsupported() throws Exception {
         new EventOptionsBuilder(mockClientWriter, connection, () -> false);
         MatcherAssert.assertThat(
                 stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
     }
 
     @Test
-    void shouldWarnV1Unsupported2() throws FlightRecorderException {
+    void shouldWarnV1Unsupported2() throws Exception {
         new EventOptionsBuilder(mockClientWriter, connection, () -> false);
         MatcherAssert.assertThat(
                 stdout(), Matchers.equalTo("Flight Recorder V1 is not yet supported\n"));
     }
 
     @Test
-    void shouldBuildNullMapWhenV1Detected() throws FlightRecorderException {
+    void shouldBuildNullMapWhenV1Detected() throws Exception {
         MatcherAssert.assertThat(
                 new EventOptionsBuilder(mockClientWriter, connection, () -> false).build(),
                 Matchers.nullValue());

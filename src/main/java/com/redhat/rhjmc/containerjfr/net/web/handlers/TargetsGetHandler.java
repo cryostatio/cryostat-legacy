@@ -74,7 +74,7 @@ class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         ctx.response().end(gson.toJson(this.platformClient.listDiscoverableServices()));
     }
 }

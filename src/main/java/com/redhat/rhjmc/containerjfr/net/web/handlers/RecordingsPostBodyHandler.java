@@ -70,7 +70,7 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         this.bodyHandler.handle(ctx);
     }
 }

@@ -91,7 +91,7 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) {
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         handleRecordingDownloadRequest(null, recordingName, ctx);
     }

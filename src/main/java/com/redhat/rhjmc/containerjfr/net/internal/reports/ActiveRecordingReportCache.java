@@ -51,9 +51,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Named;
 
 import org.apache.commons.lang3.tuple.Pair;
-
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -146,7 +143,7 @@ class ActiveRecordingReportCache {
                                     try {
                                         return Optional.of(
                                                 connection.getService().openStream(rec, false));
-                                    } catch (FlightRecorderException e) {
+                                    } catch (Exception e) {
                                         logger.warn(e);
                                         return Optional.empty();
                                     }

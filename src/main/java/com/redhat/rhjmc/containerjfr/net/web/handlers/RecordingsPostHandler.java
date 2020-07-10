@@ -125,7 +125,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new HttpStatusException(503, "Recording saving not available");
         }

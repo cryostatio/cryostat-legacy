@@ -52,7 +52,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
@@ -170,7 +169,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     }
 
     private String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)
-            throws IOException, FlightRecorderException {
+            throws Exception {
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);

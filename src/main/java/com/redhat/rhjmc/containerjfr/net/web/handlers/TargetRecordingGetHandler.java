@@ -107,7 +107,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
         if (recordingName != null && recordingName.endsWith(".jfr")) {

@@ -55,7 +55,6 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -81,22 +80,17 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        try {
-            String targetId = ctx.pathParam("targetId");
-            List<Template> templates =
-                    connectionManager.executeConnectedTask(
-                            targetId,
-                            connection -> {
-                                List<Template> list =
-                                        new ArrayList<>(
-                                                connection.getTemplateService().getTemplates());
-                                list.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
-                                return list;
-                            });
-            ctx.response().end(gson.toJson(templates));
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
+        String targetId = ctx.pathParam("targetId");
+        List<Template> templates =
+                connectionManager.executeConnectedTask(
+                        targetId,
+                        connection -> {
+                            List<Template> list =
+                                    new ArrayList<>(connection.getTemplateService().getTemplates());
+                            list.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
+                            return list;
+                        });
+        ctx.response().end(gson.toJson(templates));
     }
 }

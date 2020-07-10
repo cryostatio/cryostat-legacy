@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.IOException;
 import java.nio.file.Path;
 
 import javax.inject.Inject;
@@ -86,7 +85,7 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) {
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.exists(savedRecordingsPath)) {
             throw new HttpStatusException(
                     403,
@@ -105,10 +104,6 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                     String.format(
                             "Archive path %s is not a directory", savedRecordingsPath.toString()));
         }
-        try {
-            ctx.response().end(gson.toJson(this.fs.listDirectoryChildren(savedRecordingsPath)));
-        } catch (IOException ioe) {
-            throw new HttpStatusException(500, ioe);
-        }
+        ctx.response().end(gson.toJson(this.fs.listDirectoryChildren(savedRecordingsPath)));
     }
 }

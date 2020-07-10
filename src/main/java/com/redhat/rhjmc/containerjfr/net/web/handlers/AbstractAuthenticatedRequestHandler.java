@@ -43,6 +43,8 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.concurrent.Future;
 
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpHeaders;
@@ -58,7 +60,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
         this.auth = auth;
     }
 
-    abstract void handleAuthenticated(RoutingContext ctx);
+    abstract void handleAuthenticated(RoutingContext ctx) throws Exception;
 
     @Override
     public void handle(RoutingContext ctx) {
@@ -66,12 +68,18 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
             if (!validateRequestAuthorization(ctx.request()).get()) {
                 throw new HttpStatusException(401);
             }
+            handleAuthenticated(ctx);
         } catch (HttpStatusException e) {
             throw e;
+        } catch (ConnectionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SecurityException) {
+                throw new HttpStatusException(403, e);
+            }
+            throw new HttpStatusException(500, e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
-        handleAuthenticated(ctx);
     }
 
     protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {

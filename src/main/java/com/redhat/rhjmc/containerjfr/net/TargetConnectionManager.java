@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +79,9 @@ public class TargetConnectionManager {
                 return task.execute(activeConnections.get(targetId));
             } else {
                 try (JFRConnection connection = connect(targetId)) {
+                    if (connection == null) {
+                        logger.error(String.format("Connection for %s failed", targetId));
+                    }
                     activeConnections.put(targetId, connection);
                     return task.execute(connection);
                 }
@@ -96,8 +100,10 @@ public class TargetConnectionManager {
     public JFRConnection connect(String targetId) throws Exception {
         try {
             return attemptConnectAsJMXServiceURL(targetId);
-        } catch (Exception e) {
+        } catch (MalformedURLException mue) {
             return attemptConnectAsHostPortPair(targetId);
+        } catch (Exception e) {
+            throw e;
         }
     }
 
