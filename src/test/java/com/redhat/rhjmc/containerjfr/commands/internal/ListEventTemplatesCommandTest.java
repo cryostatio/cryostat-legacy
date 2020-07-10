@@ -101,7 +101,12 @@ class ListEventTemplatesCommandTest implements ValidatesTargetId {
     @ParameterizedTest
     @ValueSource(ints = {0, 2})
     void shouldNotValidateWrongArgc(int n) {
-        Assertions.assertFalse(cmd.validate(new String[n]));
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> cmd.validate(new String[n]));
+        String errorMessage = "Expected one argument: hostname:port, ip:port, or JMX service URL";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

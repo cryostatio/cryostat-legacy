@@ -114,10 +114,13 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3})
     void shouldNotValidateIncorrectArgc(int count) {
-        Assertions.assertFalse(command.validate(new String[count]));
-        verify(cw)
-                .println(
-                        "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[count]));
+        String errorMessage =
+                "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

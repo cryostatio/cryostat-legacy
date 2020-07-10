@@ -41,7 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
@@ -87,13 +88,15 @@ class HelpCommandTest {
 
     @Test
     void shouldExpectNoArgs() {
-        assertTrue(command.validate(new String[0]));
+        assertDoesNotThrow(() -> command.validate(new String[0]));
         verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldNotExpectArgs() {
-        assertFalse(command.validate(new String[1]));
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[1]));
         verify(cw).println("No arguments expected");
     }
 

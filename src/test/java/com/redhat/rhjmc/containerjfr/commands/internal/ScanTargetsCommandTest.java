@@ -86,12 +86,18 @@ class ScanTargetsCommandTest {
     @ParameterizedTest
     @ValueSource(ints = {1, 2, 3})
     void shouldNotExpectArgs(int argc) {
-        Assertions.assertFalse(command.validate(new String[argc]));
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage = "No arguments expected";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
     void shouldExpectNoArgs() {
-        Assertions.assertTrue(command.validate(new String[0]));
+        Assertions.assertDoesNotThrow(() -> command.validate(new String[0]));
+        Mockito.verifyNoMoreInteractions(cw);
     }
 
     @Test

@@ -41,7 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -115,8 +115,12 @@ class SnapshotCommandTest implements ValidatesTargetId {
                 0, 2,
             })
     void shouldInvalidateIncorrectArgc(int c) {
-        assertFalse(command.validate(new String[c]));
-        verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[c]));
+        String errorMessage = "Expected one argument: hostname:port, ip:port, or JMX service URL";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

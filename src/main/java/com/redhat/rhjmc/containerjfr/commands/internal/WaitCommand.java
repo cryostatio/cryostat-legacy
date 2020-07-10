@@ -94,9 +94,9 @@ class WaitCommand implements Command {
         }
 
         if (!args[0].matches("\\d+")) {
-            String errorMessage = "%s is an invalid integer";
+            String errorMessage = String.format("%s is an invalid integer", args[0]);
             cw.println(errorMessage);
-            throw new FailedValidationException(String.format(errorMessage, args[0]));
+            throw new FailedValidationException(String.format(errorMessage));
         }
     }
 

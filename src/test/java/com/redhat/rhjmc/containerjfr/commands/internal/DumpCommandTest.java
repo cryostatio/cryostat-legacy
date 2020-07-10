@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -116,26 +116,41 @@ class DumpCommandTest
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 3, 5})
     void shouldPrintArgMessageWhenArgcInvalid(int argc) {
-        assertFalse(command.validate(new String[argc]));
-        verify(cw)
-                .println(
-                        "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types");
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage =
+                "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
     void shouldNotValidateRecordingLengthInvalid() {
-        assertFalse(
-                command.validate(
-                        new String[] {
-                            "fooHost:9091", "recording", "nine", "foo.Bar:enabled=true"
-                        }));
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                command.validate(
+                                        new String[] {
+                                            "fooHost:9091",
+                                            "recording",
+                                            "nine",
+                                            "foo.Bar:enabled=true"
+                                        }));
+        String errorMessage = "nine is an invalid recording length";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
     void shouldValidateCorrectArgs() {
-        assertTrue(
-                command.validate(
-                        new String[] {"fooHost:9091", "recording", "30", "foo.Bar:enabled=true"}));
+        assertDoesNotThrow(
+                () ->
+                        command.validate(
+                                new String[] {
+                                    "fooHost:9091", "recording", "30", "foo.Bar:enabled=true"
+                                }));
     }
 
     @Test

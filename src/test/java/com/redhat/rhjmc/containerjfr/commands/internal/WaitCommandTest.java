@@ -41,7 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,6 +54,8 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -76,27 +79,31 @@ class WaitCommandTest extends TestBase {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("wait"));
     }
 
-    @Test
-    void shouldNotExpectZeroArgs() {
-        assertFalse(command.validate(new String[0]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
-    }
-
-    @Test
-    void shouldNotExpectTwoArgs() {
-        assertFalse(command.validate(new String[2]));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("Expected one argument\n"));
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2})
+    void shouldNotExpectInvalidArgs() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[0]));
+        String errorMessage = "Expected one argument";
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
     void shouldExpectIntegerFormattedArg() {
-        assertFalse(command.validate(new String[] {"f"}));
-        MatcherAssert.assertThat(stdout(), Matchers.equalTo("f is an invalid integer\n"));
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {"f"}));
+        String errorMessage = "f is an invalid integer";
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"10"}));
+        assertDoesNotThrow(() -> command.validate(new String[] {"10"}));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 

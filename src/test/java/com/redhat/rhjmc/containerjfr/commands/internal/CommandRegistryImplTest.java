@@ -54,7 +54,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -105,7 +104,7 @@ public class CommandRegistryImplTest extends TestBase {
         @Test
         public void shouldNotValidateCommands() throws Exception {
             Exception e =
-                    Assertions.assertThrows(
+                    assertThrows(
                             FailedValidationException.class,
                             () -> registry.validate("foo", new String[0]));
             assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
@@ -174,7 +173,7 @@ public class CommandRegistryImplTest extends TestBase {
         @Test
         public void shouldNotValidateUnknownCommands() throws Exception {
             Exception e =
-                    Assertions.assertThrows(
+                    assertThrows(
                             FailedValidationException.class,
                             () -> registry.validate("baz", new String[0]));
             assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
@@ -209,7 +208,7 @@ public class CommandRegistryImplTest extends TestBase {
         @Test
         public void shouldThrowCommandDefinitionException() {
             CommandRegistryImpl.CommandDefinitionException thrown =
-                    Assertions.assertThrows(
+                    assertThrows(
                             CommandRegistryImpl.CommandDefinitionException.class,
                             () ->
                                     new CommandRegistryImpl(

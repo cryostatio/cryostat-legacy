@@ -41,7 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -118,7 +118,13 @@ class StartRecordingCommandTest
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 4, 5})
     void shouldNotValidateWithIncorrectArgc(int argc) {
-        assertFalse(command.validate(new String[argc]));
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage =
+                "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and event types";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

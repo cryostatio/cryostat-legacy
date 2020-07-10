@@ -136,8 +136,10 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
     @Override
     public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            throw new FailedValidationException(
-                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+            String errorMessage =
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];

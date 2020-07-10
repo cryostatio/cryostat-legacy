@@ -217,8 +217,8 @@ class AbstractRecordingCommandTest extends TestBase {
         }
 
         @Override
-        public boolean validate(String[] args) {
-            return true;
+        public void validate(String[] args) throws FailedValidationException {
+            return;
         }
 
         @Override

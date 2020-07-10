@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
@@ -55,16 +57,17 @@ interface ValidatesTargetId extends ValidationTestable {
                 "service:jmx:rmi:///localhost/jndi/rmi://localhost:fooHost/jmxrmi"
             })
     default void shouldValidateAcceptableTargetId(String targetId) {
-        Assertions.assertTrue(
-                commandForValidationTesting()
-                        .validate(
-                                getArgs(
-                                        argumentSignature().stream()
-                                                .map(
-                                                        arg ->
-                                                                TARGET_ID.equals(arg)
-                                                                        ? targetId
-                                                                        : arg))),
+        Assertions.assertDoesNotThrow(
+                () ->
+                        commandForValidationTesting()
+                                .validate(
+                                        getArgs(
+                                                argumentSignature().stream()
+                                                        .map(
+                                                                arg ->
+                                                                        TARGET_ID.equals(arg)
+                                                                                ? targetId
+                                                                                : arg))),
                 targetId);
     }
 
@@ -73,16 +76,23 @@ interface ValidatesTargetId extends ValidationTestable {
     @ValueSource(
             strings = {"localhost:", ":123", "localhost:abc", ":abc", "http:///localhost:9091"})
     default void shouldNotValidateUnacceptableTargetIds(String targetId) {
-        Assertions.assertFalse(
-                commandForValidationTesting()
-                        .validate(
-                                getArgs(
-                                        argumentSignature().stream()
-                                                .map(
-                                                        arg ->
-                                                                TARGET_ID.equals(arg)
-                                                                        ? targetId
-                                                                        : arg))),
-                targetId);
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                commandForValidationTesting()
+                                        .validate(
+                                                getArgs(
+                                                        argumentSignature().stream()
+                                                                .map(
+                                                                        arg ->
+                                                                                TARGET_ID.equals(
+                                                                                                arg)
+                                                                                        ? targetId
+                                                                                        : arg))),
+                        targetId);
+        MatcherAssert.assertThat(
+                e.getMessage(),
+                Matchers.equalTo(String.format("%s is an invalid connection specifier", targetId)));
     }
 }
