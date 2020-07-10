@@ -307,16 +307,39 @@
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
           <jvmFlags>
             <jvmFlag>-XX:+CrashOnOutOfMemoryError</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.autodiscovery=true</jvmFlag>
             <jvmFlag>-Dcom.sun.management.jmxremote.port=9091</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.rmi.port=9091</jvmFlag>
             <jvmFlag>-Dcom.sun.management.jmxremote.ssl=false</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.authenticate=false</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.authenticate=true</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.password.file=/app/resources/jmxremote.password</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.access.file=/app/resources/jmxremote.access</jvmFlag>
           </jvmFlags>
-          <ports>${containerjfr.webPort},${containerjfr.listenPort},9091</ports>
+          <ports>
+            <port>${containerjfr.webPort}</port>
+            <port>${containerjfr.listenPort}</port>
+            <port>9091</port>
+          </ports>
         </container>
         <extraDirectories>
           <paths>
-            <path>${project.build.directory}/assets</path>
+            <path>
+              ${project.build.directory}/assets
+            </path>
+            <path>
+              src/main/extras
+            </path>
           </paths>
+          <permissions>
+            <permission>
+              <file>/app/resources/jmxremote.password</file>
+              <mode>600</mode>
+            </permission>
+              <permission>
+                <file>/app/resources/jmxremote.access</file>
+                <mode>600</mode>
+              </permission>
+          </permissions>
         </extraDirectories>
       </configuration>
     </plugin>
