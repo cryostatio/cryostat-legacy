@@ -131,12 +131,15 @@ class SnapshotCommand extends AbstractRecordingCommand implements SerializableCo
     @Override
     public void validate(String[] args) throws FailedValidationException {
         if (args.length != 1) {
-            throw new FailedValidationException(
-                    "Expected one argument: hostname:port, ip:port, or JMX service URL");
+            String errorMessage =
+                    "Expected one argument: hostname:port, ip:port, or JMX service URL";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
         if (!validateTargetId(args[0])) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid connection specifier", args[0]));
+            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
     }
 }

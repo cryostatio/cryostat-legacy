@@ -110,12 +110,15 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     @Override
     public void validate(String[] args) throws FailedValidationException {
         if (args.length != 1) {
-            throw new FailedValidationException(
-                    "Expected one argument: hostname:port, ip:port, or JMX service URL");
+            String errorMessage =
+                    "Expected one argument: hostname:port, ip:port, or JMX service URL";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
         if (!validateTargetId(args[0])) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid connection specifier", args[0]));
+            String errorMessage = "%s is an invalid connection specifier";
+            cw.println(errorMessage);
+            throw new FailedValidationException(String.format(errorMessage, args[0]));
         }
     }
 

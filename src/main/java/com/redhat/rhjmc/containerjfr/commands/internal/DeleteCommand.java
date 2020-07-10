@@ -123,16 +123,20 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     @Override
     public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            throw new FailedValidationException(
-                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+            String errorMessage =
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
         if (!validateTargetId(args[0])) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid connection specifier", args[0]));
+            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
         if (!validateRecordingName(args[1])) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid recording name", args[1]));
+            String errorMessage = String.format("%s is an invalid recording name", args[1]);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
     }
 }

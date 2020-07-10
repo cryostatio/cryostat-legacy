@@ -144,13 +144,15 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         String recordingName = args[1];
 
         if (!validateTargetId(targetId)) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid connection specifier", targetId));
+            String errorMessage = "%s is an invalid connection specifier";
+            cw.println(errorMessage);
+            throw new FailedValidationException(String.format(errorMessage, targetId));
         }
 
         if (!validateRecordingName(recordingName)) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid recording name", recordingName));
+            String errorMessage = "%s is an invalid recording name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(String.format(errorMessage, recordingName));
         }
     }
 

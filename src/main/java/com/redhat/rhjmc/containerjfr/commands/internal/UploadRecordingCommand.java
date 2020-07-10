@@ -176,8 +176,10 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     @Override
     public void validate(String[] args) throws FailedValidationException {
         if (args.length != 3) {
-            throw new FailedValidationException(
-                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
+            String errorMessage =
+                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];
@@ -185,13 +187,15 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         // String uploadUrl = args[2];
 
         if (!validateTargetId(targetId)) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid connection specifier", args[0]));
+            String errorMessage = "%s is an invalid connection specifier";
+            cw.println(errorMessage);
+            throw new FailedValidationException(String.format(errorMessage, args[0]));
         }
 
         if (!validateRecordingName(recordingName)) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid recording name", recordingName));
+            String errorMessage = "%s is an invalid recording name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(String.format(errorMessage, recordingName));
         }
 
         // TODO validate upload URL

@@ -141,8 +141,10 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     @Override
     public void validate(String[] args) throws FailedValidationException {
         if (args.length != 4) {
-            throw new FailedValidationException(
-                    "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types");
+            String errorMessage =
+                    "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];
@@ -151,23 +153,27 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         String events = args[3];
 
         if (!validateTargetId(targetId)) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid connection specifier", args[0]));
+            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         if (!validateRecordingName(name)) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid recording name", name));
+            String errorMessage = String.format("%s is an invalid recording name", name);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         if (!seconds.matches("\\d+")) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid recording length", seconds));
+            String errorMessage = String.format("%s is an invalid recording length", seconds);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         if (!validateEvents(events)) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid events specifier", events));
+            String errorMessage = String.format("%s is an invalid events specifier", events);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
     }
 }

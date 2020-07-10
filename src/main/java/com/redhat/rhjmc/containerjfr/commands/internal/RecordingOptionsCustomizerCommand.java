@@ -107,7 +107,9 @@ class RecordingOptionsCustomizerCommand implements SerializableCommand {
     @Override
     public void validate(String[] args) throws FailedValidationException {
         if (args.length != 1) {
-            throw new FailedValidationException("Expected one argument: recording option name");
+            String errorMessage = "Expected one argument: recording option name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
         String options = args[0];
 
@@ -116,15 +118,18 @@ class RecordingOptionsCustomizerCommand implements SerializableCommand {
         Matcher unsetMatcher = UNSET_PATTERN.matcher(options);
         boolean unsetMatch = unsetMatcher.find();
         if (!optionsMatch && !unsetMatch) {
-            throw new FailedValidationException(
-                    String.format("%s is an invalid option string", options));
+            String errorMessage = String.format("%s is an invalid option string", options);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String option = (optionsMatch ? optionsMatcher : unsetMatcher).group(1);
         boolean recognizedOption = OptionKey.fromOptionName(option).isPresent();
         if (!recognizedOption) {
-            throw new FailedValidationException(
-                    String.format("%s is an unrecognized or unsupported option", option));
+            String errorMessage =
+                    String.format("%s is an unrecognized or unsupported option", option);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
     }
 }

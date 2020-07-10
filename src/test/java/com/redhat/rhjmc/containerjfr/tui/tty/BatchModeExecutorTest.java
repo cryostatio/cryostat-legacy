@@ -238,9 +238,7 @@ class BatchModeExecutorTest extends TestBase {
         executor.run("help; connect foo; disconnect;");
 
         MatcherAssert.assertThat(
-                stdout(),
-                Matchers.containsString(
-                        "Could not validate \"connect\" command; \"[foo]\" are invalid arguments to connect"));
+                stdout(), Matchers.containsString("\tCommand \"connect\" could not be validated"));
 
         verify(mockRegistry).validate("help", new String[0]);
         verify(mockRegistry).validate("connect", new String[] {"foo"});
