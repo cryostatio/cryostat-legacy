@@ -305,7 +305,12 @@
         </to>
         <container>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
-          <jvmFlags>-XX:+CrashOnOutOfMemoryError,-Dcom.sun.management.jmxremote.port=9091,-Dcom.sun.management.jmxremote.ssl=false,-Dcom.sun.management.jmxremote.authenticate=false</jvmFlags>
+          <jvmFlags>
+            <jvmFlag>-XX:+CrashOnOutOfMemoryError</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.port=9091</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.ssl=false</jvmFlag>
+            <jvmFlag>-Dcom.sun.management.jmxremote.authenticate=false</jvmFlag>
+          </jvmFlags>
           <ports>${containerjfr.webPort},${containerjfr.listenPort},9091</ports>
         </container>
         <extraDirectories>
