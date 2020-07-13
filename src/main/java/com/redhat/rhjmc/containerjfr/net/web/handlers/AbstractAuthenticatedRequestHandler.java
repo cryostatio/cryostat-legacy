@@ -74,7 +74,8 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
         } catch (ConnectionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof SecurityException) {
-                throw new HttpStatusException(403, e);
+                ctx.response().putHeader(HttpHeaders.PROXY_AUTHENTICATE, "Basic");
+                throw new HttpStatusException(407, e);
             }
             throw new HttpStatusException(404, e);
         } catch (Exception e) {
