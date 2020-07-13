@@ -24,6 +24,8 @@
 
   <containerjfr.minimal>false</containerjfr.minimal>
   <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
+  <containerjfr.entrypoint>/app/entrypoint.sh</containerjfr.entrypoint>
+  <containerjfr.rjmxPort>9091</containerjfr.rjmxPort>
   <containerjfr.webPort>8181</containerjfr.webPort>
   <containerjfr.listenPort>9090</containerjfr.listenPort>
   <containerjfr.itest.webPort>8181</containerjfr.itest.webPort>
@@ -197,17 +199,6 @@
       </configuration>
       <executions>
         <execution>
-          <id>generate-jmx-password</id>
-          <phase>prepare-package</phase>
-          <goals>
-            <goal>exec</goal>
-          </goals>
-          <!-- FIXME this should not be done at image creation time but at container startup time -->
-          <configuration>
-            <executable>create-jmxpassword.sh</executable>
-          </configuration>
-        </execution>
-        <execution>
           <id>start-container</id>
           <phase>pre-integration-test</phase>
           <goals>
@@ -222,7 +213,7 @@
               <argument>--mount </argument>
               <argument>type=tmpfs,target=/flightrecordings</argument>
               <argument>--publish</argument>
-              <argument>9091:9091</argument>
+              <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
               <argument>--publish</argument>
               <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
@@ -315,21 +306,16 @@
           <tags>${containerjfr.imageVersion}</tags>
         </to>
         <container>
+          <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
-          <jvmFlags>
-            <jvmFlag>-XX:+CrashOnOutOfMemoryError</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.autodiscovery=true</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.port=9091</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.rmi.port=9091</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.ssl=false</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.authenticate=true</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.password.file=/app/resources/jmxremote.password</jvmFlag>
-            <jvmFlag>-Dcom.sun.management.jmxremote.access.file=/app/resources/jmxremote.access</jvmFlag>
-          </jvmFlags>
+          <entrypoint>${containerjfr.entrypoint}</entrypoint>
+          <args>
+            <arg>-w</arg>
+          </args>
           <ports>
             <port>${containerjfr.webPort}</port>
             <port>${containerjfr.listenPort}</port>
-            <port>9091</port>
+            <port>${containerjfr.rjmxPort}</port>
           </ports>
         </container>
         <extraDirectories>
@@ -343,13 +329,13 @@
           </paths>
           <permissions>
             <permission>
-              <file>/app/resources/jmxremote.password</file>
-              <mode>600</mode>
+              <file>${containerjfr.entrypoint}</file>
+              <mode>500</mode>
             </permission>
-              <permission>
-                <file>/app/resources/jmxremote.access</file>
-                <mode>600</mode>
-              </permission>
+            <permission>
+              <file>/app/resources/jmxremote.access</file>
+              <mode>400</mode>
+            </permission>
           </permissions>
         </extraDirectories>
       </configuration>
