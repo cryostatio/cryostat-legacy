@@ -197,6 +197,17 @@
       </configuration>
       <executions>
         <execution>
+          <id>generate-jmx-password</id>
+          <phase>prepare-package</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <!-- FIXME this should not be done at image creation time but at container startup time -->
+          <configuration>
+            <executable>create-jmxpassword.sh</executable>
+          </configuration>
+        </execution>
+        <execution>
           <id>start-container</id>
           <phase>pre-integration-test</phase>
           <goals>
