@@ -127,10 +127,10 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 4, 5})
-    void shouldNotValidateWrongArgc(int c) {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 Assertions.assertThrows(
-                        FailedValidationException.class, () -> command.validate(new String[c]));
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
         String errorMessage =
                 "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL";
         Mockito.verify(cw).println(errorMessage);

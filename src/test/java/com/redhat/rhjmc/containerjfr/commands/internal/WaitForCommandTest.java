@@ -105,7 +105,7 @@ class WaitForCommandTest extends TestBase implements ValidatesRecordingName, Val
 
     @ParameterizedTest
     @ValueSource(ints = {0, 3})
-    void shouldNotExpectInvalidArgc(int argc) {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 assertThrows(
                         FailedValidationException.class, () -> command.validate(new String[argc]));

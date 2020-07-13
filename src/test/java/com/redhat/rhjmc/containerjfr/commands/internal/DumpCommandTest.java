@@ -115,7 +115,7 @@ class DumpCommandTest
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 3, 5})
-    void shouldPrintArgMessageWhenArgcInvalid(int argc) {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 assertThrows(
                         FailedValidationException.class, () -> command.validate(new String[argc]));
@@ -126,7 +126,7 @@ class DumpCommandTest
     }
 
     @Test
-    void shouldNotValidateRecordingLengthInvalid() {
+    void shouldNotValidateInvalidRecordingLength() {
         Exception e =
                 assertThrows(
                         FailedValidationException.class,

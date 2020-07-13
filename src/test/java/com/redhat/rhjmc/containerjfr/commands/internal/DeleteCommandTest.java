@@ -106,10 +106,10 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3})
-    void shouldInvalidateIncorrectArgc(int c) {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 assertThrows(
-                        FailedValidationException.class, () -> command.validate(new String[c]));
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
         String errorMessage =
                 "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
         verify(cw).println(errorMessage);

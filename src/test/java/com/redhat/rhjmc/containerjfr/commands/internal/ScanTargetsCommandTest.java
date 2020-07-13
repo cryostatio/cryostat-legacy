@@ -49,8 +49,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -83,12 +81,11 @@ class ScanTargetsCommandTest {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("scan-targets"));
     }
 
-    @ParameterizedTest
-    @ValueSource(ints = {1, 2, 3})
-    void shouldNotExpectArgs(int argc) {
+    @Test
+    void shouldNotExpectArgs() {
         Exception e =
                 Assertions.assertThrows(
-                        FailedValidationException.class, () -> command.validate(new String[argc]));
+                        FailedValidationException.class, () -> command.validate(new String[1]));
         String errorMessage = "No arguments expected";
         Mockito.verify(cw).println(errorMessage);
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));

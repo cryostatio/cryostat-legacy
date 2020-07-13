@@ -81,10 +81,10 @@ class WaitCommandTest extends TestBase {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 2})
-    void shouldNotExpectInvalidArgs() {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 assertThrows(
-                        FailedValidationException.class, () -> command.validate(new String[0]));
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
         String errorMessage = "Expected one argument";
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));

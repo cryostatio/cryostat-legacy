@@ -98,10 +98,10 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 2})
-    void shouldNotValidateWrongArgCounts(int count) {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 Assertions.assertThrows(
-                        FailedValidationException.class, () -> command.validate(new String[count]));
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
         String errorMessage = "Expected one argument: recording name";
         verify(cw).println(errorMessage);
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));

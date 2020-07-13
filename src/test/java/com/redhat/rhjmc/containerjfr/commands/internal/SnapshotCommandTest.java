@@ -114,10 +114,10 @@ class SnapshotCommandTest implements ValidatesTargetId {
             ints = {
                 0, 2,
             })
-    void shouldInvalidateIncorrectArgc(int c) {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 assertThrows(
-                        FailedValidationException.class, () -> command.validate(new String[c]));
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
         String errorMessage = "Expected one argument: hostname:port, ip:port, or JMX service URL";
         verify(cw).println(errorMessage);
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));

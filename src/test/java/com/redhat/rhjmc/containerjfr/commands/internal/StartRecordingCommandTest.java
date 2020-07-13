@@ -117,7 +117,7 @@ class StartRecordingCommandTest
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 4, 5})
-    void shouldNotValidateWithIncorrectArgc(int argc) {
+    void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 assertThrows(
                         FailedValidationException.class, () -> command.validate(new String[argc]));
