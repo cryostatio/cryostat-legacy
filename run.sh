@@ -3,6 +3,11 @@
 set -x
 set -e
 
+function cleanup() {
+    podman pod rm container-jfr
+}
+trap cleanup EXIT
+
 if [ -z "$CONTAINER_JFR_IMAGE" ]; then
     CONTAINER_JFR_IMAGE="quay.io/rh-jmc-team/container-jfr:latest"
 fi
@@ -41,9 +46,12 @@ if [ -z "$CONTAINER_JFR_AUTH_MANAGER" ]; then
     CONTAINER_JFR_AUTH_MANAGER="com.redhat.rhjmc.containerjfr.net.NoopAuthManager"
 fi
 
+if ! podman pod exists cjfr; then
+    podman pod create --hostname container-jfr --name container-jfr --publish $CONTAINER_JFR_EXT_WEB_PORT
+fi
+
 podman run \
-    --hostname container-jfr \
-    --name container-jfr \
+    --pod container-jfr \
     --mount type=tmpfs,target=/flightrecordings \
     --mount type=tmpfs,target=/templates \
     -p 9091:9091 \
