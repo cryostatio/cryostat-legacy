@@ -79,9 +79,6 @@ public class TargetConnectionManager {
                 return task.execute(activeConnections.get(targetId));
             } else {
                 try (JFRConnection connection = connect(targetId)) {
-                    if (connection == null) {
-                        logger.error(String.format("Connection for %s failed", targetId));
-                    }
                     activeConnections.put(targetId, connection);
                     return task.execute(connection);
                 }
@@ -101,6 +98,7 @@ public class TargetConnectionManager {
         try {
             return attemptConnectAsJMXServiceURL(targetId);
         } catch (MalformedURLException mue) {
+            logger.trace(mue);
             return attemptConnectAsHostPortPair(targetId);
         } catch (Exception e) {
             throw e;
@@ -114,7 +112,7 @@ public class TargetConnectionManager {
     private JFRConnection attemptConnectAsHostPortPair(String s) throws Exception {
         Matcher m = HOST_PORT_PAIR_PATTERN.matcher(s);
         if (!m.find()) {
-            return null;
+            throw new MalformedURLException(s);
         }
         String host = m.group(1);
         String port = m.group(2);
