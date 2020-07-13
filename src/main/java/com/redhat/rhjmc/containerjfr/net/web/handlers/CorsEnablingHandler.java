@@ -97,6 +97,6 @@ class CorsEnablingHandler implements RequestHandler {
 
     String getOrigin() {
         // TODO make the origin configurable
-        return DEV_ORIGIN;
+        return this.env.getEnv(ENABLE_CORS_ENV);
     }
 }

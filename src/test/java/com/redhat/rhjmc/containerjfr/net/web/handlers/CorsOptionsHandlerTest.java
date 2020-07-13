@@ -38,7 +38,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  * #L%
- */
+ *
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import org.hamcrest.MatcherAssert;
@@ -79,3 +79,4 @@ class CorsOptionsHandlerTest {
                 handler.getPriority(), Matchers.lessThan(RequestHandler.DEFAULT_PRIORITY));
     }
 }
+*/
