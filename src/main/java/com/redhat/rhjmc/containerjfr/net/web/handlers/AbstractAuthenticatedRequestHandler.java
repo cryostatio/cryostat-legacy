@@ -76,7 +76,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
             if (cause instanceof SecurityException) {
                 throw new HttpStatusException(403, e);
             }
-            throw new HttpStatusException(500, e);
+            throw new HttpStatusException(404, e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
