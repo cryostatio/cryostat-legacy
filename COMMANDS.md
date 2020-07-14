@@ -275,7 +275,7 @@ formatted as a JSON response.
 
 * #### `wait-for`
     ###### usage
-    `wait-for targedId foo`
+    `wait-for targetId foo`
     ###### synopsis
     Waits for the given recording (`foo`) of the specified target JVM to stop
     running. If the recording is continuous and not already stopped then the
