@@ -45,7 +45,7 @@ class InvalidCommandResponseMessage extends ResponseMessage<String> {
     InvalidCommandResponseMessage(String id, String commandName) {
         super(
                 id,
-                -1,
+                Status.INVALID_COMMAND,
                 commandName,
                 String.format("[%s] command %s is unrecognized", id, commandName));
     }
