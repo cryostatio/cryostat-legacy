@@ -144,7 +144,7 @@ class CorsEnablingHandlerTest {
         @ParameterizedTest
         @EnumSource(
                 value = HttpMethod.class,
-                names = {"GET", "POST", "OPTIONS", "HEAD"})
+                names = {"GET", "POST", "OPTIONS", "HEAD", "DELETE"})
         void shouldRespondOKToOPTIONSWithAcceptedMethod(HttpMethod method) {
             Mockito.when(req.method()).thenReturn(HttpMethod.OPTIONS);
             Mockito.when(headers.get(HttpHeaders.ORIGIN))
@@ -161,7 +161,9 @@ class CorsEnablingHandlerTest {
                             HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
                             CorsEnablingHandler.DEV_ORIGIN);
             Mockito.verify(res)
-                    .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,OPTIONS,HEAD");
+                    .putHeader(
+                            HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,
+                            "GET,POST,OPTIONS,HEAD,DELETE");
             Mockito.verify(res)
                     .putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_HEADERS, "Authorization");
             Mockito.verify(res).setStatusCode(200);

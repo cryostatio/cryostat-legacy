@@ -39,62 +39,42 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import javax.inject.Inject;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.web.WebModule;
-import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
-import com.redhat.rhjmc.containerjfr.sys.SystemModule;
-import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
-import com.redhat.rhjmc.containerjfr.tui.TuiModule;
+class TemplatesBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-import dagger.Module;
-import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
-@Module(
-        includes = {
-            PlatformModule.class,
-            WebModule.class,
-            SystemModule.class,
-            CommandsModule.class,
-            TuiModule.class,
-            TemplatesModule.class,
-        })
-public abstract class MainModule {
-    public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
-
-    @Provides
-    @Singleton
-    static Logger provideLogger() {
-        return Logger.INSTANCE;
+    @Inject
+    TemplatesBodyHandler(AuthManager auth) {
+        super(auth);
     }
 
-    // public since this is useful to use directly in tests
-    @Provides
-    @Singleton
-    public static Gson provideGson() {
-        return new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    @Provides
-    @Singleton
-    @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
-        logger.info(String.format("Local save path for flight recordings set as %s", ARCHIVE_PATH));
-        return Paths.get(ARCHIVE_PATH);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public String path() {
+        return "/api/v1/templates";
+    }
+
+    @Override
+    void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }

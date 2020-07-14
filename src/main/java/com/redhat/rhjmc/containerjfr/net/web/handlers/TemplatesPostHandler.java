@@ -41,63 +41,74 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Path;
+
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
+import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.CorsHandler;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class CorsEnablingHandler implements RequestHandler {
-    protected static final String DEV_ORIGIN = "http://localhost:9000";
-    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
-    protected final CorsHandler corsHandler;
-    protected final Environment env;
+class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
+
+    private final LocalStorageTemplateService templateService;
+    private final FileSystem fs;
+    private final Logger logger;
 
     @Inject
-    CorsEnablingHandler(Environment env) {
-        this.corsHandler =
-                CorsHandler.create(getOrigin())
-                        .allowedHeader("Authorization")
-                        .allowedMethod(HttpMethod.GET)
-                        .allowedMethod(HttpMethod.POST)
-                        .allowedMethod(HttpMethod.OPTIONS)
-                        .allowedMethod(HttpMethod.HEAD)
-                        .allowedMethod(HttpMethod.DELETE)
-                        .allowCredentials(true)
-                        .exposedHeader(WebServer.AUTH_SCHEME_HEADER);
-        this.env = env;
-    }
-
-    @Override
-    public int getPriority() {
-        return 0;
-    }
-
-    @Override
-    public boolean isAvailable() {
-        return this.env.hasEnv(ENABLE_CORS_ENV);
+    TemplatesPostHandler(
+            AuthManager auth,
+            LocalStorageTemplateService templateService,
+            FileSystem fs,
+            Logger logger) {
+        super(auth);
+        this.templateService = templateService;
+        this.fs = fs;
+        this.logger = logger;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.OTHER; // unused for ALL_PATHS handlers
+        return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return ALL_PATHS;
+        return "/api/v1/templates";
     }
 
     @Override
-    public void handle(RoutingContext ctx) {
-        this.corsHandler.handle(ctx);
-    }
-
-    String getOrigin() {
-        // TODO make the origin configurable
-        return DEV_ORIGIN;
+    void handleAuthenticated(RoutingContext ctx) {
+        try {
+            for (FileUpload u : ctx.fileUploads()) {
+                Path path = fs.pathOf(u.uploadedFileName());
+                try (InputStream is = fs.newInputStream(path)) {
+                    if (!"template".equals(u.name())) {
+                        logger.info(
+                                String.format(
+                                        "Received unexpected file upload named %s", u.name()));
+                        continue;
+                    }
+                    templateService.addTemplate(is);
+                } finally {
+                    fs.deleteIfExists(path);
+                }
+            }
+        } catch (IOException ioe) {
+            throw new HttpStatusException(500, ioe.getMessage(), ioe);
+        } catch (InvalidXmlException | InvalidEventTemplateException e) {
+            throw new HttpStatusException(400, e.getMessage(), e);
+        }
+        ctx.response().end();
     }
 }

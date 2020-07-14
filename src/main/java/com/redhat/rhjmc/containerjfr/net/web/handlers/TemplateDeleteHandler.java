@@ -39,62 +39,50 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.IOException;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import javax.inject.Inject;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
+import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.web.WebModule;
-import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
-import com.redhat.rhjmc.containerjfr.sys.SystemModule;
-import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
-import com.redhat.rhjmc.containerjfr.tui.TuiModule;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-import dagger.Module;
-import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
-@Module(
-        includes = {
-            PlatformModule.class,
-            WebModule.class,
-            SystemModule.class,
-            CommandsModule.class,
-            TuiModule.class,
-            TemplatesModule.class,
-        })
-public abstract class MainModule {
-    public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
+    private final LocalStorageTemplateService templateService;
 
-    @Provides
-    @Singleton
-    static Logger provideLogger() {
-        return Logger.INSTANCE;
+    @Inject
+    TemplateDeleteHandler(AuthManager auth, LocalStorageTemplateService templateService) {
+        super(auth);
+        this.templateService = templateService;
     }
 
-    // public since this is useful to use directly in tests
-    @Provides
-    @Singleton
-    public static Gson provideGson() {
-        return new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.DELETE;
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    @Provides
-    @Singleton
-    @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
-        logger.info(String.format("Local save path for flight recordings set as %s", ARCHIVE_PATH));
-        return Paths.get(ARCHIVE_PATH);
+    @Override
+    public String path() {
+        return "/api/v1/templates/:templateName";
+    }
+
+    @Override
+    void handleAuthenticated(RoutingContext ctx) {
+        String templateName = ctx.pathParam("templateName");
+        try {
+            this.templateService.deleteTemplate(templateName);
+            ctx.response().end();
+        } catch (IOException ioe) {
+            throw new HttpStatusException(500, ioe.getMessage(), ioe);
+        } catch (InvalidEventTemplateException iete) {
+            throw new HttpStatusException(400, iete.getMessage(), iete);
+        }
     }
 }

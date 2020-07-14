@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,8 +49,10 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
+import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
@@ -60,9 +63,11 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
             new Template(
                     "ALL",
                     "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.",
-                    "ContainerJFR");
+                    "ContainerJFR",
+                    TemplateType.TARGET);
 
-    private static final Pattern TEMPLATE_PATTERN = Pattern.compile("^template=([\\w]+)$");
+    private static final Pattern TEMPLATE_PATTERN =
+            Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
     private static final Pattern EVENTS_PATTERN =
             Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
@@ -87,10 +92,39 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
             Matcher m = TEMPLATE_PATTERN.matcher(events);
             m.find();
             String templateName = m.group(1);
+            String typeName = m.group(2);
             if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
                 return enableAllEvents(connection);
             }
-            return connection.getTemplateService().getEventsByTemplateName(templateName);
+            if (typeName != null) {
+                return connection
+                        .getTemplateService()
+                        .getEvents(templateName, TemplateType.valueOf(typeName))
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                String.format(
+                                                        "No template \"%s\" found with type %s",
+                                                        templateName, typeName)));
+            }
+            // if template type not specified, try to find a Custom template by that name. If none,
+            // fall back on finding a Target built-in template by the name. If not, throw an
+            // exception and bail out.
+            return connection
+                    .getTemplateService()
+                    .getEvents(templateName, TemplateType.CUSTOM)
+                    .or(
+                            () -> {
+                                try {
+                                    return connection
+                                            .getTemplateService()
+                                            .getEvents(templateName, TemplateType.TARGET);
+                                } catch (FlightRecorderException e) {
+                                    cw.println(e);
+                                    return Optional.empty();
+                                }
+                            })
+                    .orElseThrow(() -> new IllegalArgumentException(templateName));
         }
 
         return enableSelectedEvents(connection, events);

@@ -41,8 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Arrays;
-import java.util.List;
+import java.io.IOException;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -50,22 +49,12 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.commands.internal.AbstractRecordingCommand;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.templates.Template;
-import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
-import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
+import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -73,36 +62,33 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
-class TargetTemplatesGetHandlerTest {
+class TemplateDeleteHandlerTest {
 
-    TargetTemplatesGetHandler handler;
+    TemplateDeleteHandler handler;
     @Mock AuthManager auth;
-    @Mock TargetConnectionManager connectionManager;
-    Gson gson = MainModule.provideGson();
+    @Mock LocalStorageTemplateService templateService;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetTemplatesGetHandler(auth, connectionManager, gson);
+        this.handler = new TemplateDeleteHandler(auth, templateService);
     }
 
     @Test
-    void shouldHandleGETRequest() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    void shouldHandleDELETE() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
     }
 
     @Test
-    void shouldHandleCorrectPath() {
+    void sholdHandleCorrectPath() {
         MatcherAssert.assertThat(
-                handler.path(), Matchers.equalTo("/api/v1/targets/:targetId/templates"));
+                handler.path(), Matchers.equalTo("/api/v1/templates/:templateName"));
     }
 
     @Test
-    void shouldRespondWithErrorIfExceptionThrown() throws Exception {
-        Mockito.when(connectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
-                .thenThrow(new Exception("dummy exception"));
-
+    void shouldThrowIfServiceThrows() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
+        Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
+        Mockito.doThrow(IOException.class).when(templateService).deleteTemplate("FooTemplate");
 
         HttpStatusException ex =
                 Assertions.assertThrows(
@@ -111,41 +97,16 @@ class TargetTemplatesGetHandlerTest {
     }
 
     @Test
-    void shouldRespondWithTemplatesList() throws Exception {
-        JFRConnection connection = Mockito.mock(JFRConnection.class);
-        TemplateService templateService = Mockito.mock(TemplateService.class);
-
-        Template template1 =
-                new Template("FooTemplate", "Template for foo-ing", "Test 1", TemplateType.TARGET);
-        Template template2 =
-                new Template("BarTemplate", "Template for bar-ing", "Test 2", TemplateType.CUSTOM);
-
-        Mockito.when(connectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
-                .thenAnswer(
-                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
-        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
-        Mockito.when(templateService.getTemplates())
-                .thenReturn(Arrays.asList(template1, template2));
-
+    void shouldCallThroughToService() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
 
         handler.handleAuthenticated(ctx);
 
-        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(resp).end(responseCaptor.capture());
-        List<Template> result =
-                gson.fromJson(
-                        responseCaptor.getValue(), new TypeToken<List<Template>>() {}.getType());
-
-        MatcherAssert.assertThat(
-                result,
-                Matchers.equalTo(
-                        Arrays.asList(
-                                template1,
-                                template2,
-                                AbstractRecordingCommand.ALL_EVENTS_TEMPLATE)));
+        Mockito.verify(templateService).deleteTemplate("FooTemplate");
+        Mockito.verify(ctx).response();
+        Mockito.verify(resp).end();
     }
 }

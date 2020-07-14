@@ -175,6 +175,16 @@ number and the deployment network configuration allows connections on the
 configured port. As noted above, the final caveat is that in non-Kube
 deployments, port 9091 is expected for automatic port-scanning target discovery.
 
+## EVENT TEMPLATES
+
+JDK Flight Recorder has event templates, which are preset definition of a set of
+events, and for each a set of options and option values. A given JVM is likely
+to have some built-in templates ready for use out-of-the-box, but ContainerJFR
+also hosts its own small catalog of templates within its own local storage. This
+catalog is stored at the path specified by the environment variable
+`CONTAINER_JFR_TEMPLATE_PATH`. Templates can be uploaded to ContainerJFR and
+then used to create recordings.
+
 ## ARCHIVING RECORDINGS
 
 `container-jfr` supports a concept of "archiving" recordings. This simply means
@@ -182,11 +192,11 @@ taking the contents of a recording at a point in time and saving these contents
 to a file local to the `container-jfr` process (as opposed to "active"
 recordings, which exist within the memory of the JVM target and continue to grow
 over time). The default directory used is `/flightrecordings`, but the environment
-variable `CONTAINER_JFR_ARCHIVE_PATH` can be used to specify a different path. To 
-enable `container-jfr` archive support ensure that the directory specified by 
-`CONTAINER_JFR_ARCHIVE_PATH` (or `/flightrecordings` if not set) exists and has 
-appropriate permissions. `container-jfr` will detect the path and enable related 
-functionality. `run.sh` has an example of a `tmpfs` volume being mounted with the 
+variable `CONTAINER_JFR_ARCHIVE_PATH` can be used to specify a different path. To
+enable `container-jfr` archive support ensure that the directory specified by
+`CONTAINER_JFR_ARCHIVE_PATH` (or `/flightrecordings` if not set) exists and has
+appropriate permissions. `container-jfr` will detect the path and enable related
+functionality. `run.sh` has an example of a `tmpfs` volume being mounted with the
 default path and enabling the archive functionality.
 
 ## SECURING COMMUNICATION CHANNELS

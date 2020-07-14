@@ -45,6 +45,7 @@ podman run \
     --hostname container-jfr \
     --name container-jfr \
     --mount type=tmpfs,target=/flightrecordings \
+    --mount type=tmpfs,target=/templates \
     -p 9091:9091 \
     -p $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
     -p $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
@@ -57,6 +58,8 @@ podman run \
     -e CONTAINER_JFR_LISTEN_PORT=$CONTAINER_JFR_LISTEN_PORT \
     -e CONTAINER_JFR_EXT_LISTEN_PORT=$CONTAINER_JFR_EXT_LISTEN_PORT \
     -e CONTAINER_JFR_AUTH_MANAGER=$CONTAINER_JFR_AUTH_MANAGER \
+    -e CONTAINER_JFR_ARCHIVE_PATH="/flightrecordings" \
+    -e CONTAINER_JFR_TEMPLATE_PATH="/templates" \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
     -e GRAFANA_DASHBOARD_URL=$GRAFANA_DASHBOARD_URL \
     -e USE_LOW_MEM_PRESSURE_STREAMING=$USE_LOW_MEM_PRESSURE_STREAMING \

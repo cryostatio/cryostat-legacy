@@ -64,6 +64,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
+import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
@@ -111,9 +112,9 @@ class ListEventTemplatesCommandTest implements ValidatesTargetId {
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
-        Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
-        Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
-        Template baz = new Template("Baz", "a baz-ing template", "Baz Inc.");
+        Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.", TemplateType.TARGET);
+        Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.", TemplateType.TARGET);
+        Template baz = new Template("Baz", "a baz-ing template", "Baz Inc.", TemplateType.CUSTOM);
         Mockito.when(templateSvc.getTemplates()).thenReturn(List.of(foo, bar, baz));
 
         cmd.execute(new String[] {"fooHost:9091"});
@@ -136,9 +137,9 @@ class ListEventTemplatesCommandTest implements ValidatesTargetId {
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
-        Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.");
-        Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.");
-        Template baz = new Template("Baz", "a baz-ing template", "Baz Inc.");
+        Template foo = new Template("Foo", "a foo-ing template", "Foo Inc.", TemplateType.TARGET);
+        Template bar = new Template("Bar", "a bar-ing template", "Bar Inc.", TemplateType.TARGET);
+        Template baz = new Template("Baz", "a baz-ing template", "Baz Inc.", TemplateType.CUSTOM);
         List<Template> remoteList = List.of(foo, bar, baz);
         Mockito.when(templateSvc.getTemplates()).thenReturn(remoteList);
 
