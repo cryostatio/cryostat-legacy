@@ -211,7 +211,7 @@ public class SerializableCommandRegistryImplTest {
         @ParameterizedTest
         @ValueSource(strings = {"  "})
         @NullAndEmptySource
-        public void shouldHandleBlankOrNullCommandAvailability(String cmd) throws Exception {
+        public void shouldHandleBlankNullEmptyCommandAvailability(String cmd) throws Exception {
             assertFalse(registry.isCommandAvailable(cmd));
         }
     }

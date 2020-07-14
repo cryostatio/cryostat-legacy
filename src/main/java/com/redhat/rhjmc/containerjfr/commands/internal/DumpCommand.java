@@ -153,7 +153,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         String events = args[3];
 
         if (!validateTargetId(targetId)) {
-            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
+            String errorMessage = String.format("%s is an invalid connection specifier", targetId);
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
