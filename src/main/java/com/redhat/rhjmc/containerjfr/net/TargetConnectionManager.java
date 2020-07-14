@@ -52,6 +52,7 @@ import java.util.regex.Pattern;
 import javax.management.remote.JMXServiceURL;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 
@@ -119,7 +120,9 @@ public class TargetConnectionManager {
         if (port == null) {
             port = "9091";
         }
-        return connect(host, Integer.parseInt(port));
+        return connect(
+                new JMXServiceURL(
+                        "rmi", "", 0, String.format("/jndi/rmi://%s:%s/jmxrmi", host, port)));
     }
 
     private JFRConnection connect(JMXServiceURL url) throws Exception {
@@ -127,24 +130,12 @@ public class TargetConnectionManager {
         lock.lockInterruptibly();
         return jfrConnectionToolkit.connect(
                 url,
+                null, // TODO implement auth credentials
                 List.of(
                         lock::unlock,
                         () ->
                                 logger.trace(
                                         String.format("Unlocking connection %s", url.toString()))));
-    }
-
-    private JFRConnection connect(String host, int port) throws Exception {
-        logger.trace(String.format("Locking connection %s:%d", host, port));
-        lock.lockInterruptibly();
-        return jfrConnectionToolkit.connect(
-                host,
-                port,
-                List.of(
-                        lock::unlock,
-                        () ->
-                                logger.trace(
-                                        String.format("Unlocking connection %s:%d", host, port))));
     }
 
     public interface ConnectedTask<T> {

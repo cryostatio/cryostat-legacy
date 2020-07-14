@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.util.List;
+
 import javax.management.remote.JMXServiceURL;
 
 import org.hamcrest.MatcherAssert;
@@ -53,6 +55,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 
@@ -70,28 +73,12 @@ class TargetConnectionManagerTest {
     }
 
     @Test
-    void shouldDelegateToToolkitForHostnameConnection() throws Exception {
-        Mockito.when(
-                        jfrConnectionToolkit.connect(
-                                Mockito.anyString(), Mockito.anyInt(), Mockito.any()))
-                .thenReturn(conn);
-        JFRConnection c = mgr.connect("foo");
-        MatcherAssert.assertThat(c, Matchers.sameInstance(conn));
-    }
-
-    @Test
-    void shouldDelegateToToolkitForHostPortConnection() throws Exception {
-        Mockito.when(
-                        jfrConnectionToolkit.connect(
-                                Mockito.anyString(), Mockito.anyInt(), Mockito.any()))
-                .thenReturn(conn);
-        JFRConnection c = mgr.connect("foo:1234");
-        MatcherAssert.assertThat(c, Matchers.sameInstance(conn));
-    }
-
-    @Test
     void shouldDelegateToToolkitForJMXURLConnection() throws Exception {
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(JMXServiceURL.class), Mockito.any()))
+        Mockito.when(
+                        jfrConnectionToolkit.connect(
+                                Mockito.any(JMXServiceURL.class),
+                                Mockito.any(Credentials.class),
+                                Mockito.any(List.class)))
                 .thenReturn(conn);
         JFRConnection c =
                 mgr.connect("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
@@ -102,7 +89,9 @@ class TargetConnectionManagerTest {
     void shouldReuseConnectionForNestedTasks() throws Exception {
         Mockito.when(
                         jfrConnectionToolkit.connect(
-                                Mockito.anyString(), Mockito.anyInt(), Mockito.any()))
+                                Mockito.any(JMXServiceURL.class),
+                                Mockito.any(Credentials.class),
+                                Mockito.any(List.class)))
                 .thenReturn(conn);
         JFRConnection a =
                 mgr.executeConnectedTask(
