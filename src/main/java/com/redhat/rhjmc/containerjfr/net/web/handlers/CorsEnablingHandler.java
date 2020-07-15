@@ -52,7 +52,7 @@ import io.vertx.ext.web.handler.CorsHandler;
 
 class CorsEnablingHandler implements RequestHandler {
     protected static final String DEV_ORIGIN = "http://localhost:9000";
-    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
+    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_CORS_ORIGIN";
     protected final CorsHandler corsHandler;
     protected final Environment env;
 
@@ -96,7 +96,6 @@ class CorsEnablingHandler implements RequestHandler {
     }
 
     String getOrigin() {
-        // TODO make the origin configurable
         return this.env.getEnv(ENABLE_CORS_ENV, DEV_ORIGIN);
     }
 }
