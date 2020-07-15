@@ -95,7 +95,7 @@ class CorsEnablingHandlerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void availabilityShouldDependOnEnvVar(boolean available) {
-        Mockito.when(env.hasEnv(CUSTOM_ORIGIN)).thenReturn(available);
+        Mockito.when(env.hasEnv(CorsEnablingHandler.ENABLE_CORS_ENV)).thenReturn(available);
         MatcherAssert.assertThat(handler.isAvailable(), Matchers.equalTo(available));
     }
 
