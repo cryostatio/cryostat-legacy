@@ -116,9 +116,9 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
             throw new FailedValidationException(errorMessage);
         }
         if (!validateTargetId(args[0])) {
-            String errorMessage = "%s is an invalid connection specifier";
+            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
             cw.println(errorMessage);
-            throw new FailedValidationException(String.format(errorMessage, args[0]));
+            throw new FailedValidationException(errorMessage);
         }
     }
 

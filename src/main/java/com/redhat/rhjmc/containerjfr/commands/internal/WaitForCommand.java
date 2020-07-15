@@ -147,17 +147,22 @@ class WaitForCommand extends AbstractConnectedCommand {
 
         String targetID = args[0];
         String recordingName = args[1];
+        StringBuilder combinedErrorMessage = new StringBuilder();
 
         if (!validateTargetId(targetID)) {
             String errorMessage = String.format("%s is an invalid connection specifier", targetID);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!validateRecordingName(recordingName)) {
             String errorMessage = String.format("%s is an invalid recording name", recordingName);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
+        }
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.substring(2));
         }
     }
 }

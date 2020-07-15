@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -112,6 +113,19 @@ class WaitForCommandTest extends TestBase implements ValidatesRecordingName, Val
         String errorMessage =
                 "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name";
+        assertTrue(stdout().contains(": is an invalid connection specifier\n"));
+        assertTrue(stdout().contains(": is an invalid recording name\n"));
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 

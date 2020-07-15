@@ -128,6 +128,60 @@ class StartRecordingCommandTest
     }
 
     @Test
+    void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                command.validate(
+                                        new String[] {":", ":", MOCK_RECORDING_EVENT_SPECIFIER}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name";
+        verify(cw).println(": is an invalid connection specifier");
+        verify(cw).println(": is an invalid recording name");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidTargetIdAndEventSpecifier() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", MOCK_RECORDING_NAME, ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid events specifier";
+        verify(cw).println(": is an invalid connection specifier");
+        verify(cw).println(": is an invalid events specifier");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidRecordingNameAndEventSpecifier() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {MOCK_TARGET_ID, ":", ":"}));
+        String errorMessage = ": is an invalid recording name; : is an invalid events specifier";
+        verify(cw).println(": is an invalid recording name");
+        verify(cw).println(": is an invalid events specifier");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidTargetIdRecordingNameEventSpecifier() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name; : is an invalid events specifier";
+        verify(cw).println(": is an invalid connection specifier");
+        verify(cw).println(": is an invalid recording name");
+        verify(cw).println(": is an invalid events specifier");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void shouldStartRecordingOnExecute() throws Exception {
         when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
                 .thenAnswer(

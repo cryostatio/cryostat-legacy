@@ -121,17 +121,22 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
 
         String targetId = args[0];
         String name = args[1];
+        StringBuilder combinedErrorMessage = new StringBuilder();
 
         if (!validateTargetId(targetId)) {
             String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!validateRecordingName(name)) {
             String errorMessage = String.format("%s is an invalid recording name", name);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
+        }
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.substring(2));
         }
     }
 }

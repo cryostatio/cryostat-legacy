@@ -128,15 +128,23 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
+
+        StringBuilder combinedErrorMessage = new StringBuilder();
+
         if (!validateTargetId(args[0])) {
             String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
+
         if (!validateRecordingName(args[1])) {
             String errorMessage = String.format("%s is an invalid recording name", args[1]);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
+        }
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.substring(2));
         }
     }
 }

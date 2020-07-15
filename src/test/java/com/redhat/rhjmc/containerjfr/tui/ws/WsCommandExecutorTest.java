@@ -518,7 +518,7 @@ class WsCommandExecutorTest {
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
         MatcherAssert.assertThat(
                 message.payload,
-                Matchers.equalTo("Could not validate \"foo\" command; bar could not be found"));
+                Matchers.equalTo("Could not validate \"foo\" command: bar could not be found"));
     }
 
     @Test

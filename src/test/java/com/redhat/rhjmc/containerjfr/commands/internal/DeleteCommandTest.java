@@ -117,6 +117,19 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
     }
 
     @Test
+    void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name";
+        verify(cw).println(": is an invalid connection specifier");
+        verify(cw).println(": is an invalid recording name");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void shouldCloseNamedRecording() throws Exception {
         when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
                 .thenAnswer(

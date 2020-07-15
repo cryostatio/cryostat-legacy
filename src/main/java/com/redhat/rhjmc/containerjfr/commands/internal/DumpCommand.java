@@ -152,28 +152,34 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         String seconds = args[2];
         String events = args[3];
 
+        StringBuilder combinedErrorMessage = new StringBuilder();
+
         if (!validateTargetId(targetId)) {
             String errorMessage = String.format("%s is an invalid connection specifier", targetId);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!validateRecordingName(name)) {
             String errorMessage = String.format("%s is an invalid recording name", name);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!seconds.matches("\\d+")) {
             String errorMessage = String.format("%s is an invalid recording length", seconds);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!validateEvents(events)) {
             String errorMessage = String.format("%s is an invalid events specifier", events);
             cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
+            combinedErrorMessage.append("; ").append(errorMessage);
+        }
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.substring(2));
         }
     }
 }

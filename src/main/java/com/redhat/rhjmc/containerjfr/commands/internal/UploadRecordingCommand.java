@@ -185,17 +185,22 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         String targetId = args[0];
         String recordingName = args[1];
         // String uploadUrl = args[2];
+        StringBuilder combinedErrorMessage = new StringBuilder();
 
         if (!validateTargetId(targetId)) {
-            String errorMessage = "%s is an invalid connection specifier";
+            String errorMessage = String.format("%s is an invalid connection specifier", targetId);
             cw.println(errorMessage);
-            throw new FailedValidationException(String.format(errorMessage, args[0]));
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!validateRecordingName(recordingName)) {
-            String errorMessage = "%s is an invalid recording name";
+            String errorMessage = String.format("%s is an invalid recording name", recordingName);
             cw.println(errorMessage);
-            throw new FailedValidationException(String.format(errorMessage, recordingName));
+            combinedErrorMessage.append("; ").append(errorMessage);
+        }
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.substring(2));
         }
 
         // TODO validate upload URL

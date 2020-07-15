@@ -146,23 +146,28 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
         String targetId = args[0];
         String name = args[1];
         String events = args[2];
+        StringBuilder combinedErrorMessage = new StringBuilder();
 
         if (!validateTargetId(targetId)) {
-            String errorMessage = "%s is an invalid connection specifier";
+            String errorMessage = String.format("%s is an invalid connection specifier", targetId);
             cw.println(errorMessage);
-            throw new FailedValidationException(String.format(errorMessage, args[0]));
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!validateRecordingName(name)) {
-            String errorMessage = "%s is an invalid recording name";
+            String errorMessage = String.format("%s is an invalid recording name", name);
             cw.println(errorMessage);
-            throw new FailedValidationException(String.format(errorMessage, name));
+            combinedErrorMessage.append("; ").append(errorMessage);
         }
 
         if (!validateEvents(events)) {
-            String errorMessage = "%s is an invalid events specifier";
+            String errorMessage = String.format("%s is an invalid events specifier", events);
             cw.println(errorMessage);
-            throw new FailedValidationException(String.format(errorMessage, events));
+            combinedErrorMessage.append("; ").append(errorMessage);
+        }
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.substring(2));
         }
     }
 }
