@@ -254,9 +254,7 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public void validate(String[] args) throws FailedValidationException {
-            return;
-        }
+        public void validate(String[] args) throws FailedValidationException {}
 
         @Override
         public void execute(String[] args) {
@@ -336,9 +334,7 @@ public class SerializableCommandRegistryImplTest {
         }
 
         @Override
-        public void validate(String[] args) throws FailedValidationException {
-            return;
-        }
+        public void validate(String[] args) throws FailedValidationException {}
 
         @Override
         public void execute(String[] args) {}

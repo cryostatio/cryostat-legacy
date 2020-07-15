@@ -242,9 +242,7 @@ public class CommandRegistryImplTest extends TestBase {
         }
 
         @Override
-        public void validate(String[] args) throws FailedValidationException {
-            return;
-        }
+        public void validate(String[] args) throws FailedValidationException {}
 
         @Override
         public void execute(String[] args) {

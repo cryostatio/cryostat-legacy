@@ -141,8 +141,6 @@ class AbstractConnectedCommandTest {
         public void execute(String[] args) {}
 
         @Override
-        public void validate(String[] args) throws FailedValidationException {
-            return;
-        }
+        public void validate(String[] args) throws FailedValidationException {}
     }
 }
