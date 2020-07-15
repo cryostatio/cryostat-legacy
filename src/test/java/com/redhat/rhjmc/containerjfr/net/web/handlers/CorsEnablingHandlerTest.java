@@ -38,7 +38,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  * #L%
- 
+ */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import org.hamcrest.MatcherAssert;
@@ -73,6 +73,11 @@ class CorsEnablingHandlerTest {
 
     @BeforeEach
     void setup() {
+        Mockito.when(
+                        env.getEnv(
+                                CorsEnablingHandler.ENABLE_CORS_ENV,
+                                CorsEnablingHandler.DEV_ORIGIN))
+                .thenReturn("http://localhost:9000");
         this.handler = new CorsEnablingHandler(env);
     }
 
@@ -91,6 +96,16 @@ class CorsEnablingHandlerTest {
     void availabilityShouldDependOnEnvVar(boolean available) {
         Mockito.when(env.hasEnv(CorsEnablingHandler.ENABLE_CORS_ENV)).thenReturn(available);
         MatcherAssert.assertThat(handler.isAvailable(), Matchers.equalTo(available));
+    }
+
+    @Test
+    void shouldSetCustomOrigin() {
+        Mockito.when(
+                        env.getEnv(
+                                CorsEnablingHandler.ENABLE_CORS_ENV,
+                                CorsEnablingHandler.DEV_ORIGIN))
+                .thenReturn("http://localhost:9065");
+        MatcherAssert.assertThat(handler.getOrigin(), Matchers.equalTo("http://localhost:9065"));
     }
 
     @Nested
@@ -183,4 +198,3 @@ class CorsEnablingHandlerTest {
         }
     }
 }
-*/

@@ -58,6 +58,7 @@ class CorsEnablingHandler implements RequestHandler {
 
     @Inject
     CorsEnablingHandler(Environment env) {
+        this.env = env;
         this.corsHandler =
                 CorsHandler.create(getOrigin())
                         .allowedHeader("Authorization")
@@ -67,7 +68,6 @@ class CorsEnablingHandler implements RequestHandler {
                         .allowedMethod(HttpMethod.HEAD)
                         .allowCredentials(true)
                         .exposedHeader(WebServer.AUTH_SCHEME_HEADER);
-        this.env = env;
     }
 
     @Override
@@ -97,6 +97,6 @@ class CorsEnablingHandler implements RequestHandler {
 
     String getOrigin() {
         // TODO make the origin configurable
-        return this.env.getEnv(ENABLE_CORS_ENV);
+        return this.env.getEnv(ENABLE_CORS_ENV, DEV_ORIGIN);
     }
 }

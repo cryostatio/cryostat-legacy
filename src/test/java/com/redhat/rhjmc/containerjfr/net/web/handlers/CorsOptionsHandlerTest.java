@@ -38,7 +38,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  * #L%
- *
+ */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import org.hamcrest.MatcherAssert;
@@ -47,6 +47,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -60,6 +61,11 @@ class CorsOptionsHandlerTest {
 
     @BeforeEach
     void setup() {
+        Mockito.when(
+                        env.getEnv(
+                                CorsEnablingHandler.ENABLE_CORS_ENV,
+                                CorsEnablingHandler.DEV_ORIGIN))
+                .thenReturn("http://localhost:9000");
         this.handler = new CorsOptionsHandler(env);
     }
 
@@ -79,4 +85,3 @@ class CorsOptionsHandlerTest {
                 handler.getPriority(), Matchers.lessThan(RequestHandler.DEFAULT_PRIORITY));
     }
 }
-*/
