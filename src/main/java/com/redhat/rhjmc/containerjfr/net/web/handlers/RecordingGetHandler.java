@@ -49,8 +49,6 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.google.inject.Singleton;
-
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -58,7 +56,6 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 import io.vertx.ext.web.RoutingContext;
 
-@Singleton
 class RecordingGetHandler extends TargetRecordingGetHandler {
 
     private final Path savedRecordingsPath;

@@ -54,8 +54,6 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.google.inject.Singleton;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -72,7 +70,6 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-@Singleton
 class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV = "USE_LOW_MEM_PRESSURE_STREAMING";
 
