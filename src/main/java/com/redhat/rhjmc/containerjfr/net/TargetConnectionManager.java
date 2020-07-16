@@ -101,7 +101,6 @@ public class TargetConnectionManager {
         try {
             return attemptConnectAsJMXServiceURL(connectionDescriptor);
         } catch (MalformedURLException mue) {
-            logger.trace(mue);
             return attemptConnectAsHostPortPair(connectionDescriptor);
         } catch (Exception e) {
             throw e;

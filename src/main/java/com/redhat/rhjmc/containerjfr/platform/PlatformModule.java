@@ -74,7 +74,7 @@ public abstract class PlatformModule {
     @Singleton
     static PlatformClient providePlatformClient(
             PlatformDetectionStrategy<?> platformStrategy, Environment env, Logger logger) {
-        return new SelfDiscoveryPlatformClient(platformStrategy.getPlatformClient());
+        return platformStrategy.getPlatformClient();
     }
 
     @Provides

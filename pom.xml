@@ -221,6 +221,8 @@
               <argument>--env</argument>
               <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
               <argument>--env</argument>
+              <argument>CONTAINER_JFR_RJMX_AUTH=false</argument>
+              <argument>--env</argument>
               <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
@@ -342,7 +344,7 @@
             </permission>
             <permission>
               <file>/app/resources/jmxremote.access</file>
-              <mode>400</mode>
+              <mode>644</mode>
             </permission>
           </permissions>
         </extraDirectories>
