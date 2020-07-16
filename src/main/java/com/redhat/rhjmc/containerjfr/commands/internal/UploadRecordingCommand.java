@@ -63,6 +63,7 @@ import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
@@ -218,7 +219,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             Path tempFile = Files.createTempFile(null, null);
             return Optional.of(
                     targetConnectionManager.executeConnectedTask(
-                            targetId,
+                            new ConnectionDescriptor(targetId),
                             connection -> {
                                 InputStream stream =
                                         connection

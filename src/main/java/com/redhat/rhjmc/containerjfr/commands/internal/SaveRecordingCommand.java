@@ -60,6 +60,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
@@ -95,7 +96,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
         String name = args[1];
 
         targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor = getDescriptorByName(targetId, name);
                     if (descriptor.isPresent()) {
@@ -117,7 +118,7 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
         try {
             return targetConnectionManager.executeConnectedTask(
-                    targetId,
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
                                 getDescriptorByName(targetId, name);

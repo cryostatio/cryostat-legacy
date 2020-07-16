@@ -39,57 +39,31 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.handlers;
+package com.redhat.rhjmc.containerjfr.net;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Optional;
 
-import javax.inject.Inject;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 
-import com.google.gson.Gson;
+public class ConnectionDescriptor {
 
-import com.redhat.rhjmc.containerjfr.commands.internal.AbstractRecordingCommand;
-import com.redhat.rhjmc.containerjfr.core.templates.Template;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+    private final String targetId;
+    private final Optional<Credentials> credentials;
 
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-
-class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
-
-    private final TargetConnectionManager connectionManager;
-    private final Gson gson;
-
-    @Inject
-    TargetTemplatesGetHandler(
-            AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
-        super(auth);
-        this.connectionManager = connectionManager;
-        this.gson = gson;
+    public ConnectionDescriptor(String targetId) {
+        this(targetId, null);
     }
 
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+    public ConnectionDescriptor(String targetId, Credentials credentials) {
+        this.targetId = targetId;
+        this.credentials = Optional.ofNullable(credentials);
     }
 
-    @Override
-    public String path() {
-        return "/api/v1/targets/:targetId/templates";
+    public String getTargetId() {
+        return targetId;
     }
 
-    @Override
-    void handleAuthenticated(RoutingContext ctx) throws Exception {
-        List<Template> templates =
-                connectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromContext(ctx),
-                        connection -> {
-                            List<Template> list =
-                                    new ArrayList<>(connection.getTemplateService().getTemplates());
-                            list.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
-                            return list;
-                        });
-        ctx.response().end(gson.toJson(templates));
+    public Optional<Credentials> getCredentials() {
+        return credentials;
     }
 }

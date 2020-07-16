@@ -58,6 +58,7 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 
@@ -133,7 +134,8 @@ class ActiveRecordingReportCache {
 
     protected Pair<Optional<InputStream>, JFRConnection> getRecordingStream(
             Pair<String, String> key) throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(key.getLeft());
+        JFRConnection connection =
+                targetConnectionManager.connect(new ConnectionDescriptor(key.getLeft()));
         Optional<InputStream> desc =
                 connection.getService().getAvailableRecordings().stream()
                         .filter(rec -> Objects.equals(key.getRight(), rec.getName()))

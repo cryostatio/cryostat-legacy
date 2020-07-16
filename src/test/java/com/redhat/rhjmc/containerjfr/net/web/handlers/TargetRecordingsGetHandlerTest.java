@@ -69,6 +69,7 @@ import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
@@ -105,7 +106,9 @@ class TargetRecordingsGetHandlerTest {
 
     @Test
     void shouldRespondWithErrorIfExceptionThrown() throws Exception {
-        Mockito.when(connectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        Mockito.when(
+                        connectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenThrow(new Exception("dummy exception"));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -119,7 +122,9 @@ class TargetRecordingsGetHandlerTest {
         JFRConnection connection = Mockito.mock(JFRConnection.class);
         IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
 
-        Mockito.when(connectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        Mockito.when(
+                        connectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);

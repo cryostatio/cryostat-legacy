@@ -45,7 +45,9 @@ import java.util.concurrent.Future;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -85,5 +87,11 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
 
     protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
         return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+    }
+
+    protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
+        String targetId = ctx.pathParam("targetId");
+        Credentials credentials = null; // TODO retrieve credentials from Proxy-Authorization header
+        return new ConnectionDescriptor(targetId, credentials);
     }
 }

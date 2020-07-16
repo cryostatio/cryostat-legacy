@@ -69,6 +69,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
@@ -149,7 +150,8 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
 
         handler.handle(ctx);
 
@@ -193,7 +195,8 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName + ".jfr");
 
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
 
         handler.handle(ctx);
 
@@ -210,7 +213,8 @@ class TargetRecordingGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(List.of());
 
@@ -232,7 +236,8 @@ class TargetRecordingGetHandlerTest {
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
 
-        when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(NullPointerException.class);
 

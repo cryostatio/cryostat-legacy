@@ -89,11 +89,10 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String targetId = ctx.pathParam("targetId");
         WebServer webServer = webServerProvider.get();
         List<HyperlinkedSerializableRecordingDescriptor> descriptors =
                 connectionManager.executeConnectedTask(
-                        targetId,
+                        getConnectionDescriptorFromContext(ctx),
                         connection -> {
                             List<IRecordingDescriptor> origDescriptors =
                                     connection.getService().getAvailableRecordings();

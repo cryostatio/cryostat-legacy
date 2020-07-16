@@ -65,6 +65,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 
@@ -93,7 +94,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnTrueWhenDeletingReport() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
         Mockito.when(connection.getService()).thenReturn(service);
 
         String recordingName = "bar";
@@ -121,7 +123,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnGeneratedReportResult() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
         Mockito.when(connection.getService()).thenReturn(service);
 
         String recordingName = "bar";
@@ -156,7 +159,7 @@ class ActiveRecordingReportCacheTest {
                         stream);
         inOrder.verify(lock).lock();
 
-        inOrder.verify(targetConnectionManager).connect(Mockito.eq(targetId));
+        inOrder.verify(targetConnectionManager).connect(Mockito.any(ConnectionDescriptor.class));
 
         inOrder.verify(connection).getService();
         inOrder.verify(service).openStream(Mockito.eq(recording), Mockito.eq(false));
@@ -171,7 +174,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnCachedReportResultOnSecondRequest() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
         Mockito.when(connection.getService()).thenReturn(service);
 
         String recordingName = "bar";
@@ -208,7 +212,8 @@ class ActiveRecordingReportCacheTest {
                         stream);
         inOrder.verify(lock, Mockito.times(1)).lock();
 
-        inOrder.verify(targetConnectionManager, Mockito.times(1)).connect(Mockito.eq(targetId));
+        inOrder.verify(targetConnectionManager, Mockito.times(1))
+                .connect(Mockito.any(ConnectionDescriptor.class));
 
         inOrder.verify(connection, Mockito.times(1)).getService();
         inOrder.verify(service, Mockito.times(1))
@@ -224,7 +229,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
         Mockito.when(connection.getService()).thenReturn(service);
 
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
@@ -234,7 +240,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldThrowExceptionIfServiceThrows() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.anyString())).thenReturn(connection);
+        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(connection);
         Mockito.when(connection.getService()).thenReturn(service);
 
         String recordingName = "bar";

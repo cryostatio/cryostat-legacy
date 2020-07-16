@@ -76,6 +76,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -150,7 +151,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndPrintMessageIfRecordingNotFound() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -166,7 +168,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndSaveRecording() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
@@ -195,7 +198,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndSaveDuplicatedRecording() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
@@ -232,7 +236,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndThrowWhenDuplicateRenamingExhausted() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
@@ -266,7 +271,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndSaveRecordingWithExtension() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);
@@ -295,7 +301,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndReturnSerializedFailureIfRecordingNotFound() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -314,7 +321,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndReturnSerializedException() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -331,7 +339,8 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @Test
     void shouldExecuteAndSaveRecordingAndReturnSerializedRecordingName() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor recording = mock(IRecordingDescriptor.class);

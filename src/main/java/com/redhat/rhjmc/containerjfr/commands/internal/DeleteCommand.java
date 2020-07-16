@@ -51,6 +51,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
@@ -80,7 +81,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
         final String targetId = args[0];
         final String recordingName = args[1];
         targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor =
                             getDescriptorByName(targetId, recordingName);
@@ -102,7 +103,7 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
         final String recordingName = args[1];
         try {
             return targetConnectionManager.executeConnectedTask(
-                    targetId,
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
                                 getDescriptorByName(targetId, recordingName);

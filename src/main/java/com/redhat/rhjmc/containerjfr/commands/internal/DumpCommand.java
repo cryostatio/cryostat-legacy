@@ -50,6 +50,7 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
@@ -86,7 +87,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         String events = args[3];
 
         targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     if (getDescriptorByName(targetId, name).isPresent()) {
                         cw.println(
@@ -116,7 +117,7 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             String events = args[3];
 
             return targetConnectionManager.executeConnectedTask(
-                    targetId,
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         if (getDescriptorByName(targetId, name).isPresent()) {
                             return new FailureOutput(

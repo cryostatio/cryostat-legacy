@@ -81,7 +81,9 @@ class TargetConnectionManagerTest {
                                 Mockito.any(List.class)))
                 .thenReturn(conn);
         JFRConnection c =
-                mgr.connect("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+                mgr.connect(
+                        new ConnectionDescriptor(
+                                "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi"));
         MatcherAssert.assertThat(c, Matchers.sameInstance(conn));
     }
 
@@ -95,9 +97,11 @@ class TargetConnectionManagerTest {
                 .thenReturn(conn);
         JFRConnection a =
                 mgr.executeConnectedTask(
-                        "foo",
+                        new ConnectionDescriptor("foo"),
                         b -> {
-                            JFRConnection d = mgr.executeConnectedTask("foo", c -> c);
+                            JFRConnection d =
+                                    mgr.executeConnectedTask(
+                                            new ConnectionDescriptor("foo"), c -> c);
                             MatcherAssert.assertThat(d, Matchers.sameInstance(b));
                             MatcherAssert.assertThat(d, Matchers.sameInstance(conn));
                             return b;

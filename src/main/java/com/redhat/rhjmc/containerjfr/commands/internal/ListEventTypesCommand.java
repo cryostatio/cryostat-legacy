@@ -53,6 +53,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 /** @deprecated Use HTTP GET /api/v1/targets/:targetId/events */
@@ -75,8 +76,9 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
 
     @Override
     public void execute(String[] args) throws Exception {
+        String targetId = args[0];
         targetConnectionManager.executeConnectedTask(
-                args[0],
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     cw.println("Available event types:");
                     connection.getService().getAvailableEventTypes().forEach(this::printEvent);
@@ -87,8 +89,9 @@ class ListEventTypesCommand extends AbstractConnectedCommand implements Serializ
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
+            String targetId = args[0];
             return targetConnectionManager.executeConnectedTask(
-                    args[0],
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         Collection<? extends IEventTypeInfo> origInfos =
                                 connection.getService().getAvailableEventTypes();

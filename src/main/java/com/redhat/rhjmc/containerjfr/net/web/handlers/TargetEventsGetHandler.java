@@ -82,10 +82,9 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String targetId = ctx.pathParam("targetId");
         List<SerializableEventTypeInfo> templates =
                 connectionManager.executeConnectedTask(
-                        targetId,
+                        getConnectionDescriptorFromContext(ctx),
                         connection -> {
                             Collection<? extends IEventTypeInfo> origInfos =
                                     connection.getService().getAvailableEventTypes();

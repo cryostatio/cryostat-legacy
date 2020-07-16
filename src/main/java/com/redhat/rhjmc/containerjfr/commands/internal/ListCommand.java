@@ -57,6 +57,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
@@ -83,8 +84,9 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
 
     @Override
     public void execute(String[] args) throws Exception {
+        String targetId = args[0];
         targetConnectionManager.executeConnectedTask(
-                args[0],
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     cw.println("Available recordings:");
                     Collection<IRecordingDescriptor> recordings =
@@ -107,8 +109,9 @@ class ListCommand extends AbstractConnectedCommand implements SerializableComman
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
+            String targetId = args[0];
             return targetConnectionManager.executeConnectedTask(
-                    args[0],
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         List<IRecordingDescriptor> origDescriptors =
                                 connection.getService().getAvailableRecordings();
