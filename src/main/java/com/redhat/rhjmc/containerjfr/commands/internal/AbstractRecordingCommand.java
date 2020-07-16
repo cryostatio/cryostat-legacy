@@ -49,7 +49,6 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
@@ -119,7 +118,7 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
                                     return connection
                                             .getTemplateService()
                                             .getEvents(templateName, TemplateType.TARGET);
-                                } catch (FlightRecorderException e) {
+                                } catch (Exception e) {
                                     cw.println(e);
                                     return Optional.empty();
                                 }

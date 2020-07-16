@@ -7,4 +7,3 @@
 build/
 target/
 bin/
-src/main/extras/app/resources/jmxremote.password

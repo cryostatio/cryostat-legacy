@@ -139,7 +139,7 @@ public class TargetConnectionManager {
         lock.lockInterruptibly();
         return jfrConnectionToolkit.connect(
                 url,
-                credentials.get(),
+                credentials.orElse(null),
                 List.of(
                         lock::unlock,
                         () ->

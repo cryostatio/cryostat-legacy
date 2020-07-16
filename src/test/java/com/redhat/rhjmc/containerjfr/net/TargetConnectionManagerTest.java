@@ -41,10 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net;
 
-import java.util.List;
-
-import javax.management.remote.JMXServiceURL;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -55,7 +51,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 
@@ -74,11 +69,7 @@ class TargetConnectionManagerTest {
 
     @Test
     void shouldDelegateToToolkitForJMXURLConnection() throws Exception {
-        Mockito.when(
-                        jfrConnectionToolkit.connect(
-                                Mockito.any(JMXServiceURL.class),
-                                Mockito.any(Credentials.class),
-                                Mockito.any(List.class)))
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(conn);
         JFRConnection c =
                 mgr.connect(
@@ -89,11 +80,7 @@ class TargetConnectionManagerTest {
 
     @Test
     void shouldReuseConnectionForNestedTasks() throws Exception {
-        Mockito.when(
-                        jfrConnectionToolkit.connect(
-                                Mockito.any(JMXServiceURL.class),
-                                Mockito.any(Credentials.class),
-                                Mockito.any(List.class)))
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(conn);
         JFRConnection a =
                 mgr.executeConnectedTask(

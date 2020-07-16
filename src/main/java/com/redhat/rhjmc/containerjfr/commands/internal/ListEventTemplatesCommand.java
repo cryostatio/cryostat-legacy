@@ -49,7 +49,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -125,7 +124,7 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
         }
     }
 
-    private List<Template> getTemplates(JFRConnection connection) throws FlightRecorderException {
+    private List<Template> getTemplates(JFRConnection connection) throws Exception {
         List<Template> templates = new ArrayList<>(connection.getTemplateService().getTemplates());
         templates.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
         return Collections.unmodifiableList(templates);

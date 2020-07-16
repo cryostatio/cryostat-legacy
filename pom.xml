@@ -210,8 +210,10 @@
               <argument>run</argument>
               <argument>--hostname=container-jfr</argument>
               <argument>--name=container-jfr-itest</argument>
-              <argument>--mount </argument>
+              <argument>--mount</argument>
               <argument>type=tmpfs,target=/flightrecordings</argument>
+              <argument>--mount</argument>
+              <argument>type=tmpfs,target=/templates</argument>
               <argument>--publish</argument>
               <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
               <argument>--publish</argument>
@@ -223,9 +225,15 @@
               <argument>--env</argument>
               <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
               <argument>--env</argument>
+              <argument>CONTAINER_JFR_RJMX_PORT=9091</argument>
+              <argument>--env</argument>
               <argument>CONTAINER_JFR_WEB_PORT=${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_ARCHIVE_PATH=/flightrecordings</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_TEMPLATE_PATH=/templates</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${containerjfr.imageStream}:${containerjfr.imageVersion}</argument>
@@ -330,7 +338,7 @@
           <permissions>
             <permission>
               <file>${containerjfr.entrypoint}</file>
-              <mode>500</mode>
+              <mode>755</mode>
             </permission>
             <permission>
               <file>/app/resources/jmxremote.access</file>

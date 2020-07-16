@@ -183,7 +183,7 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
         inOrder.verify(server).flush(response.capture());
 
-        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-1));
+        MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
         MatcherAssert.assertThat(response.getValue().payload, Matchers.equalTo("some reason"));
     }
