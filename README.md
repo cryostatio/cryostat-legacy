@@ -125,6 +125,11 @@ value, the webserver uses a single buffer when serving recording download
 requests. Enabling this option leaves a constant memory size footprint, but
 might also reduce the network throughput.
 
+The environment variable `CONTAINER_JFR_CORS_ORIGIN` can be used to specify 
+the origin for CORS. This can be used in development to load a different 
+instance of the web-client. See [container-jfr-web](https://github.com/rh-jmc-team/container-jfr-web)
+for details.
+
 For an overview of the available commands and their functionalities, see
 [this document](COMMANDS.md).
 

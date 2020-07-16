@@ -68,11 +68,17 @@ import io.vertx.ext.web.RoutingContext;
 @ExtendWith(MockitoExtension.class)
 class CorsEnablingHandlerTest {
 
+    final String CUSTOM_ORIGIN = "http://localhost:9001";
     CorsEnablingHandler handler;
     @Mock Environment env;
 
     @BeforeEach
     void setup() {
+        Mockito.when(
+                        env.getEnv(
+                                CorsEnablingHandler.ENABLE_CORS_ENV,
+                                CorsEnablingHandler.DEV_ORIGIN))
+                .thenReturn(CUSTOM_ORIGIN);
         this.handler = new CorsEnablingHandler(env);
     }
 
@@ -123,16 +129,12 @@ class CorsEnablingHandlerTest {
 
         @Test
         void shouldAddHeadersToCORS() {
-            Mockito.when(headers.get(HttpHeaders.ORIGIN))
-                    .thenReturn(CorsEnablingHandler.DEV_ORIGIN);
+            Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn(CUSTOM_ORIGIN);
 
             handler.handle(ctx);
 
             Mockito.verify(res).putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-            Mockito.verify(res)
-                    .putHeader(
-                            HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
-                            CorsEnablingHandler.DEV_ORIGIN);
+            Mockito.verify(res).putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, CUSTOM_ORIGIN);
             Mockito.verify(res)
                     .putHeader(
                             HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
@@ -147,8 +149,7 @@ class CorsEnablingHandlerTest {
                 names = {"GET", "POST", "OPTIONS", "HEAD", "DELETE"})
         void shouldRespondOKToOPTIONSWithAcceptedMethod(HttpMethod method) {
             Mockito.when(req.method()).thenReturn(HttpMethod.OPTIONS);
-            Mockito.when(headers.get(HttpHeaders.ORIGIN))
-                    .thenReturn(CorsEnablingHandler.DEV_ORIGIN);
+            Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn(CUSTOM_ORIGIN);
             Mockito.when(headers.get(HttpHeaders.ACCESS_CONTROL_REQUEST_METHOD))
                     .thenReturn(method.name());
             Mockito.when(res.setStatusCode(Mockito.anyInt())).thenReturn(res);
@@ -156,10 +157,7 @@ class CorsEnablingHandlerTest {
             handler.handle(ctx);
 
             Mockito.verify(res).putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_CREDENTIALS, "true");
-            Mockito.verify(res)
-                    .putHeader(
-                            HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN,
-                            CorsEnablingHandler.DEV_ORIGIN);
+            Mockito.verify(res).putHeader(HttpHeaders.ACCESS_CONTROL_ALLOW_ORIGIN, CUSTOM_ORIGIN);
             Mockito.verify(res)
                     .putHeader(
                             HttpHeaders.ACCESS_CONTROL_ALLOW_METHODS,

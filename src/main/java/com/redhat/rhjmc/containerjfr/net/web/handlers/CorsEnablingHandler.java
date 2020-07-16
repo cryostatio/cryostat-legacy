@@ -52,12 +52,13 @@ import io.vertx.ext.web.handler.CorsHandler;
 
 class CorsEnablingHandler implements RequestHandler {
     protected static final String DEV_ORIGIN = "http://localhost:9000";
-    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_ENABLE_CORS";
+    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_CORS_ORIGIN";
     protected final CorsHandler corsHandler;
     protected final Environment env;
 
     @Inject
     CorsEnablingHandler(Environment env) {
+        this.env = env;
         this.corsHandler =
                 CorsHandler.create(getOrigin())
                         .allowedHeader("Authorization")
@@ -68,7 +69,6 @@ class CorsEnablingHandler implements RequestHandler {
                         .allowedMethod(HttpMethod.DELETE)
                         .allowCredentials(true)
                         .exposedHeader(WebServer.AUTH_SCHEME_HEADER);
-        this.env = env;
     }
 
     @Override
@@ -97,7 +97,6 @@ class CorsEnablingHandler implements RequestHandler {
     }
 
     String getOrigin() {
-        // TODO make the origin configurable
-        return DEV_ORIGIN;
+        return this.env.getEnv(ENABLE_CORS_ENV, DEV_ORIGIN);
     }
 }
