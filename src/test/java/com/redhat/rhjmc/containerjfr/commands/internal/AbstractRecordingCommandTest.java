@@ -42,8 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.emptyString;
-import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -108,7 +106,6 @@ class AbstractRecordingCommandTest extends TestBase {
             })
     void shouldNotValidateInvalidEventString(String events) {
         assertFalse(command.validateEvents(events));
-        assertThat(stdout(), equalTo(events + " is an invalid events pattern\n"));
     }
 
     @ParameterizedTest
@@ -124,7 +121,6 @@ class AbstractRecordingCommandTest extends TestBase {
             })
     void shouldValidateValidEventString(String events) {
         assertTrue(command.validateEvents(events));
-        assertThat(stdout(), emptyString());
     }
 
     @Test
