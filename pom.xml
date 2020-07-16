@@ -17,7 +17,7 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
-  <baseImage>registry.access.redhat.com/ubi8/openjdk-11</baseImage>
+  <baseImage>registry.access.redhat.com/ubi8/openjdk-11:1.3-3.1593114401</baseImage>
   <node.version>v12.5.0</node.version>
   <npm.version>6.13.4</npm.version>
 
