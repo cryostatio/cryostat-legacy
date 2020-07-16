@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.StringJoiner;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -146,28 +148,28 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
         String targetId = args[0];
         String name = args[1];
         String events = args[2];
-        StringBuilder combinedErrorMessage = new StringBuilder();
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
         if (!validateTargetId(targetId)) {
             String errorMessage = String.format("%s is an invalid connection specifier", targetId);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!validateRecordingName(name)) {
             String errorMessage = String.format("%s is an invalid recording name", name);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!validateEvents(events)) {
             String errorMessage = String.format("%s is an invalid events specifier", events);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (combinedErrorMessage.length() > 0) {
-            throw new FailedValidationException(combinedErrorMessage.substring(2));
+            throw new FailedValidationException(combinedErrorMessage.toString());
         }
     }
 }

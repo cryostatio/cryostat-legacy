@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.util.Optional;
+import java.util.StringJoiner;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -129,22 +130,22 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
             throw new FailedValidationException(errorMessage);
         }
 
-        StringBuilder combinedErrorMessage = new StringBuilder();
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
         if (!validateTargetId(args[0])) {
             String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!validateRecordingName(args[1])) {
             String errorMessage = String.format("%s is an invalid recording name", args[1]);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (combinedErrorMessage.length() > 0) {
-            throw new FailedValidationException(combinedErrorMessage.substring(2));
+            throw new FailedValidationException(combinedErrorMessage.toString());
         }
     }
 }

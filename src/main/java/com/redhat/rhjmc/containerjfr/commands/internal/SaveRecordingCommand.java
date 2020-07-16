@@ -46,6 +46,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
+import java.util.StringJoiner;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -144,22 +145,22 @@ class SaveRecordingCommand extends AbstractConnectedCommand implements Serializa
 
         String targetId = args[0];
         String recordingName = args[1];
-        StringBuilder combinedErrorMessage = new StringBuilder();
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
         if (!validateTargetId(targetId)) {
             String errorMessage = String.format("%s is an invalid connection specifier", targetId);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!validateRecordingName(recordingName)) {
             String errorMessage = String.format("%s is an invalid recording name", recordingName);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (combinedErrorMessage.length() > 0) {
-            throw new FailedValidationException(combinedErrorMessage.substring(2));
+            throw new FailedValidationException(combinedErrorMessage.toString());
         }
     }
 

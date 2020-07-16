@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.StringJoiner;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -152,34 +154,34 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         String seconds = args[2];
         String events = args[3];
 
-        StringBuilder combinedErrorMessage = new StringBuilder();
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
         if (!validateTargetId(targetId)) {
             String errorMessage = String.format("%s is an invalid connection specifier", targetId);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!validateRecordingName(name)) {
             String errorMessage = String.format("%s is an invalid recording name", name);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!seconds.matches("\\d+")) {
             String errorMessage = String.format("%s is an invalid recording length", seconds);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!validateEvents(events)) {
             String errorMessage = String.format("%s is an invalid events specifier", events);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (combinedErrorMessage.length() > 0) {
-            throw new FailedValidationException(combinedErrorMessage.substring(2));
+            throw new FailedValidationException(combinedErrorMessage.toString());
         }
     }
 }

@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.util.Optional;
+import java.util.StringJoiner;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -121,22 +122,22 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
 
         String targetId = args[0];
         String name = args[1];
-        StringBuilder combinedErrorMessage = new StringBuilder();
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
         if (!validateTargetId(targetId)) {
             String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (!validateRecordingName(name)) {
             String errorMessage = String.format("%s is an invalid recording name", name);
             cw.println(errorMessage);
-            combinedErrorMessage.append("; ").append(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
         if (combinedErrorMessage.length() > 0) {
-            throw new FailedValidationException(combinedErrorMessage.substring(2));
+            throw new FailedValidationException(combinedErrorMessage.toString());
         }
     }
 }
