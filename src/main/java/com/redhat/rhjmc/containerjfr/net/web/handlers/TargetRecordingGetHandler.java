@@ -89,11 +89,6 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         this.env = env;
         this.targetConnectionManager = targetConnectionManager;
         this.logger = logger;
-        if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-            logger.info("low memory pressure streaming enabled for web server");
-        } else {
-            logger.info("low memory pressure streaming disabled for web server");
-        }
     }
 
     @Override

@@ -68,6 +68,11 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
             Logger logger) {
         super(auth, env, null, logger);
         this.savedRecordingsPath = savedRecordingsPath;
+        if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
+            logger.info("low memory pressure streaming enabled for web server");
+        } else {
+            logger.info("low memory pressure streaming disabled for web server");
+        }
     }
 
     @Override
