@@ -41,7 +41,11 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
@@ -55,6 +59,9 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
+
+    static final Pattern AUTH_HEADER_PATTERN =
+            Pattern.compile("(?<type>[\\w]+)[\\s]+(?<credentials>[\\S]+)");
 
     private final AuthManager auth;
 
@@ -91,7 +98,31 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
         String targetId = ctx.pathParam("targetId");
-        Credentials credentials = null; // TODO retrieve credentials from Proxy-Authorization header
+        Credentials credentials = null;
+        if (ctx.request().headers().contains(HttpHeaders.PROXY_AUTHORIZATION)) {
+            String proxyAuth = ctx.request().getHeader(HttpHeaders.PROXY_AUTHORIZATION);
+            Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
+            if (!m.find()) {
+                throw new HttpStatusException(400, "Invalid PROXY_AUTHORIZATION format");
+            } else {
+                String t = m.group("type");
+                if (!"basic".equals(t.toLowerCase())) {
+                    throw new HttpStatusException(400, "Unacceptable PROXY_AUTHORIZATION type");
+                } else {
+                    String c =
+                            new String(
+                                    Base64.getDecoder().decode(m.group("credentials")),
+                                    StandardCharsets.UTF_8);
+                    if (!c.contains(":")) {
+                        throw new HttpStatusException(
+                                400, "Unrecognized PROXY_AUTHORIZATION credential format");
+                    } else {
+                        String[] parts = c.split(":");
+                        credentials = new Credentials(parts[0], parts[1]);
+                    }
+                }
+            }
+        }
         return new ConnectionDescriptor(targetId, credentials);
     }
 }
