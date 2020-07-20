@@ -8,12 +8,6 @@ See [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) for
 the core library providing a convenience wrapper and headless stubs for use of
 JFR using JDK Mission Control internals.
 
-See
-[container-jmc-pubsub-demo](https://github.com/andrewazores/container-jmc-pubsub-demo)
-and
-[container-jmc-simple-demo](https://github.com/andrewazores/container-jmc-simple-demo)
-for multi-container demos of this project.
-
 ## REQUIREMENTS
 Build:
 - Git
@@ -66,9 +60,7 @@ JFR Client, running alone but set up so that it is able to introspect itself
 with JFR. This can be achieved by doing `sh run.sh -it` and then typing
 `connect localhost` into the client shell that appears. When running in
 this container, all three execution modes described above are still available
-and accessible using the same mthods. Some client shell demo scripts are also
-available in the `demos` directory. These can be used with batch mode, ex.
-`sh run.sh "$(more demos/print_help)"`.
+and accessible using the same mthods.
 
 There are six network-related environment variables that the client checks
 during its runtime:
