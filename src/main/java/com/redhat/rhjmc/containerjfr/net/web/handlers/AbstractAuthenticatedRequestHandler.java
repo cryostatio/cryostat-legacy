@@ -118,6 +118,10 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                                 400, "Unrecognized PROXY_AUTHORIZATION credential format");
                     } else {
                         String[] parts = c.split(":");
+                        if (parts.length != 2) {
+                            throw new HttpStatusException(
+                                    400, "Unrecognized PROXY_AUTHORIZATION credential format");
+                        }
                         credentials = new Credentials(parts[0], parts[1]);
                     }
                 }
