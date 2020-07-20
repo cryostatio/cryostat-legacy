@@ -8,12 +8,6 @@ See [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) for
 the core library providing a convenience wrapper and headless stubs for use of
 JFR using JDK Mission Control internals.
 
-See
-[container-jmc-pubsub-demo](https://github.com/andrewazores/container-jmc-pubsub-demo)
-and
-[container-jmc-simple-demo](https://github.com/andrewazores/container-jmc-simple-demo)
-for multi-container demos of this project.
-
 ## REQUIREMENTS
 Build:
 - Git
@@ -63,12 +57,13 @@ WebSocket mode with a web frontend.
 
 The `run.sh` script can be used to spin up a `podman` container of the Container
 JFR Client, running alone but set up so that it is able to introspect itself
-with JFR. This can be achieved by doing `sh run.sh -it` and then typing
-`connect localhost` into the client shell that appears. When running in
-this container, all three execution modes described above are still available
-and accessible using the same mthods. Some client shell demo scripts are also
-available in the `demos` directory. These can be used with batch mode, ex.
-`sh run.sh "$(more demos/print_help)"`.
+with JFR. This can be achieved by running `sh run.sh` and connecting to
+Container JFR in a separate terminal using
+[websocat](https://github.com/vi/websocat). The WebSocket URL to connect to can
+be found by running `curl localhost:8181/api/v1/clienturl`. Once you are
+connected, you can issue commands by entering them into the websocat client in
+JSON form. For example, `{command:ping}` or
+`{command:dump,args:[localhost,foo,10,"template=Continuous"]}`.
 
 There are six network-related environment variables that the client checks
 during its runtime:
@@ -96,7 +91,7 @@ will be allowed. If this is not set then the default value is 2. Once the
 maximum number of concurrent connections is reached, the server will reject
 handshakes for any new incoming connections until a previous connection is
 closed. The maximum acceptable value is 64 and the minimum acceptable value is
-1. Values outside of this range will be ignored and the default value set
+1\. Values outside of this range will be ignored and the default value set
 instead.
 
 The environment variable `CONTAINER_JFR_LOG_LEVEL` is used to control the level
