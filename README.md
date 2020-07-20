@@ -57,10 +57,7 @@ WebSocket mode with a web frontend.
 
 The `run.sh` script can be used to spin up a `podman` container of the Container
 JFR Client, running alone but set up so that it is able to introspect itself
-with JFR. This can be achieved by doing `sh run.sh -it` and then typing
-`connect localhost` into the client shell that appears. When running in
-this container, all three execution modes described above are still available
-and accessible using the same mthods.
+with JFR. This can be achieved by doing `sh run.sh -it`.
 
 There are six network-related environment variables that the client checks
 during its runtime:
@@ -88,7 +85,7 @@ will be allowed. If this is not set then the default value is 2. Once the
 maximum number of concurrent connections is reached, the server will reject
 handshakes for any new incoming connections until a previous connection is
 closed. The maximum acceptable value is 64 and the minimum acceptable value is
-1. Values outside of this range will be ignored and the default value set
+1\. Values outside of this range will be ignored and the default value set
 instead.
 
 The environment variable `CONTAINER_JFR_LOG_LEVEL` is used to control the level
