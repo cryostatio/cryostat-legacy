@@ -41,7 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -109,8 +109,12 @@ class ListEventTypesCommandTest implements ValidatesTargetId {
     @ParameterizedTest
     @ValueSource(ints = {0, 2})
     void shouldNotValidateWrongArgc(int argc) {
-        assertFalse(command.validate(new String[argc]));
-        verify(cw).println("Expected one argument: hostname:port, ip:port, or JMX service URL");
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage = "Expected one argument: hostname:port, ip:port, or JMX service URL";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @SuppressWarnings("unchecked")

@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.util.Optional;
+import java.util.StringJoiner;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -111,27 +112,32 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            cw.println(
-                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
-            return false;
+            String errorMessage =
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];
         String name = args[1];
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
-        boolean isValidTargetId = validateTargetId(targetId);
-        boolean isValidName = validateRecordingName(name);
-
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(targetId)) {
+            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        if (!isValidName) {
-            cw.println(String.format("%s is an invalid recording name", name));
+        if (!validateRecordingName(name)) {
+            String errorMessage = String.format("%s is an invalid recording name", name);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        return isValidTargetId && isValidName;
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.toString());
+        }
     }
 }

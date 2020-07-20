@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -85,16 +85,15 @@ class RecordingOptionsCustomizerCommandTest {
         Assertions.assertTrue(command.isAvailable());
     }
 
-    @Test
-    void shouldNotExpectNoArgs() {
-        assertFalse(command.validate(new String[0]));
-        verify(cw).println("Expected one argument: recording option name");
-    }
-
-    @Test
-    void shouldNotExpectTooManyArgs() {
-        assertFalse(command.validate(new String[2]));
-        verify(cw).println("Expected one argument: recording option name");
+    @ParameterizedTest
+    @ValueSource(ints = {0, 2, 3})
+    void shouldNotValidateIncorrectArgc(int argc) {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage = "Expected one argument: recording option name";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @ParameterizedTest
@@ -106,14 +105,24 @@ class RecordingOptionsCustomizerCommandTest {
                 "-foo=bar",
             })
     void shouldNotValidateMalformedArg(String arg) {
-        assertFalse(command.validate(new String[] {arg}));
-        verify(cw).println(arg + " is an invalid option string");
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {arg}));
+        String errorMessage = " is an invalid option string";
+        verify(cw).println(arg + errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(arg + errorMessage));
     }
 
     @Test
     void shouldNotValidateUnrecognizedOption() {
-        assertFalse(command.validate(new String[] {"someUnknownOption=value"}));
-        verify(cw).println("someUnknownOption is an unrecognized or unsupported option");
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {"someUnknownOption=value"}));
+        String errorMessage = "someUnknownOption is an unrecognized or unsupported option";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @ParameterizedTest
@@ -124,13 +133,13 @@ class RecordingOptionsCustomizerCommandTest {
                 "maxSize=512",
             })
     void shouldKnownValidateKeyValueArg(String arg) {
-        assertTrue(command.validate(new String[] {arg}));
+        assertDoesNotThrow(() -> command.validate(new String[] {arg}));
         verifyZeroInteractions(cw);
     }
 
     @Test
     void shouldExpectUnsetArg() {
-        assertTrue(command.validate(new String[] {"-toDisk"}));
+        assertDoesNotThrow(() -> command.validate(new String[] {"-toDisk"}));
         verifyZeroInteractions(cw);
     }
 

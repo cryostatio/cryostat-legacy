@@ -249,7 +249,7 @@ formatted as a JSON response.
 
 * #### `list`
     ###### usage
-    `list target`
+    `list targetId`
     ###### synopsis
     Lists recordings in the specified target JVM. The name provided in this list
     is the name to pass to other commands which operate upon recordings.
@@ -275,11 +275,11 @@ formatted as a JSON response.
 
 * #### `wait-for`
     ###### usage
-    `wait-for foo`
+    `wait-for targetId foo`
     ###### synopsis
-    Waits for the given recording (`foo`) to stop running. If the recording is
-    continuous and not already stopped then the command will refuse to wait for
-    the recording to complete, since this would lock up the client and require
-    another client to be connected in order to stop the recording. Once this
-    command has begun awaiting completion of the recording it cannot be
-    interrupted.
+    Waits for the given recording (`foo`) of the specified target JVM to stop
+    running. If the recording is continuous and not already stopped then the
+    command will refuse to wait for the recording to complete, since this would
+    lock up the client and require another client to be connected in order to
+    stop the recording. Once this command has begun awaiting completion of the
+    recording it cannot be interrupted.

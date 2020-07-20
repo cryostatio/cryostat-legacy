@@ -113,11 +113,27 @@ class SaveRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingN
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3})
-    void shouldNotValidateIncorrectArgc(int count) {
-        Assertions.assertFalse(command.validate(new String[count]));
-        verify(cw)
-                .println(
-                        "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
+    void shouldNotValidateIncorrectArgc(int argc) {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage =
+                "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name";
+        verify(cw).println(": is an invalid connection specifier");
+        verify(cw).println(": is an invalid recording name");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

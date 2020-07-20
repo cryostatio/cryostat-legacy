@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.util.Optional;
+import java.util.StringJoiner;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -121,20 +122,30 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            cw.println(
-                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
-            return false;
+            String errorMessage =
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
-        boolean isValidTargetID = validateTargetId(args[0]);
-        if (!isValidTargetID) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
+
+        if (!validateTargetId(args[0])) {
+            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
-        boolean isValidRecordingName = validateRecordingName(args[1]);
-        if (!isValidRecordingName) {
-            cw.println(String.format("%s is an invalid recording name", args[1]));
+
+        if (!validateRecordingName(args[1])) {
+            String errorMessage = String.format("%s is an invalid recording name", args[1]);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
-        return isValidTargetID && isValidRecordingName;
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.toString());
+        }
     }
 }

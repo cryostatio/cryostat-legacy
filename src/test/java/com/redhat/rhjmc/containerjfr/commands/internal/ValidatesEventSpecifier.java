@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
@@ -56,17 +58,18 @@ interface ValidatesEventSpecifier extends ValidationTestable {
                 "template=Foo"
             })
     default void shouldValidateAcceptableEventSpecifiers(String eventSpecifier) {
-        Assertions.assertTrue(
-                commandForValidationTesting()
-                        .validate(
-                                getArgs(
-                                        argumentSignature().stream()
-                                                .map(
-                                                        arg ->
-                                                                RECORDING_EVENT_SPECIFIER.equals(
-                                                                                arg)
-                                                                        ? eventSpecifier
-                                                                        : arg))),
+        Assertions.assertDoesNotThrow(
+                () ->
+                        commandForValidationTesting()
+                                .validate(
+                                        getArgs(
+                                                argumentSignature().stream()
+                                                        .map(
+                                                                arg ->
+                                                                        RECORDING_EVENT_SPECIFIER
+                                                                                        .equals(arg)
+                                                                                ? eventSpecifier
+                                                                                : arg))),
                 eventSpecifier);
     }
 
@@ -83,17 +86,25 @@ interface ValidatesEventSpecifier extends ValidationTestable {
                 "foo.Bar=true"
             })
     default void shouldNotValidateUnacceptableEventSpecifiers(String eventSpecifier) {
-        Assertions.assertFalse(
-                commandForValidationTesting()
-                        .validate(
-                                getArgs(
-                                        argumentSignature().stream()
-                                                .map(
-                                                        arg ->
-                                                                RECORDING_EVENT_SPECIFIER.equals(
-                                                                                arg)
-                                                                        ? eventSpecifier
-                                                                        : arg))),
-                eventSpecifier);
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                commandForValidationTesting()
+                                        .validate(
+                                                getArgs(
+                                                        argumentSignature().stream()
+                                                                .map(
+                                                                        arg ->
+                                                                                RECORDING_EVENT_SPECIFIER
+                                                                                                .equals(
+                                                                                                        arg)
+                                                                                        ? eventSpecifier
+                                                                                        : arg))),
+                        eventSpecifier);
+        MatcherAssert.assertThat(
+                e.getMessage(),
+                Matchers.equalTo(
+                        String.format("%s is an invalid events specifier", eventSpecifier)));
     }
 }

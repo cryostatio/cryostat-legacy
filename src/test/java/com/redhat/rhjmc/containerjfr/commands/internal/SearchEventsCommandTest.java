@@ -41,7 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -106,7 +106,13 @@ class SearchEventsCommandTest implements ValidatesTargetId {
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3})
     void shouldNotValidateIncorrectArgc(int argc) {
-        assertFalse(command.validate(new String[argc]));
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage =
+                "Expected two arguments: target (hostname:port, ip:port, or JMX service URL) and search term";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

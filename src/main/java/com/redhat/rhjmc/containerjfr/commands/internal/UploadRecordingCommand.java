@@ -48,6 +48,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
@@ -174,30 +175,36 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 3) {
-            cw.println(
-                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
-            return false;
+            String errorMessage =
+                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];
         String recordingName = args[1];
         // String uploadUrl = args[2];
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
-        boolean isValidTargetId = validateTargetId(targetId);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(targetId)) {
+            String errorMessage = String.format("%s is an invalid connection specifier", targetId);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        boolean isValidRecordingName = validateRecordingName(recordingName);
-        if (!isValidRecordingName) {
-            cw.println(String.format("%s is an invalid recording name", recordingName));
+        if (!validateRecordingName(recordingName)) {
+            String errorMessage = String.format("%s is an invalid recording name", recordingName);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
+        }
+
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.toString());
         }
 
         // TODO validate upload URL
-
-        return isValidTargetId && isValidRecordingName;
     }
 
     // returned stream should be cleaned up by HttpClient

@@ -86,18 +86,18 @@ class WaitCommand implements Command {
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 1) {
-            cw.println("Expected one argument");
-            return false;
+            String errorMessage = "Expected one argument";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         if (!args[0].matches("\\d+")) {
-            cw.println(String.format("%s is an invalid integer", args[0]));
-            return false;
+            String errorMessage = String.format("%s is an invalid integer", args[0]);
+            cw.println(errorMessage);
+            throw new FailedValidationException(String.format(errorMessage));
         }
-
-        return true;
     }
 
     @Override

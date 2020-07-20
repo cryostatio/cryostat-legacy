@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EmptySource;
@@ -58,16 +60,17 @@ interface ValidatesRecordingName extends ValidationTestable {
                 "hyphenated-name",
             })
     default void shouldValidateAcceptableRecordingNames(String recordingName) {
-        Assertions.assertTrue(
-                commandForValidationTesting()
-                        .validate(
-                                getArgs(
-                                        argumentSignature().stream()
-                                                .map(
-                                                        arg ->
-                                                                RECORDING_NAME.equals(arg)
-                                                                        ? recordingName
-                                                                        : arg))),
+        Assertions.assertDoesNotThrow(
+                () ->
+                        commandForValidationTesting()
+                                .validate(
+                                        getArgs(
+                                                argumentSignature().stream()
+                                                        .map(
+                                                                arg ->
+                                                                        RECORDING_NAME.equals(arg)
+                                                                                ? recordingName
+                                                                                : arg))),
                 recordingName);
     }
 
@@ -75,16 +78,24 @@ interface ValidatesRecordingName extends ValidationTestable {
     @EmptySource
     @ValueSource(strings = {"a recording", ".", ".jfr"})
     default void shouldNotValidateUnacceptableRecordingNames(String recordingName) {
-        Assertions.assertFalse(
-                commandForValidationTesting()
-                        .validate(
-                                getArgs(
-                                        argumentSignature().stream()
-                                                .map(
-                                                        arg ->
-                                                                RECORDING_NAME.equals(arg)
-                                                                        ? recordingName
-                                                                        : arg))),
-                recordingName);
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                commandForValidationTesting()
+                                        .validate(
+                                                getArgs(
+                                                        argumentSignature().stream()
+                                                                .map(
+                                                                        arg ->
+                                                                                RECORDING_NAME
+                                                                                                .equals(
+                                                                                                        arg)
+                                                                                        ? recordingName
+                                                                                        : arg))),
+                        recordingName);
+        MatcherAssert.assertThat(
+                e.getMessage(),
+                Matchers.equalTo(String.format("%s is an invalid recording name", recordingName)));
     }
 }

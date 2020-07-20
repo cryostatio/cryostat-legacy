@@ -93,14 +93,18 @@ class ListSavedRecordingsCommandTest {
 
     @ParameterizedTest
     @ValueSource(ints = {1, 2})
-    void shouldNotValidateIncorrectArgc(int count) {
-        Assertions.assertFalse(command.validate(new String[count]));
-        verify(cw).println("No arguments expected");
+    void shouldNotValidateIncorrectArgc(int argc) {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage = "No arguments expected";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
-    void shouldValidateEmptyArgs() {
-        Assertions.assertTrue(command.validate(new String[0]));
+    void shouldExpectNoArgs() {
+        Assertions.assertDoesNotThrow(() -> command.validate(new String[0]));
         verifyZeroInteractions(cw);
     }
 

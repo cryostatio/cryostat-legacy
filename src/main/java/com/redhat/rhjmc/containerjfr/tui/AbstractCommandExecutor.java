@@ -49,6 +49,7 @@ import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.ExitCommand;
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import dagger.Lazy;
@@ -106,15 +107,14 @@ public abstract class AbstractCommandExecutor implements CommandExecutor {
     protected boolean validateCommands(Collection<CommandLine> commandLines) {
         boolean allValid = true;
         for (CommandLine commandLine : commandLines) {
-            boolean valid =
-                    this.commandRegistry.get().validate(commandLine.command, commandLine.args);
-            if (!valid) {
+            try {
+                this.commandRegistry.get().validate(commandLine.command, commandLine.args);
+            } catch (FailedValidationException e) {
                 cw.println(
                         String.format(
-                                "\t\"%s\" are invalid arguments to %s",
-                                Arrays.asList(commandLine.args), commandLine.command));
+                                "\tCommand \"%s\" could not be validated", commandLine.command));
+                allValid = false;
             }
-            allValid &= valid;
         }
         return allValid;
     }

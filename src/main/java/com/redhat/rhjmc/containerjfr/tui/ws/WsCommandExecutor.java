@@ -50,6 +50,7 @@ import com.google.gson.JsonSyntaxException;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
@@ -108,10 +109,12 @@ class WsCommandExecutor implements CommandExecutor {
                         flush(new CommandUnavailableMessage(commandMessage.id, commandName));
                         continue;
                     }
-                    if (!registry.get().validate(commandName, args)) {
+                    try {
+                        registry.get().validate(commandName, args);
+                    } catch (FailedValidationException e) {
                         flush(
-                                new InvalidCommandArgumentsResponseMessage(
-                                        commandMessage.id, commandName, args));
+                                new FailedValidationResponseMessage(
+                                        commandMessage.id, commandName, e.getMessage()));
                         continue;
                     }
                     SerializableCommand.Output<?> out = registry.get().execute(commandName, args);

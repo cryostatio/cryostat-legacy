@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.StringJoiner;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -139,11 +141,12 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 4) {
-            cw.println(
-                    "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types");
-            return false;
+            String errorMessage =
+                    "Expected four arguments: target (host:port, ip:port, or JMX service URL), recording name, recording length, and event types";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];
@@ -151,27 +154,34 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
         String seconds = args[2];
         String events = args[3];
 
-        boolean isValidTargetId = validateTargetId(targetId);
-        boolean isValidName = validateRecordingName(name);
-        boolean isValidDuration = seconds.matches("\\d+");
-        boolean isValidEvents = validateEvents(events);
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(targetId)) {
+            String errorMessage = String.format("%s is an invalid connection specifier", targetId);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        if (!isValidName) {
-            cw.println(String.format("%s is an invalid recording name", name));
+        if (!validateRecordingName(name)) {
+            String errorMessage = String.format("%s is an invalid recording name", name);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        if (!isValidDuration) {
-            cw.println(String.format("%s is an invalid recording length", seconds));
+        if (!seconds.matches("\\d+")) {
+            String errorMessage = String.format("%s is an invalid recording length", seconds);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        if (!isValidEvents) {
-            cw.println(String.format("%s is an invalid events specifier", events));
+        if (!validateEvents(events)) {
+            String errorMessage = String.format("%s is an invalid events specifier", events);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        return isValidTargetId && isValidName && isValidDuration && isValidEvents;
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.toString());
+        }
     }
 }

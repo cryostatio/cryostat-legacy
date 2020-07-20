@@ -127,25 +127,27 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 2, 4, 5})
-    void shouldNotValidateWrongArgc(int c) {
-        Assertions.assertFalse(command.validate(new String[c]));
-        Mockito.verify(cw)
-                .println(
-                        "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL");
+    void shouldNotValidateIncorrectArgc(int argc) {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage =
+                "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
-    @ParameterizedTest
-    @ValueSource(
-            strings = {"foo", "foo.jfr", "recording", "some-name", "another_name", "123", "abc123"})
-    void shouldValidateRecordingNames(String recordingName) {
-        Assertions.assertTrue(command.validate(new String[] {HOST_ID, recordingName, UPLOAD_URL}));
-    }
-
-    @ParameterizedTest
-    @ValueSource(strings = {".", "some recording", ""})
-    void shouldNotValidateInvalidRecordingNames(String recordingName) {
-        Assertions.assertFalse(command.validate(new String[] {HOST_ID, recordingName, UPLOAD_URL}));
-        Mockito.verify(cw).println(recordingName + " is an invalid recording name");
+    @Test
+    void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name";
+        Mockito.verify(cw).println(": is an invalid connection specifier");
+        Mockito.verify(cw).println(": is an invalid recording name");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Nested

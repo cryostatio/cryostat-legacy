@@ -41,7 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -49,12 +50,15 @@ import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -65,19 +69,30 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 @ExtendWith(MockitoExtension.class)
-class WaitForCommandTest extends TestBase {
+class WaitForCommandTest extends TestBase implements ValidatesRecordingName, ValidatesTargetId {
 
     WaitForCommand command;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
     @Mock Clock clock;
+
+    @Override
+    public Command commandForValidationTesting() {
+        return command;
+    }
+
+    @Override
+    public List<String> argumentSignature() {
+        return List.of(TARGET_ID, RECORDING_NAME);
+    }
 
     @BeforeEach
     void setup() {
@@ -89,29 +104,34 @@ class WaitForCommandTest extends TestBase {
         MatcherAssert.assertThat(command.getName(), Matchers.equalTo("wait-for"));
     }
 
-    @Test
-    void shouldNotExpectZeroArgs() {
-        assertFalse(command.validate(new String[0]));
+    @ParameterizedTest
+    @ValueSource(ints = {0, 3})
+    void shouldNotValidateIncorrectArgc(int argc) {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage =
+                "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
-    void shouldNotExpectTooManyArgs() {
-        assertFalse(command.validate(new String[3]));
-    }
-
-    @Test
-    void shouldNotValidateMalformedTargetId() {
-        assertFalse(command.validate(new String[] {":9091", "."}));
-    }
-
-    @Test
-    void shouldNotValidateMalformedRecordingName() {
-        assertFalse(command.validate(new String[] {"fooHost:9091", "."}));
+    void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name";
+        assertTrue(stdout().contains(": is an invalid connection specifier\n"));
+        assertTrue(stdout().contains(": is an invalid recording name\n"));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
     void shouldValidateArgs() {
-        assertTrue(command.validate(new String[] {"fooHost:9091", "someRecording"}));
+        assertDoesNotThrow(() -> command.validate(new String[] {"fooHost:9091", "someRecording"}));
         MatcherAssert.assertThat(stdout(), Matchers.emptyString());
     }
 

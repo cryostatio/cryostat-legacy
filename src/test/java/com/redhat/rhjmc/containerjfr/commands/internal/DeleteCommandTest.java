@@ -41,7 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -106,8 +106,27 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
     @ParameterizedTest
     @ValueSource(ints = {0, 1, 3})
-    void shouldInvalidateIncorrectArgc(int c) {
-        assertFalse(command.validate(new String[c]));
+    void shouldNotValidateIncorrectArgc(int argc) {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[argc]));
+        String errorMessage =
+                "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name";
+        verify(cw).println(": is an invalid connection specifier");
+        verify(cw).println(": is an invalid recording name");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

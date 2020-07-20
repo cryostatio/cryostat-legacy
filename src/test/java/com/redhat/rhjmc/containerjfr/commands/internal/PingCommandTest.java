@@ -42,14 +42,14 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -74,17 +74,18 @@ class PingCommandTest {
 
     @Test
     void shouldExpectNoArgs() {
-        MatcherAssert.assertThat(command.validate(new String[0]), Matchers.is(true));
+        Assertions.assertDoesNotThrow(() -> command.validate(new String[0]));
+        verifyNoMoreInteractions(cw);
     }
 
-    @ParameterizedTest
-    @ValueSource(
-            ints = {
-                1, 2,
-            })
-    void shouldNotExpectArgs(int argc) {
-        MatcherAssert.assertThat(command.validate(new String[argc]), Matchers.is(false));
-        verify(cw).println("No arguments expected");
+    @Test
+    void shouldNotExpectArgs() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> command.validate(new String[1]));
+        String errorMessage = "No arguments expected";
+        verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test

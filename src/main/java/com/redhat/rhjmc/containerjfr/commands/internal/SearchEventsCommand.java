@@ -76,17 +76,18 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            cw.println(
-                    "Expected two arguments: target (hostname:port, ip:port, or JMX service URL) and search term");
-            return false;
+            String errorMessage =
+                    "Expected two arguments: target (hostname:port, ip:port, or JMX service URL) and search term";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
-        boolean isValidTargetId = validateTargetId(args[0]);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(args[0])) {
+            String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
-        return isValidTargetId;
     }
 
     @Override

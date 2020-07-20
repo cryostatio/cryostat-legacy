@@ -160,11 +160,6 @@ public abstract class AbstractRecordingCommand extends AbstractConnectedCommand 
     protected boolean validateEvents(String events) {
         // TODO better validation of entire events string (not just looking for one acceptable
         // setting)
-        if (!TEMPLATE_PATTERN.matcher(events).matches() && !EVENTS_PATTERN.matcher(events).find()) {
-            cw.println(String.format("%s is an invalid events pattern", events));
-            return false;
-        }
-
-        return true;
+        return TEMPLATE_PATTERN.matcher(events).matches() || EVENTS_PATTERN.matcher(events).find();
     }
 }

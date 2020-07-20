@@ -41,14 +41,12 @@
  */
 package com.redhat.rhjmc.containerjfr.tui.ws;
 
-import java.util.Arrays;
-
-class InvalidCommandArgumentsResponseMessage extends ResponseMessage<String> {
-    InvalidCommandArgumentsResponseMessage(String id, String commandName, String[] args) {
+class FailedValidationResponseMessage extends ResponseMessage<String> {
+    FailedValidationResponseMessage(String id, String commandName, String errorMessage) {
         super(
                 id,
                 -1,
                 commandName,
-                String.format("%s are invalid arguments to %s", Arrays.asList(args), commandName));
+                String.format("Could not validate \"%s\" command: %s", commandName, errorMessage));
     }
 }

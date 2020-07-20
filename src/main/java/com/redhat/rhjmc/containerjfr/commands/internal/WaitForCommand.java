@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.util.Optional;
+import java.util.StringJoiner;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
@@ -137,26 +138,32 @@ class WaitForCommand extends AbstractConnectedCommand {
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 2) {
-            cw.println(
-                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name");
-            return false;
+            String errorMessage =
+                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetID = args[0];
         String recordingName = args[1];
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
-        boolean isValidTargetId = validateTargetId(targetID);
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", targetID));
+        if (!validateTargetId(targetID)) {
+            String errorMessage = String.format("%s is an invalid connection specifier", targetID);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        boolean isValidRecordingName = validateRecordingName(recordingName);
-        if (!isValidRecordingName) {
-            cw.println(String.format("%s is an invalid recording name", recordingName));
+        if (!validateRecordingName(recordingName)) {
+            String errorMessage = String.format("%s is an invalid recording name", recordingName);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        return isValidTargetId && isValidRecordingName;
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.toString());
+        }
     }
 }

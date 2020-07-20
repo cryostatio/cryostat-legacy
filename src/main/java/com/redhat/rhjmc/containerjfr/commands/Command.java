@@ -45,6 +45,7 @@ import java.net.MalformedURLException;
 
 import javax.management.remote.JMXServiceURL;
 
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 public interface Command {
@@ -53,7 +54,7 @@ public interface Command {
 
     void execute(String[] args) throws Exception;
 
-    boolean validate(String[] args);
+    void validate(String[] args) throws FailedValidationException;
 
     boolean isAvailable();
 

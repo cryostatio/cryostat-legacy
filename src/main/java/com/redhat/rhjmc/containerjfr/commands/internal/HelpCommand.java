@@ -73,12 +73,12 @@ class HelpCommand implements SerializableCommand {
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 0) {
-            cw.println("No arguments expected");
-            return false;
+            String errorMessage = "No arguments expected";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
-        return true;
     }
 
     @Override

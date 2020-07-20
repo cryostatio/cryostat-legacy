@@ -45,11 +45,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -64,6 +65,7 @@ import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
 
@@ -84,8 +86,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
-
         executor.run("");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("\"exit\" \"[]\""));
@@ -103,8 +103,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
-
         executor.run("# This should be a comment ;");
 
         MatcherAssert.assertThat(stdout(), Matchers.containsString("\"exit\" \"[]\""));
@@ -121,9 +119,6 @@ class BatchModeExecutorTest extends TestBase {
     void shouldValidateAndExecuteSingleCommand() throws Exception {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
-
-        when(mockRegistry.validate(eq("help"), any(String[].class))).thenReturn(true);
-        when(mockRegistry.validate(eq("exit"), any(String[].class))).thenReturn(true);
 
         executor.run("help");
 
@@ -149,8 +144,6 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
-
         executor.run("; ;; help;; ");
 
         MatcherAssert.assertThat(
@@ -175,27 +168,25 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
-
-        executor.run("help; connect foo; disconnect;");
+        executor.run("help; list localhost; ping;");
 
         MatcherAssert.assertThat(
                 stdout(),
                 Matchers.allOf(
                         Matchers.containsString("\"help\" \"[]\""),
-                        Matchers.containsString("\"connect\" \"[foo]\""),
-                        Matchers.containsString("\"disconnect\" \"[]\""),
+                        Matchers.containsString("\"list\" \"[localhost]\""),
+                        Matchers.containsString("\"ping\" \"[]\""),
                         Matchers.containsString("\"exit\" \"[]\"")));
 
         verify(mockRegistry).validate("help", new String[0]);
-        verify(mockRegistry).validate("connect", new String[] {"foo"});
-        verify(mockRegistry).validate("disconnect", new String[0]);
+        verify(mockRegistry).validate("list", new String[] {"localhost"});
+        verify(mockRegistry).validate("ping", new String[0]);
         verify(mockRegistry).validate("exit", new String[0]);
 
         InOrder inOrder = inOrder(mockRegistry);
         inOrder.verify(mockRegistry).execute("help", new String[0]);
-        inOrder.verify(mockRegistry).execute("connect", new String[] {"foo"});
-        inOrder.verify(mockRegistry).execute("disconnect", new String[0]);
+        inOrder.verify(mockRegistry).execute("list", new String[] {"localhost"});
+        inOrder.verify(mockRegistry).execute("ping", new String[0]);
         inOrder.verify(mockRegistry).execute("exit", new String[0]);
 
         verifyNoMoreInteractions(mockClientReader);
@@ -207,27 +198,25 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
-
-        executor.run("help;\n# Connect to foo-host;\nconnect foo;\ndisconnect;");
+        executor.run("help;\n# List localhost and ping;\nlist localhost;\nping;");
 
         MatcherAssert.assertThat(
                 stdout(),
                 Matchers.allOf(
                         Matchers.containsString("\"help\" \"[]\""),
-                        Matchers.containsString("\"connect\" \"[foo]\""),
-                        Matchers.containsString("\"disconnect\" \"[]\""),
+                        Matchers.containsString("\"list\" \"[localhost]\""),
+                        Matchers.containsString("\"ping\" \"[]\""),
                         Matchers.containsString("\"exit\" \"[]\"")));
 
         verify(mockRegistry).validate("help", new String[0]);
-        verify(mockRegistry).validate("connect", new String[] {"foo"});
-        verify(mockRegistry).validate("disconnect", new String[0]);
+        verify(mockRegistry).validate("list", new String[] {"localhost"});
+        verify(mockRegistry).validate("ping", new String[0]);
         verify(mockRegistry).validate("exit", new String[0]);
 
         InOrder inOrder = inOrder(mockRegistry);
         inOrder.verify(mockRegistry).execute("help", new String[0]);
-        inOrder.verify(mockRegistry).execute("connect", new String[] {"foo"});
-        inOrder.verify(mockRegistry).execute("disconnect", new String[0]);
+        inOrder.verify(mockRegistry).execute("list", new String[] {"localhost"});
+        inOrder.verify(mockRegistry).execute("ping", new String[0]);
         inOrder.verify(mockRegistry).execute("exit", new String[0]);
 
         verifyNoMoreInteractions(mockClientReader);
@@ -239,24 +228,19 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class)))
-                .thenAnswer(
-                        new Answer<Boolean>() {
-                            @Override
-                            public Boolean answer(InvocationOnMock invocation) {
-                                String cmd = (String) invocation.getArguments()[0];
-                                return !cmd.equals("connect");
-                            }
-                        });
+        doNothing().when(mockRegistry).validate(anyString(), any(String[].class));
+        doThrow(new FailedValidationException("Invalid connection specifier"))
+                .when(mockRegistry)
+                .validate(eq("list"), any(String[].class));
 
-        executor.run("help; connect foo; disconnect;");
+        executor.run("help; list :; ping;");
 
         MatcherAssert.assertThat(
-                stdout(), Matchers.containsString("\"[foo]\" are invalid arguments to connect"));
+                stdout(), Matchers.containsString("\tCommand \"list\" could not be validated"));
 
         verify(mockRegistry).validate("help", new String[0]);
-        verify(mockRegistry).validate("connect", new String[] {"foo"});
-        verify(mockRegistry).validate("disconnect", new String[0]);
+        verify(mockRegistry).validate("list", new String[] {":"});
+        verify(mockRegistry).validate("ping", new String[0]);
         verify(mockRegistry).validate("exit", new String[0]);
 
         verifyNoMoreInteractions(mockClientReader);
@@ -269,13 +253,12 @@ class BatchModeExecutorTest extends TestBase {
         verifyZeroInteractions(mockClientReader);
         verifyZeroInteractions(mockRegistry);
 
-        when(mockRegistry.validate(anyString(), any(String[].class))).thenReturn(true);
         doAnswer(
                         new Answer<Void>() {
                             @Override
                             public Void answer(InvocationOnMock invocation) throws Exception {
                                 String cmd = (String) invocation.getArguments()[0];
-                                if (cmd.equals("connect")) {
+                                if (cmd.equals("list")) {
                                     throw new NullPointerException("SomeException");
                                 }
                                 return null;
@@ -284,22 +267,22 @@ class BatchModeExecutorTest extends TestBase {
                 .when(mockRegistry)
                 .execute(anyString(), any(String[].class));
 
-        executor.run("help; connect foo; disconnect;");
+        executor.run("help; list localhost; ping;");
 
         MatcherAssert.assertThat(
                 stdout(),
                 Matchers.containsString(
-                        "connect foo operation failed due to SomeException\njava.lang.NullPointerException: SomeException"));
+                        "list localhost operation failed due to SomeException\njava.lang.NullPointerException: SomeException"));
 
         verify(mockRegistry).validate("help", new String[0]);
-        verify(mockRegistry).validate("connect", new String[] {"foo"});
-        verify(mockRegistry).validate("disconnect", new String[0]);
+        verify(mockRegistry).validate("list", new String[] {"localhost"});
+        verify(mockRegistry).validate("ping", new String[0]);
         verify(mockRegistry).validate("exit", new String[0]);
 
         InOrder inOrder = inOrder(mockRegistry);
         inOrder.verify(mockRegistry).execute("help", new String[0]);
-        inOrder.verify(mockRegistry).execute("connect", new String[] {"foo"});
-        inOrder.verify(mockRegistry).execute("disconnect", new String[0]);
+        inOrder.verify(mockRegistry).execute("list", new String[] {"localhost"});
+        inOrder.verify(mockRegistry).execute("ping", new String[0]);
         inOrder.verify(mockRegistry).execute("exit", new String[0]);
 
         verifyNoMoreInteractions(mockClientReader);

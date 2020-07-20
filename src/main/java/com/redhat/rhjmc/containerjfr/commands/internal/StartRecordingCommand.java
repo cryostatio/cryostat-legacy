@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.StringJoiner;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -135,33 +137,39 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
     }
 
     @Override
-    public boolean validate(String[] args) {
+    public void validate(String[] args) throws FailedValidationException {
         if (args.length != 3) {
-            cw.println(
-                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and event types");
-            return false;
+            String errorMessage =
+                    "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and event types";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];
         String name = args[1];
         String events = args[2];
+        StringJoiner combinedErrorMessage = new StringJoiner("; ");
 
-        boolean isValidTargetId = validateTargetId(targetId);
-        boolean isValidName = validateRecordingName(name);
-        boolean isValidEvents = validateEvents(events);
-
-        if (!isValidTargetId) {
-            cw.println(String.format("%s is an invalid connection specifier", args[0]));
+        if (!validateTargetId(targetId)) {
+            String errorMessage = String.format("%s is an invalid connection specifier", targetId);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        if (!isValidName) {
-            cw.println(String.format("%s is an invalid recording name", name));
+        if (!validateRecordingName(name)) {
+            String errorMessage = String.format("%s is an invalid recording name", name);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        if (!isValidEvents) {
-            cw.println(String.format("%s is an invalid events specifier", events));
+        if (!validateEvents(events)) {
+            String errorMessage = String.format("%s is an invalid events specifier", events);
+            cw.println(errorMessage);
+            combinedErrorMessage.add(errorMessage);
         }
 
-        return isValidTargetId && isValidName && isValidEvents;
+        if (combinedErrorMessage.length() > 0) {
+            throw new FailedValidationException(combinedErrorMessage.toString());
+        }
     }
 }
