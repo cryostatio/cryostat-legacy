@@ -57,7 +57,13 @@ WebSocket mode with a web frontend.
 
 The `run.sh` script can be used to spin up a `podman` container of the Container
 JFR Client, running alone but set up so that it is able to introspect itself
-with JFR. This can be achieved by doing `sh run.sh -it`.
+with JFR. This can be achieved by running `sh run.sh` and connecting to
+Container JFR in a separate terminal using
+[websocat](https://github.com/vi/websocat). The WebSocket URL to connect to can
+be found by running `curl localhost:8181/api/v1/clienturl`. Once you are
+connected, you can issue commands by entering them into the websocat client in
+JSON form. For example, `{command:ping}` or
+`{command:dump,args:[localhost,foo,10,"template=Continuous"]}`.
 
 There are six network-related environment variables that the client checks
 during its runtime:
