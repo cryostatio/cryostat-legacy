@@ -109,10 +109,14 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                 if (!"basic".equals(t.toLowerCase())) {
                     throw new HttpStatusException(400, "Unacceptable PROXY_AUTHORIZATION type");
                 } else {
-                    String c =
-                            new String(
-                                    Base64.getDecoder().decode(m.group("credentials")),
-                                    StandardCharsets.UTF_8);
+                    String c;
+                    try {
+                        c = new String(
+                                Base64.getDecoder().decode(m.group("credentials")),
+                                StandardCharsets.UTF_8);
+                    } catch (IllegalArgumentException iae) {
+                        throw new HttpStatusException(400, "PROXY_AUTHORIZATION credentials do not appear to be Base64-encoded", iae);
+                    }
                     if (!c.contains(":")) {
                         throw new HttpStatusException(
                                 400, "Unrecognized PROXY_AUTHORIZATION credential format");
