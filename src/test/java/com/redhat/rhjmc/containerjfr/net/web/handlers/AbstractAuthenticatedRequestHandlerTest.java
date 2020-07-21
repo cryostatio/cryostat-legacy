@@ -50,22 +50,34 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.jmc.rjmx.ConnectionException;
 
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractAuthenticatedRequestHandlerTest {
 
-    AuthenticatedHandler handler;
+    RequestHandler handler;
+    @Mock RoutingContext ctx;
     @Mock AuthManager auth;
 
     @BeforeEach
@@ -78,8 +90,6 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
-        RoutingContext ctx = mock(RoutingContext.class);
-
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
@@ -90,11 +100,177 @@ class AbstractAuthenticatedRequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
-        RoutingContext ctx = mock(RoutingContext.class);
-
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+    }
+
+    @Nested
+    class WithHandlerThrownException {
+
+        @BeforeEach
+        void setup2() {
+            when(auth.validateHttpHeader(Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+        }
+
+        @Test
+        void shouldPropagateIfHandlerThrowsHttpStatusException() {
+            Exception expectedException = new HttpStatusException(200);
+            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex, Matchers.sameInstance(expectedException));
+        }
+
+        @Test
+        void shouldThrow404IfConnectionFails() {
+            Exception expectedException = new ConnectionException("");
+            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        }
+
+        @Test
+        void shouldThrow407IfConnectionFailsDueToTargetAuth() {
+            Exception cause = new SecurityException();
+            Exception expectedException = new ConnectionException("");
+            expectedException.initCause(cause);
+            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+
+            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+            Mockito.when(ctx.response()).thenReturn(resp);
+
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(407));
+            Mockito.verify(resp).putHeader(HttpHeaders.PROXY_AUTHENTICATE, "Basic");
+        }
+
+        @Test
+        void shouldThrow500IfHandlerThrowsUnexpectedly() {
+            Exception expectedException = new NullPointerException();
+            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        }
+    }
+
+    @Nested
+    class WithTargetAuth {
+
+        ConnectionDescriptorHandler handler;
+        @Mock HttpServerRequest req;
+        @Mock MultiMap headers;
+
+        @BeforeEach
+        void setup3() {
+            handler = new ConnectionDescriptorHandler(auth);
+            Mockito.when(ctx.request()).thenReturn(req);
+            when(req.headers()).thenReturn(headers);
+            when(auth.validateHttpHeader(Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+        }
+
+        @Test
+        void shouldUseNoCredentialsWithoutAuthorizationHeader() {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(headers.contains(Mockito.any(CharSequence.class))).thenReturn(false);
+
+            handler.handle(ctx);
+            ConnectionDescriptor desc = handler.desc;
+
+            MatcherAssert.assertThat(desc.getTargetId(), Matchers.equalTo(targetId));
+            Assertions.assertFalse(desc.getCredentials().isPresent());
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "",
+            "credentialsWithoutAuthType",
+        })
+        void shouldThrow400WithMalformedAuthorizationHeader(String authHeader) {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
+            Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
+
+            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
+                    handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Invalid PROXY_AUTHORIZATION format"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "Type credentials",
+            "Bearer credentials",
+        })
+        void shouldThrow400WithBadAuthorizationType(String authHeader) {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
+            Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
+
+            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
+                    handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Unacceptable PROXY_AUTHORIZATION type"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "Basic bm9zZXBhcmF0b3I=", // credential value of "noseparator"
+            "Basic b25lOnR3bzp0aHJlZQ==", // credential value of "one:two:three"
+        })
+        void shouldThrow400WithBadCredentialFormat(String authHeader) {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
+            Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
+
+            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
+                    handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Unrecognized PROXY_AUTHORIZATION credential format"));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings = {
+            "Basic foo:bar",
+        })
+        void shouldThrow400WithUnencodedCredentials(String authHeader) {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
+            Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
+
+            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
+                    handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("PROXY_AUTHORIZATION credentials do not appear to be Base64-encoded"));
+        }
+
+        @Test
+        void shouldIncludeCredentialsFromAppropriateHeader() {
+            String targetId = "fooTarget";
+            Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
+            Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn("Basic Zm9vOmJhcg==");
+
+            Assertions.assertDoesNotThrow(() -> handler.handle(ctx));
+            ConnectionDescriptor desc = handler.desc;
+
+            MatcherAssert.assertThat(desc.getTargetId(), Matchers.equalTo(targetId));
+            Assertions.assertTrue(desc.getCredentials().isPresent());
+        }
+
     }
 
     static class AuthenticatedHandler extends AbstractAuthenticatedRequestHandler {
@@ -113,6 +289,33 @@ class AbstractAuthenticatedRequestHandlerTest {
         }
 
         @Override
-        void handleAuthenticated(RoutingContext ctx) {}
+        void handleAuthenticated(RoutingContext ctx) throws Exception {}
+    }
+
+    static class ThrowingAuthenticatedHandler extends AuthenticatedHandler {
+        private final Exception thrown;
+
+        ThrowingAuthenticatedHandler(AuthManager auth, Exception thrown) {
+            super(auth);
+            this.thrown = thrown;
+        }
+
+        @Override
+        void handleAuthenticated(RoutingContext ctx) throws Exception {
+            throw thrown;
+        }
+    }
+
+    static class ConnectionDescriptorHandler extends AuthenticatedHandler {
+        ConnectionDescriptor desc;
+
+        ConnectionDescriptorHandler(AuthManager auth) {
+            super(auth);
+        }
+
+        @Override
+        void handleAuthenticated(RoutingContext ctx) throws Exception {
+            desc = getConnectionDescriptorFromContext(ctx);
+        }
     }
 }
