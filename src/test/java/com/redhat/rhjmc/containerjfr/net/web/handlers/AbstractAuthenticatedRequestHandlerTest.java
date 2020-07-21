@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
@@ -54,14 +53,13 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.openjdk.jmc.rjmx.ConnectionException;
 
-import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 
@@ -191,70 +189,81 @@ class AbstractAuthenticatedRequestHandlerTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-            "",
-            "credentialsWithoutAuthType",
-        })
+        @ValueSource(
+                strings = {
+                    "",
+                    "credentialsWithoutAuthType",
+                })
         void shouldThrow400WithMalformedAuthorizationHeader(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
             Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
 
-            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
-                    handler.handle(ctx));
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Invalid PROXY_AUTHORIZATION format"));
+            MatcherAssert.assertThat(
+                    ex.getPayload(), Matchers.equalTo("Invalid PROXY_AUTHORIZATION format"));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-            "Type credentials",
-            "Bearer credentials",
-        })
+        @ValueSource(
+                strings = {
+                    "Type credentials",
+                    "Bearer credentials",
+                })
         void shouldThrow400WithBadAuthorizationType(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
             Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
 
-            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
-                    handler.handle(ctx));
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Unacceptable PROXY_AUTHORIZATION type"));
+            MatcherAssert.assertThat(
+                    ex.getPayload(), Matchers.equalTo("Unacceptable PROXY_AUTHORIZATION type"));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-            "Basic bm9zZXBhcmF0b3I=", // credential value of "noseparator"
-            "Basic b25lOnR3bzp0aHJlZQ==", // credential value of "one:two:three"
-        })
+        @ValueSource(
+                strings = {
+                    "Basic bm9zZXBhcmF0b3I=", // credential value of "noseparator"
+                    "Basic b25lOnR3bzp0aHJlZQ==", // credential value of "one:two:three"
+                })
         void shouldThrow400WithBadCredentialFormat(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
             Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
 
-            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
-                    handler.handle(ctx));
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Unrecognized PROXY_AUTHORIZATION credential format"));
+            MatcherAssert.assertThat(
+                    ex.getPayload(),
+                    Matchers.equalTo("Unrecognized PROXY_AUTHORIZATION credential format"));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-            "Basic foo:bar",
-        })
+        @ValueSource(
+                strings = {
+                    "Basic foo:bar",
+                })
         void shouldThrow400WithUnencodedCredentials(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
             Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(authHeader);
 
-            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () ->
-                    handler.handle(ctx));
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("PROXY_AUTHORIZATION credentials do not appear to be Base64-encoded"));
+            MatcherAssert.assertThat(
+                    ex.getPayload(),
+                    Matchers.equalTo(
+                            "PROXY_AUTHORIZATION credentials do not appear to be Base64-encoded"));
         }
 
         @Test
@@ -262,7 +271,8 @@ class AbstractAuthenticatedRequestHandlerTest {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(headers.contains(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn(true);
-            Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION)).thenReturn("Basic Zm9vOmJhcg==");
+            Mockito.when(req.getHeader(HttpHeaders.PROXY_AUTHORIZATION))
+                    .thenReturn("Basic Zm9vOmJhcg==");
 
             Assertions.assertDoesNotThrow(() -> handler.handle(ctx));
             ConnectionDescriptor desc = handler.desc;
@@ -270,7 +280,6 @@ class AbstractAuthenticatedRequestHandlerTest {
             MatcherAssert.assertThat(desc.getTargetId(), Matchers.equalTo(targetId));
             Assertions.assertTrue(desc.getCredentials().isPresent());
         }
-
     }
 
     static class AuthenticatedHandler extends AbstractAuthenticatedRequestHandler {

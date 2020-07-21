@@ -111,11 +111,15 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                 } else {
                     String c;
                     try {
-                        c = new String(
-                                Base64.getDecoder().decode(m.group("credentials")),
-                                StandardCharsets.UTF_8);
+                        c =
+                                new String(
+                                        Base64.getDecoder().decode(m.group("credentials")),
+                                        StandardCharsets.UTF_8);
                     } catch (IllegalArgumentException iae) {
-                        throw new HttpStatusException(400, "PROXY_AUTHORIZATION credentials do not appear to be Base64-encoded", iae);
+                        throw new HttpStatusException(
+                                400,
+                                "PROXY_AUTHORIZATION credentials do not appear to be Base64-encoded",
+                                iae);
                     }
                     String[] parts = c.split(":");
                     if (parts.length != 2) {
