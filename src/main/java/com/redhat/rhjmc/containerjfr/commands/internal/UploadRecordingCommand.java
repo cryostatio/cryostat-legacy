@@ -211,7 +211,10 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         boolean isValidDatasourceUrl =
                 new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(datasourceUrl);
         if (!isValidDatasourceUrl) {
-            String errorMessage = String.format("$%s=%s is an invalid datasource URL", GRAFANA_DATASOURCE_ENV, datasourceUrl);
+            String errorMessage =
+                    String.format(
+                            "$%s=%s is an invalid datasource URL",
+                            GRAFANA_DATASOURCE_ENV, datasourceUrl);
             cw.println(errorMessage);
             combinedErrorMessage.add(errorMessage);
         }
