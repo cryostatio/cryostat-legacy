@@ -73,7 +73,9 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
@@ -106,11 +108,15 @@ class TargetEventsGetHandlerTest {
     void shouldRespondWithErrorIfExceptionThrown() throws Exception {
         Mockito.when(
                         connectionManager.executeConnectedTask(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(ConnectedTask.class)))
                 .thenThrow(new Exception("dummy exception"));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(new CaseInsensitiveHeaders());
 
         Assertions.assertThrows(Exception.class, () -> handler.handleAuthenticated(ctx));
     }
@@ -152,6 +158,9 @@ class TargetEventsGetHandlerTest {
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(new CaseInsensitiveHeaders());
 
         handler.handleAuthenticated(ctx);
 

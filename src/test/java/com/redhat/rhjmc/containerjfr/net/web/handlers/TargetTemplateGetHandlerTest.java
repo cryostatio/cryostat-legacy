@@ -66,8 +66,10 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
+import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -105,6 +107,9 @@ class TargetTemplateGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("localhost");
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
         Mockito.when(ctx.pathParam("templateType")).thenReturn("CUSTOM");
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(new CaseInsensitiveHeaders());
 
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -121,6 +126,9 @@ class TargetTemplateGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("localhost");
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
         Mockito.when(ctx.pathParam("templateType")).thenReturn("TARGET");
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(new CaseInsensitiveHeaders());
 
         Mockito.when(conn.getTemplateService()).thenReturn(templateService);
         Mockito.when(templateService.getXml("FooTemplate", TemplateType.TARGET))
@@ -151,6 +159,9 @@ class TargetTemplateGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("localhost");
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
         Mockito.when(ctx.pathParam("templateType")).thenReturn("CUSTOM");
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(new CaseInsensitiveHeaders());
 
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
