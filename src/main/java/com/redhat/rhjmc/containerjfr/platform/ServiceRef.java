@@ -49,16 +49,14 @@ public class ServiceRef {
 
     private final String connectUrl;
     private final String alias;
-    private final int port;
 
-    public ServiceRef(String connectUrl, int port) {
-        this(connectUrl, connectUrl, port);
+    public ServiceRef(String connectUrl) {
+        this(connectUrl, connectUrl);
     }
 
-    public ServiceRef(String connectUrl, String alias, int port) {
+    public ServiceRef(String connectUrl, String alias) {
         this.connectUrl = connectUrl;
         this.alias = alias;
-        this.port = port;
     }
 
     public String getConnectUrl() {
@@ -67,10 +65,6 @@ public class ServiceRef {
 
     public String getAlias() {
         return alias;
-    }
-
-    public int getPort() {
-        return port;
     }
 
     @Override

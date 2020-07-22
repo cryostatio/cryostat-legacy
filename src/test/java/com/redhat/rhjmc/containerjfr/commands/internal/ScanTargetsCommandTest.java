@@ -102,9 +102,9 @@ class ScanTargetsCommandTest {
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(getMockServices());
         command.execute(new String[0]);
         InOrder inOrder = Mockito.inOrder(cw);
-        inOrder.verify(cw).println("Host A -> aHost:1");
-        inOrder.verify(cw).println("Host B -> bHost:2");
-        inOrder.verify(cw).println("Host C -> cHost:3");
+        inOrder.verify(cw).println("Host A -> aHost");
+        inOrder.verify(cw).println("Host B -> bHost");
+        inOrder.verify(cw).println("Host C -> cHost");
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -142,9 +142,9 @@ class ScanTargetsCommandTest {
     }
 
     List<ServiceRef> getMockServices() {
-        ServiceRef mockA = new ServiceRef("aHost", "Host A", 1);
-        ServiceRef mockB = new ServiceRef("bHost", "Host B", 2);
-        ServiceRef mockC = new ServiceRef("cHost", "Host C", 3);
+        ServiceRef mockA = new ServiceRef("aHost", "Host A");
+        ServiceRef mockB = new ServiceRef("bHost", "Host B");
+        ServiceRef mockC = new ServiceRef("cHost", "Host C");
         return List.of(mockA, mockB, mockC);
     }
 }

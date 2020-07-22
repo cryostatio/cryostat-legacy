@@ -89,8 +89,8 @@ class TargetsGetHandlerTest {
     }
 
     @Test
-    void shouldReturnListOfTargets() throws Exception {
-        ServiceRef target = new ServiceRef("foo", 1);
+    void shouldReturnListOfTargets() {
+        ServiceRef target = new ServiceRef("foo");
         List<ServiceRef> targets = Collections.singletonList(target);
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(targets);
 

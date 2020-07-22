@@ -101,12 +101,7 @@ class OpenShiftPlatformClient implements PlatformClient {
 
     private List<ServiceRef> createServiceRefs(EndpointSubset subset, EndpointPort port) {
         return subset.getAddresses().stream()
-                .map(
-                        addr ->
-                                new ServiceRef(
-                                        addr.getIp(),
-                                        addr.getTargetRef().getName(),
-                                        port.getPort()))
+                .map(addr -> new ServiceRef(addr.getIp(), addr.getTargetRef().getName()))
                 .collect(Collectors.toList());
     }
 

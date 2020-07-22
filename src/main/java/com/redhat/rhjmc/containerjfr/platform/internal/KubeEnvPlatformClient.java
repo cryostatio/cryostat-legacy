@@ -76,7 +76,6 @@ class KubeEnvPlatformClient implements PlatformClient {
             return null;
         }
         String alias = matcher.group(1).toLowerCase();
-        int port = Integer.parseInt(matcher.group(2));
-        return new ServiceRef(entry.getValue(), alias, port);
+        return new ServiceRef(entry.getValue(), alias);
     }
 }

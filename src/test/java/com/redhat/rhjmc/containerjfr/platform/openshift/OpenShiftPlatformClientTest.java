@@ -148,10 +148,8 @@ class OpenShiftPlatformClientTest {
         Mockito.when(address4.getTargetRef()).thenReturn(objRef4);
 
         EndpointPort port1 = Mockito.mock(EndpointPort.class);
-        Mockito.when(port1.getPort()).thenReturn(80);
         Mockito.when(port1.getName()).thenReturn("tcp-80");
         EndpointPort port2 = Mockito.mock(EndpointPort.class);
-        Mockito.when(port2.getPort()).thenReturn(9999);
         Mockito.when(port2.getName()).thenReturn("jfr-jmx");
         EndpointPort port3 = Mockito.mock(EndpointPort.class);
         Mockito.when(port3.getPort()).thenReturn(9091);
@@ -178,18 +176,10 @@ class OpenShiftPlatformClientTest {
                 result,
                 Matchers.equalTo(
                         Arrays.asList(
+                                new ServiceRef(address2.getIp(), address2.getTargetRef().getName()),
+                                new ServiceRef(address3.getIp(), address3.getTargetRef().getName()),
                                 new ServiceRef(
-                                        address2.getIp(),
-                                        address2.getTargetRef().getName(),
-                                        port2.getPort()),
-                                new ServiceRef(
-                                        address3.getIp(),
-                                        address3.getTargetRef().getName(),
-                                        port2.getPort()),
-                                new ServiceRef(
-                                        address4.getIp(),
-                                        address4.getTargetRef().getName(),
-                                        port3.getPort()))));
+                                        address4.getIp(), address4.getTargetRef().getName()))));
     }
 
     private void setMockNamespace(String namespace) throws IOException {

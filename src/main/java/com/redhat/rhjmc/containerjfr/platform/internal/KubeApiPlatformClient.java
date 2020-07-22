@@ -80,13 +80,7 @@ class KubeApiPlatformClient implements PlatformClient {
                     .map(V1Service::getSpec)
                     .peek(spec -> logger.trace("Service spec: " + spec.toString()))
                     .filter(s -> s.getPorts() != null)
-                    .flatMap(
-                            s ->
-                                    s.getPorts().stream()
-                                            .map(
-                                                    p ->
-                                                            new ServiceRef(
-                                                                    s.getClusterIP(), p.getPort())))
+                    .flatMap(s -> s.getPorts().stream().map(p -> new ServiceRef(s.getClusterIP())))
                     .parallel()
                     .map(this::resolveServiceRefHostname)
                     .filter(Objects::nonNull)
@@ -105,7 +99,7 @@ class KubeApiPlatformClient implements PlatformClient {
         try {
             String hostname = resolver.resolveCanonicalHostName(in.getConnectUrl());
             logger.debug(String.format("Resolved %s to %s", in.getConnectUrl(), hostname));
-            return new ServiceRef(hostname, in.getPort());
+            return new ServiceRef(hostname);
         } catch (Exception e) {
             logger.debug(e);
             return null;

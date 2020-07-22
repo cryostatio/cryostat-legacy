@@ -100,8 +100,7 @@ class KubeEnvPlatformClientTest {
             MatcherAssert.assertThat(
                     services,
                     Matchers.containsInAnyOrder(
-                            new ServiceRef("127.0.0.1", "foo", 1234),
-                            new ServiceRef("1.2.3.4", "bar", 9999)));
+                            new ServiceRef("127.0.0.1", "foo"), new ServiceRef("1.2.3.4", "bar")));
             MatcherAssert.assertThat(services, Matchers.hasSize(2));
             verifyNoMoreInteractions(env);
         }
