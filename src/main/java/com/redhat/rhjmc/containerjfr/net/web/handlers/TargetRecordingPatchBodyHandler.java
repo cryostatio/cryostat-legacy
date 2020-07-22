@@ -43,61 +43,38 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.CorsHandler;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class CorsEnablingHandler implements RequestHandler {
-    protected static final String DEV_ORIGIN = "http://localhost:9000";
-    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_CORS_ORIGIN";
-    protected final CorsHandler corsHandler;
-    protected final Environment env;
+class TargetRecordingPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
+
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    CorsEnablingHandler(Environment env) {
-        this.env = env;
-        this.corsHandler =
-                CorsHandler.create(getOrigin())
-                        .allowedHeader("Authorization")
-                        .allowedMethod(HttpMethod.GET)
-                        .allowedMethod(HttpMethod.POST)
-                        .allowedMethod(HttpMethod.PATCH)
-                        .allowedMethod(HttpMethod.OPTIONS)
-                        .allowedMethod(HttpMethod.HEAD)
-                        .allowedMethod(HttpMethod.DELETE)
-                        .allowCredentials(true)
-                        .exposedHeader(WebServer.AUTH_SCHEME_HEADER);
+    TargetRecordingPatchBodyHandler(AuthManager auth) {
+        super(auth);
     }
 
     @Override
     public int getPriority() {
-        return 0;
-    }
-
-    @Override
-    public boolean isAvailable() {
-        return this.env.hasEnv(ENABLE_CORS_ENV);
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.OTHER; // unused for ALL_PATHS handlers
+        return HttpMethod.PATCH;
     }
 
     @Override
     public String path() {
-        return ALL_PATHS;
+        return "/api/v1/targets/:targetId/recordings/:recordingName";
     }
 
     @Override
-    public void handle(RoutingContext ctx) {
-        this.corsHandler.handle(ctx);
-    }
-
-    String getOrigin() {
-        return this.env.getEnv(ENABLE_CORS_ENV, DEV_ORIGIN);
+    void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }
