@@ -47,6 +47,7 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -83,9 +84,7 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
         String mtd = ctx.getBodyAsString();
 
         if (mtd == null) {
-            ctx.response().setStatusCode(400);
-            ctx.response().end("Unsupported null operation");
-            return;
+            throw new HttpStatusException(400, "Unsupported null operation");
         }
         switch (mtd.toLowerCase()) {
             case "save":
@@ -95,9 +94,7 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
                 patchStop.handle(ctx);
                 break;
             default:
-                ctx.response().setStatusCode(400);
-                ctx.response().end("Unsupported operation " + mtd);
-                break;
+                throw new HttpStatusException(400, "Unsupported operation " + mtd);
         }
     }
 }
