@@ -114,6 +114,12 @@ public abstract class RequestHandlersModule {
                 fs, recordingsPath, targetConnectionManager, clock, logger);
     }
 
+    @Provides
+    TargetRecordingPatchStop provideTargetRecordingPatchStop(
+            TargetConnectionManager targetConnectionManager) {
+        return new TargetRecordingPatchStop(targetConnectionManager);
+    }
+
     @Binds
     @IntoSet
     abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);

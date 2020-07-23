@@ -41,63 +41,56 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.Optional;
+
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.vertx.core.http.HttpMethod;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingPatchStop {
 
-    protected final TargetRecordingPatchSave patchSave;
-    protected final TargetRecordingPatchStop patchStop;
+    protected final TargetConnectionManager targetConnectionManager;
 
     @Inject
-    TargetRecordingPatchHandler(
-            AuthManager auth,
-            TargetRecordingPatchSave patchSave,
-            TargetRecordingPatchStop patchStop) {
-        super(auth);
-        this.patchSave = patchSave;
-        this.patchStop = patchStop;
+    TargetRecordingPatchStop(TargetConnectionManager targetConnectionManager) {
+        this.targetConnectionManager = targetConnectionManager;
     }
 
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.PATCH;
-    }
+    void handle(RoutingContext ctx) {
+        String targetId = ctx.pathParam("targetId");
+        String recordingName = ctx.pathParam("recordingName");
 
-    @Override
-    public String path() {
-        return "/api/v1/targets/:targetId/recordings/:recordingName";
-    }
-
-    @Override
-    public boolean isAsync() {
-        return false;
-    }
-
-    @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        String mtd = ctx.getBodyAsString();
-
-        if (mtd == null) {
-            ctx.response().setStatusCode(400);
-            ctx.response().end("Unsupported null operation");
-            return;
-        }
-        switch (mtd.toLowerCase()) {
-            case "save":
-                patchSave.handle(ctx);
-                break;
-            case "stop":
-                patchStop.handle(ctx);
-                break;
-            default:
-                ctx.response().setStatusCode(400);
-                ctx.response().end("Unsupported operation " + mtd);
-                break;
+        try {
+            targetConnectionManager.executeConnectedTask(
+                    targetId,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                connection.getService().getAvailableRecordings().stream()
+                                        .filter(
+                                                recording ->
+                                                        recording.getName().equals(recordingName))
+                                        .findFirst();
+                        if (descriptor.isPresent()) {
+                            connection.getService().stop(descriptor.get());
+                            return null;
+                        } else {
+                            throw new HttpStatusException(
+                                    404,
+                                    String.format(
+                                            "Recording with name \"%s\" not found", recordingName));
+                        }
+                    });
+            ctx.response().setStatusCode(200);
+            ctx.response().end();
+        } catch (HttpStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e);
         }
     }
 }
