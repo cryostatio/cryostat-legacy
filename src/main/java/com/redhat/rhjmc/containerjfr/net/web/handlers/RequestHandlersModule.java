@@ -162,6 +162,15 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindTargetRecordingsPostBodyHandler(
+            TargetRecordingsPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingsPostHandler(TargetRecordingsPostHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindTargetTemplatesGetHandler(TargetTemplatesGetHandler handler);
 
     @Binds
@@ -170,7 +179,7 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTemplatesBodyHandler(TemplatesBodyHandler handler);
+    abstract RequestHandler bindTemplatesPostBodyHandler(TemplatesPostBodyHandler handler);
 
     @Binds
     @IntoSet

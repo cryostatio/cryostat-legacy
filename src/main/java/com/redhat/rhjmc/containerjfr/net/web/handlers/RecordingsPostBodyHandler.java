@@ -66,7 +66,7 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return "/api/v1/recordings";
+        return RecordingsPostHandler.PATH;
     }
 
     @Override

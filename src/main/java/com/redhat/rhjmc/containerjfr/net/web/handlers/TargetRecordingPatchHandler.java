@@ -51,6 +51,8 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
+    static final String PATH = "/api/v1/targets/:targetId/recordings/:recordingName";
+
     protected final TargetRecordingPatchSave patchSave;
     protected final TargetRecordingPatchStop patchStop;
 
@@ -71,7 +73,7 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return "/api/v1/targets/:targetId/recordings/:recordingName";
+        return PATH;
     }
 
     @Override

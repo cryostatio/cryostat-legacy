@@ -49,13 +49,14 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class TemplatesBodyHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
+    private final BodyHandler bodyHandler;
 
     @Inject
-    TemplatesBodyHandler(AuthManager auth) {
+    TargetRecordingsPostBodyHandler(AuthManager auth) {
         super(auth);
+        this.bodyHandler = BodyHandler.create(true);
     }
 
     @Override
@@ -70,11 +71,11 @@ class TemplatesBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return "/api/v1/templates";
+        return TargetRecordingsPostHandler.PATH;
     }
 
     @Override
     void handleAuthenticated(RoutingContext ctx) {
-        BODY_HANDLER.handle(ctx);
+        this.bodyHandler.handle(ctx);
     }
 }

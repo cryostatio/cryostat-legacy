@@ -70,7 +70,7 @@ class TargetRecordingPatchBodyHandler extends AbstractAuthenticatedRequestHandle
 
     @Override
     public String path() {
-        return "/api/v1/targets/:targetId/recordings/:recordingName";
+        return TargetRecordingPatchHandler.PATH;
     }
 
     @Override

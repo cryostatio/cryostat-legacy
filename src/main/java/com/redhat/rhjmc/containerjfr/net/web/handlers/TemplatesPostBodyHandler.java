@@ -39,15 +39,42 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.commands.internal;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import javax.inject.Inject;
 
-// FIXME this should be in a more general package, not commands/internal. This is also used in
-// net/web/handlers, for example
-public interface RecordingOptionsBuilderFactory {
-    RecordingOptionsBuilder create(IFlightRecorderService service)
-            throws QuantityConversionException;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
+
+class TemplatesPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
+
+    @Inject
+    TemplatesPostBodyHandler(AuthManager auth) {
+        super(auth);
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public String path() {
+        return TemplatesPostHandler.PATH;
+    }
+
+    @Override
+    void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
+    }
 }

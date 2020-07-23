@@ -77,6 +77,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(.[\\d]+)?");
 
+    static final String PATH = "/api/v1/recordings";
+
     private final Vertx vertx;
     private final FileSystem fs;
     private final Path savedRecordingsPath;
@@ -111,7 +113,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return "/api/v1/recordings";
+        return PATH;
     }
 
     @Override

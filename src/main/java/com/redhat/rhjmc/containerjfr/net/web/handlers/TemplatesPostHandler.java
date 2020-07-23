@@ -61,6 +61,8 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
+    static final String PATH = "/api/v1/templates";
+
     private final LocalStorageTemplateService templateService;
     private final FileSystem fs;
     private final Logger logger;
@@ -84,7 +86,7 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return "/api/v1/templates";
+        return PATH;
     }
 
     @Override
