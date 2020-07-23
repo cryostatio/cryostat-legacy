@@ -63,18 +63,16 @@ import io.fabric8.openshift.client.OpenShiftClient;
 
 class OpenShiftPlatformClient implements PlatformClient {
 
-    private final Logger logger;
     private final OpenShiftClient osClient;
     private final FileSystem fs;
 
-    OpenShiftPlatformClient(Logger logger, OpenShiftClient osClient, FileSystem fs) {
-        this.logger = logger;
+    OpenShiftPlatformClient(OpenShiftClient osClient, FileSystem fs) {
         this.osClient = osClient;
         this.fs = fs;
     }
 
     @Override
-    public List<ServiceRef> listDiscoverableServices() {
+    public List<ServiceRef> listDiscoverableServices(Logger logger) {
         try {
             List<ServiceRef> refs = new ArrayList<>();
             osClient.endpoints().inNamespace(getNamespace()).list().getItems().stream()
@@ -87,7 +85,8 @@ class OpenShiftPlatformClient implements PlatformClient {
                                                     port ->
                                                             refs.addAll(
                                                                     createServiceRefs(
-                                                                            subset, port))));
+                                                                            logger, subset,
+                                                                            port))));
             return refs;
         } catch (Exception e) {
             logger.error(e);
@@ -99,9 +98,21 @@ class OpenShiftPlatformClient implements PlatformClient {
         return "jfr-jmx".equals(port.getName()) || 9091 == port.getPort();
     }
 
-    private List<ServiceRef> createServiceRefs(EndpointSubset subset, EndpointPort port) {
+    private List<ServiceRef> createServiceRefs(
+            Logger logger, EndpointSubset subset, EndpointPort port) {
         return subset.getAddresses().stream()
-                .map(addr -> new ServiceRef(addr.getIp(), addr.getTargetRef().getName()))
+                .map(
+                        addr -> {
+                            try {
+                                return new ServiceRef(
+                                        addr.getIp(),
+                                        addr.getTargetRef().getName(),
+                                        port.getPort());
+                            } catch (Exception e) {
+                                logger.info(e);
+                                return null;
+                            }
+                        })
                 .collect(Collectors.toList());
     }
 

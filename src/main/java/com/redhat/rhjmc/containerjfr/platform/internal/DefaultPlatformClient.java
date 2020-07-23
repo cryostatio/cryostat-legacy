@@ -52,22 +52,19 @@ import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 class DefaultPlatformClient implements PlatformClient {
 
-    private final Logger log;
     private final JvmDiscoveryClient discoveryClient;
 
-    DefaultPlatformClient(Logger log, JvmDiscoveryClient discoveryClient) {
-        this.log = log;
+    DefaultPlatformClient(JvmDiscoveryClient discoveryClient) {
         this.discoveryClient = discoveryClient;
     }
 
     @Override
-    public List<ServiceRef> listDiscoverableServices() {
+    public List<ServiceRef> listDiscoverableServices(Logger log) {
         return discoveryClient.getDiscoveredJvmDescriptors().stream()
                 .map(
                         u -> {
                             try {
-                                return new ServiceRef(
-                                        u.getJmxServiceUrl().toString(), u.getMainClass());
+                                return new ServiceRef(u.getJmxServiceUrl(), u.getMainClass());
                             } catch (MalformedURLException e) {
                                 log.info(e);
                                 return null;

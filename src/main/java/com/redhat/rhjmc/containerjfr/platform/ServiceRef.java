@@ -41,26 +41,33 @@
  */
 package com.redhat.rhjmc.containerjfr.platform;
 
+import javax.management.remote.JMXServiceURL;
+
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class ServiceRef {
 
-    private final String connectUrl;
+    private final JMXServiceURL JMXServiceURL;
     private final String alias;
 
-    public ServiceRef(String connectUrl) {
-        this(connectUrl, connectUrl);
+    public ServiceRef(JMXServiceURL JMXServiceURL) {
+        this(JMXServiceURL, JMXServiceURL.toString());
     }
 
-    public ServiceRef(String connectUrl, String alias) {
-        this.connectUrl = connectUrl;
+    public ServiceRef(JMXServiceURL JMXServiceURL, String alias) {
+        this.JMXServiceURL = JMXServiceURL;
         this.alias = alias;
     }
 
-    public String getConnectUrl() {
-        return connectUrl;
+    public ServiceRef(String host, String alias, int port) throws Exception {
+        this.JMXServiceURL = new JMXServiceURL(null, host, port);
+        this.alias = alias;
+    }
+
+    public JMXServiceURL getJMXServiceUrl() {
+        return JMXServiceURL;
     }
 
     public String getAlias() {

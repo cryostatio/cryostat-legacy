@@ -79,7 +79,7 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-        return new DefaultPlatformClient(logger, discoveryClient);
+        return new DefaultPlatformClient(discoveryClient);
     }
 
     @Override
