@@ -45,7 +45,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
@@ -56,13 +55,11 @@ class ScanTargetsCommand implements SerializableCommand {
 
     private final PlatformClient platformClient;
     private final ClientWriter cw;
-    private final Logger logger;
 
     @Inject
-    ScanTargetsCommand(PlatformClient platformClient, ClientWriter cw, Logger logger) {
+    ScanTargetsCommand(PlatformClient platformClient, ClientWriter cw) {
         this.platformClient = platformClient;
         this.cw = cw;
-        this.logger = logger;
     }
 
     @Override
@@ -87,7 +84,7 @@ class ScanTargetsCommand implements SerializableCommand {
     @Override
     public void execute(String[] args) throws Exception {
         platformClient
-                .listDiscoverableServices(logger)
+                .listDiscoverableServices()
                 .forEach(
                         s ->
                                 cw.println(
@@ -99,7 +96,7 @@ class ScanTargetsCommand implements SerializableCommand {
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
-            return new ListOutput<>(platformClient.listDiscoverableServices(logger));
+            return new ListOutput<>(platformClient.listDiscoverableServices());
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

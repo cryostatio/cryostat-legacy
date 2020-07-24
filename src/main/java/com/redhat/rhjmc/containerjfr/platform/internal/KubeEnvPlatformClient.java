@@ -66,7 +66,7 @@ class KubeEnvPlatformClient implements PlatformClient {
     }
 
     @Override
-    public List<ServiceRef> listDiscoverableServices(Logger logger) {
+    public List<ServiceRef> listDiscoverableServices() {
         return env.getEnv().entrySet().stream()
                 .map(this::envToServiceRef)
                 .filter(Objects::nonNull)
@@ -81,9 +81,9 @@ class KubeEnvPlatformClient implements PlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
-            return new ServiceRef(entry.getValue(), alias, port);
+            return new ServiceRef(entry.getValue(), port, alias);
         } catch (Exception e) {
-            logger.info(e);
+            logger.warn(e);
             return null;
         }
     }

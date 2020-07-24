@@ -108,7 +108,7 @@ public class OpenShiftPlatformStrategy
     @Override
     public OpenShiftPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new OpenShiftPlatformClient(osClient, fs);
+        return new OpenShiftPlatformClient(osClient, fs, logger);
     }
 
     @Override

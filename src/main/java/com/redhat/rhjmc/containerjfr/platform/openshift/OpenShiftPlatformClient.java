@@ -65,14 +65,16 @@ class OpenShiftPlatformClient implements PlatformClient {
 
     private final OpenShiftClient osClient;
     private final FileSystem fs;
+    private final Logger logger;
 
-    OpenShiftPlatformClient(OpenShiftClient osClient, FileSystem fs) {
+    OpenShiftPlatformClient(OpenShiftClient osClient, FileSystem fs, Logger logger) {
         this.osClient = osClient;
         this.fs = fs;
+        this.logger = logger;
     }
 
     @Override
-    public List<ServiceRef> listDiscoverableServices(Logger logger) {
+    public List<ServiceRef> listDiscoverableServices() {
         try {
             List<ServiceRef> refs = new ArrayList<>();
             osClient.endpoints().inNamespace(getNamespace()).list().getItems().stream()
@@ -106,10 +108,10 @@ class OpenShiftPlatformClient implements PlatformClient {
                             try {
                                 return new ServiceRef(
                                         addr.getIp(),
-                                        addr.getTargetRef().getName(),
-                                        port.getPort());
+                                        port.getPort(),
+                                        addr.getTargetRef().getName());
                             } catch (Exception e) {
-                                logger.info(e);
+                                logger.warn(e);
                                 return null;
                             }
                         })

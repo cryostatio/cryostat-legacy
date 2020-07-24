@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.platform;
 
+import java.util.Optional;
+
 import javax.management.remote.JMXServiceURL;
 
 import org.apache.commons.lang.builder.EqualsBuilder;
@@ -50,27 +52,27 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class ServiceRef {
 
     private final JMXServiceURL JMXServiceURL;
-    private final String alias;
+    private Optional<String> alias = Optional.empty();
 
     public ServiceRef(JMXServiceURL JMXServiceURL) {
-        this(JMXServiceURL, JMXServiceURL.toString());
+        this.JMXServiceURL = JMXServiceURL;
     }
 
     public ServiceRef(JMXServiceURL JMXServiceURL, String alias) {
         this.JMXServiceURL = JMXServiceURL;
-        this.alias = alias;
+        this.alias = Optional.of(alias);
     }
 
-    public ServiceRef(String host, String alias, int port) throws Exception {
+    public ServiceRef(String host, int port, String alias) throws Exception {
         this.JMXServiceURL = new JMXServiceURL(null, host, port);
-        this.alias = alias;
+        this.alias = Optional.of(alias);
     }
 
     public JMXServiceURL getJMXServiceUrl() {
         return JMXServiceURL;
     }
 
-    public String getAlias() {
+    public Optional<String> getAlias() {
         return alias;
     }
 

@@ -43,8 +43,6 @@ package com.redhat.rhjmc.containerjfr.platform;
 
 import java.util.List;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-
 public interface PlatformClient {
-    List<ServiceRef> listDiscoverableServices(Logger logger);
+    List<ServiceRef> listDiscoverableServices();
 }

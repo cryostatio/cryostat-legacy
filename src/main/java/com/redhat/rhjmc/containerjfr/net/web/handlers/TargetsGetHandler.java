@@ -45,7 +45,6 @@ import javax.inject.Inject;
 
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
@@ -56,14 +55,12 @@ class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final PlatformClient platformClient;
     private final Gson gson;
-    private final Logger logger;
 
     @Inject
-    TargetsGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson, Logger logger) {
+    TargetsGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
         super(auth);
         this.platformClient = platformClient;
         this.gson = gson;
-        this.logger = logger;
     }
 
     @Override
