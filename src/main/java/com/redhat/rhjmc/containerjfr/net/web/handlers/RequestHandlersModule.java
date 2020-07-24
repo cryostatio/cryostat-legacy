@@ -100,6 +100,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindTargetRecordingDeleteHandler(TargetRecordingDeleteHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindTargetRecordingPatchBodyHandler(
             TargetRecordingPatchBodyHandler handler);
 
