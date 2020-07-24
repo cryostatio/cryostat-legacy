@@ -89,7 +89,7 @@ class KubeApiPlatformClient implements PlatformClient {
                                                             return new ServiceRef(
                                                                     s.getClusterIP(),
                                                                     p.getPort(),
-                                                                    s.getClusterIP().toString());
+                                                                    resolver.resolveCanonicalHostName(s.getClusterIP()));
                                                         } catch (Exception e) {
                                                             logger.warn(e);
                                                             return null;
@@ -107,16 +107,4 @@ class KubeApiPlatformClient implements PlatformClient {
             return Collections.emptyList();
         }
     }
-    /*
-    private ServiceRef resolveServiceRefHostname(ServiceRef in) {
-        try {
-            String hostname = resolver.resolveCanonicalHostName(in.getJMXServiceUrl());
-            logger.debug(String.format("Resolved %s to %s", in.getJMXServiceUrl(), hostname));
-            return new ServiceRef(hostname);
-        } catch (Exception e) {
-            logger.debug(e);
-            return null;
-        }
-    }
-    */
 }
