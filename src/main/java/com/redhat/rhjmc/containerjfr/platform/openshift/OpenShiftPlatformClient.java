@@ -46,6 +46,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -115,6 +116,7 @@ class OpenShiftPlatformClient implements PlatformClient {
                                 return null;
                             }
                         })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

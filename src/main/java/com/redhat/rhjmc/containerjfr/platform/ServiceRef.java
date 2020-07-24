@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.platform;
 
+import java.net.MalformedURLException;
 import java.util.Optional;
 
 import javax.management.remote.JMXServiceURL;
@@ -54,18 +55,17 @@ public class ServiceRef {
     private final JMXServiceURL JMXServiceURL;
     private Optional<String> alias = Optional.empty();
 
-    public ServiceRef(JMXServiceURL JMXServiceURL) {
-        this.JMXServiceURL = JMXServiceURL;
+    public ServiceRef(JMXServiceURL jmxServiceUrl, String alias) throws MalformedURLException {
+        this.JMXServiceURL = jmxServiceUrl;
+        this.alias = Optional.ofNullable(alias);
     }
 
-    public ServiceRef(JMXServiceURL JMXServiceURL, String alias) {
-        this.JMXServiceURL = JMXServiceURL;
-        this.alias = Optional.of(alias);
+    public ServiceRef(JMXServiceURL jmxServiceUrl) throws MalformedURLException {
+        this(jmxServiceUrl, null);
     }
 
-    public ServiceRef(String host, int port, String alias) throws Exception {
-        this.JMXServiceURL = new JMXServiceURL(null, host, port);
-        this.alias = Optional.of(alias);
+    public ServiceRef(String host, int port, String alias) throws MalformedURLException {
+        this(new JMXServiceURL(null, host, port), null);
     }
 
     public JMXServiceURL getJMXServiceUrl() {
