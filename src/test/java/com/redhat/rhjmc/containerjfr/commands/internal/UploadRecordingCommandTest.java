@@ -92,7 +92,7 @@ class UploadRecordingCommandTest {
 
     static final String HOST_ID = "fooHost:9091";
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
-    static final String DATASOURCE_URL = "http://localhost:8080/load";
+    static final String DATASOURCE_URL = "http://localhost:8080";
     static final String MOCK_TARGET_ID = "someHost:9091";
     static final String MOCK_RECORDING_NAME = "fooRecording";
 
@@ -451,7 +451,8 @@ class UploadRecordingCommandTest {
 
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             Mockito.verify(webClient).postAbs(urlCaptor.capture());
-            MatcherAssert.assertThat(urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL));
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
             Mockito.verify(cw).println("[200 OK] HELLO");
         }
     }
@@ -528,7 +529,8 @@ class UploadRecordingCommandTest {
 
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             Mockito.verify(webClient).postAbs(urlCaptor.capture());
-            MatcherAssert.assertThat(urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL));
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
         }
     }
 }

@@ -110,7 +110,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     public void execute(String[] args) throws Exception {
         String targetId = args[0];
         String recordingName = args[1];
-        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV).concat("/load");
         ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
         cw.println(
                 String.format(
@@ -121,7 +121,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
     public Output<?> serializableExecute(String[] args) {
         String targetId = args[0];
         String recordingName = args[1];
-        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);
+        String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV).concat("/load");
 
         try {
             ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
