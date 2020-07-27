@@ -57,6 +57,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
@@ -68,12 +69,12 @@ import org.mockito.stubbing.Answer;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.internal.UploadRecordingCommand.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -87,32 +88,27 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
-class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordingName {
+class UploadRecordingCommandTest {
 
     static final String HOST_ID = "fooHost:9091";
-    static final String UPLOAD_URL = "http://example.com/";
+    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+    static final String DATASOURCE_URL = "http://localhost:8080";
+    static final String MOCK_TARGET_ID = "someHost:9091";
+    static final String MOCK_RECORDING_NAME = "fooRecording";
 
     UploadRecordingCommand command;
     @Mock ClientWriter cw;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock FileSystem fs;
+    @Mock Environment env;
     @Mock Path path;
     @Mock WebClient webClient;
     @Mock JFRConnection conn;
 
-    @Override
-    public Command commandForValidationTesting() {
-        return command;
-    }
-
-    @Override
-    public List<String> argumentSignature() {
-        return List.of(TARGET_ID, RECORDING_NAME, SEARCH_TERM);
-    }
-
     @BeforeEach
     void setup() {
-        this.command = new UploadRecordingCommand(cw, targetConnectionManager, fs, path, webClient);
+        this.command =
+                new UploadRecordingCommand(cw, targetConnectionManager, fs, env, path, webClient);
     }
 
     @Test
@@ -121,32 +117,173 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
     }
 
     @Test
-    void shouldBeAvailable() {
+    void shouldBeAvailableIfEnvVarExists() {
+        Mockito.when(env.hasEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(true);
         Assertions.assertTrue(command.isAvailable());
     }
 
+    @Test
+    void shouldNotBeAvailableIfNoEnvVar() {
+        Mockito.when(env.hasEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(false);
+        Assertions.assertFalse(command.isAvailable());
+    }
+
     @ParameterizedTest
-    @ValueSource(ints = {0, 1, 2, 4, 5})
+    @ValueSource(ints = {0, 1, 3, 4, 5})
     void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 Assertions.assertThrows(
                         FailedValidationException.class, () -> command.validate(new String[argc]));
         String errorMessage =
-                "Expected three arguments: target (host:port, ip:port, or JMX service URL), recording name, and upload URL";
+                "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "localhost",
+                "localhost:123",
+                "service:jmx:rmi:///localhost/jndi/rmi://localhost:fooHost/jmxrmi"
+            })
+    void shouldValidateAcceptableTargetId(String targetId) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Assertions.assertDoesNotThrow(() -> command.validate(new String[] {targetId, "foo"}));
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(
+            strings = {"localhost:", ":123", "localhost:abc", ":abc", "http:///localhost:9091"})
+    void shouldNotValidateUnacceptableTargetIds(String targetId) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {targetId, "foo"}));
+        String errorMessage = String.format("%s is an invalid connection specifier", targetId);
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "foo",
+                "some_recording",
+                "recording2",
+                "recording.jfr",
+                "1",
+                "hyphenated-name"
+            })
+    void shouldValidateAcceptableRecordingNames(String recordingName) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Assertions.assertDoesNotThrow(
+                () -> command.validate(new String[] {HOST_ID, recordingName}));
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(strings = {"a recording", ".", ".jfr"})
+    void shouldNotValidateUnacceptableRecordingNames(String recordingName) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {HOST_ID, recordingName}));
+        String errorMessage = String.format("%s is an invalid recording name", recordingName);
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {"http://localhost:8080/load", "http://localhost:8080", "http://localhost"})
+    void shouldValidateAcceptableDatasourceUrls(String datasourceUrl) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(datasourceUrl);
+        Assertions.assertDoesNotThrow(() -> command.validate(new String[] {HOST_ID, "foo"}));
+    }
+
+    @ParameterizedTest
+    @EmptySource
+    @ValueSource(
+            strings = {
+                "foo",
+                "localhost:8080",
+                "http:///localhost",
+                "http:://localhost",
+                " http://localhost",
+                "http:// localhost",
+                "http://local host"
+            })
+    void shouldNotValidateUnacceptableDatasourceUrls(String datasourceUrl) {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(datasourceUrl);
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {HOST_ID, "foo"}));
+        String errorMessage =
+                String.format(
+                        "$GRAFANA_DATASOURCE_URL=%s is an invalid datasource URL", datasourceUrl);
         Mockito.verify(cw).println(errorMessage);
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
     @Test
     void shouldNotValidateInvalidTargetIdAndRecordingName() {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
         Exception e =
                 Assertions.assertThrows(
                         FailedValidationException.class,
-                        () -> command.validate(new String[] {":", ":", ":"}));
+                        () -> command.validate(new String[] {":", ":"}));
         String errorMessage =
                 ": is an invalid connection specifier; : is an invalid recording name";
         Mockito.verify(cw).println(": is an invalid connection specifier");
         Mockito.verify(cw).println(": is an invalid recording name");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidTargetIdAndDatasourceUrl() {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(":");
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", MOCK_RECORDING_NAME}));
+        String errorMessage =
+                ": is an invalid connection specifier; $GRAFANA_DATASOURCE_URL=: is an invalid datasource URL";
+        Mockito.verify(cw).println(": is an invalid connection specifier");
+        Mockito.verify(cw).println("$GRAFANA_DATASOURCE_URL=: is an invalid datasource URL");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidRecordingNameAndDatasourceUrl() {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(":");
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {MOCK_TARGET_ID, ":"}));
+        String errorMessage =
+                ": is an invalid recording name; $GRAFANA_DATASOURCE_URL=: is an invalid datasource URL";
+        Mockito.verify(cw).println(": is an invalid recording name");
+        Mockito.verify(cw).println("$GRAFANA_DATASOURCE_URL=: is an invalid datasource URL");
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateInvalidTargetIdRecordingNameDatasourceUrl() {
+        Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(":");
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {":", ":"}));
+        String errorMessage =
+                ": is an invalid connection specifier; : is an invalid recording name; $GRAFANA_DATASOURCE_URL=: is an invalid datasource URL";
+        Mockito.verify(cw).println(": is an invalid connection specifier");
+        Mockito.verify(cw).println(": is an invalid recording name");
+        Mockito.verify(cw).println("$GRAFANA_DATASOURCE_URL=: is an invalid datasource URL");
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
@@ -265,10 +402,11 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
             Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
             Assertions.assertThrows(
                     RecordingNotFoundException.class,
-                    () -> command.execute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL}));
+                    () -> command.execute(new String[] {HOST_ID, rec.getName()}));
         }
 
         @Test
@@ -285,6 +423,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
             Mockito.when(rec.getName()).thenReturn("foo");
             Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
@@ -308,11 +447,12 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
                     .when(req)
                     .sendMultipartForm(Mockito.any(), Mockito.any());
 
-            command.execute(new String[] {HOST_ID, "foo", UPLOAD_URL});
+            command.execute(new String[] {HOST_ID, "foo"});
 
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             Mockito.verify(webClient).postAbs(urlCaptor.capture());
-            MatcherAssert.assertThat(urlCaptor.getValue(), Matchers.equalTo(UPLOAD_URL));
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
             Mockito.verify(cw).println("[200 OK] HELLO");
         }
     }
@@ -332,9 +472,9 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(conn.getService()).thenReturn(svc);
             Mockito.when(svc.getAvailableRecordings()).thenReturn(Collections.emptyList());
             Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
-            Output<?> out =
-                    command.serializableExecute(new String[] {HOST_ID, rec.getName(), UPLOAD_URL});
+            Output<?> out = command.serializableExecute(new String[] {HOST_ID, rec.getName()});
             MatcherAssert.assertThat(out, Matchers.instanceOf(ExceptionOutput.class));
         }
 
@@ -352,6 +492,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
             Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
             Mockito.when(rec.getName()).thenReturn("foo");
             Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
 
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
@@ -375,7 +516,7 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
                     .when(req)
                     .sendMultipartForm(Mockito.any(), Mockito.any());
 
-            Output<?> out = command.serializableExecute(new String[] {HOST_ID, "foo", UPLOAD_URL});
+            Output<?> out = command.serializableExecute(new String[] {HOST_ID, rec.getName()});
 
             MatcherAssert.assertThat(out, Matchers.instanceOf(MapOutput.class));
             MatcherAssert.assertThat(
@@ -388,7 +529,8 @@ class UploadRecordingCommandTest implements ValidatesTargetId, ValidatesRecordin
 
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             Mockito.verify(webClient).postAbs(urlCaptor.capture());
-            MatcherAssert.assertThat(urlCaptor.getValue(), Matchers.equalTo(UPLOAD_URL));
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
         }
     }
 }

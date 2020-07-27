@@ -160,10 +160,11 @@ formatted as a JSON response.
 
 * #### `upload-recording`
     ###### usage
-    `upload-recording targetId foo url`
+    `upload-recording targetId foo`
     ###### synopsis
-    Uploads the named recording from the specified target JVM to the specified
-    jfr-datasource instance, which exposes the information contained within the
+    Uploads the named recording from the specified target JVM to the
+    jfr-datasource instance specified by the environment variable
+    GRAFANA_DATASOURCE_URL, which exposes the information contained within the
     recording to its associated Grafana instance. For information on setting
     environment variables to enable uploading, see README.md .
     ###### see also
