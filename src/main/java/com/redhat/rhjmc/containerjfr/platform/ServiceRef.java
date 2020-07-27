@@ -49,13 +49,13 @@ import javax.management.remote.JMXServiceURL;
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
-
 import com.google.gson.annotations.SerializedName;
 
 public class ServiceRef {
 
     @SerializedName("connectUrl")
     private final JMXServiceURL JMXServiceURL;
+
     private final String alias; // nullable
 
     public ServiceRef(JMXServiceURL jmxServiceUrl, String alias) throws MalformedURLException {
