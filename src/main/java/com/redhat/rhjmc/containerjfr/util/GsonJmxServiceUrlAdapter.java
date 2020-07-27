@@ -67,9 +67,6 @@ public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL>{
 
     @Override
     public void write(JsonWriter writer, JMXServiceURL url) throws IOException {
-        writer.beginObject();
-        writer.name("URL");
-        writer.jsonValue(url.toString());
-        writer.endObject();
+        writer.value(url.toString());
     }
 }
