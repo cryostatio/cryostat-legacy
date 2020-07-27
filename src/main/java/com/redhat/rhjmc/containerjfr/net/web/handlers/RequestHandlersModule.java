@@ -135,6 +135,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRecordingUploadPostHandler(RecordingUploadPostHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
 
     @Binds

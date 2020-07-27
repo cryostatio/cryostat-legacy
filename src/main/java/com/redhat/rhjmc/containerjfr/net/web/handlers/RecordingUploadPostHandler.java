@@ -41,23 +41,19 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -69,25 +65,25 @@ import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import io.vertx.ext.web.multipart.MultipartForm;
 
-class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
+class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
-    private final TargetConnectionManager targetConnectionManager;
     private final WebClient webClient;
     private final FileSystem fs;
+    private final Path savedRecordingsPath;
 
     @Inject
-    TargetRecordingUploadPostHandler(
+    RecordingUploadPostHandler(
             AuthManager auth,
             Environment env,
-            TargetConnectionManager targetConnectionManager,
             WebClient webClient,
-            FileSystem fs) {
+            FileSystem fs,
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
         super(auth);
         this.env = env;
-        this.targetConnectionManager = targetConnectionManager;
         this.webClient = webClient;
         this.fs = fs;
+        this.savedRecordingsPath = savedRecordingsPath;
     }
 
     @Override
@@ -97,7 +93,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
 
     @Override
     public String path() {
-        return "/api/v1/targets/:targetId/recordings/:recordingName/upload";
+        return "/api/v1/recordings/:recordingName/upload";
     }
 
     @Override
@@ -107,11 +103,11 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
 
     @Override
     void handleAuthenticated(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
         try {
             URL uploadUrl = new URL(env.getEnv("GRAFANA_DATASOURCE_URL"));
-            ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
+            // TODO validate URL before POST attempt
+            ResponseMessage response = doPost(recordingName, uploadUrl);
             ctx.response().setStatusCode(response.statusCode);
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
@@ -126,17 +122,10 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
 
     // FindBugs thinks the recordingPath or its properties is null somehow
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private ResponseMessage doPost(String targetId, String recordingName, URL uploadUrl)
-            throws Exception {
+    private ResponseMessage doPost(String recordingName, URL uploadUrl) throws Exception {
         Path recordingPath =
-                targetConnectionManager.executeConnectedTask(
-                        targetId,
-                        connection ->
-                                getRecordingCopyPath(connection, targetId, recordingName)
-                                        .orElseThrow(
-                                                () ->
-                                                        new RecordingNotFoundException(
-                                                                targetId, recordingName)));
+                getRecordingPath(recordingName)
+                        .orElseThrow(() -> new HttpStatusException(404, recordingName));
 
         MultipartForm form =
                 MultipartForm.create()
@@ -147,49 +136,32 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                                 HttpMimeType.OCTET_STREAM.toString());
 
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
-        try {
-            webClient
-                    .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
-                    .timeout(30_000L)
-                    .sendMultipartForm(
-                            form,
-                            uploadHandler -> {
-                                if (uploadHandler.failed()) {
-                                    future.completeExceptionally(uploadHandler.cause());
-                                    return;
-                                }
-                                HttpResponse<Buffer> response = uploadHandler.result();
-                                future.complete(
-                                        new ResponseMessage(
-                                                response.statusCode(),
-                                                response.statusMessage(),
-                                                response.bodyAsString()));
-                            });
-            return future.get();
-        } finally {
-            fs.deleteIfExists(recordingPath);
-        }
+        webClient
+                .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
+                .timeout(30_000L)
+                .sendMultipartForm(
+                        form,
+                        uploadHandler -> {
+                            if (uploadHandler.failed()) {
+                                future.completeExceptionally(uploadHandler.cause());
+                                return;
+                            }
+                            HttpResponse<Buffer> response = uploadHandler.result();
+                            future.complete(
+                                    new ResponseMessage(
+                                            response.statusCode(),
+                                            response.statusMessage(),
+                                            response.bodyAsString()));
+                        });
+        return future.get();
     }
 
-    Optional<Path> getRecordingCopyPath(
-            JFRConnection connection, String targetId, String recordingName) throws Exception {
-        return connection.getService().getAvailableRecordings().stream()
-                .filter(recording -> recording.getName().equals(recordingName))
-                .findFirst()
-                .map(
-                        descriptor -> {
-                            try {
-                                // FIXME extract createTempFile wrapper into FileSystem
-                                Path tempFile = Files.createTempFile(null, null);
-                                try (InputStream stream =
-                                        connection.getService().openStream(descriptor, false)) {
-                                    fs.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);
-                                }
-                                return tempFile;
-                            } catch (Exception e) {
-                                throw new HttpStatusException(500, e);
-                            }
-                        });
+    Optional<Path> getRecordingPath(String recordingName) throws Exception {
+        Path archivedRecording = savedRecordingsPath.resolve(recordingName);
+        if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
+            return Optional.of(archivedRecording);
+        }
+        return Optional.empty();
     }
 
     private static class ResponseMessage {
