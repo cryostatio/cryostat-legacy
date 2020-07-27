@@ -5,7 +5,7 @@ set -e
 
 PWFILE="/tmp/jmxremote.password"
 function createJmxPassword() {
-    PASS="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32})"
+    PASS="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
 
     echo "containerjfr $PASS" > "$PWFILE"
     chmod 400 "$PWFILE"
