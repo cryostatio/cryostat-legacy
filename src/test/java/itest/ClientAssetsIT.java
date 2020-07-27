@@ -86,7 +86,6 @@ public class ClientAssetsIT extends ITestBase {
         MatcherAssert.assertThat(body.size(), Matchers.equalTo(1));
         Elements script = body.first().getElementsByTag("script");
         MatcherAssert.assertThat(script.size(), Matchers.equalTo(1));
-        MatcherAssert.assertThat(script.first().attr("type"), Matchers.equalTo("text/javascript"));
         MatcherAssert.assertThat(script.first().attr("src"), Matchers.equalTo("app.bundle.js"));
     }
 }
