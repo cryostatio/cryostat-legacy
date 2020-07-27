@@ -104,6 +104,11 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindTargetRecordingUploadPostHandler(
+            TargetRecordingUploadPostHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindTargetRecordingPatchBodyHandler(
             TargetRecordingPatchBodyHandler handler);
 
