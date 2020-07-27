@@ -82,7 +82,7 @@ class OpenShiftPlatformClientTest {
 
     @BeforeEach
     void setup() {
-        this.platformClient = new OpenShiftPlatformClient(logger, osClient, fs);
+        this.platformClient = new OpenShiftPlatformClient(osClient, fs, logger);
     }
 
     @Test
@@ -148,8 +148,10 @@ class OpenShiftPlatformClientTest {
         Mockito.when(address4.getTargetRef()).thenReturn(objRef4);
 
         EndpointPort port1 = Mockito.mock(EndpointPort.class);
+        Mockito.when(port1.getPort()).thenReturn(80);
         Mockito.when(port1.getName()).thenReturn("tcp-80");
         EndpointPort port2 = Mockito.mock(EndpointPort.class);
+        Mockito.when(port2.getPort()).thenReturn(9999);
         Mockito.when(port2.getName()).thenReturn("jfr-jmx");
         EndpointPort port3 = Mockito.mock(EndpointPort.class);
         Mockito.when(port3.getPort()).thenReturn(9091);
@@ -171,15 +173,26 @@ class OpenShiftPlatformClientTest {
         Mockito.when(mockListable.getItems()).thenReturn(Collections.singletonList(endpoint));
 
         List<ServiceRef> result = platformClient.listDiscoverableServices();
+        ServiceRef serv1;
+        ServiceRef serv2;
+        ServiceRef serv3;
+        try {
+            serv1 =
+                    new ServiceRef(
+                            address2.getIp(), port2.getPort(), address2.getTargetRef().getName());
+            serv2 =
+                    new ServiceRef(
+                            address3.getIp(), port2.getPort(), address3.getTargetRef().getName());
+            serv3 =
+                    new ServiceRef(
+                            address4.getIp(), port3.getPort(), address4.getTargetRef().getName());
+        } catch (Exception e) {
+            serv1 = null;
+            serv2 = null;
+            serv3 = null;
+        }
         MatcherAssert.assertThat(namespaceCaptor.getValue(), Matchers.equalTo(namespace));
-        MatcherAssert.assertThat(
-                result,
-                Matchers.equalTo(
-                        Arrays.asList(
-                                new ServiceRef(address2.getIp(), address2.getTargetRef().getName()),
-                                new ServiceRef(address3.getIp(), address3.getTargetRef().getName()),
-                                new ServiceRef(
-                                        address4.getIp(), address4.getTargetRef().getName()))));
+        MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
     }
 
     private void setMockNamespace(String namespace) throws IOException {

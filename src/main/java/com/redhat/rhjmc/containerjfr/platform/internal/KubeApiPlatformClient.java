@@ -89,7 +89,10 @@ class KubeApiPlatformClient implements PlatformClient {
                                                             return new ServiceRef(
                                                                     s.getClusterIP(),
                                                                     p.getPort(),
-                                                                    resolver.resolveCanonicalHostName(s.getClusterIP()));
+                                                                    resolver
+                                                                            .resolveCanonicalHostName(
+                                                                                    s
+                                                                                            .getClusterIP()));
                                                         } catch (Exception e) {
                                                             logger.warn(e);
                                                             return null;

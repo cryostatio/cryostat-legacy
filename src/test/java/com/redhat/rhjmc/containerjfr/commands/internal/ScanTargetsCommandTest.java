@@ -102,9 +102,9 @@ class ScanTargetsCommandTest {
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(getMockServices());
         command.execute(new String[0]);
         InOrder inOrder = Mockito.inOrder(cw);
-        inOrder.verify(cw).println("Host A -> aHost");
-        inOrder.verify(cw).println("Host B -> bHost");
-        inOrder.verify(cw).println("Host C -> cHost");
+        inOrder.verify(cw).println("Host A -> service:jmx:jmxmp://aHost");
+        inOrder.verify(cw).println("Host B -> service:jmx:jmxmp://bHost");
+        inOrder.verify(cw).println("Host C -> service:jmx:jmxmp://cHost");
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -142,9 +142,19 @@ class ScanTargetsCommandTest {
     }
 
     List<ServiceRef> getMockServices() {
-        ServiceRef mockA = new ServiceRef("aHost", "Host A");
-        ServiceRef mockB = new ServiceRef("bHost", "Host B");
-        ServiceRef mockC = new ServiceRef("cHost", "Host C");
+        ServiceRef mockA;
+        ServiceRef mockB;
+        ServiceRef mockC;
+        try {
+            mockA = new ServiceRef("aHost", 0, "Host A");
+            mockB = new ServiceRef("bHost", 0, "Host B");
+            mockC = new ServiceRef("cHost", 0, "Host C");
+        } catch (Exception e) {
+            mockA = null;
+            mockB = null;
+            mockC = null;
+        }
+
         return List.of(mockA, mockB, mockC);
     }
 }

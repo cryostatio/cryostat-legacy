@@ -83,7 +83,7 @@ class KubeApiPlatformClientTest {
 
     @BeforeEach
     void setup() {
-        client = new KubeApiPlatformClient(logger, api, namespace, resolver);
+        client = new KubeApiPlatformClient(api, namespace, resolver, logger);
     }
 
     @Nested
@@ -122,7 +122,9 @@ class KubeApiPlatformClientTest {
             when(aSpec.getClusterIP()).thenReturn("127.0.0.1");
             when(mockServiceA.getSpec()).thenReturn(aSpec);
             V1ServicePort aPort1 = mock(V1ServicePort.class);
+            when(aPort1.getPort()).thenReturn(123);
             V1ServicePort aPort2 = mock(V1ServicePort.class);
+            when(aPort2.getPort()).thenReturn(456);
             when(aSpec.getPorts()).thenReturn(Arrays.asList(aPort1, aPort2));
 
             V1Service mockServiceB = mock(V1Service.class);
@@ -130,6 +132,7 @@ class KubeApiPlatformClientTest {
             when(bSpec.getClusterIP()).thenReturn("10.0.0.1");
             when(mockServiceB.getSpec()).thenReturn(bSpec);
             V1ServicePort bPort = mock(V1ServicePort.class);
+            when(bPort.getPort()).thenReturn(7899);
             when(bSpec.getPorts()).thenReturn(Arrays.asList(bPort));
 
             when(mockServiceList.getItems()).thenReturn(Arrays.asList(mockServiceA, mockServiceB));
@@ -150,12 +153,21 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            assertThat(
-                    result,
-                    Matchers.contains(
-                            new ServiceRef("ServiceA.local"),
-                            new ServiceRef("ServiceA.local"),
-                            new ServiceRef("b-service.example.com")));
+            ServiceRef serv1;
+            ServiceRef serv2;
+            ServiceRef serv3;
+            try {
+                serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
+                serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
+                serv3 = new ServiceRef("10.0.0.1", 7899, "b-service.example.com");
+            } catch (Exception e) {
+                serv1 = null;
+                serv2 = null;
+                serv3 = null;
+            }
+
+            assertThat(result, Matchers.contains(serv1, serv2, serv3));
+
             assertThat(result, Matchers.hasSize(3));
 
             verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");
@@ -176,13 +188,17 @@ class KubeApiPlatformClientTest {
             when(aSpec.getClusterIP()).thenReturn("127.0.0.1");
             when(mockServiceA.getSpec()).thenReturn(aSpec);
             V1ServicePort aPort1 = mock(V1ServicePort.class);
+            when(aPort1.getPort()).thenReturn(123);
             V1ServicePort aPort2 = mock(V1ServicePort.class);
+            when(aPort2.getPort()).thenReturn(456);
             when(aSpec.getPorts()).thenReturn(Arrays.asList(aPort1, aPort2));
+
             V1Service mockServiceB = mock(V1Service.class);
             V1ServiceSpec bSpec = mock(V1ServiceSpec.class);
             when(bSpec.getClusterIP()).thenReturn("10.0.0.1");
             when(mockServiceB.getSpec()).thenReturn(bSpec);
             V1ServicePort bPort = mock(V1ServicePort.class);
+            when(bPort.getPort()).thenReturn(7899);
             when(bSpec.getPorts()).thenReturn(Arrays.asList(bPort));
 
             when(mockServiceList.getItems()).thenReturn(Arrays.asList(mockServiceA, mockServiceB));
@@ -204,10 +220,16 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            assertThat(
-                    result,
-                    Matchers.contains(
-                            new ServiceRef("ServiceA.local"), new ServiceRef("ServiceA.local")));
+            ServiceRef serv1;
+            ServiceRef serv2;
+            try {
+                serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
+                serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
+            } catch (Exception e) {
+                serv1 = null;
+                serv2 = null;
+            }
+            assertThat(result, Matchers.contains(serv1, serv2));
             assertThat(result, Matchers.hasSize(2));
 
             verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");

@@ -90,7 +90,8 @@ class ScanTargetsCommand implements SerializableCommand {
                                 cw.println(
                                         String.format(
                                                 "%s -> %s",
-                                                s.getAlias(), s.getJMXServiceUrl().toString())));
+                                                s.getAlias().get(),
+                                                s.getJMXServiceUrl().toString())));
     }
 
     @Override

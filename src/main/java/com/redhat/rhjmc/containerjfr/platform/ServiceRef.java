@@ -53,11 +53,11 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 public class ServiceRef {
 
     private final JMXServiceURL JMXServiceURL;
-    private Optional<String> alias = Optional.empty();
+    private final String alias; // nullable
 
     public ServiceRef(JMXServiceURL jmxServiceUrl, String alias) throws MalformedURLException {
         this.JMXServiceURL = jmxServiceUrl;
-        this.alias = Optional.ofNullable(alias);
+        this.alias = alias;
     }
 
     public ServiceRef(JMXServiceURL jmxServiceUrl) throws MalformedURLException {
@@ -65,7 +65,7 @@ public class ServiceRef {
     }
 
     public ServiceRef(String host, int port, String alias) throws MalformedURLException {
-        this(new JMXServiceURL(null, host, port), null);
+        this(new JMXServiceURL(null, host, port), alias);
     }
 
     public JMXServiceURL getJMXServiceUrl() {
@@ -73,7 +73,7 @@ public class ServiceRef {
     }
 
     public Optional<String> getAlias() {
-        return alias;
+        return Optional.ofNullable(alias);
     }
 
     @Override
