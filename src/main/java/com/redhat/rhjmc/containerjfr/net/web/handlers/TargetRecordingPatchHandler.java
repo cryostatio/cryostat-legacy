@@ -53,17 +53,20 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "/api/v1/targets/:targetId/recordings/:recordingName";
 
-    protected final TargetRecordingPatchSave patchSave;
-    protected final TargetRecordingPatchStop patchStop;
+    private final TargetRecordingPatchSave patchSave;
+    private final TargetRecordingPatchStop patchStop;
+    private final TargetRecordingPatchSnapshot patchSnapshot;
 
     @Inject
     TargetRecordingPatchHandler(
             AuthManager auth,
             TargetRecordingPatchSave patchSave,
-            TargetRecordingPatchStop patchStop) {
+            TargetRecordingPatchStop patchStop,
+            TargetRecordingPatchSnapshot patchSnapshot) {
         super(auth);
         this.patchSave = patchSave;
         this.patchStop = patchStop;
+        this.patchSnapshot = patchSnapshot;
     }
 
     @Override
@@ -94,6 +97,9 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
                 break;
             case "stop":
                 patchStop.handle(ctx, getConnectionDescriptorFromContext(ctx));
+                break;
+            case "snapshot":
+                patchSnapshot.handle(ctx, getConnectionDescriptorFromContext(ctx));
                 break;
             default:
                 throw new HttpStatusException(400, "Unsupported operation " + mtd);

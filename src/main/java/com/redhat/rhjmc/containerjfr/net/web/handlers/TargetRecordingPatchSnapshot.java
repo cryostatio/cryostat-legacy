@@ -41,48 +41,54 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Optional;
-
 import javax.inject.Inject;
 
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TargetRecordingPatchStop {
+class TargetRecordingPatchSnapshot {
 
     private final TargetConnectionManager targetConnectionManager;
+    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @Inject
-    TargetRecordingPatchStop(TargetConnectionManager targetConnectionManager) {
+    TargetRecordingPatchSnapshot(
+            TargetConnectionManager targetConnectionManager,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         this.targetConnectionManager = targetConnectionManager;
+        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
     }
 
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
+        String result =
+                targetConnectionManager.executeConnectedTask(
+                        connectionDescriptor,
+                        connection -> {
+                            IRecordingDescriptor descriptor =
+                                    connection.getService().getSnapshotRecording();
 
-        targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    Optional<IRecordingDescriptor> descriptor =
-                            connection.getService().getAvailableRecordings().stream()
-                                    .filter(recording -> recording.getName().equals(recordingName))
-                                    .findFirst();
-                    if (descriptor.isPresent()) {
-                        connection.getService().stop(descriptor.get());
-                        return null;
-                    } else {
-                        throw new HttpStatusException(
-                                404,
-                                String.format(
-                                        "Recording with name \"%s\" not found", recordingName));
-                    }
-                });
+                            String rename =
+                                    String.format(
+                                            "%s-%d",
+                                            descriptor.getName().toLowerCase(), descriptor.getId());
+
+                            RecordingOptionsBuilder recordingOptionsBuilder =
+                                    recordingOptionsBuilderFactory.create(connection.getService());
+                            recordingOptionsBuilder.name(rename);
+
+                            connection
+                                    .getService()
+                                    .updateRecordingOptions(
+                                            descriptor, recordingOptionsBuilder.build());
+
+                            return rename;
+                        });
         ctx.response().setStatusCode(200);
-        ctx.response().end();
+        ctx.response().end(result);
     }
 }

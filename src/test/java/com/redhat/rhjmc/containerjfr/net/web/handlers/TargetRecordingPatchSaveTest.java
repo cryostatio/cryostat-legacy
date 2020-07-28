@@ -63,7 +63,6 @@ import org.mockito.stubbing.Answer;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -83,7 +82,6 @@ class TargetRecordingPatchSaveTest {
     @Mock Path recordingsPath;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Clock clock;
-    @Mock Logger logger;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
@@ -96,8 +94,7 @@ class TargetRecordingPatchSaveTest {
     @BeforeEach
     void setup() {
         this.patchSave =
-                new TargetRecordingPatchSave(
-                        fs, recordingsPath, targetConnectionManager, clock, logger);
+                new TargetRecordingPatchSave(fs, recordingsPath, targetConnectionManager, clock);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
     }
 

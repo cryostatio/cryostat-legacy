@@ -48,7 +48,7 @@ import javax.inject.Named;
 import com.google.inject.Provides;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -117,16 +117,22 @@ public abstract class RequestHandlersModule {
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
-            Clock clock,
-            Logger logger) {
-        return new TargetRecordingPatchSave(
-                fs, recordingsPath, targetConnectionManager, clock, logger);
+            Clock clock) {
+        return new TargetRecordingPatchSave(fs, recordingsPath, targetConnectionManager, clock);
     }
 
     @Provides
     TargetRecordingPatchStop provideTargetRecordingPatchStop(
             TargetConnectionManager targetConnectionManager) {
         return new TargetRecordingPatchStop(targetConnectionManager);
+    }
+
+    @Provides
+    TargetRecordingPatchSnapshot provideTargetRecordingPatchSnapshot(
+            TargetConnectionManager targetConnectionManager,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+        return new TargetRecordingPatchSnapshot(
+                targetConnectionManager, recordingOptionsBuilderFactory);
     }
 
     @Binds

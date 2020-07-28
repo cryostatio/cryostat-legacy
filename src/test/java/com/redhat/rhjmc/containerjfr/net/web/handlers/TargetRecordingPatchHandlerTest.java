@@ -70,12 +70,14 @@ class TargetRecordingPatchHandlerTest {
     @Mock AuthManager authManager;
     @Mock TargetRecordingPatchSave patchSave;
     @Mock TargetRecordingPatchStop patchStop;
+    @Mock TargetRecordingPatchSnapshot patchSnapshot;
     @Mock RoutingContext ctx;
     @Mock ConnectionDescriptor connectionDescriptor;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetRecordingPatchHandler(authManager, patchSave, patchStop);
+        this.handler =
+                new TargetRecordingPatchHandler(authManager, patchSave, patchStop, patchSnapshot);
     }
 
     @Test
@@ -120,7 +122,7 @@ class TargetRecordingPatchHandlerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"save", "stop"})
+    @ValueSource(strings = {"save", "stop", "snapshot"})
     void shouldDelegateSupportedOperations(String mtd) throws Exception {
         Mockito.when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
@@ -135,6 +137,10 @@ class TargetRecordingPatchHandlerTest {
                 break;
             case "stop":
                 Mockito.verify(patchStop)
+                        .handle(Mockito.eq(ctx), Mockito.any(ConnectionDescriptor.class));
+                break;
+            case "snapshot":
+                Mockito.verify(patchSnapshot)
                         .handle(Mockito.eq(ctx), Mockito.any(ConnectionDescriptor.class));
                 break;
             default:

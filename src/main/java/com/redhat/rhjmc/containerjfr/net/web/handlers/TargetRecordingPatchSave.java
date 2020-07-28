@@ -53,7 +53,6 @@ import javax.inject.Named;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -65,24 +64,21 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingPatchSave {
 
-    protected final FileSystem fs;
-    protected final Path recordingsPath;
-    protected final TargetConnectionManager targetConnectionManager;
-    protected final Clock clock;
-    protected final Logger logger;
+    private final FileSystem fs;
+    private final Path recordingsPath;
+    private final TargetConnectionManager targetConnectionManager;
+    private final Clock clock;
 
     @Inject
     TargetRecordingPatchSave(
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
-            Clock clock,
-            Logger logger) {
+            Clock clock) {
         this.fs = fs;
         this.recordingsPath = recordingsPath;
         this.targetConnectionManager = targetConnectionManager;
         this.clock = clock;
-        this.logger = logger;
     }
 
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
@@ -114,7 +110,7 @@ class TargetRecordingPatchSave {
         ctx.response().end(saveName);
     }
 
-    protected String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)
+    private String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)
             throws Exception {
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
