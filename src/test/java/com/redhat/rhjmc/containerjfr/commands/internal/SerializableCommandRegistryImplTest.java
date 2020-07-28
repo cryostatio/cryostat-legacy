@@ -62,10 +62,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 @ExtendWith(MockitoExtension.class)
 public class SerializableCommandRegistryImplTest {
@@ -77,7 +79,9 @@ public class SerializableCommandRegistryImplTest {
 
         @BeforeEach
         public void setup() {
-            registry = new SerializableCommandRegistryImpl(Collections.emptySet());
+            registry =
+                    new SerializableCommandRegistryImpl(
+                            Collections.emptySet(), Mockito.mock(Logger.class));
         }
 
         @Test
@@ -125,7 +129,8 @@ public class SerializableCommandRegistryImplTest {
         public void setup() {
             registry =
                     new SerializableCommandRegistryImpl(
-                            new HashSet<Command>(Arrays.asList(commands)));
+                            new HashSet<Command>(Arrays.asList(commands)),
+                            Mockito.mock(Logger.class));
         }
 
         @Test
@@ -228,7 +233,8 @@ public class SerializableCommandRegistryImplTest {
                                             new HashSet<Command>(
                                                     Arrays.asList(
                                                             new FooCommand(),
-                                                            new DuplicateFooCommand()))),
+                                                            new DuplicateFooCommand())),
+                                            Mockito.mock(Logger.class)),
                             "should throw CommandDefinitionException for duplicate definitions");
             assertThat(
                     thrown.getMessage(),
