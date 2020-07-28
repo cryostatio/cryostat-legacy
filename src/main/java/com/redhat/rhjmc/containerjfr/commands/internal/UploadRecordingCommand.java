@@ -77,6 +77,11 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
 
+/**
+ * @deprecated Use HTTP POST /api/v1/recordings/:recordingName/upload or HTTP POST
+ *     /api/v1/targets/:targetId/recordings/:recordingName/upload
+ */
+@Deprecated
 @Singleton
 class UploadRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 

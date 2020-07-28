@@ -55,6 +55,8 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
+/** @deprecated Use HTTP DELETE /api/v1/targets/:targetId/recordings/:recordingName */
+@Deprecated
 @Singleton
 class DeleteCommand extends AbstractConnectedCommand implements SerializableCommand {
 

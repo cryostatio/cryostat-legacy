@@ -53,6 +53,8 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
+/** @deprecated use HTTTP DELETE /api/v1/recordings/:recordingName */
+@Deprecated
 @Singleton
 class DeleteSavedRecordingCommand implements SerializableCommand {
 

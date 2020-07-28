@@ -54,6 +54,8 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
+/** @deprecated Use HTTP POST /api/v1/targets/:targetId/recordings */
+@Deprecated
 @Singleton
 class StartRecordingCommand extends AbstractRecordingCommand implements SerializableCommand {
 
