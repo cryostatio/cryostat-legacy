@@ -81,7 +81,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
             }
             throw new HttpStatusException(404, e);
         } catch (Exception e) {
-            throw new HttpStatusException(500, e);
+            throw new HttpStatusException(500, e.getMessage(), e);
         }
     }
 

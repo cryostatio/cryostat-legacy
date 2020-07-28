@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 
@@ -90,7 +89,7 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
             for (FileUpload u : ctx.fileUploads()) {
                 Path path = fs.pathOf(u.uploadedFileName());
@@ -106,8 +105,6 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                     fs.deleteIfExists(path);
                 }
             }
-        } catch (IOException ioe) {
-            throw new HttpStatusException(500, ioe.getMessage(), ioe);
         } catch (InvalidXmlException | InvalidEventTemplateException e) {
             throw new HttpStatusException(400, e.getMessage(), e);
         }

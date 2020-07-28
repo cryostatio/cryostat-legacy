@@ -102,7 +102,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         try {
             URL uploadUrl = new URL(env.getEnv("GRAFANA_DATASOURCE_URL"));
@@ -111,12 +111,8 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().setStatusCode(response.statusCode);
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
-        } catch (HttpStatusException e) {
-            throw e;
         } catch (MalformedURLException e) {
             throw new HttpStatusException(501, e);
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
         }
     }
 

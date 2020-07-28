@@ -59,7 +59,6 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class TemplateDeleteHandlerTest {
@@ -90,10 +89,7 @@ class TemplateDeleteHandlerTest {
         Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
         Mockito.doThrow(IOException.class).when(templateService).deleteTemplate("FooTemplate");
 
-        HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        Assertions.assertThrows(IOException.class, () -> handler.handleAuthenticated(ctx));
     }
 
     @Test

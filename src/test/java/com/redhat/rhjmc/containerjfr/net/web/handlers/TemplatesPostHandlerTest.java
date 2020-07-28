@@ -104,10 +104,7 @@ class TemplatesPostHandlerTest {
 
         Mockito.when(fs.newInputStream(Mockito.any())).thenThrow(IOException.class);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        Assertions.assertThrows(IOException.class, () -> handler.handleAuthenticated(ctx));
     }
 
     @Test
