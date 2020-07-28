@@ -54,9 +54,9 @@ abstract class ResponseMessage<T> extends WsMessage {
     int status;
     T payload;
 
-    ResponseMessage(String id, int status, String commandName, T payload) {
+    ResponseMessage(String id, Status status, String commandName, T payload) {
         this.id = id;
-        this.status = status;
+        this.status = status.getCode();
         this.commandName = commandName;
         this.payload = payload;
     }
@@ -69,5 +69,24 @@ abstract class ResponseMessage<T> extends WsMessage {
                 .append(commandName)
                 .append(payload)
                 .build();
+    }
+
+    public static enum Status {
+        OK(0),
+        INVALID_COMMAND(-1),
+        COMMAND_EXCEPTION(-2),
+        MALFORMED_MESSAGE(-3),
+        TARGET_AUTH_FAILURE(-4),
+        ;
+
+        private final int code;
+
+        Status(int code) {
+            this.code = code;
+        }
+
+        public int getCode() {
+            return code;
+        }
     }
 }

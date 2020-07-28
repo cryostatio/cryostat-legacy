@@ -62,6 +62,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
@@ -109,7 +110,7 @@ class TargetTemplateGetHandlerTest {
 
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenThrow(FlightRecorderException.class);
 
         HttpStatusException ex =
@@ -131,7 +132,7 @@ class TargetTemplateGetHandlerTest {
 
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -167,7 +168,7 @@ class TargetTemplateGetHandlerTest {
 
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override

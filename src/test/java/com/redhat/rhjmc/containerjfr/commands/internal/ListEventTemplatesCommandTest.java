@@ -66,6 +66,7 @@ import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -113,7 +114,7 @@ class ListEventTemplatesCommandTest implements ValidatesTargetId {
     void executeShouldPrintListOfTemplateNames() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
@@ -138,7 +139,7 @@ class ListEventTemplatesCommandTest implements ValidatesTargetId {
     void serializableExecuteShouldReturnListOfTemplateNames() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getTemplateService()).thenReturn(templateSvc);
@@ -161,7 +162,7 @@ class ListEventTemplatesCommandTest implements ValidatesTargetId {
     void serializableExecuteShouldReturnExceptionOutputIfThrows() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenThrow(TestException.class);
 
         Output<?> output = cmd.serializableExecute(new String[] {"fooHost:9091"});

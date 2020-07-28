@@ -57,6 +57,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
@@ -95,7 +96,7 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
         String targetId = args[0];
         String searchTerm = args[1];
         targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     Collection<? extends IEventTypeInfo> matchingEvents =
                             connection.getService().getAvailableEventTypes().stream()
@@ -119,7 +120,7 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
         String searchTerm = args[1];
         try {
             return targetConnectionManager.executeConnectedTask(
-                    targetId,
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         Collection<? extends IEventTypeInfo> matchingEvents =
                                 connection.getService().getAvailableEventTypes().stream()

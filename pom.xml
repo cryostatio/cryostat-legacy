@@ -24,6 +24,8 @@
 
   <containerjfr.minimal>false</containerjfr.minimal>
   <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
+  <containerjfr.entrypoint>/app/entrypoint.sh</containerjfr.entrypoint>
+  <containerjfr.rjmxPort>9091</containerjfr.rjmxPort>
   <containerjfr.webPort>8181</containerjfr.webPort>
   <containerjfr.listenPort>9090</containerjfr.listenPort>
   <containerjfr.itest.webPort>8181</containerjfr.itest.webPort>
@@ -42,7 +44,7 @@
 
   <com.google.dagger.version>2.26</com.google.dagger.version>
 
-  <com.redhat.rhjmc.containerjfr.core.version>0.13.0</com.redhat.rhjmc.containerjfr.core.version>
+  <com.redhat.rhjmc.containerjfr.core.version>0.14.0</com.redhat.rhjmc.containerjfr.core.version>
 
   <org.apache.commons.lang3.version>3.9</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.13</org.apache.commons.codec.version>
@@ -214,22 +216,32 @@
               <argument>run</argument>
               <argument>--hostname=container-jfr</argument>
               <argument>--name=container-jfr-itest</argument>
-              <argument>--mount </argument>
+              <argument>--mount</argument>
               <argument>type=tmpfs,target=/flightrecordings</argument>
+              <argument>--mount</argument>
+              <argument>type=tmpfs,target=/templates</argument>
               <argument>--publish</argument>
-              <argument>9091:9091</argument>
+              <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
               <argument>--publish</argument>
               <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
               <argument>--env</argument>
+              <argument>CONTAINER_JFR_RJMX_AUTH=false</argument>
+              <argument>--env</argument>
               <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
               <argument>--env</argument>
+              <argument>CONTAINER_JFR_RJMX_PORT=9091</argument>
+              <argument>--env</argument>
               <argument>CONTAINER_JFR_WEB_PORT=${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_ARCHIVE_PATH=/flightrecordings</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_TEMPLATE_PATH=/templates</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${containerjfr.imageStream}:${containerjfr.imageVersion}</argument>
@@ -310,14 +322,37 @@
           <tags>${containerjfr.imageVersion}</tags>
         </to>
         <container>
+          <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
-          <jvmFlags>-XX:+CrashOnOutOfMemoryError,-Dcom.sun.management.jmxremote.port=9091,-Dcom.sun.management.jmxremote.ssl=false,-Dcom.sun.management.jmxremote.authenticate=false</jvmFlags>
-          <ports>${containerjfr.webPort},${containerjfr.listenPort},9091</ports>
+          <entrypoint>${containerjfr.entrypoint}</entrypoint>
+          <args>
+            <arg>-w</arg>
+          </args>
+          <ports>
+            <port>${containerjfr.webPort}</port>
+            <port>${containerjfr.listenPort}</port>
+            <port>${containerjfr.rjmxPort}</port>
+          </ports>
         </container>
         <extraDirectories>
           <paths>
-            <path>${project.build.directory}/assets</path>
+            <path>
+              ${project.build.directory}/assets
+            </path>
+            <path>
+              src/main/extras
+            </path>
           </paths>
+          <permissions>
+            <permission>
+              <file>${containerjfr.entrypoint}</file>
+              <mode>755</mode>
+            </permission>
+            <permission>
+              <file>/app/resources/jmxremote.access</file>
+              <mode>644</mode>
+            </permission>
+          </permissions>
         </extraDirectories>
       </configuration>
     </plugin>

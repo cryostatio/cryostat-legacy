@@ -52,6 +52,7 @@ import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
@@ -73,8 +74,9 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     /** No args expected. Prints list of available recording options in target JVM. */
     @Override
     public void execute(String[] args) throws Exception {
+        String targetId = args[0];
         targetConnectionManager.executeConnectedTask(
-                args[0],
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     cw.println("Available recording options:");
                     connection
@@ -89,8 +91,9 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
+            String targetId = args[0];
             return targetConnectionManager.executeConnectedTask(
-                    args[0],
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         Map<String, IOptionDescriptor<?>> origOptions =
                                 connection.getService().getAvailableRecordingOptions();

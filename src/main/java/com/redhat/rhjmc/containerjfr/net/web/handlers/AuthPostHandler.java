@@ -66,7 +66,7 @@ class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         ctx.response().setStatusCode(200);
         ctx.response().end();
     }

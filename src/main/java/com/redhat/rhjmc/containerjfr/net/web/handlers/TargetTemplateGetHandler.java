@@ -79,13 +79,12 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     void handleAuthenticated(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
         String templateName = ctx.pathParam("templateName");
         TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));
         try {
             targetConnectionManager
                     .executeConnectedTask(
-                            targetId,
+                            getConnectionDescriptorFromContext(ctx),
                             conn -> conn.getTemplateService().getXml(templateName, templateType))
                     .ifPresentOrElse(
                             doc -> {

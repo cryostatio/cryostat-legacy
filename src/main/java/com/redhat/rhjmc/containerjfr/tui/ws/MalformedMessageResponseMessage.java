@@ -45,7 +45,7 @@ class MalformedMessageResponseMessage extends ResponseMessage<String> {
     MalformedMessageResponseMessage(String commandName) {
         super(
                 null,
-                -2,
+                Status.MALFORMED_MESSAGE,
                 commandName,
                 String.format("Message \"%s\" appears to be malformed", commandName));
     }

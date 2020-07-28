@@ -53,6 +53,7 @@ import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 import io.vertx.ext.web.RoutingContext;
 
@@ -91,13 +92,14 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) {
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        handleRecordingDownloadRequest(null, recordingName, ctx);
+        handleRecordingDownloadRequest(ctx, recordingName);
     }
 
     @Override
-    Optional<DownloadDescriptor> getRecordingDescriptor(String targetId, String recordingName) {
+    Optional<DownloadDescriptor> getRecordingDescriptor(
+            ConnectionDescriptor unused, String recordingName) {
         try {
             // TODO refactor Files calls into FileSystem for testability
             Optional<Path> savedRecording =

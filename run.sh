@@ -3,11 +3,24 @@
 set -x
 set -e
 
+function cleanup() {
+    podman pod rm container-jfr
+}
+trap cleanup EXIT
+
 if [ -z "$CONTAINER_JFR_IMAGE" ]; then
     CONTAINER_JFR_IMAGE="quay.io/rh-jmc-team/container-jfr:latest"
 fi
 
 echo -e "\n\nRunning $CONTAINER_JFR_IMAGE ...\n\n"
+
+if [ -z "$CONTAINER_JFR_RJMX_PORT" ]; then
+    CONTAINER_JFR_RJMX_PORT=9091
+fi
+
+if [ -z "$CONTAINER_JFR_RJMX_AUTH" ]; then
+    CONTAINER_JFR_RJMX_AUTH=false
+fi
 
 if [ -z "$CONTAINER_JFR_LOG_LEVEL" ]; then
     CONTAINER_JFR_LOG_LEVEL=ALL
@@ -41,16 +54,21 @@ if [ -z "$CONTAINER_JFR_AUTH_MANAGER" ]; then
     CONTAINER_JFR_AUTH_MANAGER="com.redhat.rhjmc.containerjfr.net.NoopAuthManager"
 fi
 
+if ! podman pod exists cjfr; then
+    podman pod create --hostname container-jfr --name container-jfr --publish $CONTAINER_JFR_EXT_WEB_PORT
+fi
+
 podman run \
-    --hostname container-jfr \
-    --name container-jfr \
+    --pod container-jfr \
     --mount type=tmpfs,target=/flightrecordings \
     --mount type=tmpfs,target=/templates \
-    -p 9091:9091 \
+    -p $CONTAINER_JFR_RJMX_PORT:$CONTAINER_JFR_RJMX_PORT \
     -p $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
     -p $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
-    -e CONTAINER_JFR_CORS_ORIGIN=$CONTAINER_JFR_CORS_ORIGIN \
     -e CONTAINER_JFR_LOG_LEVEL=$CONTAINER_JFR_LOG_LEVEL \
+    -e CONTAINER_JFR_RJMX_AUTH=$CONTAINER_JFR_RJMX_AUTH \
+    -e CONTAINER_JFR_RJMX_PORT=$CONTAINER_JFR_RJMX_PORT \
+    -e CONTAINER_JFR_CORS_ORIGIN=$CONTAINER_JFR_CORS_ORIGIN \
     -e CONTAINER_JFR_WEB_HOST=$CONTAINER_JFR_WEB_HOST \
     -e CONTAINER_JFR_WEB_PORT=$CONTAINER_JFR_WEB_PORT \
     -e CONTAINER_JFR_EXT_WEB_PORT=$CONTAINER_JFR_EXT_WEB_PORT \

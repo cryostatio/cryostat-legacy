@@ -64,6 +64,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.TestException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -86,7 +87,8 @@ class AbstractConnectedCommandTest {
 
     @Test
     void shouldGetMatchingDescriptorByName() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IFlightRecorderService mockService = mock(IFlightRecorderService.class);
@@ -102,7 +104,8 @@ class AbstractConnectedCommandTest {
 
     @Test
     void shouldReturnEmptyOptionalIfNoMatchingDescriptorFound() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IFlightRecorderService mockService = mock(IFlightRecorderService.class);
@@ -117,7 +120,8 @@ class AbstractConnectedCommandTest {
 
     @Test
     void shouldThrowIfConnectionManagerThrows() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenThrow(TestException.class);
         Assertions.assertThrows(
                 TestException.class,

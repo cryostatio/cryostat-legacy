@@ -58,7 +58,6 @@ import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -89,32 +88,27 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        try {
-            String targetId = ctx.pathParam("targetId");
-            WebServer webServer = webServerProvider.get();
-            List<HyperlinkedSerializableRecordingDescriptor> descriptors =
-                    connectionManager.executeConnectedTask(
-                            targetId,
-                            connection -> {
-                                List<IRecordingDescriptor> origDescriptors =
-                                        connection.getService().getAvailableRecordings();
-                                List<HyperlinkedSerializableRecordingDescriptor> list =
-                                        new ArrayList<>(origDescriptors.size());
-                                for (IRecordingDescriptor desc : origDescriptors) {
-                                    list.add(
-                                            new HyperlinkedSerializableRecordingDescriptor(
-                                                    desc,
-                                                    webServer.getDownloadURL(
-                                                            connection, desc.getName()),
-                                                    webServer.getReportURL(
-                                                            connection, desc.getName())));
-                                }
-                                return list;
-                            });
-            ctx.response().end(gson.toJson(descriptors));
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
+        WebServer webServer = webServerProvider.get();
+        List<HyperlinkedSerializableRecordingDescriptor> descriptors =
+                connectionManager.executeConnectedTask(
+                        getConnectionDescriptorFromContext(ctx),
+                        connection -> {
+                            List<IRecordingDescriptor> origDescriptors =
+                                    connection.getService().getAvailableRecordings();
+                            List<HyperlinkedSerializableRecordingDescriptor> list =
+                                    new ArrayList<>(origDescriptors.size());
+                            for (IRecordingDescriptor desc : origDescriptors) {
+                                list.add(
+                                        new HyperlinkedSerializableRecordingDescriptor(
+                                                desc,
+                                                webServer.getDownloadURL(
+                                                        connection, desc.getName()),
+                                                webServer.getReportURL(
+                                                        connection, desc.getName())));
+                            }
+                            return list;
+                        });
+        ctx.response().end(gson.toJson(descriptors));
     }
 }

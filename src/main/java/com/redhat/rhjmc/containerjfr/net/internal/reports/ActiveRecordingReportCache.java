@@ -51,9 +51,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Named;
 
 import org.apache.commons.lang3.tuple.Pair;
-
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -61,6 +58,7 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 
@@ -136,7 +134,8 @@ class ActiveRecordingReportCache {
 
     protected Pair<Optional<InputStream>, JFRConnection> getRecordingStream(
             Pair<String, String> key) throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(key.getLeft());
+        JFRConnection connection =
+                targetConnectionManager.connect(new ConnectionDescriptor(key.getLeft()));
         Optional<InputStream> desc =
                 connection.getService().getAvailableRecordings().stream()
                         .filter(rec -> Objects.equals(key.getRight(), rec.getName()))
@@ -146,7 +145,7 @@ class ActiveRecordingReportCache {
                                     try {
                                         return Optional.of(
                                                 connection.getService().openStream(rec, false));
-                                    } catch (FlightRecorderException e) {
+                                    } catch (Exception e) {
                                         logger.warn(e);
                                         return Optional.empty();
                                     }

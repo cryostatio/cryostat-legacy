@@ -52,6 +52,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
@@ -80,7 +81,7 @@ class WaitForCommand extends AbstractConnectedCommand {
         String targetId = args[0];
         String recordingName = args[1];
         targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     Optional<IRecordingDescriptor> d = getDescriptorByName(targetId, recordingName);
                     if (!d.isPresent()) {

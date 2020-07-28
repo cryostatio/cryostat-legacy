@@ -72,6 +72,7 @@ import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -137,7 +138,8 @@ class WaitForCommandTest extends TestBase implements ValidatesRecordingName, Val
 
     @Test
     void shouldHandleRecordingNotFound() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -154,7 +156,8 @@ class WaitForCommandTest extends TestBase implements ValidatesRecordingName, Val
 
     @Test
     void shouldHandleRecordingIsContinuousAndRunning() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
@@ -195,7 +198,8 @@ class WaitForCommandTest extends TestBase implements ValidatesRecordingName, Val
                 .thenReturn(5_000L)
                 .thenReturn(5_001L)
                 .thenReturn(6_000L);
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -224,7 +228,8 @@ class WaitForCommandTest extends TestBase implements ValidatesRecordingName, Val
         when(descriptor.getState()).thenReturn(RecordingState.STOPPED);
         when(descriptor.getDataStartTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(0));
         when(descriptor.getDataEndTime()).thenReturn(UnitLookup.EPOCH_MS.quantity(10_000));
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);

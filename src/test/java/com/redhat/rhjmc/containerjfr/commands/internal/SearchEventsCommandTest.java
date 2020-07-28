@@ -71,6 +71,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -117,7 +118,8 @@ class SearchEventsCommandTest implements ValidatesTargetId {
 
     @Test
     void shouldHandleNoMatches() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -130,7 +132,8 @@ class SearchEventsCommandTest implements ValidatesTargetId {
 
     @Test
     void shouldHandleNoSerializableMatches() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -180,7 +183,8 @@ class SearchEventsCommandTest implements ValidatesTargetId {
 
         List events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -248,7 +252,8 @@ class SearchEventsCommandTest implements ValidatesTargetId {
 
         List<IEventTypeInfo> events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
 
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -269,7 +274,8 @@ class SearchEventsCommandTest implements ValidatesTargetId {
 
     @Test
     void shouldHandleSerializableException() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);

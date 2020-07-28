@@ -39,27 +39,31 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.platform;
+package com.redhat.rhjmc.containerjfr.net;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.Optional;
 
-class SelfDiscoveryPlatformClient implements PlatformClient {
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 
-    private static final ServiceRef VM_SELF_REF =
-            new ServiceRef("localhost", "This ContainerJFR", 0);
-    private final PlatformClient client;
+public class ConnectionDescriptor {
 
-    SelfDiscoveryPlatformClient(PlatformClient client) {
-        this.client = client;
+    private final String targetId;
+    private final Optional<Credentials> credentials;
+
+    public ConnectionDescriptor(String targetId) {
+        this(targetId, null);
     }
 
-    @Override
-    public List<ServiceRef> listDiscoverableServices() {
-        List<ServiceRef> list = new ArrayList<>();
-        list.add(VM_SELF_REF);
-        list.addAll(this.client.listDiscoverableServices());
-        return Collections.unmodifiableList(list);
+    public ConnectionDescriptor(String targetId, Credentials credentials) {
+        this.targetId = targetId;
+        this.credentials = Optional.ofNullable(credentials);
+    }
+
+    public String getTargetId() {
+        return targetId;
+    }
+
+    public Optional<Credentials> getCredentials() {
+        return credentials;
     }
 }

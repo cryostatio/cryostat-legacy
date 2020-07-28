@@ -51,6 +51,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
@@ -75,7 +76,7 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
         String name = args[1];
 
         targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor = getDescriptorByName(targetId, name);
                     if (descriptor.isPresent()) {
@@ -94,7 +95,7 @@ class StopRecordingCommand extends AbstractConnectedCommand implements Serializa
             String name = args[1];
 
             return targetConnectionManager.executeConnectedTask(
-                    targetId,
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
                                 getDescriptorByName(targetId, name);

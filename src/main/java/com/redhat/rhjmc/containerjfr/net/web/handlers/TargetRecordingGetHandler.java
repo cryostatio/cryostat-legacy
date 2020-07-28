@@ -58,6 +58,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
@@ -107,21 +108,21 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         if (recordingName != null && recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);
         }
-        handleRecordingDownloadRequest(targetId, recordingName, ctx);
+        handleRecordingDownloadRequest(ctx, recordingName);
     }
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    void handleRecordingDownloadRequest(String targetId, String recordingName, RoutingContext ctx) {
+    void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) {
+        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         try {
             Optional<DownloadDescriptor> descriptor =
-                    getRecordingDescriptor(targetId, recordingName);
+                    getRecordingDescriptor(connectionDescriptor, recordingName);
             if (descriptor.isEmpty()) {
                 throw new HttpStatusException(404, String.format("%s not found", recordingName));
             }
@@ -163,9 +164,9 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         }
     }
 
-    Optional<DownloadDescriptor> getRecordingDescriptor(String targetId, String recordingName)
-            throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(targetId);
+    Optional<DownloadDescriptor> getRecordingDescriptor(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        JFRConnection connection = targetConnectionManager.connect(connectionDescriptor);
         Optional<IRecordingDescriptor> desc =
                 connection.getService().getAvailableRecordings().stream()
                         .filter(r -> Objects.equals(recordingName, r.getName()))

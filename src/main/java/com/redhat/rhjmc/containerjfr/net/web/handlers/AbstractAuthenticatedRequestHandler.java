@@ -43,7 +43,11 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.concurrent.Future;
 
+import org.openjdk.jmc.rjmx.ConnectionException;
+
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -58,7 +62,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
         this.auth = auth;
     }
 
-    abstract void handleAuthenticated(RoutingContext ctx);
+    abstract void handleAuthenticated(RoutingContext ctx) throws Exception;
 
     @Override
     public void handle(RoutingContext ctx) {
@@ -66,15 +70,28 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
             if (!validateRequestAuthorization(ctx.request()).get()) {
                 throw new HttpStatusException(401);
             }
+            handleAuthenticated(ctx);
         } catch (HttpStatusException e) {
             throw e;
+        } catch (ConnectionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SecurityException) {
+                ctx.response().putHeader(HttpHeaders.PROXY_AUTHENTICATE, "Basic");
+                throw new HttpStatusException(407, e);
+            }
+            throw new HttpStatusException(404, e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
-        handleAuthenticated(ctx);
     }
 
     protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
         return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+    }
+
+    protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
+        String targetId = ctx.pathParam("targetId");
+        Credentials credentials = null; // TODO retrieve credentials from Proxy-Authorization header
+        return new ConnectionDescriptor(targetId, credentials);
     }
 }

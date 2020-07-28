@@ -41,9 +41,11 @@
  */
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.net.MalformedURLException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -51,6 +53,7 @@ import java.util.regex.Pattern;
 import javax.management.remote.JMXServiceURL;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 
@@ -72,18 +75,19 @@ public class TargetConnectionManager {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
     }
 
-    public <T> T executeConnectedTask(String targetId, ConnectedTask<T> task) throws Exception {
+    public <T> T executeConnectedTask(
+            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
         try {
-            if (activeConnections.containsKey(targetId)) {
-                return task.execute(activeConnections.get(targetId));
+            if (activeConnections.containsKey(connectionDescriptor.getTargetId())) {
+                return task.execute(activeConnections.get(connectionDescriptor.getTargetId()));
             } else {
-                try (JFRConnection connection = connect(targetId)) {
-                    activeConnections.put(targetId, connection);
+                try (JFRConnection connection = connect(connectionDescriptor)) {
+                    activeConnections.put(connectionDescriptor.getTargetId(), connection);
                     return task.execute(connection);
                 }
             }
         } finally {
-            activeConnections.remove(targetId);
+            activeConnections.remove(connectionDescriptor.getTargetId());
         }
     }
 
@@ -93,54 +97,51 @@ public class TargetConnectionManager {
      * finished with it. When possible, clients should use executeConnectedTask instead, which does
      * perform automatic cleanup when the provided task has been completed.
      */
-    public JFRConnection connect(String targetId) throws Exception {
+    public JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
         try {
-            return attemptConnectAsJMXServiceURL(targetId);
-        } catch (Exception e) {
-            return attemptConnectAsHostPortPair(targetId);
+            return attemptConnectAsJMXServiceURL(connectionDescriptor);
+        } catch (MalformedURLException mue) {
+            return attemptConnectAsHostPortPair(connectionDescriptor);
         }
     }
 
-    private JFRConnection attemptConnectAsJMXServiceURL(String url) throws Exception {
-        return connect(new JMXServiceURL(url));
+    private JFRConnection attemptConnectAsJMXServiceURL(ConnectionDescriptor connectionDescriptor)
+            throws Exception {
+        return connect(
+                new JMXServiceURL(connectionDescriptor.getTargetId()),
+                connectionDescriptor.getCredentials());
     }
 
-    private JFRConnection attemptConnectAsHostPortPair(String s) throws Exception {
+    private JFRConnection attemptConnectAsHostPortPair(ConnectionDescriptor connectionDescriptor)
+            throws Exception {
+        String s = connectionDescriptor.getTargetId();
         Matcher m = HOST_PORT_PAIR_PATTERN.matcher(s);
         if (!m.find()) {
-            return null;
+            throw new MalformedURLException(s);
         }
         String host = m.group(1);
         String port = m.group(2);
         if (port == null) {
             port = "9091";
         }
-        return connect(host, Integer.parseInt(port));
+        return connect(
+                new JMXServiceURL(
+                        "rmi", "", 0, String.format("/jndi/rmi://%s:%s/jmxrmi", host, port)),
+                connectionDescriptor.getCredentials());
     }
 
-    private JFRConnection connect(JMXServiceURL url) throws Exception {
+    private JFRConnection connect(JMXServiceURL url, Optional<Credentials> credentials)
+            throws Exception {
         logger.trace(String.format("Locking connection %s", url.toString()));
         lock.lockInterruptibly();
         return jfrConnectionToolkit.connect(
                 url,
+                credentials.orElse(null),
                 List.of(
                         lock::unlock,
                         () ->
                                 logger.trace(
                                         String.format("Unlocking connection %s", url.toString()))));
-    }
-
-    private JFRConnection connect(String host, int port) throws Exception {
-        logger.trace(String.format("Locking connection %s:%d", host, port));
-        lock.lockInterruptibly();
-        return jfrConnectionToolkit.connect(
-                host,
-                port,
-                List.of(
-                        lock::unlock,
-                        () ->
-                                logger.trace(
-                                        String.format("Unlocking connection %s:%d", host, port))));
     }
 
     public interface ConnectedTask<T> {

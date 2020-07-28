@@ -45,7 +45,7 @@ class FailedValidationResponseMessage extends ResponseMessage<String> {
     FailedValidationResponseMessage(String id, String commandName, String errorMessage) {
         super(
                 id,
-                -1,
+                Status.INVALID_COMMAND,
                 commandName,
                 String.format("Could not validate \"%s\" command: %s", commandName, errorMessage));
     }

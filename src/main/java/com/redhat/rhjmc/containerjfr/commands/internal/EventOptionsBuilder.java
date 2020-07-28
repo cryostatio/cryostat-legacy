@@ -51,7 +51,6 @@ import org.openjdk.jmc.common.unit.IMutableConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceV2;
 
@@ -65,14 +64,13 @@ class EventOptionsBuilder {
     private Map<IEventTypeID, Map<String, IOptionDescriptor<?>>> knownTypes;
     private Map<String, IEventTypeID> eventIds;
 
-    private EventOptionsBuilder(ClientWriter cw, JFRConnection connection)
-            throws FlightRecorderException {
+    private EventOptionsBuilder(ClientWriter cw, JFRConnection connection) throws Exception {
         this(cw, connection, () -> FlightRecorderServiceV2.isAvailable(connection.getHandle()));
     }
 
     // Testing only
     EventOptionsBuilder(ClientWriter cw, JFRConnection connection, Supplier<Boolean> v2)
-            throws FlightRecorderException {
+            throws Exception {
         this.isV2 = v2.get();
         this.map = connection.getService().getDefaultEventOptions().emptyWithSameConstraints();
         knownTypes = new HashMap<>();
@@ -140,7 +138,7 @@ class EventOptionsBuilder {
             this.cw = cw;
         }
 
-        public EventOptionsBuilder create(JFRConnection connection) throws FlightRecorderException {
+        public EventOptionsBuilder create(JFRConnection connection) throws Exception {
             return new EventOptionsBuilder(cw, connection);
         }
     }

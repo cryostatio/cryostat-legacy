@@ -49,10 +49,10 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 /** @deprecated Use HTTP GET /api/v1/targets/:targetId/templates */
@@ -75,8 +75,9 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
 
     @Override
     public void execute(String[] args) throws Exception {
+        String targetId = args[0];
         targetConnectionManager.executeConnectedTask(
-                args[0],
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     cw.println("Available recording templates:");
                     // TODO format printed output to include template types as "headers" or row
@@ -97,8 +98,9 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
     @Override
     public Output<?> serializableExecute(String[] args) {
         try {
+            String targetId = args[0];
             return targetConnectionManager.executeConnectedTask(
-                    args[0],
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         return new ListOutput<>(getTemplates(connection));
                     });
@@ -122,7 +124,7 @@ class ListEventTemplatesCommand extends AbstractConnectedCommand implements Seri
         }
     }
 
-    private List<Template> getTemplates(JFRConnection connection) throws FlightRecorderException {
+    private List<Template> getTemplates(JFRConnection connection) throws Exception {
         List<Template> templates = new ArrayList<>(connection.getTemplateService().getTemplates());
         templates.add(AbstractRecordingCommand.ALL_EVENTS_TEMPLATE);
         return Collections.unmodifiableList(templates);

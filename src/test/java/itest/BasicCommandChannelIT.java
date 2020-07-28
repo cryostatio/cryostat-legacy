@@ -96,7 +96,13 @@ public class BasicCommandChannelIT extends ITestBase {
         JsonArray targets = resp.getJsonArray("payload");
         JsonObject selfRef =
                 new JsonObject(
-                        Map.of("alias", "This ContainerJFR", "connectUrl", "localhost", "port", 0));
+                        Map.of(
+                                "connectUrl",
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi",
+                                "alias",
+                                "com.redhat.rhjmc.containerjfr.ContainerJfr",
+                                "port",
+                                0));
         MatcherAssert.assertThat(targets, Matchers.equalTo(new JsonArray(List.of(selfRef))));
     }
 }

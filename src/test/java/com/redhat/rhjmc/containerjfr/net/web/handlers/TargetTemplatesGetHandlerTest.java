@@ -64,13 +64,13 @@ import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class TargetTemplatesGetHandlerTest {
@@ -98,16 +98,15 @@ class TargetTemplatesGetHandlerTest {
 
     @Test
     void shouldRespondWithErrorIfExceptionThrown() throws Exception {
-        Mockito.when(connectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        Mockito.when(
+                        connectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenThrow(new Exception("dummy exception"));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
 
-        HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        Assertions.assertThrows(Exception.class, () -> handler.handleAuthenticated(ctx));
     }
 
     @Test
@@ -120,7 +119,9 @@ class TargetTemplatesGetHandlerTest {
         Template template2 =
                 new Template("BarTemplate", "Template for bar-ing", "Test 2", TemplateType.CUSTOM);
 
-        Mockito.when(connectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        Mockito.when(
+                        connectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getTemplateService()).thenReturn(templateService);

@@ -41,8 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net;
 
-import javax.management.remote.JMXServiceURL;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -70,45 +68,27 @@ class TargetConnectionManagerTest {
     }
 
     @Test
-    void shouldDelegateToToolkitForHostnameConnection() throws Exception {
-        Mockito.when(
-                        jfrConnectionToolkit.connect(
-                                Mockito.anyString(), Mockito.anyInt(), Mockito.any()))
-                .thenReturn(conn);
-        JFRConnection c = mgr.connect("foo");
-        MatcherAssert.assertThat(c, Matchers.sameInstance(conn));
-    }
-
-    @Test
-    void shouldDelegateToToolkitForHostPortConnection() throws Exception {
-        Mockito.when(
-                        jfrConnectionToolkit.connect(
-                                Mockito.anyString(), Mockito.anyInt(), Mockito.any()))
-                .thenReturn(conn);
-        JFRConnection c = mgr.connect("foo:1234");
-        MatcherAssert.assertThat(c, Matchers.sameInstance(conn));
-    }
-
-    @Test
     void shouldDelegateToToolkitForJMXURLConnection() throws Exception {
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(JMXServiceURL.class), Mockito.any()))
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(conn);
         JFRConnection c =
-                mgr.connect("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+                mgr.connect(
+                        new ConnectionDescriptor(
+                                "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi"));
         MatcherAssert.assertThat(c, Matchers.sameInstance(conn));
     }
 
     @Test
     void shouldReuseConnectionForNestedTasks() throws Exception {
-        Mockito.when(
-                        jfrConnectionToolkit.connect(
-                                Mockito.anyString(), Mockito.anyInt(), Mockito.any()))
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(conn);
         JFRConnection a =
                 mgr.executeConnectedTask(
-                        "foo",
+                        new ConnectionDescriptor("foo"),
                         b -> {
-                            JFRConnection d = mgr.executeConnectedTask("foo", c -> c);
+                            JFRConnection d =
+                                    mgr.executeConnectedTask(
+                                            new ConnectionDescriptor("foo"), c -> c);
                             MatcherAssert.assertThat(d, Matchers.sameInstance(b));
                             MatcherAssert.assertThat(d, Matchers.sameInstance(conn));
                             return b;

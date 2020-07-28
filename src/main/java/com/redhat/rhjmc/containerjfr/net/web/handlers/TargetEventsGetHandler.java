@@ -57,7 +57,6 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -82,25 +81,20 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        try {
-            String targetId = ctx.pathParam("targetId");
-            List<SerializableEventTypeInfo> templates =
-                    connectionManager.executeConnectedTask(
-                            targetId,
-                            connection -> {
-                                Collection<? extends IEventTypeInfo> origInfos =
-                                        connection.getService().getAvailableEventTypes();
-                                List<SerializableEventTypeInfo> infos =
-                                        new ArrayList<>(origInfos.size());
-                                for (IEventTypeInfo info : origInfos) {
-                                    infos.add(new SerializableEventTypeInfo(info));
-                                }
-                                return infos;
-                            });
-            ctx.response().end(gson.toJson(templates));
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
+        List<SerializableEventTypeInfo> templates =
+                connectionManager.executeConnectedTask(
+                        getConnectionDescriptorFromContext(ctx),
+                        connection -> {
+                            Collection<? extends IEventTypeInfo> origInfos =
+                                    connection.getService().getAvailableEventTypes();
+                            List<SerializableEventTypeInfo> infos =
+                                    new ArrayList<>(origInfos.size());
+                            for (IEventTypeInfo info : origInfos) {
+                                infos.add(new SerializableEventTypeInfo(info));
+                            }
+                            return infos;
+                        });
+        ctx.response().end(gson.toJson(templates));
     }
 }

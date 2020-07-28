@@ -46,6 +46,7 @@ import java.util.Optional;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 abstract class AbstractConnectedCommand implements Command {
@@ -64,7 +65,7 @@ abstract class AbstractConnectedCommand implements Command {
     protected Optional<IRecordingDescriptor> getDescriptorByName(String targetId, String name)
             throws Exception {
         return targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     return connection.getService().getAvailableRecordings().stream()
                             .filter(recording -> recording.getName().equals(name))

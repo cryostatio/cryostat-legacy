@@ -71,6 +71,7 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -120,7 +121,8 @@ class ListRecordingOptionsCommandTest implements ValidatesTargetId {
         when(descriptor.toString()).thenReturn("foo-option-toString");
         Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
 
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -140,7 +142,8 @@ class ListRecordingOptionsCommandTest implements ValidatesTargetId {
         when(descriptor.getDefault()).thenReturn("bar");
         Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
 
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);
@@ -157,7 +160,8 @@ class ListRecordingOptionsCommandTest implements ValidatesTargetId {
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(Mockito.anyString(), Mockito.any()))
+        when(targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         when(connection.getService()).thenReturn(service);

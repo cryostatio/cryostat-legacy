@@ -85,7 +85,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         Optional<Path> report = reportService.get(recordingName);
         report.ifPresentOrElse(

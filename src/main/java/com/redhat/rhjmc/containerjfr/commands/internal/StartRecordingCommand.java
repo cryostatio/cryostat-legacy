@@ -50,6 +50,7 @@ import org.openjdk.jmc.common.unit.IConstrainedMap;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
@@ -84,7 +85,7 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
         String name = args[1];
         String events = args[2];
         targetConnectionManager.executeConnectedTask(
-                targetId,
+                new ConnectionDescriptor(targetId),
                 connection -> {
                     if (getDescriptorByName(targetId, name).isPresent()) {
                         cw.println(
@@ -113,7 +114,7 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
             String events = args[2];
 
             return targetConnectionManager.executeConnectedTask(
-                    targetId,
+                    new ConnectionDescriptor(targetId),
                     connection -> {
                         if (getDescriptorByName(targetId, name).isPresent()) {
                             return new FailureOutput(

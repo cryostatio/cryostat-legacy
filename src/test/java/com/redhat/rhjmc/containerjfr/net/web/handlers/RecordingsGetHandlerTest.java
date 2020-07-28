@@ -140,14 +140,11 @@ class RecordingsGetHandlerTest {
         Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenThrow(IOException.class);
 
-        HttpStatusException httpEx =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(500));
+        Assertions.assertThrows(IOException.class, () -> handler.handleAuthenticated(ctx));
     }
 
     @Test
-    void shouldRespondWithListOfFileNames() throws IOException {
+    void shouldRespondWithListOfFileNames() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
