@@ -86,11 +86,11 @@ public abstract class MainModule {
     // public since this is useful to use directly in tests
     @Provides
     @Singleton
-    public static Gson provideGson() {
+    public static Gson provideGson(Logger logger) {
         return new GsonBuilder()
                 .serializeNulls()
                 .disableHtmlEscaping()
-                .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter())
+                .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
                 .create();
     }
 

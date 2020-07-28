@@ -69,9 +69,9 @@ import io.vertx.core.net.SocketAddress;
 class WsClientReaderWriterTest extends TestBase {
 
     WsClientReaderWriter crw;
-    Gson gson = MainModule.provideGson();
     @Mock Logger logger;
     @Mock ServerWebSocket sws;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {

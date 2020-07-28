@@ -61,6 +61,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
@@ -78,9 +79,10 @@ class ClientUrlGetHandlerTest {
     class WithoutSsl {
 
         ClientUrlGetHandler handler;
-        Gson gson = MainModule.provideGson();
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
+        @Mock Logger logger;
+        Gson gson = MainModule.provideGson(logger);
 
         @BeforeEach
         void setup() {
@@ -132,9 +134,10 @@ class ClientUrlGetHandlerTest {
     class WithSsl {
 
         ClientUrlGetHandler handler;
-        Gson gson = MainModule.provideGson();
+        @Mock Logger logger;
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
+        Gson gson = MainModule.provideGson(logger);
 
         @BeforeEach
         void setup() {

@@ -57,6 +57,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
@@ -70,8 +71,9 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class GrafanaDashboardUrlGetHandlerTest {
 
     GrafanaDashboardUrlGetHandler handler;
-    Gson gson = MainModule.provideGson();
+    @Mock Logger logger;
     @Mock Environment env;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {

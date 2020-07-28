@@ -82,10 +82,10 @@ import io.vertx.ext.web.client.WebClient;
 class HealthGetHandlerTest {
 
     HealthGetHandler handler;
-    Gson gson = MainModule.provideGson();
     @Mock WebClient webClient;
     @Mock Environment env;
     @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
