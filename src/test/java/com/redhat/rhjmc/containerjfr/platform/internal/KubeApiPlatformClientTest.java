@@ -48,6 +48,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
@@ -114,7 +115,7 @@ class KubeApiPlatformClientTest {
         }
 
         @Test
-        void discoversAndResolvesServices() throws ApiException, UnknownHostException {
+        void discoversAndResolvesServices() throws ApiException, UnknownHostException, MalformedURLException {
             V1ServiceList mockServiceList = mock(V1ServiceList.class);
 
             V1Service mockServiceA = mock(V1Service.class);
@@ -153,18 +154,9 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            ServiceRef serv1;
-            ServiceRef serv2;
-            ServiceRef serv3;
-            try {
-                serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
-                serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
-                serv3 = new ServiceRef("10.0.0.1", 7899, "b-service.example.com");
-            } catch (Exception e) {
-                serv1 = null;
-                serv2 = null;
-                serv3 = null;
-            }
+            ServiceRef serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
+            ServiceRef serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
+            ServiceRef serv3 = new ServiceRef("10.0.0.1", 7899, "b-service.example.com");
 
             assertThat(result, Matchers.contains(serv1, serv2, serv3));
 
@@ -180,7 +172,7 @@ class KubeApiPlatformClientTest {
         }
 
         @Test
-        void ignoresUnresolveableServices() throws ApiException, UnknownHostException {
+        void ignoresUnresolveableServices() throws ApiException, UnknownHostException, MalformedURLException {
             V1ServiceList mockServiceList = mock(V1ServiceList.class);
 
             V1Service mockServiceA = mock(V1Service.class);
@@ -220,15 +212,9 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            ServiceRef serv1;
-            ServiceRef serv2;
-            try {
-                serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
-                serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
-            } catch (Exception e) {
-                serv1 = null;
-                serv2 = null;
-            }
+            ServiceRef serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
+            ServiceRef serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
+
             assertThat(result, Matchers.contains(serv1, serv2));
             assertThat(result, Matchers.hasSize(2));
 

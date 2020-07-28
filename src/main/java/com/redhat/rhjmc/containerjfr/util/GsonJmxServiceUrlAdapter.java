@@ -48,8 +48,13 @@ import javax.management.remote.JMXServiceURL;
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
+import com.google.inject.Inject;
+
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
+
+    @Inject Logger logger;
 
     @Override
     public JMXServiceURL read(JsonReader reader) throws IOException {
@@ -58,6 +63,7 @@ public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
         try {
             jmxUrl = new JMXServiceURL(url);
         } catch (Exception e) {
+            logger.warn(e);
             jmxUrl = null;
         }
         return jmxUrl;

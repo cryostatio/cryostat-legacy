@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import java.util.List;
+import java.net.MalformedURLException;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -141,19 +142,10 @@ class ScanTargetsCommandTest {
                 output, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
     }
 
-    List<ServiceRef> getMockServices() {
-        ServiceRef mockA;
-        ServiceRef mockB;
-        ServiceRef mockC;
-        try {
-            mockA = new ServiceRef("aHost", 0, "Host A");
-            mockB = new ServiceRef("bHost", 0, "Host B");
-            mockC = new ServiceRef("cHost", 0, "Host C");
-        } catch (Exception e) {
-            mockA = null;
-            mockB = null;
-            mockC = null;
-        }
+    List<ServiceRef> getMockServices() throws MalformedURLException {
+        ServiceRef mockA = new ServiceRef("aHost", 0, "Host A");
+        ServiceRef mockB = new ServiceRef("bHost", 0, "Host B");
+        ServiceRef mockC = new ServiceRef("cHost", 0, "Host C");
 
         return List.of(mockA, mockB, mockC);
     }

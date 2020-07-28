@@ -89,13 +89,9 @@ class TargetsGetHandlerTest {
     }
 
     @Test
-    void shouldReturnListOfTargets() {
-        ServiceRef target;
-        try {
-            target = new ServiceRef("foo", 1, "foo");
-        } catch (Exception e) {
-            target = null;
-        }
+    void shouldReturnListOfTargets() throws MalformedURLException {
+        ServiceRef target = new ServiceRef("foo", 1, "foo");
+
         List<ServiceRef> targets = Collections.singletonList(target);
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(targets);
 

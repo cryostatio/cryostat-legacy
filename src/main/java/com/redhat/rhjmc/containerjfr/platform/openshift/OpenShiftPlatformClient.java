@@ -88,8 +88,7 @@ class OpenShiftPlatformClient implements PlatformClient {
                                                     port ->
                                                             refs.addAll(
                                                                     createServiceRefs(
-                                                                            logger, subset,
-                                                                            port))));
+                                                                            subset, port))));
             return refs;
         } catch (Exception e) {
             logger.error(e);
@@ -101,8 +100,7 @@ class OpenShiftPlatformClient implements PlatformClient {
         return "jfr-jmx".equals(port.getName()) || 9091 == port.getPort();
     }
 
-    private List<ServiceRef> createServiceRefs(
-            Logger logger, EndpointSubset subset, EndpointPort port) {
+    private List<ServiceRef> createServiceRefs(EndpointSubset subset, EndpointPort port) {
         return subset.getAddresses().stream()
                 .map(
                         addr -> {

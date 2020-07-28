@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -91,7 +92,7 @@ class KubeEnvPlatformClientTest {
         }
 
         @Test
-        void shouldDiscoverServicesByEnv() {
+        void shouldDiscoverServicesByEnv() throws MalformedURLException {
             when(env.getEnv())
                     .thenReturn(
                             Map.of(
@@ -100,15 +101,8 @@ class KubeEnvPlatformClientTest {
                                     "BAZ_PORT_9876_UDP_ADDR", "5.6.7.8"));
             List<ServiceRef> services = client.listDiscoverableServices();
 
-            ServiceRef serv1;
-            ServiceRef serv2;
-            try {
-                serv1 = new ServiceRef("127.0.0.1", 1234, "foo");
-                serv2 = new ServiceRef("1.2.3.4", 9999, "bar");
-            } catch (Exception e) {
-                serv1 = null;
-                serv2 = null;
-            }
+            ServiceRef serv1 = new ServiceRef("127.0.0.1", 1234, "foo");
+            ServiceRef serv2 = new ServiceRef("1.2.3.4", 9999, "bar");
 
             MatcherAssert.assertThat(services, Matchers.containsInAnyOrder(serv1, serv2));
             MatcherAssert.assertThat(services, Matchers.hasSize(2));
