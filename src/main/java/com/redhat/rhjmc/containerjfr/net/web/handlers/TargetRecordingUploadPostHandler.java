@@ -106,31 +106,26 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
-        String recordingName = ctx.pathParam("recordingName");
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
             URL uploadUrl = new URL(env.getEnv("GRAFANA_DATASOURCE_URL"));
-            ResponseMessage response = doPost(targetId, recordingName, uploadUrl);
+            ResponseMessage response = doPost(ctx, uploadUrl);
             ctx.response().setStatusCode(response.statusCode);
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
-        } catch (HttpStatusException e) {
-            throw e;
         } catch (MalformedURLException e) {
             throw new HttpStatusException(501, e);
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
         }
     }
 
     // FindBugs thinks the recordingPath or its properties is null somehow
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
-    private ResponseMessage doPost(String targetId, String recordingName, URL uploadUrl)
-            throws Exception {
+    private ResponseMessage doPost(RoutingContext ctx, URL uploadUrl) throws Exception {
+        String targetId = ctx.pathParam("targetId");
+        String recordingName = ctx.pathParam("recordingName");
         Path recordingPath =
                 targetConnectionManager.executeConnectedTask(
-                        targetId,
+                        getConnectionDescriptorFromContext(ctx),
                         connection ->
                                 getRecordingCopyPath(connection, targetId, recordingName)
                                         .orElseThrow(

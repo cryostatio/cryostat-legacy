@@ -57,6 +57,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -70,6 +71,7 @@ class TargetRecordingPatchHandlerTest {
     @Mock TargetRecordingPatchSave patchSave;
     @Mock TargetRecordingPatchStop patchStop;
     @Mock RoutingContext ctx;
+    @Mock ConnectionDescriptor connectionDescriptor;
 
     @BeforeEach
     void setup() {
@@ -119,7 +121,7 @@ class TargetRecordingPatchHandlerTest {
 
     @ParameterizedTest
     @ValueSource(strings = {"save", "stop"})
-    void shouldDelegateSupportedOperations(String mtd) {
+    void shouldDelegateSupportedOperations(String mtd) throws Exception {
         Mockito.when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
@@ -128,10 +130,12 @@ class TargetRecordingPatchHandlerTest {
 
         switch (mtd) {
             case "save":
-                Mockito.verify(patchSave).handle(ctx);
+                Mockito.verify(patchSave)
+                        .handle(Mockito.eq(ctx), Mockito.any(ConnectionDescriptor.class));
                 break;
             case "stop":
-                Mockito.verify(patchStop).handle(ctx);
+                Mockito.verify(patchStop)
+                        .handle(Mockito.eq(ctx), Mockito.any(ConnectionDescriptor.class));
                 break;
             default:
                 throw new IllegalArgumentException(mtd);

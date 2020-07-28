@@ -47,6 +47,7 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.ext.web.RoutingContext;
@@ -61,36 +62,27 @@ class TargetRecordingPatchStop {
         this.targetConnectionManager = targetConnectionManager;
     }
 
-    void handle(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
+    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
 
-        try {
-            targetConnectionManager.executeConnectedTask(
-                    targetId,
-                    connection -> {
-                        Optional<IRecordingDescriptor> descriptor =
-                                connection.getService().getAvailableRecordings().stream()
-                                        .filter(
-                                                recording ->
-                                                        recording.getName().equals(recordingName))
-                                        .findFirst();
-                        if (descriptor.isPresent()) {
-                            connection.getService().stop(descriptor.get());
-                            return null;
-                        } else {
-                            throw new HttpStatusException(
-                                    404,
-                                    String.format(
-                                            "Recording with name \"%s\" not found", recordingName));
-                        }
-                    });
-            ctx.response().setStatusCode(200);
-            ctx.response().end();
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        connection.getService().stop(descriptor.get());
+                        return null;
+                    } else {
+                        throw new HttpStatusException(
+                                404,
+                                String.format(
+                                        "Recording with name \"%s\" not found", recordingName));
+                    }
+                });
+        ctx.response().setStatusCode(200);
+        ctx.response().end();
     }
 }

@@ -82,7 +82,7 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String mtd = ctx.getBodyAsString();
 
         if (mtd == null) {
@@ -90,10 +90,10 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
         }
         switch (mtd.toLowerCase()) {
             case "save":
-                patchSave.handle(ctx);
+                patchSave.handle(ctx, getConnectionDescriptorFromContext(ctx));
                 break;
             case "stop":
-                patchStop.handle(ctx);
+                patchStop.handle(ctx, getConnectionDescriptorFromContext(ctx));
                 break;
             default:
                 throw new HttpStatusException(400, "Unsupported operation " + mtd);

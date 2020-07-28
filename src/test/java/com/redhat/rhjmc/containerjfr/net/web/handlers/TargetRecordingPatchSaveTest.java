@@ -67,6 +67,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -97,49 +98,14 @@ class TargetRecordingPatchSaveTest {
         this.patchSave =
                 new TargetRecordingPatchSave(
                         fs, recordingsPath, targetConnectionManager, clock, logger);
-        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-    }
-
-    @Test
-    void shouldThrow500IfTargetConnectionManagerThrows() throws Exception {
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
-                .thenThrow(NullPointerException.class);
-
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> patchSave.handle(ctx));
-
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-    }
-
-    @Test
-    void shouldThrow500IfTaskThrows() throws Exception {
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any(ConnectedTask.class)))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                ConnectedTask task = (ConnectedTask) invocation.getArgument(1);
-                                return task.execute(jfrConnection);
-                            }
-                        });
-        Mockito.when(jfrConnection.getService()).thenThrow(NullPointerException.class);
-
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> patchSave.handle(ctx));
-
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
     @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any(ConnectedTask.class)))
+                                Mockito.any(), Mockito.any(ConnectedTask.class)))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -152,7 +118,9 @@ class TargetRecordingPatchSaveTest {
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
         HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> patchSave.handle(ctx));
+                Assertions.assertThrows(
+                        HttpStatusException.class,
+                        () -> patchSave.handle(ctx, new ConnectionDescriptor(targetId)));
 
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
@@ -162,7 +130,7 @@ class TargetRecordingPatchSaveTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any(ConnectedTask.class)))
+                                Mockito.any(), Mockito.any(ConnectedTask.class)))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -184,7 +152,7 @@ class TargetRecordingPatchSaveTest {
         Path destination = Mockito.mock(Path.class);
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
-        patchSave.handle(ctx);
+        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
 
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
@@ -200,7 +168,7 @@ class TargetRecordingPatchSaveTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any(ConnectedTask.class)))
+                                Mockito.any(), Mockito.any(ConnectedTask.class)))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -222,7 +190,7 @@ class TargetRecordingPatchSaveTest {
         Path destination = Mockito.mock(Path.class);
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
-        patchSave.handle(ctx);
+        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
 
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
@@ -236,7 +204,7 @@ class TargetRecordingPatchSaveTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any(ConnectedTask.class)))
+                                Mockito.any(), Mockito.any(ConnectedTask.class)))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -258,7 +226,7 @@ class TargetRecordingPatchSaveTest {
         Path destination = Mockito.mock(Path.class);
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
-        patchSave.handle(ctx);
+        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
 
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);

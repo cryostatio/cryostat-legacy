@@ -81,36 +81,28 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
-        try {
-            targetConnectionManager.executeConnectedTask(
-                    targetId,
-                    connection -> {
-                        Optional<IRecordingDescriptor> descriptor =
-                                connection.getService().getAvailableRecordings().stream()
-                                        .filter(
-                                                recording ->
-                                                        recording.getName().equals(recordingName))
-                                        .findFirst();
-                        if (descriptor.isPresent()) {
-                            connection.getService().close(descriptor.get());
-                            reportService.delete(targetId, recordingName);
-                            ctx.response().setStatusCode(200);
-                            ctx.response().end();
-                        } else {
-                            throw new HttpStatusException(
-                                    404,
-                                    String.format(
-                                            "No recording with name \"%s\" found", recordingName));
-                        }
-                        return null;
-                    });
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
+        targetConnectionManager.executeConnectedTask(
+                getConnectionDescriptorFromContext(ctx),
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        connection.getService().close(descriptor.get());
+                        reportService.delete(targetId, recordingName);
+                        ctx.response().setStatusCode(200);
+                        ctx.response().end();
+                    } else {
+                        throw new HttpStatusException(
+                                404,
+                                String.format(
+                                        "No recording with name \"%s\" found", recordingName));
+                    }
+                    return null;
+                });
     }
 }

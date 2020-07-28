@@ -50,7 +50,6 @@ import java.util.Optional;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
@@ -58,6 +57,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.ext.web.RoutingContext;
@@ -85,44 +85,37 @@ class TargetRecordingPatchSave {
         this.logger = logger;
     }
 
-    void handle(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
+    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
 
-        try {
-            String saveName =
-                    targetConnectionManager.executeConnectedTask(
-                            targetId,
-                            connection -> {
-                                Optional<IRecordingDescriptor> descriptor =
-                                        connection.getService().getAvailableRecordings().stream()
-                                                .filter(
-                                                        recording ->
-                                                                recording
-                                                                        .getName()
-                                                                        .equals(recordingName))
-                                                .findFirst();
-                                if (descriptor.isPresent()) {
-                                    return saveRecording(connection, descriptor.get());
-                                } else {
-                                    throw new HttpStatusException(
-                                            404,
-                                            String.format(
-                                                    "Recording with name \"%s\" not found",
-                                                    recordingName));
-                                }
-                            });
-            ctx.response().setStatusCode(200);
-            ctx.response().end(saveName);
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
-        }
+        String saveName =
+                targetConnectionManager.executeConnectedTask(
+                        connectionDescriptor,
+                        connection -> {
+                            Optional<IRecordingDescriptor> descriptor =
+                                    connection.getService().getAvailableRecordings().stream()
+                                            .filter(
+                                                    recording ->
+                                                            recording
+                                                                    .getName()
+                                                                    .equals(recordingName))
+                                            .findFirst();
+                            if (descriptor.isPresent()) {
+                                return saveRecording(connection, descriptor.get());
+                            } else {
+                                throw new HttpStatusException(
+                                        404,
+                                        String.format(
+                                                "Recording with name \"%s\" not found",
+                                                recordingName));
+                            }
+                        });
+        ctx.response().setStatusCode(200);
+        ctx.response().end(saveName);
     }
 
     protected String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)
-            throws IOException, FlightRecorderException {
+            throws Exception {
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);

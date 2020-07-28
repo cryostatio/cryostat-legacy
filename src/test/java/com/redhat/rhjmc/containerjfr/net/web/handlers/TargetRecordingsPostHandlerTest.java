@@ -128,9 +128,7 @@ class TargetRecordingsPostHandlerTest {
     void shouldStartRecording() throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);
@@ -214,9 +212,7 @@ class TargetRecordingsPostHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
         IRecordingDescriptor existingRecording = createDescriptor("someRecording");
 
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);

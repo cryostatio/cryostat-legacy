@@ -60,6 +60,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
@@ -83,24 +84,9 @@ class TargetRecordingPatchStopTest {
     }
 
     @Test
-    void shouldThrow500IfTargetConnectionManagerThrows() throws Exception {
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
-                .thenThrow(NullPointerException.class);
-
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> patchStop.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-    }
-
-    @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -113,18 +99,17 @@ class TargetRecordingPatchStopTest {
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
         HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> patchStop.handle(ctx));
+                Assertions.assertThrows(
+                        HttpStatusException.class,
+                        () -> patchStop.handle(ctx, new ConnectionDescriptor("fooTarget")));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
     @Test
     void shouldStopRecording() throws Exception {
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -138,7 +123,7 @@ class TargetRecordingPatchStopTest {
         Mockito.when(descriptor.getName()).thenReturn("someRecording");
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        patchStop.handle(ctx);
+        patchStop.handle(ctx, new ConnectionDescriptor("fooTarget"));
 
         Mockito.verify(service).stop(descriptor);
         InOrder inOrder = Mockito.inOrder(resp);

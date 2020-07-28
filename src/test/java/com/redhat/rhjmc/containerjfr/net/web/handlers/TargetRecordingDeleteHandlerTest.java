@@ -108,9 +108,7 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer() {
                             @Override
@@ -137,9 +135,7 @@ class TargetRecordingDeleteHandlerTest {
     void shouldHandleRecordingNotFound() throws Exception {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.anyString(), Mockito.any()))
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer() {
                             @Override

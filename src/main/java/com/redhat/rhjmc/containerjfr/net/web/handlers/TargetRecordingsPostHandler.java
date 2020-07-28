@@ -64,7 +64,6 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.commands.internal.EventOptionsBuilder;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
-import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
@@ -129,7 +128,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         MultiMap attrs = ctx.request().formAttributes();
         String recordingName = attrs.get("recordingName");
         if (StringUtils.isBlank(recordingName)) {
@@ -143,7 +142,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         try {
             Optional<HyperlinkedSerializableRecordingDescriptor> descriptor =
                     targetConnectionManager.executeConnectedTask(
-                            ctx.pathParam("targetId"),
+                            getConnectionDescriptorFromContext(ctx),
                             connection -> {
                                 if (getDescriptorByName(connection, recordingName).isPresent()) {
                                     throw new HttpStatusException(
@@ -202,21 +201,16 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         throw new HttpStatusException(
                                 500, "Unexpected failure to create recording");
                     });
-        } catch (HttpStatusException hse) {
-            throw hse;
         } catch (NumberFormatException nfe) {
             throw new HttpStatusException(
                     400, String.format("Recording duration invalid: %s", nfe.getMessage()), nfe);
         } catch (IllegalArgumentException iae) {
             throw new HttpStatusException(400, iae.getMessage(), iae);
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
         }
     }
 
     protected Optional<IRecordingDescriptor> getDescriptorByName(
-            JFRConnection connection, String recordingName)
-            throws org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException {
+            JFRConnection connection, String recordingName) throws Exception {
         return connection.getService().getAvailableRecordings().stream()
                 .filter(recording -> recording.getName().equals(recordingName))
                 .findFirst();
@@ -255,7 +249,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     return connection
                                             .getTemplateService()
                                             .getEvents(templateName, TemplateType.TARGET);
-                                } catch (FlightRecorderException e) {
+                                } catch (Exception e) {
                                     return Optional.empty();
                                 }
                             })
