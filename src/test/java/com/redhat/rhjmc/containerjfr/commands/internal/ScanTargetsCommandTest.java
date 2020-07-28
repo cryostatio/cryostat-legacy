@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
-import java.util.List;
 import java.net.MalformedURLException;
+import java.util.List;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;

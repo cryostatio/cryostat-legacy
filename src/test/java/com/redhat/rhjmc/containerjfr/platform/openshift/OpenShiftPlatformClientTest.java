@@ -173,10 +173,16 @@ class OpenShiftPlatformClientTest {
         Mockito.when(mockListable.getItems()).thenReturn(Collections.singletonList(endpoint));
 
         List<ServiceRef> result = platformClient.listDiscoverableServices();
-        ServiceRef serv1 = new ServiceRef(address2.getIp(), port2.getPort(), address2.getTargetRef().getName());
-        ServiceRef serv2 = new ServiceRef(address3.getIp(), port2.getPort(), address3.getTargetRef().getName());
-        ServiceRef serv3 = new ServiceRef(address4.getIp(), port3.getPort(), address4.getTargetRef().getName());
- 
+        ServiceRef serv1 =
+                new ServiceRef(
+                        address2.getIp(), port2.getPort(), address2.getTargetRef().getName());
+        ServiceRef serv2 =
+                new ServiceRef(
+                        address3.getIp(), port2.getPort(), address3.getTargetRef().getName());
+        ServiceRef serv3 =
+                new ServiceRef(
+                        address4.getIp(), port3.getPort(), address4.getTargetRef().getName());
+
         MatcherAssert.assertThat(namespaceCaptor.getValue(), Matchers.equalTo(namespace));
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
     }

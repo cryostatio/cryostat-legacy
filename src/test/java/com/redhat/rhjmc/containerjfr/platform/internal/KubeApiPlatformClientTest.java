@@ -115,7 +115,8 @@ class KubeApiPlatformClientTest {
         }
 
         @Test
-        void discoversAndResolvesServices() throws ApiException, UnknownHostException, MalformedURLException {
+        void discoversAndResolvesServices()
+                throws ApiException, UnknownHostException, MalformedURLException {
             V1ServiceList mockServiceList = mock(V1ServiceList.class);
 
             V1Service mockServiceA = mock(V1Service.class);
@@ -172,7 +173,8 @@ class KubeApiPlatformClientTest {
         }
 
         @Test
-        void ignoresUnresolveableServices() throws ApiException, UnknownHostException, MalformedURLException {
+        void ignoresUnresolveableServices()
+                throws ApiException, UnknownHostException, MalformedURLException {
             V1ServiceList mockServiceList = mock(V1ServiceList.class);
 
             V1Service mockServiceA = mock(V1Service.class);
