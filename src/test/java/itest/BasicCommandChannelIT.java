@@ -93,6 +93,9 @@ public class BasicCommandChannelIT extends ITestBase {
         JsonObject resp =
                 sendMessage("scan-targets").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertResponseStatus(resp);
+        Thread.sleep(10000);
+        resp = sendMessage("scan-targets").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertResponseStatus(resp);
         JsonArray targets = resp.getJsonArray("payload");
         JsonObject selfRef =
                 new JsonObject(
@@ -100,9 +103,7 @@ public class BasicCommandChannelIT extends ITestBase {
                                 "connectUrl",
                                 "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi",
                                 "alias",
-                                "com.redhat.rhjmc.containerjfr.ContainerJfr",
-                                "port",
-                                0));
+                                "com.redhat.rhjmc.containerjfr.ContainerJfr"));
         MatcherAssert.assertThat(targets, Matchers.equalTo(new JsonArray(List.of(selfRef))));
     }
 }

@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.net.MalformedURLException;
 import java.util.Collections;
 import java.util.List;
 
@@ -92,7 +91,7 @@ class TargetsGetHandlerTest {
     }
 
     @Test
-    void shouldReturnListOfTargets() throws MalformedURLException {
+    void shouldReturnListOfTargets() throws Exception {
         ServiceRef target = new ServiceRef("foo", 1, "foo");
 
         List<ServiceRef> targets = Collections.singletonList(target);
