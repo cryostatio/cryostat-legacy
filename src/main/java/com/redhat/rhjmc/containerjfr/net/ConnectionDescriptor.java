@@ -43,6 +43,9 @@ package com.redhat.rhjmc.containerjfr.net;
 
 import java.util.Optional;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 
 public class ConnectionDescriptor {
@@ -65,5 +68,28 @@ public class ConnectionDescriptor {
 
     public Optional<Credentials> getCredentials() {
         return credentials;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == null) {
+            return false;
+        }
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof ConnectionDescriptor)) {
+            return false;
+        }
+        ConnectionDescriptor cd = (ConnectionDescriptor) other;
+        return new EqualsBuilder()
+                .append(targetId, cd.targetId)
+                .append(credentials, cd.credentials)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().append(targetId).append(credentials).hashCode();
     }
 }

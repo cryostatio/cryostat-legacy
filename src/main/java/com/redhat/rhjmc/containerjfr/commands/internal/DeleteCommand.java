@@ -82,14 +82,15 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     public void execute(String[] args) throws Exception {
         final String targetId = args[0];
         final String recordingName = args[1];
+        final ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         targetConnectionManager.executeConnectedTask(
-                new ConnectionDescriptor(targetId),
+                connectionDescriptor,
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor =
                             getDescriptorByName(targetId, recordingName);
                     if (descriptor.isPresent()) {
                         connection.getService().close(descriptor.get());
-                        reportService.delete(targetId, recordingName);
+                        reportService.delete(connectionDescriptor, recordingName);
                     } else {
                         cw.println(
                                 String.format(
@@ -103,15 +104,16 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
     public Output<?> serializableExecute(String[] args) {
         final String targetId = args[0];
         final String recordingName = args[1];
+        final ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         try {
             return targetConnectionManager.executeConnectedTask(
-                    new ConnectionDescriptor(targetId),
+                    connectionDescriptor,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
                                 getDescriptorByName(targetId, recordingName);
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
-                            reportService.delete(targetId, recordingName);
+                            reportService.delete(connectionDescriptor, recordingName);
                             return new SuccessOutput();
                         } else {
                             return new FailureOutput(

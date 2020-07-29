@@ -89,7 +89,7 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnFalseWhenDeletingNonExistentReport() {
-        Assertions.assertFalse(cache.delete("foo", "bar"));
+        Assertions.assertFalse(cache.delete(new ConnectionDescriptor("foo"), "bar"));
     }
 
     @Test
@@ -117,8 +117,9 @@ class ActiveRecordingReportCacheTest {
 
         String targetId = "foo";
 
-        cache.get(targetId, recordingName);
-        Assertions.assertTrue(cache.delete(targetId, recordingName));
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        cache.get(connectionDescriptor, recordingName);
+        Assertions.assertTrue(cache.delete(connectionDescriptor, recordingName));
     }
 
     @Test
@@ -146,7 +147,8 @@ class ActiveRecordingReportCacheTest {
 
         String targetId = "foo";
 
-        String report = cache.get(targetId, recordingName);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        String report = cache.get(connectionDescriptor, recordingName);
         MatcherAssert.assertThat(report, Matchers.equalTo("Generated Report"));
 
         InOrder inOrder =
@@ -197,9 +199,10 @@ class ActiveRecordingReportCacheTest {
 
         String targetId = "foo";
 
-        String report1 = cache.get(targetId, recordingName);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        String report1 = cache.get(connectionDescriptor, recordingName);
         MatcherAssert.assertThat(report1, Matchers.equalTo("Generated Report"));
-        String report2 = cache.get(targetId, recordingName);
+        String report2 = cache.get(connectionDescriptor, recordingName);
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
         InOrder inOrder =
@@ -235,7 +238,9 @@ class ActiveRecordingReportCacheTest {
 
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
-        Assertions.assertThrows(RecordingNotFoundException.class, () -> cache.get("foo", "bar"));
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
+        Assertions.assertThrows(
+                RecordingNotFoundException.class, () -> cache.get(connectionDescriptor, "bar"));
     }
 
     @Test
@@ -252,6 +257,8 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(service.openStream(Mockito.any(), Mockito.anyBoolean()))
                 .thenThrow(FlightRecorderException.class);
 
-        Assertions.assertThrows(RecordingNotFoundException.class, () -> cache.get("foo", "bar"));
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
+        Assertions.assertThrows(
+                RecordingNotFoundException.class, () -> cache.get(connectionDescriptor, "bar"));
     }
 }

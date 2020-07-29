@@ -48,6 +48,7 @@ import javax.inject.Inject;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
@@ -82,10 +83,10 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
+        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         targetConnectionManager.executeConnectedTask(
-                getConnectionDescriptorFromContext(ctx),
+                connectionDescriptor,
                 connection -> {
                     Optional<IRecordingDescriptor> descriptor =
                             connection.getService().getAvailableRecordings().stream()
@@ -93,7 +94,7 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
                                     .findFirst();
                     if (descriptor.isPresent()) {
                         connection.getService().close(descriptor.get());
-                        reportService.delete(targetId, recordingName);
+                        reportService.delete(connectionDescriptor, recordingName);
                         ctx.response().setStatusCode(200);
                         ctx.response().end();
                     } else {

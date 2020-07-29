@@ -109,7 +109,7 @@ class TargetReportGetHandlerTest {
         String targetId = "fooHost:0";
         String recordingName = "foo";
         String content = "foobar";
-        when(reportService.get(Mockito.anyString(), Mockito.anyString())).thenReturn(content);
+        when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
@@ -131,7 +131,7 @@ class TargetReportGetHandlerTest {
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
 
-        when(reportService.get(Mockito.anyString(), Mockito.anyString()))
+        when(reportService.get(Mockito.any(), Mockito.anyString()))
                 .thenThrow(new RecordingNotFoundException("fooHost:0", "someRecording"));
 
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");

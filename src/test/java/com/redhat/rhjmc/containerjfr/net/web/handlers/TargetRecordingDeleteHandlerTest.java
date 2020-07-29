@@ -63,6 +63,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
@@ -125,7 +126,14 @@ class TargetRecordingDeleteHandlerTest {
         handler.handleAuthenticated(ctx);
 
         Mockito.verify(service).close(descriptor);
-        Mockito.verify(reportService).delete("fooTarget", "someRecording");
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        Mockito.verify(reportService)
+                .delete(
+                        Mockito.argThat(
+                                arg ->
+                                        arg.getTargetId()
+                                                .equals(connectionDescriptor.getTargetId())),
+                        Mockito.eq("someRecording"));
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
         inOrder.verify(resp).end();

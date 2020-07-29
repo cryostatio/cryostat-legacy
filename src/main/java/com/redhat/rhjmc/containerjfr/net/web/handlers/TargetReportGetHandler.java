@@ -88,11 +88,11 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String targetId = ctx.pathParam("targetId");
         String recordingName = ctx.pathParam("recordingName");
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
-            ctx.response().end(reportService.get(targetId, recordingName));
+            ctx.response()
+                    .end(reportService.get(getConnectionDescriptorFromContext(ctx), recordingName));
         } catch (RecordingNotFoundException rnfe) {
             throw new HttpStatusException(404, rnfe);
         }

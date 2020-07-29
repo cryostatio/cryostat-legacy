@@ -50,6 +50,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.tuple.Pair;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -67,7 +69,7 @@ class ActiveRecordingReportCache {
     protected final TargetConnectionManager targetConnectionManager;
     protected final ReportGenerator reportGenerator;
     protected final ReentrantLock generationLock;
-    protected final LoadingCache<String, String> cache;
+    protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
@@ -88,43 +90,41 @@ class ActiveRecordingReportCache {
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
                         .softValues()
-                        .build(k -> getReport(keyParts(k)));
+                        .build(k -> getReport(k));
     }
 
-    String get(String targetId, String recordingName) {
-        return cache.get(key(targetId, recordingName));
+    String get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+        return cache.get(new RecordingDescriptor(connectionDescriptor, recordingName));
     }
 
-    boolean delete(String targetId, String recordingName) {
+    boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
         logger.trace(String.format("Invalidating active report cache for %s", recordingName));
-        String key = key(targetId, recordingName);
+        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
         boolean hasKey = cache.asMap().containsKey(key);
         cache.invalidate(key);
         return hasKey;
     }
 
-    protected String key(String targetId, String recordingName) {
-        return targetId + "@" + recordingName;
-    }
-
-    protected String key(Pair<String, String> key) {
-        return key(key.getLeft(), key.getRight());
-    }
-
-    protected Pair<String, String> keyParts(String key) {
-        // TODO validate key
-        String[] parts = key.split("@");
-        return Pair.of(parts[0], parts[1]);
-    }
-
-    protected String getReport(Pair<String, String> key) throws Exception {
+    protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
         try {
             generationLock.lock();
-            Pair<Optional<InputStream>, JFRConnection> pair = getRecordingStream(key);
+            Pair<Optional<InputStream>, JFRConnection> pair =
+                    getRecordingStream(
+                            recordingDescriptor.connectionDescriptor,
+                            recordingDescriptor.recordingName);
             try (JFRConnection c = pair.getRight();
                     InputStream stream =
-                            pair.getLeft().orElseThrow(() -> new RecordingNotFoundException(key))) {
-                logger.trace(String.format("Active report cache miss for %s", key));
+                            pair.getLeft()
+                                    .orElseThrow(
+                                            () ->
+                                                    new RecordingNotFoundException(
+                                                            recordingDescriptor.connectionDescriptor
+                                                                    .getTargetId(),
+                                                            recordingDescriptor.recordingName))) {
+                logger.trace(
+                        String.format(
+                                "Active report cache miss for %s",
+                                recordingDescriptor.recordingName));
                 return reportGenerator.generateReport(stream);
             }
         } finally {
@@ -133,12 +133,11 @@ class ActiveRecordingReportCache {
     }
 
     protected Pair<Optional<InputStream>, JFRConnection> getRecordingStream(
-            Pair<String, String> key) throws Exception {
-        JFRConnection connection =
-                targetConnectionManager.connect(new ConnectionDescriptor(key.getLeft()));
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        JFRConnection connection = targetConnectionManager.connect(connectionDescriptor);
         Optional<InputStream> desc =
                 connection.getService().getAvailableRecordings().stream()
-                        .filter(rec -> Objects.equals(key.getRight(), rec.getName()))
+                        .filter(rec -> Objects.equals(recordingName, rec.getName()))
                         .findFirst()
                         .flatMap(
                                 rec -> {
@@ -151,5 +150,41 @@ class ActiveRecordingReportCache {
                                     }
                                 });
         return Pair.of(desc, connection);
+    }
+
+    static class RecordingDescriptor {
+        final ConnectionDescriptor connectionDescriptor;
+        final String recordingName;
+
+        RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
+            this.connectionDescriptor = connectionDescriptor;
+            this.recordingName = recordingName;
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == null) {
+                return false;
+            }
+            if (other == this) {
+                return true;
+            }
+            if (!(other instanceof RecordingDescriptor)) {
+                return false;
+            }
+            RecordingDescriptor rd = (RecordingDescriptor) other;
+            return new EqualsBuilder()
+                    .append(connectionDescriptor, rd.connectionDescriptor)
+                    .append(recordingName, rd.recordingName)
+                    .isEquals();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder()
+                    .append(connectionDescriptor)
+                    .append(recordingName)
+                    .hashCode();
+        }
     }
 }
