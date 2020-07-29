@@ -113,6 +113,15 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         String recordingName = args[1];
         String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV).concat("/load");
         ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
+
+        if (response.statusCode != 200 || response.statusMessage == null || response.body == null) {
+            cw.println(
+                    String.format(
+                            "Invalid response from server; datasource URL may be incorrect, or server may not be functioning properly: status=\"%d %s\"; body=\"%s\"",
+                            response.statusCode, response.statusMessage, response.body));
+            return;
+        }
+
         cw.println(
                 String.format(
                         "[%d %s] %s", response.statusCode, response.statusMessage, response.body));
@@ -126,6 +135,16 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
 
         try {
             ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
+
+            if (response.statusCode != 200
+                    || response.statusMessage == null
+                    || response.body == null) {
+                return new FailureOutput(
+                        String.format(
+                                "Invalid response from server; datasource URL may be incorrect, or server may not be functioning properly: status=\"%d %s\"; body=\"%s\"",
+                                response.statusCode, response.statusMessage, response.body));
+            }
+
             return new MapOutput<>(
                     Map.of(
                             "status",
