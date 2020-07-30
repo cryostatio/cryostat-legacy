@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import static com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier.isSuccessCode;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -114,7 +116,9 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV).concat("/load");
         ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
 
-        if (response.statusCode != 200 || response.statusMessage == null || response.body == null) {
+        if (!isSuccessCode(response.statusCode)
+                || response.statusMessage == null
+                || response.body == null) {
             cw.println(
                     String.format(
                             "Invalid response from server; datasource URL may be incorrect, or server may not be functioning properly: status=\"%d %s\"; body=\"%s\"",
@@ -136,7 +140,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         try {
             ResponseMessage response = doPost(targetId, recordingName, datasourceUrl);
 
-            if (response.statusCode != 200
+            if (!isSuccessCode(response.statusCode)
                     || response.statusMessage == null
                     || response.body == null) {
                 return new FailureOutput(
