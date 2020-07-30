@@ -70,6 +70,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.ExceptionOutput;
+import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.MapOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.internal.UploadRecordingCommand.RecordingNotFoundException;
@@ -456,6 +457,104 @@ class UploadRecordingCommandTest {
                     urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
             Mockito.verify(cw).println("[200 OK] HELLO");
         }
+
+        @Test
+        void shouldHandleInvalidResponseStatusCode() throws Exception {
+            Mockito.when(
+                            targetConnectionManager.executeConnectedTask(
+                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                    .thenAnswer(
+                            arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(conn.getService()).thenReturn(svc);
+            Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
+            Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+
+            HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+            HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+            Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.doAnswer(
+                            new Answer<Void>() {
+                                @Override
+                                public Void answer(InvocationOnMock args) throws Throwable {
+                                    AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                            Mockito.mock(AsyncResult.class);
+                                    Mockito.when(asyncResult.result()).thenReturn(resp);
+                                    Mockito.when(resp.statusCode()).thenReturn(418);
+                                    Mockito.when(resp.statusMessage()).thenReturn("I'm a teapot");
+                                    Mockito.when(resp.bodyAsString()).thenReturn("short and stout");
+                                    ((Handler<AsyncResult<HttpResponse<Buffer>>>)
+                                                    args.getArgument(1))
+                                            .handle(asyncResult);
+                                    return null;
+                                }
+                            })
+                    .when(req)
+                    .sendMultipartForm(Mockito.any(), Mockito.any());
+
+            command.execute(new String[] {HOST_ID, "foo"});
+
+            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            Mockito.verify(webClient).postAbs(urlCaptor.capture());
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
+            Mockito.verify(cw)
+                    .println(
+                            "Invalid response from server; datasource URL may be incorrect, or server may not be functioning properly: status=\"418 I'm a teapot\"; body=\"short and stout\"");
+        }
+
+        @Test
+        void shouldHandleNullResponseBody() throws Exception {
+            Mockito.when(
+                            targetConnectionManager.executeConnectedTask(
+                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                    .thenAnswer(
+                            arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(conn.getService()).thenReturn(svc);
+            Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
+            Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+
+            HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+            HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+            Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.doAnswer(
+                            new Answer<Void>() {
+                                @Override
+                                public Void answer(InvocationOnMock args) throws Throwable {
+                                    AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                            Mockito.mock(AsyncResult.class);
+                                    Mockito.when(asyncResult.result()).thenReturn(resp);
+                                    Mockito.when(resp.statusCode()).thenReturn(200);
+                                    Mockito.when(resp.statusMessage()).thenReturn("OK");
+                                    Mockito.when(resp.bodyAsString()).thenReturn(null);
+                                    ((Handler<AsyncResult<HttpResponse<Buffer>>>)
+                                                    args.getArgument(1))
+                                            .handle(asyncResult);
+                                    return null;
+                                }
+                            })
+                    .when(req)
+                    .sendMultipartForm(Mockito.any(), Mockito.any());
+
+            command.execute(new String[] {HOST_ID, "foo"});
+
+            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            Mockito.verify(webClient).postAbs(urlCaptor.capture());
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
+            Mockito.verify(cw)
+                    .println(
+                            "Invalid response from server; datasource URL may be incorrect, or server may not be functioning properly: status=\"200 OK\"; body=\"null\"");
+        }
     }
 
     @Nested
@@ -519,6 +618,11 @@ class UploadRecordingCommandTest {
 
             Output<?> out = command.serializableExecute(new String[] {HOST_ID, rec.getName()});
 
+            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            Mockito.verify(webClient).postAbs(urlCaptor.capture());
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
+
             MatcherAssert.assertThat(out, Matchers.instanceOf(MapOutput.class));
             MatcherAssert.assertThat(
                     out.getPayload().toString(),
@@ -527,11 +631,110 @@ class UploadRecordingCommandTest {
                             Matchers.endsWith("}"),
                             Matchers.containsString("body=HELLO"),
                             Matchers.containsString("status=200 OK")));
+        }
+
+        @Test
+        void shouldHandleInvalidResponseStatusCode() throws Exception {
+            Mockito.when(
+                            targetConnectionManager.executeConnectedTask(
+                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                    .thenAnswer(
+                            arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(conn.getService()).thenReturn(svc);
+            Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
+            Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+
+            HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+            HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+            Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.doAnswer(
+                            new Answer<Void>() {
+                                @Override
+                                public Void answer(InvocationOnMock args) throws Throwable {
+                                    AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                            Mockito.mock(AsyncResult.class);
+                                    Mockito.when(asyncResult.result()).thenReturn(resp);
+                                    Mockito.when(resp.statusCode()).thenReturn(418);
+                                    Mockito.when(resp.statusMessage()).thenReturn("I'm a teapot");
+                                    Mockito.when(resp.bodyAsString()).thenReturn("short and stout");
+                                    ((Handler<AsyncResult<HttpResponse<Buffer>>>)
+                                                    args.getArgument(1))
+                                            .handle(asyncResult);
+                                    return null;
+                                }
+                            })
+                    .when(req)
+                    .sendMultipartForm(Mockito.any(), Mockito.any());
+
+            Output<?> out = command.serializableExecute(new String[] {HOST_ID, rec.getName()});
 
             ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
             Mockito.verify(webClient).postAbs(urlCaptor.capture());
             MatcherAssert.assertThat(
                     urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
+
+            MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
+            MatcherAssert.assertThat(
+                    (String) out.getPayload(),
+                    Matchers.equalTo(
+                            "Invalid response from server; datasource URL may be incorrect, or server may not be functioning properly: status=\"418 I'm a teapot\"; body=\"short and stout\""));
+        }
+
+        @Test
+        void shouldHandleNullResponseBody() throws Exception {
+            Mockito.when(
+                            targetConnectionManager.executeConnectedTask(
+                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                    .thenAnswer(
+                            arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(conn));
+            IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+            IRecordingDescriptor rec = Mockito.mock(IRecordingDescriptor.class);
+            InputStream stream = Mockito.mock(InputStream.class);
+            Mockito.when(conn.getService()).thenReturn(svc);
+            Mockito.when(svc.getAvailableRecordings()).thenReturn(List.of(rec));
+            Mockito.when(rec.getName()).thenReturn("foo");
+            Mockito.when(svc.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
+            Mockito.when(env.getEnv(GRAFANA_DATASOURCE_ENV)).thenReturn(DATASOURCE_URL);
+
+            HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+            HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+            Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.doAnswer(
+                            new Answer<Void>() {
+                                @Override
+                                public Void answer(InvocationOnMock args) throws Throwable {
+                                    AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                            Mockito.mock(AsyncResult.class);
+                                    Mockito.when(asyncResult.result()).thenReturn(resp);
+                                    Mockito.when(resp.statusCode()).thenReturn(200);
+                                    Mockito.when(resp.statusMessage()).thenReturn("OK");
+                                    Mockito.when(resp.bodyAsString()).thenReturn(null);
+                                    ((Handler<AsyncResult<HttpResponse<Buffer>>>)
+                                                    args.getArgument(1))
+                                            .handle(asyncResult);
+                                    return null;
+                                }
+                            })
+                    .when(req)
+                    .sendMultipartForm(Mockito.any(), Mockito.any());
+
+            Output<?> out = command.serializableExecute(new String[] {HOST_ID, rec.getName()});
+
+            ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+            Mockito.verify(webClient).postAbs(urlCaptor.capture());
+            MatcherAssert.assertThat(
+                    urlCaptor.getValue(), Matchers.equalTo(DATASOURCE_URL.concat("/load")));
+
+            MatcherAssert.assertThat(out, Matchers.instanceOf(FailureOutput.class));
+            MatcherAssert.assertThat(
+                    (String) out.getPayload(),
+                    Matchers.equalTo(
+                            "Invalid response from server; datasource URL may be incorrect, or server may not be functioning properly: status=\"200 OK\"; body=\"null\""));
         }
     }
 }

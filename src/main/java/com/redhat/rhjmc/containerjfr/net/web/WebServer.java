@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web;
 
+import static com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier.isServerErrorCode;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -121,7 +123,7 @@ public class WebServer {
                         exception = new HttpStatusException(500, ctx.failure());
                     }
 
-                    if (exception.getStatusCode() < 500) {
+                    if (!isServerErrorCode(exception.getStatusCode())) {
                         logger.warn(exception);
                     } else {
                         logger.error(exception);
