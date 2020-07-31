@@ -78,7 +78,7 @@ public class ReportService {
     // FIXME This is basically duplicated from UploadRecordingCommand
     public static class RecordingNotFoundException extends RuntimeException {
         public RecordingNotFoundException(String targetId, String recordingName) {
-            super(String.format("Recording %s not found in target %s", targetId, recordingName));
+            super(String.format("Recording %s not found in target %s", recordingName, targetId));
         }
 
         public RecordingNotFoundException(Pair<String, String> key) {
