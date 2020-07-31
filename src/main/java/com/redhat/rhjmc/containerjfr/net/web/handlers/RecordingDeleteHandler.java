@@ -94,12 +94,17 @@ class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
                 .ifPresentOrElse(
                         path -> {
                             try {
+                                if (!fs.exists(path)) {
+                                    throw new HttpStatusException(404, recordingName);
+                                }
                                 fs.deleteIfExists(path);
                             } catch (IOException e) {
                                 throw new HttpStatusException(500, e.getMessage(), e);
                             } finally {
                                 reportService.delete(recordingName);
                             }
+                            ctx.response().setStatusCode(200);
+                            ctx.response().end();
                         },
                         () -> {
                             throw new HttpStatusException(404, recordingName);

@@ -61,6 +61,7 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
@@ -74,6 +75,7 @@ class RecordingDeleteHandlerTest {
     @Mock Path savedRecordingsPath;
 
     @Mock RoutingContext ctx;
+    @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
@@ -113,13 +115,17 @@ class RecordingDeleteHandlerTest {
 
         Path path = Mockito.mock(Path.class);
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(path);
+        Mockito.when(fs.exists(path)).thenReturn(true);
 
+        Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
         handler.handle(ctx);
 
         Mockito.verify(fs).deleteIfExists(path);
         Mockito.verify(reportService).delete(recordingName);
+        Mockito.verify(resp).setStatusCode(200);
+        Mockito.verify(resp).end();
     }
 
     @Test
@@ -132,6 +138,7 @@ class RecordingDeleteHandlerTest {
 
         Path path = Mockito.mock(Path.class);
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(path);
+        Mockito.when(fs.exists(path)).thenReturn(true);
         Mockito.when(fs.deleteIfExists(path)).thenThrow(IOException.class);
 
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
