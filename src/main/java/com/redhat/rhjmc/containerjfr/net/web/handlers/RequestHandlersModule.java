@@ -132,6 +132,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRecordingDeleteHandler(RecordingDeleteHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindRecordingUploadPostHandler(RecordingUploadPostHandler handler);
 
     @Binds
