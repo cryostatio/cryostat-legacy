@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -57,6 +59,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
@@ -65,25 +68,29 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
-class TargetRecordingPatchSnapshotTest {
+class TargetSnapshotPostHandlerTest {
 
-    TargetRecordingPatchSnapshot snapshot;
+    TargetSnapshotPostHandler snapshot;
+    @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @BeforeEach
     void setup() {
         this.snapshot =
-                new TargetRecordingPatchSnapshot(
-                        targetConnectionManager, recordingOptionsBuilderFactory);
+                new TargetSnapshotPostHandler(
+                        auth, targetConnectionManager, recordingOptionsBuilderFactory);
     }
 
     @Test
     void shouldCreateSnapshot() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
-        ConnectionDescriptor connectionDescriptor = Mockito.mock(ConnectionDescriptor.class);
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("someHost");
 
         IRecordingDescriptor recordingDescriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(recordingDescriptor.getName()).thenReturn("THESNAPSHOT");
@@ -113,7 +120,7 @@ class TargetRecordingPatchSnapshotTest {
                             }
                         });
 
-        snapshot.handle(ctx, connectionDescriptor);
+        snapshot.handle(ctx);
 
         Mockito.verify(svc).getSnapshotRecording();
         Mockito.verify(recordingOptionsBuilder).name("thesnapshot-1234");

@@ -48,7 +48,6 @@ import javax.inject.Named;
 import com.google.inject.Provides;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -127,14 +126,6 @@ public abstract class RequestHandlersModule {
         return new TargetRecordingPatchStop(targetConnectionManager);
     }
 
-    @Provides
-    TargetRecordingPatchSnapshot provideTargetRecordingPatchSnapshot(
-            TargetConnectionManager targetConnectionManager,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
-        return new TargetRecordingPatchSnapshot(
-                targetConnectionManager, recordingOptionsBuilderFactory);
-    }
-
     @Binds
     @IntoSet
     abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
@@ -211,4 +202,8 @@ public abstract class RequestHandlersModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindTargetEventsGetHandler(TargetEventsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
 }

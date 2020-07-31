@@ -47,27 +47,42 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class TargetRecordingPatchSnapshot {
+class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @Inject
-    TargetRecordingPatchSnapshot(
+    TargetSnapshotPostHandler(
+            AuthManager auth,
             TargetConnectionManager targetConnectionManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+        super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
     }
 
-    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public String path() {
+        return "/api/v1/targets/:targetId/snapshot";
+    }
+
+    @Override
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String result =
                 targetConnectionManager.executeConnectedTask(
-                        connectionDescriptor,
+                        getConnectionDescriptorFromContext(ctx),
                         connection -> {
                             IRecordingDescriptor descriptor =
                                     connection.getService().getSnapshotRecording();
