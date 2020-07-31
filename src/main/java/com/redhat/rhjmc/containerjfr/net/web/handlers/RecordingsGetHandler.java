@@ -104,19 +104,19 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.exists(savedRecordingsPath)) {
             throw new HttpStatusException(
-                    403,
+                    501,
                     String.format(
                             "Archive path %s does not exist", savedRecordingsPath.toString()));
         }
         if (!fs.isReadable(savedRecordingsPath)) {
             throw new HttpStatusException(
-                    403,
+                    501,
                     String.format(
                             "Archive path %s is not readable", savedRecordingsPath.toString()));
         }
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new HttpStatusException(
-                    403,
+                    501,
                     String.format(
                             "Archive path %s is not a directory", savedRecordingsPath.toString()));
         }

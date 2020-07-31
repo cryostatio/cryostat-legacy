@@ -100,7 +100,7 @@ class RecordingsGetHandlerTest {
     }
 
     @Test
-    void shouldRespondWith403IfDirectoryDoesNotExist() throws IOException {
+    void shouldRespondWith501IfDirectoryDoesNotExist() throws IOException {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
 
         Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
@@ -108,11 +108,11 @@ class RecordingsGetHandlerTest {
         HttpStatusException httpEx =
                 Assertions.assertThrows(
                         HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(403));
+        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
     }
 
     @Test
-    void shouldResponseWith403IfDirectoryNotReadable() throws IOException {
+    void shouldResponseWith501IfDirectoryNotReadable() throws IOException {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
 
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
@@ -121,11 +121,11 @@ class RecordingsGetHandlerTest {
         HttpStatusException httpEx =
                 Assertions.assertThrows(
                         HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(403));
+        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
     }
 
     @Test
-    void shouldRespondWith403IfPathNotDirectory() throws IOException {
+    void shouldRespondWith501IfPathNotDirectory() throws IOException {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
 
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
@@ -135,7 +135,7 @@ class RecordingsGetHandlerTest {
         HttpStatusException httpEx =
                 Assertions.assertThrows(
                         HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(403));
+        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
     }
 
     @Test
