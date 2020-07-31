@@ -41,16 +41,26 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Provider;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -60,18 +70,24 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Path savedRecordingsPath;
     private final FileSystem fs;
+    private final Provider<WebServer> webServerProvider;
     private final Gson gson;
+    private final Logger logger;
 
     @Inject
     RecordingsGetHandler(
             AuthManager auth,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             FileSystem fs,
-            Gson gson) {
+            Provider<WebServer> webServerProvider,
+            Gson gson,
+            Logger logger) {
         super(auth);
         this.savedRecordingsPath = savedRecordingsPath;
         this.fs = fs;
+        this.webServerProvider = webServerProvider;
         this.gson = gson;
+        this.logger = logger;
     }
 
     @Override
@@ -104,6 +120,29 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
                     String.format(
                             "Archive path %s is not a directory", savedRecordingsPath.toString()));
         }
-        ctx.response().end(gson.toJson(this.fs.listDirectoryChildren(savedRecordingsPath)));
+        WebServer webServer = webServerProvider.get();
+        List<String> names = this.fs.listDirectoryChildren(savedRecordingsPath);
+        List<Map<String, String>> result =
+                names.stream()
+                        .map(
+                                name -> {
+                                    try {
+                                        return Map.of(
+                                                "name",
+                                                name,
+                                                "reportUrl",
+                                                webServer.getArchivedReportURL(name),
+                                                "downloadUrl",
+                                                webServer.getArchivedDownloadURL(name));
+                                    } catch (SocketException
+                                            | UnknownHostException
+                                            | URISyntaxException e) {
+                                        logger.warn(e);
+                                        return null;
+                                    }
+                                })
+                        .filter(Objects::nonNull)
+                        .collect(Collectors.toList());
+        ctx.response().end(gson.toJson(result));
     }
 }

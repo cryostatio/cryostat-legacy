@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -54,13 +55,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -74,12 +78,15 @@ class RecordingsGetHandlerTest {
     @Mock AuthManager auth;
     @Mock Path savedRecordingsPath;
     @Mock FileSystem fs;
+    @Mock WebServer webServer;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingsGetHandler(auth, savedRecordingsPath, fs, gson);
+        this.handler =
+                new RecordingsGetHandler(
+                        auth, savedRecordingsPath, fs, () -> webServer, gson, logger);
     }
 
     @Test
@@ -134,8 +141,6 @@ class RecordingsGetHandlerTest {
     @Test
     void shouldRespondWithInternalErrorIfExceptionThrown() throws IOException {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-        Mockito.when(ctx.response()).thenReturn(resp);
 
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
@@ -146,7 +151,7 @@ class RecordingsGetHandlerTest {
     }
 
     @Test
-    void shouldRespondWithListOfFileNames() throws Exception {
+    void shouldRespondWithListOfRecordings() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
@@ -157,11 +162,42 @@ class RecordingsGetHandlerTest {
         List<String> names = List.of("recordingA", "123recording");
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(names);
 
+        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/archive/" + name;
+                            }
+                        });
+        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/download/" + name;
+                            }
+                        });
+
         handler.handleAuthenticated(ctx);
+
+        List<Map<String, String>> expected =
+                List.of(
+                        Map.of(
+                                "name", "recordingA",
+                                "downloadUrl", "/some/path/download/recordingA",
+                                "reportUrl", "/some/path/archive/recordingA"),
+                        Map.of(
+                                "name", "123recording",
+                                "downloadUrl", "/some/path/download/123recording",
+                                "reportUrl", "/some/path/archive/123recording"));
 
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(resp).end(responseCaptor.capture());
-        MatcherAssert.assertThat(
-                gson.fromJson(responseCaptor.getValue(), List.class), Matchers.equalTo(names));
+        String rawResult = responseCaptor.getValue();
+        List result = gson.fromJson(rawResult, List.class);
+        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
 }
