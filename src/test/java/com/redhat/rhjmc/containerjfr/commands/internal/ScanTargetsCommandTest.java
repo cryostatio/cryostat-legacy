@@ -103,9 +103,9 @@ class ScanTargetsCommandTest {
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(getMockServices());
         command.execute(new String[0]);
         InOrder inOrder = Mockito.inOrder(cw);
-        inOrder.verify(cw).println("Host A -> service:jmx:jmxmp://aHost");
-        inOrder.verify(cw).println("Host B -> service:jmx:jmxmp://bHost");
-        inOrder.verify(cw).println("Host C -> service:jmx:jmxmp://cHost");
+        inOrder.verify(cw).println("Host A -> service:jmx:rmi:///jndi/rmi://aHost:0/jmxrmi");
+        inOrder.verify(cw).println("Host B -> service:jmx:rmi:///jndi/rmi://bHost:0/jmxrmi");
+        inOrder.verify(cw).println("Host C -> service:jmx:rmi:///jndi/rmi://cHost:0/jmxrmi");
         inOrder.verifyNoMoreInteractions();
     }
 
