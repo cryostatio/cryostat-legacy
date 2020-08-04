@@ -167,7 +167,7 @@ class MessagingServerTest {
     }
 
     @Test
-    void shouldHandleRemovedConnections() {
+    void shouldHandleRemovedConnections() throws Exception {
         String expectedText = "hello world";
         when(crw2.readLine()).thenReturn(expectedText);
 
@@ -190,6 +190,9 @@ class MessagingServerTest {
 
         String newText = "another message";
         when(crw1.readLine()).thenReturn(newText);
+
+        // FIXME this is a dirty hack. See https://github.com/rh-jmc-team/container-jfr/issues/132
+        Thread.sleep(500);
 
         MatcherAssert.assertThat(server.getClientReader().readLine(), Matchers.equalTo(newText));
         verify(crw1, Mockito.atLeastOnce()).readLine();
