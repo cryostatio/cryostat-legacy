@@ -89,8 +89,9 @@ class ScanTargetsCommand implements SerializableCommand {
                         s ->
                                 cw.println(
                                         String.format(
-                                                "%s -> %s:%d",
-                                                s.getAlias(), s.getConnectUrl(), s.getPort())));
+                                                "%s -> %s",
+                                                s.getAlias().get(),
+                                                s.getJMXServiceUrl().toString())));
     }
 
     @Override

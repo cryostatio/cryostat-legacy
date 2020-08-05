@@ -82,7 +82,7 @@ class OpenShiftPlatformClientTest {
 
     @BeforeEach
     void setup() {
-        this.platformClient = new OpenShiftPlatformClient(logger, osClient, fs);
+        this.platformClient = new OpenShiftPlatformClient(osClient, fs, logger);
     }
 
     @Test
@@ -173,23 +173,18 @@ class OpenShiftPlatformClientTest {
         Mockito.when(mockListable.getItems()).thenReturn(Collections.singletonList(endpoint));
 
         List<ServiceRef> result = platformClient.listDiscoverableServices();
+        ServiceRef serv1 =
+                new ServiceRef(
+                        address2.getIp(), port2.getPort(), address2.getTargetRef().getName());
+        ServiceRef serv2 =
+                new ServiceRef(
+                        address3.getIp(), port2.getPort(), address3.getTargetRef().getName());
+        ServiceRef serv3 =
+                new ServiceRef(
+                        address4.getIp(), port3.getPort(), address4.getTargetRef().getName());
+
         MatcherAssert.assertThat(namespaceCaptor.getValue(), Matchers.equalTo(namespace));
-        MatcherAssert.assertThat(
-                result,
-                Matchers.equalTo(
-                        Arrays.asList(
-                                new ServiceRef(
-                                        address2.getIp(),
-                                        address2.getTargetRef().getName(),
-                                        port2.getPort()),
-                                new ServiceRef(
-                                        address3.getIp(),
-                                        address3.getTargetRef().getName(),
-                                        port2.getPort()),
-                                new ServiceRef(
-                                        address4.getIp(),
-                                        address4.getTargetRef().getName(),
-                                        port3.getPort()))));
+        MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
     }
 
     private void setMockNamespace(String namespace) throws IOException {

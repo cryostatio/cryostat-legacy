@@ -57,17 +57,17 @@ import io.kubernetes.client.models.V1Service;
 
 class KubeApiPlatformClient implements PlatformClient {
 
-    private final Logger logger;
     private final CoreV1Api api;
     private final String namespace;
     private final NetworkResolver resolver;
+    private final Logger logger;
 
     KubeApiPlatformClient(
-            Logger logger, CoreV1Api api, String namespace, NetworkResolver resolver) {
-        this.logger = logger;
+            CoreV1Api api, String namespace, NetworkResolver resolver, Logger logger) {
         this.api = api;
         this.namespace = namespace;
         this.resolver = resolver;
+        this.logger = logger;
     }
 
     @Override
@@ -84,11 +84,21 @@ class KubeApiPlatformClient implements PlatformClient {
                             s ->
                                     s.getPorts().stream()
                                             .map(
-                                                    p ->
-                                                            new ServiceRef(
-                                                                    s.getClusterIP(), p.getPort())))
+                                                    p -> {
+                                                        try {
+                                                            return new ServiceRef(
+                                                                    s.getClusterIP(),
+                                                                    p.getPort(),
+                                                                    resolver
+                                                                            .resolveCanonicalHostName(
+                                                                                    s
+                                                                                            .getClusterIP()));
+                                                        } catch (Exception e) {
+                                                            logger.warn(e);
+                                                            return null;
+                                                        }
+                                                    }))
                     .parallel()
-                    .map(this::resolveServiceRefHostname)
                     .filter(Objects::nonNull)
                     .collect(Collectors.toList());
         } catch (ApiException e) {
@@ -98,17 +108,6 @@ class KubeApiPlatformClient implements PlatformClient {
         } catch (Exception e) {
             logger.warn(e);
             return Collections.emptyList();
-        }
-    }
-
-    private ServiceRef resolveServiceRefHostname(ServiceRef in) {
-        try {
-            String hostname = resolver.resolveCanonicalHostName(in.getConnectUrl());
-            logger.debug(String.format("Resolved %s to %s", in.getConnectUrl(), hostname));
-            return new ServiceRef(hostname, in.getPort());
-        } catch (Exception e) {
-            logger.debug(e);
-            return null;
         }
     }
 }

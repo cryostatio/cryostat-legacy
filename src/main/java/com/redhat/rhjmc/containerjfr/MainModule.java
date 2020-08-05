@@ -46,6 +46,7 @@ import java.nio.file.Paths;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.management.remote.JMXServiceURL;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -58,6 +59,7 @@ import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
 import com.redhat.rhjmc.containerjfr.tui.TuiModule;
+import com.redhat.rhjmc.containerjfr.util.GsonJmxServiceUrlAdapter;
 
 import dagger.Module;
 import dagger.Provides;
@@ -84,8 +86,12 @@ public abstract class MainModule {
     // public since this is useful to use directly in tests
     @Provides
     @Singleton
-    public static Gson provideGson() {
-        return new GsonBuilder().serializeNulls().disableHtmlEscaping().create();
+    public static Gson provideGson(Logger logger) {
+        return new GsonBuilder()
+                .serializeNulls()
+                .disableHtmlEscaping()
+                .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
+                .create();
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")

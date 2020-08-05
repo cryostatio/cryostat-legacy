@@ -41,36 +41,45 @@
  */
 package com.redhat.rhjmc.containerjfr.platform;
 
+import java.net.MalformedURLException;
+import java.util.Optional;
+
+import javax.management.remote.JMXServiceURL;
+
 import org.apache.commons.lang.builder.EqualsBuilder;
 import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import com.google.gson.annotations.SerializedName;
 
 public class ServiceRef {
 
-    private final String connectUrl;
-    private final String alias;
-    private final int port;
+    @SerializedName("connectUrl")
+    private final JMXServiceURL JMXServiceURL;
 
-    public ServiceRef(String connectUrl, int port) {
-        this(connectUrl, connectUrl, port);
-    }
+    private final String alias; // nullable
 
-    public ServiceRef(String connectUrl, String alias, int port) {
-        this.connectUrl = connectUrl;
+    public ServiceRef(JMXServiceURL jmxServiceUrl, String alias) throws MalformedURLException {
+        this.JMXServiceURL = jmxServiceUrl;
         this.alias = alias;
-        this.port = port;
     }
 
-    public String getConnectUrl() {
-        return connectUrl;
+    public ServiceRef(JMXServiceURL jmxServiceUrl) throws MalformedURLException {
+        this(jmxServiceUrl, null);
     }
 
-    public String getAlias() {
-        return alias;
+    public ServiceRef(String host, int port, String alias) throws MalformedURLException {
+        this(
+                new JMXServiceURL(
+                        "rmi", "", 0, String.format("/jndi/rmi://%s:%d/jmxrmi", host, port)),
+                alias);
     }
 
-    public int getPort() {
-        return port;
+    public JMXServiceURL getJMXServiceUrl() {
+        return JMXServiceURL;
+    }
+
+    public Optional<String> getAlias() {
+        return Optional.ofNullable(alias);
     }
 
     @Override

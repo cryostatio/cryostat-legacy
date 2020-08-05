@@ -39,52 +39,41 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.platform.internal;
+package com.redhat.rhjmc.containerjfr.util;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.io.IOException;
+
+import javax.management.remote.JMXServiceURL;
+
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-class KubeEnvPlatformClient implements PlatformClient {
+public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
 
-    private static final Pattern SERVICE_ENV_PATTERN =
-            Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
-    private final Environment env;
     private final Logger logger;
 
-    KubeEnvPlatformClient(Environment env, Logger logger) {
-        this.env = env;
+    public GsonJmxServiceUrlAdapter(Logger logger) {
         this.logger = logger;
     }
 
     @Override
-    public List<ServiceRef> listDiscoverableServices() {
-        return env.getEnv().entrySet().stream()
-                .map(this::envToServiceRef)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toList());
-    }
-
-    private ServiceRef envToServiceRef(Map.Entry<String, String> entry) {
-        Matcher matcher = SERVICE_ENV_PATTERN.matcher(entry.getKey());
-        if (!matcher.matches()) {
-            return null;
-        }
-        String alias = matcher.group(1).toLowerCase();
-        int port = Integer.parseInt(matcher.group(2));
+    public JMXServiceURL read(JsonReader reader) throws IOException {
+        String url = reader.nextString();
+        JMXServiceURL jmxUrl;
         try {
-            return new ServiceRef(entry.getValue(), port, alias);
+            jmxUrl = new JMXServiceURL(url);
         } catch (Exception e) {
             logger.warn(e);
-            return null;
+            jmxUrl = null;
         }
+        return jmxUrl;
+    }
+
+    @Override
+    public void write(JsonWriter writer, JMXServiceURL url) throws IOException {
+        writer.value(url.toString());
     }
 }

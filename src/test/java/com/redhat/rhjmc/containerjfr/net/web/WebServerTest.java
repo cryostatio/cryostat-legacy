@@ -84,10 +84,10 @@ class WebServerTest {
     @Mock HttpServer httpServer;
     @Mock NetworkConfiguration netConf;
     @Mock AuthManager authManager;
-    Gson gson = MainModule.provideGson();
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {

@@ -58,6 +58,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
@@ -73,7 +74,8 @@ class RecordingsGetHandlerTest {
     @Mock AuthManager auth;
     @Mock Path savedRecordingsPath;
     @Mock FileSystem fs;
-    Gson gson = MainModule.provideGson();
+    @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {

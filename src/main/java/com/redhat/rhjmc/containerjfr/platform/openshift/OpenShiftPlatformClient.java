@@ -46,6 +46,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
@@ -63,14 +64,14 @@ import io.fabric8.openshift.client.OpenShiftClient;
 
 class OpenShiftPlatformClient implements PlatformClient {
 
-    private final Logger logger;
     private final OpenShiftClient osClient;
     private final FileSystem fs;
+    private final Logger logger;
 
-    OpenShiftPlatformClient(Logger logger, OpenShiftClient osClient, FileSystem fs) {
-        this.logger = logger;
+    OpenShiftPlatformClient(OpenShiftClient osClient, FileSystem fs, Logger logger) {
         this.osClient = osClient;
         this.fs = fs;
+        this.logger = logger;
     }
 
     @Override
@@ -102,11 +103,18 @@ class OpenShiftPlatformClient implements PlatformClient {
     private List<ServiceRef> createServiceRefs(EndpointSubset subset, EndpointPort port) {
         return subset.getAddresses().stream()
                 .map(
-                        addr ->
-                                new ServiceRef(
+                        addr -> {
+                            try {
+                                return new ServiceRef(
                                         addr.getIp(),
-                                        addr.getTargetRef().getName(),
-                                        port.getPort()))
+                                        port.getPort(),
+                                        addr.getTargetRef().getName());
+                            } catch (Exception e) {
+                                logger.warn(e);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
     }
 

@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.net.MalformedURLException;
 import java.util.List;
 
 import org.hamcrest.MatcherAssert;
@@ -102,9 +103,9 @@ class ScanTargetsCommandTest {
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(getMockServices());
         command.execute(new String[0]);
         InOrder inOrder = Mockito.inOrder(cw);
-        inOrder.verify(cw).println("Host A -> aHost:1");
-        inOrder.verify(cw).println("Host B -> bHost:2");
-        inOrder.verify(cw).println("Host C -> cHost:3");
+        inOrder.verify(cw).println("Host A -> service:jmx:rmi:///jndi/rmi://aHost:0/jmxrmi");
+        inOrder.verify(cw).println("Host B -> service:jmx:rmi:///jndi/rmi://bHost:0/jmxrmi");
+        inOrder.verify(cw).println("Host C -> service:jmx:rmi:///jndi/rmi://cHost:0/jmxrmi");
         inOrder.verifyNoMoreInteractions();
     }
 
@@ -141,10 +142,11 @@ class ScanTargetsCommandTest {
                 output, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
     }
 
-    List<ServiceRef> getMockServices() {
-        ServiceRef mockA = new ServiceRef("aHost", "Host A", 1);
-        ServiceRef mockB = new ServiceRef("bHost", "Host B", 2);
-        ServiceRef mockC = new ServiceRef("cHost", "Host C", 3);
+    List<ServiceRef> getMockServices() throws MalformedURLException {
+        ServiceRef mockA = new ServiceRef("aHost", 0, "Host A");
+        ServiceRef mockB = new ServiceRef("bHost", 0, "Host B");
+        ServiceRef mockC = new ServiceRef("cHost", 0, "Host C");
+
         return List.of(mockA, mockB, mockC);
     }
 }

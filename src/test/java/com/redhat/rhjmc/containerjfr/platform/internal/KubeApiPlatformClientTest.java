@@ -48,6 +48,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+import java.net.MalformedURLException;
 import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
@@ -83,7 +84,7 @@ class KubeApiPlatformClientTest {
 
     @BeforeEach
     void setup() {
-        client = new KubeApiPlatformClient(logger, api, namespace, resolver);
+        client = new KubeApiPlatformClient(api, namespace, resolver, logger);
     }
 
     @Nested
@@ -114,7 +115,8 @@ class KubeApiPlatformClientTest {
         }
 
         @Test
-        void discoversAndResolvesServices() throws ApiException, UnknownHostException {
+        void discoversAndResolvesServices()
+                throws ApiException, UnknownHostException, MalformedURLException {
             V1ServiceList mockServiceList = mock(V1ServiceList.class);
 
             V1Service mockServiceA = mock(V1Service.class);
@@ -153,12 +155,12 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            assertThat(
-                    result,
-                    Matchers.contains(
-                            new ServiceRef("ServiceA.local", 123),
-                            new ServiceRef("ServiceA.local", 456),
-                            new ServiceRef("b-service.example.com", 7899)));
+            ServiceRef serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
+            ServiceRef serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
+            ServiceRef serv3 = new ServiceRef("10.0.0.1", 7899, "b-service.example.com");
+
+            assertThat(result, Matchers.contains(serv1, serv2, serv3));
+
             assertThat(result, Matchers.hasSize(3));
 
             verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");
@@ -171,7 +173,8 @@ class KubeApiPlatformClientTest {
         }
 
         @Test
-        void ignoresUnresolveableServices() throws ApiException, UnknownHostException {
+        void ignoresUnresolveableServices()
+                throws ApiException, UnknownHostException, MalformedURLException {
             V1ServiceList mockServiceList = mock(V1ServiceList.class);
 
             V1Service mockServiceA = mock(V1Service.class);
@@ -211,11 +214,10 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            assertThat(
-                    result,
-                    Matchers.contains(
-                            new ServiceRef("ServiceA.local", 123),
-                            new ServiceRef("ServiceA.local", 456)));
+            ServiceRef serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
+            ServiceRef serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
+
+            assertThat(result, Matchers.contains(serv1, serv2));
             assertThat(result, Matchers.hasSize(2));
 
             verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");

@@ -97,7 +97,7 @@ class WsCommandExecutorTest {
     @Mock Logger logger;
     @Mock ClientReader cr;
     @Mock SerializableCommandRegistry commandRegistry;
-    Gson gson = MainModule.provideGson();
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {

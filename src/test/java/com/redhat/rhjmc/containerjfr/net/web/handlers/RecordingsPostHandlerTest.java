@@ -97,7 +97,7 @@ class RecordingsPostHandlerTest {
                         httpServer,
                         cjfrFs,
                         recordingsPath,
-                        MainModule.provideGson(),
+                        MainModule.provideGson(logger),
                         logger);
     }
 

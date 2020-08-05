@@ -57,6 +57,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
@@ -71,7 +72,8 @@ class TargetsGetHandlerTest {
     TargetsGetHandler handler;
     @Mock AuthManager auth;
     @Mock PlatformClient platformClient;
-    Gson gson = MainModule.provideGson();
+    @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
@@ -90,7 +92,8 @@ class TargetsGetHandlerTest {
 
     @Test
     void shouldReturnListOfTargets() throws Exception {
-        ServiceRef target = new ServiceRef("foo", 1);
+        ServiceRef target = new ServiceRef("foo", 1, "foo");
+
         List<ServiceRef> targets = Collections.singletonList(target);
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(targets);
 

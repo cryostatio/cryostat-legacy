@@ -65,6 +65,7 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -82,7 +83,8 @@ class TargetEventsGetHandlerTest {
     TargetEventsGetHandler handler;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager connectionManager;
-    Gson gson = MainModule.provideGson();
+    @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {

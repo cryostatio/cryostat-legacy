@@ -59,6 +59,7 @@ import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.internal.AbstractRecordingCommand;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.Template;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
@@ -78,7 +79,8 @@ class TargetTemplatesGetHandlerTest {
     TargetTemplatesGetHandler handler;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager connectionManager;
-    Gson gson = MainModule.provideGson();
+    @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {

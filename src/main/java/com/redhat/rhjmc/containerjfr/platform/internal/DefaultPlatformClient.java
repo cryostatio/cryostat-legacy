@@ -66,10 +66,9 @@ class DefaultPlatformClient implements PlatformClient {
                 .map(
                         u -> {
                             try {
-                                return new ServiceRef(
-                                        u.getJmxServiceUrl().toString(), u.getMainClass(), 0);
+                                return new ServiceRef(u.getJmxServiceUrl(), u.getMainClass());
                             } catch (MalformedURLException e) {
-                                log.info(e);
+                                log.warn(e);
                                 return null;
                             }
                         })
