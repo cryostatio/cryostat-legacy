@@ -134,7 +134,8 @@ public abstract class PlatformModule {
                     String.format("Selected PlatformDetectionStrategy \"%s\" not found", platform));
         }
         return strategies.stream()
-                .sorted()
+                // reverse sort, higher priorities should be earlier in the stream
+                .sorted((a, b) -> Integer.compare(b.getPriority(), a.getPriority()))
                 .filter(PlatformDetectionStrategy::isAvailable)
                 .findFirst()
                 .orElseThrow();
