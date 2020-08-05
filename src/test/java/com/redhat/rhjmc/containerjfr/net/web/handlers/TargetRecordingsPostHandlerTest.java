@@ -70,6 +70,7 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.internal.EventOptionsBuilder;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -93,7 +94,8 @@ class TargetRecordingsPostHandlerTest {
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock WebServer webServer;
-    Gson gson = MainModule.provideGson();
+    @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
