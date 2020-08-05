@@ -70,7 +70,7 @@ public class ServiceRef {
     public ServiceRef(String host, int port, String alias) throws MalformedURLException {
         this(
                 new JMXServiceURL(
-                        "rmi", "", 0, String.format("/jndi/rmi://%s:%s/jmxrmi", host, port)),
+                        "rmi", "", 0, String.format("/jndi/rmi://%s:%d/jmxrmi", host, port)),
                 alias);
     }
 
