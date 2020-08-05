@@ -76,8 +76,10 @@ import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.Recordin
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
@@ -96,6 +98,8 @@ class TargetRecordingUploadPostHandlerTest {
     @Mock FileSystem fs;
 
     @Mock RoutingContext ctx;
+    @Mock HttpServerRequest req;
+    @Mock HttpServerResponse resp;
     @Mock JFRConnection conn;
 
     static final String DATASOURCE_URL = "http://localhost:8080";
@@ -134,6 +138,8 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
@@ -198,7 +204,8 @@ class TargetRecordingUploadPostHandlerTest {
                 .when(httpReq)
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.response()).thenReturn(resp);
 
         handler.handle(ctx);

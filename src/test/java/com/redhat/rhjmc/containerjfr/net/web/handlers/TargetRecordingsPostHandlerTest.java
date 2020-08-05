@@ -165,6 +165,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(req.formAttributes()).thenReturn(attrs);
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "foo.Bar:enabled=true");
@@ -223,6 +224,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(req.formAttributes()).thenReturn(attrs);
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "foo.Bar:enabled=true");

@@ -68,7 +68,9 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -82,6 +84,7 @@ class TargetRecordingDeleteHandlerTest {
     @Mock ReportService reportService;
 
     @Mock RoutingContext ctx;
+    @Mock HttpServerRequest req;
     @Mock HttpServerResponse resp;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -108,7 +111,9 @@ class TargetRecordingDeleteHandlerTest {
     void shouldDeleteRecording() throws Exception {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer() {
@@ -141,6 +146,8 @@ class TargetRecordingDeleteHandlerTest {
 
     @Test
     void shouldHandleRecordingNotFound() throws Exception {
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
