@@ -172,14 +172,8 @@ class CorsEnablingHandlerTest {
         @Test
         void shouldRespond403ForCORSRequestWithInvalidOrigin() {
             Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn("http://example.com:1234/");
-            Mockito.when(req.response()).thenReturn(res);
-            Mockito.when(res.setStatusCode(Mockito.anyInt())).thenReturn(res);
-            Mockito.when(res.setStatusMessage(Mockito.anyString())).thenReturn(res);
-
             handler.handle(ctx);
-
-            Mockito.verify(res).setStatusCode(403);
-            Mockito.verify(res).end();
+            Mockito.verify(ctx).fail(403);
         }
     }
 }
