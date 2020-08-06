@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -150,11 +151,15 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     Optional<Path> getRecordingPath(String recordingName) throws Exception {
-        Path archivedRecording = savedRecordingsPath.resolve(recordingName);
-        if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
-            return Optional.of(archivedRecording);
+        try {
+            Path archivedRecording = savedRecordingsPath.resolve(recordingName);
+            if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
+                return Optional.of(archivedRecording);
+            }
+            return Optional.empty();
+        } catch (InvalidPathException e) {
+            throw new HttpStatusException(400, e.getMessage(), e);
         }
-        return Optional.empty();
     }
 
     private static class ResponseMessage {
