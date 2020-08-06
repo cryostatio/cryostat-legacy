@@ -272,3 +272,11 @@ WebSocket SubProtocol header.
 If no appropriate auth manager is configured or can be automatically determined
 then the fallback is the NoopAuthManager, which does no external validation
 calls and simply accepts any provided token or credentials.
+
+## JMX AUTHORIZATION HANDLING
+
+JMX connections into `container-jfr` are secured using a username and password 
+(unless the following flag is set: `"-Dcom.sun.management.jmxremote.authenticate=false"`).
+The environment variables `CONTAINER_JFR_RJMX_USER` and `CONTAINER_JFR_RJMX_PASS` can be 
+used to specify the username and password. If not set, the username defaults to `"containerjfr"`
+and the password is randomly generated.
