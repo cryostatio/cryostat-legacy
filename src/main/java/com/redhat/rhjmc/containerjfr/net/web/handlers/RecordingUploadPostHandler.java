@@ -56,7 +56,6 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -116,8 +115,6 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
         }
     }
 
-    // FindBugs thinks the recordingPath or its properties is null somehow
-    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     private ResponseMessage doPost(String recordingName, URL uploadUrl) throws Exception {
         Path recordingPath =
                 getRecordingPath(recordingName)
