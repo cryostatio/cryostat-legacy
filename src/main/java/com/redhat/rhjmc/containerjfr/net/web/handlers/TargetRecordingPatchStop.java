@@ -41,73 +41,48 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.InputStream;
-import java.nio.file.Path;
+import java.util.Optional;
 
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.FileUpload;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingPatchStop {
 
-    static final String PATH = "/api/v1/templates";
-
-    private final LocalStorageTemplateService templateService;
-    private final FileSystem fs;
-    private final Logger logger;
+    private final TargetConnectionManager targetConnectionManager;
 
     @Inject
-    TemplatesPostHandler(
-            AuthManager auth,
-            LocalStorageTemplateService templateService,
-            FileSystem fs,
-            Logger logger) {
-        super(auth);
-        this.templateService = templateService;
-        this.fs = fs;
-        this.logger = logger;
+    TargetRecordingPatchStop(TargetConnectionManager targetConnectionManager) {
+        this.targetConnectionManager = targetConnectionManager;
     }
 
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.POST;
-    }
+    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
+        String recordingName = ctx.pathParam("recordingName");
 
-    @Override
-    public String path() {
-        return PATH;
-    }
-
-    @Override
-    void handleAuthenticated(RoutingContext ctx) throws Exception {
-        try {
-            for (FileUpload u : ctx.fileUploads()) {
-                Path path = fs.pathOf(u.uploadedFileName());
-                try (InputStream is = fs.newInputStream(path)) {
-                    if (!"template".equals(u.name())) {
-                        logger.info(
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        connection.getService().stop(descriptor.get());
+                        return null;
+                    } else {
+                        throw new HttpStatusException(
+                                404,
                                 String.format(
-                                        "Received unexpected file upload named %s", u.name()));
-                        continue;
+                                        "Recording with name \"%s\" not found", recordingName));
                     }
-                    templateService.addTemplate(is);
-                } finally {
-                    fs.deleteIfExists(path);
-                }
-            }
-        } catch (InvalidXmlException | InvalidEventTemplateException e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
-        }
+                });
+        ctx.response().setStatusCode(200);
         ctx.response().end();
     }
 }

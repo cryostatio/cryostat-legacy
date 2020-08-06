@@ -41,41 +41,31 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.InputStream;
-import java.nio.file.Path;
-
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
+class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "/api/v1/templates";
-
-    private final LocalStorageTemplateService templateService;
-    private final FileSystem fs;
-    private final Logger logger;
+    private final TargetConnectionManager targetConnectionManager;
+    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
 
     @Inject
-    TemplatesPostHandler(
+    TargetSnapshotPostHandler(
             AuthManager auth,
-            LocalStorageTemplateService templateService,
-            FileSystem fs,
-            Logger logger) {
+            TargetConnectionManager targetConnectionManager,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
         super(auth);
-        this.templateService = templateService;
-        this.fs = fs;
-        this.logger = logger;
+        this.targetConnectionManager = targetConnectionManager;
+        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
     }
 
     @Override
@@ -85,29 +75,35 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return PATH;
+        return "/api/v1/targets/:targetId/snapshot";
     }
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
-        try {
-            for (FileUpload u : ctx.fileUploads()) {
-                Path path = fs.pathOf(u.uploadedFileName());
-                try (InputStream is = fs.newInputStream(path)) {
-                    if (!"template".equals(u.name())) {
-                        logger.info(
-                                String.format(
-                                        "Received unexpected file upload named %s", u.name()));
-                        continue;
-                    }
-                    templateService.addTemplate(is);
-                } finally {
-                    fs.deleteIfExists(path);
-                }
-            }
-        } catch (InvalidXmlException | InvalidEventTemplateException e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
-        }
-        ctx.response().end();
+        String result =
+                targetConnectionManager.executeConnectedTask(
+                        getConnectionDescriptorFromContext(ctx),
+                        connection -> {
+                            IRecordingDescriptor descriptor =
+                                    connection.getService().getSnapshotRecording();
+
+                            String rename =
+                                    String.format(
+                                            "%s-%d",
+                                            descriptor.getName().toLowerCase(), descriptor.getId());
+
+                            RecordingOptionsBuilder recordingOptionsBuilder =
+                                    recordingOptionsBuilderFactory.create(connection.getService());
+                            recordingOptionsBuilder.name(rename);
+
+                            connection
+                                    .getService()
+                                    .updateRecordingOptions(
+                                            descriptor, recordingOptionsBuilder.build());
+
+                            return rename;
+                        });
+        ctx.response().setStatusCode(200);
+        ctx.response().end(result);
     }
 }

@@ -52,6 +52,8 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
+/** @deprecated Use HTTP PATCH "SNAPSHOT" /api/v1/targets/:targetId/recordings/:recordingName */
+@Deprecated
 @Singleton
 class SnapshotCommand extends AbstractRecordingCommand implements SerializableCommand {
 

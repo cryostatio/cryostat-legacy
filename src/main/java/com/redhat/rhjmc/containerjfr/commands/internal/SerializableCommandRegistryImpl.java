@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -56,12 +57,14 @@ import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.FailureOutput;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand.Output;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.CommandRegistryImpl.CommandDefinitionException;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 class SerializableCommandRegistryImpl implements SerializableCommandRegistry {
 
     private final Map<String, SerializableCommand> commandMap = new TreeMap<>();
+    private final Logger logger;
 
-    SerializableCommandRegistryImpl(Set<Command> allCommands) {
+    SerializableCommandRegistryImpl(Set<Command> allCommands, Logger logger) {
         Set<SerializableCommand> commands = new HashSet<>();
         allCommands.forEach(
                 c -> {
@@ -77,6 +80,7 @@ class SerializableCommandRegistryImpl implements SerializableCommandRegistry {
             }
             commandMap.put(commandName, command);
         }
+        this.logger = logger;
     }
 
     @Override
@@ -101,7 +105,18 @@ class SerializableCommandRegistryImpl implements SerializableCommandRegistry {
             return new FailureOutput(String.format("Command \"%s\" unavailable", commandName));
         }
         try {
-            return commandMap.get(commandName).serializableExecute(args);
+            SerializableCommand c = commandMap.get(commandName);
+            boolean deprecated =
+                    Arrays.asList(c.getClass().getDeclaredAnnotations()).stream()
+                            .anyMatch(
+                                    annotation ->
+                                            Deprecated.class
+                                                    .getName()
+                                                    .equals(annotation.annotationType().getName()));
+            if (deprecated) {
+                logger.warn(String.format("Command \"%s\" is deprecated", commandName));
+            }
+            return c.serializableExecute(args);
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }

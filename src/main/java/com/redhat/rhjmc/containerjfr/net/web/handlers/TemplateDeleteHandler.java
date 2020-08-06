@@ -41,8 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.IOException;
-
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
@@ -74,13 +72,11 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String templateName = ctx.pathParam("templateName");
         try {
             this.templateService.deleteTemplate(templateName);
             ctx.response().end();
-        } catch (IOException ioe) {
-            throw new HttpStatusException(500, ioe.getMessage(), ioe);
         } catch (InvalidEventTemplateException iete) {
             throw new HttpStatusException(400, iete.getMessage(), iete);
         }

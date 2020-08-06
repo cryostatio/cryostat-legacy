@@ -54,6 +54,8 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
+/** @deprecated use HTTP PATCH "STOP" /api/v1/targets/:targetId/recordings/:recordingName */
+@Deprecated
 @Singleton
 class StopRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
 

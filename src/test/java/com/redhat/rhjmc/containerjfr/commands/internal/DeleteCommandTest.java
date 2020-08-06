@@ -144,7 +144,14 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
 
         command.execute(new String[] {"fooHost:9091", "foo-recording"});
         verify(connection.getService()).close(recordingDescriptor);
-        verify(reportService).delete("fooHost:9091", "foo-recording");
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooHost:9091");
+        verify(reportService)
+                .delete(
+                        Mockito.argThat(
+                                arg ->
+                                        arg.getTargetId()
+                                                .equals(connectionDescriptor.getTargetId())),
+                        Mockito.eq("foo-recording"));
     }
 
     @Test
@@ -164,7 +171,14 @@ class DeleteCommandTest implements ValidatesTargetId, ValidatesRecordingName {
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
 
         verify(connection.getService()).close(recordingDescriptor);
-        verify(reportService).delete("fooHost:9091", "foo-recording");
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooHost:9091");
+        verify(reportService)
+                .delete(
+                        Mockito.argThat(
+                                arg ->
+                                        arg.getTargetId()
+                                                .equals(connectionDescriptor.getTargetId())),
+                        Mockito.eq("foo-recording"));
     }
 
     @Test

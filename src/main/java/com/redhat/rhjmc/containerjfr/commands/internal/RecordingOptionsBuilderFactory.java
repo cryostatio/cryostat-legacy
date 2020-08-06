@@ -45,7 +45,9 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
-interface RecordingOptionsBuilderFactory {
+// FIXME this should be in a more general package, not commands/internal. This is also used in
+// net/web/handlers, for example
+public interface RecordingOptionsBuilderFactory {
     RecordingOptionsBuilder create(IFlightRecorderService service)
             throws QuantityConversionException;
 }

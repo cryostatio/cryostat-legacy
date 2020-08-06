@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -57,14 +56,11 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager targetConnectionManager;
-    private final Logger logger;
 
     @Inject
-    TargetTemplateGetHandler(
-            AuthManager auth, TargetConnectionManager targetConnectionManager, Logger logger) {
+    TargetTemplateGetHandler(AuthManager auth, TargetConnectionManager targetConnectionManager) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
-        this.logger = logger;
     }
 
     @Override
@@ -78,29 +74,21 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
         String templateName = ctx.pathParam("templateName");
         TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));
-        try {
-            targetConnectionManager
-                    .executeConnectedTask(
-                            getConnectionDescriptorFromContext(ctx),
-                            conn -> conn.getTemplateService().getXml(templateName, templateType))
-                    .ifPresentOrElse(
-                            doc -> {
-                                ctx.response()
-                                        .putHeader(
-                                                HttpHeaders.CONTENT_TYPE, HttpMimeType.JFC.mime());
-                                ctx.response().end(doc.toString());
-                            },
-                            () -> {
-                                throw new HttpStatusException(404);
-                            });
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            logger.warn(e);
-            throw new HttpStatusException(500, e);
-        }
+        targetConnectionManager
+                .executeConnectedTask(
+                        getConnectionDescriptorFromContext(ctx),
+                        conn -> conn.getTemplateService().getXml(templateName, templateType))
+                .ifPresentOrElse(
+                        doc -> {
+                            ctx.response()
+                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JFC.mime());
+                            ctx.response().end(doc.toString());
+                        },
+                        () -> {
+                            throw new HttpStatusException(404);
+                        });
     }
 }

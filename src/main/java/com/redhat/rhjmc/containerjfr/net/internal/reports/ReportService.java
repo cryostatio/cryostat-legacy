@@ -46,6 +46,8 @@ import java.util.Optional;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+
 public class ReportService {
 
     private final ActiveRecordingReportCache activeCache;
@@ -65,18 +67,18 @@ public class ReportService {
         return archivedCache.delete(recordingName);
     }
 
-    public String get(String targetId, String recordingName) {
-        return activeCache.get(targetId, recordingName);
+    public String get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+        return activeCache.get(connectionDescriptor, recordingName);
     }
 
-    public boolean delete(String targetId, String recordingName) {
-        return activeCache.delete(targetId, recordingName);
+    public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
+        return activeCache.delete(connectionDescriptor, recordingName);
     }
 
     // FIXME This is basically duplicated from UploadRecordingCommand
     public static class RecordingNotFoundException extends RuntimeException {
         public RecordingNotFoundException(String targetId, String recordingName) {
-            super(String.format("Recording %s not found in target %s", targetId, recordingName));
+            super(String.format("Recording %s not found in target %s", recordingName, targetId));
         }
 
         public RecordingNotFoundException(Pair<String, String> key) {

@@ -57,7 +57,7 @@ import org.openjdk.jmc.rjmx.services.jfr.internal.FlightRecorderServiceV2;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
-class EventOptionsBuilder {
+public class EventOptionsBuilder {
 
     private final boolean isV2;
     private final IMutableConstrainedMap<EventOptionID> map;
@@ -89,7 +89,8 @@ class EventOptionsBuilder {
         }
     }
 
-    EventOptionsBuilder addEvent(String typeId, String option, String value) throws Exception {
+    public EventOptionsBuilder addEvent(String typeId, String option, String value)
+            throws Exception {
         if (!eventIds.containsKey(typeId)) {
             throw new EventTypeException(typeId);
         }
@@ -110,7 +111,7 @@ class EventOptionsBuilder {
         return (V) t;
     }
 
-    IConstrainedMap<EventOptionID> build() {
+    public IConstrainedMap<EventOptionID> build() {
         if (!isV2) {
             return null;
         }
@@ -118,7 +119,7 @@ class EventOptionsBuilder {
     }
 
     @SuppressWarnings("serial")
-    static class EventTypeException extends Exception {
+    public static class EventTypeException extends Exception {
         EventTypeException(String eventType) {
             super(String.format("Unknown event type \"%s\"", eventType));
         }

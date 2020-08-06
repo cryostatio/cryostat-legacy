@@ -39,136 +39,75 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.commands.internal;
+package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.Optional;
-import java.util.StringJoiner;
 
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-/** @deprecated use HTTP PATCH "SAVE" /api/v1/targets/:targetId/recordings/:recordingName */
-@Deprecated
-@Singleton
-class SaveRecordingCommand extends AbstractConnectedCommand implements SerializableCommand {
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-    private final ClientWriter cw;
-    private final Clock clock;
+class TargetRecordingPatchSave {
+
     private final FileSystem fs;
     private final Path recordingsPath;
+    private final TargetConnectionManager targetConnectionManager;
+    private final Clock clock;
 
     @Inject
-    SaveRecordingCommand(
-            ClientWriter cw,
-            TargetConnectionManager targetConnectionManager,
-            Clock clock,
+    TargetRecordingPatchSave(
             FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath) {
-        super(targetConnectionManager);
-        this.cw = cw;
-        this.clock = clock;
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
+            TargetConnectionManager targetConnectionManager,
+            Clock clock) {
         this.fs = fs;
         this.recordingsPath = recordingsPath;
+        this.targetConnectionManager = targetConnectionManager;
+        this.clock = clock;
     }
 
-    @Override
-    public String getName() {
-        return "save";
-    }
+    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
+        String recordingName = ctx.pathParam("recordingName");
 
-    @Override
-    public void execute(String[] args) throws Exception {
-        String targetId = args[0];
-        String name = args[1];
-
-        targetConnectionManager.executeConnectedTask(
-                new ConnectionDescriptor(targetId),
-                connection -> {
-                    Optional<IRecordingDescriptor> descriptor = getDescriptorByName(targetId, name);
-                    if (descriptor.isPresent()) {
-                        cw.println(
-                                String.format(
-                                        "Recording saved as \"%s\"",
-                                        saveRecording(connection, descriptor.get())));
-                    } else {
-                        cw.println(String.format("Recording with name \"%s\" not found", name));
-                    }
-                    return null;
-                });
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
-        String targetId = args[0];
-        String name = args[1];
-
-        try {
-            return targetConnectionManager.executeConnectedTask(
-                    new ConnectionDescriptor(targetId),
-                    connection -> {
-                        Optional<IRecordingDescriptor> descriptor =
-                                getDescriptorByName(targetId, name);
-                        if (descriptor.isPresent()) {
-                            return new StringOutput(saveRecording(connection, descriptor.get()));
-                        } else {
-                            return new FailureOutput(
-                                    String.format("Recording with name \"%s\" not found", name));
-                        }
-                    });
-        } catch (Exception e) {
-            return new ExceptionOutput(e);
-        }
-    }
-
-    @Override
-    public void validate(String[] args) throws FailedValidationException {
-        if (args.length != 2) {
-            String errorMessage =
-                    "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
-            cw.println(errorMessage);
-            throw new FailedValidationException(errorMessage);
-        }
-
-        String targetId = args[0];
-        String recordingName = args[1];
-        StringJoiner combinedErrorMessage = new StringJoiner("; ");
-
-        if (!validateTargetId(targetId)) {
-            String errorMessage = String.format("%s is an invalid connection specifier", targetId);
-            cw.println(errorMessage);
-            combinedErrorMessage.add(errorMessage);
-        }
-
-        if (!validateRecordingName(recordingName)) {
-            String errorMessage = String.format("%s is an invalid recording name", recordingName);
-            cw.println(errorMessage);
-            combinedErrorMessage.add(errorMessage);
-        }
-
-        if (combinedErrorMessage.length() > 0) {
-            throw new FailedValidationException(combinedErrorMessage.toString());
-        }
-    }
-
-    @Override
-    public boolean isAvailable() {
-        return fs.isDirectory(recordingsPath);
+        String saveName =
+                targetConnectionManager.executeConnectedTask(
+                        connectionDescriptor,
+                        connection -> {
+                            Optional<IRecordingDescriptor> descriptor =
+                                    connection.getService().getAvailableRecordings().stream()
+                                            .filter(
+                                                    recording ->
+                                                            recording
+                                                                    .getName()
+                                                                    .equals(recordingName))
+                                            .findFirst();
+                            if (descriptor.isPresent()) {
+                                return saveRecording(connection, descriptor.get());
+                            } else {
+                                throw new HttpStatusException(
+                                        404,
+                                        String.format(
+                                                "Recording with name \"%s\" not found",
+                                                recordingName));
+                            }
+                        });
+        ctx.response().setStatusCode(200);
+        ctx.response().end(saveName);
     }
 
     private String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)

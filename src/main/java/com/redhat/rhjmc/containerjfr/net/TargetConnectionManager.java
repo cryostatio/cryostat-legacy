@@ -67,7 +67,7 @@ public class TargetConnectionManager {
     private final ReentrantLock lock = new ReentrantLock();
     // maintain a short-lived cache of connections to allow nested ConnectedTasks
     // without having to manage connection reuse
-    private final Map<String, JFRConnection> activeConnections = new HashMap<>();
+    private final Map<ConnectionDescriptor, JFRConnection> activeConnections = new HashMap<>();
     private final JFRConnectionToolkit jfrConnectionToolkit;
 
     TargetConnectionManager(Logger logger, JFRConnectionToolkit jfrConnectionToolkit) {
@@ -78,16 +78,16 @@ public class TargetConnectionManager {
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
         try {
-            if (activeConnections.containsKey(connectionDescriptor.getTargetId())) {
-                return task.execute(activeConnections.get(connectionDescriptor.getTargetId()));
+            if (activeConnections.containsKey(connectionDescriptor)) {
+                return task.execute(activeConnections.get(connectionDescriptor));
             } else {
                 try (JFRConnection connection = connect(connectionDescriptor)) {
-                    activeConnections.put(connectionDescriptor.getTargetId(), connection);
+                    activeConnections.put(connectionDescriptor, connection);
                     return task.execute(connection);
                 }
             }
         } finally {
-            activeConnections.remove(connectionDescriptor.getTargetId());
+            activeConnections.remove(connectionDescriptor);
         }
     }
 

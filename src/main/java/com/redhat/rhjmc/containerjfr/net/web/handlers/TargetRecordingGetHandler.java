@@ -118,49 +118,42 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     // try-with-resources generates a "redundant" nullcheck in bytecode
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) {
+    void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        try {
-            Optional<DownloadDescriptor> descriptor =
-                    getRecordingDescriptor(connectionDescriptor, recordingName);
-            if (descriptor.isEmpty()) {
-                throw new HttpStatusException(404, String.format("%s not found", recordingName));
-            }
+        Optional<DownloadDescriptor> descriptor =
+                getRecordingDescriptor(connectionDescriptor, recordingName);
+        if (descriptor.isEmpty()) {
+            throw new HttpStatusException(404, String.format("%s not found", recordingName));
+        }
 
-            ctx.response().setChunked(true);
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+        ctx.response().setChunked(true);
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+        descriptor
+                .get()
+                .bytes
+                .ifPresent(
+                        b ->
+                                ctx.response()
+                                        .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
+        try (InputStream stream = descriptor.get().stream) {
+            if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
+                writeInputStreamLowMemPressure(stream, ctx.response());
+            } else {
+                writeInputStream(stream, ctx.response());
+            }
+            ctx.response().end();
+        } finally {
             descriptor
                     .get()
-                    .bytes
+                    .resource
                     .ifPresent(
-                            b ->
-                                    ctx.response()
-                                            .putHeader(
-                                                    HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
-            try (InputStream stream = descriptor.get().stream) {
-                if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-                    writeInputStreamLowMemPressure(stream, ctx.response());
-                } else {
-                    writeInputStream(stream, ctx.response());
-                }
-                ctx.response().end();
-            } finally {
-                descriptor
-                        .get()
-                        .resource
-                        .ifPresent(
-                                resource -> {
-                                    try {
-                                        resource.close();
-                                    } catch (Exception e) {
-                                        logger.warn(e);
-                                    }
-                                });
-            }
-        } catch (HttpStatusException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
+                            resource -> {
+                                try {
+                                    resource.close();
+                                } catch (Exception e) {
+                                    logger.warn(e);
+                                }
+                            });
         }
     }
 

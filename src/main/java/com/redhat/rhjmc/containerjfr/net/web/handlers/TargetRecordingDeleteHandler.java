@@ -41,40 +41,69 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.Optional;
+
 import javax.inject.Inject;
 
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TemplatesBodyHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
+    private final TargetConnectionManager targetConnectionManager;
+    private final ReportService reportService;
 
     @Inject
-    TemplatesBodyHandler(AuthManager auth) {
+    TargetRecordingDeleteHandler(
+            AuthManager auth,
+            TargetConnectionManager targetConnectionManager,
+            ReportService reportService) {
         super(auth);
-    }
-
-    @Override
-    public int getPriority() {
-        return DEFAULT_PRIORITY - 1;
+        this.targetConnectionManager = targetConnectionManager;
+        this.reportService = reportService;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
+        return HttpMethod.DELETE;
     }
 
     @Override
     public String path() {
-        return "/api/v1/templates";
+        return "/api/v1/targets/:targetId/recordings/:recordingName";
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) {
-        BODY_HANDLER.handle(ctx);
+    void handleAuthenticated(RoutingContext ctx) throws Exception {
+        String recordingName = ctx.pathParam("recordingName");
+        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        connection.getService().close(descriptor.get());
+                        reportService.delete(connectionDescriptor, recordingName);
+                        ctx.response().setStatusCode(200);
+                        ctx.response().end();
+                    } else {
+                        throw new HttpStatusException(
+                                404,
+                                String.format(
+                                        "No recording with name \"%s\" found", recordingName));
+                    }
+                    return null;
+                });
     }
 }

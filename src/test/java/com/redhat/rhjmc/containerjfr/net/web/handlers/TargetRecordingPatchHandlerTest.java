@@ -41,10 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
 import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
@@ -53,92 +49,96 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
-import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
-class TargetReportGetHandlerTest {
+class TargetRecordingPatchHandlerTest {
 
-    TargetReportGetHandler handler;
+    TargetRecordingPatchHandler handler;
     @Mock AuthManager authManager;
-    @Mock ReportService reportService;
-    @Mock Logger logger;
+    @Mock TargetRecordingPatchSave patchSave;
+    @Mock TargetRecordingPatchStop patchStop;
+    @Mock RoutingContext ctx;
+    @Mock ConnectionDescriptor connectionDescriptor;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetReportGetHandler(authManager, reportService, logger);
+        this.handler = new TargetRecordingPatchHandler(authManager, patchSave, patchStop);
     }
 
     @Test
-    void shouldHandleGETRequest() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    void shouldHandlePATCH() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.PATCH));
     }
 
     @Test
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(),
-                Matchers.equalTo("/api/v1/targets/:targetId/reports/:recordingName"));
+                Matchers.equalTo("/api/v1/targets/:targetId/recordings/:recordingName"));
     }
 
     @Test
-    void shouldHandleRecordingDownloadRequest() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
-
-        String targetId = "fooHost:0";
-        String recordingName = "foo";
-        String content = "foobar";
-        when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
-
-        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-
-        handler.handle(ctx);
-
-        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        verify(resp).end(content);
+    void shouldNotBeAsync() {
+        // recording saving is a blocking operation, so the handler should be marked as such
+        Assertions.assertFalse(handler.isAsync());
     }
 
     @Test
-    void shouldRespond404IfRecordingNameNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
-
-        when(reportService.get(Mockito.any(), Mockito.anyString()))
-                .thenThrow(new RecordingNotFoundException("fooHost:0", "someRecording"));
-
-        when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
-        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+    void shouldThrow401IfAuthFails() {
+        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(false));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"unknown", "start", "dump"})
+    @NullAndEmptySource
+    void shouldThrow400InvalidOperations(String mtd) {
+        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"save", "stop"})
+    void shouldDelegateSupportedOperations(String mtd) throws Exception {
+        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
+
+        handler.handle(ctx);
+
+        switch (mtd) {
+            case "save":
+                Mockito.verify(patchSave)
+                        .handle(Mockito.eq(ctx), Mockito.any(ConnectionDescriptor.class));
+                break;
+            case "stop":
+                Mockito.verify(patchStop)
+                        .handle(Mockito.eq(ctx), Mockito.any(ConnectionDescriptor.class));
+                break;
+            default:
+                throw new IllegalArgumentException(mtd);
+        }
     }
 }

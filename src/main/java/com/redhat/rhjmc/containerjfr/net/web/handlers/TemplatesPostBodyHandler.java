@@ -41,41 +41,26 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.InputStream;
-import java.nio.file.Path;
-
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
+class TemplatesPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "/api/v1/templates";
-
-    private final LocalStorageTemplateService templateService;
-    private final FileSystem fs;
-    private final Logger logger;
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    TemplatesPostHandler(
-            AuthManager auth,
-            LocalStorageTemplateService templateService,
-            FileSystem fs,
-            Logger logger) {
+    TemplatesPostBodyHandler(AuthManager auth) {
         super(auth);
-        this.templateService = templateService;
-        this.fs = fs;
-        this.logger = logger;
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
@@ -85,29 +70,11 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return PATH;
+        return TemplatesPostHandler.PATH;
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) throws Exception {
-        try {
-            for (FileUpload u : ctx.fileUploads()) {
-                Path path = fs.pathOf(u.uploadedFileName());
-                try (InputStream is = fs.newInputStream(path)) {
-                    if (!"template".equals(u.name())) {
-                        logger.info(
-                                String.format(
-                                        "Received unexpected file upload named %s", u.name()));
-                        continue;
-                    }
-                    templateService.addTemplate(is);
-                } finally {
-                    fs.deleteIfExists(path);
-                }
-            }
-        } catch (InvalidXmlException | InvalidEventTemplateException e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
-        }
-        ctx.response().end();
+    void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
     }
 }

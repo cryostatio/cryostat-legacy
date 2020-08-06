@@ -64,6 +64,7 @@ class CorsEnablingHandler implements RequestHandler {
                         .allowedHeader("Authorization")
                         .allowedMethod(HttpMethod.GET)
                         .allowedMethod(HttpMethod.POST)
+                        .allowedMethod(HttpMethod.PATCH)
                         .allowedMethod(HttpMethod.OPTIONS)
                         .allowedMethod(HttpMethod.HEAD)
                         .allowedMethod(HttpMethod.DELETE)

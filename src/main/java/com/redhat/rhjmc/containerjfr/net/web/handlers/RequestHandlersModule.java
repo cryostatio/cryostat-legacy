@@ -41,6 +41,17 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.nio.file.Path;
+
+import javax.inject.Named;
+
+import com.google.inject.Provides;
+
+import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.sys.Clock;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+
 import dagger.Binds;
 import dagger.Module;
 import dagger.multibindings.IntoSet;
@@ -84,7 +95,48 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindTargetRecordingPatchHandler(TargetRecordingPatchHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingDeleteHandler(TargetRecordingDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingUploadPostHandler(
+            TargetRecordingUploadPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingPatchBodyHandler(
+            TargetRecordingPatchBodyHandler handler);
+
+    @Provides
+    TargetRecordingPatchSave provideTargetRecordingPatchSave(
+            FileSystem fs,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
+            TargetConnectionManager targetConnectionManager,
+            Clock clock) {
+        return new TargetRecordingPatchSave(fs, recordingsPath, targetConnectionManager, clock);
+    }
+
+    @Provides
+    TargetRecordingPatchStop provideTargetRecordingPatchStop(
+            TargetConnectionManager targetConnectionManager) {
+        return new TargetRecordingPatchStop(targetConnectionManager);
+    }
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingDeleteHandler(RecordingDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingUploadPostHandler(RecordingUploadPostHandler handler);
 
     @Binds
     @IntoSet
@@ -124,6 +176,15 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindTargetRecordingsPostBodyHandler(
+            TargetRecordingsPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingsPostHandler(TargetRecordingsPostHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindTargetTemplatesGetHandler(TargetTemplatesGetHandler handler);
 
     @Binds
@@ -132,7 +193,7 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTemplatesBodyHandler(TemplatesBodyHandler handler);
+    abstract RequestHandler bindTemplatesPostBodyHandler(TemplatesPostBodyHandler handler);
 
     @Binds
     @IntoSet
@@ -145,4 +206,8 @@ public abstract class RequestHandlersModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindTargetEventsGetHandler(TargetEventsGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
 }

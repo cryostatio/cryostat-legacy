@@ -41,10 +41,9 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
@@ -57,88 +56,97 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
-import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
-class TargetReportGetHandlerTest {
+class RecordingDeleteHandlerTest {
 
-    TargetReportGetHandler handler;
-    @Mock AuthManager authManager;
+    RecordingDeleteHandler handler;
+    @Mock AuthManager auth;
     @Mock ReportService reportService;
-    @Mock Logger logger;
+    @Mock FileSystem fs;
+    @Mock Path savedRecordingsPath;
+
+    @Mock RoutingContext ctx;
+    @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetReportGetHandler(authManager, reportService, logger);
+        this.handler = new RecordingDeleteHandler(auth, reportService, fs, savedRecordingsPath);
     }
 
     @Test
-    void shouldHandleGETRequest() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
+    void shouldHandleDELETE() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
     }
 
     @Test
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
-                handler.path(),
-                Matchers.equalTo("/api/v1/targets/:targetId/reports/:recordingName"));
+                handler.path(), Matchers.equalTo("/api/v1/recordings/:recordingName"));
     }
 
     @Test
-    void shouldHandleRecordingDownloadRequest() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+    void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
-
-        String targetId = "fooHost:0";
-        String recordingName = "foo";
-        String content = "foobar";
-        when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
-
-        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-
-        handler.handle(ctx);
-
-        verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        verify(resp).end(content);
-    }
-
-    @Test
-    void shouldRespond404IfRecordingNameNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        RoutingContext ctx = mock(RoutingContext.class);
-        HttpServerRequest req = mock(HttpServerRequest.class);
-        when(ctx.request()).thenReturn(req);
-        HttpServerResponse resp = mock(HttpServerResponse.class);
-        when(ctx.response()).thenReturn(resp);
-
-        when(reportService.get(Mockito.any(), Mockito.anyString()))
-                .thenThrow(new RecordingNotFoundException("fooHost:0", "someRecording"));
-
-        when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
-        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of());
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+    }
+
+    @Test
+    void shouldDeleteIfRecordingFound() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        String recordingName = "someRecording";
+        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(recordingName));
+
+        Path path = Mockito.mock(Path.class);
+        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(path);
+        Mockito.when(fs.exists(path)).thenReturn(true);
+
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+
+        handler.handle(ctx);
+
+        Mockito.verify(fs).deleteIfExists(path);
+        Mockito.verify(reportService).delete(recordingName);
+        Mockito.verify(resp).setStatusCode(200);
+        Mockito.verify(resp).end();
+    }
+
+    @Test
+    void shouldThrowExceptionIfDeletionFails() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        String recordingName = "someRecording";
+        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(recordingName));
+
+        Path path = Mockito.mock(Path.class);
+        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(path);
+        Mockito.when(fs.exists(path)).thenReturn(true);
+        Mockito.when(fs.deleteIfExists(path)).thenThrow(IOException.class);
+
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+
+        Mockito.verify(reportService).delete(recordingName);
     }
 }

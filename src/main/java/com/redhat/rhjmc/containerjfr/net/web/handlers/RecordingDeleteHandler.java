@@ -41,73 +41,73 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.io.InputStream;
+import java.io.IOException;
 import java.nio.file.Path;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
-import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
+class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "/api/v1/templates";
-
-    private final LocalStorageTemplateService templateService;
+    private final ReportService reportService;
     private final FileSystem fs;
-    private final Logger logger;
+    private final Path savedRecordingsPath;
 
     @Inject
-    TemplatesPostHandler(
+    RecordingDeleteHandler(
             AuthManager auth,
-            LocalStorageTemplateService templateService,
+            ReportService reportService,
             FileSystem fs,
-            Logger logger) {
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
         super(auth);
-        this.templateService = templateService;
+        this.reportService = reportService;
         this.fs = fs;
-        this.logger = logger;
+        this.savedRecordingsPath = savedRecordingsPath;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
+        return HttpMethod.DELETE;
     }
 
     @Override
     public String path() {
-        return PATH;
+        return "/api/v1/recordings/:recordingName";
     }
 
     @Override
-    void handleAuthenticated(RoutingContext ctx) throws Exception {
-        try {
-            for (FileUpload u : ctx.fileUploads()) {
-                Path path = fs.pathOf(u.uploadedFileName());
-                try (InputStream is = fs.newInputStream(path)) {
-                    if (!"template".equals(u.name())) {
-                        logger.info(
-                                String.format(
-                                        "Received unexpected file upload named %s", u.name()));
-                        continue;
-                    }
-                    templateService.addTemplate(is);
-                } finally {
-                    fs.deleteIfExists(path);
-                }
-            }
-        } catch (InvalidXmlException | InvalidEventTemplateException e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
-        }
-        ctx.response().end();
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        String recordingName = ctx.pathParam("recordingName");
+        fs.listDirectoryChildren(savedRecordingsPath).stream()
+                .filter(saved -> saved.equals(recordingName))
+                .map(savedRecordingsPath::resolve)
+                .findFirst()
+                .ifPresentOrElse(
+                        path -> {
+                            try {
+                                if (!fs.exists(path)) {
+                                    throw new HttpStatusException(404, recordingName);
+                                }
+                                fs.deleteIfExists(path);
+                            } catch (IOException e) {
+                                throw new HttpStatusException(500, e.getMessage(), e);
+                            } finally {
+                                reportService.delete(recordingName);
+                            }
+                            ctx.response().setStatusCode(200);
+                            ctx.response().end();
+                        },
+                        () -> {
+                            throw new HttpStatusException(404, recordingName);
+                        });
     }
 }

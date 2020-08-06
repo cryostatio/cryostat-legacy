@@ -57,7 +57,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.core.FlightRecorderException;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateService;
 import com.redhat.rhjmc.containerjfr.core.templates.TemplateType;
@@ -79,13 +78,12 @@ class TargetTemplateGetHandlerTest {
     TargetTemplateGetHandler handler;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock Logger logger;
     @Mock JFRConnection conn;
     @Mock TemplateService templateService;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetTemplateGetHandler(auth, targetConnectionManager, logger);
+        this.handler = new TargetTemplateGetHandler(auth, targetConnectionManager);
     }
 
     @Test
@@ -113,10 +111,8 @@ class TargetTemplateGetHandlerTest {
                                 Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenThrow(FlightRecorderException.class);
 
-        HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        Assertions.assertThrows(
+                FlightRecorderException.class, () -> handler.handleAuthenticated(ctx));
     }
 
     @Test

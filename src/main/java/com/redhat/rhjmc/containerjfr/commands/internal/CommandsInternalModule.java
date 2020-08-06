@@ -52,6 +52,7 @@ import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 import dagger.Binds;
@@ -192,9 +193,9 @@ public abstract class CommandsInternalModule {
     @Nullable
     @Singleton
     static SerializableCommandRegistry provideSerializableCommandRegistry(
-            ExecutionMode mode, Set<Command> commands) {
+            ExecutionMode mode, Set<Command> commands, Logger logger) {
         if (mode.equals(ExecutionMode.WEBSOCKET)) {
-            return new SerializableCommandRegistryImpl(commands);
+            return new SerializableCommandRegistryImpl(commands, logger);
         } else {
             return null;
         }
