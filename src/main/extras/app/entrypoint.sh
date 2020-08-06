@@ -33,7 +33,8 @@ if [ -z "$CONTAINER_JFR_RJMX_AUTH" ]; then
     CONTAINER_JFR_RJMX_AUTH=true
 fi
 
-if [ "$CONTAINER_JFR_RJMX_AUTH" = "true" ]; then
+if [ "$CONTAINER_JFR_RJMX_AUTH" = "true" ] || [ -n "$CONTAINER_JFR_RJMX_USER" ] 
+    || [ -n "$CONTAINER_JFR_RJMX_PASS" ]; then
     createJmxPassword
 
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
