@@ -242,6 +242,8 @@
               <argument>CONTAINER_JFR_ARCHIVE_PATH=/flightrecordings</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_TEMPLATE_PATH=/templates</argument>
+              <argument>--env</argument>
+              <argument>GRAFANA_DATASOURCE_URL=http://abc</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${containerjfr.imageStream}:${containerjfr.imageVersion}</argument>
