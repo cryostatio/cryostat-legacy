@@ -115,6 +115,8 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             ctx.response().end(response.body);
         } catch (MalformedURLException e) {
             throw new HttpStatusException(501, e);
+        } catch (RecordingNotFoundException e) {
+            throw new HttpStatusException(404, e);
         }
     }
 

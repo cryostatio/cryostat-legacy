@@ -151,7 +151,7 @@ class TargetRecordingUploadPostHandlerTest {
                         () -> {
                             handler.handle(ctx);
                         });
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(
                 ex.getCause(), Matchers.instanceOf(RecordingNotFoundException.class));
     }
