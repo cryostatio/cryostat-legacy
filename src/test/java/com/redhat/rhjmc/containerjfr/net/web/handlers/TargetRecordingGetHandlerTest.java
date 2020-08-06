@@ -223,7 +223,6 @@ class TargetRecordingGetHandlerTest {
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        ex.printStackTrace();
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
@@ -246,7 +245,6 @@ class TargetRecordingGetHandlerTest {
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        ex.printStackTrace();
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 }
