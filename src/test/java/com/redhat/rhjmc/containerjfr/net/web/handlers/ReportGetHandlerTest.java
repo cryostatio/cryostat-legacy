@@ -114,7 +114,6 @@ class ReportGetHandlerTest {
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        ex.printStackTrace();
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 }
