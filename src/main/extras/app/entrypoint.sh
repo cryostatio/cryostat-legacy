@@ -10,6 +10,7 @@ function createJmxPassword() {
     fi
     if [ -z "$CONTAINER_JFR_RJMX_PASS" ]; then 
         CONTAINER_JFR_RJMX_PASS="$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
+    fi
 
     echo "$CONTAINER_JFR_RJMX_USER $CONTAINER_JFR_RJMX_PASS" > "$PWFILE"
     chmod 400 "$PWFILE"
