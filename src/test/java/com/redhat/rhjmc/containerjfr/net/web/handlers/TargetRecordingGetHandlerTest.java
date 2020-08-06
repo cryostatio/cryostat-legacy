@@ -73,8 +73,8 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.http.CaseInsensitiveHeaders;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -131,7 +131,7 @@ class TargetRecordingGetHandlerTest {
         when(ctx.response()).thenReturn(resp);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
-        when(ctx.request().headers()).thenReturn(new CaseInsensitiveHeaders());
+        when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
@@ -177,7 +177,7 @@ class TargetRecordingGetHandlerTest {
         when(ctx.response()).thenReturn(resp);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
-        when(ctx.request().headers()).thenReturn(new CaseInsensitiveHeaders());
+        when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
@@ -215,7 +215,7 @@ class TargetRecordingGetHandlerTest {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
-        when(ctx.request().headers()).thenReturn(new CaseInsensitiveHeaders());
+        when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
                 .thenReturn(connection);
@@ -238,7 +238,7 @@ class TargetRecordingGetHandlerTest {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
-        when(ctx.request().headers()).thenReturn(new CaseInsensitiveHeaders());
+        when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
                 .thenReturn(connection);

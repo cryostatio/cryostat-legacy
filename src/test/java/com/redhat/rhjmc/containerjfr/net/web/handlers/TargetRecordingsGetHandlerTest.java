@@ -75,7 +75,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
-import io.vertx.core.http.CaseInsensitiveHeaders;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -119,7 +119,7 @@ class TargetRecordingsGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.headers()).thenReturn(new CaseInsensitiveHeaders());
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         Assertions.assertThrows(Exception.class, () -> handler.handleAuthenticated(ctx));
     }
@@ -173,7 +173,7 @@ class TargetRecordingsGetHandlerTest {
         Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.headers()).thenReturn(new CaseInsensitiveHeaders());
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         handler.handleAuthenticated(ctx);
 
