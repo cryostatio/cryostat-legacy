@@ -78,7 +78,7 @@ public class HttpServer {
                         sslConf.applyToHttpServerOptions(
                                 new HttpServerOptions()
                                         .setPort(netConf.getInternalWebServerPort())
-                                        .setWebsocketSubProtocols("*")
+                                        .addWebSocketSubProtocol("*")
                                         .setCompressionSupported(true)
                                         .setLogActivity(true)));
 
@@ -95,7 +95,7 @@ public class HttpServer {
         CompletableFuture<Void> future = new CompletableFuture<>();
         this.server
                 .requestHandler(requestHandlerDelegate)
-                .websocketHandler(websocketHandlerDelegate)
+                .webSocketHandler(websocketHandlerDelegate)
                 .listen(
                         res -> {
                             if (res.failed()) {

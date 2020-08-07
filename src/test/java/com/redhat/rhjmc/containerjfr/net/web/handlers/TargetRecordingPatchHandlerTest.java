@@ -59,7 +59,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
@@ -71,6 +73,7 @@ class TargetRecordingPatchHandlerTest {
     @Mock TargetRecordingPatchSave patchSave;
     @Mock TargetRecordingPatchStop patchStop;
     @Mock RoutingContext ctx;
+    @Mock HttpServerRequest req;
     @Mock ConnectionDescriptor connectionDescriptor;
 
     @BeforeEach
@@ -124,6 +127,8 @@ class TargetRecordingPatchHandlerTest {
     void shouldDelegateSupportedOperations(String mtd) throws Exception {
         Mockito.when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
 
         handler.handle(ctx);

@@ -63,6 +63,7 @@ import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -103,6 +104,7 @@ class TargetReportGetHandlerTest {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
 
@@ -128,6 +130,7 @@ class TargetReportGetHandlerTest {
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
 
