@@ -275,8 +275,7 @@ calls and simply accepts any provided token or credentials.
 
 ## JMX AUTHORIZATION HANDLING
 
-JMX connections into `container-jfr` are secured using a username and password 
-(unless the following flag is set: `"-Dcom.sun.management.jmxremote.authenticate=false"`).
+JMX connections into `container-jfr` are secured using the default username `"containerjfr"` 
+and a randomly generated password.
 The environment variables `CONTAINER_JFR_RJMX_USER` and `CONTAINER_JFR_RJMX_PASS` can be 
-used to specify the username and password. If not set, the username defaults to `"containerjfr"`
-and the password is randomly generated.
+used to override the default username and specify a password.
