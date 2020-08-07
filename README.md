@@ -273,7 +273,7 @@ If no appropriate auth manager is configured or can be automatically determined
 then the fallback is the NoopAuthManager, which does no external validation
 calls and simply accepts any provided token or credentials.
 
-## JMX AUTHORIZATION HANDLING
+## INCOMING JMX CONNECTION AUTHENTICATION
 
 JMX connections into `container-jfr` are secured using the default username `"containerjfr"` 
 and a randomly generated password.
