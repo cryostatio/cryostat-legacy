@@ -13,7 +13,7 @@ Build:
 - Git
 - JDK11+
 - Maven 3+
-- Podman
+- Podman 2.0+
 
 Run:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
