@@ -107,9 +107,10 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
-    @Test
-    void shouldValidateRenamedRecording() {
-        String[] argc = {"12-345-6-78_my-recording_87654321T654321Z.1.jfr"};
+    @ParameterizedTest
+    @ValueSource(ints = {1, 8, 52, 110})
+    void shouldValidateRenamedRecording(int suffix) {
+        String[] argc = {String.format("12-345-6-78_my-recording_87654321T654321Z.%d.jfr", suffix)};
         Assertions.assertDoesNotThrow(() -> command.validate(argc));
     }
 

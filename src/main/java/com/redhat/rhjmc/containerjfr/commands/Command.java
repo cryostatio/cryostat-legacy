@@ -71,6 +71,6 @@ public interface Command {
     }
 
     default boolean validateRecordingName(String name) {
-        return name.matches("[\\w-_]+(\\.\\d)?(\\.jfr)?");
+        return name.matches("[\\w-_]+(\\.\\d+)?(\\.jfr)?");
     }
 }
