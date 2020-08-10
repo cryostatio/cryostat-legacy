@@ -108,6 +108,12 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
     }
 
     @Test
+    void shouldValidateRenamedRecording() {
+        String[] argc = {"12-345-6-78_my-recording_87654321T654321Z.1.jfr"};
+        Assertions.assertDoesNotThrow(() -> command.validate(argc));
+    }
+
+    @Test
     void shouldBeAvailableIfRecordingsPathIsDirectory() {
         when(fs.isDirectory(Mockito.any())).thenReturn(true);
 
