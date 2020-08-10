@@ -84,6 +84,15 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
+
+        for (String arg : args) {
+            if (arg == null) {
+                String errorMessage = "One or more arguments were null";
+                cw.println(errorMessage);
+                throw new FailedValidationException(errorMessage);
+            }
+        }
+
         if (!validateTargetId(args[0])) {
             String errorMessage = String.format("%s is an invalid connection specifier", args[0]);
             cw.println(errorMessage);

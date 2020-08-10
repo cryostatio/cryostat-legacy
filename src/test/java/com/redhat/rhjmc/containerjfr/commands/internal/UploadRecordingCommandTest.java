@@ -142,6 +142,39 @@ class UploadRecordingCommandTest {
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
+    @Test
+    void shouldNotValidateArgListsWithNull1() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {MOCK_TARGET_ID, null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull2() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null, MOCK_RECORDING_NAME}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull3() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null, null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
     @ParameterizedTest
     @ValueSource(
             strings = {

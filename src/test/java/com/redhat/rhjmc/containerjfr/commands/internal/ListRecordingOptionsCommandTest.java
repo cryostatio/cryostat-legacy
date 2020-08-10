@@ -116,6 +116,17 @@ class ListRecordingOptionsCommandTest implements ValidatesTargetId {
     }
 
     @Test
+    void shouldNotValidateNullArg() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void shouldPrintRecordingOptions() throws Exception {
         IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
         when(descriptor.toString()).thenReturn("foo-option-toString");

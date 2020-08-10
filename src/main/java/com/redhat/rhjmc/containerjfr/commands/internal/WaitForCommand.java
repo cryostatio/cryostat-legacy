@@ -147,6 +147,14 @@ class WaitForCommand extends AbstractConnectedCommand {
             throw new FailedValidationException(errorMessage);
         }
 
+        for (String arg : args) {
+            if (arg == null) {
+                String errorMessage = "One or more arguments were null";
+                cw.println(errorMessage);
+                throw new FailedValidationException(errorMessage);
+            }
+        }
+
         String targetID = args[0];
         String recordingName = args[1];
         StringJoiner combinedErrorMessage = new StringJoiner("; ");

@@ -114,6 +114,15 @@ class DeleteSavedRecordingCommand implements SerializableCommand {
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
+
+        for (String arg : args) {
+            if (arg == null) {
+                String errorMessage = "One or more arguments were null";
+                cw.println(errorMessage);
+                throw new FailedValidationException(errorMessage);
+            }
+        }
+
         if (!validateRecordingName(args[0])) {
             String errorMessage = String.format("%s is an invalid recording name", args[0]);
             cw.println(errorMessage);

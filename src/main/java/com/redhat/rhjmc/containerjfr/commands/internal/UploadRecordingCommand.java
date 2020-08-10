@@ -221,6 +221,14 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
             throw new FailedValidationException(errorMessage);
         }
 
+        for (String arg : args) {
+            if (arg == null) {
+                String errorMessage = "One or more arguments were null";
+                cw.println(errorMessage);
+                throw new FailedValidationException(errorMessage);
+            }
+        }
+
         String targetId = args[0];
         String recordingName = args[1];
         String datasourceUrl = env.getEnv(GRAFANA_DATASOURCE_ENV);

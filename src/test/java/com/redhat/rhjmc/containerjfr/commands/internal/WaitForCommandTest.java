@@ -106,13 +106,46 @@ class WaitForCommandTest extends TestBase implements ValidatesRecordingName, Val
     }
 
     @ParameterizedTest
-    @ValueSource(ints = {0, 3})
+    @ValueSource(ints = {0, 1, 3})
     void shouldNotValidateIncorrectArgc(int argc) {
         Exception e =
                 assertThrows(
                         FailedValidationException.class, () -> command.validate(new String[argc]));
         String errorMessage =
                 "Expected two arguments: target (host:port, ip:port, or JMX service URL) and recording name";
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull1() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {MOCK_TARGET_ID, null}));
+        String errorMessage = "One or more arguments were null";
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull2() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null, MOCK_RECORDING_NAME}));
+        String errorMessage = "One or more arguments were null";
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull3() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null, null}));
+        String errorMessage = "One or more arguments were null";
         MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }

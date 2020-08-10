@@ -118,6 +118,17 @@ class ListEventTypesCommandTest implements ValidatesTargetId {
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
+    @Test
+    void shouldNotValidateNullArg() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
     @SuppressWarnings("unchecked")
     @Test
     void shouldPrintEventTypes() throws Exception {

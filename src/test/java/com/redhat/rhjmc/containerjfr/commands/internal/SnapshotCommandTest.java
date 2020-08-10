@@ -125,6 +125,17 @@ class SnapshotCommandTest implements ValidatesTargetId {
     }
 
     @Test
+    void shouldNotValidateNullArg() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void shouldRenameAndExportSnapshot() throws Exception {
         IRecordingDescriptor snapshot = mock(IRecordingDescriptor.class);
         when(targetConnectionManager.executeConnectedTask(

@@ -129,6 +129,97 @@ class StartRecordingCommandTest
     }
 
     @Test
+    void shouldNotValidateArgListsWithNull1() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null, null, null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull2() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                command.validate(
+                                        new String[] {null, null, MOCK_RECORDING_EVENT_SPECIFIER}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull3() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null, MOCK_RECORDING_NAME, null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull4() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                command.validate(
+                                        new String[] {
+                                            null,
+                                            MOCK_RECORDING_NAME,
+                                            MOCK_RECORDING_EVENT_SPECIFIER
+                                        }));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull5() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {MOCK_TARGET_ID, null, null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull6() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                command.validate(
+                                        new String[] {
+                                            MOCK_TARGET_ID, null, MOCK_RECORDING_EVENT_SPECIFIER
+                                        }));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
+    void shouldNotValidateArgListsWithNull7() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () ->
+                                command.validate(
+                                        new String[] {MOCK_TARGET_ID, MOCK_RECORDING_NAME, null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void shouldNotValidateInvalidTargetIdAndRecordingName() {
         Exception e =
                 assertThrows(
