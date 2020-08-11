@@ -348,10 +348,6 @@
               <file>${containerjfr.entrypoint}</file>
               <mode>755</mode>
             </permission>
-            <permission>
-              <file>/app/resources/jmxremote.access</file>
-              <mode>644</mode>
-            </permission>
           </permissions>
         </extraDirectories>
       </configuration>
