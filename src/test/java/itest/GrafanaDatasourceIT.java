@@ -59,7 +59,8 @@ public class GrafanaDatasourceIT extends ITestBase {
         req = webClient.get("/api/v1/grafana_datasource_url");
     }
 
-    // Disabled for now due to conflict with UploadRecordingIT; see #229
+    // Disabled for now due to conflict with UploadRecordingIT;
+    // See https://github.com/rh-jmc-team/container-jfr/pull/229
     // @Test
     public void shouldFail() throws Exception {
         CompletableFuture<Integer> future = new CompletableFuture<>();
