@@ -5,7 +5,7 @@ set -e
 
 USRFILE="/tmp/jmxremote.access"
 PWFILE="/tmp/jmxremote.password"
-function createJmxPassword() {
+function createJmxCredentials() {
     if [ -z "$CONTAINER_JFR_RJMX_USER" ]; then
         CONTAINER_JFR_RJMX_USER="containerjfr"
     fi
@@ -38,7 +38,7 @@ fi
 
 if [ "$CONTAINER_JFR_RJMX_AUTH" = "true" ] || [ -n "$CONTAINER_JFR_RJMX_USER" ] || 
     [ -n "$CONTAINER_JFR_RJMX_PASS" ]; then
-    createJmxPassword
+    createJmxCredentials
 
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
     FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
