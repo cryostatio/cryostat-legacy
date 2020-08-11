@@ -189,6 +189,7 @@ class UploadRecordingCommand extends AbstractConnectedCommand implements Seriali
         try {
             webClient
                     .postAbs(datasourceUrl)
+                    .timeout(10_000L)
                     .sendMultipartForm(
                             form,
                             uploadHandler -> {

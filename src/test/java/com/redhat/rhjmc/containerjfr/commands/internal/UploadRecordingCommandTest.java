@@ -430,6 +430,7 @@ class UploadRecordingCommandTest {
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
             Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.doAnswer(
                             new Answer<Void>() {
                                 @Override
@@ -477,6 +478,7 @@ class UploadRecordingCommandTest {
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
             Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.doAnswer(
                             new Answer<Void>() {
                                 @Override
@@ -526,6 +528,7 @@ class UploadRecordingCommandTest {
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
             Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.doAnswer(
                             new Answer<Void>() {
                                 @Override
@@ -597,6 +600,7 @@ class UploadRecordingCommandTest {
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
             Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.doAnswer(
                             new Answer<Void>() {
                                 @Override
@@ -652,6 +656,7 @@ class UploadRecordingCommandTest {
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
             Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.doAnswer(
                             new Answer<Void>() {
                                 @Override
@@ -704,6 +709,7 @@ class UploadRecordingCommandTest {
             HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
             HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
             Mockito.when(webClient.postAbs(Mockito.anyString())).thenReturn(req);
+            Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
             Mockito.doAnswer(
                             new Answer<Void>() {
                                 @Override

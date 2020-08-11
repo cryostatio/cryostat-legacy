@@ -41,38 +41,40 @@
  */
 package itest;
 
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpRequest;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
+import io.vertx.core.json.JsonObject;
 
-public class GrafanaDatasourceIT extends ITestBase {
+public class UploadRecordingIT extends ITestBase {
 
-    HttpRequest<Buffer> req;
+    static final String TARGET_ID = "localhost";
+    static final String RECORDING_NAME = "upload_recording_it_rec";
 
-    @BeforeEach
-    void createRequest() {
-        req = webClient.get("/api/v1/grafana_datasource_url");
+    @BeforeAll
+    public static void createRecording() throws Exception {
+        JsonObject resp =
+                sendMessage("dump", TARGET_ID, RECORDING_NAME, "5", "template=ALL")
+                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
-    // Disabled for now due to conflict with UploadRecordingIT;
-    // See https://github.com/rh-jmc-team/container-jfr/pull/229
-    // @Test
-    public void shouldFail() throws Exception {
-        CompletableFuture<Integer> future = new CompletableFuture<>();
-        req.send(
-                ar -> {
-                    if (ar.succeeded()) {
-                        future.complete(ar.result().statusCode());
-                    } else {
-                        future.completeExceptionally(ar.cause());
-                    }
-                });
-        MatcherAssert.assertThat(
-                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(500));
+    @AfterAll
+    public static void deleteRecording() throws Exception {
+        JsonObject resp =
+                sendMessage("delete", TARGET_ID, RECORDING_NAME)
+                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    /* Since no other integration test currently tests upload-recording,
+     * GRAFANA_DATASOURCE_URL is just set to an invalid URL, so that we can do this test.
+     */
+    @Test
+    public void shouldHandleBadDatasourceUrl() throws Exception {
+        JsonObject resp =
+                sendMessage("upload-recording", TARGET_ID, RECORDING_NAME)
+                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        assertResponseStatus(resp, -2);
     }
 }
