@@ -152,6 +152,12 @@ class DumpCommand extends AbstractRecordingCommand implements SerializableComman
             throw new FailedValidationException(errorMessage);
         }
 
+        if (!validateNoNullArgs(args)) {
+            String errorMessage = "One or more arguments were null";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
+        }
+
         String targetId = args[0];
         String name = args[1];
         String seconds = args[2];

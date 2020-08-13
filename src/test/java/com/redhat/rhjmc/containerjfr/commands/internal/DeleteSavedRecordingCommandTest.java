@@ -107,6 +107,17 @@ class DeleteSavedRecordingCommandTest implements ValidatesRecordingName {
         MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
     }
 
+    @Test
+    void shouldNotValidateNullArg() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
     @ParameterizedTest
     @ValueSource(ints = {1, 8, 52, 110})
     void shouldValidateRenamedRecording(int suffix) {

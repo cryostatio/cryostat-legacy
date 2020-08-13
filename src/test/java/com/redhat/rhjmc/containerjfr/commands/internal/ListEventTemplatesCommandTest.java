@@ -111,6 +111,16 @@ class ListEventTemplatesCommandTest implements ValidatesTargetId {
     }
 
     @Test
+    void shouldNotValidateNullArg() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class, () -> cmd.validate(new String[] {null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void executeShouldPrintListOfTemplateNames() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(

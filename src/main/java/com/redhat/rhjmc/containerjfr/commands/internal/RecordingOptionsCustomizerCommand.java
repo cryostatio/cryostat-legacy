@@ -111,6 +111,13 @@ class RecordingOptionsCustomizerCommand implements SerializableCommand {
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
+
+        if (!validateNoNullArgs(args)) {
+            String errorMessage = "One or more arguments were null";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
+        }
+
         String options = args[0];
 
         Matcher optionsMatcher = OPTIONS_PATTERN.matcher(options);

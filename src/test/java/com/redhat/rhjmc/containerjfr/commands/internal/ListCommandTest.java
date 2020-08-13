@@ -129,6 +129,17 @@ class ListCommandTest implements ValidatesTargetId {
     }
 
     @Test
+    void shouldNotValidateNullArg() {
+        Exception e =
+                Assertions.assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null}));
+        String errorMessage = "One or more arguments were null";
+        Mockito.verify(cw).println(errorMessage);
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void shouldHandleNoRecordings() throws Exception {
         when(targetConnectionManager.executeConnectedTask(
                         Mockito.any(ConnectionDescriptor.class), Mockito.any()))

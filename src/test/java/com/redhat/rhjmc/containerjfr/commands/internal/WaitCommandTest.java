@@ -91,6 +91,17 @@ class WaitCommandTest extends TestBase {
     }
 
     @Test
+    void shouldNotValidateNullArg() {
+        Exception e =
+                assertThrows(
+                        FailedValidationException.class,
+                        () -> command.validate(new String[] {null}));
+        String errorMessage = "One or more arguments were null";
+        MatcherAssert.assertThat(stdout(), Matchers.equalTo(errorMessage + '\n'));
+        MatcherAssert.assertThat(e.getMessage(), Matchers.equalTo(errorMessage));
+    }
+
+    @Test
     void shouldExpectIntegerFormattedArg() {
         Exception e =
                 assertThrows(

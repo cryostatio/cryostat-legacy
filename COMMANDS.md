@@ -61,7 +61,7 @@ formatted as a JSON response.
     Prints the Hostname of the client container.
     ###### see also
     * [`ip`](#ip)
-    * [`url](#url)
+    * [`url`](#url)
 
 * #### `url`
     ###### usage
