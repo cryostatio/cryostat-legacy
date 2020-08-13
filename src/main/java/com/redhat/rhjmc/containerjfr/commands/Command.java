@@ -73,4 +73,13 @@ public interface Command {
     default boolean validateRecordingName(String name) {
         return name.matches("[\\w-_]+(\\.\\d+)?(\\.jfr)?");
     }
+
+    default boolean validateNoNullArgs(String[] args) {
+        for (String arg : args) {
+            if (arg == null) {
+                return false;
+            }
+        }
+        return true;
+    }
 }

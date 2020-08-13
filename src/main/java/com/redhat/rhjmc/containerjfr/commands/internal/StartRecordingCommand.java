@@ -148,12 +148,10 @@ class StartRecordingCommand extends AbstractRecordingCommand implements Serializ
             throw new FailedValidationException(errorMessage);
         }
 
-        for (String arg : args) {
-            if (arg == null) {
-                String errorMessage = "One or more arguments were null";
-                cw.println(errorMessage);
-                throw new FailedValidationException(errorMessage);
-            }
+        if (!validateNoNullArgs(args)) {
+            String errorMessage = "One or more arguments were null";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         String targetId = args[0];

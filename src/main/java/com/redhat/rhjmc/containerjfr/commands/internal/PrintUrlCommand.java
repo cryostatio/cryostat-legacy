@@ -86,13 +86,6 @@ class PrintUrlCommand implements SerializableCommand {
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
-        for (String arg : args) {
-            if (arg == null) {
-                String errorMessage = "One or more arguments were null";
-                cw.println(errorMessage);
-                throw new FailedValidationException(errorMessage);
-            }
-        }
     }
 
     @Override

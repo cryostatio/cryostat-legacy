@@ -135,12 +135,10 @@ class DeleteCommand extends AbstractConnectedCommand implements SerializableComm
             throw new FailedValidationException(errorMessage);
         }
 
-        for (String arg : args) {
-            if (arg == null) {
-                String errorMessage = "One or more arguments were null";
-                cw.println(errorMessage);
-                throw new FailedValidationException(errorMessage);
-            }
+        if (!validateNoNullArgs(args)) {
+            String errorMessage = "One or more arguments were null";
+            cw.println(errorMessage);
+            throw new FailedValidationException(errorMessage);
         }
 
         StringJoiner combinedErrorMessage = new StringJoiner("; ");
