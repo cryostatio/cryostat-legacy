@@ -140,7 +140,7 @@ class CorsEnablingHandlerTest {
                             HttpHeaders.ACCESS_CONTROL_EXPOSE_HEADERS,
                             WebServer.AUTH_SCHEME_HEADER
                                     + ","
-                                    + AbstractAuthenticatedRequestHandler.JMX_AUTH_HEADER);
+                                    + AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER);
             Mockito.verifyNoMoreInteractions(res);
             Mockito.verify(ctx).next();
         }

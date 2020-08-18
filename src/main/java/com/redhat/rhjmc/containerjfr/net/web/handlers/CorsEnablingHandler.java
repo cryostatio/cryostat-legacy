@@ -62,7 +62,7 @@ class CorsEnablingHandler implements RequestHandler {
         this.corsHandler =
                 CorsHandler.create(getOrigin())
                         .allowedHeader("Authorization")
-                        .allowedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTH_HEADER)
+                        .allowedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)
                         .allowedMethod(HttpMethod.GET)
                         .allowedMethod(HttpMethod.POST)
                         .allowedMethod(HttpMethod.PATCH)
@@ -71,7 +71,7 @@ class CorsEnablingHandler implements RequestHandler {
                         .allowedMethod(HttpMethod.DELETE)
                         .allowCredentials(true)
                         .exposedHeader(WebServer.AUTH_SCHEME_HEADER)
-                        .exposedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTH_HEADER);
+                        .exposedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER);
     }
 
     @Override
