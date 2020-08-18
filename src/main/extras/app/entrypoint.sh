@@ -23,15 +23,15 @@ function createJmxCredentials() {
     chmod 400 "$USRFILE"
 }
 
-SSL_KEYSTORE="/tmp/keystore.jks"
+SSL_KEYSTORE="/tmp/keystore"
 SSL_KEY_PASS="$(genpass)"
 SSL_STORE_PASS="$SSL_KEY_PASS"
-SSL_TRUSTSTORE="/tmp/cacerts"
-# SSL_TRUSTSTORE_PASS="$(genpass)"
+SSL_TRUSTSTORE="/tmp/truststore"
+SSL_TRUSTSTORE_PASS="$(genpass)"
 function createSslStores() {
     pushd /tmp
 
-    keytool -genkeypair \
+    keytool -genkeypair -v \
         -alias container-jfr \
         -dname "cn=container-jfr, o=Red Hat, c=US" \
         -validity 180 \
@@ -40,15 +40,18 @@ function createSslStores() {
         -storepass "$SSL_STORE_PASS" \
         -keystore "$SSL_KEYSTORE"
 
-    keytool -exportcert \
+    keytool -exportcert -v \
         -alias container-jfr \
         -keystore "$SSL_KEYSTORE" \
         -storepass "$SSL_STORE_PASS" \
         -file server.cer
 
-    cp /usr/lib/jvm/java-11-openjdk/lib/security/cacerts "$SSL_TRUSTSTORE"
-    chown jboss:root "$SSL_TRUSTSTORE"
-    chmod 640 "$SSL_TRUSTSTORE"
+    keytool -importkeystore -v \
+        -noprompt \
+        -srckeystore /usr/lib/jvm/java-11-openjdk/lib/security/cacerts \
+        -srcstorepass changeit \
+        -destkeystore "$SSL_TRUSTSTORE" \
+        -deststorepass "$SSL_TRUSTSTORE_PASS"
 
     keytool -importcert -v \
         -noprompt \
@@ -56,7 +59,7 @@ function createSslStores() {
         -keystore "$SSL_TRUSTSTORE" \
         -alias selftrust \
         -file server.cer \
-        -storepass changeit
+        -storepass "$SSL_TRUSTSTORE_PASS"
 
     popd
 }
@@ -95,7 +98,7 @@ if [ "$CONTAINER_JFR_RJMX_AUTH" = "true" ] || [ -n "$CONTAINER_JFR_RJMX_USER" ] 
     FLAGS+=("-Djavax.net.ssl.keyStore=$SSL_KEYSTORE")
     FLAGS+=("-Djavax.net.ssl.keyStorePassword=$SSL_KEY_PASS")
     FLAGS+=("-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE")
-    FLAGS+=("-Djavax.net.ssl.trustStorePassword=changeit")
+    FLAGS+=("-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS")
 else
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
