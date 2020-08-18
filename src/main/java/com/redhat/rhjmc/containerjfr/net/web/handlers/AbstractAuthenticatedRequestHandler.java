@@ -105,10 +105,12 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
             String proxyAuth = ctx.request().getHeader(JMX_AUTHORIZATION_HEADER);
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
             if (!m.find()) {
+                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                 throw new HttpStatusException(407, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
             } else {
                 String t = m.group("type");
                 if (!"basic".equals(t.toLowerCase())) {
+                    ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                     throw new HttpStatusException(407, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
                 } else {
                     String c;
@@ -118,6 +120,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                                         Base64.getDecoder().decode(m.group("credentials")),
                                         StandardCharsets.UTF_8);
                     } catch (IllegalArgumentException iae) {
+                        ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new HttpStatusException(
                                 407,
                                 JMX_AUTHORIZATION_HEADER + " credentials do not appear to be Base64-encoded",
@@ -125,6 +128,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                     }
                     String[] parts = c.split(":");
                     if (parts.length != 2) {
+                        ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new HttpStatusException(
                                 407, "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
                     }

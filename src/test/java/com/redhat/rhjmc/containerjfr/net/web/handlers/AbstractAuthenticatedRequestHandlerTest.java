@@ -76,6 +76,7 @@ class AbstractAuthenticatedRequestHandlerTest {
     RequestHandler handler;
     @Mock RoutingContext ctx;
     @Mock AuthManager auth;
+    @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
@@ -138,7 +139,6 @@ class AbstractAuthenticatedRequestHandlerTest {
             expectedException.initCause(cause);
             handler = new ThrowingAuthenticatedHandler(auth, expectedException);
 
-            HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
 
             HttpStatusException ex =
@@ -193,9 +193,10 @@ class AbstractAuthenticatedRequestHandlerTest {
                     "",
                     "credentialsWithoutAuthType",
                 })
-        void shouldThrow400WithMalformedAuthorizationHeader(String authHeader) {
+        void shouldThrow407WithMalformedAuthorizationHeader(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
             Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
@@ -203,7 +204,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
             HttpStatusException ex =
                     Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(407));
             MatcherAssert.assertThat(
                     ex.getPayload(), Matchers.equalTo("Invalid X-JMX-Authorization format"));
         }
@@ -214,9 +215,10 @@ class AbstractAuthenticatedRequestHandlerTest {
                     "Type credentials",
                     "Bearer credentials",
                 })
-        void shouldThrow400WithBadAuthorizationType(String authHeader) {
+        void shouldThrow407WithBadAuthorizationType(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
             Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
@@ -224,7 +226,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
             HttpStatusException ex =
                     Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(407));
             MatcherAssert.assertThat(
                     ex.getPayload(), Matchers.equalTo("Unacceptable X-JMX-Authorization type"));
         }
@@ -235,9 +237,10 @@ class AbstractAuthenticatedRequestHandlerTest {
                     "Basic bm9zZXBhcmF0b3I=", // credential value of "noseparator"
                     "Basic b25lOnR3bzp0aHJlZQ==", // credential value of "one:two:three"
                 })
-        void shouldThrow400WithBadCredentialFormat(String authHeader) {
+        void shouldThrow407WithBadCredentialFormat(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
             Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
@@ -245,7 +248,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
             HttpStatusException ex =
                     Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(407));
             MatcherAssert.assertThat(
                     ex.getPayload(),
                     Matchers.equalTo("Unrecognized X-JMX-Authorization credential format"));
@@ -256,9 +259,10 @@ class AbstractAuthenticatedRequestHandlerTest {
                 strings = {
                     "Basic foo:bar",
                 })
-        void shouldThrow400WithUnencodedCredentials(String authHeader) {
+        void shouldThrow407WithUnencodedCredentials(String authHeader) {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+            Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
             Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
@@ -266,7 +270,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
             HttpStatusException ex =
                     Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(407));
             MatcherAssert.assertThat(
                     ex.getPayload(),
                     Matchers.equalTo(
