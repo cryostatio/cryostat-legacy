@@ -58,7 +58,7 @@ if [ ! -d "$PWD/truststore" ]; then
     mkdir "$PWD/truststore"
 fi
 
-if ! podman pod exists cjfr; then
+if ! podman pod exists container-jfr; then
     podman pod create --hostname container-jfr --name container-jfr --publish $CONTAINER_JFR_EXT_WEB_PORT
 fi
 
