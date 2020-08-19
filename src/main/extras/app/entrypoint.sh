@@ -74,15 +74,15 @@ function importTrustStores() {
         return 0
     fi
 
-    for store in "$(find $DIR -type f)"; do
-        echo "Importing trust store $store ..."
+    for cert in "$(find $DIR -type f)"; do
+        echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
             -noprompt \
-            -alias "imported-$(basename $store)" \
+            -alias "imported-$(basename $cert)" \
             -trustcacerts \
             -keystore "$SSL_TRUSTSTORE" \
-            -file "$store"\
+            -file "$cert"\
             -storepass "$SSL_TRUSTSTORE_PASS"
     done
 }
