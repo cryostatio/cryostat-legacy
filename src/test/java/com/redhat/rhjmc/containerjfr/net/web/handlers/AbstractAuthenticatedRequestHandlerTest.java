@@ -197,9 +197,13 @@ class AbstractAuthenticatedRequestHandlerTest {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            headers.contains(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            req.getHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             HttpStatusException ex =
@@ -219,9 +223,13 @@ class AbstractAuthenticatedRequestHandlerTest {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            headers.contains(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            req.getHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             HttpStatusException ex =
@@ -241,9 +249,13 @@ class AbstractAuthenticatedRequestHandlerTest {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            headers.contains(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            req.getHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             HttpStatusException ex =
@@ -263,9 +275,13 @@ class AbstractAuthenticatedRequestHandlerTest {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
             Mockito.when(ctx.response()).thenReturn(resp);
-            Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            headers.contains(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            req.getHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             HttpStatusException ex =
@@ -281,9 +297,13 @@ class AbstractAuthenticatedRequestHandlerTest {
         void shouldIncludeCredentialsFromAppropriateHeader() {
             String targetId = "fooTarget";
             Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
-            Mockito.when(headers.contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            headers.contains(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(req.getHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(
+                            req.getHeader(
+                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn("Basic Zm9vOmJhcg==");
 
             Assertions.assertDoesNotThrow(() -> handler.handle(ctx));
