@@ -46,7 +46,7 @@ function createSslStores() {
         -storepass "$SSL_STORE_PASS" \
         -file server.cer
 
-    keytool -importkeystore -v \
+    keytool -importkeystore \
         -noprompt \
         -srckeystore /usr/lib/jvm/java-11-openjdk/lib/security/cacerts \
         -srcstorepass changeit \
@@ -62,6 +62,29 @@ function createSslStores() {
         -storepass "$SSL_TRUSTSTORE_PASS"
 
     popd
+}
+
+function importTrustStores() {
+    local DIR="/truststore"
+    if [ ! -d "$DIR" ]; then
+        echo "$DIR does not exist; no certificates to import"
+        return 0
+    elif [ ! "$(ls -A $DIR)" ]; then
+        echo "$DIR is empty; no certificates to import"
+        return 0
+    fi
+
+    for store in "$(find $DIR -type f)"; do
+        echo "Importing trust store $store ..."
+
+        keytool -importcert -v \
+            -noprompt \
+            -alias "imported-$(basename $store)" \
+            -trustcacerts \
+            -keystore "$SSL_TRUSTSTORE" \
+            -file "$store"\
+            -storepass "$SSL_TRUSTSTORE_PASS"
+    done
 }
 
 if [ -z "$CONTAINER_JFR_RJMX_PORT" ]; then
@@ -88,6 +111,7 @@ if [ "$CONTAINER_JFR_RJMX_AUTH" = "true" ] || [ -n "$CONTAINER_JFR_RJMX_USER" ] 
     [ -n "$CONTAINER_JFR_RJMX_PASS" ]; then
     createJmxCredentials
     createSslStores
+    importTrustStores
 
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
     FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")

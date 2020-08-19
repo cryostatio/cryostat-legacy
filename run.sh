@@ -62,6 +62,7 @@ podman run \
     --pod container-jfr \
     --mount type=tmpfs,target=/flightrecordings \
     --mount type=tmpfs,target=/templates \
+    --mount type=tmpfs,target=/truststore \
     -p $CONTAINER_JFR_RJMX_PORT:$CONTAINER_JFR_RJMX_PORT \
     -p $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
     -p $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
