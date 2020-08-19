@@ -4,10 +4,8 @@ set -x
 set -e
 
 function runContainerJFR() {
-    DIR="$(dirname "$(readlink -f "$0")")"
-    export GRAFANA_DATASOURCE_URL="http://0.0.0.0:8080"
-    export GRAFANA_DASHBOARD_URL="http://0.0.0.0:3000"
-    sh "$DIR/run.sh"
+    local DIR="$(dirname "$(readlink -f "$0")")"
+    GRAFANA_DATASOURCE_URL="http://0.0.0.0:8080" GRAFANA_DASHBOARD_URL="http://0.0.0.0:3000" sh "$DIR/run.sh"
 }
 
 function runDemoApp() {
@@ -28,10 +26,10 @@ function runJfrDatasource() {
 }
 
 function configureGrafanaDatasource() {
-    while ! curl http://0.0.0.0:3000/api/health; do
+    while ! curl "http://0.0.0.0:3000/api/health"; do
         sleep 5
     done
-    TEMP="$(mktemp -d)"
+    local TEMP="$(mktemp -d)"
     pushd "$TEMP"
 
     echo "{" > datasource.json
@@ -43,15 +41,15 @@ function configureGrafanaDatasource() {
     echo '"isDefault":true' >> datasource.json
     echo "}" >> datasource.json
 
-    curl -X POST -H "Content-Type: application/json" http://admin:admin@0.0.0.0:3000/api/datasources -T - < datasource.json
+    curl -X POST -H "Content-Type: application/json" "http://admin:admin@0.0.0.0:3000/api/datasources" -T - < datasource.json
     popd
 }
 
 function configureGrafanaDashboard() {
-    while ! curl http://0.0.0.0:3000/api/health; do
+    while ! curl "http://0.0.0.0:3000/api/health"; do
         sleep 5
     done
-    TEMP="$(mktemp -d)"
+    local TEMP="$(mktemp -d)"
     pushd "$TEMP"
     echo '{"overwrite":false,"dashboard":' > dashboard.json
     curl https://raw.githubusercontent.com/rh-jmc-team/jfr-datasource/master/dashboards/dashboard.json >> dashboard.json
