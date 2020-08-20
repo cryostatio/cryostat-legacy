@@ -74,7 +74,8 @@ function importTrustStores() {
         return 0
     fi
 
-    for cert in "$(find $DIR -type f)"; do
+    pushd "$DIR"
+    for cert in `ls -1`; do
         echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
@@ -85,6 +86,7 @@ function importTrustStores() {
             -file "$cert"\
             -storepass "$SSL_TRUSTSTORE_PASS"
     done
+    popd
 }
 
 if [ -z "$CONTAINER_JFR_RJMX_PORT" ]; then
