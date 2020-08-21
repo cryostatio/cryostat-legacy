@@ -14,7 +14,7 @@ function runDemoApp() {
         -p 8080:8081 \
         -p 9093:9093 \
         --pod container-jfr \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.2.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.4.0
 }
 
 function runJfrDatasource() {
