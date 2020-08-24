@@ -251,6 +251,22 @@
           </configuration>
         </execution>
         <execution>
+          <id>wait-for-container</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>timeout</executable>
+            <arguments>
+              <argument>5m</argument>
+              <argument>sh</argument>
+              <argument>-c</argument>
+              <argument>until curl -sSk http://0.0.0.0:${containerjfr.itest.webPort}/health; do sleep 10; done</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
           <id>stop-container</id>
           <phase>post-integration-test</phase>
           <goals>
