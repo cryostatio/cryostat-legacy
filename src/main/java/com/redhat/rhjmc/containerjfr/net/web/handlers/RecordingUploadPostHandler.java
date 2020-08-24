@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import static com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier.isSuccessCode;
+
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.InvalidPathException;
@@ -108,6 +110,15 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             URL uploadUrl = new URL(env.getEnv("GRAFANA_DATASOURCE_URL"));
             // TODO validate URL before POST attempt
             ResponseMessage response = doPost(recordingName, uploadUrl);
+            if (!isSuccessCode(response.statusCode)
+                    || response.statusMessage == null
+                    || response.body == null) {
+                throw new HttpStatusException(
+                        502,
+                        String.format(
+                                "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: %d %s",
+                                response.statusCode, response.statusMessage));
+            }
             ctx.response().setStatusCode(response.statusCode);
             ctx.response().setStatusMessage(response.statusMessage);
             ctx.response().end(response.body);
