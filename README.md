@@ -63,7 +63,13 @@ Container JFR in a separate terminal using
 be found by running `curl localhost:8181/api/v1/clienturl`. Once you are
 connected, you can issue commands by entering them into the websocat client in
 JSON form. For example, `{command:ping}` or
-`{command:dump,args:[localhost,foo,10,"template=Continuous"]}`.
+`{command:dump,args:[localhost,foo,10,"template=Continuous"]}`. See
+[COMMANDS.md](COMMANDS.md) for a description of the Command Channel API. `curl`
+or a similar tool may also be used to interact with ContainerJFR via its HTTP(S)
+API.
+
+`smoketest.sh` builds upon `run.sh` and also deploys Grafana, jfr-datasource,
+and vertx-fib-demo as a sample app alongside ContainerJFR.
 
 There are six network-related environment variables that the client checks
 during its runtime:
@@ -120,13 +126,10 @@ value, the webserver uses a single buffer when serving recording download
 requests. Enabling this option leaves a constant memory size footprint, but
 might also reduce the network throughput.
 
-The environment variable `CONTAINER_JFR_CORS_ORIGIN` can be used to specify 
-the origin for CORS. This can be used in development to load a different 
+The environment variable `CONTAINER_JFR_CORS_ORIGIN` can be used to specify
+the origin for CORS. This can be used in development to load a different
 instance of the web-client. See [container-jfr-web](https://github.com/rh-jmc-team/container-jfr-web)
 for details.
-
-For an overview of the available commands and their functionalities, see
-[this document](COMMANDS.md).
 
 ## MONITORING APPLICATIONS
 In order for `container-jfr` to be able to monitor JVM application targets the
@@ -152,7 +155,7 @@ environment variable will cause the discovery of a target at address
 Finally, if no supported platform is detected, then `container-jfr` will fall
 back to the JDP (Java Discovery Protocol) mechanism. This relies on target JVMs
 being configured with the JVM flags to enable JDP and requires the targets to
-be reachable and in the same subject as `container-jfr`. JDP can be enabled by
+be reachable and in the same subnet as `container-jfr`. JDP can be enabled by
 passing the flag `"-Dcom.sun.management.jmxremote.autodiscovery=true"` when
 starting target JVMs; for more configuration options, see
 [this document](https://docs.oracle.com/javase/10/management/java-discovery-protocol.htm)
@@ -160,20 +163,17 @@ starting target JVMs; for more configuration options, see
 discover their JMX Service URLs, which includes the RJMX port number for that
 specific target.
 
-To enable RJMX on port 9091, the following JVM flags should be passed at target
+To enable RJMX on port 9091, the following JVM flag should be passed at target
 startup:
 
 ```
     '-Dcom.sun.management.jmxremote.port=9091',
-    '-Dcom.sun.management.jmxremote.ssl=false',
-    '-Dcom.sun.management.jmxremote.authenticate=false'
 ```
 
 The port number 9091 is arbitrary and may be configured to suit individual
 deployments, so long as the two `port` properties above match the desired port
 number and the deployment network configuration allows connections on the
-configured port. As noted above, the final caveat is that in non-Kube
-deployments, port 9091 is expected for automatic port-scanning target discovery.
+configured port.
 
 ## EVENT TEMPLATES
 
@@ -191,23 +191,22 @@ then used to create recordings.
 taking the contents of a recording at a point in time and saving these contents
 to a file local to the `container-jfr` process (as opposed to "active"
 recordings, which exist within the memory of the JVM target and continue to grow
-over time). The default directory used is `/flightrecordings`, but the environment
-variable `CONTAINER_JFR_ARCHIVE_PATH` can be used to specify a different path. To
-enable `container-jfr` archive support ensure that the directory specified by
-`CONTAINER_JFR_ARCHIVE_PATH` (or `/flightrecordings` if not set) exists and has
-appropriate permissions. `container-jfr` will detect the path and enable related
-functionality. `run.sh` has an example of a `tmpfs` volume being mounted with the
-default path and enabling the archive functionality.
+over time). The default directory used is `/flightrecordings`, but the
+environment variable `CONTAINER_JFR_ARCHIVE_PATH` can be used to specify a
+different path. To enable `container-jfr` archive support ensure that the
+directory specified by `CONTAINER_JFR_ARCHIVE_PATH` (or `/flightrecordings` if
+not set) exists and has appropriate permissions. `container-jfr` will detect the
+path and enable related functionality. `run.sh` has an example of a `tmpfs`
+volume being mounted with the default path and enabling the archive
+functionality.
 
 ## SECURING COMMUNICATION CHANNELS
-`container-jfr` can be optionally configured to secure HTTP and WebSocket
-traffics end-to-end with SSL/TLS.
 
-This feature can be enabled by configuring environment variables to points to
-a certificate in the file system. One can set `KEYSTORE_PATH` to point to a
-`.jks`, `.pfx` or `.p12` certificate file *and* `KEYSTORE_PASS` to the plaintext
-password to such a keystore. Alternatively, one can  set `KEY_PATH` to a PEM
-encoded key file *and* `CERT_PATH` to a PEM encoded certificate file.
+To specify the SSL certificate for HTTPS/WSS, one can set `KEYSTORE_PATH` to
+point to a `.jks`, `.pfx` or `.p12` certificate file *and* `KEYSTORE_PASS` to
+the plaintext password to such a keystore. Alternatively, one can  set
+`KEY_PATH` to a PEM encoded key file *and* `CERT_PATH` to a PEM encoded
+certificate file.
 
 In the absence of these environment variables, `container-jfr` will look for a
 certificate at following locations, in an orderly fashion:
@@ -217,13 +216,17 @@ certificate at following locations, in an orderly fashion:
 - `$HOME/container-jfr-keystore.p12` (used together with `KEYSTORE_PASS`)
 - `$HOME/container-jfr-key.pem` and `$HOME/container-jfr-cert.pem`
 
-If no certificate can be found, `container-jfr` will fallback to plain
-unencrypted `http://` and `ws://` connections.
+If no certificate can be found, `container-jfr` will use its autogenerated
+self-signed certificate which it uses internally to secure its JMX connections.
+
+If HTTPS/WSS SSL must be disabled then the environment variable
+`CONTAINER_JFR_DISABLE_HTTPS` can be set to a non-empty value.
 
 In case `container-jfr` is deployed behind an SSL proxy, set the environment
 variable `CONTAINER_JFR_SSL_PROXIED` to a non-empty value. This informs
 `container-jfr` that the URLs it reports pointing back to itself should use
-the secure variants of protocols.
+the secure variants of protocols, even though it itself does not encrypt the
+traffic.
 
 If the certificate used for SSL-enabled Grafana/jfr-datasource connections is
 self-signed or otherwise untrusted, set the environment variable
@@ -275,7 +278,7 @@ calls and simply accepts any provided token or credentials.
 
 ## INCOMING JMX CONNECTION AUTHENTICATION
 
-JMX connections into `container-jfr` are secured using the default username `"containerjfr"` 
-and a randomly generated password.
-The environment variables `CONTAINER_JFR_RJMX_USER` and `CONTAINER_JFR_RJMX_PASS` can be 
-used to override the default username and specify a password.
+JMX connections into `container-jfr` are secured using the default username
+`"containerjfr"` and a randomly generated password.  The environment variables
+`CONTAINER_JFR_RJMX_USER` and `CONTAINER_JFR_RJMX_PASS` can be used to override
+the default username and specify a password.
