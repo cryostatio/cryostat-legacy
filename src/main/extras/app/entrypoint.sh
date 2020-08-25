@@ -119,6 +119,11 @@ if [ -z "$CONTAINER_JFR_RJMX_AUTH" ]; then
     CONTAINER_JFR_RJMX_AUTH=true
 fi
 
+if [ -z "$CONTAINER_JFR_DISABLE_HTTPS" ]; then
+    KEYSTORE_PATH="$SSL_KEYSTORE"
+    KEYSTORE_PASS="$SSL_KEY_PASS"
+fi
+
 createSslStores
 importTrustStores
 generateSslCert
@@ -138,8 +143,8 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
 fi
 
-KEYSTORE_PATH="$SSL_KEYSTORE" \
-    KEYSTORE_PASS="$SSL_KEY_PASS" \
+KEYSTORE_PATH="$KEYSTORE_PATH" \
+    KEYSTORE_PASS="$KEYSTORE_PASS" \
     java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
