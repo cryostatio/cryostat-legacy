@@ -23,16 +23,17 @@ function createJmxCredentials() {
     chmod 400 "$USRFILE"
 }
 
-SSL_KEYSTORE="/tmp/keystore"
+SSL_KEYSTORE="/tmp/keystore.p12"
 SSL_KEY_PASS="$(genpass)"
 SSL_STORE_PASS="$SSL_KEY_PASS"
-SSL_TRUSTSTORE="/tmp/truststore"
+SSL_TRUSTSTORE="/tmp/truststore.p12"
 SSL_TRUSTSTORE_PASS="$(genpass)"
 function createSslStores() {
     pushd /tmp
 
     keytool -importkeystore \
         -noprompt \
+        -storetype PKCS12 \
         -srckeystore /usr/lib/jvm/java-11-openjdk/lib/security/cacerts \
         -srcstorepass changeit \
         -destkeystore "$SSL_TRUSTSTORE" \
@@ -70,6 +71,7 @@ function generateSslCert() {
     keytool -genkeypair -v \
         -alias container-jfr \
         -dname "cn=container-jfr, o=Red Hat, c=US" \
+        -storetype PKCS12 \
         -validity 180 \
         -keyalg RSA \
         -keypass "$SSL_KEY_PASS" \
@@ -136,7 +138,9 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
 fi
 
-java \
+KEYSTORE_PATH="$SSL_KEYSTORE" \
+    KEYSTORE_PASS="$SSL_KEY_PASS" \
+    java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
     com.redhat.rhjmc.containerjfr.ContainerJfr \
