@@ -110,37 +110,34 @@ FLAGS=(
     "-Dcom.sun.management.jmxremote.rmi.port=$CONTAINER_JFR_RMI_PORT"
     "-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE"
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
-    "-Djavax.net.ssl.keyStore=$SSL_KEYSTORE"
-    "-Djavax.net.ssl.keyStorePassword=$SSL_KEY_PASS"
 )
-
-if [ -z "$CONTAINER_JFR_RJMX_AUTH" ]; then
-    # default to true. This should never be disabled in production deployments
-    CONTAINER_JFR_RJMX_AUTH=true
-fi
-
-if [ -z "$CONTAINER_JFR_DISABLE_HTTPS" ]; then
-    KEYSTORE_PATH="$SSL_KEYSTORE"
-    KEYSTORE_PASS="$SSL_KEY_PASS"
-fi
 
 createSslStores
 importTrustStores
-generateSslCert
-if [ "$CONTAINER_JFR_RJMX_AUTH" = "true" ] || [ -n "$CONTAINER_JFR_RJMX_USER" ] ||
-    [ -n "$CONTAINER_JFR_RJMX_PASS" ]; then
-    createJmxCredentials
 
-    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
-    FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
-else
+if [ "$CONTAINER_JFR_FORCE_INSECURE" = "true" ] && [ -z "$CONTAINER_JFR_RJMX_USER" ] && [ -z "$CONTAINER_JFR_RJMX_PASS" ]; then
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
+else
+    createJmxCredentials
+
+    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
+    FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
+    FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
+
+    if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
+        generateSslCert
+
+        KEYSTORE_PATH="$SSL_KEYSTORE"
+        KEYSTORE_PASS="$SSL_KEY_PASS"
+    fi
+
+    FLAGS+=("-Djavax.net.ssl.keyStore=$SSL_KEYSTORE")
+    FLAGS+=("-Djavax.net.ssl.keyStorePassword=$SSL_KEY_PASS")
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=true")
+    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
 
 KEYSTORE_PATH="$KEYSTORE_PATH" \
