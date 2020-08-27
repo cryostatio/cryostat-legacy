@@ -2,6 +2,14 @@
 
 set -e
 
+function banner() {
+    echo "+------------------------------------------+"
+    printf "| %-40s |\n" "`date`"
+    echo "|                                          |"
+    printf "| %-40s |\n" "$@"
+    echo "+------------------------------------------+"
+}
+
 function genpass() {
     echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
 }
@@ -44,10 +52,10 @@ function createSslStores() {
 function importTrustStores() {
     local DIR="/truststore"
     if [ ! -d "$DIR" ]; then
-        echo "$DIR does not exist; no certificates to import"
+        banner "$DIR does not exist; no certificates to import"
         return 0
     elif [ ! "$(ls -A $DIR)" ]; then
-        echo "$DIR is empty; no certificates to import"
+        banner "$DIR is empty; no certificates to import"
         return 0
     fi
 
@@ -115,6 +123,7 @@ createSslStores
 importTrustStores
 
 if [ "$CONTAINER_JFR_FORCE_INSECURE" = "true" ] && [ -z "$CONTAINER_JFR_RJMX_USER" ] && [ -z "$CONTAINER_JFR_RJMX_PASS" ]; then
+    banner "SSL Disabled"
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
@@ -128,6 +137,7 @@ else
 
     if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
         generateSslCert
+        banner "Using self-signed SSL certificate"
 
         KEYSTORE_PATH="$SSL_KEYSTORE"
         KEYSTORE_PASS="$SSL_KEY_PASS"
