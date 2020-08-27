@@ -48,6 +48,7 @@ import java.util.concurrent.CompletableFuture;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.http.HttpServerRequest;
@@ -59,17 +60,14 @@ public class HttpServer {
     private final SslConfiguration sslConf;
     private final Logger logger;
 
-    private final Vertx vertx;
     private final HandlerDelegate<HttpServerRequest> requestHandlerDelegate =
             new HandlerDelegate<>();
     private final HandlerDelegate<ServerWebSocket> websocketHandlerDelegate =
             new HandlerDelegate<>();
 
     private final io.vertx.core.http.HttpServer server;
-    private volatile boolean isAlive;
 
     HttpServer(Vertx vertx, NetworkConfiguration netConf, SslConfiguration sslConf, Logger logger) {
-        this.vertx = vertx;
         this.netConf = netConf;
         this.sslConf = sslConf;
         this.logger = logger;
@@ -87,41 +85,35 @@ public class HttpServer {
         }
     }
 
-    public void start() throws SocketException, UnknownHostException {
-        if (isAlive()) {
-            return;
-        }
-
-        CompletableFuture<Void> future = new CompletableFuture<>();
+    public void start(Promise<Void> promise) throws SocketException, UnknownHostException {
         this.server
                 .requestHandler(requestHandlerDelegate)
                 .webSocketHandler(websocketHandlerDelegate)
                 .listen(
                         res -> {
                             if (res.failed()) {
-                                future.completeExceptionally(res.cause());
+                                logger.error(new RuntimeException(res.cause()));
+                                promise.fail(res.cause());
                                 return;
                             }
-                            future.complete(null);
+                            try {
+                                logger.info(
+                                        String.format(
+                                            "%s service running on %s://%s:%d",
+                                            isSsl() ? "HTTPS" : "HTTP",
+                                            isSsl() ? "https" : "http",
+                                            netConf.getWebServerHost(),
+                                            netConf.getExternalWebServerPort()));
+                            } catch (Exception e) {
+                                logger.error(e);
+                                promise.fail(e);
+                                return;
+                            }
+                            promise.complete();
                         });
-
-        future.join(); // wait for async deployment to complete
-
-        logger.info(
-                String.format(
-                        "%s service running on %s://%s:%d",
-                        isSsl() ? "HTTPS" : "HTTP",
-                        isSsl() ? "https" : "http",
-                        netConf.getWebServerHost(),
-                        netConf.getExternalWebServerPort()));
-        this.isAlive = true;
     }
 
     public void stop() {
-        if (!isAlive()) {
-            return;
-        }
-
         CompletableFuture<Void> future = new CompletableFuture<>();
         this.server.close(
                 res -> {
@@ -133,7 +125,6 @@ public class HttpServer {
                     future.complete(null);
                 });
         future.join(); // wait for vertx to be closed
-        this.isAlive = false;
     }
 
     public boolean isSsl() {
@@ -146,14 +137,6 @@ public class HttpServer {
 
     public void websocketHandler(Handler<ServerWebSocket> handler) {
         websocketHandlerDelegate.handler(handler);
-    }
-
-    public boolean isAlive() {
-        return isAlive;
-    }
-
-    public Vertx getVertx() {
-        return vertx;
     }
 
     private static class HandlerDelegate<T> implements Handler<T> {

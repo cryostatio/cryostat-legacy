@@ -76,6 +76,8 @@ import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
@@ -87,6 +89,7 @@ public class WebServer {
     // Use X- prefix so as to not trigger web-browser auth dialogs
     public static final String AUTH_SCHEME_HEADER = "X-WWW-Authenticate";
 
+    private final Vertx vertx;
     private final HttpServer server;
     private final NetworkConfiguration netConf;
     private final List<RequestHandler> requestHandlers;
@@ -95,12 +98,14 @@ public class WebServer {
     private final Logger logger;
 
     WebServer(
+            Vertx vertx,
             HttpServer server,
             NetworkConfiguration netConf,
             Set<RequestHandler> requestHandlers,
             Gson gson,
             AuthManager auth,
             Logger logger) {
+        this.vertx = vertx;
         this.server = server;
         this.netConf = netConf;
         this.requestHandlers = new ArrayList<>(requestHandlers);
@@ -110,9 +115,8 @@ public class WebServer {
         this.logger = logger;
     }
 
-    public void start() throws FlightRecorderException, SocketException, UnknownHostException {
-        Router router =
-                Router.router(server.getVertx()); // a vertx is only available after server started
+    public void start(Promise<Void> promise) throws FlightRecorderException, SocketException, UnknownHostException {
+        Router router = Router.router(vertx);
 
         // error page handler
         Handler<RoutingContext> failureHandler =
@@ -187,6 +191,16 @@ public class WebServer {
 
         this.server.requestHandler(
                 req -> {
+                    logger.info(req.method() + " " + req.absoluteURI());
+                    if (server.isSsl() && !req.isSSL()) {
+                        req.response()
+                                .setStatusCode(301)
+                                .putHeader(
+                                        HttpHeaders.LOCATION,
+                                        req.absoluteURI().replace("http", "https"))
+                                .end();
+                        return;
+                    }
                     Instant start = Instant.now();
                     req.response()
                             .endHandler(
@@ -202,6 +216,8 @@ public class WebServer {
                                                                     .toMillis())));
                     router.handle(req);
                 });
+
+        promise.complete();
     }
 
     public void stop() {

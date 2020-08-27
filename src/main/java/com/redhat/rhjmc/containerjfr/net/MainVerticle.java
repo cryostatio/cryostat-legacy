@@ -39,56 +39,63 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
-
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import com.google.gson.Gson;
+package com.redhat.rhjmc.containerjfr.net;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.tui.ws.MessagingServer;
 
-import dagger.Module;
-import dagger.Provides;
-import io.vertx.core.Vertx;
+import io.vertx.core.AbstractVerticle;
+import io.vertx.core.CompositeFuture;
+import io.vertx.core.Promise;
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+public class MainVerticle extends AbstractVerticle {
 
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            Vertx vertx,
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(vertx, httpServer, netConf, requestHandlers, gson, authManager, logger);
+    private final HttpServer http;
+    private final WebServer web;
+    private final MessagingServer messaging;
+    private final Logger logger;
+
+    MainVerticle(HttpServer http, WebServer web, MessagingServer messaging, Logger logger) {
+        logger.info("MainVerticle created");
+        this.http = http;
+        this.web = web;
+        this.messaging = messaging;
+        this.logger = logger;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
+    @Override
+    public void start(Promise<Void> promise) {
+        logger.info("MainVerticle starting");
+        Promise<Void> httpPromise = Promise.promise();
+        Promise<Void> webPromise = Promise.promise();
+        Promise<Void> messagingPromise = Promise.promise();
         try {
-            return Files.createTempDirectory("container-jfr").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
+            this.http.start(httpPromise);
+            this.web.start(webPromise);
+            this.messaging.start(messagingPromise);
+        } catch (Exception e) {
+            logger.error(e);
+            promise.fail(e);
+            return;
         }
+        CompositeFuture.all(httpPromise.future(), webPromise.future(), messagingPromise.future())
+            .onSuccess(ar -> {
+                promise.complete();
+                logger.info("MainVerticle started");
+            })
+            .onFailure(ar -> {
+                promise.fail(ar.getCause());
+                logger.info("MainVertice failed");
+            });
     }
+
+    @Override
+    public void stop() {
+        logger.info("MainVerticle stopped");
+        this.messaging.stop();
+        this.web.stop();
+        this.http.stop();
+    }
+
 }

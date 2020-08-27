@@ -89,6 +89,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
     RecordingsPostHandler(
+            Vertx vertx,
             AuthManager auth,
             HttpServer httpServer,
             FileSystem fs,
@@ -96,7 +97,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             Gson gson,
             Logger logger) {
         super(auth);
-        this.vertx = httpServer.getVertx();
+        this.vertx = vertx;
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
         this.gson = gson;

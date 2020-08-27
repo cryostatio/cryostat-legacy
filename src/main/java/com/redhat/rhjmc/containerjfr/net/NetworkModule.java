@@ -52,6 +52,8 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.tui.ws.MessagingServer;
 
 import dagger.Binds;
 import dagger.Lazy;
@@ -64,6 +66,13 @@ import io.vertx.ext.web.client.WebClientOptions;
 
 @Module(includes = {ReportsModule.class})
 public abstract class NetworkModule {
+
+    @Provides
+    @Singleton
+    static MainVerticle provideMainVerticle(HttpServer http, WebServer web, MessagingServer
+            messaging, Logger logger) {
+        return new MainVerticle(http, web, messaging, logger);
+    }
 
     @Provides
     @Singleton

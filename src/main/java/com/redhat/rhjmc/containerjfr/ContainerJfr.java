@@ -46,18 +46,17 @@ import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.MainVerticle;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
-import com.redhat.rhjmc.containerjfr.tui.ws.MessagingServer;
+
+import org.apache.commons.lang3.StringUtils;
 
 import dagger.BindsInstance;
 import dagger.Component;
+import io.vertx.core.Vertx;
 
 class ContainerJfr {
 
@@ -91,7 +90,6 @@ class ContainerJfr {
 
         final ExecutionMode mode;
         final String clientArgs;
-        final int port;
         if (args.length == 0 || args[0].equals("-w")) {
             mode = ExecutionMode.WEBSOCKET;
             clientArgs = null;
@@ -108,9 +106,7 @@ class ContainerJfr {
 
         Client client = DaggerContainerJfr_Client.builder().mode(mode).build();
 
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
+        client.vertx().deployVerticle(client.mainVerticle());
 
         client.commandExecutor().run(clientArgs);
     }
@@ -120,11 +116,9 @@ class ContainerJfr {
     interface Client {
         CommandExecutor commandExecutor();
 
-        HttpServer httpServer();
+        Vertx vertx();
 
-        WebServer webServer();
-
-        MessagingServer messagingServer();
+        MainVerticle mainVerticle();
 
         @Component.Builder
         interface Builder {
