@@ -220,7 +220,8 @@ If no certificate can be found, `container-jfr` will autogenerate a self-signed
 certificate and use it to secure HTTPS/WSS and JMX connections.
 
 If HTTPS/WSS (SSL) and JMX auth credentials must be disabled then the
-environment variable `CONTAINER_JFR_FORCE_INSECURE=true` can be set.
+environment variables `CONTAINER_JFR_DISABLE_SSL=true` and/or
+`CONTAINER_JFR_DISABLE_JMX_AUTH=true` can be set.
 
 In case `container-jfr` is deployed behind an SSL proxy, set the environment
 variable `CONTAINER_JFR_SSL_PROXIED` to a non-empty value. This informs

@@ -225,7 +225,9 @@
               <argument>--publish</argument>
               <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_FORCE_INSECURE=true</argument>
+              <argument>CONTAINER_JFR_DISABLE_JMX_AUTH=true</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_DISABLE_SSL=true</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
               <argument>--env</argument>

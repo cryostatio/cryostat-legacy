@@ -122,18 +122,22 @@ FLAGS=(
 createSslStores
 importTrustStores
 
-if [ "$CONTAINER_JFR_FORCE_INSECURE" = "true" ] && [ -z "$CONTAINER_JFR_RJMX_USER" ] && [ -z "$CONTAINER_JFR_RJMX_PASS" ]; then
-    banner "SSL Disabled"
+if [ "$CONTAINER_JFR_DISABLE_JMX_AUTH" = "true" ]; then
+    banner "JMX Auth Disabled"
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
+else
+    createJmxCredentials
+    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
+    FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
+    FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
+fi
+
+if [ "$CONTAINER_JFR_DISABLE_SSL" = "true" ]; then
+    banner "SSL Disabled"
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
 else
-    createJmxCredentials
-
-    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
-    FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
 
     if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
         generateSslCert
