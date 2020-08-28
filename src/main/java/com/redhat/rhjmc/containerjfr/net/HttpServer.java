@@ -75,7 +75,7 @@ public class HttpServer {
                 vertx.createHttpServer(
                         sslConf.applyToHttpServerOptions(
                                 new HttpServerOptions()
-                                        .setPort(netConf.getInternalWebServerPort())
+                                        .setPort(netConf.getInternalWebServerPrimaryPort())
                                         .addWebSocketSubProtocol("*")
                                         .setCompressionSupported(true)
                                         .setLogActivity(true)));
@@ -103,7 +103,7 @@ public class HttpServer {
                                                 isSsl() ? "HTTPS" : "HTTP",
                                                 isSsl() ? "https" : "http",
                                                 netConf.getWebServerHost(),
-                                                netConf.getExternalWebServerPort()));
+                                                netConf.getExternalWebServerPrimaryPort()));
                             } catch (Exception e) {
                                 logger.error(e);
                                 promise.fail(e);

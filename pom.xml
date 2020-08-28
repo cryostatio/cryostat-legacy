@@ -26,9 +26,11 @@
   <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
   <containerjfr.entrypoint>/app/entrypoint.sh</containerjfr.entrypoint>
   <containerjfr.rjmxPort>9091</containerjfr.rjmxPort>
-  <containerjfr.webPort>8181</containerjfr.webPort>
+  <containerjfr.webPrimaryPort>8443</containerjfr.webPrimaryPort>
+  <containerjfr.webSecondaryPort>8181</containerjfr.webSecondaryPort>
   <containerjfr.listenPort>9090</containerjfr.listenPort>
-  <containerjfr.itest.webPort>8181</containerjfr.itest.webPort>
+  <containerjfr.itest.webPrimaryPort>8443</containerjfr.itest.webPrimaryPort>
+  <containerjfr.itest.webSecondaryPort>8181</containerjfr.itest.webSecondaryPort>
 
   <org.apache.maven.plugins.compiler.version>3.6.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>3.0.0-M4</org.apache.maven.plugins.surefire.version>
@@ -226,7 +228,9 @@
               <argument>--publish</argument>
               <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
               <argument>--publish</argument>
-              <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
+              <argument>${containerjfr.itest.webPrimaryPort}:${containerjfr.itest.webPrimaryPort}</argument>
+              <argument>--publish</argument>
+              <argument>${containerjfr.itest.webSecondaryPort}:${containerjfr.itest.webSecondaryPort}</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -240,9 +244,13 @@
               <argument>--env</argument>
               <argument>CONTAINER_JFR_RJMX_PORT=9091</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>CONTAINER_JFR_WEB_PRIMARY_PORT=${containerjfr.itest.webPrimaryPort}</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>CONTAINER_JFR_EXT_WEB_PRIMARY_PORT=${containerjfr.itest.webPrimaryPort}</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_WEB_SECONDARY_PORT=${containerjfr.itest.webSecondaryPort}</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_EXT_WEB_SECONDARY_PORT=${containerjfr.itest.webSecondaryPort}</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_ARCHIVE_PATH=/flightrecordings</argument>
               <argument>--env</argument>
@@ -267,7 +275,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk http://0.0.0.0:${containerjfr.itest.webPort}/health; do sleep 10; done</argument>
+              <argument>until curl -sSk http://0.0.0.0:${containerjfr.itest.webPrimaryPort}/health; do sleep 10; done</argument>
             </arguments>
           </configuration>
         </execution>
@@ -316,7 +324,8 @@
       </executions>
       <configuration>
         <systemPropertyVariables>
-          <containerJfrWebPort>${containerjfr.itest.webPort}</containerJfrWebPort>
+          <containerJfrWebPrimaryPort>${containerjfr.itest.webPrimaryPort}</containerJfrWebPrimaryPort>
+          <containerJfrWebSecondaryPort>${containerjfr.itest.webSecondaryPort}</containerJfrWebSecondaryPort>
         </systemPropertyVariables>
       </configuration>
     </plugin>
@@ -352,8 +361,8 @@
             <arg>-w</arg>
           </args>
           <ports>
-            <port>${containerjfr.webPort}</port>
-            <port>9999</port>
+            <port>${containerjfr.webPrimaryPort}</port>
+            <port>${containerjfr.webSecondaryPort}</port>
             <port>${containerjfr.listenPort}</port>
             <port>${containerjfr.rjmxPort}</port>
           </ports>

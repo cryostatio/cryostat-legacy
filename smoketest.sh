@@ -77,16 +77,18 @@ if ! podman pod exists container-jfr; then
         --name container-jfr \
         --publish 9091 \
         --publish 8181 \
+        --publish 8443 \
         --publish 8080 \
-        --publish 3000 \
         --publish 8081 \
-        --publish 9093
+        --publish 9093 \
+        --publish 3000
     # 9091: ContainerJFR RJMX
     # 8181: ContainerJFR web services
+    # 8443: ContainerJFR web services (SSL/TLS)
     # 8080: jfr-datasource
-    # 3000: grafana
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo RJMX
+    # 3000: grafana
 fi
 
 runDemoApp

@@ -70,7 +70,7 @@ class NetworkConfigurationTest {
 
     @Test
     void testDefaultWebServerPort() {
-        MatcherAssert.assertThat(conf.getDefaultWebServerPort(), Matchers.equalTo(8181));
+        MatcherAssert.assertThat(conf.getDefaultWebServerPrimaryPort(), Matchers.equalTo(8443));
     }
 
     @Test
@@ -102,22 +102,53 @@ class NetworkConfigurationTest {
     }
 
     @Test
-    void shouldReportInternalWebServerPort() {
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_WEB_PORT"), Mockito.anyString()))
+    void shouldReportInternalWebServerPrimaryPort() {
+        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_WEB_PRIMARY_PORT"), Mockito.anyString()))
                 .thenReturn("1234");
-        MatcherAssert.assertThat(conf.getInternalWebServerPort(), Matchers.equalTo(1234));
-        Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_PORT", "8181");
+        MatcherAssert.assertThat(conf.getInternalWebServerPrimaryPort(), Matchers.equalTo(1234));
+        Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_PRIMARY_PORT", "8443");
     }
 
     @Test
-    void shouldReportExternalWebServerPort() {
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_WEB_PORT"), Mockito.anyString()))
+    void shouldReportExternalWebServerPrimaryPort() {
+        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_WEB_PRIMARY_PORT"), Mockito.anyString()))
                 .thenReturn("8282");
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_EXT_WEB_PORT"), Mockito.anyString()))
+        Mockito.when(
+                        env.getEnv(
+                                Mockito.eq("CONTAINER_JFR_EXT_WEB_PRIMARY_PORT"),
+                                Mockito.anyString()))
                 .thenReturn("1234");
-        MatcherAssert.assertThat(conf.getExternalWebServerPort(), Matchers.equalTo(1234));
-        Mockito.verify(env).getEnv("CONTAINER_JFR_EXT_WEB_PORT", "8282");
-        Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_PORT", "8181");
+        MatcherAssert.assertThat(conf.getExternalWebServerPrimaryPort(), Matchers.equalTo(1234));
+        Mockito.verify(env).getEnv("CONTAINER_JFR_EXT_WEB_PRIMARY_PORT", "8282");
+        Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_PRIMARY_PORT", "8443");
+    }
+
+    @Test
+    void shouldReportInternalWebServerSecondaryPort() {
+        Mockito.when(
+                        env.getEnv(
+                                Mockito.eq("CONTAINER_JFR_WEB_SECONDARY_PORT"),
+                                Mockito.anyString()))
+                .thenReturn("1234");
+        MatcherAssert.assertThat(conf.getInternalWebServerSecondaryPort(), Matchers.equalTo(1234));
+        Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_SECONDARY_PORT", "8181");
+    }
+
+    @Test
+    void shouldReportExternalWebServerSecondaryPort() {
+        Mockito.when(
+                        env.getEnv(
+                                Mockito.eq("CONTAINER_JFR_WEB_SECONDARY_PORT"),
+                                Mockito.anyString()))
+                .thenReturn("8282");
+        Mockito.when(
+                        env.getEnv(
+                                Mockito.eq("CONTAINER_JFR_EXT_WEB_SECONDARY_PORT"),
+                                Mockito.anyString()))
+                .thenReturn("1234");
+        MatcherAssert.assertThat(conf.getExternalWebServerSecondaryPort(), Matchers.equalTo(1234));
+        Mockito.verify(env).getEnv("CONTAINER_JFR_EXT_WEB_SECONDARY_PORT", "8282");
+        Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_SECONDARY_PORT", "8181");
     }
 
     @Test

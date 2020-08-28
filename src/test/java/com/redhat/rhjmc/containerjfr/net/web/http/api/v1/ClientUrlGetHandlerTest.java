@@ -110,7 +110,7 @@ class ClientUrlGetHandlerTest {
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
             when(netConf.getWebServerHost()).thenReturn("hostname");
-            when(netConf.getExternalWebServerPort()).thenReturn(1);
+            when(netConf.getExternalWebServerPrimaryPort()).thenReturn(1);
 
             handler.handle(ctx);
 
@@ -151,7 +151,7 @@ class ClientUrlGetHandlerTest {
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
             when(netConf.getWebServerHost()).thenReturn("hostname");
-            when(netConf.getExternalWebServerPort()).thenReturn(1);
+            when(netConf.getExternalWebServerPrimaryPort()).thenReturn(1);
 
             handler.handle(ctx);
 

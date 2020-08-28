@@ -74,7 +74,7 @@ JFR Client, running alone but set up so that it is able to introspect itself
 with JFR. This can be achieved by running `sh run.sh` and connecting to
 Container JFR in a separate terminal using
 [websocat](https://github.com/vi/websocat). The WebSocket URL to connect to can
-be found by running `curl localhost:8181/api/v1/clienturl`. Once you are
+be found by running `curl -vkL localhost:8181/api/v1/clienturl`. Once you are
 connected, you can issue commands by entering them into the websocat client in
 JSON form. For example, `{command:ping}` or
 `{command:dump,args:[localhost,foo,10,"template=Continuous"]}`. See
@@ -85,20 +85,21 @@ API. See [HTTP_API.md](HTTP_API.md).
 `smoketest.sh` builds upon `run.sh` and also deploys Grafana, jfr-datasource,
 and vertx-fib-demo as a sample app alongside ContainerJFR.
 
-There are six network-related environment variables that the client checks
+There are eight network-related environment variables that the client checks
 during its runtime:
-`CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
-`CONTAINER_JFR_EXT_WEB_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
-`CONTAINER_JFR_LISTEN_PORT`, `CONTAINER_JFR_EXT_LISTEN_PORT`, and
-`CONTAINER_JFR_LOG_LEVEL`.
+`CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PRIMARY_PORT`,
+`CONTAINER_JFR_WEB_SECONDARY_PORT`, `CONTAINER_JFR_EXT_WEB_SECONDARY_PORT`,
+`CONTAINER_JFR_EXT_WEB_PRIMARY_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
+`CONTAINER_JFR_LISTEN_PORT`, and `CONTAINER_JFR_EXT_LISTEN_PORT`.
 The former three are used by the embedded webserver
 for controlling the port and hostname used and reported when making recordings
 available for export (download). The latter three are used when running the
 client in daemon/socket mode and controls the port that the client listens for
 connections on and which port is reported should be used for connecting to the
 command channel socket. (Note: the WebSocket server always listens on
-`CONTAINER_JFR_WEB_PORT` and advertises `CONTAINER_JFR_EXT_WEB_PORT` regardless
-of `CONTAINER_JFR_LISTEN_PORT` and `CONTAINER_JFR_EXT_LISTEN_PORT`.) These may
+`CONTAINER_JFR_WEB_PRIMARY_PORT`/`CONTAINER_JFR_WEB_SECONDARY_PORT` and
+advertises `CONTAINER_JFR_EXT_WEB_PRIMARY_PORT` regardless of
+`CONTAINER_JFR_LISTEN_PORT` and `CONTAINER_JFR_EXT_LISTEN_PORT`.) These may
 be set by setting the environment variable before invoking the `run.sh` shell
 script, or if this script is not used, by using the `-e` environment variable
 flag in the `docker` or `podman` command invocation. If the `EXT` variables are

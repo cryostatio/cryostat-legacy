@@ -78,8 +78,7 @@ public class RedirectorVerticle extends AbstractVerticle {
                 getVertx()
                         .createHttpServer(
                                 new HttpServerOptions()
-                                        // FIXME this must be configurable
-                                        .setPort(9999)
+                                        .setPort(netConf.getInternalWebServerSecondaryPort())
                                         .setLogActivity(true))
                         .requestHandler(
                                 r -> {
@@ -93,7 +92,9 @@ public class RedirectorVerticle extends AbstractVerticle {
                                         URI mapped =
                                                 new URIBuilder(r.absoluteURI())
                                                         .setScheme("https")
-                                                        .setPort(netConf.getExternalWebServerPort())
+                                                        .setPort(
+                                                                netConf
+                                                                        .getExternalWebServerPrimaryPort())
                                                         .build();
                                         r.response()
                                                 .setStatusCode(HttpStatus.SC_MOVED_PERMANENTLY)

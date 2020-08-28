@@ -87,19 +87,40 @@ public class NetworkConfiguration {
         return env.getEnv("CONTAINER_JFR_WEB_HOST", resolver.getHostAddress());
     }
 
-    public int getDefaultWebServerPort() {
+    public int getDefaultWebServerPrimaryPort() {
+        return 8443;
+    }
+
+    public int getInternalWebServerPrimaryPort() {
+        return Integer.parseInt(
+                env.getEnv(
+                        "CONTAINER_JFR_WEB_PRIMARY_PORT",
+                        String.valueOf(getDefaultWebServerPrimaryPort())));
+    }
+
+    public int getExternalWebServerPrimaryPort() {
+        return Integer.parseInt(
+                env.getEnv(
+                        "CONTAINER_JFR_EXT_WEB_PRIMARY_PORT",
+                        String.valueOf(getInternalWebServerPrimaryPort())));
+    }
+
+    public int getDefaultWebServerSecondaryPort() {
         return 8181;
     }
 
-    public int getInternalWebServerPort() {
-        return Integer.parseInt(
-                env.getEnv("CONTAINER_JFR_WEB_PORT", String.valueOf(getDefaultWebServerPort())));
-    }
-
-    public int getExternalWebServerPort() {
+    public int getInternalWebServerSecondaryPort() {
         return Integer.parseInt(
                 env.getEnv(
-                        "CONTAINER_JFR_EXT_WEB_PORT", String.valueOf(getInternalWebServerPort())));
+                        "CONTAINER_JFR_WEB_SECONDARY_PORT",
+                        String.valueOf(getDefaultWebServerSecondaryPort())));
+    }
+
+    public int getExternalWebServerSecondaryPort() {
+        return Integer.parseInt(
+                env.getEnv(
+                        "CONTAINER_JFR_EXT_WEB_SECONDARY_PORT",
+                        String.valueOf(getInternalWebServerSecondaryPort())));
     }
 
     public boolean isSslProxied() {

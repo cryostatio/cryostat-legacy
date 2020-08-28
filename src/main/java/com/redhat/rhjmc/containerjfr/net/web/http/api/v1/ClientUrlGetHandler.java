@@ -99,7 +99,7 @@ class ClientUrlGetHandler implements RequestHandler {
                             "%s://%s:%d/api/v1/command",
                             isSsl ? "wss" : "ws",
                             netConf.getWebServerHost(),
-                            netConf.getExternalWebServerPort());
+                            netConf.getExternalWebServerPrimaryPort());
             ctx.response().end(gson.toJson(Map.of("clientUrl", clientUrl)));
         } catch (SocketException | UnknownHostException e) {
             throw new HttpStatusException(500, e);
