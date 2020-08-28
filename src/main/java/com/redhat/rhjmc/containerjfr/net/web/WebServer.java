@@ -192,16 +192,6 @@ public class WebServer {
 
         this.server.requestHandler(
                 req -> {
-                    logger.info(req.method() + " " + req.absoluteURI());
-                    if (server.isSsl() && !req.isSSL()) {
-                        req.response()
-                                .setStatusCode(301)
-                                .putHeader(
-                                        HttpHeaders.LOCATION,
-                                        req.absoluteURI().replace("http", "https"))
-                                .end();
-                        return;
-                    }
                     Instant start = Instant.now();
                     req.response()
                             .endHandler(
