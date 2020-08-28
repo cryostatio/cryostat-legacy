@@ -275,7 +275,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk http://0.0.0.0:${containerjfr.itest.webPrimaryPort}/health; do sleep 10; done</argument>
+              <argument>until curl -sSk http://0.0.0.0:${containerjfr.itest.webSecondaryPort}/health; do sleep 10; done</argument>
             </arguments>
           </configuration>
         </execution>

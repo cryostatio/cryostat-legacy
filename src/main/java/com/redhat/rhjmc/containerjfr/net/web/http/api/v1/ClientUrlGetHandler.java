@@ -41,16 +41,22 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
+import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.util.Map;
 
 import javax.inject.Inject;
+import javax.inject.Provider;
 
+import org.apache.http.client.utils.URIBuilder;
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.SslConfiguration;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
@@ -63,14 +69,18 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class ClientUrlGetHandler implements RequestHandler {
 
     private final Gson gson;
+    private final Provider<WebServer> serverProvider;
     private final boolean isSsl;
-    private final NetworkConfiguration netConf;
 
     @Inject
-    ClientUrlGetHandler(Gson gson, HttpServer server, NetworkConfiguration netConf) {
+    ClientUrlGetHandler(
+            Gson gson,
+            Provider<WebServer> serverProvider,
+            SslConfiguration sslConf,
+            Logger logger) {
         this.gson = gson;
-        this.isSsl = server.isSsl();
-        this.netConf = netConf;
+        this.serverProvider = serverProvider;
+        this.isSsl = sslConf.enabled();
     }
 
     @Override
@@ -92,16 +102,17 @@ class ClientUrlGetHandler implements RequestHandler {
     public void handle(RoutingContext ctx) {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         try {
-            // TODO replace String.format with URIBuilder or something else than manual string
-            // construction
-            String clientUrl =
-                    String.format(
-                            "%s://%s:%d/api/v1/command",
-                            isSsl ? "wss" : "ws",
-                            netConf.getWebServerHost(),
-                            netConf.getExternalWebServerPrimaryPort());
+            URI clientUrl =
+                    new URIBuilder(serverProvider.get().getHostUrl().toURI())
+                            .setScheme(isSsl ? "wss" : "ws")
+                            .setPath("/api/v1/command")
+                            .build();
             ctx.response().end(gson.toJson(Map.of("clientUrl", clientUrl)));
-        } catch (SocketException | UnknownHostException e) {
+        } catch (SocketException
+                | UnknownHostException
+                | URISyntaxException
+                | MalformedURLException e) {
+            e.printStackTrace();
             throw new HttpStatusException(500, e);
         }
     }

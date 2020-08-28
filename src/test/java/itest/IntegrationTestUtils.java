@@ -62,7 +62,7 @@ public class IntegrationTestUtils {
     public static final int WEB_PORT;
 
     static {
-        WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebPrimaryPort"));
+        WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebSecondaryPort"));
     }
 
     static final HttpClientOptions HTTP_CLIENT_OPTIONS;

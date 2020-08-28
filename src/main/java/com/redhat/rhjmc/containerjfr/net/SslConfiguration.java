@@ -53,7 +53,7 @@ import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
 
-class SslConfiguration {
+public class SslConfiguration {
     private final Environment env;
     private final FileSystem fs;
 
@@ -185,7 +185,7 @@ class SslConfiguration {
         return strategy.applyToHttpServerOptions(options);
     }
 
-    boolean enabled() {
+    public boolean enabled() {
         return strategy.enabled();
     }
 

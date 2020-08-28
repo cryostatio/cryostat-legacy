@@ -114,7 +114,7 @@ class WebServerTest {
     @Test
     void shouldUseConfiguredHost() throws Exception {
         int defaultPort = 1234;
-        when(netConf.getExternalWebServerPrimaryPort()).thenReturn(defaultPort);
+        when(netConf.getExternalWebServerSecondaryPort()).thenReturn(defaultPort);
         when(netConf.getWebServerHost()).thenReturn("foo");
         when(httpServer.isSsl()).thenReturn(false);
 
@@ -136,11 +136,22 @@ class WebServerTest {
     @Test
     void shouldUseConfiguredPort() throws Exception {
         int defaultPort = 1234;
-        when(netConf.getExternalWebServerPrimaryPort()).thenReturn(defaultPort);
+        when(netConf.getExternalWebServerSecondaryPort()).thenReturn(defaultPort);
         when(netConf.getWebServerHost()).thenReturn("foo");
 
         MatcherAssert.assertThat(
                 exporter.getHostUrl(), Matchers.equalTo(new URL("http", "foo", 1234, "")));
+    }
+
+    @Test
+    void shouldUseConfiguredPortWithSsl() throws Exception {
+        int defaultPort = 1234;
+        when(netConf.getExternalWebServerPrimaryPort()).thenReturn(defaultPort);
+        when(netConf.getWebServerHost()).thenReturn("foo");
+        when(httpServer.isSsl()).thenReturn(true);
+
+        MatcherAssert.assertThat(
+                exporter.getHostUrl(), Matchers.equalTo(new URL("https", "foo", 1234, "")));
     }
 
     @ParameterizedTest()
@@ -150,11 +161,11 @@ class WebServerTest {
             throws UnknownHostException, MalformedURLException, SocketException,
                     URISyntaxException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
-        when(netConf.getExternalWebServerPrimaryPort()).thenReturn(8443);
+        when(netConf.getExternalWebServerSecondaryPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(
                 exporter.getArchivedDownloadURL(recordingName),
-                Matchers.equalTo("http://example.com:8443/api/v1/recordings/" + recordingName));
+                Matchers.equalTo("http://example.com:8181/api/v1/recordings/" + recordingName));
     }
 
     @ParameterizedTest()
@@ -162,7 +173,7 @@ class WebServerTest {
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideDownloadUrl(String recordingName) throws URISyntaxException, IOException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
-        when(netConf.getExternalWebServerPrimaryPort()).thenReturn(8443);
+        when(netConf.getExternalWebServerSecondaryPort()).thenReturn(8181);
         JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
         when(mockJmxUrl.toString())
                 .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
@@ -171,7 +182,7 @@ class WebServerTest {
         MatcherAssert.assertThat(
                 exporter.getDownloadURL(connection, recordingName),
                 Matchers.equalTo(
-                        "http://example.com:8443/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/"
+                        "http://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/"
                                 + recordingName));
     }
 
@@ -183,6 +194,7 @@ class WebServerTest {
         when(httpServer.isSsl()).thenReturn(true);
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPrimaryPort()).thenReturn(8443);
+        when(httpServer.isSsl()).thenReturn(true);
         JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
         when(mockJmxUrl.toString())
                 .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
@@ -200,7 +212,7 @@ class WebServerTest {
             strings = {"foo", "bar.jfr", "some-recording.jfr", "another_recording", "alpha123"})
     void shouldProvideReportUrl(String recordingName) throws URISyntaxException, IOException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
-        when(netConf.getExternalWebServerPrimaryPort()).thenReturn(8443);
+        when(netConf.getExternalWebServerSecondaryPort()).thenReturn(8181);
         JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
         when(mockJmxUrl.toString())
                 .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
@@ -209,7 +221,7 @@ class WebServerTest {
         MatcherAssert.assertThat(
                 exporter.getReportURL(connection, recordingName),
                 Matchers.equalTo(
-                        "http://example.com:8443/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
+                        "http://example.com:8181/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/reports/"
                                 + recordingName));
     }
 
@@ -220,11 +232,11 @@ class WebServerTest {
             throws UnknownHostException, MalformedURLException, SocketException,
                     URISyntaxException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
-        when(netConf.getExternalWebServerPrimaryPort()).thenReturn(8443);
+        when(netConf.getExternalWebServerSecondaryPort()).thenReturn(8181);
 
         MatcherAssert.assertThat(
                 exporter.getArchivedReportURL(recordingName),
-                Matchers.equalTo("http://example.com:8443/api/v1/reports/" + recordingName));
+                Matchers.equalTo("http://example.com:8181/api/v1/reports/" + recordingName));
     }
 
     @ParameterizedTest()
@@ -235,6 +247,7 @@ class WebServerTest {
         when(httpServer.isSsl()).thenReturn(true);
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPrimaryPort()).thenReturn(8443);
+        when(httpServer.isSsl()).thenReturn(true);
         JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
         when(mockJmxUrl.toString())
                 .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");

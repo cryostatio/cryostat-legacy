@@ -237,7 +237,10 @@ public class WebServer {
         return new URIBuilder()
                 .setScheme(server.isSsl() ? "https" : "http")
                 .setHost(netConf.getWebServerHost())
-                .setPort(netConf.getExternalWebServerPrimaryPort())
+                .setPort(
+                        server.isSsl()
+                                ? netConf.getExternalWebServerPrimaryPort()
+                                : netConf.getExternalWebServerSecondaryPort())
                 .build()
                 .normalize();
     }

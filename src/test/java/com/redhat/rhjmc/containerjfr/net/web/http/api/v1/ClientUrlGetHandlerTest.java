@@ -45,8 +45,8 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.net.SocketException;
-import java.net.UnknownHostException;
+import java.net.MalformedURLException;
+import java.net.URL;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -62,8 +62,8 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.SslConfiguration;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 import io.vertx.core.http.HttpHeaders;
@@ -79,14 +79,14 @@ class ClientUrlGetHandlerTest {
     class WithoutSsl {
 
         ClientUrlGetHandler handler;
-        @Mock HttpServer httpServer;
-        @Mock NetworkConfiguration netConf;
+        @Mock WebServer webServer;
+        @Mock SslConfiguration sslConf;
         @Mock Logger logger;
         Gson gson = MainModule.provideGson(logger);
 
         @BeforeEach
         void setup() {
-            this.handler = new ClientUrlGetHandler(gson, httpServer, netConf);
+            this.handler = new ClientUrlGetHandler(gson, () -> webServer, sslConf, logger);
         }
 
         @Test
@@ -105,27 +105,25 @@ class ClientUrlGetHandlerTest {
         }
 
         @Test
-        void shouldHandleClientUrlRequest() throws SocketException, UnknownHostException {
+        void shouldHandleClientUrlRequest() throws Exception {
             RoutingContext ctx = mock(RoutingContext.class);
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
-            when(netConf.getWebServerHost()).thenReturn("hostname");
-            when(netConf.getExternalWebServerPrimaryPort()).thenReturn(1);
+            when(webServer.getHostUrl()).thenReturn(new URL("http://0.0.0.0:1234"));
 
             handler.handle(ctx);
 
             InOrder inOrder = inOrder(rep);
             inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            inOrder.verify(rep).end("{\"clientUrl\":\"ws://hostname:1/api/v1/command\"}");
+            inOrder.verify(rep).end("{\"clientUrl\":\"ws://0.0.0.0:1234/api/v1/command\"}");
         }
 
         @Test
-        void shouldBubbleInternalServerErrorIfHandlerThrows()
-                throws SocketException, UnknownHostException {
+        void shouldBubbleInternalServerErrorIfHandlerThrows() throws Exception {
             RoutingContext ctx = mock(RoutingContext.class);
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
-            when(netConf.getWebServerHost()).thenThrow(UnknownHostException.class);
+            when(webServer.getHostUrl()).thenThrow(MalformedURLException.class);
             Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         }
     }
@@ -135,23 +133,22 @@ class ClientUrlGetHandlerTest {
 
         ClientUrlGetHandler handler;
         @Mock Logger logger;
-        @Mock HttpServer httpServer;
-        @Mock NetworkConfiguration netConf;
+        @Mock WebServer webServer;
+        @Mock SslConfiguration sslConf;
         Gson gson = MainModule.provideGson(logger);
 
         @BeforeEach
         void setup() {
-            when(httpServer.isSsl()).thenReturn(true);
-            this.handler = new ClientUrlGetHandler(gson, httpServer, netConf);
+            when(sslConf.enabled()).thenReturn(true);
+            this.handler = new ClientUrlGetHandler(gson, () -> webServer, sslConf, logger);
         }
 
         @Test
-        void shouldHandleClientUrlRequestWithWss() throws SocketException, UnknownHostException {
+        void shouldHandleClientUrlRequestWithWss() throws Exception {
             RoutingContext ctx = mock(RoutingContext.class);
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
-            when(netConf.getWebServerHost()).thenReturn("hostname");
-            when(netConf.getExternalWebServerPrimaryPort()).thenReturn(1);
+            when(webServer.getHostUrl()).thenReturn(new URL("https://hostname:1"));
 
             handler.handle(ctx);
 
