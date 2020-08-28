@@ -66,7 +66,7 @@ JSON form. For example, `{command:ping}` or
 `{command:dump,args:[localhost,foo,10,"template=Continuous"]}`. See
 [COMMANDS.md](COMMANDS.md) for a description of the Command Channel API. `curl`
 or a similar tool may also be used to interact with ContainerJFR via its HTTP(S)
-API.
+API. See [HTTP_API.md](HTTP_API.md).
 
 `smoketest.sh` builds upon `run.sh` and also deploys Grafana, jfr-datasource,
 and vertx-fib-demo as a sample app alongside ContainerJFR.
