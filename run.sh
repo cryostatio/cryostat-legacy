@@ -61,7 +61,8 @@ if ! podman pod exists container-jfr; then
         --name container-jfr \
         --publish $CONTAINER_JFR_RJMX_PORT:$CONTAINER_JFR_RJMX_PORT \
         --publish $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
-        --publish $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT
+        --publish $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
+        --publish 9999:9999
 fi
 
 podman run \
@@ -71,6 +72,7 @@ podman run \
     --mount type=bind,source="$PWD/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     -e CONTAINER_JFR_DISABLE_SSL=$CONTAINER_JFR_DISABLE_SSL \
     -e CONTAINER_JFR_DISABLE_JMX_AUTH=$CONTAINER_JFR_DISABLE_JMX_AUTH \
+    -p 9999:9999 \
     -e CONTAINER_JFR_LOG_LEVEL=$CONTAINER_JFR_LOG_LEVEL \
     -e CONTAINER_JFR_RJMX_USER=$CONTAINER_JFR_RJMX_USER \
     -e CONTAINER_JFR_RJMX_PASS=$CONTAINER_JFR_RJMX_PASS \

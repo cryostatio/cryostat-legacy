@@ -353,6 +353,7 @@
           </args>
           <ports>
             <port>${containerjfr.webPort}</port>
+            <port>9999</port>
             <port>${containerjfr.listenPort}</port>
             <port>${containerjfr.rjmxPort}</port>
           </ports>

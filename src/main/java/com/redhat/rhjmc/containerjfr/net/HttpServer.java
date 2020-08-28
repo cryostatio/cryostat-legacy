@@ -99,11 +99,11 @@ public class HttpServer {
                             try {
                                 logger.info(
                                         String.format(
-                                            "%s service running on %s://%s:%d",
-                                            isSsl() ? "HTTPS" : "HTTP",
-                                            isSsl() ? "https" : "http",
-                                            netConf.getWebServerHost(),
-                                            netConf.getExternalWebServerPort()));
+                                                "%s service running on %s://%s:%d",
+                                                isSsl() ? "HTTPS" : "HTTP",
+                                                isSsl() ? "https" : "http",
+                                                netConf.getWebServerHost(),
+                                                netConf.getExternalWebServerPort()));
                             } catch (Exception e) {
                                 logger.error(e);
                                 promise.fail(e);

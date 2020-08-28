@@ -57,7 +57,6 @@ public class MainVerticle extends AbstractVerticle {
     private final Logger logger;
 
     MainVerticle(HttpServer http, WebServer web, MessagingServer messaging, Logger logger) {
-        logger.info("MainVerticle created");
         this.http = http;
         this.web = web;
         this.messaging = messaging;
@@ -66,7 +65,7 @@ public class MainVerticle extends AbstractVerticle {
 
     @Override
     public void start(Promise<Void> promise) {
-        logger.info("MainVerticle starting");
+        logger.trace("MainVerticle starting");
         Promise<Void> httpPromise = Promise.promise();
         Promise<Void> webPromise = Promise.promise();
         Promise<Void> messagingPromise = Promise.promise();
@@ -80,22 +79,23 @@ public class MainVerticle extends AbstractVerticle {
             return;
         }
         CompositeFuture.all(httpPromise.future(), webPromise.future(), messagingPromise.future())
-            .onSuccess(ar -> {
-                promise.complete();
-                logger.info("MainVerticle started");
-            })
-            .onFailure(ar -> {
-                promise.fail(ar.getCause());
-                logger.info("MainVertice failed");
-            });
+                .onSuccess(
+                        ar -> {
+                            promise.complete();
+                            logger.trace("MainVerticle started");
+                        })
+                .onFailure(
+                        ar -> {
+                            promise.fail(ar.getCause());
+                            logger.trace("MainVertice failed");
+                        });
     }
 
     @Override
     public void stop() {
-        logger.info("MainVerticle stopped");
+        logger.trace("MainVerticle stopped");
         this.messaging.stop();
         this.web.stop();
         this.http.stop();
     }
-
 }

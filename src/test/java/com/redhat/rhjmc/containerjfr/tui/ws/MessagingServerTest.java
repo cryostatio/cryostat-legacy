@@ -71,6 +71,7 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import io.vertx.core.Handler;
+import io.vertx.core.Promise;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.SocketAddress;
 
@@ -150,7 +151,7 @@ class MessagingServerTest {
         when(addr.toString()).thenReturn("mockaddr");
         when(sws.remoteAddress()).thenReturn(addr);
         when(sws.path()).thenReturn("/api/v1/command");
-        server.start();
+        server.start(Promise.promise());
 
         ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
         Mockito.verify(httpServer).websocketHandler(websocketHandlerCaptor.capture());

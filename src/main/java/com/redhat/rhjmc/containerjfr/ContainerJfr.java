@@ -46,16 +46,18 @@ import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.MainVerticle;
+import com.redhat.rhjmc.containerjfr.net.RedirectorVerticle;
 import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
-
-import org.apache.commons.lang3.StringUtils;
 
 import dagger.BindsInstance;
 import dagger.Component;
+import io.vertx.core.DeploymentOptions;
 import io.vertx.core.Vertx;
 
 class ContainerJfr {
@@ -106,7 +108,21 @@ class ContainerJfr {
 
         Client client = DaggerContainerJfr_Client.builder().mode(mode).build();
 
-        client.vertx().deployVerticle(client.mainVerticle());
+        client.vertx()
+                .deployVerticle(
+                        client.mainVerticle(),
+                        ar -> {
+                            if (ar.succeeded()) {
+                                client.vertx()
+                                        .deployVerticle(
+                                                client.redirectorVerticle(),
+                                                new DeploymentOptions().setWorker(true));
+                            } else {
+                                throw new RuntimeException(
+                                        "Could not start "
+                                                + client.mainVerticle().getClass().getName());
+                            }
+                        });
 
         client.commandExecutor().run(clientArgs);
     }
@@ -119,6 +135,8 @@ class ContainerJfr {
         Vertx vertx();
 
         MainVerticle mainVerticle();
+
+        RedirectorVerticle redirectorVerticle();
 
         @Component.Builder
         interface Builder {

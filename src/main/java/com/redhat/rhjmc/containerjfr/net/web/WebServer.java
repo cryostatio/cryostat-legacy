@@ -115,7 +115,8 @@ public class WebServer {
         this.logger = logger;
     }
 
-    public void start(Promise<Void> promise) throws FlightRecorderException, SocketException, UnknownHostException {
+    public void start(Promise<Void> promise)
+            throws FlightRecorderException, SocketException, UnknownHostException {
         Router router = Router.router(vertx);
 
         // error page handler

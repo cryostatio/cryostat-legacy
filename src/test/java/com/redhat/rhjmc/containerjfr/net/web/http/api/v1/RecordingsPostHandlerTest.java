@@ -91,9 +91,9 @@ class RecordingsPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        when(httpServer.getVertx()).thenReturn(vertx);
         this.handler =
                 new RecordingsPostHandler(
+                        vertx,
                         authManager,
                         httpServer,
                         cjfrFs,

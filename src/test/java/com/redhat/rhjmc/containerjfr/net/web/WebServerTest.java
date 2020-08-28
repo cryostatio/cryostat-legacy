@@ -76,11 +76,13 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import io.vertx.core.Vertx;
 
 @ExtendWith(MockitoExtension.class)
 class WebServerTest {
 
     WebServer exporter;
+    @Mock Vertx vertx;
     @Mock HttpServer httpServer;
     @Mock NetworkConfiguration netConf;
     @Mock AuthManager authManager;
@@ -91,7 +93,7 @@ class WebServerTest {
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger);
+        exporter = new WebServer(vertx, httpServer, netConf, Set.of(), gson, authManager, logger);
     }
 
     @Test
@@ -104,7 +106,9 @@ class WebServerTest {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         assertDoesNotThrow(
-                () -> new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger));
+                () ->
+                        new WebServer(
+                                vertx, httpServer, netConf, Set.of(), gson, authManager, logger));
     }
 
     @Test

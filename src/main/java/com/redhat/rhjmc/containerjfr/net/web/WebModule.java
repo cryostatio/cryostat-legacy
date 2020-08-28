@@ -78,7 +78,8 @@ public abstract class WebModule {
             Gson gson,
             AuthManager authManager,
             Logger logger) {
-        return new WebServer(vertx, httpServer, netConf, requestHandlers, gson, authManager, logger);
+        return new WebServer(
+                vertx, httpServer, netConf, requestHandlers, gson, authManager, logger);
     }
 
     @Provides

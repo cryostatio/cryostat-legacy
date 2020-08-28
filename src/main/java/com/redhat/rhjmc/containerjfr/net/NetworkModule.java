@@ -69,9 +69,16 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static MainVerticle provideMainVerticle(HttpServer http, WebServer web, MessagingServer
-            messaging, Logger logger) {
+    static MainVerticle provideMainVerticle(
+            HttpServer http, WebServer web, MessagingServer messaging, Logger logger) {
         return new MainVerticle(http, web, messaging, logger);
+    }
+
+    @Provides
+    @Singleton
+    static RedirectorVerticle provideRedirectorVerticle(
+            SslConfiguration sslConf, NetworkConfiguration netConf, Logger logger) {
+        return new RedirectorVerticle(sslConf, netConf, logger);
     }
 
     @Provides
