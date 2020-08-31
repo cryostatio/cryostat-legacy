@@ -147,8 +147,8 @@ else
         KEYSTORE_PASS="$SSL_KEY_PASS"
     fi
 
-    FLAGS+=("-Djavax.net.ssl.keyStore=$SSL_KEYSTORE")
-    FLAGS+=("-Djavax.net.ssl.keyStorePassword=$SSL_KEY_PASS")
+    FLAGS+=("-Djavax.net.ssl.keyStore=$KEYSTORE_PATH")
+    FLAGS+=("-Djavax.net.ssl.keyStorePassword=$KEYSTORE_PASS")
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl=true")
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
