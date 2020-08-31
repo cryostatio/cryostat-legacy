@@ -41,26 +41,40 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.Map;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
+
+import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+
 import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,6 +84,9 @@ class RecordingOptionsGetHandlerTest {
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    @Mock RecordingOptionsBuilder builder;
+    @Mock IConstrainedMap<String> recordingOptions;
+    @Mock JFRConnection jfrConnection;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -95,12 +112,56 @@ class RecordingOptionsGetHandlerTest {
     void shouldRespondWithErrorIfExceptionThrown() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
-                                Mockito.any(ConnectionDescriptor.class),
-                                Mockito.any(ConnectedTask.class)))
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenThrow(new Exception("dummy exception"));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         Assertions.assertThrows(Exception.class, () -> handler.handleAuthenticated(ctx));
+    }
+
+    @Test
+    void shouldReturnRecordingOptions() throws Exception {
+        Map<String, String> optionValues =
+                Map.of("toDisk", "true", "maxAge", "50", "maxSize", "32");
+        Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.build()).thenReturn(recordingOptions);
+        Mockito.when(recordingOptions.get("toDisk")).thenReturn(optionValues.get("toDisk"));
+        Mockito.when(recordingOptions.get("maxAge")).thenReturn(optionValues.get("maxAge"));
+        Mockito.when(recordingOptions.get("maxSize")).thenReturn(optionValues.get("maxSize"));
+
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Map answer(InvocationOnMock args) throws Throwable {
+                                ConnectedTask ct = (ConnectedTask) args.getArguments()[1];
+                                return (Map) ct.execute(jfrConnection);
+                            }
+                        });
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+
+        handler.handleAuthenticated(ctx);
+
+        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(resp).end(responseCaptor.capture());
+        Mockito.verifyNoMoreInteractions(resp);
+        Map<String, String> result =
+                gson.fromJson(
+                        responseCaptor.getValue(),
+                        new TypeToken<Map<String, String>>() {}.getType());
+        MatcherAssert.assertThat(result, Matchers.equalTo(optionValues));
     }
 }

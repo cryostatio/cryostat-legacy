@@ -54,7 +54,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class RecordingOptionsPutHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "/api/v1/recordingOptions";
+    static final String PATH = "/api/v1/targets/:targetId/recordingOptions";
     private final RecordingOptionsCustomizer customizer;
 
     @Inject

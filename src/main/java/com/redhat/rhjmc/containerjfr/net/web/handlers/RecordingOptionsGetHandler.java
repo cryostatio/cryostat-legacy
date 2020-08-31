@@ -41,7 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -102,7 +102,7 @@ public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHand
                                     recordingOptionsBuilderFactory.create(connection.getService());
                             IConstrainedMap<String> recordingOptions = builder.build();
 
-                            Map<String, String> map = Collections.emptyMap();
+                            Map<String, String> map = new HashMap<String, String>();
                             String[] optionKeys = {"toDisk", "maxAge", "maxSize"};
                             for (String opt : optionKeys) {
                                 var obj = recordingOptions.get(opt);
