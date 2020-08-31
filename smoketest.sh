@@ -7,7 +7,6 @@ function runContainerJFR() {
     local DIR="$(dirname "$(readlink -f "$0")")"
     GRAFANA_DATASOURCE_URL="http://0.0.0.0:8080" \
         GRAFANA_DASHBOARD_URL="http://0.0.0.0:3000" \
-        CONTAINER_JFR_RJMX_AUTH=true \
         CONTAINER_JFR_RJMX_USER=smoketest \
         CONTAINER_JFR_RJMX_PASS=smoketest \
         sh "$DIR/run.sh"

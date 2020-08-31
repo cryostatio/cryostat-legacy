@@ -1,7 +1,14 @@
 #!/bin/sh
 
-set -x
 set -e
+
+function banner() {
+    echo   "+------------------------------------------+"
+    printf "| %-40s |\n" "`date`"
+    echo   "|                                          |"
+    printf "| %-40s |\n" "$@"
+    echo   "+------------------------------------------+"
+}
 
 function genpass() {
     echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
@@ -23,16 +30,17 @@ function createJmxCredentials() {
     chmod 400 "$USRFILE"
 }
 
-SSL_KEYSTORE="/tmp/keystore"
+SSL_KEYSTORE="/tmp/keystore.p12"
 SSL_KEY_PASS="$(genpass)"
 SSL_STORE_PASS="$SSL_KEY_PASS"
-SSL_TRUSTSTORE="/tmp/truststore"
+SSL_TRUSTSTORE="/tmp/truststore.p12"
 SSL_TRUSTSTORE_PASS="$(genpass)"
 function createSslStores() {
     pushd /tmp
 
     keytool -importkeystore \
         -noprompt \
+        -storetype PKCS12 \
         -srckeystore /usr/lib/jvm/java-11-openjdk/lib/security/cacerts \
         -srcstorepass changeit \
         -destkeystore "$SSL_TRUSTSTORE" \
@@ -44,10 +52,10 @@ function createSslStores() {
 function importTrustStores() {
     local DIR="/truststore"
     if [ ! -d "$DIR" ]; then
-        echo "$DIR does not exist; no certificates to import"
+        banner "$DIR does not exist; no certificates to import"
         return 0
     elif [ ! "$(ls -A $DIR)" ]; then
-        echo "$DIR is empty; no certificates to import"
+        banner "$DIR is empty; no certificates to import"
         return 0
     fi
 
@@ -70,6 +78,7 @@ function generateSslCert() {
     keytool -genkeypair -v \
         -alias container-jfr \
         -dname "cn=container-jfr, o=Red Hat, c=US" \
+        -storetype PKCS12 \
         -validity 180 \
         -keyalg RSA \
         -keypass "$SSL_KEY_PASS" \
@@ -108,35 +117,45 @@ FLAGS=(
     "-Dcom.sun.management.jmxremote.rmi.port=$CONTAINER_JFR_RMI_PORT"
     "-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE"
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
-    "-Djavax.net.ssl.keyStore=$SSL_KEYSTORE"
-    "-Djavax.net.ssl.keyStorePassword=$SSL_KEY_PASS"
 )
-
-if [ -z "$CONTAINER_JFR_RJMX_AUTH" ]; then
-    # default to true. This should never be disabled in production deployments
-    CONTAINER_JFR_RJMX_AUTH=true
-fi
 
 createSslStores
 importTrustStores
-generateSslCert
-if [ "$CONTAINER_JFR_RJMX_AUTH" = "true" ] || [ -n "$CONTAINER_JFR_RJMX_USER" ] ||
-    [ -n "$CONTAINER_JFR_RJMX_PASS" ]; then
-    createJmxCredentials
 
+if [ "$CONTAINER_JFR_DISABLE_JMX_AUTH" = "true" ]; then
+    banner "JMX Auth Disabled"
+    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
+else
+    createJmxCredentials
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=true")
     FLAGS+=("-Dcom.sun.management.jmxremote.password.file=$PWFILE")
     FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
-else
-    FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
-    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
-    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
 fi
 
-java \
+if [ "$CONTAINER_JFR_DISABLE_SSL" = "true" ]; then
+    banner "SSL Disabled"
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
+    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
+else
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
+
+    if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
+        generateSslCert
+        banner "Using self-signed SSL certificate"
+
+        KEYSTORE_PATH="$SSL_KEYSTORE"
+        KEYSTORE_PASS="$SSL_KEY_PASS"
+    fi
+
+    FLAGS+=("-Djavax.net.ssl.keyStore=$KEYSTORE_PATH")
+    FLAGS+=("-Djavax.net.ssl.keyStorePassword=$KEYSTORE_PASS")
+    FLAGS+=("-Dcom.sun.management.jmxremote.ssl=true")
+    FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
+fi
+
+KEYSTORE_PATH="$KEYSTORE_PATH" \
+    KEYSTORE_PASS="$KEYSTORE_PASS" \
+    java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
     com.redhat.rhjmc.containerjfr.ContainerJfr \
