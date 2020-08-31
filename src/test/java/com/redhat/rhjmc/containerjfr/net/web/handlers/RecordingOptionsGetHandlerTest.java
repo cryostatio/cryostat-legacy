@@ -41,75 +41,66 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.util.Collections;
-import java.util.Map;
-
-import javax.inject.Inject;
-
-import org.openjdk.jmc.common.unit.IConstrainedMap;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 import com.google.gson.Gson;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
+@ExtendWith(MockitoExtension.class)
+class RecordingOptionsGetHandlerTest {
 
-    static final String PATH = "/api/v1/targets/:targetId/recordingOptions";
-    protected final TargetConnectionManager connectionManager;
-    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    private final Gson gson;
+    RecordingOptionsGetHandler handler;
+    @Mock AuthManager auth;
+    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
-    @Inject
-    RecordingOptionsGetHandler(
-            AuthManager auth,
-            TargetConnectionManager connectionManager,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            Gson gson) {
-        super(auth);
-        this.connectionManager = connectionManager;
-        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
-        this.gson = gson;
+    @BeforeEach
+    void setup() {
+        this.handler =
+                new RecordingOptionsGetHandler(
+                        auth, targetConnectionManager, recordingOptionsBuilderFactory, gson);
     }
 
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+    @Test
+    void shouldHandleGETRequest() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
     }
 
-    @Override
-    public String path() {
-        return PATH;
+    @Test
+    void shouldHandleCorrectPath() {
+        MatcherAssert.assertThat(
+                handler.path(), Matchers.equalTo("/api/v1/targets/:targetId/recordingOptions"));
     }
 
-    @Override
-    public boolean isAsync() {
-        return false;
-    }
+    @Test
+    void shouldRespondWithErrorIfExceptionThrown() throws Exception {
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.any(ConnectedTask.class)))
+                .thenThrow(new Exception("dummy exception"));
 
-    @Override
-    void handleAuthenticated(RoutingContext ctx) throws Exception {
-        Map<String, String> optionMap =
-                connectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromContext(ctx),
-                        connection -> {
-                            RecordingOptionsBuilder builder =
-                                    recordingOptionsBuilderFactory.create(connection.getService());
-                            IConstrainedMap<String> recordingOptions = builder.build();
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
 
-                            Map<String, String> map = Collections.emptyMap();
-                            String[] optionKeys = {"toDisk", "maxAge", "maxSize"};
-                            for (String opt : optionKeys) {
-                                var obj = recordingOptions.get(opt);
-                                if (obj != null) map.put(opt, obj.toString());
-                            }
-                            return map;
-                        });
-        ctx.response().end(gson.toJson(optionMap));
+        Assertions.assertThrows(Exception.class, () -> handler.handleAuthenticated(ctx));
     }
 }
