@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -191,19 +192,25 @@ class TargetRecordingsPostHandlerTest {
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
 
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Long> durationCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Boolean> toDiskCaptor = ArgumentCaptor.forClass(Boolean.class);
+        ArgumentCaptor<Long> maxAgeCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> maxSizeCaptor = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        Mockito.verify(recordingOptionsBuilder).name(nameCaptor.capture());
+        Mockito.verify(recordingOptionsBuilder).name("someRecording");
+        Mockito.verify(recordingOptionsBuilder).duration(TimeUnit.SECONDS.toMillis(10));
+        Mockito.verify(recordingOptionsBuilder).toDisk(true);
+        Mockito.verify(recordingOptionsBuilder).maxAge(TimeUnit.SECONDS.toMillis(50));
+        Mockito.verify(recordingOptionsBuilder).maxSize(64L);
         Mockito.verify(service, Mockito.atLeastOnce()).getAvailableRecordings();
         Mockito.verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
 
-        String actualName = nameCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
 
-        MatcherAssert.assertThat(actualName, Matchers.equalTo("someRecording"));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
