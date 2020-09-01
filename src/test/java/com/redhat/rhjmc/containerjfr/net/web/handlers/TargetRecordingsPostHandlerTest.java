@@ -143,6 +143,12 @@ class TargetRecordingsPostHandlerTest {
                 .thenReturn(recordingOptionsBuilder);
         Mockito.when(recordingOptionsBuilder.duration(Mockito.anyLong()))
                 .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.toDisk(Mockito.anyBoolean()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxAge(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxSize(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
         EventOptionsBuilder builder = Mockito.mock(EventOptionsBuilder.class);
         Mockito.when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
@@ -170,6 +176,9 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "foo.Bar:enabled=true");
         attrs.add("duration", "10");
+        attrs.add("toDisk", "true");
+        attrs.add("maxAge", "50");
+        attrs.add("maxSize", "64");
         Mockito.when(ctx.response()).thenReturn(resp);
 
         handler.handle(ctx);
