@@ -62,6 +62,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingOptionsCustomizerCommandTest {
