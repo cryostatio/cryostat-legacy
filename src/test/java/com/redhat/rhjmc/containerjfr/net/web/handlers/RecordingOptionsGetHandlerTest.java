@@ -58,6 +58,7 @@ import org.mockito.stubbing.Answer;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -152,6 +153,8 @@ class RecordingOptionsGetHandlerTest {
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
+        IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
+        Mockito.when(jfrConnection.getService()).thenReturn(service);
 
         handler.handleAuthenticated(ctx);
 

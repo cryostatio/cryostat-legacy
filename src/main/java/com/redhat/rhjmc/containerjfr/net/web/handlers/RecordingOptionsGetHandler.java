@@ -43,10 +43,13 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import com.google.gson.Gson;
@@ -64,6 +67,7 @@ public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHand
     protected final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Gson gson;
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
     @Inject
     RecordingOptionsGetHandler(
@@ -102,11 +106,37 @@ public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHand
                                     recordingOptionsBuilderFactory.create(connection.getService());
                             IConstrainedMap<String> recordingOptions = builder.build();
 
+                            Map<String, IOptionDescriptor<?>> TargetRecordingOptions =
+                                    connection.getService().getAvailableRecordingOptions();
+                            System.out.println("do we get here?");
                             Map<String, String> map = new HashMap<String, String>();
-                            String[] optionKeys = {"toDisk", "maxAge", "maxSize"};
-                            for (String opt : optionKeys) {
-                                var obj = recordingOptions.get(opt);
-                                if (obj != null) map.put(opt, obj.toString());
+
+                            if (recordingOptions.get("toDisk") != null) {
+                                map.put("toDisk", recordingOptions.get("toDisk").toString());
+                            } else {
+                                map.put(
+                                        "toDisk",
+                                        TargetRecordingOptions.get("disk").getDefault().toString());
+                            }
+                            if (recordingOptions.get("maxAge") != null) {
+                                map.put("maxAge", recordingOptions.get("maxAge").toString());
+                            } else {
+                                String defAge =
+                                        TargetRecordingOptions.get("maxAge")
+                                                .getDefault()
+                                                .toString();
+                                Matcher m = NUMBER_PATTERN.matcher(defAge);
+                                map.put("maxAge", m.find() ? m.group() : null);
+                            }
+                            if (recordingOptions.get("maxSize") != null) {
+                                map.put("maxSize", recordingOptions.get("maxSize").toString());
+                            } else {
+                                String defSize =
+                                        TargetRecordingOptions.get("maxSize")
+                                                .getDefault()
+                                                .toString();
+                                Matcher m = NUMBER_PATTERN.matcher(defSize);
+                                map.put("maxSize", m.find() ? m.group() : null);
                             }
                             return map;
                         });
