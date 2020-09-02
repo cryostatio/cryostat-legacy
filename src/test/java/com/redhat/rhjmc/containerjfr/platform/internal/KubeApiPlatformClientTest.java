@@ -63,6 +63,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
@@ -76,15 +77,16 @@ import io.kubernetes.client.models.V1ServiceSpec;
 @ExtendWith(MockitoExtension.class)
 class KubeApiPlatformClientTest {
 
-    @Mock Logger logger;
+    KubeApiPlatformClient client;
     @Mock CoreV1Api api;
     String namespace = "someNamespace";
+    @Mock JFRConnectionToolkit connectionToolkit;
     @Mock NetworkResolver resolver;
-    KubeApiPlatformClient client;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        client = new KubeApiPlatformClient(api, namespace, resolver, logger);
+        client = new KubeApiPlatformClient(api, namespace, connectionToolkit, resolver, logger);
     }
 
     @Nested
@@ -155,9 +157,12 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            ServiceRef serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
-            ServiceRef serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
-            ServiceRef serv3 = new ServiceRef("10.0.0.1", 7899, "b-service.example.com");
+            ServiceRef serv1 =
+                    new ServiceRef(connectionToolkit, "127.0.0.1", 123, "ServiceA.local");
+            ServiceRef serv2 =
+                    new ServiceRef(connectionToolkit, "127.0.0.1", 456, "ServiceA.local");
+            ServiceRef serv3 =
+                    new ServiceRef(connectionToolkit, "10.0.0.1", 7899, "b-service.example.com");
 
             assertThat(result, Matchers.contains(serv1, serv2, serv3));
 
@@ -214,8 +219,10 @@ class KubeApiPlatformClientTest {
 
             List<ServiceRef> result = client.listDiscoverableServices();
 
-            ServiceRef serv1 = new ServiceRef("127.0.0.1", 123, "ServiceA.local");
-            ServiceRef serv2 = new ServiceRef("127.0.0.1", 456, "ServiceA.local");
+            ServiceRef serv1 =
+                    new ServiceRef(connectionToolkit, "127.0.0.1", 123, "ServiceA.local");
+            ServiceRef serv2 =
+                    new ServiceRef(connectionToolkit, "127.0.0.1", 456, "ServiceA.local");
 
             assertThat(result, Matchers.contains(serv1, serv2));
             assertThat(result, Matchers.hasSize(2));

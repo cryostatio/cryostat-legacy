@@ -59,19 +59,21 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 @ExtendWith(MockitoExtension.class)
 class KubeEnvPlatformClientTest {
 
+    KubeEnvPlatformClient client;
+    @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
     @Mock Logger logger;
-    KubeEnvPlatformClient client;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(env, logger);
+        client = new KubeEnvPlatformClient(connectionToolkit, env, logger);
     }
 
     @Nested
@@ -101,8 +103,8 @@ class KubeEnvPlatformClientTest {
                                     "BAZ_PORT_9876_UDP_ADDR", "5.6.7.8"));
             List<ServiceRef> services = client.listDiscoverableServices();
 
-            ServiceRef serv1 = new ServiceRef("127.0.0.1", 1234, "foo");
-            ServiceRef serv2 = new ServiceRef("1.2.3.4", 9999, "bar");
+            ServiceRef serv1 = new ServiceRef(connectionToolkit, "127.0.0.1", 1234, "foo");
+            ServiceRef serv2 = new ServiceRef(connectionToolkit, "1.2.3.4", 9999, "bar");
 
             MatcherAssert.assertThat(services, Matchers.containsInAnyOrder(serv1, serv2));
             MatcherAssert.assertThat(services, Matchers.hasSize(2));

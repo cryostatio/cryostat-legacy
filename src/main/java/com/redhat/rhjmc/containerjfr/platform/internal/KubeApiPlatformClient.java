@@ -47,6 +47,7 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
@@ -59,13 +60,19 @@ class KubeApiPlatformClient implements PlatformClient {
 
     private final CoreV1Api api;
     private final String namespace;
+    private final JFRConnectionToolkit connectionToolkit;
     private final NetworkResolver resolver;
     private final Logger logger;
 
     KubeApiPlatformClient(
-            CoreV1Api api, String namespace, NetworkResolver resolver, Logger logger) {
+            CoreV1Api api,
+            String namespace,
+            JFRConnectionToolkit connectionToolkit,
+            NetworkResolver resolver,
+            Logger logger) {
         this.api = api;
         this.namespace = namespace;
+        this.connectionToolkit = connectionToolkit;
         this.resolver = resolver;
         this.logger = logger;
     }
@@ -87,6 +94,7 @@ class KubeApiPlatformClient implements PlatformClient {
                                                     p -> {
                                                         try {
                                                             return new ServiceRef(
+                                                                    connectionToolkit,
                                                                     s.getClusterIP(),
                                                                     p.getPort(),
                                                                     resolver

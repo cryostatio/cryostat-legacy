@@ -52,6 +52,8 @@ import java.util.regex.Pattern;
 
 import javax.management.remote.JMXServiceURL;
 
+import org.openjdk.jmc.rjmx.ConnectionToolkit;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
@@ -125,8 +127,7 @@ public class TargetConnectionManager {
             port = "9091";
         }
         return connect(
-                new JMXServiceURL(
-                        "rmi", "", 0, String.format("/jndi/rmi://%s:%s/jmxrmi", host, port)),
+                ConnectionToolkit.createServiceURL(host, Integer.valueOf(port)),
                 connectionDescriptor.getCredentials());
     }
 

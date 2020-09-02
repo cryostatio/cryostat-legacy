@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
@@ -62,9 +63,14 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     private final AuthManager authMgr;
     private CoreV1Api api;
     private final String namespace;
+    private final JFRConnectionToolkit connectionToolkit;
     private final NetworkResolver resolver;
 
-    KubeApiPlatformStrategy(Logger logger, NoopAuthManager authMgr, NetworkResolver resolver) {
+    KubeApiPlatformStrategy(
+            Logger logger,
+            NoopAuthManager authMgr,
+            JFRConnectionToolkit connectionToolkit,
+            NetworkResolver resolver) {
         this.logger = logger;
         this.authMgr = authMgr;
         try {
@@ -73,6 +79,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         } catch (IOException e) {
             this.api = null;
         }
+        this.connectionToolkit = connectionToolkit;
         this.namespace = getNamespace();
         this.resolver = resolver;
     }
@@ -101,7 +108,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(api, namespace, resolver, logger);
+        return new KubeApiPlatformClient(api, namespace, connectionToolkit, resolver, logger);
     }
 
     @Override

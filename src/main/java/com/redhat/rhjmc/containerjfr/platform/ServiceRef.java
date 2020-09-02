@@ -51,12 +51,12 @@ import org.apache.commons.lang.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
 import com.google.gson.annotations.SerializedName;
 
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+
 public class ServiceRef {
 
-    @SerializedName("connectUrl")
-    private final JMXServiceURL JMXServiceURL;
-
-    private final String alias; // nullable
+    private final @SerializedName("connectUrl") JMXServiceURL JMXServiceURL;
+    private final String alias;
 
     public ServiceRef(JMXServiceURL jmxServiceUrl, String alias) throws MalformedURLException {
         this.JMXServiceURL = jmxServiceUrl;
@@ -67,11 +67,9 @@ public class ServiceRef {
         this(jmxServiceUrl, null);
     }
 
-    public ServiceRef(String host, int port, String alias) throws MalformedURLException {
-        this(
-                new JMXServiceURL(
-                        "rmi", "", 0, String.format("/jndi/rmi://%s:%d/jmxrmi", host, port)),
-                alias);
+    public ServiceRef(JFRConnectionToolkit toolkit, String host, int port, String alias)
+            throws MalformedURLException {
+        this(toolkit.createServiceURL(host, port), alias);
     }
 
     public JMXServiceURL getJMXServiceUrl() {

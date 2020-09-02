@@ -44,6 +44,8 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import java.net.MalformedURLException;
 import java.util.List;
 
+import javax.management.remote.JMXServiceURL;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -53,9 +55,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
@@ -65,6 +70,7 @@ class ScanTargetsCommandTest {
 
     ScanTargetsCommand command;
     @Mock PlatformClient platformClient;
+    @Mock JFRConnectionToolkit connectionToolkit;
     @Mock ClientWriter cw;
 
     @BeforeEach
@@ -100,7 +106,22 @@ class ScanTargetsCommandTest {
 
     @Test
     void shouldPrintDiscoveredServices() throws Exception {
-        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(getMockServices());
+        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<JMXServiceURL>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
+                            }
+                        });
+        List<ServiceRef> mockServices = getMockServices();
+        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(mockServices);
         command.execute(new String[0]);
         InOrder inOrder = Mockito.inOrder(cw);
         inOrder.verify(cw).println("Host A -> service:jmx:rmi:///jndi/rmi://aHost:0/jmxrmi");
@@ -125,12 +146,27 @@ class ScanTargetsCommandTest {
 
     @Test
     void shouldExecuteAndReturnListOfDiscoveredServices() throws Exception {
-        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(getMockServices());
+        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<JMXServiceURL>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
+                            }
+                        });
+        List<ServiceRef> mockServices = getMockServices();
+        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(mockServices);
         SerializableCommand.Output output = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(output, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(
                 ((SerializableCommand.ListOutput) output).getPayload(),
-                Matchers.equalTo(getMockServices()));
+                Matchers.equalTo(mockServices));
     }
 
     @Test
@@ -143,9 +179,9 @@ class ScanTargetsCommandTest {
     }
 
     List<ServiceRef> getMockServices() throws MalformedURLException {
-        ServiceRef mockA = new ServiceRef("aHost", 0, "Host A");
-        ServiceRef mockB = new ServiceRef("bHost", 0, "Host B");
-        ServiceRef mockC = new ServiceRef("cHost", 0, "Host C");
+        ServiceRef mockA = new ServiceRef(connectionToolkit, "aHost", 0, "Host A");
+        ServiceRef mockB = new ServiceRef(connectionToolkit, "bHost", 0, "Host B");
+        ServiceRef mockC = new ServiceRef(connectionToolkit, "cHost", 0, "Host C");
 
         return List.of(mockA, mockB, mockC);
     }

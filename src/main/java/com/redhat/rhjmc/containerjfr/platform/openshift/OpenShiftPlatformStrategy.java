@@ -45,6 +45,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -62,9 +63,14 @@ public class OpenShiftPlatformStrategy
     private final AuthManager authMgr;
     private final FileSystem fs;
     private OpenShiftClient osClient;
+    private JFRConnectionToolkit connectionToolkit;
 
     public OpenShiftPlatformStrategy(
-            Logger logger, OpenShiftAuthManager authMgr, Environment env, FileSystem fs) {
+            Logger logger,
+            OpenShiftAuthManager authMgr,
+            JFRConnectionToolkit connectionToolkit,
+            Environment env,
+            FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.fs = fs;
@@ -74,6 +80,7 @@ public class OpenShiftPlatformStrategy
             logger.info(e);
             this.osClient = null;
         }
+        this.connectionToolkit = connectionToolkit;
     }
 
     @Override
@@ -108,7 +115,7 @@ public class OpenShiftPlatformStrategy
     @Override
     public OpenShiftPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new OpenShiftPlatformClient(osClient, fs, logger);
+        return new OpenShiftPlatformClient(osClient, connectionToolkit, fs, logger);
     }
 
     @Override
