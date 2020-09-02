@@ -50,7 +50,6 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class RecordingOptionsPutHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -76,13 +75,14 @@ class RecordingOptionsPutHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         MultiMap attrs = ctx.request().formAttributes();
-        if (attrs.contains("toDisk") && attrs.contains("maxAge") && attrs.contains("maxSize")) {
-            String[] options = {"toDisk", "maxAge", "maxSize"};
-            for (String opt : options) {
-                OptionKey.fromOptionName(opt).ifPresent(key -> customizer.set(key, attrs.get(opt)));
-            }
-        } else {
-            throw new HttpStatusException(400, "All recording options must be provided");
-        }
+        if (attrs.contains("toDisk"))
+            OptionKey.fromOptionName("toDisk")
+                    .ifPresent(key -> customizer.set(key, attrs.get("toDisk")));
+        if (attrs.contains("maxAge"))
+            OptionKey.fromOptionName("maxAge")
+                    .ifPresent(key -> customizer.set(key, attrs.get("maxAge")));
+        if (attrs.contains("maxSize"))
+            OptionKey.fromOptionName("maxSize")
+                    .ifPresent(key -> customizer.set(key, attrs.get("maxSize")));
     }
 }
