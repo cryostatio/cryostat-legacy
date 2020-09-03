@@ -108,7 +108,7 @@ public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHand
 
                             Map<String, IOptionDescriptor<?>> TargetRecordingOptions =
                                     connection.getService().getAvailableRecordingOptions();
-                            System.out.println("do we get here?");
+                           
                             Map<String, String> map = new HashMap<String, String>();
 
                             if (recordingOptions.get("toDisk") != null) {

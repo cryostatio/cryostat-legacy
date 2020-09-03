@@ -167,9 +167,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                 }
                                 if (attrs.contains("maxAge")) {
                                     builder =
-                                            builder.maxAge(
-                                                    TimeUnit.SECONDS.toMillis(
-                                                            Long.parseLong(attrs.get("maxAge"))));
+                                            builder.maxAge(Long.parseLong(attrs.get("maxAge")));
                                 }
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
