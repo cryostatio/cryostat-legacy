@@ -50,8 +50,8 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomizer;
-import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomizer.OptionKey;
+import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
+import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer.OptionKey;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
 import io.vertx.core.MultiMap;
