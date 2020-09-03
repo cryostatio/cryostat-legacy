@@ -58,6 +58,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import dagger.Lazy;
 
 public class TargetConnectionManager {
 
@@ -70,9 +71,9 @@ public class TargetConnectionManager {
     // maintain a short-lived cache of connections to allow nested ConnectedTasks
     // without having to manage connection reuse
     private final Map<ConnectionDescriptor, JFRConnection> activeConnections = new HashMap<>();
-    private final JFRConnectionToolkit jfrConnectionToolkit;
+    private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
 
-    TargetConnectionManager(Logger logger, JFRConnectionToolkit jfrConnectionToolkit) {
+    TargetConnectionManager(Logger logger, Lazy<JFRConnectionToolkit> jfrConnectionToolkit) {
         this.logger = logger;
         this.jfrConnectionToolkit = jfrConnectionToolkit;
     }
@@ -127,7 +128,7 @@ public class TargetConnectionManager {
             port = "9091";
         }
         return connect(
-                ConnectionToolkit.createServiceURL(host, Integer.valueOf(port)),
+                ConnectionToolkit.createServiceURL(host, Integer.parseInt(port)),
                 connectionDescriptor.getCredentials());
     }
 
@@ -135,14 +136,18 @@ public class TargetConnectionManager {
             throws Exception {
         logger.trace(String.format("Locking connection %s", url.toString()));
         lock.lockInterruptibly();
-        return jfrConnectionToolkit.connect(
-                url,
-                credentials.orElse(null),
-                List.of(
-                        lock::unlock,
-                        () ->
-                                logger.trace(
-                                        String.format("Unlocking connection %s", url.toString()))));
+        return jfrConnectionToolkit
+                .get()
+                .connect(
+                        url,
+                        credentials.orElse(null),
+                        List.of(
+                                lock::unlock,
+                                () ->
+                                        logger.trace(
+                                                String.format(
+                                                        "Unlocking connection %s",
+                                                        url.toString()))));
     }
 
     public interface ConnectedTask<T> {

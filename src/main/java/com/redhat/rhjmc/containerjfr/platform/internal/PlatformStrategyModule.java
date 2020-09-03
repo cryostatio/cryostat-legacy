@@ -53,6 +53,7 @@ import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftPlatformStrategy;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.ElementsIntoSet;
@@ -66,7 +67,7 @@ public abstract class PlatformStrategyModule {
             Logger logger,
             OpenShiftAuthManager openShiftAuthManager,
             NoopAuthManager noopAuthManager,
-            JFRConnectionToolkit connectionToolkit,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,

@@ -51,6 +51,7 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 
+import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.Configuration;
@@ -63,13 +64,13 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     private final AuthManager authMgr;
     private CoreV1Api api;
     private final String namespace;
-    private final JFRConnectionToolkit connectionToolkit;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final NetworkResolver resolver;
 
     KubeApiPlatformStrategy(
             Logger logger,
             NoopAuthManager authMgr,
-            JFRConnectionToolkit connectionToolkit,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             NetworkResolver resolver) {
         this.logger = logger;
         this.authMgr = authMgr;

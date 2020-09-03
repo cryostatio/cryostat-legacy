@@ -86,7 +86,9 @@ class KubeApiPlatformClientTest {
 
     @BeforeEach
     void setup() {
-        client = new KubeApiPlatformClient(api, namespace, connectionToolkit, resolver, logger);
+        client =
+                new KubeApiPlatformClient(
+                        api, namespace, () -> connectionToolkit, resolver, logger);
     }
 
     @Nested

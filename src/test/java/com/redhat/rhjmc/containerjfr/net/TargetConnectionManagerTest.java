@@ -64,7 +64,7 @@ class TargetConnectionManagerTest {
 
     @BeforeEach
     void setup() {
-        this.mgr = new TargetConnectionManager(logger, jfrConnectionToolkit);
+        this.mgr = new TargetConnectionManager(logger, () -> jfrConnectionToolkit);
     }
 
     @Test

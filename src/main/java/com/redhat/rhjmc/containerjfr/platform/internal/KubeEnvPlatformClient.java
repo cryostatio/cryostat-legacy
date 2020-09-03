@@ -53,16 +53,18 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
+import dagger.Lazy;
 
 class KubeEnvPlatformClient implements PlatformClient {
 
     private static final Pattern SERVICE_ENV_PATTERN =
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
-    private final JFRConnectionToolkit connectionToolkit;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Environment env;
     private final Logger logger;
 
-    KubeEnvPlatformClient(JFRConnectionToolkit connectionToolkit, Environment env, Logger logger) {
+    KubeEnvPlatformClient(
+            Lazy<JFRConnectionToolkit> connectionToolkit, Environment env, Logger logger) {
         this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.logger = logger;
@@ -84,7 +86,7 @@ class KubeEnvPlatformClient implements PlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
-            return new ServiceRef(connectionToolkit, entry.getValue(), port, alias);
+            return new ServiceRef(connectionToolkit.get(), entry.getValue(), port, alias);
         } catch (Exception e) {
             logger.warn(e);
             return null;

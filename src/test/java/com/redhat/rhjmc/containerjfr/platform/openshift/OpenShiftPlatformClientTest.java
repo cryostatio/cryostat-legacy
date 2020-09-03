@@ -84,7 +84,8 @@ class OpenShiftPlatformClientTest {
 
     @BeforeEach
     void setup() {
-        this.platformClient = new OpenShiftPlatformClient(osClient, connectionToolkit, fs, logger);
+        this.platformClient =
+                new OpenShiftPlatformClient(osClient, () -> connectionToolkit, fs, logger);
     }
 
     @Test

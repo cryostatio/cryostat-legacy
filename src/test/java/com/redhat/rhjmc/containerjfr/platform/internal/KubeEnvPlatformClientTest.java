@@ -73,7 +73,7 @@ class KubeEnvPlatformClientTest {
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(connectionToolkit, env, logger);
+        client = new KubeEnvPlatformClient(() -> connectionToolkit, env, logger);
     }
 
     @Nested

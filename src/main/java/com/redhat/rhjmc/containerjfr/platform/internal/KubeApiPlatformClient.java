@@ -52,6 +52,7 @@ import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
+import dagger.Lazy;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.CoreV1Api;
 import io.kubernetes.client.models.V1Service;
@@ -60,14 +61,14 @@ class KubeApiPlatformClient implements PlatformClient {
 
     private final CoreV1Api api;
     private final String namespace;
-    private final JFRConnectionToolkit connectionToolkit;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final NetworkResolver resolver;
     private final Logger logger;
 
     KubeApiPlatformClient(
             CoreV1Api api,
             String namespace,
-            JFRConnectionToolkit connectionToolkit,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             NetworkResolver resolver,
             Logger logger) {
         this.api = api;
@@ -94,7 +95,7 @@ class KubeApiPlatformClient implements PlatformClient {
                                                     p -> {
                                                         try {
                                                             return new ServiceRef(
-                                                                    connectionToolkit,
+                                                                    connectionToolkit.get(),
                                                                     s.getClusterIP(),
                                                                     p.getPort(),
                                                                     resolver

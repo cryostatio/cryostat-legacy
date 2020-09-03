@@ -45,10 +45,11 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import dagger.Lazy;
 
 class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
 
-    private final JFRConnectionToolkit connectionToolkit;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final AuthManager authMgr;
     private final Environment env;
@@ -56,7 +57,7 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     KubeEnvPlatformStrategy(
             Logger logger,
             AuthManager authMgr,
-            JFRConnectionToolkit connectionToolkit,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env) {
         this.logger = logger;
         this.authMgr = authMgr;

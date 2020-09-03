@@ -51,6 +51,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
 
+import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
@@ -63,12 +64,12 @@ public class OpenShiftPlatformStrategy
     private final AuthManager authMgr;
     private final FileSystem fs;
     private OpenShiftClient osClient;
-    private JFRConnectionToolkit connectionToolkit;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
 
     public OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
-            JFRConnectionToolkit connectionToolkit,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
             FileSystem fs) {
         this.logger = logger;

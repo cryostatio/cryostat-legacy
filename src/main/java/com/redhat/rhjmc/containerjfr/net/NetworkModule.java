@@ -54,6 +54,7 @@ import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
 
 import dagger.Binds;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
@@ -87,7 +88,7 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
-            Logger logger, JFRConnectionToolkit connectionToolkit) {
+            Logger logger, Lazy<JFRConnectionToolkit> connectionToolkit) {
         return new TargetConnectionManager(logger, connectionToolkit);
     }
 
