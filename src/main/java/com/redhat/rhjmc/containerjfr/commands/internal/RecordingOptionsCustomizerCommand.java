@@ -48,7 +48,8 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsCustomizer.OptionKey;
+import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
+import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer.OptionKey;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
