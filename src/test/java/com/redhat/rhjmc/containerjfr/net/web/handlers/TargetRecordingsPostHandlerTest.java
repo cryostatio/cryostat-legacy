@@ -203,7 +203,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).name("someRecording");
         Mockito.verify(recordingOptionsBuilder).duration(TimeUnit.SECONDS.toMillis(10));
         Mockito.verify(recordingOptionsBuilder).toDisk(true);
-        Mockito.verify(recordingOptionsBuilder).maxAge(TimeUnit.SECONDS.toMillis(50));
+        Mockito.verify(recordingOptionsBuilder).maxAge(50L);
         Mockito.verify(recordingOptionsBuilder).maxSize(64L);
         Mockito.verify(service, Mockito.atLeastOnce()).getAvailableRecordings();
         Mockito.verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
