@@ -52,8 +52,6 @@ import java.util.regex.Pattern;
 
 import javax.management.remote.JMXServiceURL;
 
-import org.openjdk.jmc.rjmx.ConnectionToolkit;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
@@ -128,7 +126,7 @@ public class TargetConnectionManager {
             port = "9091";
         }
         return connect(
-                ConnectionToolkit.createServiceURL(host, Integer.parseInt(port)),
+                jfrConnectionToolkit.get().createServiceURL(host, Integer.parseInt(port)),
                 connectionDescriptor.getCredentials());
     }
 
