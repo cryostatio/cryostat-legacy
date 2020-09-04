@@ -118,26 +118,31 @@ public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHand
                                         "toDisk",
                                         TargetRecordingOptions.get("disk").getDefault().toString());
                             }
+
+                            String maxAge;
                             if (recordingOptions.get("maxAge") != null) {
-                                map.put("maxAge", recordingOptions.get("maxAge").toString());
+                                maxAge = recordingOptions.get("maxAge").toString();
                             } else {
-                                String defAge =
+                                maxAge =
                                         TargetRecordingOptions.get("maxAge")
                                                 .getDefault()
                                                 .toString();
-                                Matcher m = NUMBER_PATTERN.matcher(defAge);
-                                map.put("maxAge", m.find() ? m.group() : null);
                             }
+                            Matcher ageMatcher = NUMBER_PATTERN.matcher(maxAge);
+                            map.put("maxAge", ageMatcher.find() ? ageMatcher.group() : null);
+
+                            String maxSize;
                             if (recordingOptions.get("maxSize") != null) {
-                                map.put("maxSize", recordingOptions.get("maxSize").toString());
+                                maxSize = recordingOptions.get("maxSize").toString();
                             } else {
-                                String defSize =
+                                maxSize =
                                         TargetRecordingOptions.get("maxSize")
                                                 .getDefault()
                                                 .toString();
-                                Matcher m = NUMBER_PATTERN.matcher(defSize);
-                                map.put("maxSize", m.find() ? m.group() : null);
                             }
+                            Matcher sizeMatcher = NUMBER_PATTERN.matcher(maxSize);
+                            map.put("maxSize", sizeMatcher.find() ? sizeMatcher.group() : null);
+
                             return map;
                         });
         ctx.response().end(gson.toJson(optionMap));
