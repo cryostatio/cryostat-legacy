@@ -57,23 +57,24 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingOptionsPutHandlerTest {
 
-    RecordingOptionsPutHandler handler;
+    RecordingOptionsPatchHandler handler;
     @Mock AuthManager auth;
     @Mock RecordingOptionsCustomizer customizer;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingOptionsPutHandler(auth, customizer);
+        this.handler = new RecordingOptionsPatchHandler(auth, customizer);
     }
 
     @Test
     void shouldHandleGETRequest() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.PUT));
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.PATCH));
     }
 
     @Test
@@ -93,6 +94,8 @@ class RecordingOptionsPutHandlerTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.formAttributes()).thenReturn(attrs);
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
 
         handler.handleAuthenticated(ctx);
 

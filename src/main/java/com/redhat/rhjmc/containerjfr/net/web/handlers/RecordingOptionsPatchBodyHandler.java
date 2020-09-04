@@ -41,7 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import com.google.inject.Inject;
+import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 
@@ -50,7 +50,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
 class RecordingOptionsPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
-    
+
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
@@ -60,7 +60,7 @@ class RecordingOptionsPatchBodyHandler extends AbstractAuthenticatedRequestHandl
 
     @Override
     public int getPriority() {
-        return DEFAULT_PRIORITY -1;
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override

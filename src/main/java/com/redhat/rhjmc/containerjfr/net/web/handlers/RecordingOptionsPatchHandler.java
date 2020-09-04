@@ -51,20 +51,20 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class RecordingOptionsPutHandler extends AbstractAuthenticatedRequestHandler {
+class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "/api/v1/targets/:targetId/recordingOptions";
     private final RecordingOptionsCustomizer customizer;
 
     @Inject
-    RecordingOptionsPutHandler(AuthManager auth, RecordingOptionsCustomizer customizer) {
+    RecordingOptionsPatchHandler(AuthManager auth, RecordingOptionsCustomizer customizer) {
         super(auth);
         this.customizer = customizer;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.PUT;
+        return HttpMethod.PATCH;
     }
 
     @Override
@@ -73,16 +73,27 @@ class RecordingOptionsPutHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         MultiMap attrs = ctx.request().formAttributes();
-        if (attrs.contains("toDisk"))
+
+        if (attrs.contains("toDisk")) {
             OptionKey.fromOptionName("toDisk")
                     .ifPresent(key -> customizer.set(key, attrs.get("toDisk")));
-        if (attrs.contains("maxAge"))
+        }
+        if (attrs.contains("maxAge")) {
             OptionKey.fromOptionName("maxAge")
                     .ifPresent(key -> customizer.set(key, attrs.get("maxAge")));
-        if (attrs.contains("maxSize"))
+        }
+        if (attrs.contains("maxSize")) {
             OptionKey.fromOptionName("maxSize")
                     .ifPresent(key -> customizer.set(key, attrs.get("maxSize")));
+        }
+        ctx.response().setStatusCode(200);
+        ctx.response().end();
     }
 }
