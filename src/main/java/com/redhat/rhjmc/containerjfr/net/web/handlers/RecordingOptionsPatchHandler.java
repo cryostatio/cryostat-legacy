@@ -63,7 +63,7 @@ class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = RecordingOptionsGetHandler.PATH;
     private final RecordingOptionsCustomizer customizer;
-    protected final TargetConnectionManager connectionManager;
+    private final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Gson gson;
 
@@ -98,19 +98,17 @@ class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
                         getConnectionDescriptorFromContext(ctx),
                         connection -> {
                             MultiMap attrs = ctx.request().formAttributes();
-                            if (attrs.contains("toDisk")) {
-                                OptionKey.fromOptionName("toDisk")
-                                        .ifPresent(key -> customizer.set(key, attrs.get("toDisk")));
+                            String[] keys = {"toDisk", "maxAge", "maxSize"};
+                            for (String key : keys) {
+                                if (attrs.contains(key)) {
+                                    OptionKey.fromOptionName(key)
+                                            .ifPresent(
+                                                    optionKey ->
+                                                            customizer.set(
+                                                                    optionKey, attrs.get(key)));
+                                }
                             }
-                            if (attrs.contains("maxAge")) {
-                                OptionKey.fromOptionName("maxAge")
-                                        .ifPresent(key -> customizer.set(key, attrs.get("maxAge")));
-                            }
-                            if (attrs.contains("maxSize")) {
-                                OptionKey.fromOptionName("maxSize")
-                                        .ifPresent(
-                                                key -> customizer.set(key, attrs.get("maxSize")));
-                            }
+
                             RecordingOptionsBuilder builder =
                                     recordingOptionsBuilderFactory.create(connection.getService());
                             return RecordingOptionsGetHandler.getRecordingOptions(

@@ -62,10 +62,10 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
+class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "/api/v1/targets/:targetId/recordingOptions";
-    protected final TargetConnectionManager connectionManager;
+    private final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Gson gson;
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");

@@ -116,8 +116,8 @@ class RecordingOptionsPatchHandlerTest {
         Mockito.when(recordingOptions.get("maxAge")).thenReturn(defaultValues.get("maxAge"));
         Mockito.when(recordingOptions.get("maxSize")).thenReturn(defaultValues.get("maxSize"));
 
-        MultiMap RequestAttrs = MultiMap.caseInsensitiveMultiMap();
-        RequestAttrs.addAll(defaultValues);
+        MultiMap requestAttrs = MultiMap.caseInsensitiveMultiMap();
+        requestAttrs.addAll(defaultValues);
 
         Mockito.when(
                         connectionManager.executeConnectedTask(
@@ -136,7 +136,7 @@ class RecordingOptionsPatchHandlerTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.when(req.formAttributes()).thenReturn(RequestAttrs);
+        Mockito.when(req.formAttributes()).thenReturn(requestAttrs);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
         IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
@@ -144,7 +144,7 @@ class RecordingOptionsPatchHandlerTest {
 
         handler.handleAuthenticated(ctx);
 
-        for (var entry : RequestAttrs.entries()) {
+        for (var entry : requestAttrs.entries()) {
             var key = OptionKey.fromOptionName(entry.getKey());
             Mockito.verify(customizer).set(key.get(), entry.getValue());
         }
