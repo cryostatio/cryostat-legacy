@@ -41,11 +41,19 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.Map;
+
 import javax.inject.Inject;
 
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+
+import com.google.gson.Gson;
+
+import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer.OptionKey;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -53,13 +61,24 @@ import io.vertx.ext.web.RoutingContext;
 
 class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "/api/v1/targets/:targetId/recordingOptions";
+    static final String PATH = RecordingOptionsGetHandler.PATH;
     private final RecordingOptionsCustomizer customizer;
+    protected final TargetConnectionManager connectionManager;
+    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    private final Gson gson;
 
     @Inject
-    RecordingOptionsPatchHandler(AuthManager auth, RecordingOptionsCustomizer customizer) {
+    RecordingOptionsPatchHandler(
+            AuthManager auth,
+            RecordingOptionsCustomizer customizer,
+            TargetConnectionManager connectionManager,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            Gson gson) {
         super(auth);
         this.customizer = customizer;
+        this.connectionManager = connectionManager;
+        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
+        this.gson = gson;
     }
 
     @Override
@@ -73,27 +92,32 @@ class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public boolean isAsync() {
-        return false;
-    }
-
-    @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
-        MultiMap attrs = ctx.request().formAttributes();
+        Map<String, String> updatedMap =
+                connectionManager.executeConnectedTask(
+                        getConnectionDescriptorFromContext(ctx),
+                        connection -> {
+                            MultiMap attrs = ctx.request().formAttributes();
+                            if (attrs.contains("toDisk")) {
+                                OptionKey.fromOptionName("toDisk")
+                                        .ifPresent(key -> customizer.set(key, attrs.get("toDisk")));
+                            }
+                            if (attrs.contains("maxAge")) {
+                                OptionKey.fromOptionName("maxAge")
+                                        .ifPresent(key -> customizer.set(key, attrs.get("maxAge")));
+                            }
+                            if (attrs.contains("maxSize")) {
+                                OptionKey.fromOptionName("maxSize")
+                                        .ifPresent(
+                                                key -> customizer.set(key, attrs.get("maxSize")));
+                            }
+                            RecordingOptionsBuilder builder =
+                                    recordingOptionsBuilderFactory.create(connection.getService());
+                            return RecordingOptionsGetHandler.getRecordingOptions(
+                                    connection.getService(), builder);
+                        });
 
-        if (attrs.contains("toDisk")) {
-            OptionKey.fromOptionName("toDisk")
-                    .ifPresent(key -> customizer.set(key, attrs.get("toDisk")));
-        }
-        if (attrs.contains("maxAge")) {
-            OptionKey.fromOptionName("maxAge")
-                    .ifPresent(key -> customizer.set(key, attrs.get("maxAge")));
-        }
-        if (attrs.contains("maxSize")) {
-            OptionKey.fromOptionName("maxSize")
-                    .ifPresent(key -> customizer.set(key, attrs.get("maxSize")));
-        }
         ctx.response().setStatusCode(200);
-        ctx.response().end();
+        ctx.response().end(gson.toJson(updatedMap));
     }
 }

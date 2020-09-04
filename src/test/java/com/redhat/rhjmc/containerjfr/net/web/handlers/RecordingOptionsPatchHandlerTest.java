@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.Map;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,11 +50,24 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
+import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
+import com.google.gson.Gson;
+
+import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer.OptionKey;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -61,15 +76,23 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
-class RecordingOptionsPutHandlerTest {
+class RecordingOptionsPatchHandlerTest {
 
     RecordingOptionsPatchHandler handler;
     @Mock AuthManager auth;
     @Mock RecordingOptionsCustomizer customizer;
+    @Mock TargetConnectionManager connectionManager;
+    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    @Mock RecordingOptionsBuilder builder;
+    @Mock IConstrainedMap<String> recordingOptions;
+    @Mock JFRConnection jfrConnection;
+    @Mock Gson gson;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingOptionsPatchHandler(auth, customizer);
+        this.handler =
+                new RecordingOptionsPatchHandler(
+                        auth, customizer, connectionManager, recordingOptionsBuilderFactory, gson);
     }
 
     @Test
@@ -85,21 +108,43 @@ class RecordingOptionsPutHandlerTest {
 
     @Test
     void shouldSetRecordingOptions() throws Exception {
-        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
-        attrs.add("toDisk", "true");
-        attrs.add("maxAge", "50");
-        attrs.add("maxSize", "32");
+        Map<String, String> defaultValues =
+                Map.of("toDisk", "true", "maxAge", "50", "maxSize", "32");
+        Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.build()).thenReturn(recordingOptions);
+        Mockito.when(recordingOptions.get("toDisk")).thenReturn(defaultValues.get("toDisk"));
+        Mockito.when(recordingOptions.get("maxAge")).thenReturn(defaultValues.get("maxAge"));
+        Mockito.when(recordingOptions.get("maxSize")).thenReturn(defaultValues.get("maxSize"));
+
+        MultiMap RequestAttrs = MultiMap.caseInsensitiveMultiMap();
+        RequestAttrs.addAll(defaultValues);
+
+        Mockito.when(
+                        connectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Map answer(InvocationOnMock args) throws Throwable {
+                                ConnectedTask ct = (ConnectedTask) args.getArguments()[1];
+                                return (Map) ct.execute(jfrConnection);
+                            }
+                        });
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.formAttributes()).thenReturn(attrs);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(req.formAttributes()).thenReturn(RequestAttrs);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
+        IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
+        Mockito.when(jfrConnection.getService()).thenReturn(service);
 
         handler.handleAuthenticated(ctx);
 
-        for (var entry : attrs.entries()) {
+        for (var entry : RequestAttrs.entries()) {
             var key = OptionKey.fromOptionName(entry.getKey());
             Mockito.verify(customizer).set(key.get(), entry.getValue());
         }

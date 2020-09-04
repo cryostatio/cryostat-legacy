@@ -51,6 +51,7 @@ import javax.inject.Inject;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.google.gson.Gson;
 
@@ -104,47 +105,44 @@ public class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHand
                         connection -> {
                             RecordingOptionsBuilder builder =
                                     recordingOptionsBuilderFactory.create(connection.getService());
-                            IConstrainedMap<String> recordingOptions = builder.build();
-
-                            Map<String, IOptionDescriptor<?>> TargetRecordingOptions =
-                                    connection.getService().getAvailableRecordingOptions();
-
-                            Map<String, String> map = new HashMap<String, String>();
-
-                            if (recordingOptions.get("toDisk") != null) {
-                                map.put("toDisk", recordingOptions.get("toDisk").toString());
-                            } else {
-                                map.put(
-                                        "toDisk",
-                                        TargetRecordingOptions.get("disk").getDefault().toString());
-                            }
-
-                            String maxAge;
-                            if (recordingOptions.get("maxAge") != null) {
-                                maxAge = recordingOptions.get("maxAge").toString();
-                            } else {
-                                maxAge =
-                                        TargetRecordingOptions.get("maxAge")
-                                                .getDefault()
-                                                .toString();
-                            }
-                            Matcher ageMatcher = NUMBER_PATTERN.matcher(maxAge);
-                            map.put("maxAge", ageMatcher.find() ? ageMatcher.group() : null);
-
-                            String maxSize;
-                            if (recordingOptions.get("maxSize") != null) {
-                                maxSize = recordingOptions.get("maxSize").toString();
-                            } else {
-                                maxSize =
-                                        TargetRecordingOptions.get("maxSize")
-                                                .getDefault()
-                                                .toString();
-                            }
-                            Matcher sizeMatcher = NUMBER_PATTERN.matcher(maxSize);
-                            map.put("maxSize", sizeMatcher.find() ? sizeMatcher.group() : null);
-
-                            return map;
+                            return getRecordingOptions(connection.getService(), builder);
                         });
         ctx.response().end(gson.toJson(optionMap));
+    }
+
+    static Map<String, String> getRecordingOptions(
+            IFlightRecorderService service, RecordingOptionsBuilder builder) throws Exception {
+        IConstrainedMap<String> recordingOptions = builder.build();
+
+        Map<String, IOptionDescriptor<?>> targetRecordingOptions =
+                service.getAvailableRecordingOptions();
+
+        Map<String, String> map = new HashMap<String, String>();
+
+        if (recordingOptions.get("toDisk") != null) {
+            map.put("toDisk", recordingOptions.get("toDisk").toString());
+        } else {
+            map.put("toDisk", targetRecordingOptions.get("disk").getDefault().toString());
+        }
+
+        String maxAge;
+        if (recordingOptions.get("maxAge") != null) {
+            maxAge = recordingOptions.get("maxAge").toString();
+        } else {
+            maxAge = targetRecordingOptions.get("maxAge").getDefault().toString();
+        }
+        Matcher ageMatcher = NUMBER_PATTERN.matcher(maxAge);
+        map.put("maxAge", ageMatcher.find() ? ageMatcher.group() : null);
+
+        String maxSize;
+        if (recordingOptions.get("maxSize") != null) {
+            maxSize = recordingOptions.get("maxSize").toString();
+        } else {
+            maxSize = targetRecordingOptions.get("maxSize").getDefault().toString();
+        }
+        Matcher sizeMatcher = NUMBER_PATTERN.matcher(maxSize);
+        map.put("maxSize", sizeMatcher.find() ? sizeMatcher.group() : null);
+
+        return map;
     }
 }
