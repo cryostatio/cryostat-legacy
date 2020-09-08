@@ -213,14 +213,16 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingOptionsPatchBodyHandler(
-            RecordingOptionsPatchBodyHandler handler);
+    abstract RequestHandler bindTargetRecordingOptionsPatchBodyHandler(
+            TargetRecordingOptionsPatchBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecordingOptionsPatchHandler(RecordingOptionsPatchHandler handler);
+    abstract RequestHandler bindTargetRecordingOptionsPatchHandler(
+            TargetRecordingOptionsPatchHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindRecoringOptionsGetHandler(RecordingOptionsGetHandler handler);
+    abstract RequestHandler bindTargetRecoringOptionsGetHandler(
+            TargetRecordingOptionsGetHandler handler);
 }

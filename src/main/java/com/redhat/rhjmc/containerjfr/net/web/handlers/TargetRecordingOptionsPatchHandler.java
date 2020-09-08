@@ -60,16 +60,16 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = RecordingOptionsGetHandler.PATH;
+    static final String PATH = TargetRecordingOptionsGetHandler.PATH;
     private final RecordingOptionsCustomizer customizer;
     private final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Gson gson;
 
     @Inject
-    RecordingOptionsPatchHandler(
+    TargetRecordingOptionsPatchHandler(
             AuthManager auth,
             RecordingOptionsCustomizer customizer,
             TargetConnectionManager connectionManager,
@@ -115,7 +115,7 @@ class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
                             RecordingOptionsBuilder builder =
                                     recordingOptionsBuilderFactory.create(connection.getService());
-                            return RecordingOptionsGetHandler.getRecordingOptions(
+                            return TargetRecordingOptionsGetHandler.getRecordingOptions(
                                     connection.getService(), builder);
                         });
 

@@ -62,7 +62,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "/api/v1/targets/:targetId/recordingOptions";
     private final TargetConnectionManager connectionManager;
@@ -71,7 +71,7 @@ class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
     private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
     @Inject
-    RecordingOptionsGetHandler(
+    TargetRecordingOptionsGetHandler(
             AuthManager auth,
             TargetConnectionManager connectionManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,

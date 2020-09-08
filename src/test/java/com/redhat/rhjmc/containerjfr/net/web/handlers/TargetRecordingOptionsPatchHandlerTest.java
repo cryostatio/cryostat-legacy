@@ -76,9 +76,9 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
-class RecordingOptionsPatchHandlerTest {
+class TargetRecordingOptionsPatchHandlerTest {
 
-    RecordingOptionsPatchHandler handler;
+    TargetRecordingOptionsPatchHandler handler;
     @Mock AuthManager auth;
     @Mock RecordingOptionsCustomizer customizer;
     @Mock TargetConnectionManager connectionManager;
@@ -91,7 +91,7 @@ class RecordingOptionsPatchHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new RecordingOptionsPatchHandler(
+                new TargetRecordingOptionsPatchHandler(
                         auth, customizer, connectionManager, recordingOptionsBuilderFactory, gson);
     }
 

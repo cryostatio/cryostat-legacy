@@ -49,12 +49,12 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class RecordingOptionsPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingOptionsPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    RecordingOptionsPatchBodyHandler(AuthManager auth) {
+    TargetRecordingOptionsPatchBodyHandler(AuthManager auth) {
         super(auth);
     }
 
@@ -70,7 +70,7 @@ class RecordingOptionsPatchBodyHandler extends AbstractAuthenticatedRequestHandl
 
     @Override
     public String path() {
-        return RecordingOptionsPatchHandler.PATH;
+        return TargetRecordingOptionsPatchHandler.PATH;
     }
 
     @Override
