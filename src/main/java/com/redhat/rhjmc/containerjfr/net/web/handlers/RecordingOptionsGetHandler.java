@@ -125,24 +125,23 @@ class RecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandler {
             map.put("toDisk", targetRecordingOptions.get("disk").getDefault().toString());
         }
 
-        String maxAge;
-        if (recordingOptions.get("maxAge") != null) {
-            maxAge = recordingOptions.get("maxAge").toString();
-        } else {
-            maxAge = targetRecordingOptions.get("maxAge").getDefault().toString();
-        }
-        Matcher ageMatcher = NUMBER_PATTERN.matcher(maxAge);
-        map.put("maxAge", ageMatcher.find() ? ageMatcher.group() : null);
-
-        String maxSize;
-        if (recordingOptions.get("maxSize") != null) {
-            maxSize = recordingOptions.get("maxSize").toString();
-        } else {
-            maxSize = targetRecordingOptions.get("maxSize").getDefault().toString();
-        }
-        Matcher sizeMatcher = NUMBER_PATTERN.matcher(maxSize);
-        map.put("maxSize", sizeMatcher.find() ? sizeMatcher.group() : null);
+        map.put("maxAge", getNumericOption("maxAge", recordingOptions, targetRecordingOptions));
+        map.put("maxSize", getNumericOption("maxSize", recordingOptions, targetRecordingOptions));
 
         return map;
+    }
+
+    private static String getNumericOption(
+            String name,
+            IConstrainedMap<String> defaultOptions,
+            Map<String, IOptionDescriptor<?>> targetOptions) {
+        String value;
+        if (defaultOptions.get(name) != null) {
+            value = defaultOptions.get(name).toString();
+        } else {
+            value = targetOptions.get(name).getDefault().toString();
+        }
+        Matcher m = NUMBER_PATTERN.matcher(value);
+        return m.find() ? m.group() : null;
     }
 }

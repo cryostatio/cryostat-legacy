@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
+import java.util.Arrays;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -98,16 +99,19 @@ class RecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
                         getConnectionDescriptorFromContext(ctx),
                         connection -> {
                             MultiMap attrs = ctx.request().formAttributes();
-                            String[] keys = {"toDisk", "maxAge", "maxSize"};
-                            for (String key : keys) {
-                                if (attrs.contains(key)) {
-                                    OptionKey.fromOptionName(key)
-                                            .ifPresent(
-                                                    optionKey ->
-                                                            customizer.set(
-                                                                    optionKey, attrs.get(key)));
-                                }
-                            }
+                            Arrays.asList("toDisk", "maxAge", "maxSize")
+                                    .forEach(
+                                            key -> {
+                                                if (attrs.contains(key)) {
+                                                    OptionKey.fromOptionName(key)
+                                                            .ifPresent(
+                                                                    optionKey ->
+                                                                            customizer.set(
+                                                                                    optionKey,
+                                                                                    attrs.get(
+                                                                                            key)));
+                                                }
+                                            });
 
                             RecordingOptionsBuilder builder =
                                     recordingOptionsBuilderFactory.create(connection.getService());
