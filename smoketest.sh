@@ -15,8 +15,6 @@ function runContainerJFR() {
 function runDemoApp() {
     podman run \
         --name vertx-fib-demo \
-        -p 8080:8081 \
-        -p 9093:9093 \
         --pod container-jfr \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.4.0
 }
@@ -24,7 +22,6 @@ function runDemoApp() {
 function runJfrDatasource() {
     podman run \
         --name jfr-datasource \
-        -p 8080:8080 \
         --pod container-jfr \
         --rm -d quay.io/rh-jmc-team/jfr-datasource:0.0.1
 }
@@ -66,7 +63,6 @@ function configureGrafanaDashboard() {
 function runGrafana() {
     podman run \
         --name grafana \
-        -p 3000:3000 \
         --pod container-jfr \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
@@ -75,27 +71,22 @@ function runGrafana() {
     configureGrafanaDashboard
 }
 
-function cleanup() {
-    if podman container exists vertx-fib-demo; then
-        podman kill vertx-fib-demo
-    fi
-    if podman container exists jfr-datasource; then
-        podman kill jfr-datasource
-    fi
-    if podman pod exists container-jfr; then
-        podman pod kill container-jfr
-        podman pod rm container-jfr
-    fi
-}
-trap cleanup EXIT
-cleanup
-
 if ! podman pod exists container-jfr; then
     podman pod create \
         --hostname container-jfr \
         --name container-jfr \
+        --publish 9091 \
         --publish 8181 \
-        --publish 3000
+        --publish 8080 \
+        --publish 3000 \
+        --publish 8081 \
+        --publish 9093
+    # 9091: ContainerJFR RJMX
+    # 8181: ContainerJFR web services
+    # 8080: jfr-datasource
+    # 3000: grafana
+    # 8081: vertx-fib-demo
+    # 9093: vertx-fib-demo RJMX
 fi
 
 runDemoApp
