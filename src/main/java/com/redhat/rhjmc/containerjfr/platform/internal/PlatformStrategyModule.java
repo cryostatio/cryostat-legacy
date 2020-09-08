@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 import java.util.Set;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -52,6 +53,7 @@ import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftPlatformStrategy;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.ElementsIntoSet;
@@ -65,14 +67,16 @@ public abstract class PlatformStrategyModule {
             Logger logger,
             OpenShiftAuthManager openShiftAuthManager,
             NoopAuthManager noopAuthManager,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,
             JvmDiscoveryClient discoveryClient) {
         return Set.of(
-                new OpenShiftPlatformStrategy(logger, openShiftAuthManager, env, fs),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, resolver),
-                new KubeEnvPlatformStrategy(logger, noopAuthManager, env),
+                new OpenShiftPlatformStrategy(
+                        logger, openShiftAuthManager, connectionToolkit, env, fs),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, resolver),
+                new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
                 new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
     }
 }

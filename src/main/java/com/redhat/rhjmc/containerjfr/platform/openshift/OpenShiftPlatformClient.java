@@ -52,10 +52,12 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
+import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
@@ -65,11 +67,17 @@ import io.fabric8.openshift.client.OpenShiftClient;
 class OpenShiftPlatformClient implements PlatformClient {
 
     private final OpenShiftClient osClient;
+    private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
     private final Logger logger;
 
-    OpenShiftPlatformClient(OpenShiftClient osClient, FileSystem fs, Logger logger) {
+    OpenShiftPlatformClient(
+            OpenShiftClient osClient,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            FileSystem fs,
+            Logger logger) {
         this.osClient = osClient;
+        this.connectionToolkit = connectionToolkit;
         this.fs = fs;
         this.logger = logger;
     }
@@ -106,6 +114,7 @@ class OpenShiftPlatformClient implements PlatformClient {
                         addr -> {
                             try {
                                 return new ServiceRef(
+                                        connectionToolkit.get(),
                                         addr.getIp(),
                                         port.getPort(),
                                         addr.getTargetRef().getName());

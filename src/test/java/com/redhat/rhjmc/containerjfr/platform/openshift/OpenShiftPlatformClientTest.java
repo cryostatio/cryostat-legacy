@@ -59,6 +59,7 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
@@ -75,14 +76,16 @@ import io.fabric8.openshift.client.OpenShiftClient;
 @ExtendWith(MockitoExtension.class)
 class OpenShiftPlatformClientTest {
 
-    @Mock Logger logger;
-    @Mock OpenShiftClient osClient;
-    @Mock FileSystem fs;
     OpenShiftPlatformClient platformClient;
+    @Mock OpenShiftClient osClient;
+    @Mock JFRConnectionToolkit connectionToolkit;
+    @Mock FileSystem fs;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.platformClient = new OpenShiftPlatformClient(osClient, fs, logger);
+        this.platformClient =
+                new OpenShiftPlatformClient(osClient, () -> connectionToolkit, fs, logger);
     }
 
     @Test
@@ -175,13 +178,22 @@ class OpenShiftPlatformClientTest {
         List<ServiceRef> result = platformClient.listDiscoverableServices();
         ServiceRef serv1 =
                 new ServiceRef(
-                        address2.getIp(), port2.getPort(), address2.getTargetRef().getName());
+                        connectionToolkit,
+                        address2.getIp(),
+                        port2.getPort(),
+                        address2.getTargetRef().getName());
         ServiceRef serv2 =
                 new ServiceRef(
-                        address3.getIp(), port2.getPort(), address3.getTargetRef().getName());
+                        connectionToolkit,
+                        address3.getIp(),
+                        port2.getPort(),
+                        address3.getTargetRef().getName());
         ServiceRef serv3 =
                 new ServiceRef(
-                        address4.getIp(), port3.getPort(), address4.getTargetRef().getName());
+                        connectionToolkit,
+                        address4.getIp(),
+                        port3.getPort(),
+                        address4.getTargetRef().getName());
 
         MatcherAssert.assertThat(namespaceCaptor.getValue(), Matchers.equalTo(namespace));
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));

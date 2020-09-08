@@ -44,6 +44,8 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import java.util.Collections;
 import java.util.List;
 
+import javax.management.remote.JMXServiceURL;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -52,12 +54,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
@@ -73,6 +78,7 @@ class TargetsGetHandlerTest {
     @Mock AuthManager auth;
     @Mock PlatformClient platformClient;
     @Mock Logger logger;
+    @Mock JFRConnectionToolkit connectionToolkit;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
@@ -92,7 +98,21 @@ class TargetsGetHandlerTest {
 
     @Test
     void shouldReturnListOfTargets() throws Exception {
-        ServiceRef target = new ServiceRef("foo", 1, "foo");
+        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<JMXServiceURL>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        String.format("/jndi/rmi://%s:%s/jmxrmi", host, port));
+                            }
+                        });
+        ServiceRef target = new ServiceRef(connectionToolkit, "foo", 1, "foo");
 
         List<ServiceRef> targets = Collections.singletonList(target);
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(targets);
