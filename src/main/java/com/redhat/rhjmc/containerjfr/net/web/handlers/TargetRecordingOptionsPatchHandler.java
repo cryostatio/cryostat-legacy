@@ -43,6 +43,8 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.Arrays;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
@@ -95,13 +97,11 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
+        Pattern bool = Pattern.compile("true|false");
         MultiMap attrs = ctx.request().formAttributes();
         if (attrs.contains("toDisk")) {
-            try {
-                Boolean.parseBoolean(attrs.get("toDisk"));
-            } catch (Exception e) {
-                throw new HttpStatusException(400, "Invalid options");
-            }
+            Matcher m = bool.matcher(attrs.get("toDisk"));
+            if (!m.find()) throw new HttpStatusException(400, "Invalid options");
         }
         Arrays.asList("maxAge", "maxSize")
                 .forEach(
