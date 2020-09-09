@@ -4,6 +4,7 @@ set -x
 set -e
 
 function cleanup() {
+    podman pod kill container-jfr
     podman pod rm container-jfr
 }
 trap cleanup EXIT
@@ -55,7 +56,12 @@ if [ ! -d "$PWD/truststore" ]; then
 fi
 
 if ! podman pod exists container-jfr; then
-    podman pod create --hostname container-jfr --name container-jfr --publish $CONTAINER_JFR_EXT_WEB_PORT
+    podman pod create \
+        --hostname container-jfr \
+        --name container-jfr \
+        --publish $CONTAINER_JFR_RJMX_PORT:$CONTAINER_JFR_RJMX_PORT \
+        --publish $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
+        --publish $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT
 fi
 
 podman run \
@@ -63,9 +69,6 @@ podman run \
     --mount type=tmpfs,target=/flightrecordings \
     --mount type=tmpfs,target=/templates \
     --mount type=bind,source="$PWD/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
-    -p $CONTAINER_JFR_RJMX_PORT:$CONTAINER_JFR_RJMX_PORT \
-    -p $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
-    -p $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
     -e CONTAINER_JFR_DISABLE_SSL=$CONTAINER_JFR_DISABLE_SSL \
     -e CONTAINER_JFR_DISABLE_JMX_AUTH=$CONTAINER_JFR_DISABLE_JMX_AUTH \
     -e CONTAINER_JFR_LOG_LEVEL=$CONTAINER_JFR_LOG_LEVEL \
