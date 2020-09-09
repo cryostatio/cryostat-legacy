@@ -49,9 +49,6 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
-
-import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
-
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
@@ -74,17 +71,9 @@ public class UploadRecordingIT extends ITestBase {
                 .sendForm(
                         form,
                         ar -> {
-                            if (ar.failed()) {
-                                dumpRespFuture.completeExceptionally(ar.cause());
-                                return;
+                            if (assertRequestStatus(ar, dumpRespFuture)) {
+                                dumpRespFuture.complete(ar.result().bodyAsJsonObject());
                             }
-                            HttpResponse<Buffer> result = ar.result();
-                            if (!HttpStatusCodeIdentifier.isSuccessCode(result.statusCode())) {
-                                dumpRespFuture.completeExceptionally(
-                                        new Exception(result.statusMessage()));
-                                return;
-                            }
-                            dumpRespFuture.complete(ar.result().bodyAsJsonObject());
                         });
         dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
@@ -98,17 +87,9 @@ public class UploadRecordingIT extends ITestBase {
                                 "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
                 .send(
                         ar -> {
-                            if (ar.failed()) {
-                                deleteRespFuture.completeExceptionally(ar.cause());
-                                return;
+                            if (assertRequestStatus(ar, deleteRespFuture)) {
+                                deleteRespFuture.complete(null);
                             }
-                            HttpResponse<Buffer> result = ar.result();
-                            if (!HttpStatusCodeIdentifier.isSuccessCode(result.statusCode())) {
-                                deleteRespFuture.completeExceptionally(
-                                        new Exception(result.statusMessage()));
-                                return;
-                            }
-                            deleteRespFuture.complete(null);
                         });
         deleteRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }

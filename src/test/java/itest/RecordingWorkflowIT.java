@@ -49,14 +49,10 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
-
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
 
 public class RecordingWorkflowIT extends ITestBase {
 
@@ -71,11 +67,9 @@ public class RecordingWorkflowIT extends ITestBase {
                 .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                 .send(
                         ar -> {
-                            if (ar.failed()) {
-                                listRespFuture1.completeExceptionally(ar.cause());
-                                return;
+                            if (assertRequestStatus(ar, listRespFuture1)) {
+                                listRespFuture1.complete(ar.result().bodyAsJsonArray());
                             }
-                            listRespFuture1.complete(ar.result().bodyAsJsonArray());
                         });
         JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Assertions.assertTrue(listResp.isEmpty());
@@ -92,17 +86,9 @@ public class RecordingWorkflowIT extends ITestBase {
                     .sendForm(
                             form,
                             ar -> {
-                                if (ar.failed()) {
-                                    dumpRespFuture.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, dumpRespFuture)) {
+                                    dumpRespFuture.complete(null);
                                 }
-                                HttpResponse<Buffer> result = ar.result();
-                                if (!HttpStatusCodeIdentifier.isSuccessCode(result.statusCode())) {
-                                    dumpRespFuture.completeExceptionally(
-                                            new Exception(result.statusMessage()));
-                                    return;
-                                }
-                                dumpRespFuture.complete(null);
                             });
             dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -112,11 +98,9 @@ public class RecordingWorkflowIT extends ITestBase {
                     .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .send(
                             ar -> {
-                                if (ar.failed()) {
-                                    listRespFuture2.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, listRespFuture2)) {
+                                    listRespFuture2.complete(ar.result().bodyAsJsonArray());
                                 }
-                                listRespFuture2.complete(ar.result().bodyAsJsonArray());
                             });
             listResp = listRespFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -141,17 +125,9 @@ public class RecordingWorkflowIT extends ITestBase {
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
-                                if (ar.failed()) {
-                                    saveRespFuture.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, saveRespFuture)) {
+                                    saveRespFuture.complete(null);
                                 }
-                                HttpResponse<Buffer> result = ar.result();
-                                if (!HttpStatusCodeIdentifier.isSuccessCode(result.statusCode())) {
-                                    saveRespFuture.completeExceptionally(
-                                            new Exception(result.statusMessage()));
-                                    return;
-                                }
-                                saveRespFuture.complete(null);
                             });
             saveRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -161,11 +137,9 @@ public class RecordingWorkflowIT extends ITestBase {
                     .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .send(
                             ar -> {
-                                if (ar.failed()) {
-                                    listRespFuture3.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, listRespFuture3)) {
+                                    listRespFuture3.complete(ar.result().bodyAsJsonArray());
                                 }
-                                listRespFuture3.complete(ar.result().bodyAsJsonArray());
                             });
             listResp = listRespFuture3.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -184,11 +158,9 @@ public class RecordingWorkflowIT extends ITestBase {
                     .get("/api/v1/recordings")
                     .send(
                             ar -> {
-                                if (ar.failed()) {
-                                    listRespFuture4.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, listRespFuture4)) {
+                                    listRespFuture4.complete(ar.result().bodyAsJsonArray());
                                 }
-                                listRespFuture4.complete(ar.result().bodyAsJsonArray());
                             });
             listResp = listRespFuture4.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -211,11 +183,9 @@ public class RecordingWorkflowIT extends ITestBase {
                     .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .send(
                             ar -> {
-                                if (ar.failed()) {
-                                    listRespFuture5.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, listRespFuture5)) {
+                                    listRespFuture5.complete(ar.result().bodyAsJsonArray());
                                 }
-                                listRespFuture5.complete(ar.result().bodyAsJsonArray());
                             });
             listResp = listRespFuture5.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             MatcherAssert.assertThat(
@@ -262,17 +232,9 @@ public class RecordingWorkflowIT extends ITestBase {
                                     TARGET_ID, TEST_RECORDING_NAME))
                     .send(
                             ar -> {
-                                if (ar.failed()) {
-                                    deleteRespFuture.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, deleteRespFuture)) {
+                                    deleteRespFuture.complete(null);
                                 }
-                                HttpResponse<Buffer> result = ar.result();
-                                if (!HttpStatusCodeIdentifier.isSuccessCode(result.statusCode())) {
-                                    deleteRespFuture.completeExceptionally(
-                                            new Exception(result.statusMessage()));
-                                    return;
-                                }
-                                deleteRespFuture.complete(null);
                             });
             deleteRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
@@ -281,11 +243,9 @@ public class RecordingWorkflowIT extends ITestBase {
                     .get("/api/v1/recordings")
                     .send(
                             ar -> {
-                                if (ar.failed()) {
-                                    savedRecordingsFuture.completeExceptionally(ar.cause());
-                                    return;
+                                if (assertRequestStatus(ar, savedRecordingsFuture)) {
+                                    savedRecordingsFuture.complete(ar.result().bodyAsJsonArray());
                                 }
-                                savedRecordingsFuture.complete(ar.result().bodyAsJsonArray());
                             });
             savedRecordingsFuture
                     .get()
