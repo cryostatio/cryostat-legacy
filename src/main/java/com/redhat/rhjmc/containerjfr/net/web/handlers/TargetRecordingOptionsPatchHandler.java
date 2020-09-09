@@ -59,6 +59,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -94,11 +95,29 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
+        MultiMap attrs = ctx.request().formAttributes();
+        if (attrs.contains("toDisk")) {
+            try {
+                Boolean.parseBoolean(attrs.get("toDisk"));
+            } catch (Exception e) {
+                throw new HttpStatusException(400, "Invalid options");
+            }
+        }
+        Arrays.asList("maxAge", "maxSize")
+                .forEach(
+                        key -> {
+                            if (attrs.contains(key)) {
+                                try {
+                                    Long.parseLong(attrs.get(key));
+                                } catch (Exception e) {
+                                    throw new HttpStatusException(400, "Invalid options");
+                                }
+                            }
+                        });
         Map<String, String> updatedMap =
                 connectionManager.executeConnectedTask(
                         getConnectionDescriptorFromContext(ctx),
                         connection -> {
-                            MultiMap attrs = ctx.request().formAttributes();
                             Arrays.asList("toDisk", "maxAge", "maxSize")
                                     .forEach(
                                             key -> {
