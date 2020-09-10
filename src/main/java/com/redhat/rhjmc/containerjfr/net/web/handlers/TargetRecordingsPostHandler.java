@@ -163,6 +163,13 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                             Long.parseLong(attrs.get("duration"))));
                                 }
                                 if (attrs.contains("toDisk")) {
+                                    Pattern bool = Pattern.compile("true|false");
+                                    Matcher m = bool.matcher(attrs.get("toDisk"));
+                                    if (!m.find())
+                                        throw new NumberFormatException(
+                                                String.format(
+                                                        "could not parse %s to boolean",
+                                                        attrs.get("toDisk")));
                                     builder = builder.toDisk(Boolean.valueOf(attrs.get("toDisk")));
                                 }
                                 if (attrs.contains("maxAge")) {
@@ -212,7 +219,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                     });
         } catch (NumberFormatException nfe) {
             throw new HttpStatusException(
-                    400, String.format("Recording duration invalid: %s", nfe.getMessage()), nfe);
+                    400, String.format("Invalid argument: %s", nfe.getMessage()), nfe);
         } catch (IllegalArgumentException iae) {
             throw new HttpStatusException(400, iae.getMessage(), iae);
         }

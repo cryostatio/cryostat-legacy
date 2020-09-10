@@ -42,12 +42,16 @@
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.Map;
+import java.util.stream.Stream;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -74,6 +78,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingOptionsPatchHandlerTest {
@@ -148,5 +153,26 @@ class TargetRecordingOptionsPatchHandlerTest {
             var key = OptionKey.fromOptionName(entry.getKey());
             Mockito.verify(customizer).set(key.get(), entry.getValue());
         }
+    }
+
+    @ParameterizedTest
+    @MethodSource("getRequestMaps")
+    void shouldThrowInvalidOptionException(Map<String, String> defaultValues) throws Exception {
+        MultiMap requestAttrs = MultiMap.caseInsensitiveMultiMap();
+        requestAttrs.addAll(defaultValues);
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.formAttributes()).thenReturn(requestAttrs);
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+    }
+
+    private static Stream<Map<String, String>> getRequestMaps() {
+        return Stream.of(
+                Map.of("toDisk", "5"), Map.of("maxAge", "true"), Map.of("maxSize", "false"));
     }
 }
