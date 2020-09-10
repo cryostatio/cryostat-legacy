@@ -173,6 +173,18 @@ class TargetRecordingOptionsPatchHandlerTest {
 
     private static Stream<Map<String, String>> getRequestMaps() {
         return Stream.of(
-                Map.of("toDisk", "5"), Map.of("maxAge", "true"), Map.of("maxSize", "false"));
+                Map.of("toDisk", null),
+                Map.of("toDisk", ""),
+                Map.of("toDisk", "5"),
+                Map.of("toDisk", "T"),
+                Map.of("toDisk", "false1"),
+                Map.of("maxAge", null),
+                Map.of("maxAge", ""),
+                Map.of("maxAge", "true"),
+                Map.of("maxAge", "1e3"),
+                Map.of("maxAge", "5s"),
+                Map.of("maxSize", ""),
+                Map.of("maxSize", "0.5"),
+                Map.of("maxSize", "s1"));
     }
 }

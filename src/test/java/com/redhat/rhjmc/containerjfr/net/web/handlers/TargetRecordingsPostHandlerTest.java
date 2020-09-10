@@ -44,8 +44,10 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -53,6 +55,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -275,5 +279,52 @@ class TargetRecordingsPostHandlerTest {
         Mockito.lenient().when(descriptor.getMaxSize()).thenReturn(zeroQuantity);
         Mockito.lenient().when(descriptor.getMaxAge()).thenReturn(zeroQuantity);
         return descriptor;
+    }
+
+    @ParameterizedTest
+    @MethodSource("getRequestMaps")
+    void shouldThrowInvalidOptionException(Map<String, String> requestValues) throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        IRecordingDescriptor existingRecording = createDescriptor("someRecording");
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        Mockito.when(connection.getService()).thenReturn(service);
+
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        attrs.addAll(requestValues);
+        attrs.add("recordingName", "someRecording");
+        attrs.add("events", "foo.Bar:enabled=true");
+        Mockito.when(req.formAttributes()).thenReturn(attrs);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+    }
+
+    private static Stream<Map<String, String>> getRequestMaps() {
+        return Stream.of(
+                Map.of("duration", null),
+                Map.of("duration", ""),
+                Map.of("duration", "t"),
+                Map.of("duration", "90s"),
+                Map.of("toDisk", null),
+                Map.of("toDisk", ""),
+                Map.of("toDisk", "5"),
+                Map.of("toDisk", "T"),
+                Map.of("toDisk", "false1"),
+                Map.of("maxAge", null),
+                Map.of("maxAge", ""),
+                Map.of("maxAge", "true"),
+                Map.of("maxAge", "1e3"),
+                Map.of("maxAge", "5s"),
+                Map.of("maxSize", ""),
+                Map.of("maxSize", "0.5"),
+                Map.of("maxSize", "s1"));
     }
 }
