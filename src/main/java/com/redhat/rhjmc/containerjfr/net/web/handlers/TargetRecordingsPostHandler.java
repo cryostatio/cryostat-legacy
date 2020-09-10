@@ -166,10 +166,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                     Pattern bool = Pattern.compile("true|false");
                                     Matcher m = bool.matcher(attrs.get("toDisk"));
                                     if (!m.find())
-                                        throw new NumberFormatException(
-                                                String.format(
-                                                        "could not parse %s to boolean",
-                                                        attrs.get("toDisk")));
+                                        throw new HttpStatusException(400, "Invalid options");
                                     builder = builder.toDisk(Boolean.valueOf(attrs.get("toDisk")));
                                 }
                                 if (attrs.contains("maxAge")) {
