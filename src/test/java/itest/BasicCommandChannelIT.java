@@ -44,6 +44,7 @@ package itest;
 import java.net.InetAddress;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
@@ -90,20 +91,42 @@ public class BasicCommandChannelIT extends ITestBase {
 
     @Test
     public void shouldGetScanTargetsResponse() throws Exception {
-        JsonObject resp =
-                sendMessage("scan-targets").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertResponseStatus(resp);
-        Thread.sleep(10000);
-        resp = sendMessage("scan-targets").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertResponseStatus(resp);
-        JsonArray targets = resp.getJsonArray("payload");
-        JsonObject selfRef =
-                new JsonObject(
-                        Map.of(
-                                "connectUrl",
-                                "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi",
-                                "alias",
-                                "com.redhat.rhjmc.containerjfr.ContainerJfr"));
-        MatcherAssert.assertThat(targets, Matchers.equalTo(new JsonArray(List.of(selfRef))));
+        CompletableFuture<Boolean> f1 = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/targets")
+                .send(
+                        ar -> {
+                            // first request is just to "prime" the JDP discovery
+                            if (ar.failed()) {
+                                f1.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            f1.complete(ar.succeeded());
+                        });
+        Assertions.assertTrue(f1.get(10, TimeUnit.SECONDS));
+        Thread.sleep(10_000);
+
+        CompletableFuture<Boolean> f2 = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/targets")
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                f2.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            JsonArray targets = ar.result().bodyAsJsonArray();
+                            JsonObject selfRef =
+                                    new JsonObject(
+                                            Map.of(
+                                                    "connectUrl",
+                                                    "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi",
+                                                    "alias",
+                                                    "com.redhat.rhjmc.containerjfr.ContainerJfr"));
+                            MatcherAssert.assertThat(
+                                    targets, Matchers.equalTo(new JsonArray(List.of(selfRef))));
+                            f2.complete(ar.succeeded());
+                        });
+        Assertions.assertTrue(f2.get(10, TimeUnit.SECONDS));
     }
 }

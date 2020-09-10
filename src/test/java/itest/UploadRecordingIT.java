@@ -41,12 +41,18 @@
  */
 package itest;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpResponse;
 
 public class UploadRecordingIT extends ITestBase {
 
@@ -55,16 +61,37 @@ public class UploadRecordingIT extends ITestBase {
 
     @BeforeAll
     public static void createRecording() throws Exception {
-        JsonObject resp =
-                sendMessage("dump", TARGET_ID, RECORDING_NAME, "5", "template=ALL")
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        CompletableFuture<JsonObject> dumpRespFuture = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", RECORDING_NAME);
+        form.add("duration", "5");
+        form.add("events", "template=ALL");
+        webClient
+                .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, dumpRespFuture)) {
+                                dumpRespFuture.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @AfterAll
     public static void deleteRecording() throws Exception {
-        JsonObject resp =
-                sendMessage("delete", TARGET_ID, RECORDING_NAME)
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
+        webClient
+                .delete(
+                        String.format(
+                                "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, deleteRespFuture)) {
+                                deleteRespFuture.complete(null);
+                            }
+                        });
+        deleteRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     /* Since no other integration test currently tests upload-recording,
@@ -72,9 +99,22 @@ public class UploadRecordingIT extends ITestBase {
      */
     @Test
     public void shouldHandleBadDatasourceUrl() throws Exception {
-        JsonObject resp =
-                sendMessage("upload-recording", TARGET_ID, RECORDING_NAME)
-                        .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertResponseStatus(resp, -2);
+        CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
+        webClient
+                .post(
+                        String.format(
+                                "/api/v1/targets/%s/recordings/%s/upload",
+                                TARGET_ID, RECORDING_NAME))
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                uploadRespFuture.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            HttpResponse<Buffer> result = ar.result();
+                            uploadRespFuture.complete(result.statusCode());
+                        });
+        int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(statusCode, Matchers.equalTo(500));
     }
 }

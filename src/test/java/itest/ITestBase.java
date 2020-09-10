@@ -54,6 +54,10 @@ import java.util.concurrent.TimeoutException;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+
+import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
+
+import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.WebSocket;
@@ -117,6 +121,20 @@ public abstract class ITestBase {
 
     static void assertResponseStatus(JsonObject response, int status) {
         MatcherAssert.assertThat(response.getInteger("status"), Matchers.equalTo(status));
+    }
+
+    static boolean assertRequestStatus(
+            AsyncResult<HttpResponse<Buffer>> result, CompletableFuture<?> future) {
+        if (result.failed()) {
+            future.completeExceptionally(result.cause());
+            return false;
+        }
+        HttpResponse<Buffer> response = result.result();
+        if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode())) {
+            future.completeExceptionally(new Exception(response.statusMessage()));
+            return false;
+        }
+        return true;
     }
 
     private static Future<String> getClientUrl() {

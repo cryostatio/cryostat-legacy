@@ -42,14 +42,15 @@
 package itest;
 
 import java.nio.file.Path;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
@@ -61,29 +62,53 @@ public class RecordingWorkflowIT extends ITestBase {
     @Test
     public void testWorkflow() throws Exception {
         // Check preconditions
-        JsonObject listResp =
-                sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertResponseStatus(listResp);
-        MatcherAssert.assertThat(
-                listResp.getJsonArray("payload"), Matchers.equalTo(new JsonArray(List.of())));
+        CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFuture1)) {
+                                listRespFuture1.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assertions.assertTrue(listResp.isEmpty());
 
         try {
             // create an in-memory recording
-            JsonObject dumpResp =
-                    sendMessage("dump", TARGET_ID, TEST_RECORDING_NAME, "5", "template=ALL")
-                            .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            assertResponseStatus(dumpResp);
+            CompletableFuture<Void> dumpRespFuture = new CompletableFuture<>();
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.add("recordingName", TEST_RECORDING_NAME);
+            form.add("duration", "5");
+            form.add("events", "template=ALL");
+            webClient
+                    .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .sendForm(
+                            form,
+                            ar -> {
+                                if (assertRequestStatus(ar, dumpRespFuture)) {
+                                    dumpRespFuture.complete(null);
+                                }
+                            });
+            dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             // verify in-memory recording created
-            listResp =
-                    sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            assertResponseStatus(listResp);
-            JsonArray recordingInfos = listResp.getJsonArray("payload");
+            CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture2)) {
+                                    listRespFuture2.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            listResp = listRespFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
             MatcherAssert.assertThat(
                     "list should have size 1 after recording creation",
-                    recordingInfos.size(),
+                    listResp.size(),
                     Matchers.equalTo(1));
-            JsonObject recordingInfo = recordingInfos.getJsonObject(0);
+            JsonObject recordingInfo = listResp.getJsonObject(0);
             MatcherAssert.assertThat(
                     recordingInfo.getString("name"), Matchers.equalTo(TEST_RECORDING_NAME));
             MatcherAssert.assertThat(recordingInfo.getString("state"), Matchers.equalTo("RUNNING"));
@@ -91,34 +116,59 @@ public class RecordingWorkflowIT extends ITestBase {
             Thread.sleep(2_000L); // wait some time to save a portion of the recording
 
             // save a copy of the partial recording dump
-            JsonObject saveResp =
-                    sendMessage("save", TARGET_ID, TEST_RECORDING_NAME)
-                            .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            assertResponseStatus(saveResp);
+            CompletableFuture<Void> saveRespFuture = new CompletableFuture<>();
+            webClient
+                    .patch(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    TARGET_ID, TEST_RECORDING_NAME))
+                    .sendBuffer(
+                            Buffer.buffer("SAVE"),
+                            ar -> {
+                                if (assertRequestStatus(ar, saveRespFuture)) {
+                                    saveRespFuture.complete(null);
+                                }
+                            });
+            saveRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
             // check that the in-memory recording list hasn't changed
-            listResp =
-                    sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            assertResponseStatus(listResp);
-            recordingInfos = listResp.getJsonArray("payload");
+            CompletableFuture<JsonArray> listRespFuture3 = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture3)) {
+                                    listRespFuture3.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            listResp = listRespFuture3.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
             MatcherAssert.assertThat(
                     "list should have size 1 after recording creation",
-                    recordingInfos.size(),
+                    listResp.size(),
                     Matchers.equalTo(1));
-            recordingInfo = recordingInfos.getJsonObject(0);
+            recordingInfo = listResp.getJsonObject(0);
             MatcherAssert.assertThat(
                     recordingInfo.getString("name"), Matchers.equalTo(TEST_RECORDING_NAME));
             MatcherAssert.assertThat(recordingInfo.getString("state"), Matchers.equalTo("RUNNING"));
 
             // verify saved recording created
-            listResp = sendMessage("list-saved").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            assertResponseStatus(listResp);
-            recordingInfos = listResp.getJsonArray("payload");
+            CompletableFuture<JsonArray> listRespFuture4 = new CompletableFuture<>();
+            webClient
+                    .get("/api/v1/recordings")
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture4)) {
+                                    listRespFuture4.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            listResp = listRespFuture4.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
             MatcherAssert.assertThat(
                     "list-saved should have size 1 after recording save",
-                    recordingInfos.size(),
+                    listResp.size(),
                     Matchers.equalTo(1));
-            recordingInfo = recordingInfos.getJsonObject(0);
+            recordingInfo = listResp.getJsonObject(0);
             MatcherAssert.assertThat(
                     recordingInfo.getString("name"),
                     Matchers.matchesRegex(
@@ -128,15 +178,21 @@ public class RecordingWorkflowIT extends ITestBase {
             Thread.sleep(3_000L); // wait for the dump to complete
 
             // verify the in-memory recording list has not changed, except recording is now stopped
-            listResp =
-                    sendMessage("list", TARGET_ID).get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            assertResponseStatus(listResp);
-            recordingInfos = listResp.getJsonArray("payload");
+            CompletableFuture<JsonArray> listRespFuture5 = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture5)) {
+                                    listRespFuture5.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            listResp = listRespFuture5.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             MatcherAssert.assertThat(
                     "list should have size 1 after wait period",
-                    recordingInfos.size(),
+                    listResp.size(),
                     Matchers.equalTo(1));
-            recordingInfo = recordingInfos.getJsonObject(0);
+            recordingInfo = listResp.getJsonObject(0);
             MatcherAssert.assertThat(
                     recordingInfo.getString("name"), Matchers.equalTo(TEST_RECORDING_NAME));
             MatcherAssert.assertThat(recordingInfo.getString("state"), Matchers.equalTo("STOPPED"));
@@ -168,28 +224,54 @@ public class RecordingWorkflowIT extends ITestBase {
             MatcherAssert.assertThat(reportPath.toFile().length(), Matchers.greaterThan(0L));
         } finally {
             // Clean up what we created
-            sendMessage("delete", TARGET_ID, TEST_RECORDING_NAME)
-                    .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            JsonObject savedResp =
-                    sendMessage("list-saved").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            JsonArray savedRecordings = savedResp.getJsonArray("payload");
-            savedRecordings.forEach(
-                    rec -> {
-                        String savedRecordingName = ((JsonObject) rec).getString("name");
-                        if (!savedRecordingName.matches(
-                                TARGET_ID
-                                        + "_"
-                                        + TEST_RECORDING_NAME
-                                        + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
-                            return;
-                        }
-                        try {
-                            sendMessage("delete-saved", savedRecordingName)
-                                    .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-                        } catch (InterruptedException | ExecutionException | TimeoutException e) {
-                            e.printStackTrace();
-                        }
-                    });
+            CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    TARGET_ID, TEST_RECORDING_NAME))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteRespFuture)) {
+                                    deleteRespFuture.complete(null);
+                                }
+                            });
+            deleteRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            CompletableFuture<JsonArray> savedRecordingsFuture = new CompletableFuture<>();
+            webClient
+                    .get("/api/v1/recordings")
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, savedRecordingsFuture)) {
+                                    savedRecordingsFuture.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            savedRecordingsFuture
+                    .get()
+                    .forEach(
+                            rec -> {
+                                String savedRecordingName = ((JsonObject) rec).getString("name");
+                                if (!savedRecordingName.matches(
+                                        TARGET_ID
+                                                + "_"
+                                                + TEST_RECORDING_NAME
+                                                + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
+                                    return;
+                                }
+
+                                webClient
+                                        .delete(
+                                                String.format(
+                                                        "/api/v1/recordings/%s",
+                                                        savedRecordingName))
+                                        .send(
+                                                ar -> {
+                                                    if (ar.failed()) {
+                                                        ar.cause().printStackTrace();
+                                                    }
+                                                });
+                            });
         }
     }
 }
