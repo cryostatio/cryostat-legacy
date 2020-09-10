@@ -98,47 +98,56 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         Pattern bool = Pattern.compile("true|false");
-        MultiMap attrs = ctx.request().formAttributes();
-        if (attrs.contains("toDisk")) {
-            Matcher m = bool.matcher(attrs.get("toDisk"));
-            if (!m.find()) throw new HttpStatusException(400, "Invalid options");
-        }
-        Arrays.asList("maxAge", "maxSize")
-                .forEach(
-                        key -> {
-                            if (attrs.contains(key)) {
-                                try {
-                                    Long.parseLong(attrs.get(key));
-                                } catch (Exception e) {
-                                    throw new HttpStatusException(400, "Invalid options");
+        try {
+            Map<String, String> updatedMap =
+                    connectionManager.executeConnectedTask(
+                            getConnectionDescriptorFromContext(ctx),
+                            connection -> {
+                                MultiMap attrs = ctx.request().formAttributes();
+                                if (attrs.contains("toDisk")) {
+                                    Matcher m = bool.matcher(attrs.get("toDisk"));
+                                    if (!m.find()) {
+                                        throw new NumberFormatException(
+                                                String.format(
+                                                        "could not parse %s to boolean",
+                                                        attrs.get("toDisk")));
+                                    } else {
+                                        OptionKey.fromOptionName("toDisk")
+                                                .ifPresent(
+                                                        optionKey ->
+                                                                customizer.set(
+                                                                        optionKey,
+                                                                        attrs.get("toDisk")));
+                                    }
                                 }
-                            }
-                        });
-        Map<String, String> updatedMap =
-                connectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromContext(ctx),
-                        connection -> {
-                            Arrays.asList("toDisk", "maxAge", "maxSize")
-                                    .forEach(
-                                            key -> {
-                                                if (attrs.contains(key)) {
-                                                    OptionKey.fromOptionName(key)
-                                                            .ifPresent(
-                                                                    optionKey ->
-                                                                            customizer.set(
-                                                                                    optionKey,
-                                                                                    attrs.get(
-                                                                                            key)));
-                                                }
-                                            });
+                                Arrays.asList("maxAge", "maxSize")
+                                        .forEach(
+                                                key -> {
+                                                    if (attrs.contains(key)) {
+                                                        String value =
+                                                                Long.toString(
+                                                                        Long.parseLong(
+                                                                                attrs.get(key)));
+                                                        OptionKey.fromOptionName(key)
+                                                                .ifPresent(
+                                                                        optionKey ->
+                                                                                customizer.set(
+                                                                                        optionKey,
+                                                                                        value));
+                                                    }
+                                                });
 
-                            RecordingOptionsBuilder builder =
-                                    recordingOptionsBuilderFactory.create(connection.getService());
-                            return TargetRecordingOptionsGetHandler.getRecordingOptions(
-                                    connection.getService(), builder);
-                        });
-
-        ctx.response().setStatusCode(200);
-        ctx.response().end(gson.toJson(updatedMap));
+                                RecordingOptionsBuilder builder =
+                                        recordingOptionsBuilderFactory.create(
+                                                connection.getService());
+                                return TargetRecordingOptionsGetHandler.getRecordingOptions(
+                                        connection.getService(), builder);
+                            });
+            ctx.response().setStatusCode(200);
+            ctx.response().end(gson.toJson(updatedMap));
+        } catch (NumberFormatException nfe) {
+            throw new HttpStatusException(
+                    400, String.format("Invalid argument: %s", nfe.getMessage()), nfe);
+        }
     }
 }
