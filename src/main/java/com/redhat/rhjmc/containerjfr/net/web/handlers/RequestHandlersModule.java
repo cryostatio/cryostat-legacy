@@ -210,4 +210,19 @@ public abstract class RequestHandlersModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingOptionsPatchBodyHandler(
+            TargetRecordingOptionsPatchBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingOptionsPatchHandler(
+            TargetRecordingOptionsPatchHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecoringOptionsGetHandler(
+            TargetRecordingOptionsGetHandler handler);
 }

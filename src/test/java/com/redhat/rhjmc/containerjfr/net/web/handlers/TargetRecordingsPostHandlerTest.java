@@ -44,7 +44,10 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -52,6 +55,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -143,6 +148,12 @@ class TargetRecordingsPostHandlerTest {
                 .thenReturn(recordingOptionsBuilder);
         Mockito.when(recordingOptionsBuilder.duration(Mockito.anyLong()))
                 .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.toDisk(Mockito.anyBoolean()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxAge(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.maxSize(Mockito.anyLong()))
+                .thenReturn(recordingOptionsBuilder);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
         EventOptionsBuilder builder = Mockito.mock(EventOptionsBuilder.class);
         Mockito.when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
@@ -170,6 +181,9 @@ class TargetRecordingsPostHandlerTest {
         attrs.add("recordingName", "someRecording");
         attrs.add("events", "foo.Bar:enabled=true");
         attrs.add("duration", "10");
+        attrs.add("toDisk", "true");
+        attrs.add("maxAge", "50");
+        attrs.add("maxSize", "64");
         Mockito.when(ctx.response()).thenReturn(resp);
 
         handler.handle(ctx);
@@ -182,19 +196,25 @@ class TargetRecordingsPostHandlerTest {
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
 
         ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
+        ArgumentCaptor<Long> durationCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Boolean> toDiskCaptor = ArgumentCaptor.forClass(Boolean.class);
+        ArgumentCaptor<Long> maxAgeCaptor = ArgumentCaptor.forClass(Long.class);
+        ArgumentCaptor<Long> maxSizeCaptor = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
-        Mockito.verify(recordingOptionsBuilder).name(nameCaptor.capture());
+        Mockito.verify(recordingOptionsBuilder).name("someRecording");
+        Mockito.verify(recordingOptionsBuilder).duration(TimeUnit.SECONDS.toMillis(10));
+        Mockito.verify(recordingOptionsBuilder).toDisk(true);
+        Mockito.verify(recordingOptionsBuilder).maxAge(50L);
+        Mockito.verify(recordingOptionsBuilder).maxSize(64L);
         Mockito.verify(service, Mockito.atLeastOnce()).getAvailableRecordings();
         Mockito.verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
 
-        String actualName = nameCaptor.getValue();
         IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
         IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
 
-        MatcherAssert.assertThat(actualName, Matchers.equalTo("someRecording"));
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
         ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
@@ -259,5 +279,52 @@ class TargetRecordingsPostHandlerTest {
         Mockito.lenient().when(descriptor.getMaxSize()).thenReturn(zeroQuantity);
         Mockito.lenient().when(descriptor.getMaxAge()).thenReturn(zeroQuantity);
         return descriptor;
+    }
+
+    @ParameterizedTest
+    @MethodSource("getRequestMaps")
+    void shouldThrowInvalidOptionException(Map<String, String> requestValues) throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        IRecordingDescriptor existingRecording = createDescriptor("someRecording");
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+        Mockito.when(connection.getService()).thenReturn(service);
+
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        attrs.addAll(requestValues);
+        attrs.add("recordingName", "someRecording");
+        attrs.add("events", "foo.Bar:enabled=true");
+        Mockito.when(req.formAttributes()).thenReturn(attrs);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+    }
+
+    private static Stream<Map<String, String>> getRequestMaps() {
+        return Stream.of(
+                Map.of("duration", null),
+                Map.of("duration", ""),
+                Map.of("duration", "t"),
+                Map.of("duration", "90s"),
+                Map.of("toDisk", null),
+                Map.of("toDisk", ""),
+                Map.of("toDisk", "5"),
+                Map.of("toDisk", "T"),
+                Map.of("toDisk", "false1"),
+                Map.of("maxAge", null),
+                Map.of("maxAge", ""),
+                Map.of("maxAge", "true"),
+                Map.of("maxAge", "1e3"),
+                Map.of("maxAge", "5s"),
+                Map.of("maxSize", ""),
+                Map.of("maxSize", "0.5"),
+                Map.of("maxSize", "s1"));
     }
 }

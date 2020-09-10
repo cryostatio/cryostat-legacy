@@ -162,6 +162,19 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                     TimeUnit.SECONDS.toMillis(
                                                             Long.parseLong(attrs.get("duration"))));
                                 }
+                                if (attrs.contains("toDisk")) {
+                                    Pattern bool = Pattern.compile("true|false");
+                                    Matcher m = bool.matcher(attrs.get("toDisk"));
+                                    if (!m.find())
+                                        throw new HttpStatusException(400, "Invalid options");
+                                    builder = builder.toDisk(Boolean.valueOf(attrs.get("toDisk")));
+                                }
+                                if (attrs.contains("maxAge")) {
+                                    builder = builder.maxAge(Long.parseLong(attrs.get("maxAge")));
+                                }
+                                if (attrs.contains("maxSize")) {
+                                    builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
+                                }
                                 IConstrainedMap<String> recordingOptions = builder.build();
                                 connection
                                         .getService()
@@ -203,7 +216,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                     });
         } catch (NumberFormatException nfe) {
             throw new HttpStatusException(
-                    400, String.format("Recording duration invalid: %s", nfe.getMessage()), nfe);
+                    400, String.format("Invalid argument: %s", nfe.getMessage()), nfe);
         } catch (IllegalArgumentException iae) {
             throw new HttpStatusException(400, iae.getMessage(), iae);
         }
