@@ -53,6 +53,8 @@ import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import org.apache.commons.validator.routines.UrlValidator;
+
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -73,6 +75,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     private final WebClient webClient;
     private final FileSystem fs;
     private final Path savedRecordingsPath;
+    private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
 
     @Inject
     RecordingUploadPostHandler(
@@ -107,8 +110,16 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         try {
-            URL uploadUrl = new URL(env.getEnv("GRAFANA_DATASOURCE_URL"));
-            // TODO validate URL before POST attempt
+            URL uploadUrl = new URL(env.getEnv(GRAFANA_DATASOURCE_ENV));
+            boolean isValidUploadUrl =
+                    new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
+            if (!isValidUploadUrl) {
+                throw new HttpStatusException(
+                        501,
+                        String.format(
+                                "$%s=%s is an invalid datasource URL",
+                                GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
+            }
             ResponseMessage response = doPost(recordingName, uploadUrl);
             if (!isSuccessCode(response.statusCode)
                     || response.statusMessage == null
