@@ -52,12 +52,23 @@
     `POST /api/v1/auth`
 
     The request should include an `Authorization` header to be checked.
+    The format of this header depends on the auth manager used.
+    Token-based auth managers expect `Authorization: Bearer TOKEN`,
+    while basic credentials-based auth managers expect
+    `Authorization: Basic ${base64(user:pass)}`.
+    The `NoopAuthManager` accepts all authentication requests,
+    regardless of the existence or contents of any
+    `Authorization` header.
+    For more details, see
+    [`README.md`](https://github.com/rh-jmc-team/container-jfr#user-authentication--authorization)).
 
     ###### response
-    `200` - No body. Getting this response means that the header is valid.
+    `200` - No body. Getting this response means that the header is valid
+    and that the user has been successfully authenticated.
 
     `401` - User authentication failed. The body is an error message.
-    Getting this response means that the header is invalid.
+    Getting this response means that the header has an invalid format
+    or the user has not been successfully authenticated.
 
     `500` - There was an unexpected error. The body is an error message.
 
