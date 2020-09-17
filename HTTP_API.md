@@ -228,6 +228,8 @@
     `401` - User authentication failed. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -281,6 +283,8 @@
     `404` - The recording could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - The recording was found but it could not be deleted.
     Or there was an unexpected error. The body is an error message.
@@ -310,6 +314,8 @@
     `404` - The recording could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - The recording was found but it could not be written to the response.
     Or there was an unexpected error. The body is an error message.
@@ -345,6 +351,8 @@
     `401` - User authentication failed. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -383,6 +391,8 @@
     `401` - User authentication failed. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -417,6 +427,8 @@
     `404` - The recording could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -453,6 +465,8 @@
     `404` - The report could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -493,6 +507,8 @@
     `404` - The target could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -529,6 +545,8 @@
     The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -560,6 +578,8 @@
     The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - The recording was found but it could not be written to the
     response. Or there was an unexpected error. The body is an error message.
@@ -608,6 +628,8 @@
     The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -659,6 +681,8 @@
     `404` - The target could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -708,6 +732,8 @@
     `404` - The target could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -743,6 +769,8 @@
     The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -783,6 +811,8 @@
     The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -816,6 +846,8 @@
     `404` - The target could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -850,6 +882,8 @@
     The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -889,6 +923,8 @@
     `404` - The target could not be found. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -920,6 +956,8 @@
     `401` - User authentication failed. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - `CONTAINER_JFR_TEMPLATE_PATH` is not set,
     or it is set to an invalid path, or there was an unexpected error.
@@ -952,6 +990,8 @@
     `401` - User authentication failed. The body is an error message.
 
     `407` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `500` - `CONTAINER_JFR_TEMPLATE_PATH` is not set,
     or it is set to an invalid path, or there was an unexpected error.
