@@ -86,7 +86,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
             Throwable cause = e.getCause();
             if (cause instanceof SecurityException) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(407, e);
+                throw new HttpStatusException(427, e);
             }
             throw new HttpStatusException(404, e);
         } catch (Exception e) {
@@ -107,13 +107,13 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
             if (!m.find()) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                 throw new HttpStatusException(
-                        407, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
+                        427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
             } else {
                 String t = m.group("type");
                 if (!"basic".equals(t.toLowerCase())) {
                     ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                     throw new HttpStatusException(
-                            407, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
+                            427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
                 } else {
                     String c;
                     try {
@@ -124,7 +124,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                     } catch (IllegalArgumentException iae) {
                         ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new HttpStatusException(
-                                407,
+                                427,
                                 JMX_AUTHORIZATION_HEADER
                                         + " credentials do not appear to be Base64-encoded",
                                 iae);
@@ -133,7 +133,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                     if (parts.length != 2) {
                         ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new HttpStatusException(
-                                407,
+                                427,
                                 "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
                     }
                     credentials = new Credentials(parts[0], parts[1]);
