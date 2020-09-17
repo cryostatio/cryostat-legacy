@@ -215,15 +215,10 @@
     `GET /api/v1/targets`
 
     ###### response
-    `200` - The body consists of a comma-seperated list of targets,
-    enclosed in square brackets.
+    `200` - The body is a JSON array of target objects.
 
     The format for a target is
     `{"connectUrl":"$CONNECT_URL","alias":"$ALIAS"}`.
-
-    So a list with no recordings looks like `[]`,
-    a list with one recording looks like `[{...}]`,
-    and a list with two recordings looks like `[{...},{...}]`.
 
     `401` - User authentication failed. The body is an error message.
 
@@ -338,15 +333,10 @@
     `GET /api/v1/recordings`
 
     ###### response
-    `200` - The body consists of a comma-seperated list of recordings,
-    enclosed in square brackets.
+    `200` - The body is a JSON array of recording objects.
 
     The format for a recording is
     `{"downloadUrl":"$DOWNLOAD_URL","name":"$NAME","reportUrl":"$REPORT_URL"}`.
-
-    So a list with no recordings looks like `[]`,
-    a list with one recording looks like `[{...}]`,
-    and a list with two recordings looks like `[{...},{...}]`.
 
     `401` - User authentication failed. The body is an error message.
 
@@ -491,16 +481,11 @@
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
 
     ###### response
-    `200` - The body consists of a comma-seperated list of event types,
-    enclosed in square brackets.
+    `200` - The body is a JSON array of event type objects.
 
     The format for an event type is
     `{"name":"$NAME","typeId":"$TYPE_ID","description":"$DESCRIPTION",
     "category":[$CATEGORIES],"options":{$OPTIONS}}`
-
-    So a list with no events looks like `[]`,
-    a list with one event looks like `[{...}]`,
-    and a list with two events looks like `[{...},{...}]`.
 
     `401` - User authentication failed. The body is an error message.
 
@@ -666,15 +651,10 @@
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
 
     ###### response
-    `200` - The body consists of a comma-seperated list of recordings,
-    enclosed in square brackets.
+    `200` - The body is a JSON array of recording objects.
 
     The format for a recording is
     `{"downloadUrl":"$DOWNLOAD_URL","name":"$NAME","reportUrl":"$REPORT_URL"}`.
-
-    So a list with no recordings looks like `[]`,
-    a list with one recording looks like `[{...}]`,
-    and a list with two recordings looks like `[{...},{...}]`.
 
     `401` - User authentication failed. The body is an error message.
 
@@ -908,15 +888,10 @@
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
 
     ###### response
-    `200` - The body consists of a comma-seperated list of templates,
-    enclosed in square brackets.
+    `200` - The body is a JSON array of template objects.
 
     The format for a template is
     `{"name":"$NAME","description":"$DESCRIPTION","provider":"$PROVIDER","type":"$TYPE"}`.
-
-    So a list with no templates looks like `[]`,
-    a list with one template looks like `[{...}]`,
-    and a list with two templates looks like `[{...},{...}]`.
 
     `401` - User authentication failed. The body is an error message.
 
