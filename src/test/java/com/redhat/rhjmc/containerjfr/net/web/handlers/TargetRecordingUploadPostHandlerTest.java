@@ -124,7 +124,17 @@ class TargetRecordingUploadPostHandlerTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = {"notaurl", "almost:/valid", "*notok"})
+    @ValueSource(
+            strings = {
+                "notaurl",
+                "almost:/valid",
+                "*notok",
+                "localhost:",
+                "localhost:abc",
+                "localhost::9091",
+                "http:///localhost:9091",
+                "http:://localhost:9091"
+            })
     @NullAndEmptySource
     void shouldThrow501IfDatasourceUrlMalformed(String rawUrl) {
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
