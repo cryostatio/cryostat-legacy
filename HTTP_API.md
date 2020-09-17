@@ -45,7 +45,7 @@
 * #### `AuthPostHandler`
 
     ###### synopsis
-    Attempts user authenticaiton;
+    Attempts user authentication;
     used as a simple way to check a user authentication header.
 
     ###### request
@@ -138,7 +138,7 @@
 * #### `HealthGetHandler`
 
     ###### synopsis
-    Returns whether or not the Grafana datasource and Grafana dashbaord
+    Returns whether or not the Grafana datasource and Grafana dashboard
     that Container JFR is configured with are running properly.
 
     ###### request
