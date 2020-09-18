@@ -827,7 +827,7 @@
 
     ###### example
     ```
-    [vma@victor-work ~]$ curl localhost:8181/api/v1/targets/localhost/reports/foo --output report.html
+    $ curl localhost:8181/api/v1/targets/localhost/reports/foo --output report.html
       % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                      Dload  Upload   Total   Spent    Left  Speed
     100  118k  100  118k    0     0   109k      0  0:00:01  0:00:01 --:--:--  109k
@@ -935,7 +935,7 @@
     ###### example
     ```
     $ curl localhost:8181/api/v1/targets/localhost/templates
-    [{"name":"Profiling","description":"Low overhead configuration for profiling, typically around 2 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"Continuous","description":"Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"ALL","description":"Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.","provider":"ContainerJFR","type":"TARGET"}][vma@victor-work ~]
+    [{"name":"Profiling","description":"Low overhead configuration for profiling, typically around 2 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"Continuous","description":"Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"ALL","description":"Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.","provider":"ContainerJFR","type":"TARGET"}]
     ```
 
 
