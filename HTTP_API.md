@@ -151,6 +151,8 @@
     ###### synopsis
     Returns whether or not the Grafana datasource and Grafana dashboard
     that Container JFR is configured with are running properly.
+    Can also be used to see if Container JFR itself is running properly,
+    by checking for a valid response.
 
     ###### request
     `GET /health`
