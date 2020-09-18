@@ -477,7 +477,7 @@
     `recordingName` - The name of the recording to get the report for.
 
     ###### response
-    `200` - The body is the requested report.
+    `200` - The body is the requested report, as an HTML document.
 
     `401` - User authentication failed. The body is an error message.
 
@@ -812,7 +812,7 @@
     `recordingName` - The name of the recording to get the report for.
 
     ###### response
-    `200` - The body is the requested report.
+    `200` - The body is the requested report, as an HTML document.
 
     `401` - User authentication failed. The body is an error message.
 
@@ -883,7 +883,7 @@
     `templateType` - The type of the template to get.
 
     ###### response
-    `200` - The body is the requested event template.
+    `200` - The body is the requested event template, as an XML document.
 
     `401` - User authentication failed. The body is an error message.
 
