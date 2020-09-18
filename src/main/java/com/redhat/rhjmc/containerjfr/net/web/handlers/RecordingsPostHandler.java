@@ -75,7 +75,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
-            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(.[\\d]+)?");
+            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
 
     static final String PATH = "/api/v1/recordings";
 

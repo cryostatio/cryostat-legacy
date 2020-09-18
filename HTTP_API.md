@@ -365,15 +365,44 @@
     `POST /api/v1/recordings`
 
     The recording should be uploaded in a form with the name `recording`.
-    The filename of the recording must follow the format that Container JFR
-    uses for recordings it saves itself
-    (with [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler)).
+    The filename of the recording must be in the following format, which is
+    the same format that Container JFR uses for recordings it saves itself
+    (all fields in brackets are optional):
+    ```
+    [$TARGET_NAME]_[$RECORDING_NAME]_[$DATE]T[$TIME]Z[.$COUNTER][.jfr]
+    ```
+
+    `TARGET_NAME` - The name of the target JVM (alphanumerics and hyphens allowed)
+
+    `RECORDING_NAME` - The name of the recording
+    (alphanumerics, hyphens, and underscores allowed)
+
+    `DATE` - The date of the recording (numbers allowed)
+
+    `TIME` - The time of the recording (numbers allowed)
+
+    `COUNTER` - An additional number used to avoid name collisions
+    (numbers allowed)
+
+    Formally, the required format is:
+    ```
+    ([A-Za-z\d-]*)_([A-Za-z\d-_]*)_([\d]*T[\d]*Z)(\.[\d]+)?(\.jfr)?
+    ```
 
     ###### response
     `200` - The body is `{"name":"$NAME"}`, where `$NAME` is the name of the
     recording that is now saved in persistent storage.
-    This name will be different from the uploaded recording's filename
-    if another recording with the same name already existed.
+    This name may be different from the filename of the uploaded file
+    for two reasons.
+
+    First, if there is a name collision, a counter will be added to the
+    original filename, or the existing counter will be modified,
+    and the new counter will be set to the next available number,
+    starting from `2`. A counter of `1` will be removed if there is no
+    name conflict, and modified to the next available number if there is.
+
+    And second, if the filename of the uploaded file does not include a `.jfr`
+    ending, one will be added.
 
     `400` - The recording submission is invalid. The body is an error
     message.
