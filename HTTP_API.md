@@ -29,15 +29,15 @@
 | Delete a recording in a target JVM                                        | [`TargetRecordingDeleteHandler`](#TargetRecordingDeleteHandler)         |
 | Download a recording in a target JVM                                      | [`TargetRecordingGetHandler`](#TargetRecordingGetHandler)               |
 | Download a report of a recording in a target JVM                          | [`TargetReportGetHandler`](#TargetReportGetHandler)                     |
-| Save a recording in a target JVM to persistent storage                    | [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler)           |
+| Save a recording in a target JVM to archive                               | [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler)           |
 | Upload a recording from a target JVM to the Grafana datasource            | [`TargetRecordingUploadPostHandler`](#TargetRecordingUploadPostHandler) |
-| **Recordings in persistent storage**                                      |                                                                         |
-| Get a list of recordings in persistent storage                            | [`RecordingsGetHandler`](#RecordingsGetHandler)                         |
-| Upload a recording to persistent storage                                  | [`RecordingsPostHandler`](#RecordingsPostHandler)                       |
-| Delete a recording from persistent storage                                | [`RecordingDeleteHandler`](#RecordingDeleteHandler)                     |
-| Download a recording in persistent storage                                | [`RecordingGetHandler`](#RecordingGetHandler)                           |
-| Download a report of a recording in persistent storage                    | [`ReportGetHandler`](#ReportGetHandler)                                 |
-| Upload a recording from persistent storage to the Grafana datasource      | [`RecordingUploadPostHandler`](#RecordingUploadPostHandler)             |
+| **Recordings in archive**                                                 |                                                                         |
+| Get a list of recordings in archive                                       | [`RecordingsGetHandler`](#RecordingsGetHandler)                         |
+| Upload a recording to archive                                             | [`RecordingsPostHandler`](#RecordingsPostHandler)                       |
+| Delete a recording from archive                                           | [`RecordingDeleteHandler`](#RecordingDeleteHandler)                     |
+| Download a recording in archive                                           | [`RecordingGetHandler`](#RecordingGetHandler)                           |
+| Download a report of a recording in archive                               | [`ReportGetHandler`](#ReportGetHandler)                                 |
+| Upload a recording from archive to the Grafana datasource                 | [`RecordingUploadPostHandler`](#RecordingUploadPostHandler)             |
 
 
 ### Core
@@ -262,7 +262,7 @@
 * #### `RecordingDeleteHandler`
 
     ###### synopsis
-    Deletes a recording that was saved to persistent storage.
+    Deletes a recording that was saved to archive.
     This does not affect any recordings in any target JVM's JFR buffer.
 
     ###### request
@@ -293,7 +293,7 @@
 * #### `RecordingGetHandler`
 
     ###### synopsis
-    Returns a recording that was saved to persistent storage,
+    Returns a recording that was saved to archive,
     as an octet stream.
 
     ###### request
@@ -327,7 +327,7 @@
 * #### `RecordingsGetHandler`
 
     ###### synopsis
-    Returns a list of the recordings that are saved in persistent storage.
+    Returns a list of the recordings that are saved in archive.
 
     ###### request
     `GET /api/v1/recordings`
@@ -359,7 +359,7 @@
 * #### `RecordingsPostHandler`
 
     ###### synopsis
-    Uploads a recording from the client to Container JFR's persistent storage.
+    Uploads a recording from the client to Container JFR's archive.
 
     ###### request
     `POST /api/v1/recordings`
@@ -391,7 +391,7 @@
 
     ###### response
     `200` - The body is `{"name":"$NAME"}`, where `$NAME` is the name of the
-    recording that is now saved in persistent storage.
+    recording that is now saved in archive.
     This name may be different from the filename of the uploaded file
     for two reasons.
 
@@ -428,7 +428,7 @@
 * #### `RecordingUploadPostHandler`
 
     ###### synopsis
-    Uploads a recording that was saved to persistent storage to
+    Uploads a recording that was saved to archive to
     the Grafana datasource that Container JFR is configured with
     (determined by the environment variable `GRAFANA_DATASOURCE_URL`).
 
@@ -469,7 +469,7 @@
 * #### `ReportGetHandler`
 
     ###### synopsis
-    Returns the report of a recording that was saved to persistent storage.
+    Returns the report of a recording that was saved to archive.
 
     ###### request
     `GET /api/v1/reports/:recordingName`
@@ -615,7 +615,7 @@
 
     **SAVE**
 
-    Saves a recording in a target JVM to persistent storage.
+    Saves a recording in a target JVM to archive.
     The default directory used is `/flghtrecordings`, but the environment
     variable `CONTAINER_JFR_ARCHIVE_PATH` can be used to specify a different
     path.
