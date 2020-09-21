@@ -275,6 +275,7 @@
     `DELETE /api/v1/recordings/:recordingName`
 
     `recordingName` - The name of the saved recording to delete.
+    Should use percent-encoding.
 
     ###### response
     `200` - No body.
@@ -308,6 +309,7 @@
     `GET /api/v1/recordings/:recordingName`
 
     `recordingName` - The name of the saved recording to get.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is an octet stream consisting of the requested recording.
@@ -450,6 +452,7 @@
     `POST /api/v1/recordings/:recordingName/upload`
 
     `recordingName` - The name of the saved recording to upload.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is the body of the response that Container JFR got
@@ -491,6 +494,7 @@
     `GET /api/v1/reports/:recordingName`
 
     `recordingName` - The name of the recording to get the report for.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is the requested report, as an HTML document.
@@ -526,6 +530,7 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is a JSON array of event type objects.
@@ -567,8 +572,10 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     `recordingName` - The name of the recording to delete.
+    Should use percent-encoding.
 
     ###### response
     `200` - No body.
@@ -602,8 +609,10 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     `recordingName` - The name of the recording to get.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is an octet stream consisting of the requested recording.
@@ -649,8 +658,10 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     `recordingName` - The name of the recording to patch.
+    Should use percent-encoding.
 
     The body must be either `STOP`, to stop the recording,
     or `SAVE`, to save the recording (case insensitive).
@@ -704,6 +715,7 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is a JSON array of recording objects.
@@ -740,10 +752,12 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     **The request must include the following fields:**
 
     `recordingName` - The name of the recording to create.
+    Should use percent-encoding.
 
     `events` - The events configuration for the recording.
     This can be a comma-seperated list of events, with each event having the
@@ -795,8 +809,10 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     `recordingName` - The name of the recording to upload.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is the body from the response that Container JFR got
@@ -840,8 +856,10 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     `recordingName` - The name of the recording to get the report for.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is the requested report, as an HTML document.
@@ -880,6 +898,7 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is the name of the recording.
@@ -913,6 +932,7 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     `templateName` - The name of the template to get.
 
@@ -953,6 +973,7 @@
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
 
     ###### response
     `200` - The body is a JSON array of template objects.
