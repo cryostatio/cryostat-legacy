@@ -67,6 +67,8 @@
     and that the user has been successfully authenticated.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
     Getting this response means that the header has an invalid format
     or the user has not been successfully authenticated.
 
@@ -223,6 +225,8 @@
     `{"connectUrl":"$CONNECT_URL","alias":"$ALIAS"}`.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
@@ -276,6 +280,8 @@
     `200` - No body.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The recording could not be found. The body is an error message.
 
@@ -307,6 +313,8 @@
     `200` - The body is an octet stream consisting of the requested recording.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The recording could not be found. The body is an error message.
 
@@ -341,6 +349,8 @@
     `{"downloadUrl":"$DOWNLOAD_URL","name":"$NAME","reportUrl":"$REPORT_URL"}`.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
@@ -410,6 +420,8 @@
     message.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
@@ -444,6 +456,8 @@
     after sending the upload request to the Grafana datasource server.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The recording could not be found. The body is an error message.
 
@@ -482,6 +496,8 @@
     `200` - The body is the requested report, as an HTML document.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The report could not be found. The body is an error message.
 
@@ -519,6 +535,8 @@
     "category":[$CATEGORIES],"options":{$OPTIONS}}`
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target could not be found. The body is an error message.
 
@@ -556,6 +574,8 @@
     `200` - No body.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target or the recording could not be found.
     The body is an error message.
@@ -589,6 +609,8 @@
     `200` - The body is an octet stream consisting of the requested recording.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target or the recording could not be found.
     The body is an error message.
@@ -639,6 +661,8 @@
     `400` - The operation is unsupported. The body is an error message.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target or the recording could not be found.
     The body is an error message.
@@ -688,6 +712,8 @@
     `{"downloadUrl":"$DOWNLOAD_URL","reportUrl":"$REPORT_URL","id":$ID,"name":"$NAME","state":"$STATE","startTime":$START_TIME,"duration":$DURATION,"continuous":$CONTINUOUS,"toDisk":$TO_DISK,"maxSize":$MAX_SIZE,"maxAge":$MAX_AGE}`.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target could not be found. The body is an error message.
 
@@ -739,6 +765,8 @@
     `400` - An argument was invalid. The body is an error message.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target could not be found. The body is an error message.
 
@@ -775,6 +803,8 @@
     after sending the upload request to the Grafana datasource.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target or the recording could not be found.
     The body is an error message.
@@ -817,6 +847,8 @@
     `200` - The body is the requested report, as an HTML document.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The report could not be found, or the target could not be found.
     The body is an error message.
@@ -853,6 +885,8 @@
     `200` - The body is the name of the recording.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target could not be found. The body is an error message.
 
@@ -888,6 +922,8 @@
     `200` - The body is the requested event template, as an XML document.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target or the template or the template type could not be found.
     The body is an error message.
@@ -925,6 +961,8 @@
     `{"name":"$NAME","description":"$DESCRIPTION","provider":"$PROVIDER","type":"$TYPE"}`.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `404` - The target could not be found. The body is an error message.
 
@@ -960,6 +998,8 @@
     `400` - The template could not be found. The body is an error message.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
@@ -994,6 +1034,8 @@
     The body is an error message.
 
     `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `427` - JMX authentication failed. The body is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
