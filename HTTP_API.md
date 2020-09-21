@@ -4,40 +4,42 @@
 
 ### Quick Reference
 
-| What you want to do                                                       | Which handler you should use                                            |
-| ------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| **Miscellaneous**                                                         |                                                                         |
-| Get a URL you can use to access Container JFR's WebSocket command channel | [`ClientUrlGetHandler`](#ClientUrlGetHandler)                           |
-| Scan for and get a list of target JVMs visible to Container JFR           | [`TargetsGetHandler`](#TargetsGetHandler)                               |
-| Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                     |
-| Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)               |
-| Test user authentication                                                  | [`AuthPostHandler`](#AuthPostHandler)                                   |
-| Get the URL of Container JFR's Grafana dashboard                          | [`GrafanaDashboardUrlGetHandler`](#GrafanaDashboardUrlGetHandler)       |
-| Get the URL of Container JFR's Grafana datasource                         | [`GrafanaDatasourceUrlGetHandler`](#GrafanaDatasourceUrlGetHandler)     |
-| Check the status of Container JFR's Grafana datasource and dashboard      | [`HealthGetHandler`](#HealthGetHandler)                                 |
-| **Events and event templates**                                            |                                                                         |
-| Get a list of event types that can be produced by a target JVM            | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                     |
-| Get a list of event templates known to a target JVM                       | [`TargetTemplatesGetHandler`](#TargetTemplatesGetHandler)               |
-| Download a template from a target JVM                                     | [`TargetTemplateGetHandler`](#TargetTemplateGetHandler)                 |
-| Upload an event template to Container JFR                                 | [`TemplatesPostHandler`](#TemplatesPostHandler)                         |
-| Delete an event template that was uploaded to Container JFR               | [`TemplateDeleteHandler`](#TemplateDeleteHandler)                       |
-| **Recordings in target JVMs**                                             |                                                                         |
-| Get a list of recordings in a target JVM                                  | [`TargetRecordingsGetHandler`](#TargetRecordingsGetHandler)             |
-| Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler)               |
-| Start a recording in a target JVM                                         | [`TargetRecordingsPostHandler`](#TargetRecordingsPostHandler)           |
-| Stop a recording in a target JVM                                          | [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler)           |
-| Delete a recording in a target JVM                                        | [`TargetRecordingDeleteHandler`](#TargetRecordingDeleteHandler)         |
-| Download a recording in a target JVM                                      | [`TargetRecordingGetHandler`](#TargetRecordingGetHandler)               |
-| Download a report of a recording in a target JVM                          | [`TargetReportGetHandler`](#TargetReportGetHandler)                     |
-| Save a recording in a target JVM to archive                               | [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler)           |
-| Upload a recording from a target JVM to the Grafana datasource            | [`TargetRecordingUploadPostHandler`](#TargetRecordingUploadPostHandler) |
-| **Recordings in archive**                                                 |                                                                         |
-| Get a list of recordings in archive                                       | [`RecordingsGetHandler`](#RecordingsGetHandler)                         |
-| Upload a recording to archive                                             | [`RecordingsPostHandler`](#RecordingsPostHandler)                       |
-| Delete a recording from archive                                           | [`RecordingDeleteHandler`](#RecordingDeleteHandler)                     |
-| Download a recording in archive                                           | [`RecordingGetHandler`](#RecordingGetHandler)                           |
-| Download a report of a recording in archive                               | [`ReportGetHandler`](#ReportGetHandler)                                 |
-| Upload a recording from archive to the Grafana datasource                 | [`RecordingUploadPostHandler`](#RecordingUploadPostHandler)             |
+| What you want to do                                                       | Which handler you should use                                                |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Miscellaneous**                                                         |                                                                             |
+| Get a URL you can use to access Container JFR's WebSocket command channel | [`ClientUrlGetHandler`](#ClientUrlGetHandler)                               |
+| Scan for and get a list of target JVMs visible to Container JFR           | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
+| Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
+| Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
+| Test user authentication                                                  | [`AuthPostHandler`](#AuthPostHandler)                                       |
+| Get the URL of Container JFR's Grafana dashboard                          | [`GrafanaDashboardUrlGetHandler`](#GrafanaDashboardUrlGetHandler)           |
+| Get the URL of Container JFR's Grafana datasource                         | [`GrafanaDatasourceUrlGetHandler`](#GrafanaDatasourceUrlGetHandler)         |
+| Check the status of Container JFR's Grafana datasource and dashboard      | [`HealthGetHandler`](#HealthGetHandler)                                     |
+| **Events and event templates**                                            |                                                                             |
+| Get a list of event types that can be produced by a target JVM            | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                         |
+| Get a list of event templates known to a target JVM                       | [`TargetTemplatesGetHandler`](#TargetTemplatesGetHandler)                   |
+| Download a template from a target JVM                                     | [`TargetTemplateGetHandler`](#TargetTemplateGetHandler)                     |
+| Upload an event template to Container JFR                                 | [`TemplatesPostHandler`](#TemplatesPostHandler)                             |
+| Delete an event template that was uploaded to Container JFR               | [`TemplateDeleteHandler`](#TemplateDeleteHandler)                           |
+| **Recordings in target JVMs**                                             |                                                                             |
+| Get a list of recordings in a target JVM                                  | [`TargetRecordingsGetHandler`](#TargetRecordingsGetHandler)                 |
+| Get the default recording options of a target JVM                         | [`TargetRecordingOptionsGetHandler`](#TargetRecordingOptionsGetHandler)     |
+| Set the default recording options of a target JVM                         | [`TargetRecordingOptionsPatchHandler`](#TargetRecordingOptionsPatchHandler) |
+| Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler)                   |
+| Start a recording in a target JVM                                         | [`TargetRecordingsPostHandler`](#TargetRecordingsPostHandler)               |
+| Stop a recording in a target JVM                                          | [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler)               |
+| Delete a recording in a target JVM                                        | [`TargetRecordingDeleteHandler`](#TargetRecordingDeleteHandler)             |
+| Download a recording in a target JVM                                      | [`TargetRecordingGetHandler`](#TargetRecordingGetHandler)                   |
+| Download a report of a recording in a target JVM                          | [`TargetReportGetHandler`](#TargetReportGetHandler)                         |
+| Save a recording in a target JVM to archive                               | [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler)               |
+| Upload a recording from a target JVM to the Grafana datasource            | [`TargetRecordingUploadPostHandler`](#TargetRecordingUploadPostHandler)     |
+| **Recordings in archive**                                                 |                                                                             |
+| Get a list of recordings in archive                                       | [`RecordingsGetHandler`](#RecordingsGetHandler)                             |
+| Upload a recording to archive                                             | [`RecordingsPostHandler`](#RecordingsPostHandler)                           |
+| Delete a recording from archive                                           | [`RecordingDeleteHandler`](#RecordingDeleteHandler)                         |
+| Download a recording in archive                                           | [`RecordingGetHandler`](#RecordingGetHandler)                               |
+| Download a report of a recording in archive                               | [`ReportGetHandler`](#ReportGetHandler)                                     |
+| Upload a recording from archive to the Grafana datasource                 | [`RecordingUploadPostHandler`](#RecordingUploadPostHandler)                 |
 
 
 ### Core
@@ -639,6 +641,91 @@
     100  530k    0  530k    0     0  9303k      0 --:--:-- --:--:-- --:--:-- 9303k
     ```
 
+* ### `TargetRecordingsOptionsGetHandler`
+
+    ###### synopsis
+    Returns the default recording options of a target JVM.
+
+    ###### request
+    `GET /api/v1/targets/:targetId/recordingOptions`.
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    ###### response
+    `200` - The body is `{"maxAge":"$MAX_AGE","toDisk":"TO_DISK","maxSize":"MAX_SIZE"}`.
+
+    `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - The target could not be found.  The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error. The body is an error message.
+
+    ###### example
+    ```
+    $ curl localhost:8181/api/v1/targets/localhost/recordingOptions
+    {"maxAge":"0","toDisk":"false","maxSize":"0"}
+    ```
+
+
+* ### `TargetRecordingsOptionsPatchHandler`
+
+    ###### synopsis
+    Sets the default recording options of a target JVM.
+
+    ###### request
+    `PATCH /api/v1/targets/:targetId/recordingOptions`.
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    **The request must include the following fields:**
+
+    `toDisk` - Whether a recording is stored to disk;
+    either `true` or `false`.
+
+    **The request must include the following fields:**
+
+    `maxAge` - The maximum event age of a recording, in seconds.
+    A value of zero means there is no maximum event age.
+
+    `maxSize` - The maximum size of a recording, in bytes.
+    A value of zero means there is no maximum recording size.
+
+    ###### response
+    `200` - The body is the updated default recording options of the
+    target JVM, in the form
+    `{"maxAge":"$MAX_AGE","toDisk":"TO_DISK","maxSize":"MAX_SIZE"}`.
+
+    `400` - An argument was invalid. The body is an error message.
+
+    `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - The target could not be found. The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error. The body is an error message.
+
+    ###### example
+    ```
+    $ curl -X PATCH --data "toDisk=true&maxAge=0" localhost:8181/api/v1/targets/localhost/recordingOptions
+    {"maxAge":"0","toDisk":"true","maxSize":"0"}
+    ```
+
+
 * #### `TargetRecordingPatchHandler`
 
     ###### synopsis
@@ -771,6 +858,18 @@
     the recording will be continuous,
     meaning it will run until it is manually stopped, for example with
     [`TargetRecordingPatchHandler`](#TargetRecordingPatchHandler).
+
+    `toDisk` - Whether the recording is stored to disk;
+    either `true` or `false`. If this field is not set,
+    it will default to `true`.
+
+    `maxAge` - The maximum event age of the recording, in seconds.
+    If this field is not set, or if it is set to zero,
+    the recording will not have a maximum event age.
+
+    `maxSize` - The maximum size of the recording, in bytes.
+    If this field is not set, or if it is set to zero,
+    the recording will not have a maximum size.
 
     ###### response
     `201` - The body is a descriptor of the newly started recording, in the form
