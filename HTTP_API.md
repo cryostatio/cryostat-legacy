@@ -641,7 +641,7 @@
     100  530k    0  530k    0     0  9303k      0 --:--:-- --:--:-- --:--:-- 9303k
     ```
 
-* ### `TargetRecordingsOptionsGetHandler`
+* ### `TargetRecordingOptionsGetHandler`
 
     ###### synopsis
     Returns the default recording options of a target JVM.
@@ -671,11 +671,11 @@
     ###### example
     ```
     $ curl localhost:8181/api/v1/targets/localhost/recordingOptions
-    {"maxAge":"0","toDisk":"false","maxSize":"0"}
+    {"maxAge":0,"toDisk":false,"maxSize":0}
     ```
 
 
-* ### `TargetRecordingsOptionsPatchHandler`
+* ### `TargetRecordingOptionsPatchHandler`
 
     ###### synopsis
     Sets the default recording options of a target JVM.
@@ -722,7 +722,7 @@
     ###### example
     ```
     $ curl -X PATCH --data "toDisk=true&maxAge=0" localhost:8181/api/v1/targets/localhost/recordingOptions
-    {"maxAge":"0","toDisk":"true","maxSize":"0"}
+    {"maxAge":0,"toDisk":true,"maxSize":0}
     ```
 
 

@@ -114,7 +114,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
                                 }
                             }
                         });
-        Map<String, String> updatedMap =
+        Map<String, Object> updatedMap =
                 connectionManager.executeConnectedTask(
                         getConnectionDescriptorFromContext(ctx),
                         connection -> {
