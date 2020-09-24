@@ -233,6 +233,12 @@ If the certificate used for SSL-enabled Grafana/jfr-datasource connections is
 self-signed or otherwise untrusted, set the environment variable
 `CONTAINER_JFR_ALLOW_UNTRUSTED_SSL` to permit uploads of recordings.
 
+Target JVMs with SSL enabled on JMX connections are also supported. In order to
+allow ContainerJFR to establish a connection, the target's certificate must be
+copied into ContainerJFR's `/truststore` directory before ContainerJFR's
+startup. If ContainerJFR attempts to connect to an SSL-enabled target and no
+matching trusted certificate is found then the connection attempt will fail.
+
 ## USER AUTHENTICATION / AUTHORIZATION
 
 ContainerJFR has multiple authz manager implementations for handling user
