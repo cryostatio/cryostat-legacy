@@ -43,8 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
@@ -68,7 +66,6 @@ class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandl
     private final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Gson gson;
-    private static final Pattern NUMBER_PATTERN = Pattern.compile("\\d+");
 
     @Inject
     TargetRecordingOptionsGetHandler(
@@ -99,7 +96,7 @@ class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandl
 
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
-        Map<String, String> optionMap =
+        Map<String, Object> optionMap =
                 connectionManager.executeConnectedTask(
                         getConnectionDescriptorFromContext(ctx),
                         connection -> {
@@ -110,19 +107,19 @@ class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandl
         ctx.response().end(gson.toJson(optionMap));
     }
 
-    static Map<String, String> getRecordingOptions(
+    static Map<String, Object> getRecordingOptions(
             IFlightRecorderService service, RecordingOptionsBuilder builder) throws Exception {
         IConstrainedMap<String> recordingOptions = builder.build();
 
         Map<String, IOptionDescriptor<?>> targetRecordingOptions =
                 service.getAvailableRecordingOptions();
 
-        Map<String, String> map = new HashMap<String, String>();
+        Map<String, Object> map = new HashMap<String, Object>();
 
         if (recordingOptions.get("toDisk") != null) {
-            map.put("toDisk", recordingOptions.get("toDisk").toString());
+            map.put("toDisk", recordingOptions.get("toDisk"));
         } else {
-            map.put("toDisk", targetRecordingOptions.get("disk").getDefault().toString());
+            map.put("toDisk", targetRecordingOptions.get("disk").getDefault());
         }
 
         map.put("maxAge", getNumericOption("maxAge", recordingOptions, targetRecordingOptions));
@@ -131,17 +128,21 @@ class TargetRecordingOptionsGetHandler extends AbstractAuthenticatedRequestHandl
         return map;
     }
 
-    private static String getNumericOption(
+    private static Long getNumericOption(
             String name,
             IConstrainedMap<String> defaultOptions,
             Map<String, IOptionDescriptor<?>> targetOptions) {
-        String value;
+        Object value;
+
         if (defaultOptions.get(name) != null) {
-            value = defaultOptions.get(name).toString();
+            value = defaultOptions.get(name);
         } else {
-            value = targetOptions.get(name).getDefault().toString();
+            value = targetOptions.get(name).getDefault();
         }
-        Matcher m = NUMBER_PATTERN.matcher(value);
-        return m.find() ? m.group() : null;
+
+        if (value instanceof Number) {
+            return Long.valueOf(((Number) value).longValue());
+        }
+        return null;
     }
 }

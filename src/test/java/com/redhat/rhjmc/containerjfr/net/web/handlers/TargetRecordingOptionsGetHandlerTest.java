@@ -61,7 +61,6 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
@@ -127,8 +126,14 @@ class TargetRecordingOptionsGetHandlerTest {
 
     @Test
     void shouldReturnRecordingOptions() throws Exception {
-        Map<String, String> optionValues =
-                Map.of("toDisk", "true", "maxAge", "50", "maxSize", "32");
+        Map<String, Object> optionValues =
+                Map.of(
+                        "toDisk",
+                        Boolean.TRUE,
+                        "maxAge",
+                        Long.valueOf(50),
+                        "maxSize",
+                        Long.valueOf(32));
         Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
         Mockito.when(builder.build()).thenReturn(recordingOptions);
         Mockito.when(recordingOptions.get("toDisk")).thenReturn(optionValues.get("toDisk"));
@@ -161,10 +166,8 @@ class TargetRecordingOptionsGetHandlerTest {
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(resp).end(responseCaptor.capture());
         Mockito.verifyNoMoreInteractions(resp);
-        Map<String, String> result =
-                gson.fromJson(
-                        responseCaptor.getValue(),
-                        new TypeToken<Map<String, String>>() {}.getType());
-        MatcherAssert.assertThat(result, Matchers.equalTo(optionValues));
+        MatcherAssert.assertThat(
+                responseCaptor.getValue(),
+                Matchers.equalTo("{\"maxAge\":50,\"toDisk\":true,\"maxSize\":32}"));
     }
 }
