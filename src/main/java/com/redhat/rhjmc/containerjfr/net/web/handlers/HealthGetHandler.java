@@ -124,7 +124,8 @@ class HealthGetHandler implements RequestHandler {
                 future.complete(false);
                 return;
             }
-            logger.debug(String.format("Testing health of %s=%s %s", envName, uri.toString(), path));
+            logger.debug(
+                    String.format("Testing health of %s=%s %s", envName, uri.toString(), path));
             HttpRequest<Buffer> req = webClient.get(uri.getHost(), path);
             if (uri.getPort() != -1) {
                 req = req.port(uri.getPort());
