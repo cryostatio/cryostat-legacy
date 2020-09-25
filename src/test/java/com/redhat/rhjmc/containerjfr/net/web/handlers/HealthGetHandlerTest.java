@@ -223,4 +223,52 @@ class HealthGetHandlerTest {
         Assertions.assertEquals(responseMap.get("dashboardAvailable"), true);
         Assertions.assertEquals(responseMap.get("datasourceAvailable"), false);
     }
+
+    @Test
+    void shouldHandleHealthRequestWithDashboardUrlWithoutExplicitPort() {
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        String url = "https://hostname/";
+        when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
+        when(env.getEnv("GRAFANA_DASHBOARD_URL")).thenReturn(url);
+        when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(false);
+
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.get(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
+        Mockito.when(req.ssl(Mockito.anyBoolean())).thenReturn(req);
+        Mockito.when(req.timeout(Mockito.anyLong())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.statusCode()).thenReturn(200);
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
+
+        handler.handle(ctx);
+
+        verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
+        verify(rep).end(responseCaptor.capture());
+
+        Map<String, Boolean> responseMap =
+                gson.fromJson(
+                        responseCaptor.getValue(),
+                        new TypeToken<Map<String, Boolean>>() {}.getType());
+        Assertions.assertEquals(responseMap.get("dashboardAvailable"), true);
+        Assertions.assertEquals(responseMap.get("datasourceAvailable"), false);
+    }
 }

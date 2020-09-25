@@ -55,9 +55,11 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 
 class HealthGetHandler implements RequestHandler {
@@ -122,8 +124,13 @@ class HealthGetHandler implements RequestHandler {
                 future.complete(false);
                 return;
             }
-            webClient
-                    .get(uri.getPort(), uri.getHost(), path)
+            HttpRequest<Buffer> req;
+            if (uri.getPort() != -1) {
+                req = webClient.get(uri.getPort(), uri.getHost(), path);
+            } else {
+                req = webClient.get(uri.getHost(), path);
+            }
+            req
                     .ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
                     .send(
