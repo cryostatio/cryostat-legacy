@@ -120,10 +120,11 @@ class HealthGetHandler implements RequestHandler {
             try {
                 uri = new URI(this.env.getEnv(envName));
             } catch (URISyntaxException e) {
-                logger.warn(e);
+                logger.error(e);
                 future.complete(false);
                 return;
             }
+            logger.debug(String.format("Testing health of %s=%s %s", envName, uri.toString(), path));
             HttpRequest<Buffer> req = webClient.get(uri.getHost(), path);
             if (uri.getPort() != -1) {
                 req = req.port(uri.getPort());
@@ -133,8 +134,8 @@ class HealthGetHandler implements RequestHandler {
                     .send(
                             handler -> {
                                 if (handler.failed()) {
+                                    this.logger.warn(new IOException(handler.cause()));
                                     future.complete(false);
-                                    this.logger.info(new IOException(handler.cause()));
                                     return;
                                 }
                                 future.complete(handler.result().statusCode() == 200);
