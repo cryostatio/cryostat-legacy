@@ -124,11 +124,9 @@ class HealthGetHandler implements RequestHandler {
                 future.complete(false);
                 return;
             }
-            HttpRequest<Buffer> req;
+            HttpRequest<Buffer> req = webClient.get(uri.getHost(), path);
             if (uri.getPort() != -1) {
-                req = webClient.get(uri.getPort(), uri.getHost(), path);
-            } else {
-                req = webClient.get(uri.getHost(), path);
+                req = req.port(uri.getPort());
             }
             req.ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
