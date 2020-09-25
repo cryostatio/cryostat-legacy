@@ -130,8 +130,7 @@ class HealthGetHandler implements RequestHandler {
             } else {
                 req = webClient.get(uri.getHost(), path);
             }
-            req
-                    .ssl("https".equals(uri.getScheme()))
+            req.ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
                     .send(
                             handler -> {
