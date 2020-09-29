@@ -113,8 +113,9 @@ public abstract class NetworkModule {
                     new WebClientOptions()
                             .setSsl(true)
                             .setDefaultHost(netConf.getWebServerHost())
-                            .setDefaultPort(netConf.getExternalWebServerPort());
-            if (!netConf.isUntrustedSslAllowed()) {
+                            .setDefaultPort(netConf.getExternalWebServerPort())
+                            .setFollowRedirects(true);
+            if (netConf.isUntrustedSslAllowed()) {
                 opts = opts.setTrustAll(true).setVerifyHost(false);
             }
             return WebClient.create(vertx, opts);
