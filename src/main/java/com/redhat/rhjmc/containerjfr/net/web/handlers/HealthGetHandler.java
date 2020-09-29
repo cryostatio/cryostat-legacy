@@ -55,9 +55,11 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
 
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 
 class HealthGetHandler implements RequestHandler {
@@ -118,19 +120,23 @@ class HealthGetHandler implements RequestHandler {
             try {
                 uri = new URI(this.env.getEnv(envName));
             } catch (URISyntaxException e) {
-                logger.warn(e);
+                logger.error(e);
                 future.complete(false);
                 return;
             }
-            webClient
-                    .get(uri.getPort(), uri.getHost(), path)
-                    .ssl("https".equals(uri.getScheme()))
+            logger.debug(
+                    String.format("Testing health of %s=%s %s", envName, uri.toString(), path));
+            HttpRequest<Buffer> req = webClient.get(uri.getHost(), path);
+            if (uri.getPort() != -1) {
+                req = req.port(uri.getPort());
+            }
+            req.ssl("https".equals(uri.getScheme()))
                     .timeout(5000)
                     .send(
                             handler -> {
                                 if (handler.failed()) {
+                                    this.logger.warn(new IOException(handler.cause()));
                                     future.complete(false);
-                                    this.logger.info(new IOException(handler.cause()));
                                     return;
                                 }
                                 future.complete(handler.result().statusCode() == 200);
