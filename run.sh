@@ -69,8 +69,6 @@ if ! podman pod exists container-jfr; then
         --name container-jfr \
         --publish $CONTAINER_JFR_RJMX_PORT:$CONTAINER_JFR_RJMX_PORT \
         --publish $CONTAINER_JFR_EXT_LISTEN_PORT:$CONTAINER_JFR_LISTEN_PORT \
-        --publish $CONTAINER_JFR_EXT_WEB_PORT:$CONTAINER_JFR_WEB_PORT \
-        --publish 9999:9999 \
         --publish $CONTAINER_JFR_EXT_WEB_PRIMARY_PORT:$CONTAINER_JFR_WEB_PRIMARY_PORT \
         --publish $CONTAINER_JFR_EXT_WEB_SECONDARY_PORT:$CONTAINER_JFR_WEB_SECONDARY_PORT
 fi
