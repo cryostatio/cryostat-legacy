@@ -48,21 +48,35 @@ import org.apache.commons.httpclient.HttpStatus;
 import org.apache.http.client.utils.URIBuilder;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.web.http.generic.HealthGetHandler;
 
 import io.vertx.core.AbstractVerticle;
 import io.vertx.core.Promise;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerOptions;
+import io.vertx.ext.web.Router;
 
 public class RedirectorVerticle extends AbstractVerticle {
 
+    private final Vertx vertx;
     private io.vertx.core.http.HttpServer server;
     private final NetworkConfiguration netConf;
+    // FIXME refactor this and the RequestHandler interface to designate certain handlers to be used
+    // by either the HTTP and/or HTTPS verticles without redirecting the client
+    private final HealthGetHandler healthHandler;
     private final Logger logger;
     private final boolean enabled;
 
-    RedirectorVerticle(SslConfiguration sslConf, NetworkConfiguration netConf, Logger logger) {
+    RedirectorVerticle(
+            Vertx vertx,
+            SslConfiguration sslConf,
+            NetworkConfiguration netConf,
+            HealthGetHandler healthHandler,
+            Logger logger) {
+        this.vertx = vertx;
         this.netConf = netConf;
+        this.healthHandler = healthHandler;
         this.logger = logger;
         this.enabled = sslConf.enabled();
     }
@@ -74,37 +88,42 @@ public class RedirectorVerticle extends AbstractVerticle {
             promise.complete();
             return;
         }
+        Router router = Router.router(vertx);
+        router.route(healthHandler.httpMethod(), healthHandler.path())
+                .blockingHandler(healthHandler);
+
+        router.route()
+                .handler(
+                        ctx -> {
+                            logger.info(
+                                    String.format(
+                                            "(%s) HTTPS upgrade %s %s",
+                                            ctx.request().remoteAddress().toString(),
+                                            ctx.request().method(),
+                                            ctx.request().path()));
+                            try {
+                                URI mapped =
+                                        new URIBuilder(ctx.request().absoluteURI())
+                                                .setScheme("https")
+                                                .setPort(netConf.getExternalWebServerPrimaryPort())
+                                                .build();
+                                ctx.response()
+                                        .setStatusCode(HttpStatus.SC_MOVED_PERMANENTLY)
+                                        .putHeader(HttpHeaders.LOCATION, mapped.toString())
+                                        .end();
+                            } catch (URISyntaxException e) {
+                                logger.error(e);
+                                ctx.response().setStatusCode(HttpStatus.SC_BAD_REQUEST).end();
+                            }
+                        });
+
         this.server =
                 getVertx()
                         .createHttpServer(
                                 new HttpServerOptions()
                                         .setPort(netConf.getInternalWebServerSecondaryPort())
                                         .setLogActivity(true))
-                        .requestHandler(
-                                r -> {
-                                    logger.info(
-                                            String.format(
-                                                    "(%s) HTTPS upgrade %s %s",
-                                                    r.remoteAddress().toString(),
-                                                    r.method(),
-                                                    r.path()));
-                                    try {
-                                        URI mapped =
-                                                new URIBuilder(r.absoluteURI())
-                                                        .setScheme("https")
-                                                        .setPort(
-                                                                netConf
-                                                                        .getExternalWebServerPrimaryPort())
-                                                        .build();
-                                        r.response()
-                                                .setStatusCode(HttpStatus.SC_MOVED_PERMANENTLY)
-                                                .putHeader(HttpHeaders.LOCATION, mapped.toString())
-                                                .end();
-                                    } catch (URISyntaxException e) {
-                                        logger.error(e);
-                                        r.response().setStatusCode(HttpStatus.SC_BAD_REQUEST).end();
-                                    }
-                                })
+                        .requestHandler(router)
                         .listen(
                                 ar -> {
                                     if (ar.succeeded()) {

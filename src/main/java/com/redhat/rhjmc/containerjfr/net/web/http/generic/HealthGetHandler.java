@@ -48,6 +48,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
@@ -64,7 +65,8 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 
-class HealthGetHandler implements RequestHandler {
+@Singleton
+public class HealthGetHandler implements RequestHandler {
 
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";

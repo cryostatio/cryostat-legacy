@@ -53,6 +53,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.web.http.generic.HealthGetHandler;
 import com.redhat.rhjmc.containerjfr.tui.ws.MessagingServer;
 
 import dagger.Binds;
@@ -77,8 +78,12 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static RedirectorVerticle provideRedirectorVerticle(
-            SslConfiguration sslConf, NetworkConfiguration netConf, Logger logger) {
-        return new RedirectorVerticle(sslConf, netConf, logger);
+            Vertx vertx,
+            SslConfiguration sslConf,
+            NetworkConfiguration netConf,
+            HealthGetHandler healthHandler,
+            Logger logger) {
+        return new RedirectorVerticle(vertx, sslConf, netConf, healthHandler, logger);
     }
 
     @Provides
