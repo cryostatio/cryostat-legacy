@@ -55,6 +55,7 @@ import org.apache.http.client.utils.URIBuilder;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.SslConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
@@ -76,11 +77,12 @@ class ClientUrlGetHandler implements RequestHandler {
     ClientUrlGetHandler(
             Gson gson,
             Provider<WebServer> serverProvider,
+            NetworkConfiguration netConf,
             SslConfiguration sslConf,
             Logger logger) {
         this.gson = gson;
         this.serverProvider = serverProvider;
-        this.isSsl = sslConf.enabled();
+        this.isSsl = netConf.isSslProxied() || sslConf.enabled();
     }
 
     @Override

@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +63,7 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.SslConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
@@ -80,13 +82,14 @@ class ClientUrlGetHandlerTest {
 
         ClientUrlGetHandler handler;
         @Mock WebServer webServer;
+        @Mock NetworkConfiguration netConf;
         @Mock SslConfiguration sslConf;
         @Mock Logger logger;
         Gson gson = MainModule.provideGson(logger);
 
         @BeforeEach
         void setup() {
-            this.handler = new ClientUrlGetHandler(gson, () -> webServer, sslConf, logger);
+            this.handler = new ClientUrlGetHandler(gson, () -> webServer, netConf, sslConf, logger);
         }
 
         @Test
@@ -134,21 +137,51 @@ class ClientUrlGetHandlerTest {
         ClientUrlGetHandler handler;
         @Mock Logger logger;
         @Mock WebServer webServer;
+        @Mock NetworkConfiguration netConf;
         @Mock SslConfiguration sslConf;
         Gson gson = MainModule.provideGson(logger);
 
-        @BeforeEach
-        void setup() {
-            when(sslConf.enabled()).thenReturn(true);
-            this.handler = new ClientUrlGetHandler(gson, () -> webServer, sslConf, logger);
-        }
-
         @Test
-        void shouldHandleClientUrlRequestWithWss() throws Exception {
+        void shouldHandleClientUrlRequestWithWssWhenSslConfigured() throws Exception {
             RoutingContext ctx = mock(RoutingContext.class);
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
             when(webServer.getHostUrl()).thenReturn(new URL("https://hostname:1"));
+            when(sslConf.enabled()).thenReturn(true);
+            this.handler = new ClientUrlGetHandler(gson, () -> webServer, netConf, sslConf, logger);
+
+            handler.handle(ctx);
+
+            InOrder inOrder = inOrder(rep);
+            inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+            inOrder.verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/command\"}");
+        }
+
+        @Test
+        void shouldHandleClientUrlRequestWithWssWhenProxied() throws Exception {
+            RoutingContext ctx = mock(RoutingContext.class);
+            HttpServerResponse rep = mock(HttpServerResponse.class);
+            when(ctx.response()).thenReturn(rep);
+            when(webServer.getHostUrl()).thenReturn(new URL("https://hostname:1"));
+            when(netConf.isSslProxied()).thenReturn(true);
+            this.handler = new ClientUrlGetHandler(gson, () -> webServer, netConf, sslConf, logger);
+
+            handler.handle(ctx);
+
+            InOrder inOrder = inOrder(rep);
+            inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+            inOrder.verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/command\"}");
+        }
+
+        @Test
+        void shouldHandleClientUrlRequestWithWssWhenConfiguredAndProxied() throws Exception {
+            RoutingContext ctx = mock(RoutingContext.class);
+            HttpServerResponse rep = mock(HttpServerResponse.class);
+            when(ctx.response()).thenReturn(rep);
+            when(webServer.getHostUrl()).thenReturn(new URL("https://hostname:1"));
+            lenient().when(netConf.isSslProxied()).thenReturn(true);
+            lenient().when(sslConf.enabled()).thenReturn(true);
+            this.handler = new ClientUrlGetHandler(gson, () -> webServer, netConf, sslConf, logger);
 
             handler.handle(ctx);
 
