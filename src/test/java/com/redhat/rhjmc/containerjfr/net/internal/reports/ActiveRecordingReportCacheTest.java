@@ -65,26 +65,39 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 @ExtendWith(MockitoExtension.class)
 class ActiveRecordingReportCacheTest {
 
     ActiveRecordingReportCache cache;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock JavaProcess javaProcess;
     @Mock ReportGenerator reportGenerator;
+    @Mock FileSystem fs;
     @Mock ReentrantLock lock;
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
+    class TestSubprocessReportGenerator extends SubprocessReportGenerator {}
+
+    class TestJavaProcess extends JavaProcess {}
+
     @BeforeEach
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        targetConnectionManager, reportGenerator, lock, logger);
+                        targetConnectionManager,
+                        () -> TestSubprocessReportGenerator.class,
+                        () -> new TestJavaProcess(),
+                        fs,
+                        lock,
+                        logger);
     }
 
     @Test

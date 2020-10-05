@@ -24,9 +24,9 @@ function createJmxCredentials() {
         CONTAINER_JFR_RJMX_PASS="$(genpass)"
     fi
 
-    echo "$CONTAINER_JFR_RJMX_USER $CONTAINER_JFR_RJMX_PASS" > "$PWFILE"
+    echo -n "$CONTAINER_JFR_RJMX_USER $CONTAINER_JFR_RJMX_PASS" > "$PWFILE"
     chmod 400 "$PWFILE"
-    echo "$CONTAINER_JFR_RJMX_USER readwrite" > "$USRFILE"
+    echo -n "$CONTAINER_JFR_RJMX_USER readwrite" > "$USRFILE"
     chmod 400 "$USRFILE"
 }
 
@@ -35,6 +35,7 @@ SSL_KEY_PASS="$(genpass)"
 SSL_STORE_PASS="$SSL_KEY_PASS"
 SSL_TRUSTSTORE="/tmp/truststore.p12"
 SSL_TRUSTSTORE_PASS="$(genpass)"
+SSL_TRUSTSTORE_PASS_FILE="/tmp/truststore.pass"
 TRUSTSTORE_DIR="/truststore"
 
 function createSslStores() {
@@ -47,6 +48,8 @@ function createSslStores() {
         -srcstorepass changeit \
         -destkeystore "$SSL_TRUSTSTORE" \
         -deststorepass "$SSL_TRUSTSTORE_PASS"
+
+    echo -n "$SSL_TRUSTSTORE_PASS" > "$SSL_TRUSTSTORE_PASS_FILE"
 
     popd
 }

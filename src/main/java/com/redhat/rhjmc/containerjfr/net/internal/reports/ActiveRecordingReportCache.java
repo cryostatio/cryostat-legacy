@@ -42,6 +42,9 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
@@ -49,6 +52,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -59,26 +63,34 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 class ActiveRecordingReportCache {
 
     protected final TargetConnectionManager targetConnectionManager;
-    protected final ReportGenerator reportGenerator;
+    protected final Provider<Class<? extends SubprocessReportGenerator>> repGenProvider;
+    protected final Provider<JavaProcess> javaProcessProvider;
+    protected final FileSystem fs;
     protected final ReentrantLock generationLock;
     protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
-            ReportGenerator reportGenerator,
+            Provider<Class<? extends SubprocessReportGenerator>> repGenProvider,
+            Provider<JavaProcess> javaProcessProvider,
+            FileSystem fs,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
-        this.reportGenerator = reportGenerator;
+        this.repGenProvider = repGenProvider;
+        this.javaProcessProvider = javaProcessProvider;
+        this.fs = fs;
         this.generationLock = generationLock;
         this.logger = logger;
 
@@ -125,7 +137,31 @@ class ActiveRecordingReportCache {
                         String.format(
                                 "Active report cache miss for %s",
                                 recordingDescriptor.recordingName));
-                return reportGenerator.generateReport(stream);
+
+                Path saveFile = Files.createTempFile(null, null);
+                int status =
+                        javaProcessProvider
+                                .get()
+                                .exec(
+                                        repGenProvider.get(),
+                                        Arrays.asList(SubprocessReportGenerator.createJvmArgs(200)),
+                                        Arrays.asList(
+                                                SubprocessReportGenerator.createProcessArgs(
+                                                        recordingDescriptor.connectionDescriptor,
+                                                        recordingDescriptor.recordingName,
+                                                        saveFile)));
+                if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
+                    return fs.readString(saveFile);
+                } else {
+                    ExitStatus es = ExitStatus.OK;
+                    for (ExitStatus e : ExitStatus.values()) {
+                        if (e.code == status) {
+                            es = e;
+                            break;
+                        }
+                    }
+                    throw new SubprocessReportGenerator.ReportGenerationException(es);
+                }
             }
         } finally {
             generationLock.unlock();
