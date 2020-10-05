@@ -47,6 +47,7 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
 import io.vertx.core.http.HttpMethod;
@@ -65,13 +66,18 @@ class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
     }
 
     @Override
     public String path() {
-        return "/api/v1/targets";
+        return basePath() + "targets";
     }
 
     @Override

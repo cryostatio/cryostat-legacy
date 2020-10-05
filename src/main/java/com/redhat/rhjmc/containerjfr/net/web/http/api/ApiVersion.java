@@ -39,59 +39,25 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
+package com.redhat.rhjmc.containerjfr.net.web.http.api;
 
-import java.util.Map;
+public enum ApiVersion {
+    GENERIC(""),
+    V1("v1"),
+    ;
 
-import javax.inject.Inject;
+    private final String version;
 
-import com.google.gson.Gson;
+    ApiVersion(String version) {
+        this.version = version;
+    }
 
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
-
-class GrafanaDashboardUrlGetHandler implements RequestHandler {
-
-    static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
-
-    private final Environment env;
-    private final Gson gson;
-
-    @Inject
-    GrafanaDashboardUrlGetHandler(Environment env, Gson gson) {
-        this.env = env;
-        this.gson = gson;
+    public String getVersionString() {
+        return version;
     }
 
     @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.V1;
-    }
-
-    @Override
-    public String path() {
-        return basePath() + "grafana_dashboard_url";
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
-    }
-
-    @Override
-    public void handle(RoutingContext ctx) {
-        if (!this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
-            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
-        }
-        ctx.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                .end(gson.toJson(Map.of("grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV))));
+    public String toString() {
+        return getVersionString();
     }
 }

@@ -61,6 +61,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpMethod;
@@ -93,13 +94,18 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return "/api/v1/recordings/:recordingName/upload";
+        return basePath() + "recordings/:recordingName/upload";
     }
 
     @Override

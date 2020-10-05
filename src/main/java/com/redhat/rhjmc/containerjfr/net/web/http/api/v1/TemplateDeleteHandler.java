@@ -47,6 +47,7 @@ import com.redhat.rhjmc.containerjfr.core.templates.LocalStorageTemplateService;
 import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidEventTemplateException;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -63,13 +64,18 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.DELETE;
     }
 
     @Override
     public String path() {
-        return "/api/v1/templates/:templateName";
+        return basePath() + "templates/:templateName";
     }
 
     @Override

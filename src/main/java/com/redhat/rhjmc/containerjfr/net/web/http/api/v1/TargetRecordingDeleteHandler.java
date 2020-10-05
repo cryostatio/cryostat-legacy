@@ -52,6 +52,7 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -73,13 +74,18 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.DELETE;
     }
 
     @Override
     public String path() {
-        return "/api/v1/targets/:targetId/recordings/:recordingName";
+        return basePath() + "targets/:targetId/recordings/:recordingName";
     }
 
     @Override

@@ -64,6 +64,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
@@ -97,13 +98,18 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return "/api/v1/targets/:targetId/recordings/:recordingName/upload";
+        return basePath() + "targets/:targetId/recordings/:recordingName/upload";
     }
 
     @Override

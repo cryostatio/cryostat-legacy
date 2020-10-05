@@ -73,6 +73,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
@@ -95,7 +96,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private static final Pattern EVENTS_PATTERN =
             Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
-    static final String PATH = "/api/v1/targets/:targetId/recordings";
+    static final String PATH = "targets/:targetId/recordings";
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
@@ -119,13 +120,18 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return PATH;
+        return basePath() + PATH;
     }
 
     @Override

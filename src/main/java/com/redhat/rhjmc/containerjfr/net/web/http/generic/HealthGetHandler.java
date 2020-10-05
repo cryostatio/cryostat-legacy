@@ -55,6 +55,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -82,8 +83,13 @@ class HealthGetHandler implements RequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
+    }
+
+    @Override
     public String path() {
-        return "/health";
+        return basePath() + "health";
     }
 
     @Override

@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.http.generic;
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 
 class CorsOptionsHandler extends CorsEnablingHandler {
@@ -51,6 +52,11 @@ class CorsOptionsHandler extends CorsEnablingHandler {
     @Inject
     CorsOptionsHandler(Environment env) {
         super(env);
+    }
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
     }
 
     @Override
@@ -65,6 +71,6 @@ class CorsOptionsHandler extends CorsEnablingHandler {
 
     @Override
     public String path() {
-        return "/*";
+        return basePath() + "*";
     }
 }

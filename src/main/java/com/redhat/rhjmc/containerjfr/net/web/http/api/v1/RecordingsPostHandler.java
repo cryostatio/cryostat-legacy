@@ -63,6 +63,7 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -78,7 +79,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
 
-    static final String PATH = "/api/v1/recordings";
+    static final String PATH = "recordings";
 
     private final Vertx vertx;
     private final FileSystem fs;
@@ -103,6 +104,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public int getPriority() {
         return DEFAULT_PRIORITY + 10;
     }
@@ -114,7 +120,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return PATH;
+        return basePath() + PATH;
     }
 
     @Override

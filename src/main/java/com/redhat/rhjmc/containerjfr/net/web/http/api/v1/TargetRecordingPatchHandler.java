@@ -45,6 +45,7 @@ import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -52,7 +53,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "/api/v1/targets/:targetId/recordings/:recordingName";
+    static final String PATH = "targets/:targetId/recordings/:recordingName";
 
     private final TargetRecordingPatchSave patchSave;
     private final TargetRecordingPatchStop patchStop;
@@ -68,13 +69,18 @@ class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.PATCH;
     }
 
     @Override
     public String path() {
-        return PATH;
+        return basePath() + PATH;
     }
 
     @Override

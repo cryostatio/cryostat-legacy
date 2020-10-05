@@ -50,6 +50,7 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -70,8 +71,13 @@ class GrafanaDatasourceUrlGetHandler implements RequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public String path() {
-        return "/api/v1/grafana_datasource_url";
+        return basePath() + "grafana_datasource_url";
     }
 
     @Override

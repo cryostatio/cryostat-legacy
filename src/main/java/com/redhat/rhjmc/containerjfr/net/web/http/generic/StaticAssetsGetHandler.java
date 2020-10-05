@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.http.generic;
 import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -59,13 +60,18 @@ class StaticAssetsGetHandler implements RequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
     }
 
     @Override
     public String path() {
-        return "/*";
+        return basePath() + "*";
     }
 
     @Override

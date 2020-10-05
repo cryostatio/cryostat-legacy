@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http;
 
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
+
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -53,6 +55,17 @@ public interface RequestHandler extends Handler<RoutingContext> {
 
     default int getPriority() {
         return DEFAULT_PRIORITY;
+    }
+
+    ApiVersion apiVersion();
+
+    default String basePath() {
+        switch (apiVersion()) {
+            case GENERIC:
+                return "/";
+            default:
+                return "/api/" + apiVersion().getVersionString() + "/";
+        }
     }
 
     String path();

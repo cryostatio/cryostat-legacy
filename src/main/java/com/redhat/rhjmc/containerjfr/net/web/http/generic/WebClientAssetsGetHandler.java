@@ -46,6 +46,7 @@ import javax.inject.Inject;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -60,6 +61,11 @@ class WebClientAssetsGetHandler implements RequestHandler {
     WebClientAssetsGetHandler() {}
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
+    }
+
+    @Override
     public int getPriority() {
         return DEFAULT_PRIORITY + 10;
     }
@@ -71,7 +77,7 @@ class WebClientAssetsGetHandler implements RequestHandler {
 
     @Override
     public String path() {
-        return "/*";
+        return basePath() + "*";
     }
 
     @Override

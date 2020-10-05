@@ -55,6 +55,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 import io.vertx.ext.web.RoutingContext;
 
 class RecordingGetHandler extends TargetRecordingGetHandler {
@@ -77,8 +78,13 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public String path() {
-        return "/api/v1/recordings/:recordingName";
+        return basePath() + "recordings/:recordingName";
     }
 
     @Override

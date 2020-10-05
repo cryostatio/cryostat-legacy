@@ -53,6 +53,7 @@ import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.Inval
 import com.redhat.rhjmc.containerjfr.core.templates.MutableTemplateService.InvalidXmlException;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
@@ -61,7 +62,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final String PATH = "/api/v1/templates";
+    static final String PATH = "templates";
 
     private final LocalStorageTemplateService templateService;
     private final FileSystem fs;
@@ -80,13 +81,18 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
     }
 
     @Override
     public String path() {
-        return PATH;
+        return basePath() + PATH;
     }
 
     @Override

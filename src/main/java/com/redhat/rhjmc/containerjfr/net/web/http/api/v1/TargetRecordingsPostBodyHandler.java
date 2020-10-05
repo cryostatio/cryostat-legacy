@@ -45,6 +45,7 @@ import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -61,6 +62,11 @@ class TargetRecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandle
     }
 
     @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
     public int getPriority() {
         return DEFAULT_PRIORITY - 1;
     }
@@ -72,7 +78,7 @@ class TargetRecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandle
 
     @Override
     public String path() {
-        return TargetRecordingsPostHandler.PATH;
+        return basePath() + TargetRecordingsPostHandler.PATH;
     }
 
     @Override

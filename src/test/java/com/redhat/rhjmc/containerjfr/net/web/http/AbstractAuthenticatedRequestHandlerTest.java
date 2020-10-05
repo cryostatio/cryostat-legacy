@@ -62,6 +62,7 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -317,6 +318,11 @@ class AbstractAuthenticatedRequestHandlerTest {
     static class AuthenticatedHandler extends AbstractAuthenticatedRequestHandler {
         AuthenticatedHandler(AuthManager auth) {
             super(auth);
+        }
+
+        @Override
+        public ApiVersion apiVersion() {
+            return ApiVersion.V1;
         }
 
         @Override

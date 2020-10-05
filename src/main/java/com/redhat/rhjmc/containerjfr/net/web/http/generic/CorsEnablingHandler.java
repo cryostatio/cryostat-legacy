@@ -47,6 +47,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -74,6 +75,11 @@ class CorsEnablingHandler implements RequestHandler {
                         .allowCredentials(true)
                         .exposedHeader(WebServer.AUTH_SCHEME_HEADER)
                         .exposedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER);
+    }
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
     }
 
     @Override
