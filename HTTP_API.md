@@ -1196,6 +1196,14 @@
     Should use percent-encoding.
 
     ###### response
+
+    `headers`
+
+    `Location` - will be set to the URL where the newly created snapshot recording
+    can be retrieved.
+
+    `statuses`
+
     `200` - The body is a descriptor of the newly started recording, in the form
     `{"downloadUrl":"$DOWNLOAD_URL","reportUrl":"$REPORT_URL","id":$ID,"name":"$NAME","state":"$STATE","startTime":$START_TIME,"duration":$DURATION,"continuous":$CONTINUOUS,"toDisk":$TO_DISK,"maxSize":$MAX_SIZE,"maxAge":$MAX_AGE}`.
 

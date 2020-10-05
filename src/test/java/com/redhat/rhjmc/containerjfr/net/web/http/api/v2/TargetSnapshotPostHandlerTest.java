@@ -78,6 +78,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -148,18 +149,14 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
 
-        try {
-            snapshot.handle(ctx);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
+        snapshot.handle(ctx);
 
         Mockito.verify(svc).getSnapshotRecording();
         Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
         Mockito.verify(recordingOptionsBuilder).build();
         Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
-        Mockito.verify(resp).setStatusCode(200);
+        Mockito.verify(resp).setStatusCode(201);
+        Mockito.verify(resp).putHeader(HttpHeaders.LOCATION, "http://example.com/download");
 
         ArgumentCaptor<String> endCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(resp).end(endCaptor.capture());

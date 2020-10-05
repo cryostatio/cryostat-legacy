@@ -58,6 +58,7 @@ import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHa
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import dagger.Lazy;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
@@ -126,7 +127,8 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
                                     webServer.get().getDownloadURL(connection, rename),
                                     webServer.get().getReportURL(connection, rename));
                         });
-        ctx.response().setStatusCode(200);
+        ctx.response().setStatusCode(201);
+        ctx.response().putHeader(HttpHeaders.LOCATION, result.getDownloadUrl());
         ctx.response().end(gson.toJson(result));
     }
 
