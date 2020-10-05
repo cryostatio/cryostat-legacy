@@ -39,54 +39,65 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import javax.inject.Inject;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import com.google.gson.Gson;
-
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 
-import dagger.Module;
-import dagger.Provides;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    static final String PATH = "/api/v1/targets/:targetId/recordings/:recordingName";
+
+    private final TargetRecordingPatchSave patchSave;
+    private final TargetRecordingPatchStop patchStop;
+
+    @Inject
+    TargetRecordingPatchHandler(
+            AuthManager auth,
+            TargetRecordingPatchSave patchSave,
+            TargetRecordingPatchStop patchStop) {
+        super(auth);
+        this.patchSave = patchSave;
+        this.patchStop = patchStop;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
-        try {
-            return Files.createTempDirectory("container-jfr").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.PATCH;
+    }
+
+    @Override
+    public String path() {
+        return PATH;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        String mtd = ctx.getBodyAsString();
+
+        if (mtd == null) {
+            throw new HttpStatusException(400, "Unsupported null operation");
+        }
+        switch (mtd.toLowerCase()) {
+            case "save":
+                patchSave.handle(ctx, getConnectionDescriptorFromContext(ctx));
+                break;
+            case "stop":
+                patchStop.handle(ctx, getConnectionDescriptorFromContext(ctx));
+                break;
+            default:
+                throw new HttpStatusException(400, "Unsupported operation " + mtd);
         }
     }
 }

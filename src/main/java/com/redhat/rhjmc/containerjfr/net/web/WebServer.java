@@ -72,7 +72,8 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.web.handlers.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
