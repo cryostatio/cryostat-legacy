@@ -39,17 +39,18 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.http;
+package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
-import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.HttpApiV1Module;
-import com.redhat.rhjmc.containerjfr.net.web.http.api.v2.HttpApiV2Module;
-import com.redhat.rhjmc.containerjfr.net.web.http.generic.HttpGenericModule;
+import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+
+import dagger.Binds;
 import dagger.Module;
+import dagger.multibindings.IntoSet;
 
-@Module(
-        includes = {
-            HttpGenericModule.class,
-            HttpApiV1Module.class,
-            HttpApiV2Module.class,
-        })
-public abstract class HttpModule {}
+@Module
+public abstract class HttpApiV2Module {
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
+}

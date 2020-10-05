@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api;
 public enum ApiVersion {
     GENERIC(""),
     V1("v1"),
+    V2("v2"),
     ;
 
     private final String version;

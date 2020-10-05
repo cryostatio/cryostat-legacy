@@ -52,15 +52,15 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 public class SerializableRecordingDescriptor {
 
-    private long id;
-    private String name;
-    private RecordingState state;
-    private long startTime;
-    private long duration;
-    private boolean continuous;
-    private boolean toDisk;
-    private long maxSize;
-    private long maxAge;
+    protected long id;
+    protected String name;
+    protected RecordingState state;
+    protected long startTime;
+    protected long duration;
+    protected boolean continuous;
+    protected boolean toDisk;
+    protected long maxSize;
+    protected long maxAge;
 
     public SerializableRecordingDescriptor(IRecordingDescriptor orig)
             throws QuantityConversionException {
