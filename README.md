@@ -4,9 +4,23 @@
 
 ## SEE ALSO
 
-See [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) for
+* [container-jfr-core](https://github.com/rh-jmc-team/container-jfr-core) for
 the core library providing a convenience wrapper and headless stubs for use of
 JFR using JDK Mission Control internals.
+
+* [container-jfr-operator](https://github.com/rh-jmc-team/container-jfr-operator)
+for an OpenShift Operator facilitating easy setup of ContainerJFR in your OpenShift
+cluster as well as exposing the ContainerJFR API as Kubernetes Custom Resources.
+
+* [container-jfr-web](https://github.com/rh-jmc-team/container-jfr) for the React
+graphical frontend included as a submodule in ContainerJFR and built into
+ContainerJFR's (non-minimal mode) OCI images.
+
+* [JDK Mission Control](https://github.com/openjdk/jmc) for the original JDK
+Mission Control, which is the desktop application complement to JFR. Some parts
+of JMC are borrowed and re-used to form the basis of ContainerJFR. JMC is still
+a recommended tool for more full-featured analysis of JFR files beyond what
+ContainerJFR currently implements.
 
 ## REQUIREMENTS
 Build:
