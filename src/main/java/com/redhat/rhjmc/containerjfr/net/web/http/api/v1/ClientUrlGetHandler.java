@@ -39,54 +39,70 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.util.Map;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import javax.inject.Inject;
 
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
-import dagger.Module;
-import dagger.Provides;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+class ClientUrlGetHandler implements RequestHandler {
 
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    private final Gson gson;
+    private final boolean isSsl;
+    private final NetworkConfiguration netConf;
+
+    @Inject
+    ClientUrlGetHandler(Gson gson, HttpServer server, NetworkConfiguration netConf) {
+        this.gson = gson;
+        this.isSsl = server.isSsl();
+        this.netConf = netConf;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "clienturl";
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         try {
-            return Files.createTempDirectory("container-jfr").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
+            // TODO replace String.format with URIBuilder or something else than manual string
+            // construction
+            String clientUrl =
+                    String.format(
+                            "%s://%s:%d/api/v1/command",
+                            isSsl ? "wss" : "ws",
+                            netConf.getWebServerHost(),
+                            netConf.getExternalWebServerPort());
+            ctx.response().end(gson.toJson(Map.of("clientUrl", clientUrl)));
+        } catch (SocketException | UnknownHostException e) {
+            throw new HttpStatusException(500, e);
         }
     }
 }

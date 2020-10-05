@@ -39,54 +39,50 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import java.util.Optional;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import javax.inject.Inject;
 
-import com.google.gson.Gson;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
-import dagger.Module;
-import dagger.Provides;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+class TargetRecordingPatchStop {
 
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    private final TargetConnectionManager targetConnectionManager;
+
+    @Inject
+    TargetRecordingPatchStop(TargetConnectionManager targetConnectionManager) {
+        this.targetConnectionManager = targetConnectionManager;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
-        try {
-            return Files.createTempDirectory("container-jfr").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
+        String recordingName = ctx.pathParam("recordingName");
+
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        connection.getService().stop(descriptor.get());
+                        return null;
+                    } else {
+                        throw new HttpStatusException(
+                                404,
+                                String.format(
+                                        "Recording with name \"%s\" not found", recordingName));
+                    }
+                });
+        ctx.response().setStatusCode(200);
+        ctx.response().end();
     }
 }

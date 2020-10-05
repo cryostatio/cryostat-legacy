@@ -39,54 +39,49 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
+import javax.inject.Inject;
 
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
-import dagger.Module;
-import dagger.Provides;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+class TargetsGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    private final PlatformClient platformClient;
+    private final Gson gson;
+
+    @Inject
+    TargetsGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
+        super(auth);
+        this.platformClient = platformClient;
+        this.gson = gson;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
-        try {
-            return Files.createTempDirectory("container-jfr").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "targets";
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        ctx.response().end(gson.toJson(this.platformClient.listDiscoverableServices()));
     }
 }

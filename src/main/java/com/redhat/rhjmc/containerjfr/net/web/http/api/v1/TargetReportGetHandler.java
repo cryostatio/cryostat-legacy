@@ -39,54 +39,69 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import com.google.gson.Gson;
+import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
-import dagger.Module;
-import dagger.Provides;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    protected final ReportService reportService;
+    protected final Logger logger;
+
+    @Inject
+    TargetReportGetHandler(AuthManager auth, ReportService reportService, Logger logger) {
+        super(auth);
+        this.reportService = reportService;
+        this.logger = logger;
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V1;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "targets/:targetId/reports/:recordingName";
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        String recordingName = ctx.pathParam("recordingName");
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
-            return Files.createTempDirectory("container-jfr").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
+            ctx.response()
+                    .end(reportService.get(getConnectionDescriptorFromContext(ctx), recordingName));
+        } catch (RecordingNotFoundException rnfe) {
+            throw new HttpStatusException(404, rnfe);
         }
     }
 }

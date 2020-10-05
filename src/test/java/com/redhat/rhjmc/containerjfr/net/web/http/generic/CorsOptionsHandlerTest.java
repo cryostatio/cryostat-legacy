@@ -39,54 +39,50 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web;
+package com.redhat.rhjmc.containerjfr.net.web.http.generic;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import com.google.gson.Gson;
-
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import io.vertx.core.http.HttpMethod;
 
-import dagger.Module;
-import dagger.Provides;
+@ExtendWith(MockitoExtension.class)
+class CorsOptionsHandlerTest {
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
+    CorsOptionsHandler handler;
+    @Mock Environment env;
 
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
+    @BeforeEach
+    void setup() {
+        Mockito.when(
+                        env.getEnv(
+                                CorsEnablingHandler.ENABLE_CORS_ENV,
+                                CorsEnablingHandler.DEV_ORIGIN))
+                .thenReturn("http://localhost:9000");
+        this.handler = new CorsOptionsHandler(env);
     }
 
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
-        try {
-            return Files.createTempDirectory("container-jfr").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+    @Test
+    void shouldApplyOPTIONSVerb() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.OPTIONS));
+    }
+
+    @Test
+    void shouldApplyToAllRequests() {
+        MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/*"));
+    }
+
+    @Test
+    void shouldBeHighPriority() {
+        MatcherAssert.assertThat(
+                handler.getPriority(), Matchers.lessThan(RequestHandler.DEFAULT_PRIORITY));
     }
 }

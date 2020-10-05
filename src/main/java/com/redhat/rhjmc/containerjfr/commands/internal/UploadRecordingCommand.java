@@ -69,7 +69,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.web.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
