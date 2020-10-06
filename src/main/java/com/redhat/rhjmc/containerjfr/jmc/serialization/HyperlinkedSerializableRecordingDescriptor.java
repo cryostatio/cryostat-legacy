@@ -50,8 +50,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
 
-    private String downloadUrl;
-    private String reportUrl;
+    protected String downloadUrl;
+    protected String reportUrl;
 
     public HyperlinkedSerializableRecordingDescriptor(
             IRecordingDescriptor original, String downloadUrl, String reportUrl)
