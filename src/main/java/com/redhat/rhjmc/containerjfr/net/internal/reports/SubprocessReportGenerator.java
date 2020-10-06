@@ -87,21 +87,49 @@ public class SubprocessReportGenerator {
 
     public static String[] createJvmArgs(int maxHeapMegabytes) throws IOException {
         var fs = new FileSystem();
+        var env = new Environment();
+        // These JVM flags must be kept in-sync with the flags set on the parent process in
+        // entrypoint.sh in order to keep the auth and certs setup consistent
         var l = new ArrayList<String>();
+
+        int parentJmxPort = Integer.valueOf(env.getEnv("CONTAINER_JFR_RJMX_PORT", "9091"));
+        int parentRmiPort = Integer.valueOf(env.getEnv("CONTAINER_JFR_RMI_PORT", "9091"));
+        int jmxPort;
+        if (parentJmxPort == Integer.MAX_VALUE) {
+            jmxPort = parentJmxPort - 1;
+        } else {
+            jmxPort = parentJmxPort + 1;
+        }
+        int rmiPort;
+        if (parentRmiPort == Integer.MAX_VALUE) {
+            rmiPort = parentRmiPort - 1;
+        } else {
+            rmiPort = parentRmiPort + 1;
+        }
         l.addAll(List.of(
             String.format("-Xmx%dM", maxHeapMegabytes),
-            "-XX:+ExitOnOutOfMemoryError"
+            "-XX:+ExitOnOutOfMemoryError",
+            "-Dcom.sun.management.jmxremote.port=" + String.valueOf(jmxPort),
+            "-Dcom.sun.management.jmxremote.rmi.port=" + String.valueOf(rmiPort)
         ));
 
-        var env = new Environment();
-        if (env.hasEnv("CONTAINER_JFR_DISABLE_SSL")) {
+        if ("true".equalsIgnoreCase(env.getEnv("CONTAINER_JFR_DISABLE_JMX_AUTH"))) {
+            l.add("-Dcom.sun.management.jmxremote.authenticate=false");
+        } else {
+            String userFile = "/tmp/jmxremote.access";
+            String passwordFile = "/tmp/jmxremote.password";
+            l.add("-Dcom.sun.management.jmxremote.authenticate=true");
+            l.add("-Dcom.sun.management.jmxremote.password.file=" + passwordFile);
+            l.add("-Dcom.sun.management.jmxremote.access.file=" + userFile);
+        }
+
+        if ("true".equalsIgnoreCase(env.getEnv("CONTAINER_JFR_DISABLE_SSL"))) {
             l.add("-Dcom.sun.management.jmxremote.ssl=false");
             l.add("-Dcom.sun.management.jmxremote.registry.ssl=false");
         } else {
             l.add("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true");
             l.add("-Dcom.sun.management.jmxremote.ssl=true");
             l.add("-Dcom.sun.management.jmxremote.registry.ssl=true");
-            //FIXME these should check environment variable values, not be hard-coded
             l.add("-Djavax.net.ssl.trustStore=/tmp/truststore.p12");
             l.add("-Djavax.net.ssl.trustStorePassword=" + fs.readString(fs.pathOf("/tmp/truststore.pass")));
         }
@@ -153,9 +181,8 @@ public class SubprocessReportGenerator {
 
         System.out.println(
                 SubprocessReportGenerator.class.getName()
-                        + " starting: ["
-                        + Arrays.asList(args)
-                        + "]");
+                        + " starting: "
+                        + Arrays.asList(args));
 
         if (args.length < 3 || args.length > 4) {
             throw new IllegalArgumentException();
@@ -205,7 +232,7 @@ public class SubprocessReportGenerator {
                                                                 InputStream stream =
                                                                         conn.getService()
                                                                                 .openStream(
-                                                                                        d, false);
+                                                                                        d, true);
                                                                 f.complete(
                                                                         generator.generateReport(
                                                                                 stream));

@@ -118,74 +118,44 @@ class ActiveRecordingReportCache {
     }
 
     protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
+        Path saveFile = null;
         try {
             generationLock.lock();
-            Pair<Optional<InputStream>, JFRConnection> pair =
-                    getRecordingStream(
-                            recordingDescriptor.connectionDescriptor,
-                            recordingDescriptor.recordingName);
-            try (JFRConnection c = pair.getRight();
-                    InputStream stream =
-                            pair.getLeft()
-                                    .orElseThrow(
-                                            () ->
-                                                    new RecordingNotFoundException(
-                                                            recordingDescriptor.connectionDescriptor
-                                                                    .getTargetId(),
-                                                            recordingDescriptor.recordingName))) {
-                logger.trace(
-                        String.format(
-                                "Active report cache miss for %s",
-                                recordingDescriptor.recordingName));
+            saveFile = Files.createTempFile(null, null);
+            logger.trace(
+                    String.format(
+                            "Active report cache miss for %s",
+                            recordingDescriptor.recordingName));
 
-                Path saveFile = Files.createTempFile(null, null);
-                int status =
-                        javaProcessProvider
-                                .get()
-                                .exec(
-                                        repGenProvider.get(),
-                                        Arrays.asList(SubprocessReportGenerator.createJvmArgs(200)),
-                                        Arrays.asList(
-                                                SubprocessReportGenerator.createProcessArgs(
-                                                        recordingDescriptor.connectionDescriptor,
-                                                        recordingDescriptor.recordingName,
-                                                        saveFile)));
-                if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
-                    return fs.readString(saveFile);
-                } else {
-                    ExitStatus es = ExitStatus.OK;
-                    for (ExitStatus e : ExitStatus.values()) {
-                        if (e.code == status) {
-                            es = e;
-                            break;
-                        }
+            int status =
+                    javaProcessProvider
+                            .get()
+                            .exec(
+                                    repGenProvider.get(),
+                                    Arrays.asList(SubprocessReportGenerator.createJvmArgs(200)),
+                                    Arrays.asList(
+                                            SubprocessReportGenerator.createProcessArgs(
+                                                    recordingDescriptor.connectionDescriptor,
+                                                    recordingDescriptor.recordingName,
+                                                    saveFile)));
+            if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
+                return fs.readString(saveFile);
+            } else {
+                ExitStatus es = ExitStatus.OK;
+                for (ExitStatus e : ExitStatus.values()) {
+                    if (e.code == status) {
+                        es = e;
+                        break;
                     }
-                    throw new SubprocessReportGenerator.ReportGenerationException(es);
                 }
+                throw new SubprocessReportGenerator.ReportGenerationException(es);
             }
         } finally {
+            if (saveFile != null) {
+                Files.deleteIfExists(saveFile);
+            }
             generationLock.unlock();
         }
-    }
-
-    protected Pair<Optional<InputStream>, JFRConnection> getRecordingStream(
-            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(connectionDescriptor);
-        Optional<InputStream> desc =
-                connection.getService().getAvailableRecordings().stream()
-                        .filter(rec -> Objects.equals(recordingName, rec.getName()))
-                        .findFirst()
-                        .flatMap(
-                                rec -> {
-                                    try {
-                                        return Optional.of(
-                                                connection.getService().openStream(rec, false));
-                                    } catch (Exception e) {
-                                        logger.warn(e);
-                                        return Optional.empty();
-                                    }
-                                });
-        return Pair.of(desc, connection);
     }
 
     static class RecordingDescriptor {
