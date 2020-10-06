@@ -127,7 +127,7 @@ class ActiveRecordingReportCache {
                             "Active report cache miss for %s",
                             recordingDescriptor.recordingName));
 
-            int status =
+            Process proc =
                     javaProcessProvider
                             .get()
                             .exec(
@@ -138,6 +138,8 @@ class ActiveRecordingReportCache {
                                                     recordingDescriptor.connectionDescriptor,
                                                     recordingDescriptor.recordingName,
                                                     saveFile)));
+            proc.waitFor(15, TimeUnit.SECONDS);
+            int status = proc.destroyForcibly().exitValue();
             if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
                 return fs.readString(saveFile);
             } else {

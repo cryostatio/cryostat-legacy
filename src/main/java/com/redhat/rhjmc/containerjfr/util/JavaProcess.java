@@ -47,7 +47,7 @@ import java.util.List;
 
 public class JavaProcess {
 
-    public int exec(Class<?> klazz, List<String> jvmArgs, List<String> processArgs)
+    public Process exec(Class<?> klazz, List<String> jvmArgs, List<String> processArgs)
             throws IOException, InterruptedException {
         String className = klazz.getName();
 
@@ -61,9 +61,9 @@ public class JavaProcess {
 
         System.out.println("Forking process with command line: " + cmd.toString());
 
-        var pb = new ProcessBuilder(cmd);
-        var proc = pb.inheritIO().start();
-        proc.waitFor();
-        return proc.exitValue();
+        return new ProcessBuilder()
+            .command(cmd)
+            .inheritIO()
+            .start();
     }
 }
