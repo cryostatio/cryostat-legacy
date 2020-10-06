@@ -167,7 +167,7 @@ public class SubprocessReportGenerator {
                 .addShutdownHook(
                         new Thread(
                                 () -> {
-                                    System.out.println(
+                                    Logger.INSTANCE.info(
                                             SubprocessReportGenerator.class.getName()
                                                     + " shutting down...");
                                 }));
@@ -179,7 +179,7 @@ public class SubprocessReportGenerator {
             System.exit(ExitStatus.OTHER.code);
         }
 
-        System.out.println(
+        Logger.INSTANCE.info(
                 SubprocessReportGenerator.class.getName()
                         + " starting: "
                         + Arrays.asList(args));
@@ -201,7 +201,7 @@ public class SubprocessReportGenerator {
             password = null;
         }
 
-        var tk = new JFRConnectionToolkit(System.err::println, new FileSystem(), new Environment());
+        var tk = new JFRConnectionToolkit(Logger.INSTANCE::info, new FileSystem(), new Environment());
         ConnectionDescriptor cd;
         if (username == null) {
             cd = new ConnectionDescriptor(targetId);
