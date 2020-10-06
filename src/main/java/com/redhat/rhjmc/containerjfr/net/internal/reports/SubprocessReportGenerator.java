@@ -50,7 +50,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -106,12 +105,12 @@ public class SubprocessReportGenerator {
         } else {
             rmiPort = parentRmiPort + 1;
         }
-        l.addAll(List.of(
-            String.format("-Xmx%dM", maxHeapMegabytes),
-            "-XX:+ExitOnOutOfMemoryError",
-            "-Dcom.sun.management.jmxremote.port=" + String.valueOf(jmxPort),
-            "-Dcom.sun.management.jmxremote.rmi.port=" + String.valueOf(rmiPort)
-        ));
+        l.addAll(
+                List.of(
+                        String.format("-Xmx%dM", maxHeapMegabytes),
+                        "-XX:+ExitOnOutOfMemoryError",
+                        "-Dcom.sun.management.jmxremote.port=" + String.valueOf(jmxPort),
+                        "-Dcom.sun.management.jmxremote.rmi.port=" + String.valueOf(rmiPort)));
 
         if ("true".equalsIgnoreCase(env.getEnv("CONTAINER_JFR_DISABLE_JMX_AUTH"))) {
             l.add("-Dcom.sun.management.jmxremote.authenticate=false");
@@ -131,7 +130,9 @@ public class SubprocessReportGenerator {
             l.add("-Dcom.sun.management.jmxremote.ssl=true");
             l.add("-Dcom.sun.management.jmxremote.registry.ssl=true");
             l.add("-Djavax.net.ssl.trustStore=/tmp/truststore.p12");
-            l.add("-Djavax.net.ssl.trustStorePassword=" + fs.readString(fs.pathOf("/tmp/truststore.pass")));
+            l.add(
+                    "-Djavax.net.ssl.trustStorePassword="
+                            + fs.readString(fs.pathOf("/tmp/truststore.pass")));
         }
 
         return l.toArray(new String[0]);
@@ -179,10 +180,7 @@ public class SubprocessReportGenerator {
             System.exit(ExitStatus.OTHER.code);
         }
 
-        Logger.INSTANCE.info(
-                SubprocessReportGenerator.class.getName()
-                        + " starting: "
-                        + Arrays.asList(args));
+        Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " starting");
 
         if (args.length < 3 || args.length > 4) {
             throw new IllegalArgumentException();
@@ -201,7 +199,9 @@ public class SubprocessReportGenerator {
             password = null;
         }
 
-        var tk = new JFRConnectionToolkit(Logger.INSTANCE::info, new FileSystem(), new Environment());
+        var tk =
+                new JFRConnectionToolkit(
+                        Logger.INSTANCE::info, new FileSystem(), new Environment());
         ConnectionDescriptor cd;
         if (username == null) {
             cd = new ConnectionDescriptor(targetId);

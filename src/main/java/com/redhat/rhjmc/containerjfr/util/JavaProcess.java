@@ -61,9 +61,6 @@ public class JavaProcess {
 
         System.out.println("Forking process with command line: " + cmd.toString());
 
-        return new ProcessBuilder()
-            .command(cmd)
-            .inheritIO()
-            .start();
+        return new ProcessBuilder().command(cmd).inheritIO().start();
     }
 }

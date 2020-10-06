@@ -41,12 +41,9 @@
  */
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
-import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -56,17 +53,14 @@ import javax.inject.Provider;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.tuple.Pair;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
@@ -124,8 +118,7 @@ class ActiveRecordingReportCache {
             saveFile = Files.createTempFile(null, null);
             logger.trace(
                     String.format(
-                            "Active report cache miss for %s",
-                            recordingDescriptor.recordingName));
+                            "Active report cache miss for %s", recordingDescriptor.recordingName));
 
             Process proc =
                     javaProcessProvider
