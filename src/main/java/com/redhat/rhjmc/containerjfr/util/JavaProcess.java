@@ -45,7 +45,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+
 public class JavaProcess {
+
+    private final Logger logger;
+
+    public JavaProcess(Logger logger) {
+        this.logger = logger;
+    }
 
     public Process exec(Class<?> klazz, List<String> jvmArgs, List<String> processArgs)
             throws IOException, InterruptedException {
@@ -59,7 +67,7 @@ public class JavaProcess {
         cmd.add(className);
         cmd.addAll(processArgs);
 
-        System.out.println("Forking process with command line: " + cmd.toString());
+        logger.info("Forking process with command line: " + cmd.toString());
 
         return new ProcessBuilder().command(cmd).inheritIO().start();
     }

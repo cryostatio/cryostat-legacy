@@ -86,7 +86,11 @@ class ActiveRecordingReportCacheTest {
 
     class TestSubprocessReportGenerator extends SubprocessReportGenerator {}
 
-    class TestJavaProcess extends JavaProcess {}
+    class TestJavaProcess extends JavaProcess {
+        TestJavaProcess() {
+            super(logger);
+        }
+    }
 
     @BeforeEach
     void setup() {

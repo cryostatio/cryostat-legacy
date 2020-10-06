@@ -93,7 +93,7 @@ public abstract class ReportsModule {
         return new ActiveRecordingReportCache(
                 targetConnectionManager,
                 () -> SubprocessReportGenerator.class,
-                () -> new JavaProcess(),
+                () -> new JavaProcess(logger),
                 fs,
                 generationLock,
                 logger);
