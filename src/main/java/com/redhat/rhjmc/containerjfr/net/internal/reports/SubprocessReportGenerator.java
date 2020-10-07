@@ -51,7 +51,6 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
@@ -68,11 +67,12 @@ public class SubprocessReportGenerator {
 
     enum ExitStatus {
         OK(0, ""),
-        TARGET_CONNECTION_FAILURE(1, "Connection to target JVM failed"),
-        NO_SUCH_RECORDING(2, "No such recording was found"),
-        RECORDING_EXCEPTION(3, "An unspecified exception occurred while retrieving the recording"),
-        IO_EXCEPTION(4, "An unspecified IO exception occurred while writing the report file"),
-        OTHER(5, "An unspecified unexpected exception occurred"),
+        TARGET_CONNECTION_FAILURE(1, "Connection to target JVM failed."),
+        NO_SUCH_RECORDING(2, "No such recording was found."),
+        RECORDING_EXCEPTION(3, "An unspecified exception occurred while retrieving the recording."),
+        IO_EXCEPTION(4, "An unspecified IO exception occurred while writing the report file."),
+        OTHER(5, "An unspecified unexpected exception occurred."),
+        TERMINATED(-1, "The subprocess timed out and was terminated."),
         ;
 
         final int code;
@@ -184,6 +184,11 @@ public class SubprocessReportGenerator {
                                                 .ifPresentOrElse(
                                                         d -> {
                                                             try {
+                                                                //TODO figure out a good way to pass
+                                                                //in the injected set of report
+                                                                //transformers. This currently
+                                                                //hardcodes an empty transformer
+                                                                //set.
                                                                 var generator =
                                                                         new ReportGenerator(
                                                                                 Logger.INSTANCE,
@@ -192,7 +197,7 @@ public class SubprocessReportGenerator {
                                                                 InputStream stream =
                                                                         conn.getService()
                                                                                 .openStream(
-                                                                                        d, true);
+                                                                                        d, false);
                                                                 f.complete(
                                                                         generator.generateReport(
                                                                                 stream));

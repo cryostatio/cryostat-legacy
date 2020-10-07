@@ -125,18 +125,26 @@ class ActiveRecordingReportCache {
                             .get()
                             .exec(
                                     repGenProvider.get(),
+                                    // TODO replace 200 with a value determined by container limits,
+                                    // available memory, etc
                                     Arrays.asList(SubprocessReportGenerator.createJvmArgs(200)),
                                     Arrays.asList(
                                             SubprocessReportGenerator.createProcessArgs(
                                                     recordingDescriptor.connectionDescriptor,
                                                     recordingDescriptor.recordingName,
                                                     saveFile)));
-            proc.waitFor(15, TimeUnit.SECONDS);
-            int status = proc.destroyForcibly().exitValue();
+            int status = ExitStatus.TERMINATED.code;
+            //TODO make this timeout configurable or based on HTTP request timeout or something
+            if (proc.waitFor(15, TimeUnit.SECONDS)) {
+                status = proc.exitValue();
+            } else {
+                logger.info("SubprocessReportGenerator timed out, terminating");
+                proc.destroyForcibly();
+            }
             if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
                 return fs.readString(saveFile);
             } else {
-                ExitStatus es = ExitStatus.OK;
+                ExitStatus es = ExitStatus.TERMINATED;
                 for (ExitStatus e : ExitStatus.values()) {
                     if (e.code == status) {
                         es = e;
