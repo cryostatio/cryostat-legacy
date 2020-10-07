@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -58,6 +59,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -69,6 +71,7 @@ class ActiveRecordingReportCache {
     protected final TargetConnectionManager targetConnectionManager;
     protected final Provider<Class<? extends SubprocessReportGenerator>> repGenProvider;
     protected final Provider<JavaProcess> javaProcessProvider;
+    protected final Set<ReportTransformer> reportTransformers;
     protected final FileSystem fs;
     protected final ReentrantLock generationLock;
     protected final LoadingCache<RecordingDescriptor, String> cache;
@@ -78,12 +81,14 @@ class ActiveRecordingReportCache {
             TargetConnectionManager targetConnectionManager,
             Provider<Class<? extends SubprocessReportGenerator>> repGenProvider,
             Provider<JavaProcess> javaProcessProvider,
+            Set<ReportTransformer> reportTransformers,
             FileSystem fs,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.repGenProvider = repGenProvider;
         this.javaProcessProvider = javaProcessProvider;
+        this.reportTransformers = reportTransformers;
         this.fs = fs;
         this.generationLock = generationLock;
         this.logger = logger;
@@ -115,7 +120,10 @@ class ActiveRecordingReportCache {
         Path saveFile = null;
         try {
             generationLock.lock();
+            // TODO extract this into FileSystem
             saveFile = Files.createTempFile(null, null);
+            fs.writeString(saveFile,
+                    SubprocessReportGenerator.serializeTransformersSet(reportTransformers));
             logger.trace(
                     String.format(
                             "Active report cache miss for %s", recordingDescriptor.recordingName));

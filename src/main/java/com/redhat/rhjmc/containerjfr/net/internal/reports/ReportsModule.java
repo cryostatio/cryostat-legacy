@@ -87,6 +87,7 @@ public abstract class ReportsModule {
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
+            Set<ReportTransformer> reportTransformers,
             FileSystem fs,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
@@ -94,6 +95,7 @@ public abstract class ReportsModule {
                 targetConnectionManager,
                 () -> SubprocessReportGenerator.class,
                 () -> new JavaProcess(logger),
+                reportTransformers,
                 fs,
                 generationLock,
                 logger);

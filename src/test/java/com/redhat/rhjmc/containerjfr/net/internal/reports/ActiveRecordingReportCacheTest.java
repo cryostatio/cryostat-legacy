@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -99,6 +100,7 @@ class ActiveRecordingReportCacheTest {
                         targetConnectionManager,
                         () -> TestSubprocessReportGenerator.class,
                         () -> new TestJavaProcess(),
+                        Collections.emptySet(),
                         fs,
                         lock,
                         logger);

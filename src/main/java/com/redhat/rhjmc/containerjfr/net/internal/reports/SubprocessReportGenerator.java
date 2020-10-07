@@ -51,13 +51,18 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
@@ -96,6 +101,25 @@ public class SubprocessReportGenerator {
         l.add("-Djavax.net.ssl.trustStorePassword=" + fs.readString(fs.pathOf("/tmp/truststore.pass")));
 
         return l.toArray(new String[0]);
+    }
+
+    public static String serializeTransformersSet(Set<ReportTransformer> set) {
+        var sb = new StringBuilder();
+        for (var rt : set) {
+            sb.append(rt.getClass().getCanonicalName());
+            sb.append('\n');
+        }
+        return sb.toString().trim();
+    }
+
+    public static Set<ReportTransformer> deserializeTransformers(String serial) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+        var st = new StringTokenizer(serial);
+        var res = new HashSet<ReportTransformer>();
+        while (st.hasMoreTokens()) {
+            res.add((ReportTransformer)
+                    Class.forName(st.nextToken()).getDeclaredConstructor().newInstance());
+        }
+        return res;
     }
 
     public static String[] createProcessArgs(
@@ -147,7 +171,7 @@ public class SubprocessReportGenerator {
         }
         var targetId = args[0];
         var recordingName = args[1];
-        var saveFile = args[2];
+        var saveFile = Paths.get(args[2]);
 
         String username, password;
         if (args.length == 4) {
@@ -159,6 +183,7 @@ public class SubprocessReportGenerator {
             password = null;
         }
 
+        var fs = new FileSystem();
         var tk =
                 new JFRConnectionToolkit(
                         Logger.INSTANCE::info, new FileSystem(), new Environment());
@@ -184,16 +209,12 @@ public class SubprocessReportGenerator {
                                                 .ifPresentOrElse(
                                                         d -> {
                                                             try {
-                                                                //TODO figure out a good way to pass
-                                                                //in the injected set of report
-                                                                //transformers. This currently
-                                                                //hardcodes an empty transformer
-                                                                //set.
+                                                                var transformers =
+                                                                    deserializeTransformers(fs.readString(saveFile));
                                                                 var generator =
                                                                         new ReportGenerator(
                                                                                 Logger.INSTANCE,
-                                                                                Collections
-                                                                                        .emptySet());
+                                                                                transformers);
                                                                 InputStream stream =
                                                                         conn.getService()
                                                                                 .openStream(
@@ -214,7 +235,7 @@ public class SubprocessReportGenerator {
                                     });
 
             Files.writeString(
-                    Paths.get(saveFile),
+                    saveFile,
                     report,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING,
