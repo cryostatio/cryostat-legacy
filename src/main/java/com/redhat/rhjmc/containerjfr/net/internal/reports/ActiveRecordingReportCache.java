@@ -125,8 +125,9 @@ class ActiveRecordingReportCache {
                             .get()
                             .exec(
                                     repGenProvider.get(),
-                                    // TODO replace 200 with a value determined by container limits,
-                                    // available memory, etc
+                                    // TODO use OperatingSystemMXBean or other sources and apply
+                                    // some heuristic to determine the amount of memory to allow the
+                                    // subprocess to consume
                                     Arrays.asList(SubprocessReportGenerator.createJvmArgs(200)),
                                     Arrays.asList(
                                             SubprocessReportGenerator.createProcessArgs(
@@ -134,7 +135,8 @@ class ActiveRecordingReportCache {
                                                     recordingDescriptor.recordingName,
                                                     saveFile)));
             int status = ExitStatus.TERMINATED.code;
-            //TODO make this timeout configurable or based on HTTP request timeout or something
+            //TODO this timeout should be related to the HTTP response timeout. See
+            // https://github.com/rh-jmc-team/container-jfr/issues/288
             if (proc.waitFor(15, TimeUnit.SECONDS)) {
                 status = proc.exitValue();
             } else {
