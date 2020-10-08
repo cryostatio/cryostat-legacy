@@ -132,12 +132,13 @@ class ActiveRecordingReportCache {
                     processBuilderProvider
                             .get()
                             .klazz(repGenProvider.get())
+                            .env(
+                                    SubprocessReportGenerator.createEnv(
+                                            recordingDescriptor.connectionDescriptor))
                             .jvmArgs(SubprocessReportGenerator.createJvmArgs(200))
                             .processArgs(
                                     SubprocessReportGenerator.createProcessArgs(
-                                            recordingDescriptor.connectionDescriptor,
-                                            recordingDescriptor.recordingName,
-                                            saveFile))
+                                            recordingDescriptor, saveFile))
                             .exec();
             int status = ExitStatus.TERMINATED.code;
             // TODO this timeout should be related to the HTTP response timeout. See

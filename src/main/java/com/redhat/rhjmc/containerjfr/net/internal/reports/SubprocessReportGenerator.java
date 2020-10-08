@@ -50,8 +50,11 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
@@ -66,8 +69,12 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
 
 public class SubprocessReportGenerator {
+
+    static String ENV_USERNAME = "TARGET_USERNAME";
+    static String ENV_PASSWORD = "TARGET_PASSWORD";
 
     enum ExitStatus {
         OK(0, ""),
@@ -88,6 +95,24 @@ public class SubprocessReportGenerator {
         }
     }
 
+    public static Map<String, String> createEnv(ConnectionDescriptor connectionDescriptor)
+            throws NoSuchMethodException, SecurityException, IllegalAccessException,
+                    IllegalArgumentException, InvocationTargetException {
+        if (connectionDescriptor.getCredentials().isEmpty()) {
+            return Collections.emptyMap();
+        }
+        // FIXME don't use reflection for this
+        Credentials c = connectionDescriptor.getCredentials().get();
+        Method mtdUsername = c.getClass().getDeclaredMethod("getUsername");
+        mtdUsername.trySetAccessible();
+        Method mtdPassword = c.getClass().getDeclaredMethod("getPassword");
+        mtdPassword.trySetAccessible();
+
+        String username = (String) mtdUsername.invoke(c);
+        String password = (String) mtdPassword.invoke(c);
+        return Map.of(ENV_USERNAME, username, ENV_PASSWORD, password);
+    }
+
     public static List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
         var fs = new FileSystem();
         // These JVM flags must be kept in-sync with the flags set on the parent process in
@@ -105,28 +130,11 @@ public class SubprocessReportGenerator {
     }
 
     public static List<String> createProcessArgs(
-            ConnectionDescriptor cd, String recordingName, Path saveFile)
-            throws NoSuchMethodException, SecurityException, IllegalAccessException,
-                    IllegalArgumentException, InvocationTargetException {
-        var args = new ArrayList<String>();
-        args.add(cd.getTargetId());
-        args.add(recordingName);
-        args.add(saveFile.toAbsolutePath().toString());
-
-        var credentials = cd.getCredentials();
-        if (credentials.isPresent()) {
-            // FIXME don't use reflection for this
-            Credentials c = credentials.get();
-            Method mtdUsername = c.getClass().getDeclaredMethod("getUsername");
-            mtdUsername.trySetAccessible();
-            Method mtdPassword = c.getClass().getDeclaredMethod("getPassword");
-            mtdPassword.trySetAccessible();
-
-            String username = (String) mtdUsername.invoke(c);
-            String password = (String) mtdPassword.invoke(c);
-            args.add(String.format("%s:%s", username, password));
-        }
-        return args;
+            RecordingDescriptor recordingDescriptor, Path saveFile) {
+        return List.of(
+                recordingDescriptor.connectionDescriptor.getTargetId(),
+                recordingDescriptor.recordingName,
+                saveFile.toAbsolutePath().toString());
     }
 
     public static String serializeTransformersSet(Set<ReportTransformer> set) {
@@ -171,22 +179,16 @@ public class SubprocessReportGenerator {
 
         Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " starting");
 
-        if (args.length < 3 || args.length > 4) {
-            throw new IllegalArgumentException();
+        if (args.length != 3) {
+            throw new IllegalArgumentException(Arrays.asList(args).toString());
         }
         var targetId = args[0];
         var recordingName = args[1];
         var saveFile = Paths.get(args[2]);
 
-        String username, password;
-        if (args.length == 4) {
-            String credentials = args[3];
-            username = credentials.split(":")[0];
-            password = credentials.split(":")[1];
-        } else {
-            username = null;
-            password = null;
-        }
+        var env = new Environment();
+        String username = env.getEnv(ENV_USERNAME);
+        String password = env.getEnv(ENV_PASSWORD);
 
         var fs = new FileSystem();
         var tk =
