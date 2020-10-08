@@ -835,7 +835,7 @@
     Starts a recording in a target JVM.
 
     ###### request
-    `/api/v1/targets/:targetId/recordings`
+    `POST /api/v1/targets/:targetId/recordings`
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
