@@ -122,7 +122,8 @@ class ActiveRecordingReportCache {
             generationLock.lock();
             // TODO extract this into FileSystem
             saveFile = Files.createTempFile(null, null);
-            fs.writeString(saveFile,
+            fs.writeString(
+                    saveFile,
                     SubprocessReportGenerator.serializeTransformersSet(reportTransformers));
             logger.trace(
                     String.format(
@@ -143,7 +144,7 @@ class ActiveRecordingReportCache {
                                                     recordingDescriptor.recordingName,
                                                     saveFile)));
             int status = ExitStatus.TERMINATED.code;
-            //TODO this timeout should be related to the HTTP response timeout. See
+            // TODO this timeout should be related to the HTTP response timeout. See
             // https://github.com/rh-jmc-team/container-jfr/issues/288
             if (proc.waitFor(15, TimeUnit.SECONDS)) {
                 status = proc.exitValue();

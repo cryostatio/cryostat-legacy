@@ -50,12 +50,10 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
-import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -98,7 +96,9 @@ public class SubprocessReportGenerator {
         l.add(String.format("-Xmx%dM", maxHeapMegabytes));
         l.add("-XX:+ExitOnOutOfMemoryError");
         l.add("-Djavax.net.ssl.trustStore=/tmp/truststore.p12");
-        l.add("-Djavax.net.ssl.trustStorePassword=" + fs.readString(fs.pathOf("/tmp/truststore.pass")));
+        l.add(
+                "-Djavax.net.ssl.trustStorePassword="
+                        + fs.readString(fs.pathOf("/tmp/truststore.pass")));
 
         return l.toArray(new String[0]);
     }
@@ -112,12 +112,16 @@ public class SubprocessReportGenerator {
         return sb.toString().trim();
     }
 
-    public static Set<ReportTransformer> deserializeTransformers(String serial) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+    public static Set<ReportTransformer> deserializeTransformers(String serial)
+            throws InstantiationException, IllegalAccessException, IllegalArgumentException,
+                    InvocationTargetException, NoSuchMethodException, SecurityException,
+                    ClassNotFoundException {
         var st = new StringTokenizer(serial);
         var res = new HashSet<ReportTransformer>();
         while (st.hasMoreTokens()) {
-            res.add((ReportTransformer)
-                    Class.forName(st.nextToken()).getDeclaredConstructor().newInstance());
+            res.add(
+                    (ReportTransformer)
+                            Class.forName(st.nextToken()).getDeclaredConstructor().newInstance());
         }
         return res;
     }
@@ -210,7 +214,9 @@ public class SubprocessReportGenerator {
                                                         d -> {
                                                             try {
                                                                 var transformers =
-                                                                    deserializeTransformers(fs.readString(saveFile));
+                                                                        deserializeTransformers(
+                                                                                fs.readString(
+                                                                                        saveFile));
                                                                 var generator =
                                                                         new ReportGenerator(
                                                                                 Logger.INSTANCE,
