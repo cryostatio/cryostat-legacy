@@ -77,7 +77,7 @@ class ActiveRecordingReportCacheTest {
 
     ActiveRecordingReportCache cache;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock JavaProcess javaProcess;
+    @Mock JavaProcess.Builder javaProcessBuilder;
     @Mock ReportGenerator reportGenerator;
     @Mock FileSystem fs;
     @Mock ReentrantLock lock;
@@ -87,19 +87,13 @@ class ActiveRecordingReportCacheTest {
 
     class TestSubprocessReportGenerator extends SubprocessReportGenerator {}
 
-    class TestJavaProcess extends JavaProcess {
-        TestJavaProcess() {
-            super(logger);
-        }
-    }
-
     @BeforeEach
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
                         targetConnectionManager,
                         () -> TestSubprocessReportGenerator.class,
-                        () -> new TestJavaProcess(),
+                        () -> javaProcessBuilder,
                         Collections.emptySet(),
                         fs,
                         lock,

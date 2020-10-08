@@ -51,6 +51,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
@@ -87,20 +88,45 @@ public class SubprocessReportGenerator {
         }
     }
 
-    public static String[] createJvmArgs(int maxHeapMegabytes) throws IOException {
+    public static List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
         var fs = new FileSystem();
         // These JVM flags must be kept in-sync with the flags set on the parent process in
         // entrypoint.sh in order to keep the auth and certs setup consistent
-        var l = new ArrayList<String>();
+        var args = new ArrayList<String>();
 
-        l.add(String.format("-Xmx%dM", maxHeapMegabytes));
-        l.add("-XX:+ExitOnOutOfMemoryError");
-        l.add("-Djavax.net.ssl.trustStore=/tmp/truststore.p12");
-        l.add(
+        args.add(String.format("-Xmx%dM", maxHeapMegabytes));
+        args.add("-XX:+ExitOnOutOfMemoryError");
+        args.add("-Djavax.net.ssl.trustStore=/tmp/truststore.p12");
+        args.add(
                 "-Djavax.net.ssl.trustStorePassword="
                         + fs.readString(fs.pathOf("/tmp/truststore.pass")));
 
-        return l.toArray(new String[0]);
+        return args;
+    }
+
+    public static List<String> createProcessArgs(
+            ConnectionDescriptor cd, String recordingName, Path saveFile)
+            throws NoSuchMethodException, SecurityException, IllegalAccessException,
+                    IllegalArgumentException, InvocationTargetException {
+        var args = new ArrayList<String>();
+        args.add(cd.getTargetId());
+        args.add(recordingName);
+        args.add(saveFile.toAbsolutePath().toString());
+
+        var credentials = cd.getCredentials();
+        if (credentials.isPresent()) {
+            // FIXME don't use reflection for this
+            Credentials c = credentials.get();
+            Method mtdUsername = c.getClass().getDeclaredMethod("getUsername");
+            mtdUsername.trySetAccessible();
+            Method mtdPassword = c.getClass().getDeclaredMethod("getPassword");
+            mtdPassword.trySetAccessible();
+
+            String username = (String) mtdUsername.invoke(c);
+            String password = (String) mtdPassword.invoke(c);
+            args.add(String.format("%s:%s", username, password));
+        }
+        return args;
     }
 
     public static String serializeTransformersSet(Set<ReportTransformer> set) {
@@ -124,31 +150,6 @@ public class SubprocessReportGenerator {
                             Class.forName(st.nextToken()).getDeclaredConstructor().newInstance());
         }
         return res;
-    }
-
-    public static String[] createProcessArgs(
-            ConnectionDescriptor cd, String recordingName, Path saveFile)
-            throws NoSuchMethodException, SecurityException, IllegalAccessException,
-                    IllegalArgumentException, InvocationTargetException {
-        var args = new ArrayList<>();
-        args.add(cd.getTargetId());
-        args.add(recordingName);
-        args.add(saveFile.toAbsolutePath().toString());
-
-        var credentials = cd.getCredentials();
-        if (credentials.isPresent()) {
-            // FIXME don't use reflection for this
-            Credentials c = credentials.get();
-            Method mtdUsername = c.getClass().getDeclaredMethod("getUsername");
-            mtdUsername.trySetAccessible();
-            Method mtdPassword = c.getClass().getDeclaredMethod("getPassword");
-            mtdPassword.trySetAccessible();
-
-            String username = (String) mtdUsername.invoke(c);
-            String password = (String) mtdPassword.invoke(c);
-            args.add(String.format("%s:%s", username, password));
-        }
-        return args.toArray(new String[0]);
     }
 
     public static void main(String[] args) {

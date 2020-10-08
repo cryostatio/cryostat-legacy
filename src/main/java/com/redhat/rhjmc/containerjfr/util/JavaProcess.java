@@ -43,19 +43,15 @@ package com.redhat.rhjmc.containerjfr.util;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import java.util.Map;
+import java.util.Objects;
 
 public class JavaProcess {
 
-    private final Logger logger;
-
-    public JavaProcess(Logger logger) {
-        this.logger = logger;
-    }
-
-    public Process exec(Class<?> klazz, List<String> jvmArgs, List<String> processArgs)
+    static Process exec(
+            Class<?> klazz, Map<String, String> env, List<String> jvmArgs, List<String> processArgs)
             throws IOException, InterruptedException {
         String className = klazz.getName();
 
@@ -67,8 +63,49 @@ public class JavaProcess {
         cmd.add(className);
         cmd.addAll(processArgs);
 
-        logger.info("Forking process with command line: " + cmd.toString());
+        var pb = new ProcessBuilder();
+        pb.environment().putAll(env);
+        return pb.command(cmd).inheritIO().start();
+    }
 
-        return new ProcessBuilder().command(cmd).inheritIO().start();
+    public static class Builder {
+        private Class<?> klazz;
+        private Map<String, String> env;
+        private List<String> jvmArgs;
+        private List<String> processArgs;
+
+        public Builder klazz(Class<?> klazz) {
+            this.klazz = Objects.requireNonNull(klazz);
+            return this;
+        }
+
+        public Builder env(Map<String, String> env) {
+            this.env = env;
+            return this;
+        }
+
+        public Builder jvmArgs(List<String> jvmArgs) {
+            this.jvmArgs = jvmArgs;
+            return this;
+        }
+
+        public Builder processArgs(List<String> processArgs) {
+            this.processArgs = processArgs;
+            return this;
+        }
+
+        public Process exec() throws IOException, InterruptedException {
+            Objects.requireNonNull(klazz, "Class cannot be null");
+            if (env == null) {
+                env = Collections.emptyMap();
+            }
+            if (jvmArgs == null) {
+                jvmArgs = Collections.emptyList();
+            }
+            if (processArgs == null) {
+                processArgs = Collections.emptyList();
+            }
+            return JavaProcess.exec(klazz, env, jvmArgs, processArgs);
+        }
     }
 }

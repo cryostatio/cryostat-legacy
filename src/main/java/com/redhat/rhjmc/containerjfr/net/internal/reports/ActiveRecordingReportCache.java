@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -70,7 +69,7 @@ class ActiveRecordingReportCache {
 
     protected final TargetConnectionManager targetConnectionManager;
     protected final Provider<Class<? extends SubprocessReportGenerator>> repGenProvider;
-    protected final Provider<JavaProcess> javaProcessProvider;
+    protected final Provider<JavaProcess.Builder> processBuilderProvider;
     protected final Set<ReportTransformer> reportTransformers;
     protected final FileSystem fs;
     protected final ReentrantLock generationLock;
@@ -80,14 +79,14 @@ class ActiveRecordingReportCache {
     ActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
             Provider<Class<? extends SubprocessReportGenerator>> repGenProvider,
-            Provider<JavaProcess> javaProcessProvider,
+            Provider<JavaProcess.Builder> processBuilderProvider,
             Set<ReportTransformer> reportTransformers,
             FileSystem fs,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.repGenProvider = repGenProvider;
-        this.javaProcessProvider = javaProcessProvider;
+        this.processBuilderProvider = processBuilderProvider;
         this.reportTransformers = reportTransformers;
         this.fs = fs;
         this.generationLock = generationLock;
@@ -130,19 +129,16 @@ class ActiveRecordingReportCache {
                             "Active report cache miss for %s", recordingDescriptor.recordingName));
 
             Process proc =
-                    javaProcessProvider
+                    processBuilderProvider
                             .get()
-                            .exec(
-                                    repGenProvider.get(),
-                                    // TODO use OperatingSystemMXBean or other sources and apply
-                                    // some heuristic to determine the amount of memory to allow the
-                                    // subprocess to consume
-                                    Arrays.asList(SubprocessReportGenerator.createJvmArgs(200)),
-                                    Arrays.asList(
-                                            SubprocessReportGenerator.createProcessArgs(
-                                                    recordingDescriptor.connectionDescriptor,
-                                                    recordingDescriptor.recordingName,
-                                                    saveFile)));
+                            .klazz(repGenProvider.get())
+                            .jvmArgs(SubprocessReportGenerator.createJvmArgs(200))
+                            .processArgs(
+                                    SubprocessReportGenerator.createProcessArgs(
+                                            recordingDescriptor.connectionDescriptor,
+                                            recordingDescriptor.recordingName,
+                                            saveFile))
+                            .exec();
             int status = ExitStatus.TERMINATED.code;
             // TODO this timeout should be related to the HTTP response timeout. See
             // https://github.com/rh-jmc-team/container-jfr/issues/288
