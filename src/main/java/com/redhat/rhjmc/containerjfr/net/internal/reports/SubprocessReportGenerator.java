@@ -49,7 +49,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -114,19 +113,16 @@ public class SubprocessReportGenerator {
     }
 
     public static List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
-        var fs = new FileSystem();
         // These JVM flags must be kept in-sync with the flags set on the parent process in
         // entrypoint.sh in order to keep the auth and certs setup consistent
-        var args = new ArrayList<String>();
-
-        args.add(String.format("-Xmx%dM", maxHeapMegabytes));
-        args.add("-XX:+ExitOnOutOfMemoryError");
-        args.add("-Djavax.net.ssl.trustStore=/tmp/truststore.p12");
-        args.add(
+        var fs = new FileSystem();
+        return List.of(
+                String.format("-Xmx%dM", maxHeapMegabytes),
+                "-XX:+ExitOnOutOfMemoryError",
+                // reuse same truststore as parent process
+                "-Djavax.net.ssl.trustStore=/tmp/truststore.p12",
                 "-Djavax.net.ssl.trustStorePassword="
                         + fs.readString(fs.pathOf("/tmp/truststore.pass")));
-
-        return args;
     }
 
     public static List<String> createProcessArgs(
