@@ -45,6 +45,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -88,18 +89,26 @@ class SubprocessReportGenerator {
         this.logger = logger;
     }
 
-    Path exec(RecordingDescriptor recordingDescriptor)
+    Path exec(RecordingDescriptor recordingDescriptor, Path destinationFile)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
-        Path saveFile = Files.createTempFile(null, null);
-        fs.writeString(saveFile, serializeTransformersSet(reportTransformers));
+        if (destinationFile == null) {
+            throw new IllegalArgumentException("Bad destination: " + destinationFile);
+        }
+        fs.writeString(
+                destinationFile,
+                serializeTransformersSet(reportTransformers),
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING,
+                StandardOpenOption.DSYNC,
+                StandardOpenOption.WRITE);
         Process proc =
                 new JavaProcess.Builder()
                         .klazz(getClass())
                         .env(createEnv(recordingDescriptor.connectionDescriptor))
                         .jvmArgs(createJvmArgs(200))
-                        .processArgs(createProcessArgs(recordingDescriptor, saveFile))
+                        .processArgs(createProcessArgs(recordingDescriptor, destinationFile))
                         .exec();
         int status = ExitStatus.TERMINATED.code;
         // TODO this timeout should be related to the HTTP response timeout. See
@@ -111,7 +120,7 @@ class SubprocessReportGenerator {
             proc.destroyForcibly();
         }
         if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
-            return saveFile;
+            return destinationFile;
         } else {
             ExitStatus es = ExitStatus.TERMINATED;
             for (ExitStatus e : ExitStatus.values()) {
@@ -122,6 +131,14 @@ class SubprocessReportGenerator {
             }
             throw new SubprocessReportGenerator.ReportGenerationException(es);
         }
+    }
+
+    Path exec(RecordingDescriptor recordingDescriptor)
+            throws NoSuchMethodException, SecurityException, IllegalAccessException,
+                    IllegalArgumentException, InvocationTargetException, IOException,
+                    InterruptedException, ReportGenerationException {
+        // TODO add a FileSystem abstraction around Files.createTemp*
+        return exec(recordingDescriptor, Files.createTempFile(null, null));
     }
 
     static Map<String, String> createEnv(ConnectionDescriptor connectionDescriptor)
@@ -224,10 +241,6 @@ class SubprocessReportGenerator {
         String username = env.getEnv(ENV_USERNAME);
         String password = env.getEnv(ENV_PASSWORD);
 
-        var fs = new FileSystem();
-        var tk =
-                new JFRConnectionToolkit(
-                        Logger.INSTANCE::info, new FileSystem(), new Environment());
         ConnectionDescriptor cd;
         if (username == null) {
             cd = new ConnectionDescriptor(targetId);
@@ -235,60 +248,74 @@ class SubprocessReportGenerator {
             cd = new ConnectionDescriptor(targetId, new Credentials(username, password));
         }
         try {
-            var report =
-                    new TargetConnectionManager(Logger.INSTANCE, () -> tk)
-                            .executeConnectedTask(
-                                    cd,
-                                    conn -> {
-                                        var f = new CompletableFuture<String>();
-                                        conn.getService().getAvailableRecordings().stream()
-                                                .filter(
-                                                        recording ->
-                                                                recordingName.equals(
-                                                                        recording.getName()))
-                                                .findFirst()
-                                                .ifPresentOrElse(
-                                                        d -> {
-                                                            try {
-                                                                var transformers =
-                                                                        deserializeTransformers(
-                                                                                fs.readString(
-                                                                                        saveFile));
-                                                                var generator =
-                                                                        new ReportGenerator(
-                                                                                Logger.INSTANCE,
-                                                                                transformers);
-                                                                InputStream stream =
-                                                                        conn.getService()
-                                                                                .openStream(
-                                                                                        d, false);
-                                                                f.complete(
-                                                                        generator.generateReport(
-                                                                                stream));
-                                                            } catch (Exception e) {
-                                                                e.printStackTrace();
-                                                                f.completeExceptionally(e);
-                                                            }
-                                                        },
-                                                        () ->
-                                                                System.exit(
-                                                                        ExitStatus.NO_SUCH_RECORDING
-                                                                                .code));
-                                        return f.get();
-                                    });
+            String report;
+            URI uri = new URI(targetId);
+            if ("file".equals(uri.getScheme())) {
+                report = getReportFromArchivedRecording(Paths.get(uri.getPath()), saveFile);
+            } else {
+                report = getReportFromLiveTarget(recordingName, cd, saveFile);
+            }
 
-            Files.writeString(
-                    saveFile,
-                    report,
-                    StandardOpenOption.CREATE,
-                    StandardOpenOption.TRUNCATE_EXISTING,
-                    StandardOpenOption.DSYNC,
-                    StandardOpenOption.WRITE);
+            new FileSystem()
+                    .writeString(
+                            saveFile,
+                            report,
+                            StandardOpenOption.CREATE,
+                            StandardOpenOption.TRUNCATE_EXISTING,
+                            StandardOpenOption.DSYNC,
+                            StandardOpenOption.WRITE);
             System.exit(ExitStatus.OK.code);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(ExitStatus.TARGET_CONNECTION_FAILURE.code);
         }
+    }
+
+    static String getReportFromArchivedRecording(Path recording, Path saveFile) throws Exception {
+        var fs = new FileSystem();
+        try (InputStream stream = fs.newInputStream(recording)) {
+            var transformers = deserializeTransformers(fs.readString(saveFile));
+            return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
+        } catch (IOException ioe) {
+            ioe.printStackTrace();
+            throw new ReportGenerationException(ExitStatus.IO_EXCEPTION);
+        }
+    }
+
+    static String getReportFromLiveTarget(
+            String recordingName, ConnectionDescriptor cd, Path saveFile) throws Exception {
+        var fs = new FileSystem();
+        var tk =
+                new JFRConnectionToolkit(
+                        Logger.INSTANCE::info, new FileSystem(), new Environment());
+        return new TargetConnectionManager(Logger.INSTANCE, () -> tk)
+                .executeConnectedTask(
+                        cd,
+                        conn -> {
+                            var f = new CompletableFuture<String>();
+                            conn.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recordingName.equals(recording.getName()))
+                                    .findFirst()
+                                    .ifPresentOrElse(
+                                            d -> {
+                                                try {
+                                                    var transformers =
+                                                            deserializeTransformers(
+                                                                    fs.readString(saveFile));
+                                                    var generator =
+                                                            new ReportGenerator(
+                                                                    Logger.INSTANCE, transformers);
+                                                    InputStream stream =
+                                                            conn.getService().openStream(d, false);
+                                                    f.complete(generator.generateReport(stream));
+                                                } catch (Exception e) {
+                                                    e.printStackTrace();
+                                                    f.completeExceptionally(e);
+                                                }
+                                            },
+                                            () -> System.exit(ExitStatus.NO_SUCH_RECORDING.code));
+                            return f.get();
+                        });
     }
 
     enum ExitStatus {

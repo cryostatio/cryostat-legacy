@@ -111,11 +111,16 @@ public abstract class ReportsModule {
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempDir,
             FileSystem fs,
-            ReportGenerator reportGenerator,
+            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         return new ArchivedRecordingReportCache(
-                savedRecordingsPath, webServerTempDir, fs, reportGenerator, generationLock, logger);
+                savedRecordingsPath,
+                webServerTempDir,
+                fs,
+                subprocessReportGeneratorProvider,
+                generationLock,
+                logger);
     }
 
     @Provides

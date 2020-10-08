@@ -73,6 +73,7 @@ class ArchivedRecordingReportCacheTest {
     @Mock Path savedRecordingsPath;
     @Mock Path webServerTempPath;
     @Mock FileSystem fs;
+    @Mock SubprocessReportGenerator subprocessReportGenerator;
     @Mock ReportGenerator reportGenerator;
     @Mock ReentrantLock generationLock;
     @Mock Logger logger;
@@ -84,7 +85,7 @@ class ArchivedRecordingReportCacheTest {
                         savedRecordingsPath,
                         webServerTempPath,
                         fs,
-                        reportGenerator,
+                        () -> subprocessReportGenerator,
                         generationLock,
                         logger);
     }
