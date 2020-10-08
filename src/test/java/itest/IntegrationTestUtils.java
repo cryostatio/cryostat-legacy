@@ -49,16 +49,6 @@ import io.vertx.ext.web.client.WebClient;
 
 public class IntegrationTestUtils {
 
-    static final boolean EXTRA_DEBUG =
-            Boolean.valueOf(System.getProperty("containerJfrITestExtraDebug", "false"));
-
-    static {
-        if (EXTRA_DEBUG) {
-            System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "debug");
-            System.setProperty("org.slf4j.simpleLogger.levelInBrackets", "true");
-        }
-    }
-
     public static final int WEB_PORT;
 
     static {
