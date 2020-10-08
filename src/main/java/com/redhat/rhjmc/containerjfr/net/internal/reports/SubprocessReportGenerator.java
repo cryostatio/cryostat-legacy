@@ -119,6 +119,13 @@ public class SubprocessReportGenerator {
         return List.of(
                 String.format("-Xmx%dM", maxHeapMegabytes),
                 "-XX:+ExitOnOutOfMemoryError",
+                // use EpsilonGC since we're a one-shot process and report generation doesn't
+                // allocate that much memory beyond the initial recording load - no point in
+                // over-complicating memory allocation. Preferable to just complete the request
+                // quickly, or if we're running up against the memory limit, fail early
+                "-XX:+UnlockExperimentalVMOptions",
+                "-XX:+UseEpsilonGC",
+                "-XX:+AlwaysPreTouch",
                 // reuse same truststore as parent process
                 "-Djavax.net.ssl.trustStore=/tmp/truststore.p12",
                 "-Djavax.net.ssl.trustStorePassword="
