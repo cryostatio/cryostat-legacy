@@ -156,6 +156,8 @@ public class SubprocessReportGenerator {
         var st = new StringTokenizer(serial);
         var res = new HashSet<ReportTransformer>();
         while (st.hasMoreTokens()) {
+            // TODO does it ever make sense that a ReportTransformer would have constructor
+            // arguments, or otherwise require state? How would we handle that here if so?
             res.add(
                     (ReportTransformer)
                             Class.forName(st.nextToken()).getDeclaredConstructor().newInstance());
