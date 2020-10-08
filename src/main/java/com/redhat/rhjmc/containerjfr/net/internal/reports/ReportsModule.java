@@ -46,6 +46,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
@@ -55,7 +56,6 @@ import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
-import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 import dagger.Module;
 import dagger.Provides;
@@ -87,18 +87,22 @@ public abstract class ReportsModule {
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
-            Set<ReportTransformer> reportTransformers,
+            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             FileSystem fs,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         return new ActiveRecordingReportCache(
                 targetConnectionManager,
-                () -> SubprocessReportGenerator.class,
-                () -> new JavaProcess.Builder(),
-                reportTransformers,
+                subprocessReportGeneratorProvider,
                 fs,
                 generationLock,
                 logger);
+    }
+
+    @Provides
+    static SubprocessReportGenerator provideSubprocessReportGenerator(
+            FileSystem fs, Set<ReportTransformer> reportTransformers, Logger logger) {
+        return new SubprocessReportGenerator(fs, reportTransformers, logger);
     }
 
     @Provides

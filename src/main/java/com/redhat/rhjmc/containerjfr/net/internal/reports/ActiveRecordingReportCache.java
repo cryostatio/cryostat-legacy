@@ -41,9 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -58,19 +56,14 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
-import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 class ActiveRecordingReportCache {
 
     protected final TargetConnectionManager targetConnectionManager;
-    protected final Provider<Class<? extends SubprocessReportGenerator>> repGenProvider;
-    protected final Provider<JavaProcess.Builder> processBuilderProvider;
-    protected final Set<ReportTransformer> reportTransformers;
+    protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
     protected final FileSystem fs;
     protected final ReentrantLock generationLock;
     protected final LoadingCache<RecordingDescriptor, String> cache;
@@ -78,16 +71,12 @@ class ActiveRecordingReportCache {
 
     ActiveRecordingReportCache(
             TargetConnectionManager targetConnectionManager,
-            Provider<Class<? extends SubprocessReportGenerator>> repGenProvider,
-            Provider<JavaProcess.Builder> processBuilderProvider,
-            Set<ReportTransformer> reportTransformers,
+            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             FileSystem fs,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
-        this.repGenProvider = repGenProvider;
-        this.processBuilderProvider = processBuilderProvider;
-        this.reportTransformers = reportTransformers;
+        this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
         this.fs = fs;
         this.generationLock = generationLock;
         this.logger = logger;
@@ -119,51 +108,14 @@ class ActiveRecordingReportCache {
         Path saveFile = null;
         try {
             generationLock.lock();
-            // TODO extract this into FileSystem
-            saveFile = Files.createTempFile(null, null);
-            fs.writeString(
-                    saveFile,
-                    SubprocessReportGenerator.serializeTransformersSet(reportTransformers));
             logger.trace(
                     String.format(
                             "Active report cache miss for %s", recordingDescriptor.recordingName));
-
-            Process proc =
-                    processBuilderProvider
-                            .get()
-                            .klazz(repGenProvider.get())
-                            .env(
-                                    SubprocessReportGenerator.createEnv(
-                                            recordingDescriptor.connectionDescriptor))
-                            .jvmArgs(SubprocessReportGenerator.createJvmArgs(200))
-                            .processArgs(
-                                    SubprocessReportGenerator.createProcessArgs(
-                                            recordingDescriptor, saveFile))
-                            .exec();
-            int status = ExitStatus.TERMINATED.code;
-            // TODO this timeout should be related to the HTTP response timeout. See
-            // https://github.com/rh-jmc-team/container-jfr/issues/288
-            if (proc.waitFor(15, TimeUnit.SECONDS)) {
-                status = proc.exitValue();
-            } else {
-                logger.info("SubprocessReportGenerator timed out, terminating");
-                proc.destroyForcibly();
-            }
-            if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
-                return fs.readString(saveFile);
-            } else {
-                ExitStatus es = ExitStatus.TERMINATED;
-                for (ExitStatus e : ExitStatus.values()) {
-                    if (e.code == status) {
-                        es = e;
-                        break;
-                    }
-                }
-                throw new SubprocessReportGenerator.ReportGenerationException(es);
-            }
+            saveFile = subprocessReportGeneratorProvider.get().exec(recordingDescriptor);
+            return fs.readString(saveFile);
         } finally {
             if (saveFile != null) {
-                Files.deleteIfExists(saveFile);
+                fs.deleteIfExists(saveFile);
             }
             generationLock.unlock();
         }

@@ -42,8 +42,8 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.io.InputStream;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.hamcrest.MatcherAssert;
@@ -66,18 +66,18 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
-import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 @ExtendWith(MockitoExtension.class)
 class ActiveRecordingReportCacheTest {
 
     ActiveRecordingReportCache cache;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock JavaProcess.Builder javaProcessBuilder;
+    @Mock SubprocessReportGenerator subprocessReportGenerator;
     @Mock ReportGenerator reportGenerator;
     @Mock FileSystem fs;
     @Mock ReentrantLock lock;
@@ -85,19 +85,18 @@ class ActiveRecordingReportCacheTest {
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
-    class TestSubprocessReportGenerator extends SubprocessReportGenerator {}
+    class TestSubprocessReportGenerator extends SubprocessReportGenerator {
+        TestSubprocessReportGenerator(
+                FileSystem fs, Set<ReportTransformer> reportTransformers, Logger logger) {
+            super(fs, reportTransformers, logger);
+        }
+    }
 
     @BeforeEach
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        targetConnectionManager,
-                        () -> TestSubprocessReportGenerator.class,
-                        () -> javaProcessBuilder,
-                        Collections.emptySet(),
-                        fs,
-                        lock,
-                        logger);
+                        targetConnectionManager, () -> subprocessReportGenerator, fs, lock, logger);
     }
 
     @Test
