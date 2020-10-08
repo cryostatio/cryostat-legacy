@@ -54,7 +54,6 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 
 import dagger.Module;
@@ -86,17 +85,12 @@ public abstract class ReportsModule {
     @Provides
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
-            TargetConnectionManager targetConnectionManager,
             Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             FileSystem fs,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         return new ActiveRecordingReportCache(
-                targetConnectionManager,
-                subprocessReportGeneratorProvider,
-                fs,
-                generationLock,
-                logger);
+                subprocessReportGeneratorProvider, fs, generationLock, logger);
     }
 
     @Provides

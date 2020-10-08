@@ -129,7 +129,14 @@ class SubprocessReportGenerator {
                     break;
                 }
             }
-            throw new SubprocessReportGenerator.ReportGenerationException(es);
+            switch (es) {
+                case NO_SUCH_RECORDING:
+                    throw new ReportService.RecordingNotFoundException(
+                            recordingDescriptor.connectionDescriptor.getTargetId(),
+                            recordingDescriptor.recordingName);
+                default:
+                    throw new SubprocessReportGenerator.ReportGenerationException(es);
+            }
         }
     }
 

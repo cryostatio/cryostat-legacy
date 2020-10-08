@@ -41,9 +41,9 @@
  */
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
-import java.io.InputStream;
-import java.util.List;
+import java.nio.file.Path;
 import java.util.Set;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.hamcrest.MatcherAssert;
@@ -55,35 +55,25 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
-
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
 
 @ExtendWith(MockitoExtension.class)
 class ActiveRecordingReportCacheTest {
 
     ActiveRecordingReportCache cache;
-    @Mock TargetConnectionManager targetConnectionManager;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
-    @Mock ReportGenerator reportGenerator;
     @Mock FileSystem fs;
     @Mock ReentrantLock lock;
     @Mock Logger logger;
-    @Mock JFRConnection connection;
-    @Mock IFlightRecorderService service;
+    @Mock Path destinationFile;
+    final String report = "<html><body><p>This is a report</p></body></html>";
 
     class TestSubprocessReportGenerator extends SubprocessReportGenerator {
         TestSubprocessReportGenerator(
@@ -95,8 +85,7 @@ class ActiveRecordingReportCacheTest {
     @BeforeEach
     void setup() {
         this.cache =
-                new ActiveRecordingReportCache(
-                        targetConnectionManager, () -> subprocessReportGenerator, fs, lock, logger);
+                new ActiveRecordingReportCache(() -> subprocessReportGenerator, fs, lock, logger);
     }
 
     @Test
@@ -106,28 +95,11 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnTrueWhenDeletingReport() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
-        Mockito.when(connection.getService()).thenReturn(service);
-
-        String recordingName = "bar";
-        IRecordingDescriptor recording = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.when(recording.getName()).thenReturn(recordingName);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
-
-        InputStream stream = Mockito.mock(InputStream.class);
-        Mockito.when(service.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
-
-        Mockito.when(reportGenerator.generateReport(Mockito.any()))
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock args) throws Throwable {
-                                return "Generated Report";
-                            }
-                        });
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
+        String recordingName = "bar";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         cache.get(connectionDescriptor, recordingName);
@@ -136,141 +108,63 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnGeneratedReportResult() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
-        Mockito.when(connection.getService()).thenReturn(service);
-
-        String recordingName = "bar";
-        IRecordingDescriptor recording = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.when(recording.getName()).thenReturn(recordingName);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
-
-        InputStream stream = Mockito.mock(InputStream.class);
-        Mockito.when(service.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
-
-        Mockito.when(reportGenerator.generateReport(Mockito.any()))
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock args) throws Throwable {
-                                return "Generated Report";
-                            }
-                        });
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        String report = cache.get(connectionDescriptor, recordingName);
-        MatcherAssert.assertThat(report, Matchers.equalTo("Generated Report"));
+        String report = cache.get(connectionDescriptor, "foo");
+        MatcherAssert.assertThat(report, Matchers.equalTo(report));
 
-        InOrder inOrder =
-                Mockito.inOrder(
-                        connection,
-                        service,
-                        targetConnectionManager,
-                        reportGenerator,
-                        lock,
-                        stream);
+        InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator, fs);
         inOrder.verify(lock).lock();
 
-        inOrder.verify(targetConnectionManager).connect(Mockito.any(ConnectionDescriptor.class));
+        inOrder.verify(subprocessReportGenerator).exec(Mockito.any());
 
-        inOrder.verify(connection).getService();
-        inOrder.verify(service).openStream(Mockito.eq(recording), Mockito.eq(false));
-
-        inOrder.verify(reportGenerator).generateReport(Mockito.eq(stream));
-
-        inOrder.verify(stream).close();
-        inOrder.verify(connection).close();
+        inOrder.verify(fs).readString(destinationFile);
 
         inOrder.verify(lock).unlock();
     }
 
     @Test
     void shouldReturnCachedReportResultOnSecondRequest() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
-        Mockito.when(connection.getService()).thenReturn(service);
-
-        String recordingName = "bar";
-        IRecordingDescriptor recording = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.when(recording.getName()).thenReturn(recordingName);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
-
-        InputStream stream = Mockito.mock(InputStream.class);
-        Mockito.when(service.openStream(Mockito.any(), Mockito.anyBoolean())).thenReturn(stream);
-
-        Mockito.when(reportGenerator.generateReport(Mockito.any()))
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock args) throws Throwable {
-                                return "Generated Report";
-                            }
-                        });
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
+        String recordingName = "bar";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         String report1 = cache.get(connectionDescriptor, recordingName);
-        MatcherAssert.assertThat(report1, Matchers.equalTo("Generated Report"));
+        MatcherAssert.assertThat(report1, Matchers.equalTo(report));
         String report2 = cache.get(connectionDescriptor, recordingName);
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
-        InOrder inOrder =
-                Mockito.inOrder(
-                        connection,
-                        service,
-                        targetConnectionManager,
-                        reportGenerator,
-                        lock,
-                        stream);
+        InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator);
         inOrder.verify(lock, Mockito.times(1)).lock();
 
-        inOrder.verify(targetConnectionManager, Mockito.times(1))
-                .connect(Mockito.any(ConnectionDescriptor.class));
-
-        inOrder.verify(connection, Mockito.times(1)).getService();
-        inOrder.verify(service, Mockito.times(1))
-                .openStream(Mockito.eq(recording), Mockito.eq(false));
-
-        inOrder.verify(reportGenerator, Mockito.times(1)).generateReport(Mockito.eq(stream));
-
-        inOrder.verify(stream, Mockito.times(1)).close();
-        inOrder.verify(connection, Mockito.times(1)).close();
+        inOrder.verify(subprocessReportGenerator, Mockito.times(1)).exec(Mockito.any());
 
         inOrder.verify(lock, Mockito.times(1)).unlock();
     }
 
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
-        Mockito.when(connection.getService()).thenReturn(service);
-
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
-
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any()))
+                .thenThrow(new RecordingNotFoundException("", ""));
         Assertions.assertThrows(
                 RecordingNotFoundException.class, () -> cache.get(connectionDescriptor, "bar"));
     }
 
     @Test
-    void shouldThrowExceptionIfServiceThrows() throws Exception {
-        Mockito.when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
-        Mockito.when(connection.getService()).thenReturn(service);
-
-        String recordingName = "bar";
-        IRecordingDescriptor recording = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.when(recording.getName()).thenReturn(recordingName);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recording));
-
-        Mockito.when(service.openStream(Mockito.any(), Mockito.anyBoolean()))
-                .thenThrow(FlightRecorderException.class);
-
+    void shouldThrowExceptionIfSubprocessExitsNonCleanly() throws Exception {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any()))
+                .thenThrow(
+                        new SubprocessReportGenerator.ReportGenerationException(ExitStatus.OTHER));
         Assertions.assertThrows(
-                RecordingNotFoundException.class, () -> cache.get(connectionDescriptor, "bar"));
+                CompletionException.class, () -> cache.get(connectionDescriptor, "bar"));
     }
 }

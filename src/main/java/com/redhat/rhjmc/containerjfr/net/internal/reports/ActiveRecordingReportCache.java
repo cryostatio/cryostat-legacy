@@ -58,11 +58,9 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 class ActiveRecordingReportCache {
 
-    protected final TargetConnectionManager targetConnectionManager;
     protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
     protected final FileSystem fs;
     protected final ReentrantLock generationLock;
@@ -70,12 +68,10 @@ class ActiveRecordingReportCache {
     protected final Logger logger;
 
     ActiveRecordingReportCache(
-            TargetConnectionManager targetConnectionManager,
             Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             FileSystem fs,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
-        this.targetConnectionManager = targetConnectionManager;
         this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
         this.fs = fs;
         this.generationLock = generationLock;

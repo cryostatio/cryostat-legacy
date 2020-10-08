@@ -42,9 +42,8 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.io.IOException;
-import java.io.InputStream;
+import java.net.URI;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.locks.ReentrantLock;
@@ -63,7 +62,6 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
 @ExtendWith(MockitoExtension.class)
@@ -72,9 +70,9 @@ class ArchivedRecordingReportCacheTest {
     ArchivedRecordingReportCache cache;
     @Mock Path savedRecordingsPath;
     @Mock Path webServerTempPath;
+    @Mock Path destinationFile;
     @Mock FileSystem fs;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
-    @Mock ReportGenerator reportGenerator;
     @Mock ReentrantLock generationLock;
     @Mock Logger logger;
 
@@ -93,35 +91,32 @@ class ArchivedRecordingReportCacheTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void deleteShouldDelegateToFileSystem(boolean deleted) throws IOException {
-        Path mockPath = Mockito.mock(Path.class);
         Mockito.when(fs.deleteIfExists(Mockito.any())).thenReturn(deleted);
-        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(mockPath);
-        Mockito.when(mockPath.toAbsolutePath()).thenReturn(mockPath);
+        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
         MatcherAssert.assertThat(cache.delete("foo"), Matchers.equalTo(deleted));
 
-        Mockito.verify(fs).deleteIfExists(mockPath);
+        Mockito.verify(fs).deleteIfExists(destinationFile);
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
     }
 
     @Test
     void deleteShouldReturnFalseIfFileSystemThrows() throws IOException {
-        Path mockPath = Mockito.mock(Path.class);
         Mockito.when(fs.deleteIfExists(Mockito.any())).thenThrow(IOException.class);
-        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(mockPath);
-        Mockito.when(mockPath.toAbsolutePath()).thenReturn(mockPath);
+        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
 
         MatcherAssert.assertThat(cache.delete("foo"), Matchers.equalTo(false));
 
-        Mockito.verify(fs).deleteIfExists(mockPath);
+        Mockito.verify(fs).deleteIfExists(destinationFile);
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
     }
 
     @Test
     void getShouldReturnEmptyIfNoCacheAndNoRecording() throws IOException {
-        Path dest = Mockito.mock(Path.class);
-        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(dest);
-        Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
+        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
 
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of());
@@ -130,38 +125,34 @@ class ArchivedRecordingReportCacheTest {
 
         Assertions.assertTrue(res.isEmpty());
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
-        Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(dest);
+        Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
         InOrder lockOrder = Mockito.inOrder(generationLock);
         lockOrder.verify(generationLock).lock();
         lockOrder.verify(generationLock).unlock();
     }
 
     @Test
-    void getShouldGenerateAndCacheReport() throws IOException {
-        Path dest = Mockito.mock(Path.class);
-        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(dest);
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(dest);
-        Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
+    void getShouldGenerateAndCacheReport() throws Exception {
+        Path recording = Mockito.mock(Path.class);
+        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(recording);
+        URI fileUri = Mockito.mock(URI.class);
+        Mockito.when(recording.toUri()).thenReturn(fileUri);
+        Mockito.when(fileUri.toString()).thenReturn("file:///some/path/file.jfr");
+        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
 
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of("foo"));
 
-        InputStream stream = Mockito.mock(InputStream.class);
-        Mockito.when(fs.newInputStream(Mockito.any())).thenReturn(stream);
-        Mockito.when(reportGenerator.generateReport(Mockito.any()))
-                .thenReturn("Mock Generated Report");
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any(), Mockito.any()))
+                .thenReturn(destinationFile);
 
         Optional<Path> res = cache.get("foo");
 
         Assertions.assertTrue(res.isPresent());
-        MatcherAssert.assertThat(res.get(), Matchers.sameInstance(dest));
+        MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
-        Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(dest);
-        Mockito.verify(fs)
-                .copy(
-                        Mockito.any(InputStream.class),
-                        Mockito.same(dest),
-                        Mockito.eq(StandardCopyOption.REPLACE_EXISTING));
+        Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
         InOrder lockOrder = Mockito.inOrder(generationLock);
         lockOrder.verify(generationLock).lock();
         lockOrder.verify(generationLock).unlock();
