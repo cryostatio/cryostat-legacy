@@ -169,7 +169,7 @@ class SubprocessReportGenerator {
     static List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
         // These JVM flags must be kept in-sync with the flags set on the parent process in
         // entrypoint.sh in order to keep the auth and certs setup consistent
-        var fs = new FileSystem();
+        var env = new Environment();
         return List.of(
                 String.format("-Xmx%dM", maxHeapMegabytes),
                 "-XX:+ExitOnOutOfMemoryError",
@@ -181,9 +181,8 @@ class SubprocessReportGenerator {
                 "-XX:+UseEpsilonGC",
                 "-XX:+AlwaysPreTouch",
                 // reuse same truststore as parent process
-                "-Djavax.net.ssl.trustStore=/tmp/truststore.p12",
-                "-Djavax.net.ssl.trustStorePassword="
-                        + fs.readString(fs.pathOf("/tmp/truststore.pass")));
+                "-Djavax.net.ssl.trustStore=" + env.getEnv("SSL_TRUSTSTORE"),
+                "-Djavax.net.ssl.trustStorePassword=" + env.getEnv("SSL_TRUSTSTORE_PASS"));
     }
 
     static List<String> createProcessArgs(RecordingDescriptor recordingDescriptor, Path saveFile) {
@@ -219,6 +218,7 @@ class SubprocessReportGenerator {
     }
 
     public static void main(String[] args) {
+        Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " starting");
         Runtime.getRuntime()
                 .addShutdownHook(
                         new Thread(
@@ -234,8 +234,6 @@ class SubprocessReportGenerator {
             e.printStackTrace();
             System.exit(ExitStatus.OTHER.code);
         }
-
-        Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " starting");
 
         if (args.length != 3) {
             throw new IllegalArgumentException(Arrays.asList(args).toString());

@@ -48,6 +48,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+
 public class JavaProcess {
 
     static Process exec(
@@ -61,6 +63,9 @@ public class JavaProcess {
         cmd.add("-cp");
         cmd.add("/app/resources:/app/classes:/app/libs/*");
         cmd.add(className);
+
+        Logger.INSTANCE.trace("Forking process: " + cmd.toString());
+
         cmd.addAll(processArgs);
 
         var pb = new ProcessBuilder();

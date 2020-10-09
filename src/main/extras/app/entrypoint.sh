@@ -30,13 +30,13 @@ function createJmxCredentials() {
     chmod 400 "$USRFILE"
 }
 
-SSL_KEYSTORE="/tmp/keystore.p12"
-SSL_KEY_PASS="$(genpass)"
-SSL_STORE_PASS="$SSL_KEY_PASS"
-SSL_TRUSTSTORE="/tmp/truststore.p12"
-SSL_TRUSTSTORE_PASS="$(genpass)"
-SSL_TRUSTSTORE_PASS_FILE="/tmp/truststore.pass"
-TRUSTSTORE_DIR="/truststore"
+export SSL_KEYSTORE="/tmp/keystore.p12"
+export SSL_KEY_PASS="$(genpass)"
+export SSL_STORE_PASS="$SSL_KEY_PASS"
+export SSL_TRUSTSTORE="/tmp/truststore.p12"
+export SSL_TRUSTSTORE_PASS="$(genpass)"
+export SSL_TRUSTSTORE_PASS_FILE="/tmp/truststore.pass"
+export TRUSTSTORE_DIR="/truststore"
 
 function createSslStores() {
     pushd /tmp
@@ -48,8 +48,6 @@ function createSslStores() {
         -srcstorepass changeit \
         -destkeystore "$SSL_TRUSTSTORE" \
         -deststorepass "$SSL_TRUSTSTORE_PASS"
-
-    echo -n "$SSL_TRUSTSTORE_PASS" > "$SSL_TRUSTSTORE_PASS_FILE"
 
     popd
 }
@@ -157,10 +155,10 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
 
-KEYSTORE_PATH="$KEYSTORE_PATH" \
-    KEYSTORE_PASS="$KEYSTORE_PASS" \
-    TRUSTSTORE_DIR="$TRUSTSTORE_DIR" \
-    java \
+export KEYSTORE_PATH="$KEYSTORE_PATH"
+export KEYSTORE_PASS="$KEYSTORE_PASS"
+export TRUSTSTORE_DIR="$TRUSTSTORE_DIR"
+exec java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
     com.redhat.rhjmc.containerjfr.ContainerJfr \
