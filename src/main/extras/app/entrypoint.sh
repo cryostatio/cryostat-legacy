@@ -36,8 +36,12 @@ export SSL_STORE_PASS="$SSL_KEY_PASS"
 export SSL_TRUSTSTORE="/tmp/truststore.p12"
 export SSL_TRUSTSTORE_PASS="$(genpass)"
 export SSL_TRUSTSTORE_PASS_FILE="/tmp/truststore.pass"
-export TRUSTSTORE_DIR="/truststore"
 
+if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
+    SSL_TRUSTSTORE_DIR="/truststore"
+fi
+
+export SSL_TRUSTSTORE_DIR
 function createSslStores() {
     pushd /tmp
 
@@ -53,15 +57,15 @@ function createSslStores() {
 }
 
 function importTrustStores() {
-    if [ ! -d "$TRUSTSTORE_DIR" ]; then
-        banner "$TRUSTSTORE_DIR does not exist; no certificates to import"
+    if [ ! -d "$SSL_TRUSTSTORE_DIR" ]; then
+        banner "$SSL_TRUSTSTORE_DIR does not exist; no certificates to import"
         return 0
-    elif [ ! "$(ls -A $TRUSTSTORE_DIR)" ]; then
-        banner "$TRUSTSTORE_DIR is empty; no certificates to import"
+    elif [ ! "$(ls -A $SSL_TRUSTSTORE_DIR)" ]; then
+        banner "$SSL_TRUSTSTORE_DIR is empty; no certificates to import"
         return 0
     fi
 
-    for cert in $(find "$TRUSTSTORE_DIR" -type f); do
+    for cert in $(find "$SSL_TRUSTSTORE_DIR" -type f); do
         echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
@@ -155,9 +159,9 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
 
-export KEYSTORE_PATH="$KEYSTORE_PATH"
-export KEYSTORE_PASS="$KEYSTORE_PASS"
-export TRUSTSTORE_DIR="$TRUSTSTORE_DIR"
+export KEYSTORE_PATH
+export KEYSTORE_PASS
+export SSL_TRUSTSTORE_DIR
 exec java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
