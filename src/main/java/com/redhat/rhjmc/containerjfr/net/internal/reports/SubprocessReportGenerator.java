@@ -292,7 +292,7 @@ class SubprocessReportGenerator {
         var fs = new FileSystem();
         var tk =
                 new JFRConnectionToolkit(
-                        Logger.INSTANCE::info, new FileSystem(), new Environment());
+                        Logger.INSTANCE::info, fs, new Environment());
         return new TargetConnectionManager(Logger.INSTANCE, () -> tk)
                 .executeConnectedTask(
                         cd,
