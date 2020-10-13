@@ -61,6 +61,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 
+import javax.inject.Provider;
+
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
@@ -80,32 +82,49 @@ class SubprocessReportGenerator {
     static String ENV_USERNAME = "TARGET_USERNAME";
     static String ENV_PASSWORD = "TARGET_PASSWORD";
 
+    private final Environment env;
     private final FileSystem fs;
     private final Set<ReportTransformer> reportTransformers;
+    private final Provider<JavaProcess.Builder> javaProcessBuilderProvider;
+    private final Logger logger;
 
-    SubprocessReportGenerator(FileSystem fs, Set<ReportTransformer> reportTransformers) {
+    SubprocessReportGenerator(
+            Environment env,
+            FileSystem fs,
+            Set<ReportTransformer> reportTransformers,
+            Provider<JavaProcess.Builder> javaProcessBuilderProvider,
+            Logger logger) {
+        this.env = env;
         this.fs = fs;
         this.reportTransformers = reportTransformers;
+        this.javaProcessBuilderProvider = javaProcessBuilderProvider;
+        this.logger = logger;
     }
 
     Future<Path> exec(RecordingDescriptor recordingDescriptor, Path destinationFile)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
+        if (recordingDescriptor == null) {
+            throw new IllegalArgumentException("Bad recording: " + recordingDescriptor);
+        }
         if (destinationFile == null) {
             throw new IllegalArgumentException("Bad destination: " + destinationFile);
         }
         fs.writeString(
                 destinationFile,
-                serializeTransformersSet(reportTransformers),
+                serializeTransformersSet(),
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.DSYNC,
                 StandardOpenOption.WRITE);
         Process proc =
-                new JavaProcess.Builder()
-                        .klazz(getClass())
+                javaProcessBuilderProvider
+                        .get()
+                        .klazz(SubprocessReportGenerator.class)
                         .env(createEnv(recordingDescriptor.connectionDescriptor))
+                        // FIXME the heap size should be determined by some heuristics, not
+                        // hard-coded. See https://github.com/rh-jmc-team/container-jfr/issues/287
                         .jvmArgs(createJvmArgs(200))
                         .processArgs(createProcessArgs(recordingDescriptor, destinationFile))
                         .exec();
@@ -124,12 +143,12 @@ class SubprocessReportGenerator {
                                 throw new ReportGenerationException(status);
                         }
                     } catch (InterruptedException e) {
-                        e.printStackTrace();
+                        logger.error(e);
                         proc.destroyForcibly();
                         throw new CompletionException(
                                 new ReportGenerationException(ExitStatus.TERMINATED));
                     } catch (ReportGenerationException | RecordingNotFoundException e) {
-                        e.printStackTrace();
+                        logger.error(e);
                         proc.destroyForcibly();
                         throw new CompletionException(e);
                     }
@@ -144,7 +163,7 @@ class SubprocessReportGenerator {
         return exec(recordingDescriptor, Files.createTempFile(null, null));
     }
 
-    static Map<String, String> createEnv(ConnectionDescriptor connectionDescriptor)
+    private Map<String, String> createEnv(ConnectionDescriptor connectionDescriptor)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException {
         if (connectionDescriptor.getCredentials().isEmpty()) {
@@ -162,10 +181,9 @@ class SubprocessReportGenerator {
         return Map.of(ENV_USERNAME, username, ENV_PASSWORD, password);
     }
 
-    static List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
+    private List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
         // These JVM flags must be kept in-sync with the flags set on the parent process in
         // entrypoint.sh in order to keep the auth and certs setup consistent
-        var env = new Environment();
         return List.of(
                 String.format("-Xmx%dM", maxHeapMegabytes),
                 "-XX:+ExitOnOutOfMemoryError",
@@ -181,18 +199,18 @@ class SubprocessReportGenerator {
                 "-Djavax.net.ssl.trustStorePassword=" + env.getEnv("SSL_TRUSTSTORE_PASS"));
     }
 
-    static List<String> createProcessArgs(RecordingDescriptor recordingDescriptor, Path saveFile) {
+    private List<String> createProcessArgs(RecordingDescriptor recordingDescriptor, Path saveFile) {
         return List.of(
                 recordingDescriptor.connectionDescriptor.getTargetId(),
                 recordingDescriptor.recordingName,
                 saveFile.toAbsolutePath().toString());
     }
 
-    static String serializeTransformersSet(Set<ReportTransformer> set) {
+    private String serializeTransformersSet() {
         var sb = new StringBuilder();
-        for (var rt : set) {
+        for (var rt : reportTransformers) {
             sb.append(rt.getClass().getCanonicalName());
-            sb.append('\n');
+            sb.append(System.lineSeparator());
         }
         return sb.toString().trim();
     }
@@ -249,6 +267,7 @@ class SubprocessReportGenerator {
             cd = new ConnectionDescriptor(targetId, new Credentials(username, password));
         }
         try {
+            Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
             String report;
             URI uri = new URI(targetId);
             if ("file".equals(uri.getScheme())) {
@@ -256,6 +275,8 @@ class SubprocessReportGenerator {
             } else {
                 report = getReportFromLiveTarget(recordingName, cd, saveFile);
             }
+            Logger.INSTANCE.info(
+                    SubprocessReportGenerator.class.getName() + " writing report to file");
 
             new FileSystem()
                     .writeString(

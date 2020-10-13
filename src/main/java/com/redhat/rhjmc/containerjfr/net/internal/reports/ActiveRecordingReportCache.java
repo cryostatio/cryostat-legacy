@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Path;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -164,8 +165,8 @@ class ActiveRecordingReportCache {
         final String recordingName;
 
         RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
-            this.connectionDescriptor = connectionDescriptor;
-            this.recordingName = recordingName;
+            this.connectionDescriptor = Objects.requireNonNull(connectionDescriptor);
+            this.recordingName = Objects.requireNonNull(recordingName);
         }
 
         @Override

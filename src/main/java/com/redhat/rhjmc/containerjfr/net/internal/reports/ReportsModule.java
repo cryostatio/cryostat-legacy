@@ -51,11 +51,12 @@ import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
+import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 import dagger.Module;
 import dagger.Provides;
@@ -67,13 +68,6 @@ import dagger.Provides;
 public abstract class ReportsModule {
 
     static final String REPORT_GENERATION_LOCK = "REPORT_GENERATION_LOCK";
-
-    @Provides
-    @Singleton
-    static ReportGenerator provideReportGenerator(
-            Logger logger, Set<ReportTransformer> transformers) {
-        return new ReportGenerator(logger, transformers);
-    }
 
     @Provides
     @Singleton
@@ -100,9 +94,19 @@ public abstract class ReportsModule {
     }
 
     @Provides
+    static JavaProcess.Builder provideJavaProcessBuilder() {
+        return new JavaProcess.Builder();
+    }
+
+    @Provides
     static SubprocessReportGenerator provideSubprocessReportGenerator(
-            FileSystem fs, Set<ReportTransformer> reportTransformers) {
-        return new SubprocessReportGenerator(fs, reportTransformers);
+            Environment env,
+            FileSystem fs,
+            Set<ReportTransformer> reportTransformers,
+            Provider<JavaProcess.Builder> javaProcessBuilder,
+            Logger logger) {
+        return new SubprocessReportGenerator(
+                env, fs, reportTransformers, javaProcessBuilder, logger);
     }
 
     @Provides

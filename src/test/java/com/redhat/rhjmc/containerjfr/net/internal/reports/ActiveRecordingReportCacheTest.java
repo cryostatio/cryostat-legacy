@@ -47,6 +47,8 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
+import javax.inject.Provider;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -60,28 +62,33 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 @ExtendWith(MockitoExtension.class)
 class ActiveRecordingReportCacheTest {
 
     ActiveRecordingReportCache cache;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
+    @Mock Environment env;
     @Mock FileSystem fs;
     @Mock ReentrantLock lock;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
     @Mock Future<Path> pathFuture;
     @Mock Path destinationFile;
+    @Mock JavaProcess.Builder javaProcessBuilder;
+    Provider<JavaProcess.Builder> javaProcessBuilderProvider = () -> javaProcessBuilder;
     final String report = "<html><body><p>This is a report</p></body></html>";
 
     class TestSubprocessReportGenerator extends SubprocessReportGenerator {
         TestSubprocessReportGenerator(FileSystem fs, Set<ReportTransformer> reportTransformers) {
-            super(fs, reportTransformers);
+            super(env, fs, reportTransformers, javaProcessBuilderProvider, logger);
         }
     }
 

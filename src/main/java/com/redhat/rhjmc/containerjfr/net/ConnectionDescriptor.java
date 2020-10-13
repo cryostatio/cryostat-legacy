@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net;
 
+import java.util.Objects;
 import java.util.Optional;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -58,7 +59,7 @@ public class ConnectionDescriptor {
     }
 
     public ConnectionDescriptor(String targetId, Credentials credentials) {
-        this.targetId = targetId;
+        this.targetId = Objects.requireNonNull(targetId);
         this.credentials = Optional.ofNullable(credentials);
     }
 
