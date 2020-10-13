@@ -63,11 +63,9 @@ public class JavaProcess {
         cmd.add("-cp");
         cmd.add("/app/resources:/app/classes:/app/libs/*");
         cmd.add(className);
-
-        Logger.INSTANCE.trace("Forking process: " + cmd.toString());
-
         cmd.addAll(processArgs);
 
+        Logger.INSTANCE.trace("Forking process: " + cmd.toString());
         var pb = new ProcessBuilder();
         pb.environment().putAll(env);
         return pb.command(cmd).inheritIO().start();

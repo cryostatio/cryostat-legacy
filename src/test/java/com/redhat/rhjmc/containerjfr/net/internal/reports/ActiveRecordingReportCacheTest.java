@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.hamcrest.MatcherAssert;
@@ -61,6 +62,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
 
@@ -71,21 +73,23 @@ class ActiveRecordingReportCacheTest {
     @Mock SubprocessReportGenerator subprocessReportGenerator;
     @Mock FileSystem fs;
     @Mock ReentrantLock lock;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
+    @Mock Future<Path> pathFuture;
     @Mock Path destinationFile;
     final String report = "<html><body><p>This is a report</p></body></html>";
 
     class TestSubprocessReportGenerator extends SubprocessReportGenerator {
-        TestSubprocessReportGenerator(
-                FileSystem fs, Set<ReportTransformer> reportTransformers, Logger logger) {
-            super(fs, reportTransformers, logger);
+        TestSubprocessReportGenerator(FileSystem fs, Set<ReportTransformer> reportTransformers) {
+            super(fs, reportTransformers);
         }
     }
 
     @BeforeEach
     void setup() {
         this.cache =
-                new ActiveRecordingReportCache(() -> subprocessReportGenerator, fs, lock, logger);
+                new ActiveRecordingReportCache(
+                        () -> subprocessReportGenerator, fs, lock, targetConnectionManager, logger);
     }
 
     @Test
@@ -95,7 +99,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnTrueWhenDeletingReport() throws Exception {
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
@@ -108,7 +113,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnGeneratedReportResult() throws Exception {
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
@@ -129,7 +135,8 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnCachedReportResultOnSecondRequest() throws Exception {
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
+        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";

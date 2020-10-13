@@ -46,6 +46,7 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.hamcrest.MatcherAssert;
@@ -70,6 +71,7 @@ class ArchivedRecordingReportCacheTest {
     ArchivedRecordingReportCache cache;
     @Mock Path savedRecordingsPath;
     @Mock Path webServerTempPath;
+    @Mock Future<Path> pathFuture;
     @Mock Path destinationFile;
     @Mock FileSystem fs;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
@@ -144,8 +146,9 @@ class ArchivedRecordingReportCacheTest {
 
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of("foo"));
 
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(subprocessReportGenerator.exec(Mockito.any(), Mockito.any()))
-                .thenReturn(destinationFile);
+                .thenReturn(pathFuture);
 
         Optional<Path> res = cache.get("foo");
 

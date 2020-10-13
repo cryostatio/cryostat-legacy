@@ -58,7 +58,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Future;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -71,6 +72,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 class SubprocessReportGenerator {
@@ -80,16 +82,13 @@ class SubprocessReportGenerator {
 
     private final FileSystem fs;
     private final Set<ReportTransformer> reportTransformers;
-    private final Logger logger;
 
-    SubprocessReportGenerator(
-            FileSystem fs, Set<ReportTransformer> reportTransformers, Logger logger) {
+    SubprocessReportGenerator(FileSystem fs, Set<ReportTransformer> reportTransformers) {
         this.fs = fs;
         this.reportTransformers = reportTransformers;
-        this.logger = logger;
     }
 
-    Path exec(RecordingDescriptor recordingDescriptor, Path destinationFile)
+    Future<Path> exec(RecordingDescriptor recordingDescriptor, Path destinationFile)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -110,37 +109,34 @@ class SubprocessReportGenerator {
                         .jvmArgs(createJvmArgs(200))
                         .processArgs(createProcessArgs(recordingDescriptor, destinationFile))
                         .exec();
-        int status = ExitStatus.TERMINATED.code;
-        // TODO this timeout should be related to the HTTP response timeout. See
-        // https://github.com/rh-jmc-team/container-jfr/issues/288
-        if (proc.waitFor(15, TimeUnit.SECONDS)) {
-            status = proc.exitValue();
-        } else {
-            logger.info("SubprocessReportGenerator timed out, terminating");
-            proc.destroyForcibly();
-        }
-        if (status == SubprocessReportGenerator.ExitStatus.OK.code) {
-            return destinationFile;
-        } else {
-            ExitStatus es = ExitStatus.TERMINATED;
-            for (ExitStatus e : ExitStatus.values()) {
-                if (e.code == status) {
-                    es = e;
-                    break;
-                }
-            }
-            switch (es) {
-                case NO_SUCH_RECORDING:
-                    throw new ReportService.RecordingNotFoundException(
-                            recordingDescriptor.connectionDescriptor.getTargetId(),
-                            recordingDescriptor.recordingName);
-                default:
-                    throw new SubprocessReportGenerator.ReportGenerationException(es);
-            }
-        }
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    try {
+                        ExitStatus status = ExitStatus.byExitCode(proc.waitFor());
+                        switch (status) {
+                            case OK:
+                                return destinationFile;
+                            case NO_SUCH_RECORDING:
+                                throw new RecordingNotFoundException(
+                                        recordingDescriptor.connectionDescriptor.getTargetId(),
+                                        recordingDescriptor.recordingName);
+                            default:
+                                throw new ReportGenerationException(status);
+                        }
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                        proc.destroyForcibly();
+                        throw new CompletionException(
+                                new ReportGenerationException(ExitStatus.TERMINATED));
+                    } catch (ReportGenerationException | RecordingNotFoundException e) {
+                        e.printStackTrace();
+                        proc.destroyForcibly();
+                        throw new CompletionException(e);
+                    }
+                });
     }
 
-    Path exec(RecordingDescriptor recordingDescriptor)
+    Future<Path> exec(RecordingDescriptor recordingDescriptor)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -270,6 +266,9 @@ class SubprocessReportGenerator {
                             StandardOpenOption.DSYNC,
                             StandardOpenOption.WRITE);
             System.exit(ExitStatus.OK.code);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(ExitStatus.IO_EXCEPTION.code);
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(ExitStatus.TARGET_CONNECTION_FAILURE.code);
@@ -278,6 +277,9 @@ class SubprocessReportGenerator {
 
     static String getReportFromArchivedRecording(Path recording, Path saveFile) throws Exception {
         var fs = new FileSystem();
+        if (!fs.isRegularFile(recording)) {
+            throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
+        }
         try (InputStream stream = fs.newInputStream(recording)) {
             var transformers = deserializeTransformers(fs.readString(saveFile));
             return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
@@ -290,9 +292,7 @@ class SubprocessReportGenerator {
     static String getReportFromLiveTarget(
             String recordingName, ConnectionDescriptor cd, Path saveFile) throws Exception {
         var fs = new FileSystem();
-        var tk =
-                new JFRConnectionToolkit(
-                        Logger.INSTANCE::info, fs, new Environment());
+        var tk = new JFRConnectionToolkit(Logger.INSTANCE::info, fs, new Environment());
         return new TargetConnectionManager(Logger.INSTANCE, () -> tk)
                 .executeConnectedTask(
                         cd,
@@ -303,15 +303,14 @@ class SubprocessReportGenerator {
                                     .findFirst()
                                     .ifPresentOrElse(
                                             d -> {
-                                                try {
+                                                try (InputStream stream =
+                                                        conn.getService().openStream(d, false)) {
                                                     var transformers =
                                                             deserializeTransformers(
                                                                     fs.readString(saveFile));
                                                     var generator =
                                                             new ReportGenerator(
                                                                     Logger.INSTANCE, transformers);
-                                                    InputStream stream =
-                                                            conn.getService().openStream(d, false);
                                                     f.complete(generator.generateReport(stream));
                                                 } catch (Exception e) {
                                                     e.printStackTrace();
@@ -327,9 +326,11 @@ class SubprocessReportGenerator {
         OK(0, ""),
         TARGET_CONNECTION_FAILURE(1, "Connection to target JVM failed."),
         NO_SUCH_RECORDING(2, "No such recording was found."),
-        RECORDING_EXCEPTION(3, "An unspecified exception occurred while retrieving the recording."),
-        IO_EXCEPTION(4, "An unspecified IO exception occurred while writing the report file."),
-        OTHER(5, "An unspecified unexpected exception occurred."),
+        OUT_OF_MEMORY(
+                3, "The report generation process consumed too much memory and was terminated"),
+        RECORDING_EXCEPTION(4, "An unspecified exception occurred while retrieving the recording."),
+        IO_EXCEPTION(5, "An unspecified IO exception occurred while writing the report file."),
+        OTHER(6, "An unspecified unexpected exception occurred."),
         TERMINATED(-1, "The subprocess timed out and was terminated."),
         ;
 
@@ -340,15 +341,27 @@ class SubprocessReportGenerator {
             this.code = code;
             this.message = message;
         }
+
+        static ExitStatus byExitCode(int code) {
+            for (ExitStatus e : ExitStatus.values()) {
+                if (e.code == code) {
+                    return e;
+                }
+            }
+            return OTHER;
+        }
     }
 
     static class ReportGenerationException extends Exception {
+        private final ExitStatus status;
+
         ReportGenerationException(ExitStatus status) {
-            this(status.code, status.message);
+            super(String.format("[%d] %s", status.code, status.message));
+            this.status = status;
         }
 
-        ReportGenerationException(int code, String message) {
-            super(String.format("[%d] %s", code, message));
+        ExitStatus getStatus() {
+            return status;
         }
     }
 }

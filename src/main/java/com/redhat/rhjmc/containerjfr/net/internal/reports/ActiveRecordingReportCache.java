@@ -42,7 +42,9 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Path;
-import java.util.concurrent.Executors;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -51,6 +53,9 @@ import javax.inject.Provider;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -58,6 +63,9 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
 
 class ActiveRecordingReportCache {
 
@@ -65,22 +73,23 @@ class ActiveRecordingReportCache {
     protected final FileSystem fs;
     protected final ReentrantLock generationLock;
     protected final LoadingCache<RecordingDescriptor, String> cache;
+    protected final TargetConnectionManager targetConnectionManager;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
             Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             FileSystem fs,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
+            TargetConnectionManager targetConnectionManager,
             Logger logger) {
         this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
         this.fs = fs;
         this.generationLock = generationLock;
+        this.targetConnectionManager = targetConnectionManager;
         this.logger = logger;
 
         this.cache =
                 Caffeine.newBuilder()
-                        .executor(Executors.newSingleThreadExecutor())
-                        .initialCapacity(4)
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
@@ -107,8 +116,41 @@ class ActiveRecordingReportCache {
             logger.trace(
                     String.format(
                             "Active report cache miss for %s", recordingDescriptor.recordingName));
-            saveFile = subprocessReportGeneratorProvider.get().exec(recordingDescriptor);
-            return fs.readString(saveFile);
+            try {
+                Future<Path> future =
+                        subprocessReportGeneratorProvider.get().exec(recordingDescriptor);
+                // TODO this timeout should be related to the HTTP response timeout. See
+                // https://github.com/rh-jmc-team/container-jfr/issues/288
+                saveFile = future.get(10, TimeUnit.SECONDS);
+                return fs.readString(saveFile);
+            } catch (ExecutionException ee) {
+                logger.error(ee);
+                if (ee.getCause() instanceof ReportGenerationException) {
+                    ReportGenerationException generationException =
+                            (ReportGenerationException) ee.getCause();
+                    ExitStatus status = generationException.getStatus();
+                    if (status == ExitStatus.OUT_OF_MEMORY) {
+                        // subprocess OOM'd and therefore most likely did not properly clean up
+                        // the cloned recording stream before exiting, so we do it here
+                        String cloneName = "Clone of " + recordingDescriptor.recordingName;
+                        targetConnectionManager.executeConnectedTask(
+                                recordingDescriptor.connectionDescriptor,
+                                conn -> {
+                                    Optional<IRecordingDescriptor> clone =
+                                            conn.getService().getAvailableRecordings().stream()
+                                                    .filter(r -> r.getName().equals(cloneName))
+                                                    .findFirst();
+                                    if (clone.isPresent()) {
+                                        conn.getService().close(clone.get());
+                                        logger.trace("Cleaned dangling recording " + cloneName);
+                                    }
+                                    return null;
+                                });
+                    }
+                    return String.format("Error %d: %s", status.code, status.message);
+                }
+                throw ee;
+            }
         } finally {
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
