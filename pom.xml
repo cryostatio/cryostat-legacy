@@ -184,6 +184,9 @@
       <artifactId>maven-compiler-plugin</artifactId>
       <version>${org.apache.maven.plugins.compiler.version}</version>
       <configuration>
+        <forceJavacCompilerUse>true</forceJavacCompilerUse>
+        <showDeprecation>true</showDeprecation>
+        <showWarnings>true</showWarnings>
         <annotationProcessorPaths>
           <path>
             <groupId>com.google.dagger</groupId>
