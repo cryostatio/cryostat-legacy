@@ -81,8 +81,9 @@ class WsClientReaderWriterTest extends TestBase {
     @Test
     void readLineShouldBlockUntilClosed() {
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
+        int maxErrorFactor = 10;
         assertTimeoutPreemptively(
-                Duration.ofNanos(expectedDelta * 3),
+                Duration.ofNanos(expectedDelta * maxErrorFactor),
                 () -> {
                     Executors.newSingleThreadScheduledExecutor()
                             .schedule(crw::close, expectedDelta, TimeUnit.NANOSECONDS);
@@ -94,8 +95,12 @@ class WsClientReaderWriterTest extends TestBase {
                     MatcherAssert.assertThat(
                             delta,
                             Matchers.allOf(
-                                    Matchers.greaterThan((long) (expectedDelta * 0.75)),
-                                    Matchers.lessThan((long) (expectedDelta * 1.25))));
+                                    // actual should never be less than expected, but since this is
+                                    // relying on a real wall-clock timer, allow for some error in
+                                    // that direction. Allow much more error in the greater-than
+                                    // direction to account for system scheduling etc.
+                                    Matchers.greaterThan((long) (expectedDelta * 0.9)),
+                                    Matchers.lessThan((long) (expectedDelta * maxErrorFactor))));
                 });
     }
 
