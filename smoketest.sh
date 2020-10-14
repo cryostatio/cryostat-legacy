@@ -66,7 +66,7 @@ function runGrafana() {
         --pod container-jfr \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
-        --rm -d docker.io/grafana/grafana:6.4.4
+        --rm -d docker.io/grafana/grafana:7.2.1
     configureGrafanaDatasource
     configureGrafanaDashboard
 }
