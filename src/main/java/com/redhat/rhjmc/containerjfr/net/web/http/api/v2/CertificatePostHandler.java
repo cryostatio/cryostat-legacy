@@ -46,10 +46,6 @@ import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.security.KeyStore;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.security.spec.*;
@@ -76,8 +72,7 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
     private final FileSystem fs;
     private final Logger logger;
 
-    private static final String SSL_TRUSTSTORE = "SSL_TRUSTSTORE";
-    private static final String SSL_TRUSTSTORE_PASS = "SSL_TRUSTSTORE_PASS";
+    private static final String TRUSTSTORE_DIR = "TRUSTSTORE_DIR";
 
     @Inject
     CertificatePostHandler(AuthManager auth, Environment env, FileSystem fs, Logger logger) {
@@ -127,60 +122,39 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         String certPath = fs.pathOf(cert.uploadedFileName()).normalize().toString();
-        String trustStore;
-        String trustStorePass;
 
-        if (env.hasEnv(SSL_TRUSTSTORE) && env.hasEnv(SSL_TRUSTSTORE_PASS)) {
-            try {
-                trustStore = fs.pathOf(env.getEnv(SSL_TRUSTSTORE)).normalize().toString();
-                trustStorePass = env.getEnv(SSL_TRUSTSTORE_PASS, "");
-            } catch (Exception e) {
-                throw new HttpStatusException(500, e.getMessage());
-            }
-        } else {
-            throw new HttpStatusException(500, "Truststore environment variables not set");
+        if (!env.hasEnv(TRUSTSTORE_DIR)) {
+            throw new HttpStatusException(500, "Truststore directory not set");
+        }
+
+        String truststoreDir = env.getEnv(TRUSTSTORE_DIR);
+        String filePath = truststoreDir + "/" + cert.fileName();
+        if (fs.exists(fs.pathOf(filePath))) {
+            throw new HttpStatusException(409, "Certificate already exists");
         }
 
         try {
-            FileInputStream is = new FileInputStream(trustStore);
-            KeyStore keystore = KeyStore.getInstance(KeyStore.getDefaultType());
-            keystore.load(is, trustStorePass.toCharArray());
-
-            var temp = keystore.aliases();
-            while (temp.hasMoreElements()){
-                logger.warn(temp.nextElement());
-            }
-
-            Certificate selftrust = keystore.getCertificate("selftrust");
-            keystore.deleteEntry("selftrust");
-            
-            String alias = "imported-" + cert.fileName();
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
-            InputStream certstream = fullStream(certPath);
-            Certificate certs = cf.generateCertificate(certstream);
-            logger.warn("Ok, so we get here...");
-            keystore.setCertificateEntry(alias, certs);
-            keystore.setCertificateEntry("selftrust", selftrust);
 
-            File keystoreFile = new File(trustStore);
-            FileOutputStream out = new FileOutputStream(keystoreFile);
-            keystore.store(out, trustStorePass.toCharArray());
+            FileInputStream fis = new FileInputStream(certPath);
+            DataInputStream dis = new DataInputStream(fis);
+            byte[] bytes = new byte[dis.available()];
+            dis.readFully(bytes);
+            dis.close();
+            fis.close();
+            ByteArrayInputStream bytestream = new ByteArrayInputStream(bytes);
+            Certificate certificate = cf.generateCertificate(bytestream);
+            byte[] buf = certificate.getEncoded();
+
+            File certFile = new File(filePath);
+            FileOutputStream out = new FileOutputStream(certFile);
+            out.write(buf);
             out.close();
 
-            logger.warn("does this work?");
         } catch (Exception e) {
-            throw new HttpStatusException(500, e.getLocalizedMessage());
+            throw new HttpStatusException(500, e.getMessage());
         }
 
-        ctx.response().end();
-    }
-
-    private static InputStream fullStream(String fname) throws IOException {
-        FileInputStream fis = new FileInputStream(fname);
-        DataInputStream dis = new DataInputStream(fis);
-        byte[] bytes = new byte[dis.available()];
-        dis.readFully(bytes);
-        ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-        return bais;
+        ctx.response().end("Saved: " + filePath);
     }
 }
