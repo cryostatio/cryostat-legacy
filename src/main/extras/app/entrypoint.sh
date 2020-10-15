@@ -155,6 +155,8 @@ fi
 
 KEYSTORE_PATH="$KEYSTORE_PATH" \
     KEYSTORE_PASS="$KEYSTORE_PASS" \
+    SSL_TRUSTSTORE="$SSL_TRUSTSTORE" \
+    SSL_TRUSTSTORE_PASS="$SSL_TRUSTSTORE_PASS" \
     java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
