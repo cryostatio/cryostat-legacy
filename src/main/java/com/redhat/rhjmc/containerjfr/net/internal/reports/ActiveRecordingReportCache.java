@@ -153,10 +153,10 @@ class ActiveRecordingReportCache {
                 throw ee;
             }
         } finally {
+            generationLock.unlock();
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
             }
-            generationLock.unlock();
         }
     }
 

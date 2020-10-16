@@ -106,10 +106,10 @@ class SubprocessReportGenerator {
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
         if (recordingDescriptor == null) {
-            throw new IllegalArgumentException("Bad recording: " + recordingDescriptor);
+            throw new IllegalArgumentException("Recording may not be null");
         }
         if (destinationFile == null) {
-            throw new IllegalArgumentException("Bad destination: " + destinationFile);
+            throw new IllegalArgumentException("Destination may not be null");
         }
         fs.writeString(
                 destinationFile,
