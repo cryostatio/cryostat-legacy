@@ -242,8 +242,23 @@ class SubprocessReportGenerator {
                                                     + " shutting down...");
                                 }));
 
+        var fs = new FileSystem();
         try {
             ContainerJfrCore.initialize();
+            // If we're on a system that supports it, set our own OOM score adjustment to
+            // +1000 to ensure we're killed first if memory runs out
+            Path selfProc = fs.pathOf("/proc/self");
+            if (fs.isDirectory(selfProc)) {
+                Logger.INSTANCE.info(
+                        SubprocessReportGenerator.class.getName()
+                                + "Adjusting subprocess OOM score");
+                Path oomScoreAdj = selfProc.resolve("oom_score_adj");
+                fs.writeString(oomScoreAdj, "1000");
+            } else {
+                Logger.INSTANCE.info(
+                        SubprocessReportGenerator.class.getName()
+                                + "/proc/self does not exist; ignoring OOM score adjustment");
+            }
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(ExitStatus.OTHER.code);
@@ -278,14 +293,13 @@ class SubprocessReportGenerator {
             Logger.INSTANCE.info(
                     SubprocessReportGenerator.class.getName() + " writing report to file");
 
-            new FileSystem()
-                    .writeString(
-                            saveFile,
-                            report,
-                            StandardOpenOption.CREATE,
-                            StandardOpenOption.TRUNCATE_EXISTING,
-                            StandardOpenOption.DSYNC,
-                            StandardOpenOption.WRITE);
+            fs.writeString(
+                    saveFile,
+                    report,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.DSYNC,
+                    StandardOpenOption.WRITE);
             System.exit(ExitStatus.OK.code);
         } catch (IOException e) {
             e.printStackTrace();
