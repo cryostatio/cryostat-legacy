@@ -63,6 +63,8 @@ import java.util.concurrent.Future;
 
 import javax.inject.Provider;
 
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
@@ -301,12 +303,15 @@ class SubprocessReportGenerator {
                     StandardOpenOption.DSYNC,
                     StandardOpenOption.WRITE);
             System.exit(ExitStatus.OK.code);
+        } catch (ConnectionException e) {
+            e.printStackTrace();
+            System.exit(ExitStatus.TARGET_CONNECTION_FAILURE.code);
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(ExitStatus.IO_EXCEPTION.code);
         } catch (Exception e) {
             e.printStackTrace();
-            System.exit(ExitStatus.TARGET_CONNECTION_FAILURE.code);
+            System.exit(ExitStatus.OTHER.code);
         }
     }
 
