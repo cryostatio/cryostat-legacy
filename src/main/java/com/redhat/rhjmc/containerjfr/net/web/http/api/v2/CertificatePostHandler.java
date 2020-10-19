@@ -118,7 +118,7 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         if (cert == null) {
-            throw new HttpStatusException(400, "No certificate found");
+            throw new HttpStatusException(400, "A file named \"cert\" was not included in the request");
         }
 
         String certPath = fs.pathOf(cert.uploadedFileName()).normalize().toString();
@@ -128,29 +128,26 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         String truststoreDir = env.getEnv(TRUSTSTORE_DIR);
-        String filePath = truststoreDir + "/" + cert.fileName();
+        String filePath = fs.pathOf(truststoreDir, cert.fileName()).normalize().toString();
         if (fs.exists(fs.pathOf(filePath))) {
-            throw new HttpStatusException(409, "Certificate already exists");
+            throw new HttpStatusException(409, filePath + " Certificate already exists");
         }
 
-        try {
+        File certFile = new File(filePath);
+
+        try (FileInputStream fis = new FileInputStream(certPath);
+                DataInputStream dis = new DataInputStream(fis);
+                FileOutputStream out = new FileOutputStream(certFile)) {
             CertificateFactory cf = CertificateFactory.getInstance("X.509");
 
-            FileInputStream fis = new FileInputStream(certPath);
-            DataInputStream dis = new DataInputStream(fis);
             byte[] bytes = new byte[dis.available()];
             dis.readFully(bytes);
-            dis.close();
-            fis.close();
+
             ByteArrayInputStream bytestream = new ByteArrayInputStream(bytes);
             Certificate certificate = cf.generateCertificate(bytestream);
             byte[] buf = certificate.getEncoded();
 
-            File certFile = new File(filePath);
-            FileOutputStream out = new FileOutputStream(certFile);
             out.write(buf);
-            out.close();
-
         } catch (Exception e) {
             throw new HttpStatusException(500, e.getMessage());
         }
