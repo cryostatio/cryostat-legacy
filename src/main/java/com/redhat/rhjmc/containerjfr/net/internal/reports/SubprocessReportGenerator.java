@@ -60,6 +60,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Provider;
 
@@ -230,14 +231,18 @@ class SubprocessReportGenerator {
     }
 
     public static void main(String[] args) {
+        long startTime = System.nanoTime();
         Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " starting");
         Runtime.getRuntime()
                 .addShutdownHook(
                         new Thread(
                                 () -> {
+                                    long elapsedTime = System.nanoTime() - startTime;
                                     Logger.INSTANCE.info(
-                                            SubprocessReportGenerator.class.getName()
-                                                    + " shutting down...");
+                                            String.format(
+                                                    "%s shutting down after %dms",
+                                                    SubprocessReportGenerator.class.getName(),
+                                                    TimeUnit.NANOSECONDS.toMillis(elapsedTime)));
                                 }));
 
         var fs = new FileSystem();
