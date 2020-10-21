@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
@@ -66,6 +67,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
@@ -106,8 +108,12 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnTrueWhenDeletingReport() throws Exception {
-        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(pathFuture);
+        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Duration.class)))
+                .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
@@ -120,8 +126,12 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnGeneratedReportResult() throws Exception {
-        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(pathFuture);
+        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Duration.class)))
+                .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
@@ -133,7 +143,8 @@ class ActiveRecordingReportCacheTest {
         InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator, fs);
         inOrder.verify(lock).lock();
 
-        inOrder.verify(subprocessReportGenerator).exec(Mockito.any());
+        inOrder.verify(subprocessReportGenerator)
+                .exec(Mockito.any(RecordingDescriptor.class), Mockito.any(Duration.class));
 
         inOrder.verify(fs).readString(destinationFile);
 
@@ -142,8 +153,12 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnCachedReportResultOnSecondRequest() throws Exception {
-        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any())).thenReturn(pathFuture);
+        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Duration.class)))
+                .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(report);
 
         String targetId = "foo";
@@ -158,7 +173,8 @@ class ActiveRecordingReportCacheTest {
         InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator);
         inOrder.verify(lock, Mockito.times(1)).lock();
 
-        inOrder.verify(subprocessReportGenerator, Mockito.times(1)).exec(Mockito.any());
+        inOrder.verify(subprocessReportGenerator, Mockito.times(1))
+                .exec(Mockito.any(RecordingDescriptor.class), Mockito.any(Duration.class));
 
         inOrder.verify(lock, Mockito.times(1)).unlock();
     }
@@ -166,7 +182,10 @@ class ActiveRecordingReportCacheTest {
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any()))
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Duration.class)))
                 .thenThrow(new RecordingNotFoundException("", ""));
         Assertions.assertThrows(
                 RecordingNotFoundException.class, () -> cache.get(connectionDescriptor, "bar"));
@@ -175,7 +194,10 @@ class ActiveRecordingReportCacheTest {
     @Test
     void shouldThrowExceptionIfSubprocessExitsNonCleanly() throws Exception {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("foo");
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any()))
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Duration.class)))
                 .thenThrow(
                         new SubprocessReportGenerator.ReportGenerationException(ExitStatus.OTHER));
         Assertions.assertThrows(

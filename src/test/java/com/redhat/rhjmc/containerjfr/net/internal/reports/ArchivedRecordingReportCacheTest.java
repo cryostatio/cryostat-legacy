@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.Future;
@@ -64,6 +65,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
 
 @ExtendWith(MockitoExtension.class)
 class ArchivedRecordingReportCacheTest {
@@ -146,8 +148,12 @@ class ArchivedRecordingReportCacheTest {
 
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of("foo"));
 
-        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
-        Mockito.when(subprocessReportGenerator.exec(Mockito.any(), Mockito.any()))
+        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Path.class),
+                                Mockito.any(Duration.class)))
                 .thenReturn(pathFuture);
 
         Optional<Path> res = cache.get("foo");

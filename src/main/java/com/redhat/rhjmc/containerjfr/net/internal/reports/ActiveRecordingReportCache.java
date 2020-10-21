@@ -42,8 +42,10 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -119,12 +121,14 @@ class ActiveRecordingReportCache {
                             "Active report cache miss for %s", recordingDescriptor.recordingName));
             try {
                 Future<Path> future =
-                        subprocessReportGeneratorProvider.get().exec(recordingDescriptor);
+                        subprocessReportGeneratorProvider
+                                .get()
+                                .exec(recordingDescriptor, Duration.ofSeconds(10));
                 // TODO this timeout should be related to the HTTP response timeout. See
                 // https://github.com/rh-jmc-team/container-jfr/issues/288
-                saveFile = future.get(10, TimeUnit.SECONDS);
+                saveFile = future.get();
                 return fs.readString(saveFile);
-            } catch (ExecutionException ee) {
+            } catch (ExecutionException | CompletionException ee) {
                 logger.error(ee);
                 if (ee.getCause() instanceof ReportGenerationException) {
                     ReportGenerationException generationException =

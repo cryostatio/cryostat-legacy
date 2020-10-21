@@ -43,9 +43,9 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
@@ -109,11 +109,13 @@ class ArchivedRecordingReportCache {
                                 RecordingDescriptor rd = new RecordingDescriptor(cd, "");
                                 try {
                                     Future<Path> future =
-                                            subprocessReportGeneratorProvider.get().exec(rd, dest);
+                                            subprocessReportGeneratorProvider
+                                                    .get()
+                                                    .exec(rd, dest, Duration.ofSeconds(10));
                                     // TODO this timeout should be related to the HTTP response
                                     // timeout. See
                                     // https://github.com/rh-jmc-team/container-jfr/issues/288
-                                    Path saveFile = future.get(10, TimeUnit.SECONDS);
+                                    Path saveFile = future.get();
                                     return Optional.of(saveFile);
                                 } catch (Exception e) {
                                     logger.warn(e);

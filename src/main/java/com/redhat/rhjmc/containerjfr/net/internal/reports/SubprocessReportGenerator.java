@@ -50,6 +50,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -104,7 +105,8 @@ class SubprocessReportGenerator {
         this.logger = logger;
     }
 
-    Future<Path> exec(RecordingDescriptor recordingDescriptor, Path destinationFile)
+    Future<Path> exec(
+            RecordingDescriptor recordingDescriptor, Path destinationFile, Duration timeout)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -134,7 +136,8 @@ class SubprocessReportGenerator {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
-                        ExitStatus status = ExitStatus.byExitCode(proc.waitFor());
+                        proc.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+                        ExitStatus status = ExitStatus.byExitCode(proc.exitValue());
                         switch (status) {
                             case OK:
                                 return destinationFile;
@@ -154,16 +157,18 @@ class SubprocessReportGenerator {
                         logger.error(e);
                         proc.destroyForcibly();
                         throw new CompletionException(e);
+                    } finally {
+                        proc.destroyForcibly();
                     }
                 });
     }
 
-    Future<Path> exec(RecordingDescriptor recordingDescriptor)
+    Future<Path> exec(RecordingDescriptor recordingDescriptor, Duration timeout)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
         // TODO add a FileSystem abstraction around Files.createTemp*
-        return exec(recordingDescriptor, Files.createTempFile(null, null));
+        return exec(recordingDescriptor, Files.createTempFile(null, null), timeout);
     }
 
     private Map<String, String> createEnv(ConnectionDescriptor connectionDescriptor)
