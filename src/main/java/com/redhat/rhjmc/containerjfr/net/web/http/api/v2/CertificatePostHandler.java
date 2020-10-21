@@ -61,6 +61,7 @@ import com.redhat.rhjmc.containerjfr.net.security.CertificateValidator;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
@@ -121,6 +122,7 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         FileUpload cert = null;
         for (FileUpload fu : ctx.fileUploads()) {

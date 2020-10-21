@@ -162,7 +162,8 @@ class CertificatePostHandlerTest {
 
         InputStream instream = new ByteArrayInputStream("not a certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
-        Mockito.when(certValidator.verify(Mockito.any())).thenThrow(new CertificateException("parsing error"));
+        Mockito.when(certValidator.verify(Mockito.any()))
+                .thenThrow(new CertificateException("parsing error"));
 
         HttpStatusException ex =
                 Assertions.assertThrows(

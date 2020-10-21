@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.security;
 
-
 import java.io.ByteArrayInputStream;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
