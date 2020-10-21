@@ -146,7 +146,7 @@ class CertificatePostHandlerTest {
     }
 
     @Test
-    void shouldThrow500ifCertIsMalformed() throws Exception {
+    void shouldThrowExceptionIfCertIsMalformed() throws Exception {
         Mockito.when(ctx.fileUploads()).thenReturn(Set.<FileUpload>of(fu));
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(fu.fileName()).thenReturn("certificate.cer");
@@ -163,10 +163,10 @@ class CertificatePostHandlerTest {
         Mockito.when(certValidator.parseCertificate(Mockito.any()))
                 .thenThrow(new CertificateException("parsing error"));
 
-        HttpStatusException ex =
+        CertificateException ex =
                 Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+                        CertificateException.class, () -> handler.handleAuthenticated(ctx));
+        MatcherAssert.assertThat(ex.getMessage(), Matchers.equalTo("parsing error"));
     }
 
     @Test

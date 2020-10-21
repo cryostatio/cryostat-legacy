@@ -161,8 +161,6 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
             byte[] buf = certificate.getEncoded();
 
             out.write(buf);
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e.getMessage());
         }
 
         ctx.response().end("Saved: " + filePath);
