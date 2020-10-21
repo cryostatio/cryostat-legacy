@@ -144,22 +144,20 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         String truststoreDir = env.getEnv(TRUSTSTORE_DIR);
-        String filePath = fs.pathOf(truststoreDir, cert.fileName()).normalize().toString();
+        Path filePath = fs.pathOf(truststoreDir, cert.fileName()).normalize();
 
-        if (fs.exists(fs.pathOf(filePath))) {
-            throw new HttpStatusException(409, filePath + " Certificate already exists");
+        if (fs.exists(filePath)) {
+            throw new HttpStatusException(409, filePath.toString() + " Certificate already exists");
         }
-
-        File certFile = new File(filePath);
 
         try (InputStream fis = fs.newInputStream(certPath);
                 DataInputStream dis = new DataInputStream(fis);
-                FileOutputStream out = outputStreamFunction.apply(certFile)) {
+                FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
 
             byte[] bytes = new byte[dis.available()];
             dis.readFully(bytes);
             ByteArrayInputStream bytestream = new ByteArrayInputStream(bytes);
-            Certificate certificate = certValidator.verify(bytestream);
+            Certificate certificate = certValidator.parseCertificate(bytestream);
             byte[] buf = certificate.getEncoded();
 
             out.write(buf);

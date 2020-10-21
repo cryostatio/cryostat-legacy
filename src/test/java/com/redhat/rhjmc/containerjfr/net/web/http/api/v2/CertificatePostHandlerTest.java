@@ -156,13 +156,11 @@ class CertificatePostHandlerTest {
         Mockito.when(env.getEnv(Mockito.any())).thenReturn("/truststore");
         Mockito.when(fs.pathOf("/truststore", "certificate.cer")).thenReturn(truststorePath);
         Mockito.when(truststorePath.normalize()).thenReturn(truststorePath);
-        Mockito.when(truststorePath.toString()).thenReturn("/truststore/certificate.cer");
-        Mockito.when(fs.pathOf("/truststore/certificate.cer")).thenReturn(truststorePath);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
 
         InputStream instream = new ByteArrayInputStream("not a certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
-        Mockito.when(certValidator.verify(Mockito.any()))
+        Mockito.when(certValidator.parseCertificate(Mockito.any()))
                 .thenThrow(new CertificateException("parsing error"));
 
         HttpStatusException ex =
@@ -183,12 +181,11 @@ class CertificatePostHandlerTest {
         Mockito.when(fs.pathOf("/truststore", "certificate.cer")).thenReturn(truststorePath);
         Mockito.when(truststorePath.normalize()).thenReturn(truststorePath);
         Mockito.when(truststorePath.toString()).thenReturn("/truststore/certificate.cer");
-        Mockito.when(fs.pathOf("/truststore/certificate.cer")).thenReturn(truststorePath);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
 
         InputStream instream = new ByteArrayInputStream("not a certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
-        Mockito.when(certValidator.verify(Mockito.any())).thenReturn(cert);
+        Mockito.when(certValidator.parseCertificate(Mockito.any())).thenReturn(cert);
         Mockito.when(cert.getEncoded()).thenReturn("the cert".getBytes());
 
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);

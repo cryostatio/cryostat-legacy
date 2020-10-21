@@ -47,7 +47,7 @@ import java.security.cert.CertificateFactory;
 
 public class CertificateValidator {
 
-    public Certificate verify(ByteArrayInputStream byteStream) throws Exception {
+    public Certificate parseCertificate(ByteArrayInputStream byteStream) throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         return cf.generateCertificate(byteStream);
     }
