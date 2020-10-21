@@ -44,18 +44,20 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.nio.file.Path;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateFactory;
-import java.security.spec.*;
+import java.util.function.Function;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.security.CertificateValidator;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
@@ -74,12 +76,23 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
 
     private static final String TRUSTSTORE_DIR = "TRUSTSTORE_DIR";
 
+    private Function<File, FileOutputStream> outputStreamFunction;
+    private CertificateValidator certValidator;
+
     @Inject
-    CertificatePostHandler(AuthManager auth, Environment env, FileSystem fs, Logger logger) {
+    CertificatePostHandler(
+            AuthManager auth,
+            Environment env,
+            FileSystem fs,
+            Logger logger,
+            @Named("OutputStreamFunction") Function<File, FileOutputStream> outputStreamFunction,
+            CertificateValidator certValidator) {
         super(auth);
         this.env = env;
         this.fs = fs;
         this.logger = logger;
+        this.outputStreamFunction = outputStreamFunction;
+        this.certValidator = certValidator;
     }
 
     @Override
@@ -118,10 +131,11 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         if (cert == null) {
-            throw new HttpStatusException(400, "A file named \"cert\" was not included in the request");
+            throw new HttpStatusException(
+                    400, "A file named \"cert\" was not included in the request");
         }
 
-        String certPath = fs.pathOf(cert.uploadedFileName()).normalize().toString();
+        Path certPath = fs.pathOf(cert.uploadedFileName());
 
         if (!env.hasEnv(TRUSTSTORE_DIR)) {
             throw new HttpStatusException(500, "Truststore directory not set");
@@ -129,22 +143,21 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
 
         String truststoreDir = env.getEnv(TRUSTSTORE_DIR);
         String filePath = fs.pathOf(truststoreDir, cert.fileName()).normalize().toString();
+
         if (fs.exists(fs.pathOf(filePath))) {
             throw new HttpStatusException(409, filePath + " Certificate already exists");
         }
 
         File certFile = new File(filePath);
 
-        try (FileInputStream fis = new FileInputStream(certPath);
+        try (InputStream fis = fs.newInputStream(certPath);
                 DataInputStream dis = new DataInputStream(fis);
-                FileOutputStream out = new FileOutputStream(certFile)) {
-            CertificateFactory cf = CertificateFactory.getInstance("X.509");
+                FileOutputStream out = outputStreamFunction.apply(certFile)) {
 
             byte[] bytes = new byte[dis.available()];
             dis.readFully(bytes);
-
             ByteArrayInputStream bytestream = new ByteArrayInputStream(bytes);
-            Certificate certificate = cf.generateCertificate(bytestream);
+            Certificate certificate = certValidator.verify(bytestream);
             byte[] buf = certificate.getEncoded();
 
             out.write(buf);
