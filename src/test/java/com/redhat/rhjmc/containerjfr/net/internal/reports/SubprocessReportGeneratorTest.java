@@ -193,9 +193,11 @@ class SubprocessReportGeneratorTest {
 
         List<String> expected =
                 List.of(
+                        "-Xmx200M",
                         "-XX:+ExitOnOutOfMemoryError",
                         "-XX:+UnlockExperimentalVMOptions",
                         "-XX:+UseEpsilonGC",
+                        "-XX:+AlwaysPreTouch",
                         "-Djavax.net.ssl.trustStore=/some/truststore.p12",
                         "-Djavax.net.ssl.trustStorePassword=THEPASSWORD");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));

@@ -126,7 +126,9 @@ class SubprocessReportGenerator {
                         .get()
                         .klazz(SubprocessReportGenerator.class)
                         .env(createEnv(recordingDescriptor.connectionDescriptor))
-                        .jvmArgs(createJvmArgs())
+                        // FIXME the heap size should be determined by some heuristics, not
+                        // hard-coded. See https://github.com/rh-jmc-team/container-jfr/issues/287
+                        .jvmArgs(createJvmArgs(200))
                         .processArgs(createProcessArgs(recordingDescriptor, destinationFile))
                         .exec();
         return CompletableFuture.supplyAsync(
@@ -182,10 +184,11 @@ class SubprocessReportGenerator {
         return Map.of(ENV_USERNAME, username, ENV_PASSWORD, password);
     }
 
-    private List<String> createJvmArgs() throws IOException {
+    private List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
         // These JVM flags must be kept in-sync with the flags set on the parent process in
         // entrypoint.sh in order to keep the auth and certs setup consistent
         return List.of(
+                String.format("-Xmx%dM", maxHeapMegabytes),
                 "-XX:+ExitOnOutOfMemoryError",
                 // use EpsilonGC since we're a one-shot process and report generation doesn't
                 // allocate that much memory beyond the initial recording load - no point in
@@ -193,6 +196,7 @@ class SubprocessReportGenerator {
                 // quickly, or if we're running up against the memory limit, fail early
                 "-XX:+UnlockExperimentalVMOptions",
                 "-XX:+UseEpsilonGC",
+                "-XX:+AlwaysPreTouch",
                 // reuse same truststore as parent process
                 "-Djavax.net.ssl.trustStore=" + env.getEnv("SSL_TRUSTSTORE"),
                 "-Djavax.net.ssl.trustStorePassword=" + env.getEnv("SSL_TRUSTSTORE_PASS"));
