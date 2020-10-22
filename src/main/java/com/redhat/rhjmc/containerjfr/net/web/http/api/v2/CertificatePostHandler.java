@@ -153,8 +153,8 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         try (InputStream fis = fs.newInputStream(certPath);
                 FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
 
-            Collection certificates = certValidator.parseCertificate(fis);
-            Iterator it = certificates.iterator();
+            Collection<? extends Certificate> certificates = certValidator.parseCertificates(fis);
+            Iterator<? extends Certificate> it = certificates.iterator();
             while (it.hasNext()) {
                 Certificate certificate = (Certificate) it.next();
                 byte[] buf = certificate.getEncoded();

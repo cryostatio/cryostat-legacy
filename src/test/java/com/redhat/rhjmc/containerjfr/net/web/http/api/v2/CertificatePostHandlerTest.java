@@ -164,7 +164,7 @@ class CertificatePostHandlerTest {
 
         InputStream instream = new ByteArrayInputStream("not a certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
-        Mockito.when(certValidator.parseCertificate(Mockito.any()))
+        Mockito.when(certValidator.parseCertificates(Mockito.any()))
                 .thenThrow(new CertificateException("parsing error"));
 
         CertificateException ex =
@@ -189,7 +189,7 @@ class CertificatePostHandlerTest {
 
         InputStream instream = new ByteArrayInputStream("certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
-        Mockito.when(certValidator.parseCertificate(Mockito.any())).thenReturn(certificates);
+        Mockito.when(certValidator.parseCertificates(Mockito.any())).thenReturn(certificates);
         Mockito.when(certificates.iterator()).thenReturn(iterator);
         Mockito.when(iterator.hasNext()).thenReturn(true).thenReturn(false);
         Mockito.when(iterator.next()).thenReturn(cert);

@@ -42,12 +42,13 @@
 package com.redhat.rhjmc.containerjfr.net.security;
 
 import java.io.InputStream;
+import java.security.cert.Certificate;
 import java.security.cert.CertificateFactory;
 import java.util.Collection;
 
 public class CertificateValidator {
 
-    public Collection parseCertificate(InputStream stream) throws Exception {
+    public Collection<Certificate> parseCertificates(InputStream stream) throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         return cf.generateCertificates(stream);
     }
