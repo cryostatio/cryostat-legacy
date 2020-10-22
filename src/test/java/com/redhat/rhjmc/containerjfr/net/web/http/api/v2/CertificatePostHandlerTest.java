@@ -47,7 +47,9 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
@@ -87,6 +89,8 @@ class CertificatePostHandlerTest {
     @Mock Path truststorePath;
     @Mock Path fileUploadPath;
     @Mock CertificateValidator certValidator;
+    @Mock Collection certificates;
+    @Mock Iterator iterator;
     @Mock Certificate cert;
 
     @BeforeEach
@@ -183,17 +187,20 @@ class CertificatePostHandlerTest {
         Mockito.when(truststorePath.toString()).thenReturn("/truststore/certificate.cer");
         Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
 
-        InputStream instream = new ByteArrayInputStream("not a certificate".getBytes());
+        InputStream instream = new ByteArrayInputStream("certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
-        Mockito.when(certValidator.parseCertificate(Mockito.any())).thenReturn(cert);
-        Mockito.when(cert.getEncoded()).thenReturn("the cert".getBytes());
+        Mockito.when(certValidator.parseCertificate(Mockito.any())).thenReturn(certificates);
+        Mockito.when(certificates.iterator()).thenReturn(iterator);
+        Mockito.when(iterator.hasNext()).thenReturn(true).thenReturn(false);
+        Mockito.when(iterator.next()).thenReturn(cert);
+        Mockito.when(cert.getEncoded()).thenReturn("certificate".getBytes());
 
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
 
         handler.handleAuthenticated(ctx);
 
-        Mockito.verify(outStream).write("the cert".getBytes());
+        Mockito.verify(outStream).write("certificate".getBytes());
         Mockito.verify(resp).end("Saved: /truststore/certificate.cer");
     }
 }

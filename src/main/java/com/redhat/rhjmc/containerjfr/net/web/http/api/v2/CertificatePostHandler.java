@@ -41,13 +41,13 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
-import java.io.ByteArrayInputStream;
-import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.function.Function;
 
 import javax.inject.Inject;
@@ -151,14 +151,12 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         try (InputStream fis = fs.newInputStream(certPath);
-                DataInputStream dis = new DataInputStream(fis);
                 FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
 
-            byte[] bytes = new byte[dis.available()];
-            dis.readFully(bytes);
-
-            try (ByteArrayInputStream bytestream = new ByteArrayInputStream(bytes)) {
-                Certificate certificate = certValidator.parseCertificate(bytestream);
+            Collection certificates = certValidator.parseCertificate(fis);
+            Iterator it = certificates.iterator();
+            while (it.hasNext()) {
+                Certificate certificate = (Certificate) it.next();
                 byte[] buf = certificate.getEncoded();
                 out.write(buf);
             }
