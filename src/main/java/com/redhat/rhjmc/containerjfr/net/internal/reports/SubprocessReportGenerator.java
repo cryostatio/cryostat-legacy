@@ -83,6 +83,7 @@ import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 class SubprocessReportGenerator {
 
+    static final String SUBPROCESS_MAX_HEAP_ENV = "CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP";
     static String ENV_USERNAME = "TARGET_USERNAME";
     static String ENV_PASSWORD = "TARGET_PASSWORD";
 
@@ -128,9 +129,13 @@ class SubprocessReportGenerator {
                         .get()
                         .klazz(SubprocessReportGenerator.class)
                         .env(createEnv(recordingDescriptor.connectionDescriptor))
-                        // FIXME the heap size should be determined by some heuristics, not
-                        // hard-coded. See https://github.com/rh-jmc-team/container-jfr/issues/287
-                        .jvmArgs(createJvmArgs(200))
+                        // FIXME the heap size should be determined by some heuristics if not
+                        // defined in env.
+                        // See https://github.com/rh-jmc-team/container-jfr/issues/287
+                        .jvmArgs(
+                                createJvmArgs(
+                                        Integer.parseInt(
+                                                env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "200"))))
                         .processArgs(createProcessArgs(recordingDescriptor, destinationFile))
                         .exec();
         return CompletableFuture.supplyAsync(

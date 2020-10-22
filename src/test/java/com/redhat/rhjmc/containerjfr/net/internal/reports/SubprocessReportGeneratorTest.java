@@ -103,6 +103,9 @@ class SubprocessReportGeneratorTest {
                 .when(javaProcessBuilder.processArgs(Mockito.anyList()))
                 .thenReturn(javaProcessBuilder);
         Mockito.lenient().when(javaProcessBuilder.exec()).thenReturn(proc);
+        Mockito.lenient()
+                .when(env.getEnv(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV, "200"))
+                .thenReturn("200");
         this.generator =
                 new SubprocessReportGenerator(
                         env,
