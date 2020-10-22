@@ -156,11 +156,12 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
 
             byte[] bytes = new byte[dis.available()];
             dis.readFully(bytes);
-            ByteArrayInputStream bytestream = new ByteArrayInputStream(bytes);
-            Certificate certificate = certValidator.parseCertificate(bytestream);
-            byte[] buf = certificate.getEncoded();
 
-            out.write(buf);
+            try (ByteArrayInputStream bytestream = new ByteArrayInputStream(bytes)) {
+                Certificate certificate = certValidator.parseCertificate(bytestream);
+                byte[] buf = certificate.getEncoded();
+                out.write(buf);
+            }
         }
 
         ctx.response().end("Saved: " + filePath);
