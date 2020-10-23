@@ -83,5 +83,4 @@ class TimeoutHandler implements RequestHandler {
     public void handle(RoutingContext ctx) {
         handler.handle(ctx);
     }
-
 }
