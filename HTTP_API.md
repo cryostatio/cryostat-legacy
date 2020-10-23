@@ -499,7 +499,13 @@
     Should use percent-encoding.
 
     ###### response
-    `200` - The body is the requested report, as an HTML document.
+    `200` - The body is the requested report as an HTML document, or a plaintext
+    string of an error message indicating why the report document could not be
+    generated. FIXME This error message is given the response code 200 as a
+    hack to allow the frontend web-client to cache such messages, rather than
+    issuing a re-request, since scenarios where this occurs are scenarios where
+    report generation is most likely to fail on a re-attempt for the same
+    recording in the future.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -961,7 +967,13 @@
     Should use percent-encoding.
 
     ###### response
-    `200` - The body is the requested report, as an HTML document.
+    `200` - The body is the requested report as an HTML document, or a plaintext
+    string of an error message indicating why the report document could not be
+    generated. FIXME This error message is given the response code 200 as a
+    hack to allow the frontend web-client to cache such messages, rather than
+    issuing a re-request, since scenarios where this occurs are scenarios where
+    report generation is most likely to fail on a re-attempt for the same
+    recording in the future.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
