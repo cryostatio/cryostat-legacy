@@ -48,7 +48,8 @@ import java.util.Collection;
 
 public class CertificateValidator {
 
-    public Collection<Certificate> parseCertificates(InputStream stream) throws Exception {
+    public Collection<? extends Certificate> parseCertificates(InputStream stream)
+            throws Exception {
         CertificateFactory cf = CertificateFactory.getInstance("X.509");
         return cf.generateCertificates(stream);
     }
