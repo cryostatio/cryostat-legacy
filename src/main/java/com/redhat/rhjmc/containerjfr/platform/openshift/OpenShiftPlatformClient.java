@@ -99,7 +99,7 @@ class OpenShiftPlatformClient implements PlatformClient {
                                                                             subset, port))));
             return refs;
         } catch (Exception e) {
-            logger.error(e);
+            logger.warn(e);
             return Collections.emptyList();
         }
     }
