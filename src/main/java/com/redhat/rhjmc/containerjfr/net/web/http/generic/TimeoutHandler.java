@@ -41,36 +41,47 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.generic;
 
+import javax.inject.Inject;
+
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
 
-@Module
-public abstract class HttpGenericModule {
+class TimeoutHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTimeoutHandler(TimeoutHandler handler);
+    static final long TIMEOUT_MS = 15_000;
+    final io.vertx.ext.web.handler.TimeoutHandler handler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
+    @Inject
+    TimeoutHandler() {
+        this.handler = io.vertx.ext.web.handler.TimeoutHandler.create(TIMEOUT_MS);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCorsOptionsHandler(CorsOptionsHandler handler);
+    @Override
+    public int getPriority() {
+        return 0;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindHealthGetHandler(HealthGetHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.GENERIC;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.OTHER;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindWebClientAssetsGetHandler(WebClientAssetsGetHandler handler);
+    @Override
+    public String path() {
+        return ALL_PATHS;
+    }
+
+    @Override
+    public void handle(RoutingContext ctx) {
+        handler.handle(ctx);
+    }
+
 }
