@@ -35,6 +35,8 @@ SSL_KEY_PASS="$(genpass)"
 SSL_STORE_PASS="$SSL_KEY_PASS"
 SSL_TRUSTSTORE="/tmp/truststore.p12"
 SSL_TRUSTSTORE_PASS="$(genpass)"
+TRUSTSTORE_DIR="/truststore"
+
 function createSslStores() {
     pushd /tmp
 
@@ -50,16 +52,15 @@ function createSslStores() {
 }
 
 function importTrustStores() {
-    local DIR="/truststore"
-    if [ ! -d "$DIR" ]; then
-        banner "$DIR does not exist; no certificates to import"
+    if [ ! -d "$TRUSTSTORE_DIR" ]; then
+        banner "$TRUSTSTORE_DIR does not exist; no certificates to import"
         return 0
-    elif [ ! "$(ls -A $DIR)" ]; then
-        banner "$DIR is empty; no certificates to import"
+    elif [ ! "$(ls -A $TRUSTSTORE_DIR)" ]; then
+        banner "$TRUSTSTORE_DIR is empty; no certificates to import"
         return 0
     fi
 
-    for cert in $(find "$DIR" -type f); do
+    for cert in $(find "$TRUSTSTORE_DIR" -type f); do
         echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
@@ -155,6 +156,7 @@ fi
 
 KEYSTORE_PATH="$KEYSTORE_PATH" \
     KEYSTORE_PASS="$KEYSTORE_PASS" \
+    TRUSTSTORE_DIR="$TRUSTSTORE_DIR" \
     java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \

@@ -39,54 +39,18 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
+package com.redhat.rhjmc.containerjfr.net.security;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.function.Function;
+import java.io.InputStream;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.util.Collection;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+public class CertificateValidator {
 
-import com.redhat.rhjmc.containerjfr.net.security.CertificateValidator;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
-
-import dagger.Binds;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
-
-@Module
-public abstract class HttpApiV2Module {
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostHandler(CertificatePostHandler handler);
-
-    @Provides
-    @Singleton
-    @Named("OutputStreamFunction")
-    static Function<File, FileOutputStream> provideOutputStreamFunction() throws RuntimeException {
-        return (File file) -> {
-            try {
-                return new FileOutputStream(file);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
+    public Collection<? extends Certificate> parseCertificates(InputStream stream)
+            throws Exception {
+        CertificateFactory cf = CertificateFactory.getInstance("X.509");
+        return cf.generateCertificates(stream);
     }
-
-    @Provides
-    static CertificateValidator provideCertificateValidator() {
-        return new CertificateValidator();
-    }
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostBodyHandler(CertificatePostBodyHandler handler);
 }
