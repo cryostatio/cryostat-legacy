@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
@@ -49,6 +50,7 @@ import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.Arrays;
@@ -56,6 +58,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
@@ -66,10 +69,12 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
@@ -80,6 +85,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class SubprocessReportGenerator {
 
@@ -268,7 +274,7 @@ class SubprocessReportGenerator {
             if (fs.isDirectory(selfProc)) {
                 Logger.INSTANCE.info(
                         SubprocessReportGenerator.class.getName()
-                                + "Adjusting subprocess OOM score");
+                                + " adjusting subprocess OOM score");
                 Path oomScoreAdj = selfProc.resolve("oom_score_adj");
                 fs.writeString(oomScoreAdj, "1000");
             } else {
@@ -344,37 +350,45 @@ class SubprocessReportGenerator {
         }
     }
 
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     static String getReportFromLiveTarget(
             String recordingName, ConnectionDescriptor cd, Path saveFile) throws Exception {
         var fs = new FileSystem();
+
+        var transformers = deserializeTransformers(fs.readString(saveFile));
+
         var tk = new JFRConnectionToolkit(Logger.INSTANCE::info, fs, new Environment());
-        return new TargetConnectionManager(Logger.INSTANCE, () -> tk)
-                .executeConnectedTask(
-                        cd,
-                        conn -> {
-                            var f = new CompletableFuture<String>();
-                            conn.getService().getAvailableRecordings().stream()
-                                    .filter(recording -> recordingName.equals(recording.getName()))
-                                    .findFirst()
-                                    .ifPresentOrElse(
-                                            d -> {
-                                                try (InputStream stream =
-                                                        conn.getService().openStream(d, false)) {
-                                                    var transformers =
-                                                            deserializeTransformers(
-                                                                    fs.readString(saveFile));
-                                                    var generator =
-                                                            new ReportGenerator(
-                                                                    Logger.INSTANCE, transformers);
-                                                    f.complete(generator.generateReport(stream));
-                                                } catch (Exception e) {
-                                                    e.printStackTrace();
-                                                    f.completeExceptionally(e);
-                                                }
-                                            },
-                                            () -> System.exit(ExitStatus.NO_SUCH_RECORDING.code));
-                            return f.get();
-                        });
+        Path path =
+                new TargetConnectionManager(Logger.INSTANCE, () -> tk)
+                        .executeConnectedTask(
+                                cd,
+                                conn -> {
+                                    try {
+                                        return copyRecordingToFile(conn, recordingName, saveFile);
+                                    } catch (ReportGenerationException rge) {
+                                        System.exit(ExitStatus.NO_SUCH_RECORDING.code);
+                                        throw rge;
+                                    }
+                                });
+
+        try (InputStream stream = new BufferedInputStream(fs.newInputStream(path))) {
+            return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
+        }
+    }
+
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    static Path copyRecordingToFile(JFRConnection conn, String recordingName, Path path)
+            throws Exception {
+        for (IRecordingDescriptor rec : conn.getService().getAvailableRecordings()) {
+            if (!Objects.equals(rec.getName(), recordingName)) {
+                continue;
+            }
+            try (InputStream stream = conn.getService().openStream(rec, false)) {
+                Files.copy(stream, path, StandardCopyOption.REPLACE_EXISTING);
+                return path;
+            }
+        }
+        throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
     }
 
     enum ExitStatus {
