@@ -230,10 +230,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
     `500` - There was an unexpected error. The body is an error message.
 
     ###### example
@@ -288,10 +284,6 @@
 
     `404` - The recording could not be found. The body is an error message.
 
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
     `500` - The recording was found but it could not be deleted.
     Or there was an unexpected error. The body is an error message.
 
@@ -322,10 +314,6 @@
 
     `404` - The recording could not be found. The body is an error message.
 
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
     `500` - The recording was found but it could not be written to the response.
     Or there was an unexpected error. The body is an error message.
 
@@ -354,10 +342,6 @@
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
@@ -427,10 +411,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
     `500` - There was an unexpected error. The body is an error message.
 
     `503` - `CONTAINER_JFR_ARCHIVE_PATH` is an invalid directory.
@@ -466,10 +446,6 @@
 
     `404` - The recording could not be found. The body is an error message.
 
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
     `500` - There was an unexpected error. The body is an error message.
 
     `501` - The Grafana datasource URL is malformed.
@@ -502,10 +478,6 @@
     the authentication scheme that is used.
 
     `404` - The report could not be found. The body is an error message.
-
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
 
     `500` - There was an unexpected error. The body is an error message.
 
@@ -1167,10 +1139,6 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
     `500` - `CONTAINER_JFR_TEMPLATE_PATH` is not set,
     or it is set to an invalid path, or there was an unexpected error.
     The body is an error message.
@@ -1201,10 +1169,6 @@
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
-    the authentication scheme that is used.
-
-    `427` - JMX authentication failed. The body is an error message.
-    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
     `500` - `CONTAINER_JFR_TEMPLATE_PATH` is not set,
