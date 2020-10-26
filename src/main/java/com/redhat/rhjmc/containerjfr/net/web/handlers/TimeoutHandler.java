@@ -43,50 +43,27 @@ package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.CorsHandler;
 
-class CorsEnablingHandler implements RequestHandler {
-    protected static final String DEV_ORIGIN = "http://localhost:9000";
-    protected static final String ENABLE_CORS_ENV = "CONTAINER_JFR_CORS_ORIGIN";
-    protected final CorsHandler corsHandler;
-    protected final Environment env;
+class TimeoutHandler implements RequestHandler {
+
+    static final long TIMEOUT_MS = 15_000L;
+    final io.vertx.ext.web.handler.TimeoutHandler handler;
 
     @Inject
-    CorsEnablingHandler(Environment env) {
-        this.env = env;
-        this.corsHandler =
-                CorsHandler.create(getOrigin())
-                        .allowedHeader("Authorization")
-                        .allowedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)
-                        .allowedMethod(HttpMethod.GET)
-                        .allowedMethod(HttpMethod.POST)
-                        .allowedMethod(HttpMethod.PATCH)
-                        .allowedMethod(HttpMethod.OPTIONS)
-                        .allowedMethod(HttpMethod.HEAD)
-                        .allowedMethod(HttpMethod.DELETE)
-                        .allowCredentials(true)
-                        .exposedHeader(WebServer.AUTH_SCHEME_HEADER)
-                        .exposedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER);
+    TimeoutHandler() {
+        this.handler = io.vertx.ext.web.handler.TimeoutHandler.create(TIMEOUT_MS);
     }
 
     @Override
     public int getPriority() {
-        return 1;
-    }
-
-    @Override
-    public boolean isAvailable() {
-        return this.env.hasEnv(ENABLE_CORS_ENV);
+        return 0;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.OTHER; // unused for ALL_PATHS handlers
+        return HttpMethod.OTHER;
     }
 
     @Override
@@ -96,10 +73,6 @@ class CorsEnablingHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        this.corsHandler.handle(ctx);
-    }
-
-    String getOrigin() {
-        return this.env.getEnv(ENABLE_CORS_ENV, DEV_ORIGIN);
+        handler.handle(ctx);
     }
 }

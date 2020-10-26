@@ -61,6 +61,10 @@ public abstract class RequestHandlersModule {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindTimeoutHandler(TimeoutHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
 
     @Binds
