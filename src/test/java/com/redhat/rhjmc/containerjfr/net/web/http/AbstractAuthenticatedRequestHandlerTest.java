@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.net.web.http;
 
 import static org.mockito.Mockito.when;
 
+import java.rmi.ConnectIOException;
 import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
@@ -124,13 +125,13 @@ class AbstractAuthenticatedRequestHandlerTest {
         }
 
         @Test
-        void shouldThrow404IfConnectionFails() {
+        void shouldThrow500IfConnectionFails() {
             Exception expectedException = new ConnectionException("");
             handler = new ThrowingAuthenticatedHandler(auth, expectedException);
 
             HttpStatusException ex =
                     Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
         }
 
         @Test
@@ -146,6 +147,19 @@ class AbstractAuthenticatedRequestHandlerTest {
                     Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             Mockito.verify(resp).putHeader("X-JMX-Authenticate", "Basic");
+        }
+
+        @Test
+        void shouldThrow502IfConnectionFailsDueToSslTrust() {
+            Exception cause = new ConnectIOException("SSL trust");
+            Exception expectedException = new ConnectionException("");
+            expectedException.initCause(cause);
+            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(502));
+            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Target SSL Untrusted"));
         }
 
         @Test

@@ -42,10 +42,13 @@
 package com.redhat.rhjmc.containerjfr.net.web.http;
 
 import java.nio.charset.StandardCharsets;
+import java.rmi.ConnectIOException;
 import java.util.Base64;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
@@ -86,9 +89,13 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             Throwable cause = e.getCause();
             if (cause instanceof SecurityException) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(427, e);
+                throw new HttpStatusException(427, "JMX Authentication Failure", e);
             }
-            throw new HttpStatusException(404, e);
+            Throwable rootCause = ExceptionUtils.getRootCause(e);
+            if (rootCause instanceof ConnectIOException) {
+                throw new HttpStatusException(502, "Target SSL Untrusted", e);
+            }
+            throw new HttpStatusException(500, e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e.getMessage(), e);
         }
