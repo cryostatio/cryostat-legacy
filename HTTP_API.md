@@ -963,11 +963,9 @@
 
     `502` - Container JFR received an invalid response from the
     Grafana datasource after sending the upload request.
-    The body is an error message.
-
-    `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
-    certificate.
+    The body is an error message. Or, the JMX connection failed. This is
+    generally because the target application has SSL enabled over JMX, but
+    ContainerJFR does not trust the certificate.
 
     ###### example
     ```
