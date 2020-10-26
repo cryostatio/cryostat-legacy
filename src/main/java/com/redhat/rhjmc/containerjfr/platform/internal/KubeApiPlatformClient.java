@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -48,68 +49,51 @@ import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import dagger.Lazy;
 import io.kubernetes.client.ApiException;
 import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Service;
+import io.kubernetes.client.models.V1EndpointPort;
+import io.kubernetes.client.models.V1EndpointSubset;
 
 class KubeApiPlatformClient implements PlatformClient {
 
     private final CoreV1Api api;
     private final String namespace;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final NetworkResolver resolver;
     private final Logger logger;
 
     KubeApiPlatformClient(
             CoreV1Api api,
             String namespace,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            NetworkResolver resolver,
             Logger logger) {
         this.api = api;
         this.namespace = namespace;
         this.connectionToolkit = connectionToolkit;
-        this.resolver = resolver;
         this.logger = logger;
     }
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
-            return api
-                    .listNamespacedService(
+            List<ServiceRef> refs = new ArrayList<>();
+            api
+                    .listNamespacedEndpoints(
                             namespace, null, null, null, null, null, null, null, null, null)
                     .getItems().stream()
-                    .map(V1Service::getSpec)
-                    .peek(spec -> logger.trace("Service spec: " + spec.toString()))
-                    .filter(s -> s.getPorts() != null)
-                    .flatMap(
+                    .flatMap(l -> l.getSubsets().stream())
+                    .forEach(
                             s ->
                                     s.getPorts().stream()
-                                            .map(
-                                                    p -> {
-                                                        try {
-                                                            return new ServiceRef(
-                                                                    connectionToolkit.get(),
-                                                                    s.getClusterIP(),
-                                                                    p.getPort(),
-                                                                    resolver
-                                                                            .resolveCanonicalHostName(
-                                                                                    s
-                                                                                            .getClusterIP()));
-                                                        } catch (Exception e) {
-                                                            logger.warn(e);
-                                                            return null;
-                                                        }
-                                                    }))
-                    .parallel()
-                    .filter(Objects::nonNull)
-                    .collect(Collectors.toList());
+                                            .filter(this::isCompatiblePort)
+                                            .forEach(
+                                                    port -> {
+                                                        refs.addAll(createServiceRefs(s, port));
+                                                    }));
+            return refs;
         } catch (ApiException e) {
             logger.warn(e.getMessage());
             logger.warn(e.getResponseBody());
@@ -118,5 +102,28 @@ class KubeApiPlatformClient implements PlatformClient {
             logger.warn(e);
             return Collections.emptyList();
         }
+    }
+
+    private boolean isCompatiblePort(V1EndpointPort port) {
+        return "jfr-jmx".equals(port.getName()) || 9091 == port.getPort();
+    }
+
+    private List<ServiceRef> createServiceRefs(V1EndpointSubset subset, V1EndpointPort port) {
+        return subset.getAddresses().stream()
+                .map(
+                        addr -> {
+                            try {
+                                return new ServiceRef(
+                                        connectionToolkit.get(),
+                                        addr.getIp(),
+                                        port.getPort(),
+                                        addr.getTargetRef().getName());
+                            } catch (Exception e) {
+                                logger.warn(e);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 }

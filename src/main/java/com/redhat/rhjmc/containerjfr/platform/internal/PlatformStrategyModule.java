@@ -75,7 +75,7 @@ public abstract class PlatformStrategyModule {
         return Set.of(
                 new OpenShiftPlatformStrategy(
                         logger, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, resolver),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit),
                 new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
                 new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
     }
