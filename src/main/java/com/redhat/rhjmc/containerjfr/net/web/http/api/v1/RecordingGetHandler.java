@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Optional;
@@ -97,19 +98,15 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        Optional<Path> savedRecording =
-            Files.list(savedRecordingsPath)
-            .filter(
-                    saved ->
-                    saved.getFileName()
-                    .toFile()
-                    .getName()
-                    .equals(recordingName))
-            .findFirst();
-        if (savedRecording.isPresent()) {
-            ctx.response().sendFile(savedRecordingsPath.resolve(savedRecording.get()).toAbsolutePath().toString());
-        } else {
-            throw new HttpStatusException(404, recordingName);
-        }
+        String filePath = savedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
+        ctx.vertx().fileSystem().exists(filePath, ar -> {
+            if (ar.result()) {
+                ctx.response().sendFile(filePath);
+            } else {
+                ctx.response().setStatusCode(404);
+                ctx.response().setStatusMessage(String.format("Recording \"%s\" not found", recordingName));
+                ctx.response().end();
+            }
+        });
     }
 }
