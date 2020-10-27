@@ -1217,3 +1217,30 @@
     $ curl -X POST localhost:8181/api/v2/targets/localhost/snapshot
     {"downloadUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/recordings/snapshot-1","reportUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/reports/snapshot-1","id":1,"name":"snapshot-1","state":"STOPPED","startTime":1601998841300,"duration":0,"continuous":true,"toDisk":true,"maxSize":0,"maxAge":0}
     ```
+
+### Security
+
+* #### `CertificatePostHandler`
+
+    ##### synopsis
+    Uploads an SSL Certificate from the client, and saves it to the truststore directory.
+
+    ##### request
+    `POST /api/v2/certificates`
+
+    The certificate must be DER-encoded and can be either binary of base64. The supported extensions are .der, .cer, .pem. 
+    The certificate should be uploaded in a form with the name `cert`.
+
+    ##### response
+    `200` - The body is `saved: ` followed by the path of the saved file.
+
+    `400` - No `cert` was found in the request form. The body is the error message `A file named "cert" was not included in the request`.
+    
+    `409` - A certificate with the same filename already exists in the truststore directory. The body includes the path where the file already exists.
+
+    `500` - The `TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The body is an error message.
+
+    ##### example
+    ```
+    $ curl -F cert=@vertx-fib-demo.cer https://localhost:8181/api/v2/certificates
+    ```
