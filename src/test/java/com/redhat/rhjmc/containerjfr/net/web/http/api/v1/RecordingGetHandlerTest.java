@@ -45,7 +45,6 @@ import java.nio.file.Path;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -76,10 +75,5 @@ class RecordingGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/recordings/:recordingName"));
-    }
-
-    @Test
-    void shouldNotBeAsync() {
-        Assertions.assertFalse(handler.isAsync());
     }
 }
