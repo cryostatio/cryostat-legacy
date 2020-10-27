@@ -275,16 +275,4 @@ public class WebServer {
     private String getTargetId(JFRConnection conn) throws IOException {
         return conn.getJMXURL().toString();
     }
-
-    public static class DownloadDescriptor {
-        public final InputStream stream;
-        public final Optional<Long> bytes;
-        public final Optional<AutoCloseable> resource;
-
-        public DownloadDescriptor(InputStream stream, Long bytes, AutoCloseable resource) {
-            this.stream = Objects.requireNonNull(stream);
-            this.bytes = Optional.ofNullable(bytes);
-            this.resource = Optional.ofNullable(resource);
-        }
-    }
 }

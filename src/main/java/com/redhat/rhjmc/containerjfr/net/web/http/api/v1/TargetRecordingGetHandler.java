@@ -52,11 +52,11 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -115,7 +115,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Optional<DownloadDescriptor> descriptor =
+        Optional<Pair<InputStream, AutoCloseable>> descriptor =
                 getRecordingDescriptor(connectionDescriptor, recordingName);
         if (descriptor.isEmpty()) {
             throw new HttpStatusException(404, String.format("%s not found", recordingName));
@@ -123,14 +123,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        descriptor
-                .get()
-                .bytes
-                .ifPresent(
-                        b ->
-                                ctx.response()
-                                        .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
-        try (InputStream stream = descriptor.get().stream) {
+        try (InputStream stream = descriptor.get().getLeft()) {
             byte[] buff = new byte[WRITE_BUFFER_SIZE];
             int n;
             while ((n = stream.read(buff)) != -1) {
@@ -140,21 +133,18 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
             ctx.response().end();
         } finally {
-            descriptor
+            try {
+                descriptor
                     .get()
-                    .resource
-                    .ifPresent(
-                            resource -> {
-                                try {
-                                    resource.close();
-                                } catch (Exception e) {
-                                    logger.warn(e);
-                                }
-                            });
+                    .getRight()
+                    .close();
+            } catch (Exception e) {
+                logger.warn(e);
+            }
         }
     }
 
-    Optional<DownloadDescriptor> getRecordingDescriptor(
+    Optional<Pair<InputStream, AutoCloseable>> getRecordingDescriptor(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
         JFRConnection connection = targetConnectionManager.connect(connectionDescriptor);
         Optional<IRecordingDescriptor> desc =
@@ -163,10 +153,10 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
                         .findFirst();
         if (desc.isPresent()) {
             return Optional.of(
-                    new DownloadDescriptor(
+                    Pair.of(
                             connection.getService().openStream(desc.get(), false),
-                            null,
-                            connection));
+                            connection)
+                        );
         } else {
             connection.close();
             return Optional.empty();

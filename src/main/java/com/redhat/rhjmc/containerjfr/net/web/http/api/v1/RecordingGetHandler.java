@@ -43,30 +43,29 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
+import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-import io.vertx.ext.web.RoutingContext;
 
-class RecordingGetHandler extends TargetRecordingGetHandler {
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
+
+class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Path savedRecordingsPath;
 
     @Inject
     RecordingGetHandler(
             AuthManager auth,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            Logger logger) {
-        super(auth, null, logger);
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
+        super(auth);
         this.savedRecordingsPath = savedRecordingsPath;
     }
 
@@ -76,13 +75,18 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     }
 
     @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
     public String path() {
         return basePath() + "recordings/:recordingName";
     }
 
     @Override
     public boolean isAsync() {
-        return false;
+        return true;
     }
 
     @Override
@@ -93,33 +97,19 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        handleRecordingDownloadRequest(ctx, recordingName);
-    }
-
-    @Override
-    Optional<DownloadDescriptor> getRecordingDescriptor(
-            ConnectionDescriptor unused, String recordingName) {
-        try {
-            // TODO refactor Files calls into FileSystem for testability
-            Optional<Path> savedRecording =
-                    Files.list(savedRecordingsPath)
-                            .filter(
-                                    saved ->
-                                            saved.getFileName()
-                                                    .toFile()
-                                                    .getName()
-                                                    .equals(recordingName))
-                            .findFirst();
-            if (savedRecording.isPresent()) {
-                return Optional.of(
-                        new DownloadDescriptor(
-                                Files.newInputStream(savedRecording.get(), StandardOpenOption.READ),
-                                Files.size(savedRecording.get()),
-                                null));
-            }
-        } catch (Exception e) {
-            logger.error(e);
+        Optional<Path> savedRecording =
+            Files.list(savedRecordingsPath)
+            .filter(
+                    saved ->
+                    saved.getFileName()
+                    .toFile()
+                    .getName()
+                    .equals(recordingName))
+            .findFirst();
+        if (savedRecording.isPresent()) {
+            ctx.response().sendFile(savedRecordingsPath.resolve(savedRecording.get()).toAbsolutePath().toString());
+        } else {
+            throw new HttpStatusException(404, recordingName);
         }
-        return Optional.empty();
     }
 }
