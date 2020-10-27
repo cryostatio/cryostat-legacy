@@ -53,7 +53,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import io.vertx.core.http.HttpMethod;
 
@@ -62,13 +61,12 @@ class RecordingGetHandlerTest {
 
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Environment env;
     @Mock Path savedRecordingsPath;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingGetHandler(authManager, env, savedRecordingsPath, logger);
+        this.handler = new RecordingGetHandler(authManager, savedRecordingsPath, logger);
     }
 
     @Test

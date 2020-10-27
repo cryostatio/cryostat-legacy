@@ -134,12 +134,6 @@ value of this variable should be set to the fully-qualified name of the
 platform detection strategy implementation to use, ex.
 `com.redhat.rhjmc.containerjfr.platform.internal.KubeEnvPlatformStrategy`.
 
-The embedded webserver can be optionally configured to enable low memory
-pressure mode. By setting `USE_LOW_MEM_PRESSURE_STREAMING` to any non-empty
-value, the webserver uses a single buffer when serving recording download
-requests. Enabling this option leaves a constant memory size footprint, but
-might also reduce the network throughput.
-
 The environment variable `CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP` is used to
 configure the maximum heap size used by the container subprocess which forks to
 perform automated rules analysis report generation. The default is `200`,

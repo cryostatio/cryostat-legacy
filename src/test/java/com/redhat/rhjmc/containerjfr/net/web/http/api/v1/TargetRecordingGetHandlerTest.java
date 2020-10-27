@@ -67,7 +67,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -87,7 +86,6 @@ class TargetRecordingGetHandlerTest {
 
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Environment env;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
     @Mock JFRConnection connection;
@@ -96,7 +94,7 @@ class TargetRecordingGetHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetRecordingGetHandler(authManager, env, targetConnectionManager, logger);
+                new TargetRecordingGetHandler(authManager, targetConnectionManager, logger);
     }
 
     @Test
@@ -116,12 +114,8 @@ class TargetRecordingGetHandlerTest {
         Assertions.assertFalse(handler.isAsync());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false}) // FIXME low memory pressure streaming test hangs
-    void shouldHandleRecordingDownloadRequest(boolean lowMemPressure) throws Exception {
-        when(env.hasEnv(TargetRecordingGetHandler.USE_LOW_MEM_PRESSURE_STREAMING_ENV))
-                .thenReturn(lowMemPressure);
-
+    @Test
+    void shouldHandleRecordingDownloadRequest() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -161,13 +155,8 @@ class TargetRecordingGetHandlerTest {
         Assertions.assertArrayEquals(src, dst.getBytes());
     }
 
-    @ParameterizedTest
-    @ValueSource(booleans = {false}) // FIXME low memory pressure streaming test hangs
-    void shouldHandleRecordingDownloadRequestWithJfrSuffix(boolean lowMemPressure)
-            throws Exception {
-        when(env.hasEnv(TargetRecordingGetHandler.USE_LOW_MEM_PRESSURE_STREAMING_ENV))
-                .thenReturn(lowMemPressure);
-
+    @Test
+    void shouldHandleRecordingDownloadRequestWithJfrSuffix() throws Exception {
         when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 

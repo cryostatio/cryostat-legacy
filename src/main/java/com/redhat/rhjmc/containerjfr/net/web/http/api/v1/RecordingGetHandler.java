@@ -51,7 +51,6 @@ import javax.inject.Named;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
@@ -65,16 +64,10 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     @Inject
     RecordingGetHandler(
             AuthManager auth,
-            Environment env,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Logger logger) {
-        super(auth, env, null, logger);
+        super(auth, null, logger);
         this.savedRecordingsPath = savedRecordingsPath;
-        if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-            logger.info("low memory pressure streaming enabled for web server");
-        } else {
-            logger.info("low memory pressure streaming disabled for web server");
-        }
     }
 
     @Override
