@@ -1230,7 +1230,7 @@
     ###### request
     `POST /api/v2/certificates`
 
-    The certificate must be DER-encoded and can be either binary of base64. The supported extensions are .der, .cer, .pem. 
+    The certificate must be DER-encoded and can be either binary or base64. The supported extensions are .der, .cer, .pem. 
     The certificate should be uploaded in a form with the name `cert`.
 
     ###### response
