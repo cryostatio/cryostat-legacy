@@ -1178,6 +1178,8 @@
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Recordings in target JVMs**                                             |                                                                             |
 | Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler)                   |
+| **Security**                                                              |                                                                             |
+| Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                         |
 
 ### Flight Recorder
 
@@ -1222,16 +1224,16 @@
 
 * #### `CertificatePostHandler`
 
-    ##### synopsis
+    ###### synopsis
     Uploads an SSL Certificate from the client, and saves it to the truststore directory.
 
-    ##### request
+    ###### request
     `POST /api/v2/certificates`
 
     The certificate must be DER-encoded and can be either binary of base64. The supported extensions are .der, .cer, .pem. 
     The certificate should be uploaded in a form with the name `cert`.
 
-    ##### response
+    ###### response
     `200` - The body is `saved: ` followed by the path of the saved file.
 
     `400` - No `cert` was found in the request form. The body is the error message `A file named "cert" was not included in the request`.
@@ -1240,7 +1242,7 @@
 
     `500` - The `TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The body is an error message.
 
-    ##### example
+    ###### example
     ```
     $ curl -F cert=@vertx-fib-demo.cer https://localhost:8181/api/v2/certificates
     ```
