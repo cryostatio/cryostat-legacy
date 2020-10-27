@@ -41,10 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -56,7 +53,6 @@ import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -64,8 +60,7 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
     RecordingGetHandler(
-            AuthManager auth,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
+            AuthManager auth, @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
         super(auth);
         this.savedRecordingsPath = savedRecordingsPath;
     }
@@ -98,15 +93,24 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        String filePath = savedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
-        ctx.vertx().fileSystem().exists(filePath, ar -> {
-            if (ar.result()) {
-                ctx.response().sendFile(filePath);
-            } else {
-                ctx.response().setStatusCode(404);
-                ctx.response().setStatusMessage(String.format("Recording \"%s\" not found", recordingName));
-                ctx.response().end();
-            }
-        });
+        String filePath =
+                savedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
+        ctx.vertx()
+                .fileSystem()
+                .exists(
+                        filePath,
+                        ar -> {
+                            if (ar.result()) {
+                                ctx.response().sendFile(filePath);
+                            } else {
+                                ctx.response().setStatusCode(404);
+                                ctx.response()
+                                        .setStatusMessage(
+                                                String.format(
+                                                        "Recording \"%s\" not found",
+                                                        recordingName));
+                                ctx.response().end();
+                            }
+                        });
     }
 }

@@ -44,7 +44,6 @@ package com.redhat.rhjmc.containerjfr.net.web;
 import static com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier.isServerErrorCode;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URI;
@@ -57,8 +56,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 
 import org.apache.http.client.utils.URIBuilder;

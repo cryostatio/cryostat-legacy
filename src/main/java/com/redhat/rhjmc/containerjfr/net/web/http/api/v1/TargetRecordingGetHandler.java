@@ -47,6 +47,10 @@ import java.util.Optional;
 
 import javax.inject.Inject;
 
+import org.apache.commons.lang3.tuple.Pair;
+
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -55,9 +59,6 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-
-import org.apache.commons.lang3.tuple.Pair;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
@@ -74,9 +75,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
     TargetRecordingGetHandler(
-            AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            Logger logger) {
+            AuthManager auth, TargetConnectionManager targetConnectionManager, Logger logger) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.logger = logger;
@@ -134,10 +133,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().end();
         } finally {
             try {
-                descriptor
-                    .get()
-                    .getRight()
-                    .close();
+                descriptor.get().getRight().close();
             } catch (Exception e) {
                 logger.warn(e);
             }
@@ -153,10 +149,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
                         .findFirst();
         if (desc.isPresent()) {
             return Optional.of(
-                    Pair.of(
-                            connection.getService().openStream(desc.get(), false),
-                            connection)
-                        );
+                    Pair.of(connection.getService().openStream(desc.get(), false), connection));
         } else {
             connection.close();
             return Optional.empty();
