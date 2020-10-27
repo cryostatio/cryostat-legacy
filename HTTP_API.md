@@ -1234,7 +1234,7 @@
     The certificate should be uploaded in a form with the name `cert`.
 
     ###### response
-    `200` - The body is `saved: ` followed by the path of the saved file.
+    `200` - The body is `saved: $PATH`, where `$PATH` is the path of the saved file.
 
     `400` - No `cert` was found in the request form. The body is the error message `A file named "cert" was not included in the request`.
     
@@ -1244,5 +1244,6 @@
 
     ###### example
     ```
-    $ curl -F cert=@vertx-fib-demo.cer https://localhost:8181/api/v2/certificates
+    $ curl -F cert=@vertx-fib-demo.cer localhost:8181/api/v2/certificates
+    Saved: /truststore/vertx-fib-demo.cer
     ```
