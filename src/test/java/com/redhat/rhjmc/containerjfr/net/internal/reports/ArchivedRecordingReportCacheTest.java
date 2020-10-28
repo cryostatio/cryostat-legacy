@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -66,6 +67,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
 
 @ExtendWith(MockitoExtension.class)
 class ArchivedRecordingReportCacheTest {
@@ -183,5 +186,42 @@ class ArchivedRecordingReportCacheTest {
         Mockito.verify(fs).isReadable(dest);
         Mockito.verify(fs).isRegularFile(dest);
         Mockito.verifyNoInteractions(generationLock);
+    }
+
+    @Test
+    void shouldWriteErrorToFileIfReportGenerationFails() throws Exception {
+        Path recording = Mockito.mock(Path.class);
+        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(recording);
+        URI fileUri = Mockito.mock(URI.class);
+        Mockito.when(recording.toUri()).thenReturn(fileUri);
+        Mockito.when(fileUri.toString()).thenReturn("file:///some/path/file.jfr");
+        Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
+        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+
+        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of("foo"));
+
+        Mockito.when(
+                        subprocessReportGenerator.exec(
+                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Path.class),
+                                Mockito.any(Duration.class)))
+                .thenThrow(
+                        new CompletionException(
+                                new ReportGenerationException(ExitStatus.OUT_OF_MEMORY)));
+
+        Optional<Path> res = cache.get("foo");
+
+        Assertions.assertTrue(res.isPresent());
+        MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
+        Mockito.verify(webServerTempPath).resolve("foo.report.html");
+        Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
+        Mockito.verify(fs)
+                .writeString(
+                        destinationFile,
+                        "Error 3: The report generation process consumed too much memory and was terminated");
+        InOrder lockOrder = Mockito.inOrder(generationLock);
+        lockOrder.verify(generationLock).lock();
+        lockOrder.verify(generationLock).unlock();
     }
 }

@@ -45,6 +45,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
@@ -55,6 +57,8 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.net.web.http.generic.TimeoutHandler;
 
@@ -118,8 +122,30 @@ class ArchivedRecordingReportCache {
                                                                     TimeoutHandler.TIMEOUT_MS))
                                                     .get();
                                     return Optional.of(saveFile);
+                                } catch (ExecutionException | CompletionException ee) {
+                                    logger.error(ee);
+                                    if (ee.getCause() instanceof ReportGenerationException) {
+                                        ReportGenerationException generationException =
+                                                (ReportGenerationException) ee.getCause();
+                                        ExitStatus status = generationException.getStatus();
+                                        try {
+                                            fs.writeString(
+                                                    dest,
+                                                    String.format(
+                                                            "Error %d: %s",
+                                                            status.code, status.message));
+                                        } catch (IOException e) {
+                                            logger.warn(e);
+                                        }
+                                    }
+                                    return Optional.of(dest);
                                 } catch (Exception e) {
-                                    logger.warn(e);
+                                    logger.error(e);
+                                    try {
+                                        fs.deleteIfExists(dest);
+                                    } catch (IOException ioe) {
+                                        logger.warn(ioe);
+                                    }
                                     return Optional.empty();
                                 }
                             });
