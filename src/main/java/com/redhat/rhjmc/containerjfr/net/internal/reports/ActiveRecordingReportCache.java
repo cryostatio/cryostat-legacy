@@ -41,51 +41,58 @@
  */
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
-import java.io.InputStream;
+import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.Executors;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.tuple.Pair;
+
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.Scheduler;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
+import com.redhat.rhjmc.containerjfr.net.web.http.generic.TimeoutHandler;
 
 class ActiveRecordingReportCache {
 
-    protected final TargetConnectionManager targetConnectionManager;
-    protected final ReportGenerator reportGenerator;
+    protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
+    protected final FileSystem fs;
     protected final ReentrantLock generationLock;
     protected final LoadingCache<RecordingDescriptor, String> cache;
+    protected final TargetConnectionManager targetConnectionManager;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
-            TargetConnectionManager targetConnectionManager,
-            ReportGenerator reportGenerator,
+            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
+            FileSystem fs,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
+            TargetConnectionManager targetConnectionManager,
             Logger logger) {
-        this.targetConnectionManager = targetConnectionManager;
-        this.reportGenerator = reportGenerator;
+        this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
+        this.fs = fs;
         this.generationLock = generationLock;
+        this.targetConnectionManager = targetConnectionManager;
         this.logger = logger;
 
         this.cache =
                 Caffeine.newBuilder()
-                        .executor(Executors.newSingleThreadExecutor())
-                        .initialCapacity(4)
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterWrite(30, TimeUnit.MINUTES)
                         .refreshAfterWrite(5, TimeUnit.MINUTES)
@@ -106,50 +113,55 @@ class ActiveRecordingReportCache {
     }
 
     protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
+        Path saveFile = null;
         try {
             generationLock.lock();
-            Pair<Optional<InputStream>, JFRConnection> pair =
-                    getRecordingStream(
-                            recordingDescriptor.connectionDescriptor,
-                            recordingDescriptor.recordingName);
-            try (JFRConnection c = pair.getRight();
-                    InputStream stream =
-                            pair.getLeft()
-                                    .orElseThrow(
-                                            () ->
-                                                    new RecordingNotFoundException(
-                                                            recordingDescriptor.connectionDescriptor
-                                                                    .getTargetId(),
-                                                            recordingDescriptor.recordingName))) {
-                logger.trace(
-                        String.format(
-                                "Active report cache miss for %s",
-                                recordingDescriptor.recordingName));
-                return reportGenerator.generateReport(stream);
+            logger.trace(
+                    String.format(
+                            "Active report cache miss for %s", recordingDescriptor.recordingName));
+            try {
+                saveFile =
+                        subprocessReportGeneratorProvider
+                                .get()
+                                .exec(
+                                        recordingDescriptor,
+                                        Duration.ofMillis(TimeoutHandler.TIMEOUT_MS))
+                                .get();
+                return fs.readString(saveFile);
+            } catch (ExecutionException | CompletionException ee) {
+                logger.error(ee);
+                if (ee.getCause() instanceof ReportGenerationException) {
+                    ReportGenerationException generationException =
+                            (ReportGenerationException) ee.getCause();
+                    ExitStatus status = generationException.getStatus();
+                    if (status == ExitStatus.OUT_OF_MEMORY) {
+                        // subprocess OOM'd and therefore most likely did not properly clean up
+                        // the cloned recording stream before exiting, so we do it here
+                        String cloneName = "Clone of " + recordingDescriptor.recordingName;
+                        targetConnectionManager.executeConnectedTask(
+                                recordingDescriptor.connectionDescriptor,
+                                conn -> {
+                                    Optional<IRecordingDescriptor> clone =
+                                            conn.getService().getAvailableRecordings().stream()
+                                                    .filter(r -> r.getName().equals(cloneName))
+                                                    .findFirst();
+                                    if (clone.isPresent()) {
+                                        conn.getService().close(clone.get());
+                                        logger.trace("Cleaned dangling recording " + cloneName);
+                                    }
+                                    return null;
+                                });
+                    }
+                    return String.format("Error %d: %s", status.code, status.message);
+                }
+                throw ee;
             }
         } finally {
             generationLock.unlock();
+            if (saveFile != null) {
+                fs.deleteIfExists(saveFile);
+            }
         }
-    }
-
-    protected Pair<Optional<InputStream>, JFRConnection> getRecordingStream(
-            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(connectionDescriptor);
-        Optional<InputStream> desc =
-                connection.getService().getAvailableRecordings().stream()
-                        .filter(rec -> Objects.equals(recordingName, rec.getName()))
-                        .findFirst()
-                        .flatMap(
-                                rec -> {
-                                    try {
-                                        return Optional.of(
-                                                connection.getService().openStream(rec, false));
-                                    } catch (Exception e) {
-                                        logger.warn(e);
-                                        return Optional.empty();
-                                    }
-                                });
-        return Pair.of(desc, connection);
     }
 
     static class RecordingDescriptor {
@@ -157,8 +169,8 @@ class ActiveRecordingReportCache {
         final String recordingName;
 
         RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
-            this.connectionDescriptor = connectionDescriptor;
-            this.recordingName = recordingName;
+            this.connectionDescriptor = Objects.requireNonNull(connectionDescriptor);
+            this.recordingName = Objects.requireNonNull(recordingName);
         }
 
         @Override

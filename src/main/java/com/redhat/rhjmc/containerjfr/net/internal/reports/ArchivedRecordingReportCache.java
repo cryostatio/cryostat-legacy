@@ -42,30 +42,32 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
-
-import org.apache.commons.io.input.ReaderInputStream;
+import javax.inject.Provider;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
+import com.redhat.rhjmc.containerjfr.net.web.http.generic.TimeoutHandler;
 
 class ArchivedRecordingReportCache {
 
     protected final Path savedRecordingsPath;
     protected final Path archivedRecordingsReportPath;
     protected final FileSystem fs;
-    protected final ReportGenerator reportGenerator;
+    protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
     protected final ReentrantLock generationLock;
     protected final Logger logger;
 
@@ -73,13 +75,13 @@ class ArchivedRecordingReportCache {
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempPath,
             FileSystem fs,
-            ReportGenerator reportGenerator,
+            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         this.savedRecordingsPath = savedRecordingsPath;
         this.archivedRecordingsReportPath = webServerTempPath;
         this.fs = fs;
-        this.reportGenerator = reportGenerator;
+        this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
         this.generationLock = generationLock;
         this.logger = logger;
     }
@@ -106,19 +108,44 @@ class ArchivedRecordingReportCache {
                                         String.format(
                                                 "Archived report cache miss for %s",
                                                 recordingName));
-                                try (InputStream stream = fs.newInputStream(recording)) {
-                                    String report = reportGenerator.generateReport(stream);
-                                    try (ReaderInputStream ris =
-                                            new ReaderInputStream(
-                                                    new StringReader(report),
-                                                    StandardCharsets.UTF_8)) {
-                                        // TODO use an abstraction over Files.write and avoid this
-                                        // intermediate stream
-                                        fs.copy(ris, dest, StandardCopyOption.REPLACE_EXISTING);
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(recording.toUri().toString());
+                                RecordingDescriptor rd = new RecordingDescriptor(cd, "");
+                                try {
+                                    Path saveFile =
+                                            subprocessReportGeneratorProvider
+                                                    .get()
+                                                    .exec(
+                                                            rd,
+                                                            dest,
+                                                            Duration.ofMillis(
+                                                                    TimeoutHandler.TIMEOUT_MS))
+                                                    .get();
+                                    return Optional.of(saveFile);
+                                } catch (ExecutionException | CompletionException ee) {
+                                    logger.error(ee);
+                                    if (ee.getCause() instanceof ReportGenerationException) {
+                                        ReportGenerationException generationException =
+                                                (ReportGenerationException) ee.getCause();
+                                        ExitStatus status = generationException.getStatus();
+                                        try {
+                                            fs.writeString(
+                                                    dest,
+                                                    String.format(
+                                                            "Error %d: %s",
+                                                            status.code, status.message));
+                                        } catch (IOException e) {
+                                            logger.warn(e);
+                                        }
                                     }
                                     return Optional.of(dest);
-                                } catch (IOException ioe) {
-                                    logger.warn(ioe);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    try {
+                                        fs.deleteIfExists(dest);
+                                    } catch (IOException ioe) {
+                                        logger.warn(ioe);
+                                    }
                                     return Optional.empty();
                                 }
                             });

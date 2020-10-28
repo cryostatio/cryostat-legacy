@@ -71,7 +71,7 @@ public class TargetConnectionManager {
     private final Map<ConnectionDescriptor, JFRConnection> activeConnections = new HashMap<>();
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
 
-    TargetConnectionManager(Logger logger, Lazy<JFRConnectionToolkit> jfrConnectionToolkit) {
+    public TargetConnectionManager(Logger logger, Lazy<JFRConnectionToolkit> jfrConnectionToolkit) {
         this.logger = logger;
         this.jfrConnectionToolkit = jfrConnectionToolkit;
     }
