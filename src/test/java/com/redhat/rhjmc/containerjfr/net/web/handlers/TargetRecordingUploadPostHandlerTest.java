@@ -149,6 +149,7 @@ class TargetRecordingUploadPostHandlerTest {
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
         Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));

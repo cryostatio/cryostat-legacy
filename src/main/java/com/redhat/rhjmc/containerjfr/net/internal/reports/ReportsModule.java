@@ -46,15 +46,17 @@ import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
+import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 import dagger.Module;
 import dagger.Provides;
@@ -69,13 +71,6 @@ public abstract class ReportsModule {
 
     @Provides
     @Singleton
-    static ReportGenerator provideReportGenerator(
-            Logger logger, Set<ReportTransformer> transformers) {
-        return new ReportGenerator(logger, transformers);
-    }
-
-    @Provides
-    @Singleton
     @Named(REPORT_GENERATION_LOCK)
     /** Used to ensure that only one report is generated at a time */
     static ReentrantLock provideReportGenerationLock() {
@@ -85,12 +80,33 @@ public abstract class ReportsModule {
     @Provides
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
-            TargetConnectionManager targetConnectionManager,
-            ReportGenerator reportGenerator,
+            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
+            FileSystem fs,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
+            TargetConnectionManager targetConnectionManager,
             Logger logger) {
         return new ActiveRecordingReportCache(
-                targetConnectionManager, reportGenerator, generationLock, logger);
+                subprocessReportGeneratorProvider,
+                fs,
+                generationLock,
+                targetConnectionManager,
+                logger);
+    }
+
+    @Provides
+    static JavaProcess.Builder provideJavaProcessBuilder() {
+        return new JavaProcess.Builder();
+    }
+
+    @Provides
+    static SubprocessReportGenerator provideSubprocessReportGenerator(
+            Environment env,
+            FileSystem fs,
+            Set<ReportTransformer> reportTransformers,
+            Provider<JavaProcess.Builder> javaProcessBuilder,
+            Logger logger) {
+        return new SubprocessReportGenerator(
+                env, fs, reportTransformers, javaProcessBuilder, logger);
     }
 
     @Provides
@@ -99,11 +115,16 @@ public abstract class ReportsModule {
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempDir,
             FileSystem fs,
-            ReportGenerator reportGenerator,
+            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger) {
         return new ArchivedRecordingReportCache(
-                savedRecordingsPath, webServerTempDir, fs, reportGenerator, generationLock, logger);
+                savedRecordingsPath,
+                webServerTempDir,
+                fs,
+                subprocessReportGeneratorProvider,
+                generationLock,
+                logger);
     }
 
     @Provides

@@ -46,9 +46,9 @@ import javax.inject.Inject;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class TimeoutHandler implements RequestHandler {
+public class TimeoutHandler implements RequestHandler {
 
-    static final long TIMEOUT_MS = 15_000L;
+    public static final long TIMEOUT_MS = 15_000L;
     final io.vertx.ext.web.handler.TimeoutHandler handler;
 
     @Inject

@@ -127,6 +127,7 @@ class TargetRecordingPatchHandlerTest {
     void shouldDelegateSupportedOperations(String mtd) throws Exception {
         Mockito.when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);

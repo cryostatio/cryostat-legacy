@@ -126,6 +126,15 @@ value, the webserver uses a single buffer when serving recording download
 requests. Enabling this option leaves a constant memory size footprint, but
 might also reduce the network throughput.
 
+The environment variable `CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP` is used to
+configure the maximum heap size used by the container subprocess which forks to
+perform automated rules analysis report generation. The default is `200`,
+representing a `200MiB` maximum heap size. Too small of a heap size will lead
+to report generation failing due to Out-Of-Memory errors. Too large of a heap
+size may lead to the subprocess being forcibly killed and the parent process
+failing to detect the reason for the failure, leading to inaccurate failure
+error messages and API responses.
+
 The environment variable `CONTAINER_JFR_CORS_ORIGIN` can be used to specify
 the origin for CORS. This can be used in development to load a different
 instance of the web-client. See [container-jfr-web](https://github.com/rh-jmc-team/container-jfr-web)

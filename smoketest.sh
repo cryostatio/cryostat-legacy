@@ -9,7 +9,7 @@ function runContainerJFR() {
         GRAFANA_DASHBOARD_URL="http://0.0.0.0:3000" \
         CONTAINER_JFR_RJMX_USER=smoketest \
         CONTAINER_JFR_RJMX_PASS=smoketest \
-        sh "$DIR/run.sh"
+        exec "$DIR/run.sh"
 }
 
 function runDemoApp() {

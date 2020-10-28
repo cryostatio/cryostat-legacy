@@ -24,17 +24,24 @@ function createJmxCredentials() {
         CONTAINER_JFR_RJMX_PASS="$(genpass)"
     fi
 
-    echo "$CONTAINER_JFR_RJMX_USER $CONTAINER_JFR_RJMX_PASS" > "$PWFILE"
+    echo -n "$CONTAINER_JFR_RJMX_USER $CONTAINER_JFR_RJMX_PASS" > "$PWFILE"
     chmod 400 "$PWFILE"
-    echo "$CONTAINER_JFR_RJMX_USER readwrite" > "$USRFILE"
+    echo -n "$CONTAINER_JFR_RJMX_USER readwrite" > "$USRFILE"
     chmod 400 "$USRFILE"
 }
 
-SSL_KEYSTORE="/tmp/keystore.p12"
-SSL_KEY_PASS="$(genpass)"
-SSL_STORE_PASS="$SSL_KEY_PASS"
-SSL_TRUSTSTORE="/tmp/truststore.p12"
-SSL_TRUSTSTORE_PASS="$(genpass)"
+export SSL_KEYSTORE="/tmp/keystore.p12"
+export SSL_KEY_PASS="$(genpass)"
+export SSL_STORE_PASS="$SSL_KEY_PASS"
+export SSL_TRUSTSTORE="/tmp/truststore.p12"
+export SSL_TRUSTSTORE_PASS="$(genpass)"
+export SSL_TRUSTSTORE_PASS_FILE="/tmp/truststore.pass"
+
+if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
+    SSL_TRUSTSTORE_DIR="/truststore"
+fi
+
+export SSL_TRUSTSTORE_DIR
 function createSslStores() {
     pushd /tmp
 
@@ -50,16 +57,15 @@ function createSslStores() {
 }
 
 function importTrustStores() {
-    local DIR="/truststore"
-    if [ ! -d "$DIR" ]; then
-        banner "$DIR does not exist; no certificates to import"
+    if [ ! -d "$SSL_TRUSTSTORE_DIR" ]; then
+        banner "$SSL_TRUSTSTORE_DIR does not exist; no certificates to import"
         return 0
-    elif [ ! "$(ls -A $DIR)" ]; then
-        banner "$DIR is empty; no certificates to import"
+    elif [ ! "$(ls -A $SSL_TRUSTSTORE_DIR)" ]; then
+        banner "$SSL_TRUSTSTORE_DIR is empty; no certificates to import"
         return 0
     fi
 
-    for cert in $(find "$DIR" -type f); do
+    for cert in $(find "$SSL_TRUSTSTORE_DIR" -type f); do
         echo "Importing certificate $cert ..."
 
         keytool -importcert -v \
@@ -153,9 +159,10 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
 
-KEYSTORE_PATH="$KEYSTORE_PATH" \
-    KEYSTORE_PASS="$KEYSTORE_PASS" \
-    java \
+export KEYSTORE_PATH
+export KEYSTORE_PASS
+export SSL_TRUSTSTORE_DIR
+exec java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
     com.redhat.rhjmc.containerjfr.ContainerJfr \
