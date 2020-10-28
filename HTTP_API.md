@@ -1234,7 +1234,7 @@
     The certificate should be uploaded in a form with the name `cert`.
 
     ###### response
-    `200` - The body is `saved: $PATH`, where `$PATH` is the path of the saved file.
+    `200` - The body is `Saved: $PATH`, where `$PATH` is the path of the saved file.
 
     `400` - No `cert` was found in the request form. The body is the error message `A file named "cert" was not included in the request`.
     
