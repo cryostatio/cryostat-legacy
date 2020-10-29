@@ -229,7 +229,7 @@ class RecordingUploadPostHandlerTest {
         HttpStatusException e =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
 
-        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(502));
+        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
@@ -279,7 +279,7 @@ class RecordingUploadPostHandlerTest {
         HttpStatusException e =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
 
-        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(502));
+        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
@@ -329,7 +329,7 @@ class RecordingUploadPostHandlerTest {
         HttpStatusException e =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
 
-        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(502));
+        MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(512));
         MatcherAssert.assertThat(
                 e.getPayload(),
                 Matchers.equalTo(
