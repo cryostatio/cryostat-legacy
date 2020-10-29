@@ -44,9 +44,8 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Optional;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
@@ -57,8 +56,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.net.web.http.generic.TimeoutHandler;
 
@@ -86,23 +84,26 @@ class ArchivedRecordingReportCache {
         this.logger = logger;
     }
 
-    Optional<Path> get(String recordingName) {
+    Future<Path> get(String recordingName) {
+        CompletableFuture<Path> f = new CompletableFuture<>();
         Path dest = getCachedReportPath(recordingName);
         if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
-            return Optional.of(dest);
+            f.complete(dest);
+            return f;
         }
         try {
             generationLock.lock();
             // check again in case the previous lock holder already created the cached file
             if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
-                return Optional.of(dest);
+                f.complete(dest);
+                return f;
             }
 
-            return fs.listDirectoryChildren(savedRecordingsPath).stream()
+            fs.listDirectoryChildren(savedRecordingsPath).stream()
                     .filter(name -> name.equals(recordingName))
                     .map(savedRecordingsPath::resolve)
                     .findFirst()
-                    .flatMap(
+                    .ifPresentOrElse(
                             recording -> {
                                 logger.trace(
                                         String.format(
@@ -121,40 +122,28 @@ class ArchivedRecordingReportCache {
                                                             Duration.ofMillis(
                                                                     TimeoutHandler.TIMEOUT_MS))
                                                     .get();
-                                    return Optional.of(saveFile);
-                                } catch (ExecutionException | CompletionException ee) {
-                                    logger.error(ee);
-                                    if (ee.getCause() instanceof ReportGenerationException) {
-                                        ReportGenerationException generationException =
-                                                (ReportGenerationException) ee.getCause();
-                                        ExitStatus status = generationException.getStatus();
-                                        try {
-                                            fs.writeString(
-                                                    dest,
-                                                    String.format(
-                                                            "Error %d: %s",
-                                                            status.code, status.message));
-                                        } catch (IOException e) {
-                                            logger.warn(e);
-                                        }
-                                    }
-                                    return Optional.of(dest);
+                                    f.complete(saveFile);
                                 } catch (Exception e) {
                                     logger.error(e);
+                                    f.completeExceptionally(e);
                                     try {
                                         fs.deleteIfExists(dest);
                                     } catch (IOException ioe) {
                                         logger.warn(ioe);
                                     }
-                                    return Optional.empty();
                                 }
-                            });
+                            },
+                            () ->
+                                    f.completeExceptionally(
+                                            new RecordingNotFoundException(
+                                                    "archives", recordingName)));
         } catch (IOException ioe) {
             logger.warn(ioe);
-            return Optional.empty();
+            f.completeExceptionally(ioe);
         } finally {
             generationLock.unlock();
         }
+        return f;
     }
 
     boolean delete(String recordingName) {

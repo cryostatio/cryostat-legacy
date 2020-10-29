@@ -45,8 +45,10 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -100,8 +102,14 @@ class ActiveRecordingReportCache {
                         .build(k -> getReport(k));
     }
 
-    String get(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return cache.get(new RecordingDescriptor(connectionDescriptor, recordingName));
+    Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+        CompletableFuture<String> f = new CompletableFuture<>();
+        try {
+            f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+        } catch (Exception e) {
+            f.completeExceptionally(e);
+        }
+        return f;
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
@@ -152,7 +160,6 @@ class ActiveRecordingReportCache {
                                     return null;
                                 });
                     }
-                    return String.format("Error %d: %s", status.code, status.message);
                 }
                 throw ee;
             }

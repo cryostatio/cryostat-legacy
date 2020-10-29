@@ -44,7 +44,6 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
@@ -60,6 +59,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -110,10 +110,15 @@ class ReportGetHandlerTest {
         when(ctx.request()).thenReturn(req);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        when(reportService.get(Mockito.anyString())).thenReturn(Optional.empty());
+        when(reportService.get(Mockito.anyString()))
+                .thenReturn(
+                        CompletableFuture.failedFuture(
+                                new RecordingNotFoundException(null, "someRecording")));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+
+        Mockito.verify(reportService).get("someRecording");
     }
 }

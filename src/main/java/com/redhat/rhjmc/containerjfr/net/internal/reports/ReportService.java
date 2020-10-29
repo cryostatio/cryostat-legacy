@@ -42,7 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Path;
-import java.util.Optional;
+import java.util.concurrent.Future;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -59,7 +59,7 @@ public class ReportService {
         this.archivedCache = archivedCache;
     }
 
-    public Optional<Path> get(String recordingName) {
+    public Future<Path> get(String recordingName) {
         return archivedCache.get(recordingName);
     }
 
@@ -67,7 +67,7 @@ public class ReportService {
         return archivedCache.delete(recordingName);
     }
 
-    public String get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+    public Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
         return activeCache.get(connectionDescriptor, recordingName);
     }
 
