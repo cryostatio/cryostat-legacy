@@ -45,30 +45,25 @@ import java.nio.file.Path;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingGetHandlerTest {
 
-    TargetRecordingGetHandler handler;
+    RecordingGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Environment env;
     @Mock Path savedRecordingsPath;
-    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingGetHandler(authManager, env, savedRecordingsPath, logger);
+        this.handler = new RecordingGetHandler(authManager, savedRecordingsPath);
     }
 
     @Test
@@ -80,10 +75,5 @@ class RecordingGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/recordings/:recordingName"));
-    }
-
-    @Test
-    void shouldNotBeAsync() {
-        Assertions.assertFalse(handler.isAsync());
     }
 }

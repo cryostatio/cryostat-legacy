@@ -41,26 +41,21 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 
 import javax.inject.Inject;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
@@ -69,27 +64,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
-    static final String USE_LOW_MEM_PRESSURE_STREAMING_ENV = "USE_LOW_MEM_PRESSURE_STREAMING";
-
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
-    protected final Environment env;
     protected final TargetConnectionManager targetConnectionManager;
     protected final Logger logger;
 
     @Inject
     TargetRecordingGetHandler(
-            AuthManager auth,
-            Environment env,
-            TargetConnectionManager targetConnectionManager,
-            Logger logger) {
+            AuthManager auth, TargetConnectionManager targetConnectionManager, Logger logger) {
         super(auth);
-        this.env = env;
         this.targetConnectionManager = targetConnectionManager;
         this.logger = logger;
     }
@@ -127,7 +114,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Optional<DownloadDescriptor> descriptor =
+        Optional<Pair<InputStream, AutoCloseable>> descriptor =
                 getRecordingDescriptor(connectionDescriptor, recordingName);
         if (descriptor.isEmpty()) {
             throw new HttpStatusException(404, String.format("%s not found", recordingName));
@@ -135,36 +122,25 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        descriptor
-                .get()
-                .bytes
-                .ifPresent(
-                        b ->
-                                ctx.response()
-                                        .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(b)));
-        try (InputStream stream = descriptor.get().stream) {
-            if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-                writeInputStreamLowMemPressure(stream, ctx.response());
-            } else {
-                writeInputStream(stream, ctx.response());
+        try (InputStream stream = descriptor.get().getLeft()) {
+            byte[] buff = new byte[WRITE_BUFFER_SIZE];
+            int n;
+            while ((n = stream.read(buff)) != -1) {
+                // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
+                ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
             }
+
             ctx.response().end();
         } finally {
-            descriptor
-                    .get()
-                    .resource
-                    .ifPresent(
-                            resource -> {
-                                try {
-                                    resource.close();
-                                } catch (Exception e) {
-                                    logger.warn(e);
-                                }
-                            });
+            try {
+                descriptor.get().getRight().close();
+            } catch (Exception e) {
+                logger.warn(e);
+            }
         }
     }
 
-    Optional<DownloadDescriptor> getRecordingDescriptor(
+    Optional<Pair<InputStream, AutoCloseable>> getRecordingDescriptor(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
         JFRConnection connection = targetConnectionManager.connect(connectionDescriptor);
         Optional<IRecordingDescriptor> desc =
@@ -173,81 +149,10 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
                         .findFirst();
         if (desc.isPresent()) {
             return Optional.of(
-                    new DownloadDescriptor(
-                            connection.getService().openStream(desc.get(), false),
-                            null,
-                            connection));
+                    Pair.of(connection.getService().openStream(desc.get(), false), connection));
         } else {
             connection.close();
             return Optional.empty();
         }
-    }
-
-    HttpServerResponse writeInputStreamLowMemPressure(
-            InputStream inputStream, HttpServerResponse response) throws IOException {
-        // blocking function, must be called from a blocking handler
-        byte[] buff = new byte[WRITE_BUFFER_SIZE];
-        Buffer chunk = Buffer.buffer();
-
-        ExecutorService worker = Executors.newSingleThreadExecutor();
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        worker.submit(
-                new Runnable() {
-                    @Override
-                    public void run() {
-                        int n;
-                        try {
-                            n = inputStream.read(buff);
-                        } catch (IOException e) {
-                            future.completeExceptionally(e);
-                            return;
-                        }
-
-                        if (n == -1) {
-                            future.complete(null);
-                            return;
-                        }
-
-                        chunk.setBytes(0, buff, 0, n);
-                        response.write(
-                                chunk.slice(0, n),
-                                (res) -> {
-                                    if (res.failed()) {
-                                        future.completeExceptionally(res.cause());
-                                        return;
-                                    }
-                                    worker.submit(this); // recursive call on this runnable itself
-                                });
-                    }
-                });
-
-        try {
-            future.join();
-            worker.shutdownNow();
-        } catch (CompletionException e) {
-            if (e.getCause() instanceof IOException) {
-                throw (IOException) e.getCause();
-            } else {
-                throw e;
-            }
-        }
-
-        return response;
-    }
-
-    HttpServerResponse writeInputStream(InputStream inputStream, HttpServerResponse response)
-            throws IOException {
-        // blocking function, must be called from a blocking handler
-        byte[] buff = new byte[WRITE_BUFFER_SIZE]; // 64 KB
-        int n;
-        while (true) {
-            n = inputStream.read(buff);
-            if (n == -1) {
-                break;
-            }
-            response.write(Buffer.buffer().appendBytes(buff, 0, n));
-        }
-
-        return response;
     }
 }
