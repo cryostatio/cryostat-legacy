@@ -475,8 +475,12 @@
     `501` - The Grafana datasource URL is malformed.
     The body is an error message.
 
-    `502` - Container JFR received an invalid response from the
-    Grafana datasource server after sending the upload request.
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    certificate.
+
+    `512` - Container JFR received an invalid response from the
+    Grafana datasource after sending the upload request.
     The body is an error message.
 
     ###### example
@@ -939,7 +943,11 @@
     `501` - The Grafana datasource URL is malformed.
     The body is an error message.
 
-    `502` - Container JFR received an invalid response from the
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    certificate.
+
+    `512` - Container JFR received an invalid response from the
     Grafana datasource after sending the upload request.
     The body is an error message.
 

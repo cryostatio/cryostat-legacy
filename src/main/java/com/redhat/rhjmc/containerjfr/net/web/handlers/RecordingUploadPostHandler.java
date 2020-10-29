@@ -125,7 +125,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
                     || response.statusMessage == null
                     || response.body == null) {
                 throw new HttpStatusException(
-                        502,
+                        512,
                         String.format(
                                 "Invalid response from datasource server; datasource URL may be incorrect, or server may not be functioning properly: %d %s",
                                 response.statusCode, response.statusMessage));
