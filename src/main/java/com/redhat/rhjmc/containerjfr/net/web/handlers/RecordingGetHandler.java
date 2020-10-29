@@ -41,39 +41,31 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.handlers;
 
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
-import java.util.Optional;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer.DownloadDescriptor;
+
+import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
-class RecordingGetHandler extends TargetRecordingGetHandler {
+class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Path savedRecordingsPath;
 
     @Inject
     RecordingGetHandler(
-            AuthManager auth,
-            Environment env,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            Logger logger) {
-        super(auth, env, null, logger);
+            AuthManager auth, @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
+        super(auth);
         this.savedRecordingsPath = savedRecordingsPath;
-        if (env.hasEnv(USE_LOW_MEM_PRESSURE_STREAMING_ENV)) {
-            logger.info("low memory pressure streaming enabled for web server");
-        } else {
-            logger.info("low memory pressure streaming disabled for web server");
-        }
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
     }
 
     @Override
@@ -82,45 +74,26 @@ class RecordingGetHandler extends TargetRecordingGetHandler {
     }
 
     @Override
-    public boolean isAsync() {
-        return false;
-    }
-
-    @Override
-    public boolean isOrdered() {
-        return false;
-    }
-
-    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        handleRecordingDownloadRequest(ctx, recordingName);
-    }
-
-    @Override
-    Optional<DownloadDescriptor> getRecordingDescriptor(
-            ConnectionDescriptor unused, String recordingName) {
-        try {
-            // TODO refactor Files calls into FileSystem for testability
-            Optional<Path> savedRecording =
-                    Files.list(savedRecordingsPath)
-                            .filter(
-                                    saved ->
-                                            saved.getFileName()
-                                                    .toFile()
-                                                    .getName()
-                                                    .equals(recordingName))
-                            .findFirst();
-            if (savedRecording.isPresent()) {
-                return Optional.of(
-                        new DownloadDescriptor(
-                                Files.newInputStream(savedRecording.get(), StandardOpenOption.READ),
-                                Files.size(savedRecording.get()),
-                                null));
-            }
-        } catch (Exception e) {
-            logger.error(e);
-        }
-        return Optional.empty();
+        String filePath =
+                savedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
+        ctx.vertx()
+                .fileSystem()
+                .exists(
+                        filePath,
+                        ar -> {
+                            if (ar.result()) {
+                                ctx.response().sendFile(filePath);
+                            } else {
+                                ctx.response().setStatusCode(404);
+                                ctx.response()
+                                        .setStatusMessage(
+                                                String.format(
+                                                        "Recording \"%s\" not found",
+                                                        recordingName));
+                                ctx.response().end();
+                            }
+                        });
     }
 }
