@@ -113,10 +113,14 @@ class ActiveRecordingReportCache {
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        logger.trace(String.format("Invalidating active report cache for %s", recordingName));
         RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
         boolean hasKey = cache.asMap().containsKey(key);
-        cache.invalidate(key);
+        if (hasKey) {
+            logger.trace(String.format("Invalidated active report cache for %s", recordingName));
+            cache.invalidate(key);
+        } else {
+            logger.trace(String.format("No cache entry for %s to invalidate", recordingName));
+        }
         return hasKey;
     }
 
@@ -138,9 +142,13 @@ class ActiveRecordingReportCache {
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException ee) {
                 logger.error(ee);
+
+                delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
+
                 if (ee.getCause() instanceof ReportGenerationException) {
                     ReportGenerationException generationException =
                             (ReportGenerationException) ee.getCause();
+
                     ExitStatus status = generationException.getStatus();
                     if (status == ExitStatus.OUT_OF_MEMORY) {
                         // subprocess OOM'd and therefore most likely did not properly clean up
