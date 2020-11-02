@@ -144,6 +144,16 @@ instance of the web-client. See [container-jfr-web](https://github.com/rh-jmc-te
 for details.
 
 For logging, Container JFR uses SLF4J with the java.util.logging binding.
+The default configuration can be overridden by mounting the desired
+configuration file in the container, and setting the environment variable
+`CONTAINER_JFR_JUL_CONFIG` to the path of that file.
+
+Some of Container JFR's dependencies also use java.util.logging for their logging.
+Container JFR disables
+[some of these](https://github.com/rh-jmc-team/container-jfr-core/tree/main/src/main/resources/config/logging.properties)
+by default, because they generate unnecessary logs.
+However, they can be reenabled by overriding the default configuration file
+and setting the disabled loggers to the desired level.
 
 ## MONITORING APPLICATIONS
 In order for `container-jfr` to be able to monitor JVM application targets the
