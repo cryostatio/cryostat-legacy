@@ -1266,14 +1266,14 @@
     ###### request
     `POST /api/v2/certificates`
 
-    The certificate must be DER-encoded and can be either binary or base64. The supported extensions are .der, .cer, .pem. 
+    The certificate must be DER-encoded and can be either binary or base64. The supported extensions are .der, .cer, .pem.
     The certificate should be uploaded in a form with the name `cert`.
 
     ###### response
     `200` - The body is `Saved: $PATH`, where `$PATH` is the path of the saved file.
 
     `400` - No `cert` was found in the request form. The body is the error message `A file named "cert" was not included in the request`.
-    
+
     `409` - A certificate with the same filename already exists in the truststore directory. The body includes the path where the file already exists.
 
     `500` - The `TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The body is an error message.
