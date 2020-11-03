@@ -19,10 +19,6 @@ if [ -z "$CONTAINER_JFR_RJMX_PORT" ]; then
     CONTAINER_JFR_RJMX_PORT=9091
 fi
 
-if [ -z "$CONTAINER_JFR_LOG_LEVEL" ]; then
-    CONTAINER_JFR_LOG_LEVEL=ALL
-fi
-
 if [ -z "$CONTAINER_JFR_WEB_HOST" ]; then
     CONTAINER_JFR_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
 fi
@@ -75,7 +71,6 @@ podman run \
     --mount type=bind,source="$PWD/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     -e CONTAINER_JFR_DISABLE_SSL=$CONTAINER_JFR_DISABLE_SSL \
     -e CONTAINER_JFR_DISABLE_JMX_AUTH=$CONTAINER_JFR_DISABLE_JMX_AUTH \
-    -e CONTAINER_JFR_LOG_LEVEL=$CONTAINER_JFR_LOG_LEVEL \
     -e CONTAINER_JFR_RJMX_USER=$CONTAINER_JFR_RJMX_USER \
     -e CONTAINER_JFR_RJMX_PASS=$CONTAINER_JFR_RJMX_PASS \
     -e CONTAINER_JFR_RJMX_PORT=$CONTAINER_JFR_RJMX_PORT \
@@ -96,4 +91,5 @@ podman run \
     -e KEYSTORE_PASS=$KEYSTORE_PASS \
     -e KEY_PATH=$KEY_PATH \
     -e CERT_PATH=$CERT_PATH \
+    -e CONTAINER_JFR_JUL_CONFIG=$CONTAINER_JFR_JUL_CONFIG \
     --rm -it "$CONTAINER_JFR_IMAGE" "$@"

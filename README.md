@@ -75,8 +75,7 @@ There are six network-related environment variables that the client checks
 during its runtime:
 `CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
 `CONTAINER_JFR_EXT_WEB_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
-`CONTAINER_JFR_LISTEN_PORT`, `CONTAINER_JFR_EXT_LISTEN_PORT`, and
-`CONTAINER_JFR_LOG_LEVEL`.
+`CONTAINER_JFR_LISTEN_PORT`, `CONTAINER_JFR_EXT_LISTEN_PORT`.
 The former three are used by the embedded webserver
 for controlling the port and hostname used and reported when making recordings
 available for export (download). The latter three are used when running the
@@ -99,10 +98,6 @@ handshakes for any new incoming connections until a previous connection is
 closed. The maximum acceptable value is 64 and the minimum acceptable value is
 1\. Values outside of this range will be ignored and the default value set
 instead.
-
-The environment variable `CONTAINER_JFR_LOG_LEVEL` is used to control the level
-of messages which will be printed by the logging facility. Acceptable values are
-`OFF`, `ERROR`, `WARN`, `INFO`, `DEBUG`, `TRACE`, and `ALL`.
 
 The environment variable `CONTAINER_JFR_AUTH_MANAGER` is used to configure which
 authentication/authorization manager is used for validating user accesses. See
@@ -133,6 +128,18 @@ The environment variable `CONTAINER_JFR_CORS_ORIGIN` can be used to specify
 the origin for CORS. This can be used in development to load a different
 instance of the web-client. See [container-jfr-web](https://github.com/rh-jmc-team/container-jfr-web)
 for details.
+
+For logging, Container JFR uses SLF4J with the java.util.logging binding.
+The default configuration can be overridden by mounting the desired
+configuration file in the container, and setting the environment variable
+`CONTAINER_JFR_JUL_CONFIG` to the path of that file.
+
+Some of Container JFR's dependencies also use java.util.logging for their logging.
+Container JFR disables
+[some of these](https://github.com/rh-jmc-team/container-jfr-core/tree/main/src/main/resources/config/logging.properties)
+by default, because they generate unnecessary logs.
+However, they can be reenabled by overriding the default configuration file
+and setting the disabled loggers to the desired level.
 
 ## MONITORING APPLICATIONS
 In order for `container-jfr` to be able to monitor JVM application targets the
