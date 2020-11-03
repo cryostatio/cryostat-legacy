@@ -232,8 +232,6 @@
               <argument>--env</argument>
               <argument>CONTAINER_JFR_DISABLE_SSL=true</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
-              <argument>--env</argument>
               <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
