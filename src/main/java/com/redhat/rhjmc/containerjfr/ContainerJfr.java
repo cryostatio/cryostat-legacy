@@ -61,23 +61,12 @@ import dagger.Component;
 
 class ContainerJfr {
 
-    private static final String LOG_LEVEL_ENV = "CONTAINER_JFR_LOG_LEVEL";
-
     public static void main(String[] args) throws Exception {
         ContainerJfrCore.initialize();
 
         final Logger logger = Logger.INSTANCE;
-
         final Environment environment = new Environment();
-        if (environment.hasEnv(LOG_LEVEL_ENV)) {
-            try {
-                logger.setLevel(Logger.Level.valueOf(environment.getEnv(LOG_LEVEL_ENV).trim()));
-            } catch (IllegalArgumentException e) {
-                logger.setLevel(Logger.Level.INFO);
-                logger.error(e);
-            }
-        }
-        logger.info(String.format("Logger level: %s", logger.getLevel()));
+
         logger.trace(String.format("env: %s", environment.getEnv().toString()));
 
         logger.info(

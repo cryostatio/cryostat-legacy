@@ -44,7 +44,7 @@
 
   <com.google.dagger.version>2.26</com.google.dagger.version>
 
-  <com.redhat.rhjmc.containerjfr.core.version>0.15.0</com.redhat.rhjmc.containerjfr.core.version>
+  <com.redhat.rhjmc.containerjfr.core.version>0.16.0</com.redhat.rhjmc.containerjfr.core.version>
 
   <org.apache.commons.lang3.version>3.9</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.13</org.apache.commons.codec.version>
@@ -126,7 +126,7 @@
   </dependency>
   <dependency>
     <groupId>org.slf4j</groupId>
-    <artifactId>slf4j-simple</artifactId>
+    <artifactId>slf4j-jdk14</artifactId>
     <version>${org.slf4j.version}</version>
   </dependency>
   <dependency>
@@ -231,8 +231,6 @@
               <argument>CONTAINER_JFR_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_DISABLE_SSL=true</argument>
-              <argument>--env</argument>
-              <argument>CONTAINER_JFR_LOG_LEVEL=ALL</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
               <argument>--env</argument>

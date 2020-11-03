@@ -159,6 +159,10 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
 
+if [ -n "$CONTAINER_JFR_JUL_CONFIG" ]; then
+    FLAGS+=("-Djava.util.logging.config.file=$CONTAINER_JFR_JUL_CONFIG")
+fi
+
 export KEYSTORE_PATH
 export KEYSTORE_PASS
 export SSL_TRUSTSTORE_DIR
