@@ -479,13 +479,7 @@
     Should use percent-encoding.
 
     ###### response
-    `200` - The body is the requested report as an HTML document, or a plaintext
-    string of an error message indicating why the report document could not be
-    generated. FIXME This error message is given the response code 200 as a
-    hack to allow the frontend web-client to cache such messages, rather than
-    issuing a re-request, since scenarios where this occurs are scenarios where
-    report generation is most likely to fail on a re-attempt for the same
-    recording in the future.
+    `200` - The body is the requested report as an HTML document.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -493,7 +487,10 @@
 
     `404` - The report could not be found. The body is an error message.
 
-    `500` - There was an unexpected error. The body is an error message.
+    `500` - There was an error generating the report, such as: the report
+    generation consumed too much memory and was aborted; an I/O failure occurred
+    while transferring the report result; or an unexpected error occurred. The
+    body is an error message.
 
     ###### example
     ```
@@ -979,13 +976,7 @@
     Should use percent-encoding.
 
     ###### response
-    `200` - The body is the requested report as an HTML document, or a plaintext
-    string of an error message indicating why the report document could not be
-    generated. FIXME This error message is given the response code 200 as a
-    hack to allow the frontend web-client to cache such messages, rather than
-    issuing a re-request, since scenarios where this occurs are scenarios where
-    report generation is most likely to fail on a re-attempt for the same
-    recording in the future.
+    `200` - The body is the requested report as an HTML document.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -998,7 +989,11 @@
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
+    `500` - There was an error generating the report, such as: the report
+    generation consumed too much memory and was aborted; the report generation
+    process was unable to connect to the target; an I/O failure occurred while
+    transferring the report result; or an unexpected error occurred. The body is
+    an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but ContainerJFR does not trust the

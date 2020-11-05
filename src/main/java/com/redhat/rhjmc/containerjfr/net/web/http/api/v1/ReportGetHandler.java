@@ -42,13 +42,17 @@
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
 import java.nio.file.Path;
-import java.util.Optional;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
@@ -94,11 +98,14 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        Optional<Path> report = reportService.get(recordingName);
-        report.ifPresentOrElse(
-                path -> ctx.response().sendFile(path.toAbsolutePath().toString()),
-                () -> {
-                    throw new HttpStatusException(404);
-                });
+        try {
+            Path report = reportService.get(recordingName).get();
+            ctx.response().sendFile(report.toAbsolutePath().toString());
+        } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, ee);
+            }
+            throw ee;
+        }
     }
 }

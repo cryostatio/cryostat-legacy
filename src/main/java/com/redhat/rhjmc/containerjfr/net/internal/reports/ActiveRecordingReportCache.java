@@ -45,8 +45,10 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -100,15 +102,25 @@ class ActiveRecordingReportCache {
                         .build(k -> getReport(k));
     }
 
-    String get(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        return cache.get(new RecordingDescriptor(connectionDescriptor, recordingName));
+    Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
+        CompletableFuture<String> f = new CompletableFuture<>();
+        try {
+            f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
+        } catch (Exception e) {
+            f.completeExceptionally(e);
+        }
+        return f;
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        logger.trace(String.format("Invalidating active report cache for %s", recordingName));
         RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
         boolean hasKey = cache.asMap().containsKey(key);
-        cache.invalidate(key);
+        if (hasKey) {
+            logger.trace(String.format("Invalidated active report cache for %s", recordingName));
+            cache.invalidate(key);
+        } else {
+            logger.trace(String.format("No cache entry for %s to invalidate", recordingName));
+        }
         return hasKey;
     }
 
@@ -130,9 +142,13 @@ class ActiveRecordingReportCache {
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException ee) {
                 logger.error(ee);
+
+                delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
+
                 if (ee.getCause() instanceof ReportGenerationException) {
                     ReportGenerationException generationException =
                             (ReportGenerationException) ee.getCause();
+
                     ExitStatus status = generationException.getStatus();
                     if (status == ExitStatus.OUT_OF_MEMORY) {
                         // subprocess OOM'd and therefore most likely did not properly clean up
@@ -152,7 +168,6 @@ class ActiveRecordingReportCache {
                                     return null;
                                 });
                     }
-                    return String.format("Error %d: %s", status.code, status.message);
                 }
                 throw ee;
             }

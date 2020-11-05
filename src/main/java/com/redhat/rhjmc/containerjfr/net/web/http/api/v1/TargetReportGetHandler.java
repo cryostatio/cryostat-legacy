@@ -41,7 +41,13 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+
 import javax.inject.Inject;
+
+import org.codehaus.plexus.util.ExceptionUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -50,6 +56,7 @@ import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.Recordin
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
+import com.redhat.rhjmc.containerjfr.net.web.http.generic.TimeoutHandler;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -99,9 +106,15 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
             ctx.response()
-                    .end(reportService.get(getConnectionDescriptorFromContext(ctx), recordingName));
-        } catch (RecordingNotFoundException rnfe) {
-            throw new HttpStatusException(404, rnfe);
+                    .end(
+                            reportService
+                                    .get(getConnectionDescriptorFromContext(ctx), recordingName)
+                                    .get(TimeoutHandler.TIMEOUT_MS, TimeUnit.MILLISECONDS));
+        } catch (CompletionException | ExecutionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, ee);
+            }
+            throw ee;
         }
     }
 }

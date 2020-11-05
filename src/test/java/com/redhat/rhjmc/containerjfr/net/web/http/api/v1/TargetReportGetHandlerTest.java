@@ -46,6 +46,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Future;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -110,7 +112,7 @@ class TargetReportGetHandlerTest {
 
         String targetId = "fooHost:0";
         String recordingName = "foo";
-        String content = "foobar";
+        Future<String> content = CompletableFuture.completedFuture("foobar");
         when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
@@ -119,7 +121,7 @@ class TargetReportGetHandlerTest {
         handler.handle(ctx);
 
         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        verify(resp).end(content);
+        verify(resp).end("foobar");
     }
 
     @Test
@@ -135,7 +137,9 @@ class TargetReportGetHandlerTest {
         when(ctx.response()).thenReturn(resp);
 
         when(reportService.get(Mockito.any(), Mockito.anyString()))
-                .thenThrow(new RecordingNotFoundException("fooHost:0", "someRecording"));
+                .thenThrow(
+                        new CompletionException(
+                                new RecordingNotFoundException("fooHost:0", "someRecording")));
 
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");

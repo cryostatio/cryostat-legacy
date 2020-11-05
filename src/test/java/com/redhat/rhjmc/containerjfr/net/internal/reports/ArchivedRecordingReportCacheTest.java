@@ -46,8 +46,8 @@ import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -121,16 +121,15 @@ class ArchivedRecordingReportCacheTest {
     }
 
     @Test
-    void getShouldReturnEmptyIfNoCacheAndNoRecording() throws IOException {
+    void getShouldThrowIfNoCacheAndNoRecording() throws IOException {
         Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
 
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of());
 
-        Optional<Path> res = cache.get("foo");
+        Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo").get());
 
-        Assertions.assertTrue(res.isEmpty());
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
         InOrder lockOrder = Mockito.inOrder(generationLock);
@@ -159,9 +158,8 @@ class ArchivedRecordingReportCacheTest {
                                 Mockito.any(Duration.class)))
                 .thenReturn(pathFuture);
 
-        Optional<Path> res = cache.get("foo");
+        Future<Path> res = cache.get("foo");
 
-        Assertions.assertTrue(res.isPresent());
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
@@ -171,16 +169,15 @@ class ArchivedRecordingReportCacheTest {
     }
 
     @Test
-    void getShouldReturnCachedFileIfAvailable() throws IOException {
+    void getShouldReturnCachedFileIfAvailable() throws Exception {
         Path dest = Mockito.mock(Path.class);
         Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(dest);
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
 
-        Optional<Path> res = cache.get("foo");
+        Future<Path> res = cache.get("foo");
 
-        Assertions.assertTrue(res.isPresent());
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(dest));
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
         Mockito.verify(fs).isReadable(dest);
@@ -189,7 +186,7 @@ class ArchivedRecordingReportCacheTest {
     }
 
     @Test
-    void shouldWriteErrorToFileIfReportGenerationFails() throws Exception {
+    void shouldThrowErrorIfReportGenerationFails() throws Exception {
         Path recording = Mockito.mock(Path.class);
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(recording);
         URI fileUri = Mockito.mock(URI.class);
@@ -210,16 +207,10 @@ class ArchivedRecordingReportCacheTest {
                         new CompletionException(
                                 new ReportGenerationException(ExitStatus.OUT_OF_MEMORY)));
 
-        Optional<Path> res = cache.get("foo");
+        Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo").get());
 
-        Assertions.assertTrue(res.isPresent());
-        MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(webServerTempPath).resolve("foo.report.html");
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
-        Mockito.verify(fs)
-                .writeString(
-                        destinationFile,
-                        "Error 3: The report generation process consumed too much memory and was terminated");
         InOrder lockOrder = Mockito.inOrder(generationLock);
         lockOrder.verify(generationLock).lock();
         lockOrder.verify(generationLock).unlock();

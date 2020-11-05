@@ -45,6 +45,7 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -86,7 +87,7 @@ class ActiveRecordingReportCacheTest {
     @Mock Path destinationFile;
     @Mock JavaProcess.Builder javaProcessBuilder;
     Provider<JavaProcess.Builder> javaProcessBuilderProvider = () -> javaProcessBuilder;
-    final String report = "<html><body><p>This is a report</p></body></html>";
+    final String REPORT_DOC = "<html><body><p>This is a report</p></body></html>";
 
     class TestSubprocessReportGenerator extends SubprocessReportGenerator {
         TestSubprocessReportGenerator(FileSystem fs, Set<ReportTransformer> reportTransformers) {
@@ -114,7 +115,7 @@ class ActiveRecordingReportCacheTest {
                                 Mockito.any(RecordingDescriptor.class),
                                 Mockito.any(Duration.class)))
                 .thenReturn(pathFuture);
-        Mockito.when(fs.readString(destinationFile)).thenReturn(report);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
         String targetId = "foo";
         String recordingName = "bar";
@@ -132,13 +133,13 @@ class ActiveRecordingReportCacheTest {
                                 Mockito.any(RecordingDescriptor.class),
                                 Mockito.any(Duration.class)))
                 .thenReturn(pathFuture);
-        Mockito.when(fs.readString(destinationFile)).thenReturn(report);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
         String targetId = "foo";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        String report = cache.get(connectionDescriptor, "foo");
-        MatcherAssert.assertThat(report, Matchers.equalTo(report));
+        Future<String> report = cache.get(connectionDescriptor, "foo");
+        MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_DOC));
 
         InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator, fs);
         inOrder.verify(lock).lock();
@@ -159,15 +160,15 @@ class ActiveRecordingReportCacheTest {
                                 Mockito.any(RecordingDescriptor.class),
                                 Mockito.any(Duration.class)))
                 .thenReturn(pathFuture);
-        Mockito.when(fs.readString(destinationFile)).thenReturn(report);
+        Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
 
         String targetId = "foo";
         String recordingName = "bar";
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        String report1 = cache.get(connectionDescriptor, recordingName);
-        MatcherAssert.assertThat(report1, Matchers.equalTo(report));
-        String report2 = cache.get(connectionDescriptor, recordingName);
+        String report1 = cache.get(connectionDescriptor, recordingName).get();
+        MatcherAssert.assertThat(report1, Matchers.equalTo(REPORT_DOC));
+        String report2 = cache.get(connectionDescriptor, recordingName).get();
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
         InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator);
@@ -186,9 +187,9 @@ class ActiveRecordingReportCacheTest {
                         subprocessReportGenerator.exec(
                                 Mockito.any(RecordingDescriptor.class),
                                 Mockito.any(Duration.class)))
-                .thenThrow(new RecordingNotFoundException("", ""));
+                .thenThrow(new CompletionException(new RecordingNotFoundException("", "")));
         Assertions.assertThrows(
-                RecordingNotFoundException.class, () -> cache.get(connectionDescriptor, "bar"));
+                ExecutionException.class, () -> cache.get(connectionDescriptor, "bar").get());
     }
 
     @Test
@@ -199,8 +200,10 @@ class ActiveRecordingReportCacheTest {
                                 Mockito.any(RecordingDescriptor.class),
                                 Mockito.any(Duration.class)))
                 .thenThrow(
-                        new SubprocessReportGenerator.ReportGenerationException(ExitStatus.OTHER));
+                        new CompletionException(
+                                new SubprocessReportGenerator.ReportGenerationException(
+                                        ExitStatus.OTHER)));
         Assertions.assertThrows(
-                CompletionException.class, () -> cache.get(connectionDescriptor, "bar"));
+                ExecutionException.class, () -> cache.get(connectionDescriptor, "bar").get());
     }
 }
