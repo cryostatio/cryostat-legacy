@@ -1271,7 +1271,7 @@
 
     `409` - A certificate with the same filename already exists in the truststore directory. The body includes the path where the file already exists.
 
-    `500` - The `TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The body is an error message.
+    `500` - The `SSL_TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The body is an error message.
 
     ###### example
     ```
