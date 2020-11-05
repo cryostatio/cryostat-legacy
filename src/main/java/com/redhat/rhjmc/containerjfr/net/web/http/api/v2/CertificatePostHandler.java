@@ -75,7 +75,7 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
     private final FileSystem fs;
     private final Logger logger;
 
-    private static final String TRUSTSTORE_DIR = "TRUSTSTORE_DIR";
+    private static final String TRUSTSTORE_DIR = "SSL_TRUSTSTORE_DIR";
 
     private Function<File, FileOutputStream> outputStreamFunction;
     private CertificateValidator certValidator;
