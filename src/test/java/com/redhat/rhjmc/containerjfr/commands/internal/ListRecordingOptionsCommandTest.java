@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -57,7 +56,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -67,7 +65,6 @@ import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
@@ -127,25 +124,6 @@ class ListRecordingOptionsCommandTest implements ValidatesTargetId {
     }
 
     @Test
-    void shouldPrintRecordingOptions() throws Exception {
-        IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
-        when(descriptor.toString()).thenReturn("foo-option-toString");
-        Map<String, IOptionDescriptor<?>> options = Map.of("foo-option", descriptor);
-
-        when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
-        when(connection.getService()).thenReturn(service);
-        when(service.getAvailableRecordingOptions()).thenReturn(options);
-
-        command.execute(new String[] {"fooHost:9091"});
-        InOrder inOrder = inOrder(cw);
-        inOrder.verify(cw).println("Available recording options:");
-        inOrder.verify(cw).println("\tfoo-option : foo-option-toString");
-    }
-
-    @Test
     void shouldReturnMapOutput() throws Exception {
         IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
         when(descriptor.getName()).thenReturn("foo");
@@ -160,9 +138,8 @@ class ListRecordingOptionsCommandTest implements ValidatesTargetId {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenReturn(options);
 
-        SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091"});
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.MapOutput.class));
+        Command.Output<?> out = command.execute(new String[] {"fooHost:9091"});
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.MapOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
                 Matchers.equalTo(
@@ -178,10 +155,8 @@ class ListRecordingOptionsCommandTest implements ValidatesTargetId {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordingOptions()).thenThrow(FlightRecorderException.class);
 
-        SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091"});
-        MatcherAssert.assertThat(
-                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        Command.Output<?> out = command.execute(new String[] {"fooHost:9091"});
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("FlightRecorderException: "));
     }
 }

@@ -48,8 +48,8 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
@@ -115,35 +115,35 @@ public class WsCommandExecutor {
                                         commandMessage.id, commandName, e.getMessage()));
                         continue;
                     }
-                    SerializableCommand.Output<?> out = registry.get().execute(commandName, args);
-                    if (out instanceof SerializableCommand.SuccessOutput) {
+                    Command.Output<?> out = registry.get().execute(commandName, args);
+                    if (out instanceof Command.SuccessOutput) {
                         flush(
                                 new SuccessResponseMessage<Void>(
                                         commandMessage.id, commandName, null));
-                    } else if (out instanceof SerializableCommand.FailureOutput) {
+                    } else if (out instanceof Command.FailureOutput) {
                         flush(
                                 new FailureResponseMessage(
                                         commandMessage.id,
                                         commandName,
-                                        ((SerializableCommand.FailureOutput) out).getPayload()));
-                    } else if (out instanceof SerializableCommand.StringOutput) {
+                                        ((Command.FailureOutput) out).getPayload()));
+                    } else if (out instanceof Command.StringOutput) {
                         flush(
                                 new SuccessResponseMessage<>(
                                         commandMessage.id, commandName, out.getPayload()));
-                    } else if (out instanceof SerializableCommand.ListOutput) {
+                    } else if (out instanceof Command.ListOutput) {
                         flush(
                                 new SuccessResponseMessage<>(
                                         commandMessage.id, commandName, out.getPayload()));
-                    } else if (out instanceof SerializableCommand.MapOutput) {
+                    } else if (out instanceof Command.MapOutput) {
                         flush(
                                 new SuccessResponseMessage<>(
                                         commandMessage.id, commandName, out.getPayload()));
-                    } else if (out instanceof SerializableCommand.ExceptionOutput) {
+                    } else if (out instanceof Command.ExceptionOutput) {
                         flush(
                                 new CommandExceptionResponseMessage(
                                         commandMessage.id,
                                         commandName,
-                                        ((SerializableCommand.ExceptionOutput) out).getPayload()));
+                                        ((Command.ExceptionOutput) out).getPayload()));
                     } else {
                         flush(
                                 new CommandExceptionResponseMessage(

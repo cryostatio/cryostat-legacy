@@ -43,10 +43,10 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
-class PingCommand implements SerializableCommand {
+class PingCommand implements Command {
 
     private final ClientWriter cw;
 
@@ -74,14 +74,8 @@ class PingCommand implements SerializableCommand {
         return true;
     }
 
-    /** No args expected. */
     @Override
-    public void execute(String[] args) throws Exception {
-        cw.println("\tpong");
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
+    public Output<?> execute(String[] args) {
         return new SuccessOutput();
     }
 }

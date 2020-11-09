@@ -54,14 +54,14 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
-class SearchEventsCommand extends AbstractConnectedCommand implements SerializableCommand {
+class SearchEventsCommand extends AbstractConnectedCommand implements Command {
 
     private final ClientWriter cw;
 
@@ -99,30 +99,7 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
     }
 
     @Override
-    public void execute(String[] args) throws Exception {
-        String targetId = args[0];
-        String searchTerm = args[1];
-        targetConnectionManager.executeConnectedTask(
-                new ConnectionDescriptor(targetId),
-                connection -> {
-                    Collection<? extends IEventTypeInfo> matchingEvents =
-                            connection.getService().getAvailableEventTypes().stream()
-                                    .filter(
-                                            event ->
-                                                    eventMatchesSearchTerm(
-                                                            event, searchTerm.toLowerCase()))
-                                    .collect(Collectors.toList());
-
-                    if (matchingEvents.isEmpty()) {
-                        cw.println("\tNo matches");
-                    }
-                    matchingEvents.forEach(this::printEvent);
-                    return null;
-                });
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
+    public Output<?> execute(String[] args) {
         String targetId = args[0];
         String searchTerm = args[1];
         try {
@@ -146,14 +123,6 @@ class SearchEventsCommand extends AbstractConnectedCommand implements Serializab
         } catch (Exception e) {
             return new ExceptionOutput(e);
         }
-    }
-
-    private void printEvent(IEventTypeInfo event) {
-        cw.println(
-                String.format(
-                        "\t%s\toptions: %s",
-                        event.getEventTypeID().getFullKey(),
-                        event.getOptionDescriptors().keySet().toString()));
     }
 
     private boolean eventMatchesSearchTerm(IEventTypeInfo event, String term) {

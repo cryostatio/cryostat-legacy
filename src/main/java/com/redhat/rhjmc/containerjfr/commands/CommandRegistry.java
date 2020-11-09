@@ -54,5 +54,5 @@ public interface CommandRegistry {
 
     boolean isCommandAvailable(String commandName);
 
-    SerializableCommand.Output execute(String commandName, String[] args);
+    Command.Output execute(String commandName, String[] args);
 }

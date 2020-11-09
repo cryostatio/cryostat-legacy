@@ -216,6 +216,8 @@ class AbstractRecordingCommandTest extends TestBase {
         public void validate(String[] args) throws FailedValidationException {}
 
         @Override
-        public void execute(String[] args) {}
+        public Output<?> execute(String[] args) {
+            return new SuccessOutput();
+        }
     }
 }

@@ -43,11 +43,11 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 
 import javax.inject.Inject;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
-class HostnameCommand implements SerializableCommand {
+class HostnameCommand implements Command {
 
     private final ClientWriter cw;
     private final NetworkResolver resolver;
@@ -78,12 +78,7 @@ class HostnameCommand implements SerializableCommand {
     }
 
     @Override
-    public void execute(String[] args) throws Exception {
-        cw.println(String.format("\t%s", resolver.getHostName()));
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
+    public Output<?> execute(String[] args) {
         try {
             return new StringOutput(resolver.getHostName());
         } catch (Exception e) {

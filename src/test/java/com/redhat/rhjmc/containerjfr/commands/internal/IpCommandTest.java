@@ -58,7 +58,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
@@ -101,26 +101,18 @@ class IpCommandTest {
     }
 
     @Test
-    void shouldPrintResolverIp() throws Exception {
-        when(resolver.getHostAddress()).thenReturn("192.168.2.1");
-        command.execute(new String[0]);
-        verify(cw).println("\t192.168.2.1");
-    }
-
-    @Test
     void shouldReturnStringOutput() throws Exception {
         when(resolver.getHostAddress()).thenReturn("192.168.2.1");
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
+        Command.Output<?> out = command.execute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.StringOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("192.168.2.1"));
     };
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
         when(resolver.getHostAddress()).thenThrow(UnknownHostException.class);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(
-                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        Command.Output<?> out = command.execute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("UnknownHostException: "));
     };
 }

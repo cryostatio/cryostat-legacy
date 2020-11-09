@@ -53,7 +53,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -95,13 +95,7 @@ class PingCommandTest {
 
     @Test
     void shouldReturnSuccessOutput() {
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
-    }
-
-    @Test
-    void shouldEchoResponse() throws Exception {
-        command.execute(new String[0]);
-        verify(cw).println("\tpong");
+        Command.Output<?> out = command.execute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.SuccessOutput.class));
     }
 }

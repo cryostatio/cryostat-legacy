@@ -54,15 +54,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class SerializableCommandTest {
+class CommandTest {
 
     @Nested
     class SuccessOutputTest {
-        SerializableCommand.SuccessOutput out;
+        Command.SuccessOutput out;
 
         @BeforeEach
         void setup() {
-            out = new SerializableCommand.SuccessOutput();
+            out = new Command.SuccessOutput();
         }
 
         @Test
@@ -73,11 +73,11 @@ class SerializableCommandTest {
 
     @Nested
     class StringOutputTest {
-        SerializableCommand.StringOutput out;
+        Command.StringOutput out;
 
         @BeforeEach
         void setup() {
-            out = new SerializableCommand.StringOutput("foo");
+            out = new Command.StringOutput("foo");
         }
 
         @Test
@@ -88,11 +88,11 @@ class SerializableCommandTest {
 
     @Nested
     class ListOutputTest {
-        SerializableCommand.ListOutput<String> out;
+        Command.ListOutput<String> out;
 
         @BeforeEach
         void setup() {
-            out = new SerializableCommand.ListOutput<>(Collections.singletonList("foo"));
+            out = new Command.ListOutput<>(Collections.singletonList("foo"));
         }
 
         @Test
@@ -104,11 +104,11 @@ class SerializableCommandTest {
 
     @Nested
     class MapOutputTest {
-        SerializableCommand.MapOutput<String, Integer> out;
+        Command.MapOutput<String, Integer> out;
 
         @BeforeEach
         void setup() {
-            out = new SerializableCommand.MapOutput<>(Map.of("foo", 5));
+            out = new Command.MapOutput<>(Map.of("foo", 5));
         }
 
         @Test
@@ -119,11 +119,11 @@ class SerializableCommandTest {
 
     @Nested
     class ExceptionOutputTest {
-        SerializableCommand.ExceptionOutput out;
+        Command.ExceptionOutput out;
 
         @BeforeEach
         void setup() {
-            out = new SerializableCommand.ExceptionOutput(new IOException("for testing reasons"));
+            out = new Command.ExceptionOutput(new IOException("for testing reasons"));
         }
 
         @Test
@@ -135,11 +135,11 @@ class SerializableCommandTest {
 
     @Nested
     class FailureOutputTest {
-        SerializableCommand.FailureOutput out;
+        Command.FailureOutput out;
 
         @BeforeEach
         void setup() {
-            out = new SerializableCommand.FailureOutput("for testing reasons");
+            out = new Command.FailureOutput("for testing reasons");
         }
 
         @Test

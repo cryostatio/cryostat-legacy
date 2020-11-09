@@ -54,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -66,23 +67,20 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.commands.internal.SerializableCommandRegistry.CommandDefinitionException;
+import com.redhat.rhjmc.containerjfr.commands.internal.CommandRegistryImpl.CommandDefinitionException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 @ExtendWith(MockitoExtension.class)
-public class SerializableCommandRegistryTest {
+public class CommandRegistryImplTest {
 
-    SerializableCommandRegistry registry;
+    CommandRegistryImpl registry;
 
     @Nested
     class WithEmptySetCommands {
 
         @BeforeEach
         public void setup() {
-            registry =
-                    new SerializableCommandRegistry(
-                            Collections.emptySet(), Mockito.mock(Logger.class));
+            registry = new CommandRegistryImpl(Collections.emptySet(), Mockito.mock(Logger.class));
         }
 
         @Test
@@ -129,7 +127,7 @@ public class SerializableCommandRegistryTest {
         @BeforeEach
         public void setup() {
             registry =
-                    new SerializableCommandRegistry(
+                    new CommandRegistryImpl(
                             new HashSet<Command>(Arrays.asList(commands)),
                             Mockito.mock(Logger.class));
         }
@@ -140,11 +138,9 @@ public class SerializableCommandRegistryTest {
                     "registered command names should be returned",
                     registry.getRegisteredCommandNames(),
                     equalTo(
-                            new HashSet<String>(
-                                    Arrays.asList(
-                                            fooCommand.getName(),
-                                            fizzCommand.getName(),
-                                            barCommand.getName()))));
+                            Arrays.asList(commands).stream()
+                                    .map(Command::getName)
+                                    .collect(Collectors.toSet())));
         }
 
         @Test
@@ -160,16 +156,16 @@ public class SerializableCommandRegistryTest {
         @Test
         public void shouldExecuteRegisteredAndAvailableCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
-            SerializableCommand.Output<?> out = registry.execute("foo", new String[] {"arg"});
-            assertThat(out, instanceOf(SerializableCommand.SuccessOutput.class));
+            Command.Output<?> out = registry.execute("foo", new String[] {"arg"});
+            assertThat(out, instanceOf(Command.SuccessOutput.class));
             assertThat("command should have been executed", fooCommand.value, equalTo("arg"));
         }
 
         @Test
         public void shouldNotExecuteRegisteredAndUnavailableCommand() throws Exception {
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            SerializableCommand.Output<?> out = registry.execute("bar", new String[] {"arg"});
-            assertThat(out, instanceOf(SerializableCommand.FailureOutput.class));
+            Command.Output<?> out = registry.execute("bar", new String[] {"arg"});
+            assertThat(out, instanceOf(Command.FailureOutput.class));
             assertThat("command should not have been executed", barCommand.value, nullValue());
         }
 
@@ -177,16 +173,16 @@ public class SerializableCommandRegistryTest {
         public void shouldNoOpOnUnregisteredCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            SerializableCommand.Output<?> out = registry.execute("baz", new String[] {"arg"});
-            assertThat(out, instanceOf(SerializableCommand.FailureOutput.class));
+            Command.Output<?> out = registry.execute("baz", new String[] {"arg"});
+            assertThat(out, instanceOf(Command.FailureOutput.class));
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
         }
 
         @Test
         public void shouldWrapUncaughtCommandExceptions() throws Exception {
-            SerializableCommand.Output<?> out = registry.execute("fizz", new String[0]);
-            assertThat(out, instanceOf(SerializableCommand.ExceptionOutput.class));
+            Command.Output<?> out = registry.execute("fizz", new String[0]);
+            assertThat(out, instanceOf(Command.ExceptionOutput.class));
             assertThat(out.getPayload(), equalTo("NullPointerException: Fizzed Out!"));
         }
 
@@ -195,8 +191,8 @@ public class SerializableCommandRegistryTest {
             Exception e =
                     assertThrows(
                             FailedValidationException.class,
-                            () -> registry.validate("baz", new String[0]));
-            assertThat(e.getMessage(), equalTo("Command \"baz\" not recognized"));
+                            () -> registry.validate("unknown", new String[0]));
+            assertThat(e.getMessage(), equalTo("Command \"unknown\" not recognized"));
         }
 
         @ParameterizedTest
@@ -230,7 +226,7 @@ public class SerializableCommandRegistryTest {
                     assertThrows(
                             CommandDefinitionException.class,
                             () ->
-                                    new SerializableCommandRegistry(
+                                    new CommandRegistryImpl(
                                             new HashSet<Command>(
                                                     Arrays.asList(
                                                             new FooCommand(),
@@ -247,7 +243,7 @@ public class SerializableCommandRegistryTest {
         }
     }
 
-    static class FooCommand implements SerializableCommand {
+    static class FooCommand implements Command {
         String value = null;
 
         @Override
@@ -264,18 +260,13 @@ public class SerializableCommandRegistryTest {
         public void validate(String[] args) throws FailedValidationException {}
 
         @Override
-        public void execute(String[] args) {
-            this.value = args[0];
-        }
-
-        @Override
-        public Output<?> serializableExecute(String[] args) {
+        public Output<?> execute(String[] args) {
             this.value = args[0];
             return new SuccessOutput();
         }
     }
 
-    static class BarCommand implements SerializableCommand {
+    static class BarCommand implements Command {
         String value = null;
 
         @Override
@@ -294,12 +285,7 @@ public class SerializableCommandRegistryTest {
         }
 
         @Override
-        public void execute(String[] args) {
-            this.value = args[0];
-        }
-
-        @Override
-        public Output<?> serializableExecute(String[] args) {
+        public Output<?> execute(String[] args) {
             this.value = args[0];
             return new SuccessOutput();
         }
@@ -324,12 +310,13 @@ public class SerializableCommandRegistryTest {
         }
 
         @Override
-        public void execute(String[] args) {
+        public Output<?> execute(String[] args) {
             this.value = args[0];
+            return new SuccessOutput();
         }
     }
 
-    static class FizzCommand implements SerializableCommand {
+    static class FizzCommand implements Command {
         @Override
         public String getName() {
             return "fizz";
@@ -344,10 +331,7 @@ public class SerializableCommandRegistryTest {
         public void validate(String[] args) throws FailedValidationException {}
 
         @Override
-        public void execute(String[] args) {}
-
-        @Override
-        public Output<?> serializableExecute(String[] args) {
+        public Output<?> execute(String[] args) {
             throw new NullPointerException("Fizzed Out!");
         }
     }

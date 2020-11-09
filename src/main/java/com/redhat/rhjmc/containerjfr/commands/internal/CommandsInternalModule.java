@@ -64,10 +64,6 @@ public abstract class CommandsInternalModule {
 
     @Binds
     @IntoSet
-    abstract Command bindExitCommand(ExitCommand command);
-
-    @Binds
-    @IntoSet
     abstract Command bindHelpCommand(HelpCommand command);
 
     @Binds
@@ -99,14 +95,6 @@ public abstract class CommandsInternalModule {
     @IntoSet
     abstract Command bindSearchEventsCommand(SearchEventsCommand command);
 
-    @Binds
-    @IntoSet
-    abstract Command bindWaitCommand(WaitCommand command);
-
-    @Binds
-    @IntoSet
-    abstract Command bindWaitForCommand(WaitForCommand command);
-
     @Provides
     static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {
         return new EventOptionsBuilder.Factory(cw);
@@ -128,6 +116,6 @@ public abstract class CommandsInternalModule {
     @Nullable
     @Singleton
     static CommandRegistry provideCommandRegistry(Set<Command> commands, Logger logger) {
-        return new SerializableCommandRegistry(commands, logger);
+        return new CommandRegistryImpl(commands, logger);
     }
 }
