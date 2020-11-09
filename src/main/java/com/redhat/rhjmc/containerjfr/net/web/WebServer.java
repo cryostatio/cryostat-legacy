@@ -131,14 +131,12 @@ public class WebServer {
                         ctx.response().putHeader(AUTH_SCHEME_HEADER, auth.getScheme().toString());
                     }
 
+                    ctx.response().setStatusCode(exception.getStatusCode());
+
                     String payload =
                             exception.getPayload() != null
                                     ? exception.getPayload()
                                     : exception.getMessage();
-
-                    ctx.response()
-                            .setStatusCode(exception.getStatusCode())
-                            .setStatusMessage(payload);
 
                     String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
                     if (accept.contains(HttpMimeType.JSON.mime())
