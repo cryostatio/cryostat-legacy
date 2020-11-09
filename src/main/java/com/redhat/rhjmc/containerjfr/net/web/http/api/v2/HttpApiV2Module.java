@@ -68,6 +68,11 @@ public abstract class HttpApiV2Module {
     @IntoSet
     abstract RequestHandler bindCertificatePostHandler(CertificatePostHandler handler);
 
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingOptionsListGetHandler(
+            TargetRecordingOptionsListGetHandler handler);
+
     @Provides
     @Singleton
     @Named("OutputStreamFunction")
