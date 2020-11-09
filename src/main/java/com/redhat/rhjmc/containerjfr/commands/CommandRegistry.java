@@ -41,6 +41,18 @@
  */
 package com.redhat.rhjmc.containerjfr.commands;
 
-public interface CommandRegistry extends BaseCommandRegistry {
-    void execute(String commandName, String[] args) throws Exception;
+import java.util.Set;
+
+import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
+
+public interface CommandRegistry {
+    Set<String> getRegisteredCommandNames();
+
+    Set<String> getAvailableCommandNames();
+
+    void validate(String commandName, String[] args) throws FailedValidationException;
+
+    boolean isCommandAvailable(String commandName);
+
+    SerializableCommand.Output execute(String commandName, String[] args);
 }

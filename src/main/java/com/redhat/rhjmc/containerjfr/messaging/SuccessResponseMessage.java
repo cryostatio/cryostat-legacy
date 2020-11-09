@@ -39,57 +39,10 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.messaging;
 
-import javax.inject.Singleton;
-
-import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
-import com.redhat.rhjmc.containerjfr.messaging.WsCommandExecutor;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-import dagger.Component;
-
-class ContainerJfr {
-
-    public static void main(String[] args) throws Exception {
-        ContainerJfrCore.initialize();
-
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace(String.format("env: %s", environment.getEnv().toString()));
-
-        logger.info(
-                String.format(
-                        "%s started.",
-                        System.getProperty("java.rmi.server.hostname", "container-jfr")));
-
-        Client client = DaggerContainerJfr_Client.builder().build();
-
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-
-        client.commandExecutor().run();
-    }
-
-    @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        WsCommandExecutor commandExecutor();
-
-        HttpServer httpServer();
-
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
-        }
+class SuccessResponseMessage<T> extends ResponseMessage<T> {
+    SuccessResponseMessage(String id, String commandName, T t) {
+        super(id, Status.OK, commandName, t);
     }
 }

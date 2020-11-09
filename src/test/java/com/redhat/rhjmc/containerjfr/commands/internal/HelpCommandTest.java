@@ -65,7 +65,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
@@ -74,11 +73,10 @@ class HelpCommandTest {
     HelpCommand command;
     @Mock ClientWriter cw;
     @Mock CommandRegistry registry;
-    @Mock SerializableCommandRegistry serializableRegistry;
 
     @BeforeEach
     void setup() {
-        command = new HelpCommand(cw, () -> registry, () -> serializableRegistry);
+        command = new HelpCommand(cw, () -> registry);
     }
 
     @Test
@@ -122,7 +120,7 @@ class HelpCommandTest {
     void shouldReturnListOutput() throws Exception {
         List<String> names = Arrays.asList("bar", "foo");
 
-        when(serializableRegistry.getAvailableCommandNames()).thenReturn(new HashSet<>(names));
+        when(registry.getAvailableCommandNames()).thenReturn(new HashSet<>(names));
         SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
         MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(names));

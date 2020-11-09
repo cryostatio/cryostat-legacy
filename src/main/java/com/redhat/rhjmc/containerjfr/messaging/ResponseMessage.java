@@ -39,57 +39,54 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.messaging;
 
-import javax.inject.Singleton;
+import org.apache.commons.lang3.builder.ToStringBuilder;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
-import com.redhat.rhjmc.containerjfr.messaging.WsCommandExecutor;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-import dagger.Component;
+@SuppressFBWarnings(
+        value = "URF_UNREAD_FIELD",
+        justification =
+                "This class will be (de)serialized by Gson, so not all fields may be accessed directly")
+abstract class ResponseMessage<T> extends WsMessage {
+    String id;
+    String commandName;
+    int status;
+    T payload;
 
-class ContainerJfr {
-
-    public static void main(String[] args) throws Exception {
-        ContainerJfrCore.initialize();
-
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace(String.format("env: %s", environment.getEnv().toString()));
-
-        logger.info(
-                String.format(
-                        "%s started.",
-                        System.getProperty("java.rmi.server.hostname", "container-jfr")));
-
-        Client client = DaggerContainerJfr_Client.builder().build();
-
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-
-        client.commandExecutor().run();
+    ResponseMessage(String id, Status status, String commandName, T payload) {
+        this.id = id;
+        this.status = status.getCode();
+        this.commandName = commandName;
+        this.payload = payload;
     }
 
-    @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        WsCommandExecutor commandExecutor();
+    @Override
+    public String toString() {
+        return new ToStringBuilder(this)
+                .append(id)
+                .append(status)
+                .append(commandName)
+                .append(payload)
+                .build();
+    }
 
-        HttpServer httpServer();
+    public static enum Status {
+        OK(0),
+        INVALID_COMMAND(-1),
+        COMMAND_EXCEPTION(-2),
+        MALFORMED_MESSAGE(-3),
+        TARGET_AUTH_FAILURE(-4),
+        ;
 
-        WebServer webServer();
+        private final int code;
 
-        MessagingServer messagingServer();
+        Status(int code) {
+            this.code = code;
+        }
 
-        @Component.Builder
-        interface Builder {
-            Client build();
+        public int getCode() {
+            return code;
         }
     }
 }

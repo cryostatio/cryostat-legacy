@@ -39,68 +39,80 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.messaging;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-import javax.management.remote.JMXServiceURL;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.MessagingModule;
-import com.redhat.rhjmc.containerjfr.net.web.WebModule;
-import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
-import com.redhat.rhjmc.containerjfr.sys.SystemModule;
-import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
-import com.redhat.rhjmc.containerjfr.util.GsonJmxServiceUrlAdapter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
-import dagger.Module;
-import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.vertx.core.Handler;
+import io.vertx.core.http.ServerWebSocket;
 
-@Module(
-        includes = {
-            PlatformModule.class,
-            WebModule.class,
-            SystemModule.class,
-            CommandsModule.class,
-            MessagingModule.class,
-            TemplatesModule.class,
-        })
-public abstract class MainModule {
-    public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
+class WsClientReaderWriter implements ClientReader, ClientWriter, Handler<String> {
 
-    @Provides
-    @Singleton
-    static Logger provideLogger() {
-        return Logger.INSTANCE;
+    private final Logger logger;
+    private final Gson gson;
+    private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
+
+    private final ServerWebSocket sws;
+    private final Object threadLock = new Object();
+    private Thread readingThread;
+
+    WsClientReaderWriter(Logger logger, Gson gson, ServerWebSocket sws) {
+        this.logger = logger;
+        this.gson = gson;
+        this.sws = sws;
     }
 
-    // public since this is useful to use directly in tests
-    @Provides
-    @Singleton
-    public static Gson provideGson(Logger logger) {
-        return new GsonBuilder()
-                .serializeNulls()
-                .disableHtmlEscaping()
-                .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
-                .create();
+    @Override
+    public void handle(String msg) {
+        logger.info(String.format("(%s): CMD %s", this.sws.remoteAddress().toString(), msg));
+        inQ.add(msg);
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    @Provides
-    @Singleton
-    @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
-        logger.info(String.format("Local save path for flight recordings set as %s", ARCHIVE_PATH));
-        return Paths.get(ARCHIVE_PATH);
+    @Override
+    public void close() {
+        inQ.clear();
+        synchronized (threadLock) {
+            if (readingThread != null) {
+                readingThread.interrupt();
+            }
+        }
+    }
+
+    @Override
+    public void print(String s) {
+        logger.info(s);
+    }
+
+    void flush(ResponseMessage<?> message) {
+        if (!this.sws.isClosed()) {
+            try {
+                this.sws.writeTextMessage(gson.toJson(message));
+            } catch (Exception e) {
+                logger.warn(e);
+            }
+        }
+    }
+
+    @Override
+    public String readLine() {
+        try {
+            synchronized (threadLock) {
+                readingThread = Thread.currentThread();
+            }
+            return inQ.take();
+        } catch (InterruptedException e) {
+            return null;
+        } finally {
+            synchronized (threadLock) {
+                readingThread = null;
+            }
+        }
     }
 }

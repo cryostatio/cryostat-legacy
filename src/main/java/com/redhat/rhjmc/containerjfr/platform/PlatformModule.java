@@ -46,20 +46,16 @@ import java.util.Set;
 
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformStrategyModule;
 import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
-import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
 import dagger.Binds;
-import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
@@ -79,31 +75,21 @@ public abstract class PlatformModule {
 
     @Provides
     @Singleton
-    @ConnectionMode(ExecutionMode.WEBSOCKET)
-    static AuthManager providePlatformAuthManager(PlatformDetectionStrategy<?> platformStrategy) {
-        return platformStrategy.getAuthManager();
-    }
-
-    @Provides
-    @Singleton
     static AuthManager provideAuthManager(
-            ExecutionMode mode,
+            PlatformDetectionStrategy<?> platformStrategy,
             Environment env,
             FileSystem fs,
             Set<AuthManager> authManagers,
-            @ConnectionMode(ExecutionMode.WEBSOCKET) Lazy<AuthManager> platformAuthManager,
             Logger logger) {
         final String authManagerClass;
         if (env.hasEnv(AUTH_MANAGER_ENV_VAR)) {
             authManagerClass = env.getEnv(AUTH_MANAGER_ENV_VAR);
             logger.info(String.format("Selecting configured AuthManager \"%s\"", authManagerClass));
-        } else if (ExecutionMode.WEBSOCKET.equals(mode)) {
-            authManagerClass = platformAuthManager.get().getClass().getCanonicalName();
+        } else {
+            authManagerClass = platformStrategy.getAuthManager().getClass().getCanonicalName();
             logger.info(
                     String.format(
                             "Selecting platform default AuthManager \"%s\"", authManagerClass));
-        } else {
-            authManagerClass = NoopAuthManager.class.getCanonicalName();
         }
         return authManagers.stream()
                 .filter(mgr -> Objects.equals(mgr.getClass().getCanonicalName(), authManagerClass))

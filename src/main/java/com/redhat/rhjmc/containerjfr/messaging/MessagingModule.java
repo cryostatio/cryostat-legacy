@@ -39,68 +39,53 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.messaging;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-
-import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.management.remote.JMXServiceURL;
 
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
+import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.MessagingModule;
-import com.redhat.rhjmc.containerjfr.net.web.WebModule;
-import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
-import com.redhat.rhjmc.containerjfr.sys.SystemModule;
-import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
-import com.redhat.rhjmc.containerjfr.util.GsonJmxServiceUrlAdapter;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-@Module(
-        includes = {
-            PlatformModule.class,
-            WebModule.class,
-            SystemModule.class,
-            CommandsModule.class,
-            MessagingModule.class,
-            TemplatesModule.class,
-        })
-public abstract class MainModule {
-    public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
-
+@Module
+public class MessagingModule {
     @Provides
     @Singleton
-    static Logger provideLogger() {
-        return Logger.INSTANCE;
+    static WsCommandExecutor provideWsCommandExecutor(
+            Logger logger,
+            MessagingServer server,
+            ClientReader cr,
+            Lazy<CommandRegistry> commandRegistry,
+            Gson gson) {
+        return new WsCommandExecutor(logger, server, cr, commandRegistry, gson);
     }
 
-    // public since this is useful to use directly in tests
     @Provides
     @Singleton
-    public static Gson provideGson(Logger logger) {
-        return new GsonBuilder()
-                .serializeNulls()
-                .disableHtmlEscaping()
-                .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
-                .create();
+    static ClientReader provideClientReader(MessagingServer webSocketMessagingServer) {
+        return webSocketMessagingServer.getClientReader();
     }
 
-    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
     @Singleton
-    @Named(RECORDINGS_PATH)
-    static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
-        logger.info(String.format("Local save path for flight recordings set as %s", ARCHIVE_PATH));
-        return Paths.get(ARCHIVE_PATH);
+    static ClientWriter provideClientWriter(MessagingServer webSocketMessagingServer) {
+        return webSocketMessagingServer.getClientWriter();
+    }
+
+    @Provides
+    @Singleton
+    static MessagingServer provideWebSocketMessagingServer(
+            HttpServer server, Environment env, AuthManager authManager, Logger logger, Gson gson) {
+        return new MessagingServer(server, env, authManager, logger, gson);
     }
 }

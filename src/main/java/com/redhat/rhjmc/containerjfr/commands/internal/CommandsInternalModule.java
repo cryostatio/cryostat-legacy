@@ -48,10 +48,8 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
-import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -129,24 +127,7 @@ public abstract class CommandsInternalModule {
     @Provides
     @Nullable
     @Singleton
-    static CommandRegistry provideCommandRegistry(
-            ExecutionMode mode, ClientWriter cw, Set<Command> commands) {
-        if (mode.equals(ExecutionMode.WEBSOCKET)) {
-            return null;
-        } else {
-            return new CommandRegistryImpl(cw, commands);
-        }
-    }
-
-    @Provides
-    @Nullable
-    @Singleton
-    static SerializableCommandRegistry provideSerializableCommandRegistry(
-            ExecutionMode mode, Set<Command> commands, Logger logger) {
-        if (mode.equals(ExecutionMode.WEBSOCKET)) {
-            return new SerializableCommandRegistryImpl(commands, logger);
-        } else {
-            return null;
-        }
+    static CommandRegistry provideCommandRegistry(Set<Command> commands, Logger logger) {
+        return new SerializableCommandRegistry(commands, logger);
     }
 }
