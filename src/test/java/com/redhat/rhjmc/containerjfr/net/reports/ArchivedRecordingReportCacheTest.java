@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.internal.reports;
+package com.redhat.rhjmc.containerjfr.net.reports;
 
 import java.io.IOException;
 import java.net.URI;
@@ -66,9 +66,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
+import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ReportGenerationException;
 
 @ExtendWith(MockitoExtension.class)
 class ArchivedRecordingReportCacheTest {

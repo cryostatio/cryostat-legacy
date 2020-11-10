@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.internal.reports;
+package com.redhat.rhjmc.containerjfr.net.reports;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
@@ -82,8 +82,8 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
+import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 

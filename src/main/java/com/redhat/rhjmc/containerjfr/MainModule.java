@@ -55,7 +55,7 @@ import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingModule;
-import com.redhat.rhjmc.containerjfr.net.web.WebModule;
+import com.redhat.rhjmc.containerjfr.net.NetworkModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
@@ -68,10 +68,10 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Module(
         includes = {
             PlatformModule.class,
-            WebModule.class,
             SystemModule.class,
-            CommandsModule.class,
+            NetworkModule.class,
             MessagingModule.class,
+            CommandsModule.class,
             TemplatesModule.class,
         })
 public abstract class MainModule {

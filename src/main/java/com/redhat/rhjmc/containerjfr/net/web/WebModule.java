@@ -56,14 +56,13 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
-import com.redhat.rhjmc.containerjfr.net.NetworkModule;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 
 import dagger.Module;
 import dagger.Provides;
 
-@Module(includes = {NetworkModule.class, HttpModule.class})
+@Module(includes = {HttpModule.class})
 public abstract class WebModule {
     public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
 

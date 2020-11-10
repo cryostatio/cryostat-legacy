@@ -51,7 +51,8 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ReportsModule;
+import com.redhat.rhjmc.containerjfr.net.reports.ReportsModule;
+import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 
 import dagger.Binds;
 import dagger.Lazy;
@@ -62,7 +63,11 @@ import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
-@Module(includes = {ReportsModule.class})
+@Module(
+        includes = {
+            WebModule.class,
+            ReportsModule.class,
+        })
 public abstract class NetworkModule {
 
     @Provides

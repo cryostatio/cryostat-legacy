@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.internal.reports;
+package com.redhat.rhjmc.containerjfr.net.reports;
 
 import java.nio.file.Path;
 import java.util.concurrent.Future;
