@@ -74,11 +74,6 @@ class NetworkConfigurationTest {
     }
 
     @Test
-    void testDefaultCommandChannelPort() {
-        MatcherAssert.assertThat(conf.getDefaultCommandChannelPort(), Matchers.equalTo(9090));
-    }
-
-    @Test
     void shouldReportWebServerHost() throws SocketException, UnknownHostException {
         Mockito.when(resolver.getHostAddress()).thenReturn("foo");
         Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_WEB_HOST"), Mockito.anyString()))
@@ -86,19 +81,6 @@ class NetworkConfigurationTest {
         MatcherAssert.assertThat(conf.getWebServerHost(), Matchers.equalTo("bar"));
         Mockito.verify(resolver).getHostAddress();
         Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_HOST", "foo");
-    }
-
-    @Test
-    void shouldReportCommandChannelHost() throws SocketException, UnknownHostException {
-        Mockito.when(resolver.getHostAddress()).thenReturn("foo");
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_WEB_HOST"), Mockito.anyString()))
-                .thenReturn("bar");
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_LISTEN_HOST"), Mockito.anyString()))
-                .thenReturn("baz");
-        MatcherAssert.assertThat(conf.getCommandChannelHost(), Matchers.equalTo("baz"));
-        Mockito.verify(resolver).getHostAddress();
-        Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_HOST", "foo");
-        Mockito.verify(env).getEnv("CONTAINER_JFR_LISTEN_HOST", "bar");
     }
 
     @Test
@@ -118,25 +100,6 @@ class NetworkConfigurationTest {
         MatcherAssert.assertThat(conf.getExternalWebServerPort(), Matchers.equalTo(1234));
         Mockito.verify(env).getEnv("CONTAINER_JFR_EXT_WEB_PORT", "8282");
         Mockito.verify(env).getEnv("CONTAINER_JFR_WEB_PORT", "8181");
-    }
-
-    @Test
-    void shouldReportInternalCommandChannelPort() {
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_LISTEN_PORT"), Mockito.anyString()))
-                .thenReturn("9191");
-        MatcherAssert.assertThat(conf.getInternalCommandChannelPort(), Matchers.equalTo(9191));
-        Mockito.verify(env).getEnv("CONTAINER_JFR_LISTEN_PORT", "9090");
-    }
-
-    @Test
-    void shouldReportExternalCommandChannelPort() {
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_EXT_LISTEN_PORT"), Mockito.anyString()))
-                .thenReturn("9292");
-        Mockito.when(env.getEnv(Mockito.eq("CONTAINER_JFR_LISTEN_PORT"), Mockito.anyString()))
-                .thenReturn("9191");
-        MatcherAssert.assertThat(conf.getExternalCommandChannelPort(), Matchers.equalTo(9292));
-        Mockito.verify(env).getEnv("CONTAINER_JFR_EXT_LISTEN_PORT", "9191");
-        Mockito.verify(env).getEnv("CONTAINER_JFR_LISTEN_PORT", "9090");
     }
 
     @Test
