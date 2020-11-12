@@ -108,7 +108,7 @@ public class MessagingServer implements AutoCloseable {
                         }
                         logger.info(String.format("Connected remote client %s", remoteAddress));
 
-                        WsClient crw = new WsClient(this.logger, this.gson, sws);
+                        WsClient crw = new WsClient(this.logger, sws);
                         sws.closeHandler(
                                 (unused) -> {
                                     logger.info(
@@ -162,8 +162,9 @@ public class MessagingServer implements AutoCloseable {
     }
 
     void writeMessage(ResponseMessage<?> message) {
+        String json = gson.toJson(message);
         synchronized (connections) {
-            connections.keySet().forEach(c -> c.writeMessage(message));
+            connections.keySet().forEach(c -> c.writeMessage(json));
         }
     }
 

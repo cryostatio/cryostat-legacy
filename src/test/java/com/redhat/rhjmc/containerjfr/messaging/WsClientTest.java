@@ -56,9 +56,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
@@ -71,11 +69,10 @@ class WsClientTest extends TestBase {
     WsClient wsClient;
     @Mock Logger logger;
     @Mock ServerWebSocket sws;
-    Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        wsClient = new WsClient(logger, gson, sws);
+        wsClient = new WsClient(logger, sws);
     }
 
     @Test

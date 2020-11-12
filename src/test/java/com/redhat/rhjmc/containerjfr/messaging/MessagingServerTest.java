@@ -175,17 +175,17 @@ class MessagingServerTest {
         server.addConnection(wsClient2);
 
         MatcherAssert.assertThat(server.readMessage(), Matchers.equalTo(expectedText));
-        verify(wsClient2).readMessage();
+        verify(wsClient2, Mockito.atLeastOnce()).readMessage();
 
         ResponseMessage<String> successResponseMessage =
                 new SuccessResponseMessage<>("msgId", "test", "message");
         server.writeMessage(successResponseMessage);
 
-        verify(wsClient1).writeMessage(successResponseMessage);
-        verify(wsClient2).writeMessage(successResponseMessage);
+        verify(wsClient1, Mockito.times(1)).writeMessage(gson.toJson(successResponseMessage));
+        verify(wsClient2, Mockito.times(1)).writeMessage(gson.toJson(successResponseMessage));
 
         server.removeConnection(wsClient2);
-        verify(wsClient2).close();
+        verify(wsClient2, Mockito.times(1)).close();
 
         String newText = "another message";
         when(wsClient1.readMessage()).thenReturn(newText);
@@ -201,7 +201,10 @@ class MessagingServerTest {
                 new FailureResponseMessage("msgId", "test", "failure");
         server.writeMessage(failureResponseMessage);
 
-        verify(wsClient1).writeMessage(failureResponseMessage);
+        ArgumentCaptor<String> failureCaptor = ArgumentCaptor.forClass(String.class);
+        verify(wsClient1, Mockito.times(2)).writeMessage(failureCaptor.capture());
+        MatcherAssert.assertThat(
+                failureCaptor.getValue(), Matchers.equalTo(gson.toJson(failureResponseMessage)));
         verifyNoMoreInteractions(wsClient2);
     }
 
@@ -211,7 +214,7 @@ class MessagingServerTest {
         server.addConnection(wsClient2);
         ResponseMessage<String> message = new SuccessResponseMessage<>("msgId", "test", "message");
         server.writeMessage(message);
-        verify(wsClient1).writeMessage(message);
-        verify(wsClient2).writeMessage(message);
+        verify(wsClient1).writeMessage(gson.toJson(message));
+        verify(wsClient2).writeMessage(gson.toJson(message));
     }
 }
