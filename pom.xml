@@ -5,7 +5,7 @@
 <modelVersion>4.0.0</modelVersion>
 <groupId>com.redhat.rhjmc.containerjfr</groupId>
 <artifactId>container-jfr</artifactId>
-<version>1.0.0-BETA2</version>
+<version>1.0.0-BETA3</version>
 <packaging>jar</packaging>
 <name>container-jfr</name>
 <url>http://maven.apache.org</url>
