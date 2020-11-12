@@ -57,7 +57,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -67,7 +66,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
@@ -158,97 +156,13 @@ class SearchEventsCommandTest implements ValidatesTargetId {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        command.execute(new String[] {"fooHost:9091", "foo"});
-
-        verify(cw).println("\tNo matches");
-    }
-
-    @Test
-    void shouldHandleNoSerializableMatches() throws Exception {
-        when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
-        when(connection.getService()).thenReturn(service);
-        when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
-
-        SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
+        Command.Output<?> out = command.execute(new String[] {"fooHost:9091", "foo"});
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ListOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo(Collections.emptyList()));
     }
 
     @Test
     void shouldHandleMatches() throws Exception {
-        IEventTypeInfo infoA = mock(IEventTypeInfo.class);
-        IEventTypeID eventIdA = mock(IEventTypeID.class);
-        when(eventIdA.getFullKey()).thenReturn("com.example.A");
-        when(infoA.getEventTypeID()).thenReturn(eventIdA);
-        when(infoA.getHierarchicalCategory()).thenReturn(new String[0]);
-        when(infoA.getDescription()).thenReturn("Does some fooing");
-
-        IEventTypeInfo infoB = mock(IEventTypeInfo.class);
-        IEventTypeID eventIdB = mock(IEventTypeID.class);
-        when(eventIdB.getFullKey()).thenReturn("com.example.B");
-        when(infoB.getEventTypeID()).thenReturn(eventIdB);
-        when(infoB.getHierarchicalCategory()).thenReturn(new String[0]);
-        when(infoB.getName()).thenReturn("FooProperty");
-
-        IEventTypeInfo infoC = mock(IEventTypeInfo.class);
-        IEventTypeID eventIdC = mock(IEventTypeID.class);
-        when(eventIdC.getFullKey()).thenReturn("com.example.C");
-        when(infoC.getEventTypeID()).thenReturn(eventIdC);
-        when(infoC.getHierarchicalCategory()).thenReturn(new String[] {"com", "example", "Foo"});
-
-        IEventTypeInfo infoD = mock(IEventTypeInfo.class);
-        IEventTypeID eventIdD = mock(IEventTypeID.class);
-        when(eventIdD.getFullKey()).thenReturn("com.example.Foo");
-        when(infoD.getEventTypeID()).thenReturn(eventIdD);
-        when(infoD.getHierarchicalCategory()).thenReturn(new String[0]);
-
-        IEventTypeInfo infoE = mock(IEventTypeInfo.class);
-        IEventTypeID eventIdE = mock(IEventTypeID.class);
-        when(eventIdE.getFullKey()).thenReturn("com.example.E");
-        when(infoE.getEventTypeID()).thenReturn(eventIdE);
-        when(infoE.getHierarchicalCategory()).thenReturn(new String[0]);
-        when(infoE.getName()).thenReturn("bar");
-        when(infoE.getDescription()).thenReturn("Does some baring");
-
-        List events = Arrays.asList(infoA, infoB, infoC, infoD, infoE);
-
-        when(targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
-        when(connection.getService()).thenReturn(service);
-        when(service.getAvailableEventTypes()).thenReturn(events);
-
-        command.execute(new String[] {"fooHost:9091", "foo"});
-
-        StringBuilder sb = new StringBuilder();
-        ArgumentCaptor<String> outCaptor = ArgumentCaptor.forClass(String.class);
-        verify(cw, Mockito.atLeastOnce()).println(outCaptor.capture());
-        for (String s : outCaptor.getAllValues()) {
-            sb.append(s).append('\n');
-        }
-        String out = sb.toString();
-        MatcherAssert.assertThat(
-                out,
-                Matchers.allOf(
-                        Matchers.containsString("\tcom.example.A\toptions: []"),
-                        Matchers.containsString("\tcom.example.B\toptions: []"),
-                        Matchers.containsString("\tcom.example.C\toptions: []"),
-                        Matchers.containsString("\tcom.example.Foo\toptions: []")));
-        MatcherAssert.assertThat(
-                out,
-                Matchers.not(
-                        Matchers.anyOf(
-                                Matchers.containsStringIgnoringCase("bar"),
-                                Matchers.containsString("com.example.E"))));
-    }
-
-    @Test
-    void shouldHandleSerializableMatches() throws Exception {
         IEventTypeInfo infoA = mock(IEventTypeInfo.class);
         IEventTypeID eventIdA = mock(IEventTypeID.class);
         when(eventIdA.getFullKey()).thenReturn("com.example.A");
@@ -292,9 +206,8 @@ class SearchEventsCommandTest implements ValidatesTargetId {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
-        SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.ListOutput.class));
+        Command.Output<?> out = command.execute(new String[] {"fooHost:9091", "foo"});
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ListOutput.class));
         MatcherAssert.assertThat(
                 out.getPayload(),
                 Matchers.equalTo(
@@ -306,7 +219,7 @@ class SearchEventsCommandTest implements ValidatesTargetId {
     }
 
     @Test
-    void shouldHandleSerializableException() throws Exception {
+    void shouldHandleException() throws Exception {
         when(targetConnectionManager.executeConnectedTask(
                         Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
@@ -314,10 +227,8 @@ class SearchEventsCommandTest implements ValidatesTargetId {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenThrow(NullPointerException.class);
 
-        SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"fooHost:9091", "foo"});
-        MatcherAssert.assertThat(
-                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        Command.Output<?> out = command.execute(new String[] {"fooHost:9091", "foo"});
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
     }
 }

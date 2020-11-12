@@ -41,22 +41,15 @@
  */
 package com.redhat.rhjmc.containerjfr;
 
-import java.util.Arrays;
-import java.util.stream.Collectors;
-
 import javax.inject.Singleton;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+import com.redhat.rhjmc.containerjfr.messaging.WsCommandExecutor;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-import com.redhat.rhjmc.containerjfr.tui.CommandExecutor;
-import com.redhat.rhjmc.containerjfr.tui.ws.MessagingServer;
-
-import dagger.BindsInstance;
 import dagger.Component;
 
 class ContainerJfr {
@@ -71,43 +64,22 @@ class ContainerJfr {
 
         logger.info(
                 String.format(
-                        "%s started. args: %s",
-                        System.getProperty("java.rmi.server.hostname", "container-jfr"),
-                        Arrays.stream(args)
-                                .map(s -> "\"" + s + "\"")
-                                .collect(Collectors.toList())
-                                .toString()));
+                        "%s started.",
+                        System.getProperty("java.rmi.server.hostname", "container-jfr")));
 
-        final ExecutionMode mode;
-        final String clientArgs;
-        final int port;
-        if (args.length == 0 || args[0].equals("-w")) {
-            mode = ExecutionMode.WEBSOCKET;
-            clientArgs = null;
-        } else if (args[0].equals("-d")) {
-            mode = ExecutionMode.SOCKET;
-            clientArgs = null;
-        } else if (args[0].equals("-it") || StringUtils.isBlank(args[0])) {
-            mode = ExecutionMode.INTERACTIVE;
-            clientArgs = null;
-        } else {
-            mode = ExecutionMode.BATCH;
-            clientArgs = args[0];
-        }
-
-        Client client = DaggerContainerJfr_Client.builder().mode(mode).build();
+        Client client = DaggerContainerJfr_Client.builder().build();
 
         client.httpServer().start();
         client.webServer().start();
         client.messagingServer().start();
 
-        client.commandExecutor().run(clientArgs);
+        client.commandExecutor().run();
     }
 
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
-        CommandExecutor commandExecutor();
+        WsCommandExecutor commandExecutor();
 
         HttpServer httpServer();
 
@@ -117,9 +89,6 @@ class ContainerJfr {
 
         @Component.Builder
         interface Builder {
-            @BindsInstance
-            Builder mode(ExecutionMode mode);
-
             Client build();
         }
     }

@@ -66,43 +66,36 @@ For a basic development non-containerized smoketest, use
 `MAVEN_OPTS="-Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.autodiscovery=true" mvn clean prepare-package exec:java`.
 
 For a Kubernetes/OpenShift deployment, see [container-jfr-operator](https://github.com/rh-jmc-team/container-jfr-operator).
-This will deploy container-jfr into your configured cluster in interactive
-WebSocket mode with a web frontend.
+This will deploy container-jfr into your configured cluster.
 
 The `run.sh` script can be used to spin up a `podman` container of the Container
 JFR Client, running alone but set up so that it is able to introspect itself
 with JFR. This can be achieved by running `sh run.sh` and connecting to
-Container JFR in a separate terminal using
-[websocat](https://github.com/vi/websocat). The WebSocket URL to connect to can
-be found by running `curl localhost:8181/api/v1/clienturl`. Once you are
-connected, you can issue commands by entering them into the websocat client in
-JSON form. For example, `{command:ping}` or
-`{command:dump,args:[localhost,foo,10,"template=Continuous"]}`. See
-[COMMANDS.md](COMMANDS.md) for a description of the Command Channel API. `curl`
-or a similar tool may also be used to interact with ContainerJFR via its HTTP(S)
-API. See [HTTP_API.md](HTTP_API.md).
+Container JFR in a separate terminal using `curl` or a similar tool to interact
+with ContainerJFR via its HTTP(S) API. See [HTTP_API.md](HTTP_API.md).
 
 `smoketest.sh` builds upon `run.sh` and also deploys Grafana, jfr-datasource,
 and vertx-fib-demo as a sample app alongside ContainerJFR.
 
-There are six network-related environment variables that the client checks
+There are three webserver-related environment variables that the client checks
 during its runtime:
 `CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
-`CONTAINER_JFR_EXT_WEB_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
-`CONTAINER_JFR_LISTEN_PORT`, `CONTAINER_JFR_EXT_LISTEN_PORT`.
-The former three are used by the embedded webserver
-for controlling the port and hostname used and reported when making recordings
-available for export (download). The latter three are used when running the
-client in daemon/socket mode and controls the port that the client listens for
-connections on and which port is reported should be used for connecting to the
-command channel socket. (Note: the WebSocket server always listens on
-`CONTAINER_JFR_WEB_PORT` and advertises `CONTAINER_JFR_EXT_WEB_PORT` regardless
-of `CONTAINER_JFR_LISTEN_PORT` and `CONTAINER_JFR_EXT_LISTEN_PORT`.) These may
-be set by setting the environment variable before invoking the `run.sh` shell
-script, or if this script is not used, by using the `-e` environment variable
-flag in the `docker` or `podman` command invocation. If the `EXT` variables are
-unspecified then they default to the value of their non-EXT counterparts. If
-`LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
+`CONTAINER_JFR_EXT_WEB_PORT`.
+These are used by the embedded webserver for controlling the port and hostname
+used and reported when making recordings and automated reports available for
+export (download). These affect both the HTTP(S) API as well as the WebSocket
+command channel which runs overtop of the same webserver.
+
+These may be set by setting the environment variable before invoking the
+`run.sh` shell script, or if this script is not used, by using the `-e`
+environment variable flag in the `docker` or `podman` command invocation. If the
+`EXT` variables are unspecified then they default to the value of their non-EXT
+counterparts.
+
+The environment variable `CONTAINER_JFR_CORS_ORIGIN` can be used to specify
+the origin for CORS. This can be used in development to load a different
+instance of the web-client. See [container-jfr-web](https://github.com/rh-jmc-team/container-jfr-web)
+for details.
 
 The environment variable `CONTAINER_JFR_MAX_WS_CONNECTIONS` is used to
 configure the maximum number of concurrent WebSocket client connections that
@@ -137,11 +130,6 @@ to report generation failing due to Out-Of-Memory errors. Too large of a heap
 size may lead to the subprocess being forcibly killed and the parent process
 failing to detect the reason for the failure, leading to inaccurate failure
 error messages and API responses.
-
-The environment variable `CONTAINER_JFR_CORS_ORIGIN` can be used to specify
-the origin for CORS. This can be used in development to load a different
-instance of the web-client. See [container-jfr-web](https://github.com/rh-jmc-team/container-jfr-web)
-for details.
 
 For logging, Container JFR uses SLF4J with the java.util.logging binding.
 The default configuration can be overridden by mounting the desired
@@ -271,9 +259,9 @@ can be controlled using an environment variable (see the `RUN` section above),
 or automatically using platform detection.
 
 In all scenarios, the presence of an auth manager (other than
-NoopAuthManager) causes ContainerJFR to expect a token or credentials on command
-channel WebSocket messages via a `Sec-WebSocket-Protocol` header , as well as
-an `Authorization` header on recording download and report requests.
+NoopAuthManager) causes ContainerJFR to expect a token or credentials via an
+`Authorization` header on all potentially sensitive requests, ex. recording
+creations and downloads, report generations.
 
 The OpenShiftPlatformClient.OpenShiftAuthManager uses token authentication.
 These tokens are passed through to the OpenShift API for authz and this result

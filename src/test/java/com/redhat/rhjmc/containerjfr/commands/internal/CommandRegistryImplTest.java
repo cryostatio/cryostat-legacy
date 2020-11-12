@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.core.StringContains.containsString;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
@@ -53,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -61,13 +63,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.TestBase;
 import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.commands.internal.CommandRegistryImpl.CommandDefinitionException;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 @ExtendWith(MockitoExtension.class)
-public class CommandRegistryImplTest extends TestBase {
+public class CommandRegistryImplTest {
 
     CommandRegistryImpl registry;
 
@@ -76,7 +80,7 @@ public class CommandRegistryImplTest extends TestBase {
 
         @BeforeEach
         public void setup() {
-            registry = new CommandRegistryImpl(mockClientWriter, Collections.emptySet());
+            registry = new CommandRegistryImpl(Collections.emptySet(), Mockito.mock(Logger.class));
         }
 
         @Test
@@ -97,8 +101,7 @@ public class CommandRegistryImplTest extends TestBase {
 
         @Test
         public void shouldNoOpOnExecute() throws Exception {
-            registry.execute("foo", new String[] {});
-            assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
+            assertDoesNotThrow(() -> registry.execute("foo", new String[] {}));
         }
 
         @Test
@@ -107,7 +110,6 @@ public class CommandRegistryImplTest extends TestBase {
                     assertThrows(
                             FailedValidationException.class,
                             () -> registry.validate("foo", new String[0]));
-            assertThat(stdout(), equalTo("Command \"foo\" not recognized\n"));
             assertThat(e.getMessage(), equalTo("Command \"foo\" not recognized"));
         }
     }
@@ -117,14 +119,17 @@ public class CommandRegistryImplTest extends TestBase {
 
         FooCommand fooCommand = new FooCommand();
         BarCommand barCommand = new BarCommand();
+        BazCommand bazCommand = new BazCommand();
+        FizzCommand fizzCommand = new FizzCommand();
 
-        Command[] commands = new Command[] {fooCommand, barCommand};
+        Command[] commands = new Command[] {fooCommand, barCommand, bazCommand, fizzCommand};
 
         @BeforeEach
         public void setup() {
             registry =
                     new CommandRegistryImpl(
-                            mockClientWriter, new HashSet<Command>(Arrays.asList(commands)));
+                            new HashSet<Command>(Arrays.asList(commands)),
+                            Mockito.mock(Logger.class));
         }
 
         @Test
@@ -133,8 +138,9 @@ public class CommandRegistryImplTest extends TestBase {
                     "registered command names should be returned",
                     registry.getRegisteredCommandNames(),
                     equalTo(
-                            new HashSet<String>(
-                                    Arrays.asList(fooCommand.getName(), barCommand.getName()))));
+                            Arrays.asList(commands).stream()
+                                    .map(Command::getName)
+                                    .collect(Collectors.toSet())));
         }
 
         @Test
@@ -142,32 +148,42 @@ public class CommandRegistryImplTest extends TestBase {
             assertThat(
                     "available command names should be returned",
                     registry.getAvailableCommandNames(),
-                    equalTo(new HashSet<String>(Arrays.asList(fooCommand.getName()))));
+                    equalTo(
+                            new HashSet<String>(
+                                    Arrays.asList(fooCommand.getName(), fizzCommand.getName()))));
         }
 
         @Test
         public void shouldExecuteRegisteredAndAvailableCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
-            registry.execute("foo", new String[] {"arg"});
+            Command.Output<?> out = registry.execute("foo", new String[] {"arg"});
+            assertThat(out, instanceOf(Command.SuccessOutput.class));
             assertThat("command should have been executed", fooCommand.value, equalTo("arg"));
         }
 
         @Test
         public void shouldNotExecuteRegisteredAndUnavailableCommand() throws Exception {
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            registry.execute("bar", new String[] {"arg"});
+            Command.Output<?> out = registry.execute("bar", new String[] {"arg"});
+            assertThat(out, instanceOf(Command.FailureOutput.class));
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            assertThat(stdout(), equalTo("Command \"bar\" not available\n"));
         }
 
         @Test
         public void shouldNoOpOnUnregisteredCommand() throws Exception {
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            registry.execute("baz", new String[] {"arg"});
+            Command.Output<?> out = registry.execute("baz", new String[] {"arg"});
+            assertThat(out, instanceOf(Command.FailureOutput.class));
             assertThat("command should not have been executed", fooCommand.value, nullValue());
             assertThat("command should not have been executed", barCommand.value, nullValue());
-            assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
+        }
+
+        @Test
+        public void shouldWrapUncaughtCommandExceptions() throws Exception {
+            Command.Output<?> out = registry.execute("fizz", new String[0]);
+            assertThat(out, instanceOf(Command.ExceptionOutput.class));
+            assertThat(out.getPayload(), equalTo("NullPointerException: Fizzed Out!"));
         }
 
         @Test
@@ -175,9 +191,8 @@ public class CommandRegistryImplTest extends TestBase {
             Exception e =
                     assertThrows(
                             FailedValidationException.class,
-                            () -> registry.validate("baz", new String[0]));
-            assertThat(stdout(), equalTo("Command \"baz\" not recognized\n"));
-            assertThat(e.getMessage(), equalTo("Command \"baz\" not recognized"));
+                            () -> registry.validate("unknown", new String[0]));
+            assertThat(e.getMessage(), equalTo("Command \"unknown\" not recognized"));
         }
 
         @ParameterizedTest
@@ -198,7 +213,7 @@ public class CommandRegistryImplTest extends TestBase {
         @ParameterizedTest
         @ValueSource(strings = {"  "})
         @NullAndEmptySource
-        public void shouldHandleBlankOrNullCommandAvailability(String cmd) throws Exception {
+        public void shouldHandleBlankNullEmptyCommandAvailability(String cmd) throws Exception {
             assertFalse(registry.isCommandAvailable(cmd));
         }
     }
@@ -207,16 +222,16 @@ public class CommandRegistryImplTest extends TestBase {
     class WithConflictingCommandDefinitions {
         @Test
         public void shouldThrowCommandDefinitionException() {
-            CommandRegistryImpl.CommandDefinitionException thrown =
+            CommandDefinitionException thrown =
                     assertThrows(
-                            CommandRegistryImpl.CommandDefinitionException.class,
+                            CommandDefinitionException.class,
                             () ->
                                     new CommandRegistryImpl(
-                                            mockClientWriter,
                                             new HashSet<Command>(
                                                     Arrays.asList(
                                                             new FooCommand(),
-                                                            new DuplicateFooCommand()))),
+                                                            new DuplicateFooCommand())),
+                                            Mockito.mock(Logger.class)),
                             "should throw CommandDefinitionException for duplicate definitions");
             assertThat(
                     thrown.getMessage(),
@@ -245,8 +260,9 @@ public class CommandRegistryImplTest extends TestBase {
         public void validate(String[] args) throws FailedValidationException {}
 
         @Override
-        public void execute(String[] args) {
+        public Output<?> execute(String[] args) {
             this.value = args[0];
+            return new SuccessOutput();
         }
     }
 
@@ -269,8 +285,54 @@ public class CommandRegistryImplTest extends TestBase {
         }
 
         @Override
-        public void execute(String[] args) {
+        public Output<?> execute(String[] args) {
             this.value = args[0];
+            return new SuccessOutput();
+        }
+    }
+
+    static class BazCommand implements Command {
+        String value = null;
+
+        @Override
+        public String getName() {
+            return "baz";
+        }
+
+        @Override
+        public boolean isAvailable() {
+            return false;
+        }
+
+        @Override
+        public void validate(String[] args) throws FailedValidationException {
+            throw new FailedValidationException("fizz could not be found");
+        }
+
+        @Override
+        public Output<?> execute(String[] args) {
+            this.value = args[0];
+            return new SuccessOutput();
+        }
+    }
+
+    static class FizzCommand implements Command {
+        @Override
+        public String getName() {
+            return "fizz";
+        }
+
+        @Override
+        public boolean isAvailable() {
+            return true;
+        }
+
+        @Override
+        public void validate(String[] args) throws FailedValidationException {}
+
+        @Override
+        public Output<?> execute(String[] args) {
+            throw new NullPointerException("Fizzed Out!");
         }
     }
 

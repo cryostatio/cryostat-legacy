@@ -49,14 +49,13 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 @Singleton
-class ListRecordingOptionsCommand extends AbstractConnectedCommand implements SerializableCommand {
+class ListRecordingOptionsCommand extends AbstractConnectedCommand {
 
     private final ClientWriter cw;
 
@@ -71,25 +70,8 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
         return "list-recording-options";
     }
 
-    /** No args expected. Prints list of available recording options in target JVM. */
     @Override
-    public void execute(String[] args) throws Exception {
-        String targetId = args[0];
-        targetConnectionManager.executeConnectedTask(
-                new ConnectionDescriptor(targetId),
-                connection -> {
-                    cw.println("Available recording options:");
-                    connection
-                            .getService()
-                            .getAvailableRecordingOptions()
-                            .entrySet()
-                            .forEach(this::printOptions);
-                    return null;
-                });
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
+    public Output<?> execute(String[] args) {
         try {
             String targetId = args[0];
             return targetConnectionManager.executeConnectedTask(
@@ -132,9 +114,5 @@ class ListRecordingOptionsCommand extends AbstractConnectedCommand implements Se
             cw.println(errorMessage);
             throw new FailedValidationException(errorMessage);
         }
-    }
-
-    private void printOptions(Map.Entry<String, IOptionDescriptor<?>> entry) {
-        cw.println(String.format("\t%s : %s", entry.getKey(), entry.getValue()));
     }
 }

@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.commands.internal;
 
+import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -49,16 +50,18 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.commands.Command.ExceptionOutput;
+import com.redhat.rhjmc.containerjfr.commands.Command.FailureOutput;
+import com.redhat.rhjmc.containerjfr.commands.Command.Output;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 class CommandRegistryImpl implements CommandRegistry {
 
-    private final ClientWriter cw;
     private final Map<String, Command> commandMap = new TreeMap<>();
+    private final Logger logger;
 
-    CommandRegistryImpl(ClientWriter cw, Set<Command> commands) {
-        this.cw = cw;
+    CommandRegistryImpl(Set<Command> commands, Logger logger) {
         for (Command command : commands) {
             String commandName = command.getName();
             if (commandMap.containsKey(commandName)) {
@@ -67,6 +70,7 @@ class CommandRegistryImpl implements CommandRegistry {
             }
             commandMap.put(commandName, command);
         }
+        this.logger = logger;
     }
 
     @Override
@@ -83,11 +87,29 @@ class CommandRegistryImpl implements CommandRegistry {
     }
 
     @Override
-    public void execute(String commandName, String[] args) throws Exception {
-        if (!isCommandRegistered(commandName) || !isCommandAvailable(commandName)) {
-            return;
+    public Output<?> execute(String commandName, String[] args) {
+        if (!isCommandRegistered(commandName)) {
+            return new FailureOutput(String.format("Command \"%s\" not recognized", commandName));
         }
-        commandMap.get(commandName).execute(args);
+        if (!isCommandAvailable(commandName)) {
+            return new FailureOutput(String.format("Command \"%s\" unavailable", commandName));
+        }
+        try {
+            Command c = commandMap.get(commandName);
+            boolean deprecated =
+                    Arrays.asList(c.getClass().getDeclaredAnnotations()).stream()
+                            .anyMatch(
+                                    annotation ->
+                                            Deprecated.class
+                                                    .getName()
+                                                    .equals(annotation.annotationType().getName()));
+            if (deprecated) {
+                logger.warn(String.format("Command \"%s\" is deprecated", commandName));
+            }
+            return c.execute(args);
+        } catch (Exception e) {
+            return new ExceptionOutput(e);
+        }
     }
 
     @Override
@@ -103,11 +125,7 @@ class CommandRegistryImpl implements CommandRegistry {
         if (StringUtils.isBlank(commandName)) {
             return false;
         }
-        boolean registered = getRegisteredCommandNames().contains(commandName);
-        if (!registered) {
-            cw.println(String.format("Command \"%s\" not recognized", commandName));
-        }
-        return registered;
+        return getRegisteredCommandNames().contains(commandName);
     }
 
     @Override
@@ -115,11 +133,7 @@ class CommandRegistryImpl implements CommandRegistry {
         if (StringUtils.isBlank(commandName)) {
             return false;
         }
-        boolean available = getAvailableCommandNames().contains(commandName);
-        if (!available) {
-            cw.println(String.format("Command \"%s\" not available", commandName));
-        }
-        return available;
+        return getAvailableCommandNames().contains(commandName);
     }
 
     @SuppressWarnings("serial")

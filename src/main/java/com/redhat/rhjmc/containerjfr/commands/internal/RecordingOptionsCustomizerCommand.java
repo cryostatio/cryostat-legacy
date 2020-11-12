@@ -47,13 +47,13 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer.OptionKey;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @Singleton
-class RecordingOptionsCustomizerCommand implements SerializableCommand {
+class RecordingOptionsCustomizerCommand implements Command {
 
     private static final Pattern OPTIONS_PATTERN =
             Pattern.compile("^([\\w]+)=([\\w\\.-_]+)$", Pattern.MULTILINE);
@@ -79,26 +79,21 @@ class RecordingOptionsCustomizerCommand implements SerializableCommand {
     }
 
     @Override
-    public void execute(String[] args) throws Exception {
-        String options = args[0];
-
-        Matcher optionsMatcher = OPTIONS_PATTERN.matcher(options);
-        if (optionsMatcher.find()) {
-            String option = optionsMatcher.group(1);
-            String value = optionsMatcher.group(2);
-            OptionKey.fromOptionName(option).ifPresent(k -> customizer.set(k, value));
-            return;
-        }
-
-        Matcher unsetMatcher = UNSET_PATTERN.matcher(options);
-        unsetMatcher.find();
-        OptionKey.fromOptionName(unsetMatcher.group(1)).ifPresent(customizer::unset);
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
+    public Output<?> execute(String[] args) {
         try {
-            execute(args);
+            String options = args[0];
+
+            Matcher optionsMatcher = OPTIONS_PATTERN.matcher(options);
+            if (optionsMatcher.find()) {
+                String option = optionsMatcher.group(1);
+                String value = optionsMatcher.group(2);
+                OptionKey.fromOptionName(option).ifPresent(k -> customizer.set(k, value));
+                return new SuccessOutput();
+            }
+
+            Matcher unsetMatcher = UNSET_PATTERN.matcher(options);
+            unsetMatcher.find();
+            OptionKey.fromOptionName(unsetMatcher.group(1)).ifPresent(customizer::unset);
             return new SuccessOutput();
         } catch (Exception e) {
             return new ExceptionOutput(e);

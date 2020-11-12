@@ -48,10 +48,8 @@ import javax.inject.Singleton;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
-import com.redhat.rhjmc.containerjfr.ExecutionMode;
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -63,10 +61,6 @@ import dagger.multibindings.IntoSet;
 
 @Module
 public abstract class CommandsInternalModule {
-
-    @Binds
-    @IntoSet
-    abstract Command bindExitCommand(ExitCommand command);
 
     @Binds
     @IntoSet
@@ -101,14 +95,6 @@ public abstract class CommandsInternalModule {
     @IntoSet
     abstract Command bindSearchEventsCommand(SearchEventsCommand command);
 
-    @Binds
-    @IntoSet
-    abstract Command bindWaitCommand(WaitCommand command);
-
-    @Binds
-    @IntoSet
-    abstract Command bindWaitForCommand(WaitForCommand command);
-
     @Provides
     static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {
         return new EventOptionsBuilder.Factory(cw);
@@ -129,24 +115,7 @@ public abstract class CommandsInternalModule {
     @Provides
     @Nullable
     @Singleton
-    static CommandRegistry provideCommandRegistry(
-            ExecutionMode mode, ClientWriter cw, Set<Command> commands) {
-        if (mode.equals(ExecutionMode.WEBSOCKET)) {
-            return null;
-        } else {
-            return new CommandRegistryImpl(cw, commands);
-        }
-    }
-
-    @Provides
-    @Nullable
-    @Singleton
-    static SerializableCommandRegistry provideSerializableCommandRegistry(
-            ExecutionMode mode, Set<Command> commands, Logger logger) {
-        if (mode.equals(ExecutionMode.WEBSOCKET)) {
-            return new SerializableCommandRegistryImpl(commands, logger);
-        } else {
-            return null;
-        }
+    static CommandRegistry provideCommandRegistry(Set<Command> commands, Logger logger) {
+        return new CommandRegistryImpl(commands, logger);
     }
 }

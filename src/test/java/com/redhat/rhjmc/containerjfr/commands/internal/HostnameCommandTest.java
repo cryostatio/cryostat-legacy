@@ -58,7 +58,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 
@@ -101,26 +101,18 @@ class HostnameCommandTest {
     }
 
     @Test
-    void shouldPrintResolverHostname() throws Exception {
-        when(resolver.getHostName()).thenReturn("foo-host");
-        command.execute(new String[0]);
-        verify(cw).println("\tfoo-host");
-    }
-
-    @Test
     void shouldReturnStringOutput() throws Exception {
         when(resolver.getHostName()).thenReturn("foo-host");
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.StringOutput.class));
+        Command.Output<?> out = command.execute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.StringOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("foo-host"));
     };
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
         when(resolver.getHostName()).thenThrow(UnknownHostException.class);
-        SerializableCommand.Output<?> out = command.serializableExecute(new String[0]);
-        MatcherAssert.assertThat(
-                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        Command.Output<?> out = command.execute(new String[0]);
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("UnknownHostException: "));
     };
 }

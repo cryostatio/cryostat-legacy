@@ -60,7 +60,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
@@ -212,9 +212,8 @@ class RecordingOptionsCustomizerCommandTest {
     @Test
     void shouldReturnSuccessOutput() throws Exception {
         verifyZeroInteractions(customizer);
-        SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"toDisk=true"});
-        MatcherAssert.assertThat(out, Matchers.instanceOf(SerializableCommand.SuccessOutput.class));
+        Command.Output<?> out = command.execute(new String[] {"toDisk=true"});
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.SuccessOutput.class));
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
         verifyZeroInteractions(cw);
@@ -224,10 +223,8 @@ class RecordingOptionsCustomizerCommandTest {
     void shouldReturnExceptionOutput() throws Exception {
         verifyZeroInteractions(customizer);
         doThrow(NullPointerException.class).when(customizer).set(Mockito.any(), Mockito.any());
-        SerializableCommand.Output<?> out =
-                command.serializableExecute(new String[] {"toDisk=true"});
-        MatcherAssert.assertThat(
-                out, Matchers.instanceOf(SerializableCommand.ExceptionOutput.class));
+        Command.Output<?> out = command.execute(new String[] {"toDisk=true"});
+        MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ExceptionOutput.class));
         MatcherAssert.assertThat(out.getPayload(), Matchers.equalTo("NullPointerException: "));
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);

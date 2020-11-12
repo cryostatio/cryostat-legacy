@@ -44,12 +44,12 @@ package com.redhat.rhjmc.containerjfr.commands.internal;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.SerializableCommand;
+import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
 @Singleton
-class PrintUrlCommand implements SerializableCommand {
+class PrintUrlCommand implements Command {
 
     private final ClientWriter cw;
     private final WebServer exporter;
@@ -66,12 +66,7 @@ class PrintUrlCommand implements SerializableCommand {
     }
 
     @Override
-    public void execute(String[] args) throws Exception {
-        cw.println(exporter.getHostUrl().toString());
-    }
-
-    @Override
-    public Output<?> serializableExecute(String[] args) {
+    public Output<?> execute(String[] args) {
         try {
             return new StringOutput(exporter.getHostUrl().toString());
         } catch (Exception e) {
