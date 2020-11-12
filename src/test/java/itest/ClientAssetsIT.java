@@ -48,7 +48,9 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -83,9 +85,15 @@ public class ClientAssetsIT extends ITestBase {
     @Test
     public void indexHtmlShouldHaveScriptTag() {
         Elements body = doc.getElementsByTag("body");
-        MatcherAssert.assertThat(body.size(), Matchers.equalTo(1));
+        MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
         Elements script = body.first().getElementsByTag("script");
-        MatcherAssert.assertThat(script.size(), Matchers.equalTo(1));
-        MatcherAssert.assertThat(script.first().attr("src"), Matchers.equalTo("app.bundle.js"));
+        MatcherAssert.assertThat(
+                "Expected at least one <script>", script.size(), Matchers.greaterThanOrEqualTo(1));
+
+        boolean anyMatch = false;
+        for (Element el : script) {
+            anyMatch |= el.attr("src").matches("app(?:.\\w*)?\\.bundle\\.js");
+        }
+        Assertions.assertTrue(anyMatch, "No app.bundle.js script tag found");
     }
 }
