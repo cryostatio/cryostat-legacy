@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-import java.io.IOException;
 import java.util.Collections;
 
 import org.apache.commons.lang3.StringUtils;
@@ -52,14 +51,12 @@ import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 import dagger.Lazy;
 
 public class WsCommandExecutor {
 
     private final Logger logger;
     private final MessagingServer server;
-    private final ClientReader cr;
     private final Lazy<CommandRegistry> registry;
     private final Gson gson;
     private volatile Thread readingThread;
@@ -68,29 +65,27 @@ public class WsCommandExecutor {
     WsCommandExecutor(
             Logger logger,
             MessagingServer server,
-            ClientReader cr,
             Lazy<CommandRegistry> commandRegistry,
             Gson gson) {
         this.logger = logger;
         this.server = server;
-        this.cr = cr;
         this.registry = commandRegistry;
         this.gson = gson;
     }
 
     public synchronized void run() {
         readingThread = Thread.currentThread();
-        try (cr) {
+        try (server) {
             while (running) {
-                String rawMsg = cr.readLine();
+                String rawMsg = server.readMessage();
                 try {
                     if (StringUtils.isBlank(rawMsg)) {
-                        flush(new MalformedMessageResponseMessage(rawMsg));
+                        writeMessage(new MalformedMessageResponseMessage(rawMsg));
                         continue;
                     }
                     CommandMessage commandMessage = gson.fromJson(rawMsg, CommandMessage.class);
                     if (commandMessage == null) {
-                        flush(new MalformedMessageResponseMessage(rawMsg));
+                        writeMessage(new MalformedMessageResponseMessage(rawMsg));
                         continue;
                     }
                     if (commandMessage.args == null) {
@@ -100,52 +95,53 @@ public class WsCommandExecutor {
                     String[] args = commandMessage.args.toArray(new String[0]);
                     if (StringUtils.isBlank(commandName)
                             || !registry.get().getRegisteredCommandNames().contains(commandName)) {
-                        flush(new InvalidCommandResponseMessage(commandMessage.id, commandName));
+                        writeMessage(
+                                new InvalidCommandResponseMessage(commandMessage.id, commandName));
                         continue;
                     }
                     if (!registry.get().isCommandAvailable(commandName)) {
-                        flush(new CommandUnavailableMessage(commandMessage.id, commandName));
+                        writeMessage(new CommandUnavailableMessage(commandMessage.id, commandName));
                         continue;
                     }
                     try {
                         registry.get().validate(commandName, args);
                     } catch (FailedValidationException e) {
-                        flush(
+                        writeMessage(
                                 new FailedValidationResponseMessage(
                                         commandMessage.id, commandName, e.getMessage()));
                         continue;
                     }
                     Command.Output<?> out = registry.get().execute(commandName, args);
                     if (out instanceof Command.SuccessOutput) {
-                        flush(
+                        writeMessage(
                                 new SuccessResponseMessage<Void>(
                                         commandMessage.id, commandName, null));
                     } else if (out instanceof Command.FailureOutput) {
-                        flush(
+                        writeMessage(
                                 new FailureResponseMessage(
                                         commandMessage.id,
                                         commandName,
                                         ((Command.FailureOutput) out).getPayload()));
                     } else if (out instanceof Command.StringOutput) {
-                        flush(
+                        writeMessage(
                                 new SuccessResponseMessage<>(
                                         commandMessage.id, commandName, out.getPayload()));
                     } else if (out instanceof Command.ListOutput) {
-                        flush(
+                        writeMessage(
                                 new SuccessResponseMessage<>(
                                         commandMessage.id, commandName, out.getPayload()));
                     } else if (out instanceof Command.MapOutput) {
-                        flush(
+                        writeMessage(
                                 new SuccessResponseMessage<>(
                                         commandMessage.id, commandName, out.getPayload()));
                     } else if (out instanceof Command.ExceptionOutput) {
-                        flush(
+                        writeMessage(
                                 new CommandExceptionResponseMessage(
                                         commandMessage.id,
                                         commandName,
                                         ((Command.ExceptionOutput) out).getPayload()));
                     } else {
-                        flush(
+                        writeMessage(
                                 new CommandExceptionResponseMessage(
                                         commandMessage.id, commandName, "internal error"));
                     }
@@ -153,8 +149,6 @@ public class WsCommandExecutor {
                     reportException(rawMsg, jse);
                 }
             }
-        } catch (IOException e) {
-            logger.warn(e);
         }
     }
 
@@ -168,10 +162,10 @@ public class WsCommandExecutor {
 
     private void reportException(String rawMsg, Exception e) {
         logger.warn(e);
-        flush(new CommandExceptionResponseMessage(null, rawMsg, e));
+        writeMessage(new CommandExceptionResponseMessage(null, rawMsg, e));
     }
 
-    private void flush(ResponseMessage<?> message) {
-        server.flush(message);
+    private void writeMessage(ResponseMessage<?> message) {
+        server.writeMessage(message);
     }
 }

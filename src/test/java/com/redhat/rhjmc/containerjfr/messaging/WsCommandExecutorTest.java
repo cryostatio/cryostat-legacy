@@ -87,7 +87,6 @@ import com.redhat.rhjmc.containerjfr.commands.Command.SuccessOutput;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
 
 @ExtendWith(MockitoExtension.class)
 class WsCommandExecutorTest {
@@ -95,18 +94,17 @@ class WsCommandExecutorTest {
     WsCommandExecutor executor;
     @Mock MessagingServer server;
     @Mock Logger logger;
-    @Mock ClientReader cr;
     @Mock CommandRegistry commandRegistry;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        executor = new WsCommandExecutor(logger, server, cr, () -> commandRegistry, gson);
+        executor = new WsCommandExecutor(logger, server, () -> commandRegistry, gson);
     }
 
     @Test
     void shouldExecuteWellFormedValidCommand() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -127,12 +125,12 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[0]);
         inOrder.verify(commandRegistry).execute("help", new String[0]);
-        inOrder.verify(server).flush(Mockito.any(SuccessResponseMessage.class));
+        inOrder.verify(server).writeMessage(Mockito.any(SuccessResponseMessage.class));
     }
 
     @Test
     void shouldExecuteWellFormedValidCommandWithArgs() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -153,12 +151,12 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[] {"hello", "world"});
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
-        inOrder.verify(server).flush(Mockito.any(SuccessResponseMessage.class));
+        inOrder.verify(server).writeMessage(Mockito.any(SuccessResponseMessage.class));
     }
 
     @Test
     void shouldHandleFailureOutputs() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -181,7 +179,7 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[] {"hello", "world"});
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
-        inOrder.verify(server).flush(response.capture());
+        inOrder.verify(server).writeMessage(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -190,7 +188,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldHandleStringOutputs() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -213,7 +211,7 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[] {"hello", "world"});
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
-        inOrder.verify(server).flush(response.capture());
+        inOrder.verify(server).writeMessage(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -222,7 +220,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldHandleListOutputs() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -245,7 +243,7 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[] {"hello", "world"});
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
-        inOrder.verify(server).flush(response.capture());
+        inOrder.verify(server).writeMessage(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -255,7 +253,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldHandleMapOutputs() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -278,7 +276,7 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[] {"hello", "world"});
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
-        inOrder.verify(server).flush(response.capture());
+        inOrder.verify(server).writeMessage(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(0));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -288,7 +286,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldHandleExceptionOutputs() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -311,7 +309,7 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[] {"hello", "world"});
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
-        inOrder.verify(server).flush(response.capture());
+        inOrder.verify(server).writeMessage(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -321,7 +319,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldHandleUnknownOutputs() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -350,7 +348,7 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[] {"hello", "world"});
         inOrder.verify(commandRegistry).execute("help", new String[] {"hello", "world"});
-        inOrder.verify(server).flush(response.capture());
+        inOrder.verify(server).writeMessage(response.capture());
 
         MatcherAssert.assertThat(response.getValue().status, Matchers.equalTo(-2));
         MatcherAssert.assertThat(response.getValue().commandName, Matchers.equalTo("help"));
@@ -361,7 +359,7 @@ class WsCommandExecutorTest {
     @ValueSource(strings = {"", "\t", "  ", "\n", "null", " null ", "null\n", "\r\n"})
     @NullSource
     void shouldRespondToBlankLines(String s) throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -374,7 +372,7 @@ class WsCommandExecutorTest {
         executor.run();
 
         verifyZeroInteractions(commandRegistry);
-        verify(server).flush(Mockito.any(MalformedMessageResponseMessage.class));
+        verify(server).writeMessage(Mockito.any(MalformedMessageResponseMessage.class));
     }
 
     @ParameterizedTest
@@ -391,7 +389,7 @@ class WsCommandExecutorTest {
                 "command:foo"
             })
     void shouldRespondToMalformedJson(String s) throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -407,7 +405,7 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor =
                 ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
-        verify(server).flush(messageCaptor.capture());
+        verify(server).writeMessage(messageCaptor.capture());
         CommandExceptionResponseMessage response = messageCaptor.getValue();
         MatcherAssert.assertThat(response.commandName, Matchers.equalTo(s));
         MatcherAssert.assertThat(response.status, Matchers.equalTo(-2));
@@ -415,7 +413,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldInterpretMissingArgsAsEmpty() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -436,12 +434,12 @@ class WsCommandExecutorTest {
         inOrder.verify(commandRegistry).isCommandAvailable("help");
         inOrder.verify(commandRegistry).validate("help", new String[0]);
         inOrder.verify(commandRegistry).execute("help", new String[0]);
-        inOrder.verify(server).flush(Mockito.any(SuccessResponseMessage.class));
+        inOrder.verify(server).writeMessage(Mockito.any(SuccessResponseMessage.class));
     }
 
     @Test
     void shouldRespondToNullCommand() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -455,14 +453,14 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor =
                 ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(server).flush(messageCaptor.capture());
+        verify(server).writeMessage(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
 
     @Test
     void shouldRespondToUnregisteredCommand() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -480,14 +478,14 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor =
                 ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(server).flush(messageCaptor.capture());
+        verify(server).writeMessage(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
 
     @Test
     void shouldRespondToInvalidCommand() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -513,7 +511,7 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor =
                 ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(server).flush(messageCaptor.capture());
+        verify(server).writeMessage(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
         MatcherAssert.assertThat(
@@ -523,7 +521,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldRespondToUnavailableCommand() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -544,14 +542,14 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<ResponseMessage<String>> messageCaptor =
                 ArgumentCaptor.forClass(ResponseMessage.class);
-        verify(server).flush(messageCaptor.capture());
+        verify(server).writeMessage(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-1));
     }
 
     @Test
     void shouldReportInvalidJSONExceptions() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -565,7 +563,7 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor =
                 ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
-        verify(server).flush(messageCaptor.capture());
+        verify(server).writeMessage(messageCaptor.capture());
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-2));
 
@@ -582,7 +580,7 @@ class WsCommandExecutorTest {
 
     @Test
     void shouldMirrorIdWhenProvided() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -606,13 +604,13 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<SuccessResponseMessage<Void>> msgCaptor =
                 ArgumentCaptor.forClass(SuccessResponseMessage.class);
-        inOrder.verify(server).flush(msgCaptor.capture());
+        inOrder.verify(server).writeMessage(msgCaptor.capture());
         MatcherAssert.assertThat(msgCaptor.getValue().id, Matchers.equalTo("msgId"));
     }
 
     @Test
     void shouldUseNullIdWhenNotProvided() throws Exception {
-        when(cr.readLine())
+        when(server.readMessage())
                 .thenAnswer(
                         new Answer<String>() {
                             @Override
@@ -636,7 +634,7 @@ class WsCommandExecutorTest {
 
         ArgumentCaptor<SuccessResponseMessage<Void>> msgCaptor =
                 ArgumentCaptor.forClass(SuccessResponseMessage.class);
-        inOrder.verify(server).flush(msgCaptor.capture());
+        inOrder.verify(server).writeMessage(msgCaptor.capture());
         MatcherAssert.assertThat(msgCaptor.getValue().id, Matchers.nullValue());
     }
 }

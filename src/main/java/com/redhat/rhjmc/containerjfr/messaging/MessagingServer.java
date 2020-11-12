@@ -58,12 +58,10 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
-public class MessagingServer {
+public class MessagingServer implements AutoCloseable {
 
     static final String MAX_CONNECTIONS_ENV_VAR = "CONTAINER_JFR_MAX_WS_CONNECTIONS";
     static final int MIN_CONNECTIONS = 1;
@@ -72,7 +70,7 @@ public class MessagingServer {
 
     private final int maxConnections;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
-    private final Map<WsClientReaderWriter, ScheduledFuture<?>> connections = new HashMap<>();
+    private final Map<WsClient, ScheduledFuture<?>> connections = new HashMap<>();
     private final ScheduledExecutorService listenerPool;
     private final HttpServer server;
     private final AuthManager authManager;
@@ -110,8 +108,7 @@ public class MessagingServer {
                         }
                         logger.info(String.format("Connected remote client %s", remoteAddress));
 
-                        WsClientReaderWriter crw =
-                                new WsClientReaderWriter(this.logger, this.gson, sws);
+                        WsClient crw = new WsClient(this.logger, this.gson, sws);
                         sws.closeHandler(
                                 (unused) -> {
                                     logger.info(
@@ -155,12 +152,27 @@ public class MessagingServer {
                 });
     }
 
-    void addConnection(WsClientReaderWriter crw) {
+    String readMessage() {
+        try {
+            return inQ.take();
+        } catch (InterruptedException e) {
+            logger.warn(e);
+            return null;
+        }
+    }
+
+    void writeMessage(ResponseMessage<?> message) {
+        synchronized (connections) {
+            connections.keySet().forEach(c -> c.writeMessage(message));
+        }
+    }
+
+    void addConnection(WsClient crw) {
         synchronized (connections) {
             ScheduledFuture<?> task =
                     listenerPool.scheduleWithFixedDelay(
                             () -> {
-                                String msg = crw.readLine();
+                                String msg = crw.readMessage();
                                 if (msg != null) {
                                     inQ.add(msg);
                                 }
@@ -172,7 +184,7 @@ public class MessagingServer {
         }
     }
 
-    void removeConnection(WsClientReaderWriter crw) {
+    void removeConnection(WsClient crw) {
         synchronized (connections) {
             ScheduledFuture<?> task = connections.remove(crw);
             if (task != null) {
@@ -182,51 +194,17 @@ public class MessagingServer {
         }
     }
 
+    @Override
+    public void close() {
+        closeConnections();
+    }
+
     private void closeConnections() {
         synchronized (connections) {
             listenerPool.shutdown();
-            connections.forEach((crw, task) -> crw.close());
+            connections.keySet().forEach(WsClient::close);
             connections.clear();
         }
-    }
-
-    void flush(ResponseMessage<?> message) {
-        synchronized (connections) {
-            connections.forEach((c, t) -> c.flush(message));
-        }
-    }
-
-    ClientReader getClientReader() {
-        return new ClientReader() {
-            @Override
-            public void close() {
-                closeConnections();
-            }
-
-            @Override
-            public String readLine() {
-                try {
-                    return inQ.take();
-                } catch (InterruptedException e) {
-                    logger.warn(e);
-                    return null;
-                }
-            }
-        };
-    }
-
-    ClientWriter getClientWriter() {
-        return new ClientWriter() {
-            @Override
-            public void print(String s) {
-                logger.info(s);
-            }
-
-            @Override
-            public void println(Exception e) {
-                logger.warn(e);
-            }
-        };
     }
 
     private int determineMaximumWsConnections(Environment env) {

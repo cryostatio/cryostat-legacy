@@ -83,8 +83,8 @@ class MessagingServerTest {
     @Mock HttpServer httpServer;
     @Mock AuthManager authManager;
     @Mock Gson gson;
-    @Mock WsClientReaderWriter crw1;
-    @Mock WsClientReaderWriter crw2;
+    @Mock WsClient wsClient1;
+    @Mock WsClient wsClient2;
     @Mock ServerWebSocket sws;
 
     @BeforeEach
@@ -96,39 +96,39 @@ class MessagingServerTest {
 
     @Test
     void repeatConnectionShouldNotClosePrevious() {
-        server.addConnection(crw1);
+        server.addConnection(wsClient1);
 
-        server.addConnection(crw2);
-        verify(crw1, Mockito.never()).close();
+        server.addConnection(wsClient2);
+        verify(wsClient1, Mockito.never()).close();
     }
 
     @Test
-    void clientReaderShouldPropagateClose() throws IOException {
-        server.addConnection(crw1);
-        server.getClientReader().close();
-        verify(crw1).close();
+    void clientShouldPropagateClose() throws IOException {
+        server.addConnection(wsClient1);
+        server.close();
+        verify(wsClient1).close();
     }
 
     @Test
-    void clientReaderShouldBlockUntilConnected() {
+    void clientShouldBlockUntilConnected() {
         String expectedText = "hello world";
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
         int maxErrorFactor = 10;
         assertTimeoutPreemptively(
                 Duration.ofNanos(expectedDelta * maxErrorFactor),
                 () -> {
-                    when(crw2.readLine()).thenReturn(expectedText);
+                    when(wsClient2.readMessage()).thenReturn(expectedText);
                     Executors.newSingleThreadScheduledExecutor()
                             .schedule(
                                     () -> {
-                                        server.addConnection(crw1);
-                                        server.addConnection(crw2);
+                                        server.addConnection(wsClient1);
+                                        server.addConnection(wsClient2);
                                     },
                                     expectedDelta,
                                     TimeUnit.NANOSECONDS);
 
                     long start = System.nanoTime();
-                    String res = server.getClientReader().readLine();
+                    String res = server.readMessage();
                     long delta = System.nanoTime() - start;
                     MatcherAssert.assertThat(res, Matchers.equalTo(expectedText));
                     MatcherAssert.assertThat(
@@ -163,73 +163,55 @@ class MessagingServerTest {
         inOrder.verify(sws).accept();
         inOrder.verifyNoMoreInteractions();
         closeHandlerCaptor.getValue().handle(null);
-        // TODO verify that the WsClientReaderWriter is closed and removed
+        // TODO verify that the WsClient is closed and removed
     }
 
     @Test
     void shouldHandleRemovedConnections() throws Exception {
         String expectedText = "hello world";
-        when(crw2.readLine()).thenReturn(expectedText);
+        when(wsClient2.readMessage()).thenReturn(expectedText);
 
-        server.addConnection(crw1);
-        server.addConnection(crw2);
+        server.addConnection(wsClient1);
+        server.addConnection(wsClient2);
 
-        MatcherAssert.assertThat(
-                server.getClientReader().readLine(), Matchers.equalTo(expectedText));
-        verify(crw2).readLine();
+        MatcherAssert.assertThat(server.readMessage(), Matchers.equalTo(expectedText));
+        verify(wsClient2).readMessage();
 
         ResponseMessage<String> successResponseMessage =
                 new SuccessResponseMessage<>("msgId", "test", "message");
-        server.flush(successResponseMessage);
+        server.writeMessage(successResponseMessage);
 
-        verify(crw1).flush(successResponseMessage);
-        verify(crw2).flush(successResponseMessage);
+        verify(wsClient1).writeMessage(successResponseMessage);
+        verify(wsClient2).writeMessage(successResponseMessage);
 
-        server.removeConnection(crw2);
-        verify(crw2).close();
+        server.removeConnection(wsClient2);
+        verify(wsClient2).close();
 
         String newText = "another message";
-        when(crw1.readLine()).thenReturn(newText);
+        when(wsClient1.readMessage()).thenReturn(newText);
 
         // FIXME this is a dirty hack. See https://github.com/rh-jmc-team/container-jfr/issues/132
         Thread.sleep(500);
 
-        MatcherAssert.assertThat(server.getClientReader().readLine(), Matchers.equalTo(newText));
-        verify(crw1, Mockito.atLeastOnce()).readLine();
-        verifyNoMoreInteractions(crw2);
+        MatcherAssert.assertThat(server.readMessage(), Matchers.equalTo(newText));
+        verify(wsClient1, Mockito.atLeastOnce()).readMessage();
+        verifyNoMoreInteractions(wsClient2);
 
         ResponseMessage<String> failureResponseMessage =
                 new FailureResponseMessage("msgId", "test", "failure");
-        server.flush(failureResponseMessage);
+        server.writeMessage(failureResponseMessage);
 
-        verify(crw1).flush(failureResponseMessage);
-        verifyNoMoreInteractions(crw2);
+        verify(wsClient1).writeMessage(failureResponseMessage);
+        verifyNoMoreInteractions(wsClient2);
     }
 
     @Test
-    void clientWriterShouldDropMessages() {
-        server.getClientWriter().print("foo");
-        verify(crw1, Mockito.never()).print(Mockito.anyString());
-    }
-
-    @Test
-    void clientWriterShouldLogExceptions() {
-        server.getClientWriter().println(new NullPointerException("Testing Exception"));
-        verify(crw1, Mockito.never()).print(Mockito.anyString());
-        ArgumentCaptor<Exception> logCaptor = ArgumentCaptor.forClass(Exception.class);
-        verify(logger).warn(logCaptor.capture());
-        MatcherAssert.assertThat(logCaptor.getValue(), Matchers.isA(NullPointerException.class));
-        MatcherAssert.assertThat(
-                logCaptor.getValue().getMessage(), Matchers.equalTo("Testing Exception"));
-    }
-
-    @Test
-    void serverFlushShouldDelegateToAllClientWriters() {
-        server.addConnection(crw1);
-        server.addConnection(crw2);
+    void serverWriteShouldDelegateToAllClientWriters() {
+        server.addConnection(wsClient1);
+        server.addConnection(wsClient2);
         ResponseMessage<String> message = new SuccessResponseMessage<>("msgId", "test", "message");
-        server.flush(message);
-        verify(crw1).flush(message);
-        verify(crw2).flush(message);
+        server.writeMessage(message);
+        verify(wsClient1).writeMessage(message);
+        verify(wsClient2).writeMessage(message);
     }
 }

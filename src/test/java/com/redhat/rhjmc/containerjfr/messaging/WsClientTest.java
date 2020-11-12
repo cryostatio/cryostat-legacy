@@ -66,30 +66,30 @@ import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.SocketAddress;
 
 @ExtendWith(MockitoExtension.class)
-class WsClientReaderWriterTest extends TestBase {
+class WsClientTest extends TestBase {
 
-    WsClientReaderWriter crw;
+    WsClient wsClient;
     @Mock Logger logger;
     @Mock ServerWebSocket sws;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        crw = new WsClientReaderWriter(logger, gson, sws);
+        wsClient = new WsClient(logger, gson, sws);
     }
 
     @Test
-    void readLineShouldBlockUntilClosed() {
+    void readMessageShouldBlockUntilClosed() {
         long expectedDelta = TimeUnit.SECONDS.toNanos(1);
         int maxErrorFactor = 10;
         assertTimeoutPreemptively(
                 Duration.ofNanos(expectedDelta * maxErrorFactor),
                 () -> {
                     Executors.newSingleThreadScheduledExecutor()
-                            .schedule(crw::close, expectedDelta, TimeUnit.NANOSECONDS);
+                            .schedule(wsClient::close, expectedDelta, TimeUnit.NANOSECONDS);
 
                     long start = System.nanoTime();
-                    String res = crw.readLine();
+                    String res = wsClient.readMessage();
                     long delta = System.nanoTime() - start;
                     MatcherAssert.assertThat(res, Matchers.nullValue());
                     MatcherAssert.assertThat(
@@ -105,7 +105,7 @@ class WsClientReaderWriterTest extends TestBase {
     }
 
     @Test
-    void readLineShouldBlockUntilTextReceived() {
+    void readMessageShouldBlockUntilTextReceived() {
         when(sws.remoteAddress()).thenReturn(mock(SocketAddress.class));
 
         long expectedDelta = 500L;
@@ -115,11 +115,11 @@ class WsClientReaderWriterTest extends TestBase {
                     String expected = "hello world";
                     Executors.newSingleThreadScheduledExecutor()
                             .schedule(
-                                    () -> crw.handle(expected),
+                                    () -> wsClient.handle(expected),
                                     expectedDelta,
                                     TimeUnit.MILLISECONDS);
 
-                    MatcherAssert.assertThat(crw.readLine(), Matchers.equalTo(expected));
+                    MatcherAssert.assertThat(wsClient.readMessage(), Matchers.equalTo(expected));
                 });
     }
 }

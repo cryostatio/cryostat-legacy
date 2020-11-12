@@ -48,8 +48,6 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
@@ -58,28 +56,16 @@ import dagger.Module;
 import dagger.Provides;
 
 @Module
-public class MessagingModule {
+public abstract class MessagingModule {
+
     @Provides
     @Singleton
     static WsCommandExecutor provideWsCommandExecutor(
             Logger logger,
             MessagingServer server,
-            ClientReader cr,
             Lazy<CommandRegistry> commandRegistry,
             Gson gson) {
-        return new WsCommandExecutor(logger, server, cr, commandRegistry, gson);
-    }
-
-    @Provides
-    @Singleton
-    static ClientReader provideClientReader(MessagingServer webSocketMessagingServer) {
-        return webSocketMessagingServer.getClientReader();
-    }
-
-    @Provides
-    @Singleton
-    static ClientWriter provideClientWriter(MessagingServer webSocketMessagingServer) {
-        return webSocketMessagingServer.getClientWriter();
+        return new WsCommandExecutor(logger, server, commandRegistry, gson);
     }
 
     @Provides
