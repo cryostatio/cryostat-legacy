@@ -41,7 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
-import java.util.HashMap;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -94,19 +95,16 @@ class TargetRecordingOptionsListGetHandler extends AbstractAuthenticatedRequestH
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        Map<String, SerializableOptionDescriptor> options =
+        List<SerializableOptionDescriptor> options =
                 connectionManager.executeConnectedTask(
                         getConnectionDescriptorFromContext(ctx),
                         connection -> {
                             Map<String, IOptionDescriptor<?>> origOptions =
                                     connection.getService().getAvailableRecordingOptions();
-                            Map<String, SerializableOptionDescriptor> serializableOptions =
-                                    new HashMap<>(origOptions.size());
-                            for (Map.Entry<String, IOptionDescriptor<?>> entry :
-                                    origOptions.entrySet()) {
-                                serializableOptions.put(
-                                        entry.getKey(),
-                                        new SerializableOptionDescriptor(entry.getValue()));
+                            List<SerializableOptionDescriptor> serializableOptions =
+                                    new ArrayList<>(origOptions.size());
+                            for (IOptionDescriptor<?> option : origOptions.values()) {
+                                serializableOptions.add(new SerializableOptionDescriptor(option));
                             }
                             return serializableOptions;
                         });

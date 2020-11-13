@@ -44,6 +44,8 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 
 import org.hamcrest.MatcherAssert;
@@ -132,14 +134,13 @@ class TargetRecordingOptionsListGetHandlerTest {
 
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(resp).end(responseCaptor.capture());
-        Map<String, SerializableOptionDescriptor> result =
+        List<SerializableOptionDescriptor> result =
                 gson.fromJson(
                         responseCaptor.getValue(),
-                        new TypeToken<Map<String, SerializableOptionDescriptor>>() {}.getType());
+                        new TypeToken<List<SerializableOptionDescriptor>>() {}.getType());
 
         MatcherAssert.assertThat(
                 result,
-                Matchers.equalTo(
-                        Map.of("foo-option", new SerializableOptionDescriptor(descriptor))));
+                Matchers.equalTo(Arrays.asList(new SerializableOptionDescriptor(descriptor))));
     }
 }
