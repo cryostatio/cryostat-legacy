@@ -85,7 +85,6 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 class SubprocessReportGenerator {
 
@@ -350,7 +349,6 @@ class SubprocessReportGenerator {
         }
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     static String getReportFromLiveTarget(
             String recordingName, ConnectionDescriptor cd, Path saveFile) throws Exception {
         var fs = new FileSystem();
@@ -376,7 +374,6 @@ class SubprocessReportGenerator {
         }
     }
 
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     static Path copyRecordingToFile(JFRConnection conn, String recordingName, Path path)
             throws Exception {
         for (IRecordingDescriptor rec : conn.getService().getAvailableRecordings()) {
