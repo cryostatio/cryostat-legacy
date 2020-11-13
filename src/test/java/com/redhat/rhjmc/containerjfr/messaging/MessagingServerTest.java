@@ -67,6 +67,7 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
@@ -86,12 +87,14 @@ class MessagingServerTest {
     @Mock WsClient wsClient1;
     @Mock WsClient wsClient2;
     @Mock ServerWebSocket sws;
+    @Mock Notification notification;
 
     @BeforeEach
     void setup() {
         when(env.getEnv(Mockito.eq(MessagingServer.MAX_CONNECTIONS_ENV_VAR), Mockito.anyString()))
                 .thenReturn("2");
-        server = new MessagingServer(httpServer, env, authManager, logger, gson);
+        server =
+                new MessagingServer(httpServer, env, authManager, () -> notification, logger, gson);
     }
 
     @Test

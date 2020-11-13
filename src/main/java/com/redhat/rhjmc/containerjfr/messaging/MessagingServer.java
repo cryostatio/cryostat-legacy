@@ -54,10 +54,13 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.inject.Provider;
+
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
@@ -74,13 +77,20 @@ public class MessagingServer implements AutoCloseable {
     private final ScheduledExecutorService listenerPool;
     private final HttpServer server;
     private final AuthManager authManager;
+    private final Provider<Notification> notificationProvider;
     private final Logger logger;
     private final Gson gson;
 
     MessagingServer(
-            HttpServer server, Environment env, AuthManager authManager, Logger logger, Gson gson) {
+            HttpServer server,
+            Environment env,
+            AuthManager authManager,
+            Provider<Notification> notificationProvider,
+            Logger logger,
+            Gson gson) {
         this.server = server;
         this.authManager = authManager;
+        this.notificationProvider = notificationProvider;
         this.logger = logger;
         this.gson = gson;
         this.maxConnections = determineMaximumWsConnections(env);
@@ -103,10 +113,19 @@ public class MessagingServer implements AutoCloseable {
                                     String.format(
                                             "Dropping remote client %s due to too many concurrent connections",
                                             remoteAddress));
+                            try (Notification<String> n = notificationProvider.get()) {
+                                n.setMetaType(
+                                        new Notification.MetaType("string", "client_dropped"));
+                                n.setMessage(remoteAddress);
+                            }
                             sws.reject();
                             return;
                         }
                         logger.info(String.format("Connected remote client %s", remoteAddress));
+                        try (Notification<String> n = notificationProvider.get()) {
+                            n.setMetaType(new Notification.MetaType("string", "client_connected"));
+                            n.setMessage(remoteAddress);
+                        }
 
                         WsClient crw = new WsClient(this.logger, sws);
                         sws.closeHandler(
@@ -115,6 +134,12 @@ public class MessagingServer implements AutoCloseable {
                                             String.format(
                                                     "Disconnected remote client %s",
                                                     remoteAddress));
+                                    try (Notification<String> n = notificationProvider.get()) {
+                                        n.setMetaType(
+                                                new Notification.MetaType(
+                                                        "string", "client_disconnected"));
+                                        n.setMessage(remoteAddress);
+                                    }
                                     removeConnection(crw);
                                 });
                         sws.textMessageHandler(

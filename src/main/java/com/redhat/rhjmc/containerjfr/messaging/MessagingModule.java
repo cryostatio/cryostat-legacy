@@ -41,12 +41,14 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationsModule;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -63,7 +65,12 @@ public abstract class MessagingModule {
     @Provides
     @Singleton
     static MessagingServer provideWebSocketMessagingServer(
-            HttpServer server, Environment env, AuthManager authManager, Logger logger, Gson gson) {
-        return new MessagingServer(server, env, authManager, logger, gson);
+            HttpServer server,
+            Environment env,
+            AuthManager authManager,
+            Provider<Notification> notificationProvider,
+            Logger logger,
+            Gson gson) {
+        return new MessagingServer(server, env, authManager, notificationProvider, logger, gson);
     }
 }

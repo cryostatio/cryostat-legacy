@@ -50,22 +50,27 @@ import com.redhat.rhjmc.containerjfr.messaging.WsMessage;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings("URF_UNREAD_FIELD")
-public class Notification<T> extends WsMessage {
+public class Notification<T> extends WsMessage implements AutoCloseable {
 
     private final transient MessagingServer server;
     private final transient Logger logger;
 
-    private final NotificationMeta meta;
+    private final Notification.Meta meta;
     private T message;
 
     Notification(MessagingServer server, Logger logger) {
         this.server = server;
         this.logger = logger;
-        this.meta = new NotificationMeta();
+        this.meta = new Notification.Meta();
     }
 
-    public void setMetadata(NotificationMeta meta) {
-        this.meta.copyFrom(meta);
+    public void setMetaType(MetaType type) {
+        Objects.requireNonNull(type);
+        this.meta.type =
+                String.format(
+                        "%s/%s",
+                        type.getType().trim().toLowerCase(),
+                        type.getSubType().trim().toLowerCase());
     }
 
     public void setMessage(T message) {
@@ -77,13 +82,31 @@ public class Notification<T> extends WsMessage {
         this.server.writeMessage(this);
     }
 
-    public static class NotificationMeta {
-        public String type = "";
-        public long serverTime = Instant.now().getEpochSecond();
+    @Override
+    public void close() {
+        commit();
+    }
 
-        void copyFrom(NotificationMeta other) {
-            this.type = Objects.requireNonNull(other.type);
-            this.serverTime = Objects.requireNonNull(other.serverTime);
+    static class Meta {
+        String type = "string";
+        private final long serverTime = Instant.now().getEpochSecond();
+    }
+
+    public static class MetaType {
+        private final String type;
+        private final String subType;
+
+        public MetaType(String type, String subType) {
+            this.type = type;
+            this.subType = subType;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        public String getSubType() {
+            return subType;
         }
     }
 }

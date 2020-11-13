@@ -50,7 +50,6 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-
 import dagger.Component;
 
 class ContainerJfr {
