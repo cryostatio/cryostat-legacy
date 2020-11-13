@@ -48,6 +48,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.messaging.WsMessage;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings("URF_UNREAD_FIELD")
@@ -66,13 +68,16 @@ public class Notification<T> extends WsMessage implements AutoCloseable {
         this.meta = new Notification.Meta();
     }
 
+    public void setMetaType(HttpMimeType mimeType) {
+        this.setMetaType(new MetaType(mimeType));
+    }
+
     public void setMetaType(MetaType type) {
-        Objects.requireNonNull(type);
-        this.meta.type =
-                String.format(
-                        "%s/%s",
-                        type.getType().trim().toLowerCase(),
-                        type.getSubType().trim().toLowerCase());
+        this.meta.type = Objects.requireNonNull(type);
+    }
+
+    public void setMetaCategory(String category) {
+        this.meta.category = Objects.requireNonNull(category);
     }
 
     public void setMessage(T message) {
@@ -92,13 +97,18 @@ public class Notification<T> extends WsMessage implements AutoCloseable {
     }
 
     static class Meta {
-        String type = "string";
+        private String category = "generic";
+        private MetaType type = new MetaType(HttpMimeType.PLAINTEXT);
         private final long serverTime = Instant.now().getEpochSecond();
     }
 
     public static class MetaType {
         private final String type;
         private final String subType;
+
+        public MetaType(HttpMimeType mimeType) {
+            this(mimeType.type(), mimeType.subType());
+        }
 
         public MetaType(String type, String subType) {
             this.type = type;

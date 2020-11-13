@@ -57,4 +57,12 @@ public enum HttpMimeType {
     public String mime() {
         return mime;
     }
+
+    public String type() {
+        return mime().split("/")[0];
+    }
+
+    public String subType() {
+        return mime().split("/")[1];
+    }
 }

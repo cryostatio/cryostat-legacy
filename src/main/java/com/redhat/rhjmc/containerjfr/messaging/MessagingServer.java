@@ -63,6 +63,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 public class MessagingServer implements AutoCloseable {
 
@@ -70,6 +71,7 @@ public class MessagingServer implements AutoCloseable {
     static final int MIN_CONNECTIONS = 1;
     static final int MAX_CONNECTIONS = 64;
     static final int DEFAULT_MAX_CONNECTIONS = 2;
+    static final String NOTIFICATION_CATEGORY = "WsClientActivity";
 
     private final int maxConnections;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
@@ -113,18 +115,19 @@ public class MessagingServer implements AutoCloseable {
                                     String.format(
                                             "Dropping remote client %s due to too many concurrent connections",
                                             remoteAddress));
-                            try (Notification<String> n = notificationProvider.get()) {
-                                n.setMetaType(
-                                        new Notification.MetaType("string", "client_dropped"));
-                                n.setMessage(remoteAddress);
+                            try (Notification<Map<String, String>> n = notificationProvider.get()) {
+                                n.setMetaType(HttpMimeType.JSON);
+                                n.setMetaCategory(NOTIFICATION_CATEGORY);
+                                n.setMessage(Map.of(remoteAddress, "dropped"));
                             }
                             sws.reject();
                             return;
                         }
                         logger.info(String.format("Connected remote client %s", remoteAddress));
-                        try (Notification<String> n = notificationProvider.get()) {
-                            n.setMetaType(new Notification.MetaType("string", "client_connected"));
-                            n.setMessage(remoteAddress);
+                        try (Notification<Map<String, String>> n = notificationProvider.get()) {
+                            n.setMetaType(HttpMimeType.JSON);
+                            n.setMetaCategory(NOTIFICATION_CATEGORY);
+                            n.setMessage(Map.of(remoteAddress, "connected"));
                         }
 
                         WsClient crw = new WsClient(this.logger, sws);
@@ -134,11 +137,10 @@ public class MessagingServer implements AutoCloseable {
                                             String.format(
                                                     "Disconnected remote client %s",
                                                     remoteAddress));
-                                    try (Notification<String> n = notificationProvider.get()) {
-                                        n.setMetaType(
-                                                new Notification.MetaType(
-                                                        "string", "client_disconnected"));
-                                        n.setMessage(remoteAddress);
+                                    try (Notification<Map<String, String>> n = notificationProvider.get()) {
+                                        n.setMetaType(HttpMimeType.JSON);
+                                        n.setMetaCategory(NOTIFICATION_CATEGORY);
+                                        n.setMessage(Map.of(remoteAddress, "disconnected"));
                                     }
                                     removeConnection(crw);
                                 });
