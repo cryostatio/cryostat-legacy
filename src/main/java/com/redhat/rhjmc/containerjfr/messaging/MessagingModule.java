@@ -41,14 +41,17 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-import javax.inject.Provider;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.function.Function;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationsModule;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -62,15 +65,24 @@ import dagger.Provides;
         })
 public abstract class MessagingModule {
 
+    static final String WORKER_POOL_FN = "WORKER_POOL_FN";
+
     @Provides
     @Singleton
     static MessagingServer provideWebSocketMessagingServer(
             HttpServer server,
             Environment env,
             AuthManager authManager,
-            Provider<Notification> notificationProvider,
             Logger logger,
-            Gson gson) {
-        return new MessagingServer(server, env, authManager, notificationProvider, logger, gson);
+            Gson gson,
+            @Named(WORKER_POOL_FN) Function<Integer, ScheduledExecutorService> workerPoolFn) {
+        return new MessagingServer(
+                server, env, authManager, logger, gson, workerPoolFn);
+    }
+
+    @Provides
+    @Named(WORKER_POOL_FN)
+    static Function<Integer, ScheduledExecutorService> provideWorkerPoolFunction() {
+        return Executors::newScheduledThreadPool;
     }
 }

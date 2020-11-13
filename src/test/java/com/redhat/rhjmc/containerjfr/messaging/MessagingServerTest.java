@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.messaging;
 
 import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -50,8 +51,19 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.AbstractExecutorService;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Delayed;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -68,8 +80,11 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification.MetaType;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.ServerWebSocket;
@@ -87,28 +102,57 @@ class MessagingServerTest {
     @Mock WsClient wsClient1;
     @Mock WsClient wsClient2;
     @Mock ServerWebSocket sws;
+    @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
+    TestExecutorService executor = new TestExecutorService();
 
     @BeforeEach
     void setup() {
         when(env.getEnv(Mockito.eq(MessagingServer.MAX_CONNECTIONS_ENV_VAR), Mockito.anyString()))
                 .thenReturn("2");
+
+        lenient().when(notificationFactory.create()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(MetaType.class)))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
+
         server =
-                new MessagingServer(httpServer, env, authManager, () -> notification, logger, gson);
+                new MessagingServer(
+                        httpServer,
+                        env,
+                        authManager,
+                        notificationFactory,
+                        logger,
+                        gson,
+                        unused -> executor);
     }
 
     @Test
     void repeatConnectionShouldNotClosePrevious() {
         server.addConnection(wsClient1);
-
+        executor.tick();
         server.addConnection(wsClient2);
+        executor.tick();
+
         verify(wsClient1, Mockito.never()).close();
+        verify(wsClient2, Mockito.never()).close();
     }
 
     @Test
     void clientShouldPropagateClose() throws IOException {
         server.addConnection(wsClient1);
+        executor.tick();
         server.close();
+        executor.tick();
         verify(wsClient1).close();
     }
 
@@ -126,6 +170,7 @@ class MessagingServerTest {
                                     () -> {
                                         server.addConnection(wsClient1);
                                         server.addConnection(wsClient2);
+                                        executor.tick();
                                     },
                                     expectedDelta,
                                     TimeUnit.NANOSECONDS);
@@ -172,10 +217,11 @@ class MessagingServerTest {
     @Test
     void shouldHandleRemovedConnections() throws Exception {
         String expectedText = "hello world";
-        when(wsClient2.readMessage()).thenReturn(expectedText);
+        when(wsClient2.readMessage()).thenReturn(expectedText).thenReturn(null);
 
         server.addConnection(wsClient1);
         server.addConnection(wsClient2);
+        executor.tick();
 
         MatcherAssert.assertThat(server.readMessage(), Matchers.equalTo(expectedText));
         verify(wsClient2, Mockito.atLeastOnce()).readMessage();
@@ -183,18 +229,18 @@ class MessagingServerTest {
         ResponseMessage<String> successResponseMessage =
                 new SuccessResponseMessage<>("msgId", "test", "message");
         server.writeMessage(successResponseMessage);
+        executor.tick();
 
         verify(wsClient1, Mockito.times(1)).writeMessage(gson.toJson(successResponseMessage));
         verify(wsClient2, Mockito.times(1)).writeMessage(gson.toJson(successResponseMessage));
 
         server.removeConnection(wsClient2);
+        executor.tick();
         verify(wsClient2, Mockito.times(1)).close();
 
         String newText = "another message";
-        when(wsClient1.readMessage()).thenReturn(newText);
-
-        // FIXME this is a dirty hack. See https://github.com/rh-jmc-team/container-jfr/issues/132
-        Thread.sleep(500);
+        when(wsClient1.readMessage()).thenReturn(newText).thenReturn(null);
+        executor.tick();
 
         MatcherAssert.assertThat(server.readMessage(), Matchers.equalTo(newText));
         verify(wsClient1, Mockito.atLeastOnce()).readMessage();
@@ -203,6 +249,7 @@ class MessagingServerTest {
         ResponseMessage<String> failureResponseMessage =
                 new FailureResponseMessage("msgId", "test", "failure");
         server.writeMessage(failureResponseMessage);
+        executor.tick();
 
         ArgumentCaptor<String> failureCaptor = ArgumentCaptor.forClass(String.class);
         verify(wsClient1, Mockito.times(2)).writeMessage(failureCaptor.capture());
@@ -215,9 +262,142 @@ class MessagingServerTest {
     void serverWriteShouldDelegateToAllClientWriters() {
         server.addConnection(wsClient1);
         server.addConnection(wsClient2);
+        executor.tick();
         ResponseMessage<String> message = new SuccessResponseMessage<>("msgId", "test", "message");
         server.writeMessage(message);
+        executor.tick();
         verify(wsClient1).writeMessage(gson.toJson(message));
         verify(wsClient2).writeMessage(gson.toJson(message));
+    }
+
+    static class TestExecutorService extends AbstractExecutorService
+            implements ScheduledExecutorService {
+
+        private final Map<Runnable, ControlledFuture> futures = new HashMap<>();
+        private final List<Runnable> runnables = new ArrayList<>();
+
+        public void tick() {
+            runnables.forEach(Runnable::run);
+        }
+
+        public ControlledFuture<?> getFuture(Runnable runnable) {
+            return futures.get(runnable);
+        }
+
+        @Override
+        public boolean awaitTermination(long arg0, TimeUnit arg1) throws InterruptedException {
+            return false;
+        }
+
+        @Override
+        public boolean isShutdown() {
+            return false;
+        }
+
+        @Override
+        public boolean isTerminated() {
+            return false;
+        }
+
+        @Override
+        public void shutdown() {
+            this.runnables.clear();
+        }
+
+        @Override
+        public List<Runnable> shutdownNow() {
+            shutdown();
+            return List.of();
+        }
+
+        @Override
+        public void execute(Runnable runnable) {
+            runnable.run();
+        }
+
+        @Override
+        public ScheduledFuture<?> schedule(Runnable runnable, long delay, TimeUnit unit) {
+            runnables.add(runnable);
+            futures.putIfAbsent(runnable, new ControlledFuture<>(unit.toMillis(delay)));
+            return futures.get(runnable);
+        }
+
+        @Override
+        public <V> ScheduledFuture<V> schedule(Callable<V> callable, long delay, TimeUnit unit) {
+            Runnable runnable =
+                    () -> {
+                        try {
+                            callable.call();
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            throw new RuntimeException(e);
+                        }
+                    };
+            runnables.add(runnable);
+            futures.putIfAbsent(runnable, new ControlledFuture<>(unit.toMillis(delay)));
+            return futures.get(runnable);
+        }
+
+        @Override
+        public ScheduledFuture<?> scheduleAtFixedRate(
+                Runnable runnable, long delay, long period, TimeUnit unit) {
+            runnables.add(runnable);
+            futures.putIfAbsent(runnable, new ControlledFuture<>(unit.toMillis(delay)));
+            return futures.get(runnable);
+        }
+
+        @Override
+        public ScheduledFuture<?> scheduleWithFixedDelay(
+                Runnable runnable, long delay, long period, TimeUnit unit) {
+            runnables.add(runnable);
+            futures.putIfAbsent(runnable, new ControlledFuture<>(unit.toMillis(delay)));
+            return futures.get(runnable);
+        }
+    }
+
+    static class ControlledFuture<T> implements ScheduledFuture<T> {
+
+        long delay;
+        T v;
+
+        ControlledFuture(long delay) {
+            this.delay = delay;
+        }
+
+        @Override
+        public long getDelay(TimeUnit unit) {
+            return unit.toMillis(delay);
+        }
+
+        @Override
+        public int compareTo(Delayed delayed) {
+            return 0;
+        }
+
+        @Override
+        public boolean cancel(boolean force) {
+            return false;
+        }
+
+        @Override
+        public T get() throws InterruptedException, ExecutionException {
+            return v;
+        }
+
+        @Override
+        public T get(long period, TimeUnit unit)
+                throws InterruptedException, ExecutionException, TimeoutException {
+            return v;
+        }
+
+        @Override
+        public boolean isCancelled() {
+            return false;
+        }
+
+        @Override
+        public boolean isDone() {
+            return false;
+        }
     }
 }

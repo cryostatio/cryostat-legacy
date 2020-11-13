@@ -47,23 +47,21 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.function.Function;
 
-import javax.inject.Provider;
+import javax.inject.Named;
 
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 public class MessagingServer implements AutoCloseable {
 
@@ -71,15 +69,13 @@ public class MessagingServer implements AutoCloseable {
     static final int MIN_CONNECTIONS = 1;
     static final int MAX_CONNECTIONS = 64;
     static final int DEFAULT_MAX_CONNECTIONS = 2;
-    static final String NOTIFICATION_CATEGORY = "WsClientActivity";
 
     private final int maxConnections;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private final Map<WsClient, ScheduledFuture<?>> connections = new HashMap<>();
-    private final ScheduledExecutorService listenerPool;
+    private final ScheduledExecutorService workerPool;
     private final HttpServer server;
     private final AuthManager authManager;
-    private final Provider<Notification> notificationProvider;
     private final Logger logger;
     private final Gson gson;
 
@@ -87,16 +83,16 @@ public class MessagingServer implements AutoCloseable {
             HttpServer server,
             Environment env,
             AuthManager authManager,
-            Provider<Notification> notificationProvider,
             Logger logger,
-            Gson gson) {
+            Gson gson,
+            @Named(MessagingModule.WORKER_POOL_FN)
+                    Function<Integer, ScheduledExecutorService> workerPoolFn) {
         this.server = server;
         this.authManager = authManager;
-        this.notificationProvider = notificationProvider;
         this.logger = logger;
         this.gson = gson;
         this.maxConnections = determineMaximumWsConnections(env);
-        this.listenerPool = Executors.newScheduledThreadPool(maxConnections);
+        this.workerPool = workerPoolFn.apply(maxConnections);
     }
 
     public void start() throws SocketException, UnknownHostException {
@@ -115,20 +111,10 @@ public class MessagingServer implements AutoCloseable {
                                     String.format(
                                             "Dropping remote client %s due to too many concurrent connections",
                                             remoteAddress));
-                            try (Notification<Map<String, String>> n = notificationProvider.get()) {
-                                n.setMetaType(HttpMimeType.JSON);
-                                n.setMetaCategory(NOTIFICATION_CATEGORY);
-                                n.setMessage(Map.of(remoteAddress, "dropped"));
-                            }
                             sws.reject();
                             return;
                         }
                         logger.info(String.format("Connected remote client %s", remoteAddress));
-                        try (Notification<Map<String, String>> n = notificationProvider.get()) {
-                            n.setMetaType(HttpMimeType.JSON);
-                            n.setMetaCategory(NOTIFICATION_CATEGORY);
-                            n.setMessage(Map.of(remoteAddress, "connected"));
-                        }
 
                         WsClient crw = new WsClient(this.logger, sws);
                         sws.closeHandler(
@@ -137,11 +123,6 @@ public class MessagingServer implements AutoCloseable {
                                             String.format(
                                                     "Disconnected remote client %s",
                                                     remoteAddress));
-                                    try (Notification<Map<String, String>> n = notificationProvider.get()) {
-                                        n.setMetaType(HttpMimeType.JSON);
-                                        n.setMetaCategory(NOTIFICATION_CATEGORY);
-                                        n.setMessage(Map.of(remoteAddress, "disconnected"));
-                                    }
                                     removeConnection(crw);
                                 });
                         sws.textMessageHandler(
@@ -198,7 +179,7 @@ public class MessagingServer implements AutoCloseable {
     void addConnection(WsClient crw) {
         synchronized (connections) {
             ScheduledFuture<?> task =
-                    listenerPool.scheduleWithFixedDelay(
+                    workerPool.scheduleWithFixedDelay(
                             () -> {
                                 String msg = crw.readMessage();
                                 if (msg != null) {
@@ -229,7 +210,7 @@ public class MessagingServer implements AutoCloseable {
 
     private void closeConnections() {
         synchronized (connections) {
-            listenerPool.shutdown();
+            workerPool.shutdown();
             connections.keySet().forEach(WsClient::close);
             connections.clear();
         }
