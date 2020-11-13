@@ -1201,14 +1201,57 @@
 
 ### Quick Reference
 
-| What you want to do                                                       | Which handler you should use                                                |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
-| **Recordings in target JVMs**                                             |                                                                             |
-| Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler)                   |
-| **Security**                                                              |                                                                             |
-| Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                         |
+| What you want to do                                                       | Which handler you should use                                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Recordings in target JVMs**                                             |                                                                                 |
+| Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
+| Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler-1)                     |
+| **Security**                                                              |                                                                                 |
+| Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
 ### Flight Recorder
+
+
+* #### `TargetRecordingOptionsListGetHandler`
+
+    ###### synopsis
+    Returns a list of recording options which may be set for recordings within
+    a target JVM. Not all options are guaranteed to be supported by the client.
+
+    ###### request
+    `GET /api/v2/targets/:targetId/recordingOptionsList`
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    ###### response
+    `200` - The body is a JSON array of recording option objects.
+    
+    The format of a recording option is
+    `{"name":"$NAME","description":"$DESCRIPTION","defaultValue":"$DEFAULT"}`.
+
+    `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - The target could not be found. The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error. The body is an error message.
+
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    certificate.
+
+    ###### example
+    ```
+    $ curl localhost:8181/api/v2/targets/localhost/recordingOptionsList
+    [{"name":"Name","description":"Recording name","defaultValue":"Recording"},{"name":"Duration","description":"Duration of recording","defaultValue":"30s[s]"},{"name":"Max Size","description":"Maximum size of recording","defaultValue":"0B[B]"},{"name":"Max Age","description":"Maximum age of the events in the recording","defaultValue":"0s[s]"},{"name":"To disk","description":"Record to disk","defaultValue":"false"},{"name":"Dump on Exit","description":"Dump recording data to disk on JVM exit","defaultValue":"false"}]
+    ```
 
 * #### `TargetSnapshotPostHandler`
 
