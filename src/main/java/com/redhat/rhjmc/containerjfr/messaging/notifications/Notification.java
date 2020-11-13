@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
 import java.time.Instant;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
@@ -54,6 +55,7 @@ public class Notification<T> extends WsMessage implements AutoCloseable {
 
     private final transient MessagingServer server;
     private final transient Logger logger;
+    private final transient AtomicBoolean sent = new AtomicBoolean(false);
 
     private final Notification.Meta meta;
     private T message;
@@ -77,14 +79,16 @@ public class Notification<T> extends WsMessage implements AutoCloseable {
         this.message = message;
     }
 
-    public void commit() {
-        logger.trace("Notification committed");
-        this.server.writeMessage(this);
+    public void send() {
+        if (!sent.getAndSet(true)) {
+            logger.trace("Notification committed");
+            this.server.writeMessage(this);
+        }
     }
 
     @Override
     public void close() {
-        commit();
+        send();
     }
 
     static class Meta {
