@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.messaging;
+package com.redhat.rhjmc.containerjfr.commands;
 
 import java.util.Collections;
 
@@ -47,13 +47,21 @@ import org.apache.commons.lang3.StringUtils;
 import com.google.gson.Gson;
 import com.google.gson.JsonSyntaxException;
 
-import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.messaging.CommandExceptionResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.CommandMessage;
+import com.redhat.rhjmc.containerjfr.messaging.CommandUnavailableMessage;
+import com.redhat.rhjmc.containerjfr.messaging.FailedValidationResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.FailureResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.InvalidCommandResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.MalformedMessageResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+import com.redhat.rhjmc.containerjfr.messaging.ResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.SuccessResponseMessage;
 import dagger.Lazy;
 
-public class WsCommandExecutor {
+public class CommandExecutor {
 
     private final Logger logger;
     private final MessagingServer server;
@@ -62,7 +70,7 @@ public class WsCommandExecutor {
     private volatile Thread readingThread;
     private volatile boolean running = true;
 
-    WsCommandExecutor(
+    CommandExecutor(
             Logger logger,
             MessagingServer server,
             Lazy<CommandRegistry> commandRegistry,

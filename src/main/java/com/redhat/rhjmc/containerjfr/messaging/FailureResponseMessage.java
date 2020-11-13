@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-class FailureResponseMessage extends ResponseMessage<String> {
-    FailureResponseMessage(String id, String commandName, String message) {
+public class FailureResponseMessage extends ResponseMessage<String> {
+    public FailureResponseMessage(String id, String commandName, String message) {
         super(id, Status.COMMAND_EXCEPTION, commandName, message);
     }
 }

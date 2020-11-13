@@ -45,28 +45,16 @@ import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
-import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 
 @Module
 public abstract class MessagingModule {
-
-    @Provides
-    @Singleton
-    static WsCommandExecutor provideWsCommandExecutor(
-            Logger logger,
-            MessagingServer server,
-            Lazy<CommandRegistry> commandRegistry,
-            Gson gson) {
-        return new WsCommandExecutor(logger, server, commandRegistry, gson);
-    }
 
     @Provides
     @Singleton

@@ -48,13 +48,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         value = "URF_UNREAD_FIELD",
         justification =
                 "This class will be (de)serialized by Gson, so not all fields may be accessed directly")
-abstract class ResponseMessage<T> extends WsMessage {
-    String id;
-    String commandName;
-    int status;
-    T payload;
+public abstract class ResponseMessage<T> extends WsMessage {
+    public String id;
+    public String commandName;
+    public int status;
+    public T payload;
 
-    ResponseMessage(String id, Status status, String commandName, T payload) {
+    public ResponseMessage(String id, Status status, String commandName, T payload) {
         this.id = id;
         this.status = status.getCode();
         this.commandName = commandName;

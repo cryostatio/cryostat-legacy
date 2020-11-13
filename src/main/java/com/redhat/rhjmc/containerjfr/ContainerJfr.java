@@ -43,11 +43,11 @@ package com.redhat.rhjmc.containerjfr;
 
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.commands.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
-import com.redhat.rhjmc.containerjfr.messaging.WsCommandExecutor;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import dagger.Component;
@@ -79,7 +79,7 @@ class ContainerJfr {
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
-        WsCommandExecutor commandExecutor();
+        CommandExecutor commandExecutor();
 
         HttpServer httpServer();
 

@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.messaging;
+package com.redhat.rhjmc.containerjfr.commands;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -84,14 +84,19 @@ import com.redhat.rhjmc.containerjfr.commands.Command.MapOutput;
 import com.redhat.rhjmc.containerjfr.commands.Command.Output;
 import com.redhat.rhjmc.containerjfr.commands.Command.StringOutput;
 import com.redhat.rhjmc.containerjfr.commands.Command.SuccessOutput;
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.messaging.CommandExceptionResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.FailureResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.MalformedMessageResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+import com.redhat.rhjmc.containerjfr.messaging.ResponseMessage;
+import com.redhat.rhjmc.containerjfr.messaging.SuccessResponseMessage;
 
 @ExtendWith(MockitoExtension.class)
-class WsCommandExecutorTest {
+class CommandExecutorTest {
 
-    WsCommandExecutor executor;
+    CommandExecutor executor;
     @Mock MessagingServer server;
     @Mock Logger logger;
     @Mock CommandRegistry commandRegistry;
@@ -99,7 +104,7 @@ class WsCommandExecutorTest {
 
     @BeforeEach
     void setup() {
-        executor = new WsCommandExecutor(logger, server, () -> commandRegistry, gson);
+        executor = new CommandExecutor(logger, server, () -> commandRegistry, gson);
     }
 
     @Test

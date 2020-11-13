@@ -41,8 +41,28 @@
  */
 package com.redhat.rhjmc.containerjfr.commands;
 
+import javax.inject.Singleton;
+
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.commands.internal.CommandsInternalModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+
+import dagger.Lazy;
 import dagger.Module;
+import dagger.Provides;
 
 @Module(includes = {CommandsInternalModule.class})
-public class CommandsModule {}
+public class CommandsModule {
+
+    @Provides
+    @Singleton
+    static CommandExecutor provideCommandExecutor(
+            Logger logger,
+            MessagingServer server,
+            Lazy<CommandRegistry> commandRegistry,
+            Gson gson) {
+        return new CommandExecutor(logger, server, commandRegistry, gson);
+    }
+}
