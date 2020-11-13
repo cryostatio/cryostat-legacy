@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.messaging;
 
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -66,7 +65,13 @@ import dagger.Provides;
         })
 public abstract class MessagingModule {
 
-    static final String WORKER_POOL_FN = "WORKER_POOL_FN";
+    static final String WS_WORKER_POOL = "WS_WORKER_POOL";
+    static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
+
+    static final String MAX_CONNECTIONS_ENV_VAR = "CONTAINER_JFR_MAX_WS_CONNECTIONS";
+    static final int MIN_CONNECTIONS = 1;
+    static final int MAX_CONNECTIONS = 64;
+    static final int DEFAULT_MAX_CONNECTIONS = 2;
 
     @Provides
     @Singleton
@@ -75,16 +80,55 @@ public abstract class MessagingModule {
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
+            @Named(WS_MAX_CONNECTIONS) int maxConnections,
             Logger logger,
             Gson gson,
-            @Named(WORKER_POOL_FN) Function<Integer, ScheduledExecutorService> workerPoolFn) {
+            @Named(WS_WORKER_POOL) ScheduledExecutorService workerPool) {
         return new MessagingServer(
-                server, env, authManager, notificationFactory, logger, gson, workerPoolFn);
+                server,
+                env,
+                authManager,
+                notificationFactory,
+                maxConnections,
+                workerPool,
+                logger,
+                gson);
     }
 
     @Provides
-    @Named(WORKER_POOL_FN)
-    static Function<Integer, ScheduledExecutorService> provideWorkerPoolFunction() {
-        return Executors::newScheduledThreadPool;
+    @Named(WS_WORKER_POOL)
+    static ScheduledExecutorService provideWorkerPool(
+            @Named(WS_MAX_CONNECTIONS) int maxConnections) {
+        return Executors.newScheduledThreadPool(maxConnections);
+    }
+
+    @Provides
+    @Named(WS_MAX_CONNECTIONS)
+    static int provideWebSocketMaxConnections(Environment env, Logger logger) {
+        try {
+            int maxConn =
+                    Integer.parseInt(
+                            env.getEnv(
+                                    MAX_CONNECTIONS_ENV_VAR,
+                                    String.valueOf(DEFAULT_MAX_CONNECTIONS)));
+            if (maxConn > MAX_CONNECTIONS) {
+                logger.info(
+                        String.format(
+                                "Requested maximum WebSocket connections %d is too large.",
+                                maxConn));
+                return MAX_CONNECTIONS;
+            }
+            if (maxConn < MIN_CONNECTIONS) {
+                logger.info(
+                        String.format(
+                                "Requested maximum WebSocket connections %d is too small.",
+                                maxConn));
+                return MIN_CONNECTIONS;
+            }
+            return maxConn;
+        } catch (NumberFormatException nfe) {
+            logger.warn(nfe);
+            return DEFAULT_MAX_CONNECTIONS;
+        }
     }
 }

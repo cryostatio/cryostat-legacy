@@ -52,7 +52,6 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Function;
 
 import javax.inject.Named;
 
@@ -67,18 +66,13 @@ import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 public class MessagingServer implements AutoCloseable {
 
-    static final String MAX_CONNECTIONS_ENV_VAR = "CONTAINER_JFR_MAX_WS_CONNECTIONS";
-    static final int MIN_CONNECTIONS = 1;
-    static final int MAX_CONNECTIONS = 64;
-    static final int DEFAULT_MAX_CONNECTIONS = 2;
-
-    private final int maxConnections;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
     private final Map<WsClient, ScheduledFuture<?>> connections = new HashMap<>();
-    private final ScheduledExecutorService workerPool;
     private final HttpServer server;
     private final AuthManager authManager;
     private final NotificationFactory notificationFactory;
+    private final int maxConnections;
+    private final ScheduledExecutorService workerPool;
     private final Logger logger;
     private final Gson gson;
 
@@ -87,17 +81,17 @@ public class MessagingServer implements AutoCloseable {
             Environment env,
             AuthManager authManager,
             NotificationFactory notificationFactory,
+            @Named(MessagingModule.WS_MAX_CONNECTIONS) int maxConnections,
+            @Named(MessagingModule.WS_WORKER_POOL) ScheduledExecutorService workerPool,
             Logger logger,
-            Gson gson,
-            @Named(MessagingModule.WORKER_POOL_FN)
-                    Function<Integer, ScheduledExecutorService> workerPoolFn) {
+            Gson gson) {
         this.server = server;
         this.authManager = authManager;
         this.notificationFactory = notificationFactory;
+        this.maxConnections = maxConnections;
+        this.workerPool = workerPool;
         this.logger = logger;
         this.gson = gson;
-        this.maxConnections = determineMaximumWsConnections(env);
-        this.workerPool = workerPoolFn.apply(maxConnections);
     }
 
     public void start() throws SocketException, UnknownHostException {
@@ -227,39 +221,11 @@ public class MessagingServer implements AutoCloseable {
 
     private void sendClientActivityNotification(String remote, String status) {
         notificationFactory
-            .create()
-            .metaCategory("WS_CLIENT_ACTIVITY")
-            .metaType(HttpMimeType.JSON)
-            .message(Map.of(remote, status))
-            .build()
-            .send();
-    }
-
-    private int determineMaximumWsConnections(Environment env) {
-        try {
-            int maxConn =
-                    Integer.parseInt(
-                            env.getEnv(
-                                    MAX_CONNECTIONS_ENV_VAR,
-                                    String.valueOf(DEFAULT_MAX_CONNECTIONS)));
-            if (maxConn > MAX_CONNECTIONS) {
-                logger.info(
-                        String.format(
-                                "Requested maximum WebSocket connections %d is too large.",
-                                maxConn));
-                return MAX_CONNECTIONS;
-            }
-            if (maxConn < MIN_CONNECTIONS) {
-                logger.info(
-                        String.format(
-                                "Requested maximum WebSocket connections %d is too small.",
-                                maxConn));
-                return MIN_CONNECTIONS;
-            }
-            return maxConn;
-        } catch (NumberFormatException nfe) {
-            logger.warn(nfe);
-            return DEFAULT_MAX_CONNECTIONS;
-        }
+                .create()
+                .metaCategory("WS_CLIENT_ACTIVITY")
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of(remote, status))
+                .build()
+                .send();
     }
 }

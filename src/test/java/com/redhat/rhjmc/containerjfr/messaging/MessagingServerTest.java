@@ -109,9 +109,6 @@ class MessagingServerTest {
 
     @BeforeEach
     void setup() {
-        when(env.getEnv(Mockito.eq(MessagingServer.MAX_CONNECTIONS_ENV_VAR), Mockito.anyString()))
-                .thenReturn("2");
-
         lenient().when(notificationFactory.create()).thenReturn(notificationBuilder);
         lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
@@ -131,9 +128,10 @@ class MessagingServerTest {
                         env,
                         authManager,
                         notificationFactory,
+                        1,
+                        executor,
                         logger,
-                        gson,
-                        unused -> executor);
+                        gson);
     }
 
     @Test
