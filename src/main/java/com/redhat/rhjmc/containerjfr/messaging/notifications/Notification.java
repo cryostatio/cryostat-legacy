@@ -42,64 +42,73 @@
 package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
 import java.time.Instant;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicBoolean;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.messaging.WsMessage;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
-
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @SuppressFBWarnings("URF_UNREAD_FIELD")
-public class Notification<T> extends WsMessage implements AutoCloseable {
+public class Notification<T> extends WsMessage {
 
     private final transient MessagingServer server;
-    private final transient Logger logger;
-    private final transient AtomicBoolean sent = new AtomicBoolean(false);
 
     private final Notification.Meta meta;
-    private T message;
+    private final T message;
 
-    Notification(MessagingServer server, Logger logger) {
-        this.server = server;
-        this.logger = logger;
-        this.meta = new Notification.Meta();
-    }
-
-    public void setMetaType(HttpMimeType mimeType) {
-        this.setMetaType(new MetaType(mimeType));
-    }
-
-    public void setMetaType(MetaType type) {
-        this.meta.type = Objects.requireNonNull(type);
-    }
-
-    public void setMetaCategory(String category) {
-        this.meta.category = Objects.requireNonNull(category);
-    }
-
-    public void setMessage(T message) {
-        this.message = message;
+    Notification(Notification.Builder<T> builder) {
+        this.server = builder.server;
+        this.meta = new Meta(builder.category, builder.type);
+        this.message = builder.message;
     }
 
     public void send() {
-        if (!sent.getAndSet(true)) {
-            logger.trace("Notification committed");
-            this.server.writeMessage(this);
+        this.server.writeMessage(this);
+    }
+
+    public static class Builder<T> {
+        private final MessagingServer server;
+        private String category = "generic";
+        private MetaType type = new MetaType(HttpMimeType.PLAINTEXT);
+        private T message;
+
+        Builder(MessagingServer server) {
+            this.server = server;
+        }
+
+        public Builder<T> metaCategory(String category) {
+            this.category = category;
+            return this;
+        }
+
+        public Builder<T> metaType(MetaType type) {
+            this.type = type;
+            return this;
+        }
+
+        public Builder<T> metaType(HttpMimeType mime) {
+            return metaType(new MetaType(mime));
+        }
+
+        public Builder<T> message(T t) {
+            this.message = t;
+            return this;
+        }
+
+        public Notification<T> build() {
+            return new Notification<>(this);
         }
     }
 
-    @Override
-    public void close() {
-        send();
-    }
-
     static class Meta {
-        private String category = "generic";
-        private MetaType type = new MetaType(HttpMimeType.PLAINTEXT);
+        private final String category;
+        private final MetaType type;
         private final long serverTime = Instant.now().getEpochSecond();
+
+        Meta(String category, MetaType type) {
+            this.category = category;
+            this.type = type;
+        }
     }
 
     public static class MetaType {

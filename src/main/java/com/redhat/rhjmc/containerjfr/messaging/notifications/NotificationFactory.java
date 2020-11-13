@@ -39,52 +39,23 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.messaging;
-
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Function;
-
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import com.google.gson.Gson;
+package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationsModule;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+import dagger.Lazy;
 
-import dagger.Module;
-import dagger.Provides;
+public class NotificationFactory {
 
-@Module(
-        includes = {
-            NotificationsModule.class,
-        })
-public abstract class MessagingModule {
+    private final Lazy<MessagingServer> server;
+    private final Logger logger;
 
-    static final String WORKER_POOL_FN = "WORKER_POOL_FN";
-
-    @Provides
-    @Singleton
-    static MessagingServer provideWebSocketMessagingServer(
-            HttpServer server,
-            Environment env,
-            AuthManager authManager,
-            NotificationFactory notificationFactory,
-            Logger logger,
-            Gson gson,
-            @Named(WORKER_POOL_FN) Function<Integer, ScheduledExecutorService> workerPoolFn) {
-        return new MessagingServer(
-                server, env, authManager, notificationFactory, logger, gson, workerPoolFn);
+    NotificationFactory(Lazy<MessagingServer> server, Logger logger) {
+        this.server = server;
+        this.logger = logger;
     }
 
-    @Provides
-    @Named(WORKER_POOL_FN)
-    static Function<Integer, ScheduledExecutorService> provideWorkerPoolFunction() {
-        return Executors::newScheduledThreadPool;
+    public <T> Notification.Builder<T> create() {
+        return new Notification.Builder<T>(server.get());
     }
 }

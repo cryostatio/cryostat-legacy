@@ -41,9 +41,12 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
+import javax.inject.Singleton;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 
@@ -51,7 +54,9 @@ import dagger.Provides;
 public abstract class NotificationsModule {
 
     @Provides
-    static Notification provideNotification(MessagingServer server, Logger logger) {
-        return new Notification(server, logger);
+    @Singleton
+    static NotificationFactory provideNotificationFactory(
+            Lazy<MessagingServer> server, Logger logger) {
+        return new NotificationFactory(server, logger);
     }
 }

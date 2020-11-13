@@ -60,8 +60,10 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 public class MessagingServer implements AutoCloseable {
 
@@ -76,6 +78,7 @@ public class MessagingServer implements AutoCloseable {
     private final ScheduledExecutorService workerPool;
     private final HttpServer server;
     private final AuthManager authManager;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
     private final Gson gson;
 
@@ -83,12 +86,14 @@ public class MessagingServer implements AutoCloseable {
             HttpServer server,
             Environment env,
             AuthManager authManager,
+            NotificationFactory notificationFactory,
             Logger logger,
             Gson gson,
             @Named(MessagingModule.WORKER_POOL_FN)
                     Function<Integer, ScheduledExecutorService> workerPoolFn) {
         this.server = server;
         this.authManager = authManager;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
         this.gson = gson;
         this.maxConnections = determineMaximumWsConnections(env);
@@ -112,6 +117,7 @@ public class MessagingServer implements AutoCloseable {
                                             "Dropping remote client %s due to too many concurrent connections",
                                             remoteAddress));
                             sws.reject();
+                            sendClientActivityNotification(remoteAddress, "dropped");
                             return;
                         }
                         logger.info(String.format("Connected remote client %s", remoteAddress));
@@ -123,6 +129,7 @@ public class MessagingServer implements AutoCloseable {
                                             String.format(
                                                     "Disconnected remote client %s",
                                                     remoteAddress));
+                                    sendClientActivityNotification(remoteAddress, "disconnected");
                                     removeConnection(crw);
                                 });
                         sws.textMessageHandler(
@@ -155,6 +162,7 @@ public class MessagingServer implements AutoCloseable {
                                     }
                                 });
                         addConnection(crw);
+                        sendClientActivityNotification(remoteAddress, "connected");
                         sws.accept();
                     }
                 });
@@ -171,6 +179,7 @@ public class MessagingServer implements AutoCloseable {
 
     public void writeMessage(WsMessage message) {
         String json = gson.toJson(message);
+        logger.info(String.format("Outgoing WS message: %s", json));
         synchronized (connections) {
             connections.keySet().forEach(c -> c.writeMessage(json));
         }
@@ -214,6 +223,16 @@ public class MessagingServer implements AutoCloseable {
             connections.keySet().forEach(WsClient::close);
             connections.clear();
         }
+    }
+
+    private void sendClientActivityNotification(String remote, String status) {
+        notificationFactory
+            .create()
+            .metaCategory("WS_CLIENT_ACTIVITY")
+            .metaType(HttpMimeType.JSON)
+            .message(Map.of(remote, status))
+            .build()
+            .send();
     }
 
     private int determineMaximumWsConnections(Environment env) {
