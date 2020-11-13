@@ -60,7 +60,6 @@ import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHa
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -110,8 +109,6 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         handleRecordingDownloadRequest(ctx, recordingName);
     }
 
-    // try-with-resources generates a "redundant" nullcheck in bytecode
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         Optional<Pair<InputStream, AutoCloseable>> descriptor =

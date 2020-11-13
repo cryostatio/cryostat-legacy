@@ -51,8 +51,6 @@ import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.util.function.Function;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-
 public class NetworkResolver {
 
     private final CheckedSupplier<DatagramSocket, SocketException> socketSupplier;
@@ -103,8 +101,6 @@ public class NetworkResolver {
         }
     }
 
-    // try-with-resources generates a "redundant" nullcheck in bytecode
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
     private <T> T getLocalAddressProperty(Function<InetAddress, T> fn)
             throws SocketException, UnknownHostException {
         try (DatagramSocket s = socketSupplier.get()) {
