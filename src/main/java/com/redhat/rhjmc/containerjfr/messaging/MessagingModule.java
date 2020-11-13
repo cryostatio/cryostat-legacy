@@ -47,13 +47,17 @@ import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationsModule;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
 import dagger.Module;
 import dagger.Provides;
 
-@Module
+@Module(
+        includes = {
+            NotificationsModule.class,
+        })
 public abstract class MessagingModule {
 
     @Provides

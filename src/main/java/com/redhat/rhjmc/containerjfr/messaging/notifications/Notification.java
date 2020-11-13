@@ -39,58 +39,51 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
-import javax.inject.Singleton;
+import java.time.Instant;
+import java.util.Objects;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandExecutor;
-import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.messaging.WsMessage;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-import dagger.Component;
+@SuppressFBWarnings("URF_UNREAD_FIELD")
+public class Notification<T> extends WsMessage {
 
-class ContainerJfr {
+    private final transient MessagingServer server;
+    private final transient Logger logger;
 
-    public static void main(String[] args) throws Exception {
-        ContainerJfrCore.initialize();
+    private final NotificationMeta meta;
+    private T message;
 
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace(String.format("env: %s", environment.getEnv().toString()));
-
-        logger.info(
-                String.format(
-                        "%s started.",
-                        System.getProperty("java.rmi.server.hostname", "container-jfr")));
-
-        Client client = DaggerContainerJfr_Client.builder().build();
-
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-
-        client.commandExecutor().run();
+    Notification(MessagingServer server, Logger logger) {
+        this.server = server;
+        this.logger = logger;
+        this.meta = new NotificationMeta();
     }
 
-    @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        CommandExecutor commandExecutor();
+    public void setMetadata(NotificationMeta meta) {
+        this.meta.copyFrom(meta);
+    }
 
-        HttpServer httpServer();
+    public void setMessage(T message) {
+        this.message = message;
+    }
 
-        WebServer webServer();
+    public void commit() {
+        logger.trace("Notification committed");
+        this.server.writeMessage(this);
+    }
 
-        MessagingServer messagingServer();
+    public static class NotificationMeta {
+        public String type = "";
+        public long serverTime = Instant.now().getEpochSecond();
 
-        @Component.Builder
-        interface Builder {
-            Client build();
+        void copyFrom(NotificationMeta other) {
+            this.type = Objects.requireNonNull(other.type);
+            this.serverTime = Objects.requireNonNull(other.serverTime);
         }
     }
 }

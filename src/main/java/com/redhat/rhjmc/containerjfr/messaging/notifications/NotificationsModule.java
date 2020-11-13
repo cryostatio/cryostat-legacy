@@ -39,58 +39,19 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
-import javax.inject.Singleton;
-
-import com.redhat.rhjmc.containerjfr.commands.CommandExecutor;
-import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 
-import dagger.Component;
+import dagger.Module;
+import dagger.Provides;
 
-class ContainerJfr {
+@Module
+public abstract class NotificationsModule {
 
-    public static void main(String[] args) throws Exception {
-        ContainerJfrCore.initialize();
-
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace(String.format("env: %s", environment.getEnv().toString()));
-
-        logger.info(
-                String.format(
-                        "%s started.",
-                        System.getProperty("java.rmi.server.hostname", "container-jfr")));
-
-        Client client = DaggerContainerJfr_Client.builder().build();
-
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-
-        client.commandExecutor().run();
-    }
-
-    @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        CommandExecutor commandExecutor();
-
-        HttpServer httpServer();
-
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
-        }
+    @Provides
+    static Notification provideNotification(MessagingServer server, Logger logger) {
+        return new Notification(server, logger);
     }
 }
