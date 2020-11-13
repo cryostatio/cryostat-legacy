@@ -152,7 +152,7 @@ public class MessagingServer implements AutoCloseable {
                 });
     }
 
-    String readMessage() {
+    public String readMessage() {
         try {
             return inQ.take();
         } catch (InterruptedException e) {
@@ -161,7 +161,7 @@ public class MessagingServer implements AutoCloseable {
         }
     }
 
-    void writeMessage(ResponseMessage<?> message) {
+    public void writeMessage(WsMessage message) {
         String json = gson.toJson(message);
         synchronized (connections) {
             connections.keySet().forEach(c -> c.writeMessage(json));
