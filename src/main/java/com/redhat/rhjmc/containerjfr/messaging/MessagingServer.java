@@ -221,7 +221,7 @@ public class MessagingServer implements AutoCloseable {
 
     private void sendClientActivityNotification(String remote, String status) {
         notificationFactory
-                .create()
+                .createBuilder()
                 .metaCategory("WS_CLIENT_ACTIVITY")
                 .metaType(HttpMimeType.JSON)
                 .message(Map.of(remote, status))

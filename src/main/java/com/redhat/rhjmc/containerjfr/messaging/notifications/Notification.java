@@ -76,6 +76,12 @@ public class Notification<T> extends WsMessage {
             this.server = server;
         }
 
+        public Builder<T> meta(Meta meta) {
+            metaCategory(meta.category);
+            metaType(meta.type);
+            return this;
+        }
+
         public Builder<T> metaCategory(String category) {
             this.category = category;
             return this;
@@ -100,12 +106,12 @@ public class Notification<T> extends WsMessage {
         }
     }
 
-    static class Meta {
+    public static class Meta {
         private final String category;
         private final MetaType type;
         private final long serverTime = Instant.now().getEpochSecond();
 
-        Meta(String category, MetaType type) {
+        public Meta(String category, MetaType type) {
             this.category = category;
             this.type = type;
         }

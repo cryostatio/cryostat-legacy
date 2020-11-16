@@ -109,7 +109,7 @@ class MessagingServerTest {
 
     @BeforeEach
     void setup() {
-        lenient().when(notificationFactory.create()).thenReturn(notificationBuilder);
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
                 .when(notificationBuilder.metaCategory(Mockito.any()))
                 .thenReturn(notificationBuilder);

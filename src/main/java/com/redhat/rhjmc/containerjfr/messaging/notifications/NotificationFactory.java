@@ -41,21 +41,19 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+
 import dagger.Lazy;
 
 public class NotificationFactory {
 
     private final Lazy<MessagingServer> server;
-    private final Logger logger;
 
-    NotificationFactory(Lazy<MessagingServer> server, Logger logger) {
+    NotificationFactory(Lazy<MessagingServer> server) {
         this.server = server;
-        this.logger = logger;
     }
 
-    public <T> Notification.Builder<T> create() {
+    public <T> Notification.Builder<T> createBuilder() {
         return new Notification.Builder<T>(server.get());
     }
 }
