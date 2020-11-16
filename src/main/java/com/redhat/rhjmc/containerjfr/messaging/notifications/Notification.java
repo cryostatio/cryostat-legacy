@@ -69,7 +69,7 @@ public class Notification<T> extends WsMessage {
     public static class Builder<T> {
         private final MessagingServer server;
         private String category = "generic";
-        private MetaType type = new MetaType(HttpMimeType.PLAINTEXT);
+        private MetaType type = new MetaType(HttpMimeType.JSON);
         private T message;
 
         Builder(MessagingServer server) {
