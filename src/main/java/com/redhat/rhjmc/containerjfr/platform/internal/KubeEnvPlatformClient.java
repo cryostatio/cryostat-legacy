@@ -71,6 +71,9 @@ class KubeEnvPlatformClient implements PlatformClient {
     }
 
     @Override
+    public void start() {}
+
+    @Override
     public List<ServiceRef> listDiscoverableServices() {
         return env.getEnv().entrySet().stream()
                 .map(this::envToServiceRef)

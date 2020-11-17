@@ -41,10 +41,9 @@
  */
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
-import java.io.IOException;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 
@@ -53,12 +52,17 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     private final Logger logger;
     private final NoopAuthManager authMgr;
     private final JvmDiscoveryClient discoveryClient;
+    private final NotificationFactory notificationFactory;
 
     DefaultPlatformStrategy(
-            Logger logger, NoopAuthManager authMgr, JvmDiscoveryClient discoveryClient) {
+            Logger logger,
+            NoopAuthManager authMgr,
+            JvmDiscoveryClient discoveryClient,
+            NotificationFactory notificationFactory) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.discoveryClient = discoveryClient;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -74,12 +78,7 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     @Override
     public DefaultPlatformClient getPlatformClient() {
         logger.info("Selected Default Platform Strategy");
-        try {
-            discoveryClient.start();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return new DefaultPlatformClient(logger, discoveryClient);
+        return new DefaultPlatformClient(logger, discoveryClient, notificationFactory);
     }
 
     @Override

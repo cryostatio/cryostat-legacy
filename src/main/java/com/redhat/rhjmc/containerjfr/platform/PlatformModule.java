@@ -119,12 +119,15 @@ public abstract class PlatformModule {
             throw new RuntimeException(
                     String.format("Selected PlatformDetectionStrategy \"%s\" not found", platform));
         }
-        return strategies.stream()
-                // reverse sort, higher priorities should be earlier in the stream
-                .sorted((a, b) -> Integer.compare(b.getPriority(), a.getPriority()))
-                .filter(PlatformDetectionStrategy::isAvailable)
-                .findFirst()
-                .orElseThrow();
+        PlatformDetectionStrategy<?> strat =
+                strategies.stream()
+                        // reverse sort, higher priorities should be earlier in the stream
+                        .sorted((a, b) -> Integer.compare(b.getPriority(), a.getPriority()))
+                        .filter(PlatformDetectionStrategy::isAvailable)
+                        .findFirst()
+                        .orElseThrow();
+        strat.getPlatformClient().start();
+        return strat;
     }
 
     @Provides
