@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-class MalformedMessageResponseMessage extends ResponseMessage<String> {
-    MalformedMessageResponseMessage(String commandName) {
+public class MalformedMessageResponseMessage extends ResponseMessage<String> {
+    public MalformedMessageResponseMessage(String commandName) {
         super(
                 null,
                 Status.MALFORMED_MESSAGE,

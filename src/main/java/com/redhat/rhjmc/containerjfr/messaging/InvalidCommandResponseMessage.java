@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-class InvalidCommandResponseMessage extends ResponseMessage<String> {
-    InvalidCommandResponseMessage(String id, String commandName) {
+public class InvalidCommandResponseMessage extends ResponseMessage<String> {
+    public InvalidCommandResponseMessage(String id, String commandName) {
         super(
                 id,
                 Status.INVALID_COMMAND,

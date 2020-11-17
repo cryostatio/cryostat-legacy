@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-class CommandUnavailableMessage extends InvalidCommandResponseMessage {
-    CommandUnavailableMessage(String id, String commandName) {
+public class CommandUnavailableMessage extends InvalidCommandResponseMessage {
+    public CommandUnavailableMessage(String id, String commandName) {
         super(id, commandName);
         this.payload = String.format("Command %s unavailable", commandName);
     }

@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-class SuccessResponseMessage<T> extends ResponseMessage<T> {
-    SuccessResponseMessage(String id, String commandName, T t) {
+public class SuccessResponseMessage<T> extends ResponseMessage<T> {
+    public SuccessResponseMessage(String id, String commandName, T t) {
         super(id, Status.OK, commandName, t);
     }
 }

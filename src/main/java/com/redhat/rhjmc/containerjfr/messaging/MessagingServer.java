@@ -47,46 +47,51 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import javax.inject.Named;
+
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
-public class MessagingServer {
+public class MessagingServer implements AutoCloseable {
 
-    static final String MAX_CONNECTIONS_ENV_VAR = "CONTAINER_JFR_MAX_WS_CONNECTIONS";
-    static final int MIN_CONNECTIONS = 1;
-    static final int MAX_CONNECTIONS = 64;
-    static final int DEFAULT_MAX_CONNECTIONS = 2;
-
-    private final int maxConnections;
     private final BlockingQueue<String> inQ = new LinkedBlockingQueue<>();
-    private final Map<WsClientReaderWriter, ScheduledFuture<?>> connections = new HashMap<>();
-    private final ScheduledExecutorService listenerPool;
+    private final Map<WsClient, ScheduledFuture<?>> connections = new HashMap<>();
     private final HttpServer server;
     private final AuthManager authManager;
+    private final NotificationFactory notificationFactory;
+    private final int maxConnections;
+    private final ScheduledExecutorService workerPool;
     private final Logger logger;
     private final Gson gson;
 
     MessagingServer(
-            HttpServer server, Environment env, AuthManager authManager, Logger logger, Gson gson) {
+            HttpServer server,
+            Environment env,
+            AuthManager authManager,
+            NotificationFactory notificationFactory,
+            @Named(MessagingModule.WS_MAX_CONNECTIONS) int maxConnections,
+            @Named(MessagingModule.WS_WORKER_POOL) ScheduledExecutorService workerPool,
+            Logger logger,
+            Gson gson) {
         this.server = server;
         this.authManager = authManager;
+        this.notificationFactory = notificationFactory;
+        this.maxConnections = maxConnections;
+        this.workerPool = workerPool;
         this.logger = logger;
         this.gson = gson;
-        this.maxConnections = determineMaximumWsConnections(env);
-        this.listenerPool = Executors.newScheduledThreadPool(maxConnections);
     }
 
     public void start() throws SocketException, UnknownHostException {
@@ -106,18 +111,19 @@ public class MessagingServer {
                                             "Dropping remote client %s due to too many concurrent connections",
                                             remoteAddress));
                             sws.reject();
+                            sendClientActivityNotification(remoteAddress, "dropped");
                             return;
                         }
                         logger.info(String.format("Connected remote client %s", remoteAddress));
 
-                        WsClientReaderWriter crw =
-                                new WsClientReaderWriter(this.logger, this.gson, sws);
+                        WsClient crw = new WsClient(this.logger, sws);
                         sws.closeHandler(
                                 (unused) -> {
                                     logger.info(
                                             String.format(
                                                     "Disconnected remote client %s",
                                                     remoteAddress));
+                                    sendClientActivityNotification(remoteAddress, "disconnected");
                                     removeConnection(crw);
                                 });
                         sws.textMessageHandler(
@@ -150,17 +156,35 @@ public class MessagingServer {
                                     }
                                 });
                         addConnection(crw);
+                        sendClientActivityNotification(remoteAddress, "connected");
                         sws.accept();
                     }
                 });
     }
 
-    void addConnection(WsClientReaderWriter crw) {
+    public String readMessage() {
+        try {
+            return inQ.take();
+        } catch (InterruptedException e) {
+            logger.warn(e);
+            return null;
+        }
+    }
+
+    public void writeMessage(WsMessage message) {
+        String json = gson.toJson(message);
+        logger.info(String.format("Outgoing WS message: %s", json));
+        synchronized (connections) {
+            connections.keySet().forEach(c -> c.writeMessage(json));
+        }
+    }
+
+    void addConnection(WsClient crw) {
         synchronized (connections) {
             ScheduledFuture<?> task =
-                    listenerPool.scheduleWithFixedDelay(
+                    workerPool.scheduleWithFixedDelay(
                             () -> {
-                                String msg = crw.readLine();
+                                String msg = crw.readMessage();
                                 if (msg != null) {
                                     inQ.add(msg);
                                 }
@@ -172,7 +196,7 @@ public class MessagingServer {
         }
     }
 
-    void removeConnection(WsClientReaderWriter crw) {
+    void removeConnection(WsClient crw) {
         synchronized (connections) {
             ScheduledFuture<?> task = connections.remove(crw);
             if (task != null) {
@@ -182,78 +206,26 @@ public class MessagingServer {
         }
     }
 
+    @Override
+    public void close() {
+        closeConnections();
+    }
+
     private void closeConnections() {
         synchronized (connections) {
-            listenerPool.shutdown();
-            connections.forEach((crw, task) -> crw.close());
+            workerPool.shutdown();
+            connections.keySet().forEach(WsClient::close);
             connections.clear();
         }
     }
 
-    void flush(ResponseMessage<?> message) {
-        synchronized (connections) {
-            connections.forEach((c, t) -> c.flush(message));
-        }
-    }
-
-    ClientReader getClientReader() {
-        return new ClientReader() {
-            @Override
-            public void close() {
-                closeConnections();
-            }
-
-            @Override
-            public String readLine() {
-                try {
-                    return inQ.take();
-                } catch (InterruptedException e) {
-                    logger.warn(e);
-                    return null;
-                }
-            }
-        };
-    }
-
-    ClientWriter getClientWriter() {
-        return new ClientWriter() {
-            @Override
-            public void print(String s) {
-                logger.info(s);
-            }
-
-            @Override
-            public void println(Exception e) {
-                logger.warn(e);
-            }
-        };
-    }
-
-    private int determineMaximumWsConnections(Environment env) {
-        try {
-            int maxConn =
-                    Integer.parseInt(
-                            env.getEnv(
-                                    MAX_CONNECTIONS_ENV_VAR,
-                                    String.valueOf(DEFAULT_MAX_CONNECTIONS)));
-            if (maxConn > MAX_CONNECTIONS) {
-                logger.info(
-                        String.format(
-                                "Requested maximum WebSocket connections %d is too large.",
-                                maxConn));
-                return MAX_CONNECTIONS;
-            }
-            if (maxConn < MIN_CONNECTIONS) {
-                logger.info(
-                        String.format(
-                                "Requested maximum WebSocket connections %d is too small.",
-                                maxConn));
-                return MIN_CONNECTIONS;
-            }
-            return maxConn;
-        } catch (NumberFormatException nfe) {
-            logger.warn(nfe);
-            return DEFAULT_MAX_CONNECTIONS;
-        }
+    private void sendClientActivityNotification(String remote, String status) {
+        notificationFactory
+                .createBuilder()
+                .metaCategory("WS_CLIENT_ACTIVITY")
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of(remote, status))
+                .build()
+                .send();
     }
 }

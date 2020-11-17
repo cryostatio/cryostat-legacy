@@ -41,51 +41,94 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientReader;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationsModule;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 
-import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 
-@Module
-public class MessagingModule {
-    @Provides
-    @Singleton
-    static WsCommandExecutor provideWsCommandExecutor(
-            Logger logger,
-            MessagingServer server,
-            ClientReader cr,
-            Lazy<CommandRegistry> commandRegistry,
-            Gson gson) {
-        return new WsCommandExecutor(logger, server, cr, commandRegistry, gson);
-    }
+@Module(
+        includes = {
+            NotificationsModule.class,
+        })
+public abstract class MessagingModule {
 
-    @Provides
-    @Singleton
-    static ClientReader provideClientReader(MessagingServer webSocketMessagingServer) {
-        return webSocketMessagingServer.getClientReader();
-    }
+    static final String WS_WORKER_POOL = "WS_WORKER_POOL";
+    static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
 
-    @Provides
-    @Singleton
-    static ClientWriter provideClientWriter(MessagingServer webSocketMessagingServer) {
-        return webSocketMessagingServer.getClientWriter();
-    }
+    static final String MAX_CONNECTIONS_ENV_VAR = "CONTAINER_JFR_MAX_WS_CONNECTIONS";
+    static final int MIN_CONNECTIONS = 1;
+    static final int MAX_CONNECTIONS = 64;
+    static final int DEFAULT_MAX_CONNECTIONS = 2;
 
     @Provides
     @Singleton
     static MessagingServer provideWebSocketMessagingServer(
-            HttpServer server, Environment env, AuthManager authManager, Logger logger, Gson gson) {
-        return new MessagingServer(server, env, authManager, logger, gson);
+            HttpServer server,
+            Environment env,
+            AuthManager authManager,
+            NotificationFactory notificationFactory,
+            @Named(WS_MAX_CONNECTIONS) int maxConnections,
+            Logger logger,
+            Gson gson,
+            @Named(WS_WORKER_POOL) ScheduledExecutorService workerPool) {
+        return new MessagingServer(
+                server,
+                env,
+                authManager,
+                notificationFactory,
+                maxConnections,
+                workerPool,
+                logger,
+                gson);
+    }
+
+    @Provides
+    @Named(WS_WORKER_POOL)
+    static ScheduledExecutorService provideWorkerPool(
+            @Named(WS_MAX_CONNECTIONS) int maxConnections) {
+        return Executors.newScheduledThreadPool(maxConnections);
+    }
+
+    @Provides
+    @Named(WS_MAX_CONNECTIONS)
+    static int provideWebSocketMaxConnections(Environment env, Logger logger) {
+        try {
+            int maxConn =
+                    Integer.parseInt(
+                            env.getEnv(
+                                    MAX_CONNECTIONS_ENV_VAR,
+                                    String.valueOf(DEFAULT_MAX_CONNECTIONS)));
+            if (maxConn > MAX_CONNECTIONS) {
+                logger.info(
+                        String.format(
+                                "Requested maximum WebSocket connections %d is too large.",
+                                maxConn));
+                return MAX_CONNECTIONS;
+            }
+            if (maxConn < MIN_CONNECTIONS) {
+                logger.info(
+                        String.format(
+                                "Requested maximum WebSocket connections %d is too small.",
+                                maxConn));
+                return MIN_CONNECTIONS;
+            }
+            return maxConn;
+        } catch (NumberFormatException nfe) {
+            logger.warn(nfe);
+            return DEFAULT_MAX_CONNECTIONS;
+        }
     }
 }

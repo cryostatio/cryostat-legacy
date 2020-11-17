@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-class FailedValidationResponseMessage extends ResponseMessage<String> {
-    FailedValidationResponseMessage(String id, String commandName, String errorMessage) {
+public class FailedValidationResponseMessage extends ResponseMessage<String> {
+    public FailedValidationResponseMessage(String id, String commandName, String errorMessage) {
         super(
                 id,
                 Status.INVALID_COMMAND,

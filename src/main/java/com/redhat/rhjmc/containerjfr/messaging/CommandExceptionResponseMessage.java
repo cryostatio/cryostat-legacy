@@ -43,12 +43,12 @@ package com.redhat.rhjmc.containerjfr.messaging;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
 
-class CommandExceptionResponseMessage extends ResponseMessage<String> {
-    CommandExceptionResponseMessage(String id, String commandName, Exception e) {
+public class CommandExceptionResponseMessage extends ResponseMessage<String> {
+    public CommandExceptionResponseMessage(String id, String commandName, Exception e) {
         this(id, commandName, ExceptionUtils.getMessage(e));
     }
 
-    CommandExceptionResponseMessage(String id, String commandName, String message) {
+    public CommandExceptionResponseMessage(String id, String commandName, String message) {
         super(id, Status.COMMAND_EXCEPTION, commandName, message);
     }
 }

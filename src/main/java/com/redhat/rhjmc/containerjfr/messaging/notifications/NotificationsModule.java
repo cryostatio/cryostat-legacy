@@ -39,10 +39,22 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.messaging;
+package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
-public class FailureResponseMessage extends ResponseMessage<String> {
-    public FailureResponseMessage(String id, String commandName, String message) {
-        super(id, Status.COMMAND_EXCEPTION, commandName, message);
+import javax.inject.Singleton;
+
+import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+
+import dagger.Lazy;
+import dagger.Module;
+import dagger.Provides;
+
+@Module
+public abstract class NotificationsModule {
+
+    @Provides
+    @Singleton
+    static NotificationFactory provideNotificationFactory(Lazy<MessagingServer> server) {
+        return new NotificationFactory(server);
     }
 }

@@ -41,4 +41,4 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-class WsMessage {}
+public class WsMessage {}

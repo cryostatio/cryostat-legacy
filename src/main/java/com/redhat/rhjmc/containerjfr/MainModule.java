@@ -54,6 +54,7 @@ import com.google.gson.GsonBuilder;
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingModule;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
@@ -81,6 +82,24 @@ public abstract class MainModule {
     @Singleton
     static Logger provideLogger() {
         return Logger.INSTANCE;
+    }
+
+    @Provides
+    @Singleton
+    // FIXME remove this outdated ClientWriter abstraction and simply replace with an injected
+    // Logger at all ClientWriter injection sites
+    static ClientWriter provideClientWriter(Logger logger) {
+        return new ClientWriter() {
+            @Override
+            public void print(String s) {
+                logger.info(s);
+            }
+
+            @Override
+            public void println(Exception e) {
+                logger.warn(e);
+            }
+        };
     }
 
     // public since this is useful to use directly in tests
