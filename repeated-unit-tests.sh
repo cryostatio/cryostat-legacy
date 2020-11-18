@@ -8,9 +8,11 @@ else
     runs=50
 fi
 
+logfile="cjfr-unittests-$(date -Iminutes).log"
+
 runcount=0
 while [ $runcount -lt $runs ]; do
-    mvn -Dcontainerjfr.minimal=true test
+    mvn -Dcontainerjfr.minimal=true test 2>&1 | tee -a $logfile
     if [ $? -ne 0 ]; then
         failures=$((failures+1))
     fi
