@@ -55,6 +55,14 @@ import java.util.Map;
 
 import javax.management.remote.JMXServiceURL;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.DiscoveredJvmDescriptor;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
@@ -64,14 +72,6 @@ import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
-
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DefaultPlatformClientTest {
@@ -113,7 +113,8 @@ class DefaultPlatformClientTest {
         when(desc3.getMainClass()).thenReturn("com.redhat.containerjfr.ContainerJFR");
         when(desc3.getJmxServiceUrl()).thenReturn(url3);
 
-        when(discoveryClient.getDiscoveredJvmDescriptors()).thenReturn(List.of(desc1, desc2, desc3));
+        when(discoveryClient.getDiscoveredJvmDescriptors())
+                .thenReturn(List.of(desc1, desc2, desc3));
 
         List<ServiceRef> results = client.listDiscoverableServices();
 
@@ -139,7 +140,9 @@ class DefaultPlatformClientTest {
         Notification.Builder builder = mock(Notification.Builder.class);
         lenient().when(builder.meta(Mockito.any())).thenReturn(builder);
         lenient().when(builder.metaCategory(Mockito.any())).thenReturn(builder);
-        lenient().when(builder.metaType(Mockito.any(Notification.MetaType.class))).thenReturn(builder);
+        lenient()
+                .when(builder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(builder);
         lenient().when(builder.metaType(Mockito.any(HttpMimeType.class))).thenReturn(builder);
         lenient().when(builder.message(Mockito.any())).thenReturn(builder);
         lenient().when(builder.build()).thenReturn(notification);
@@ -158,10 +161,16 @@ class DefaultPlatformClientTest {
 
         verify(notificationFactory).createBuilder();
         verify(builder).metaCategory("TargetJvmDiscovery");
-        verify(builder).message(Map.of("event", Map.of("kind", EventKind.FOUND, "serviceRef", new
-                        ServiceRef(url, mainClass))));
+        verify(builder)
+                .message(
+                        Map.of(
+                                "event",
+                                Map.of(
+                                        "kind",
+                                        EventKind.FOUND,
+                                        "serviceRef",
+                                        new ServiceRef(url, mainClass))));
         verify(builder).build();
         verify(notification).send();
     }
-
 }
