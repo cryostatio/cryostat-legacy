@@ -33,7 +33,7 @@ if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
 fi
 export SSL_TRUSTSTORE_DIR
 
-function importTrustStores() {
+function importCertificatesToTrustStore() {
     if [ ! -d "$SSL_TRUSTSTORE_DIR" ]; then
         banner "$SSL_TRUSTSTORE_DIR does not exist; no certificates to import"
         return 0
@@ -72,7 +72,7 @@ FLAGS=(
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
 )
 
-importTrustStores
+importCertificatesToTrustStore
 
 if [ "$CONTAINER_JFR_DISABLE_JMX_AUTH" = "true" ]; then
     banner "JMX Auth Disabled"
