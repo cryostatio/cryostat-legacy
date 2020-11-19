@@ -10,9 +10,7 @@ function banner() {
     echo   "+------------------------------------------+"
 }
 
-function genpass() {
-    echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
-}
+source /usr/local/bin/genpass.sh
 
 USRFILE="/tmp/jmxremote.access"
 PWFILE="/tmp/jmxremote.password"
