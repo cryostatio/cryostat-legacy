@@ -73,6 +73,10 @@ public abstract class HttpApiV2Module {
     abstract RequestHandler bindTargetRecordingOptionsListGetHandler(
             TargetRecordingOptionsListGetHandler handler);
 
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetEventsSearchGetHandler(TargetEventsSearchGetHandler handler);
+
     @Provides
     @Singleton
     @Named("OutputStreamFunction")
