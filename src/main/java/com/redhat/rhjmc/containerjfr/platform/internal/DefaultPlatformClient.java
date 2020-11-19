@@ -41,23 +41,64 @@
  */
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-class DefaultPlatformClient implements PlatformClient {
+class DefaultPlatformClient implements PlatformClient, Consumer<JvmDiscoveryEvent> {
 
-    private final Logger log;
+    private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
+    private final NotificationFactory notificationFactory;
 
-    DefaultPlatformClient(Logger log, JvmDiscoveryClient discoveryClient) {
-        this.log = log;
+    DefaultPlatformClient(
+            Logger logger,
+            JvmDiscoveryClient discoveryClient,
+            NotificationFactory notificationFactory) {
+        this.logger = logger;
         this.discoveryClient = discoveryClient;
+        this.notificationFactory = notificationFactory;
+    }
+
+    @Override
+    public void start() {
+        discoveryClient.addListener(this);
+        try {
+            discoveryClient.start();
+        } catch (IOException e) {
+            logger.error(e);
+        }
+    }
+
+    @Override
+    public void accept(JvmDiscoveryEvent evt) {
+        try {
+            ServiceRef serviceRef =
+                    new ServiceRef(
+                            evt.getJvmDescriptor().getJmxServiceUrl(),
+                            evt.getJvmDescriptor().getMainClass());
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(NOTIFICATION_CATEGORY)
+                    .message(
+                            Map.of(
+                                    "event",
+                                    Map.of("kind", evt.getEventKind(), "serviceRef", serviceRef)))
+                    .build()
+                    .send();
+        } catch (MalformedURLException e) {
+            logger.warn(e);
+        }
     }
 
     @Override
@@ -68,7 +109,7 @@ class DefaultPlatformClient implements PlatformClient {
                             try {
                                 return new ServiceRef(u.getJmxServiceUrl(), u.getMainClass());
                             } catch (MalformedURLException e) {
-                                log.warn(e);
+                                logger.warn(e);
                                 return null;
                             }
                         })

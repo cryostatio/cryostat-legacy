@@ -77,6 +77,9 @@ class KubeApiPlatformClient implements PlatformClient {
     }
 
     @Override
+    public void start() {}
+
+    @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
             List<ServiceRef> refs = new ArrayList<>();

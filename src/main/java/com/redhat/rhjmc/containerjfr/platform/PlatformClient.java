@@ -44,5 +44,9 @@ package com.redhat.rhjmc.containerjfr.platform;
 import java.util.List;
 
 public interface PlatformClient {
+    static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
+
+    void start();
+
     List<ServiceRef> listDiscoverableServices();
 }

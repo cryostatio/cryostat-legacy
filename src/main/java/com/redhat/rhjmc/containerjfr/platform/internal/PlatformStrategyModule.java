@@ -48,6 +48,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
@@ -71,12 +72,14 @@ public abstract class PlatformStrategyModule {
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,
-            JvmDiscoveryClient discoveryClient) {
+            JvmDiscoveryClient discoveryClient,
+            NotificationFactory notificationFactory) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
                         logger, openShiftAuthManager, connectionToolkit, env, fs),
                 new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit),
                 new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
-                new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
+                new DefaultPlatformStrategy(
+                        logger, noopAuthManager, discoveryClient, notificationFactory));
     }
 }
