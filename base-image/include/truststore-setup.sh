@@ -2,8 +2,6 @@
 
 set -e
 
-source genpass.sh
-
 SSL_TRUSTSTORE_PASS="$(genpass)"
 
 echo "$SSL_TRUSTSTORE_PASS" > "$SSL_TRUSTSTORE_PASS_FILE"

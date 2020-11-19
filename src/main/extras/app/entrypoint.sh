@@ -10,8 +10,6 @@ function banner() {
     echo   "+------------------------------------------+"
 }
 
-source /usr/local/bin/genpass.sh
-
 USRFILE="/tmp/jmxremote.access"
 PWFILE="/tmp/jmxremote.password"
 function createJmxCredentials() {
