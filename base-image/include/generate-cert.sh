@@ -2,10 +2,6 @@
 
 set -e
 
-function genpass() {
-    echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
-}
-
 SSL_TRUSTSTORE_PASS="$(cat $SSL_TRUSTSTORE_PASS_FILE)"
 
 trap popd EXIT

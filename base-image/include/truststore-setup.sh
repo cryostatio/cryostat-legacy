@@ -2,9 +2,7 @@
 
 set -e
 
-function genpass() {
-    echo "$(< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)"
-}
+source genpass.sh
 
 SSL_TRUSTSTORE_PASS="$(genpass)"
 
