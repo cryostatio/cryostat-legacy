@@ -5,8 +5,10 @@ ENV CONF_DIR=/opt/containerjfr.d
 RUN mkdir -p $CONF_DIR
 
 ENV SSL_TRUSTSTORE=$CONF_DIR/truststore.p12 \
-    SSL_TRUSTSTORE_PASS_FILE=$CONF_DIR/truststore.pass
+    SSL_TRUSTSTORE_PASS_FILE=$CONF_DIR/truststore.pass \
+    SSL_KEYSTORE=$CONF_DIR/keystore.p12
 
 COPY include $CONF_DIR
 
-RUN $CONF_DIR/truststore-setup.sh
+RUN $CONF_DIR/truststore-setup.sh && \
+    $CONF_DIR/generate-cert.sh

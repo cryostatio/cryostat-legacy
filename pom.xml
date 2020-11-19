@@ -18,7 +18,7 @@
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
   <baseImage>quay.io/rh-jmc-team/container-jfr-base</baseImage>
-  <baseImageTag>0.2.0</baseImageTag>
+  <baseImageTag>0.3.0</baseImageTag>
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 

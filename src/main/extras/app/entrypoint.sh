@@ -30,13 +30,6 @@ function createJmxCredentials() {
     chmod 400 "$USRFILE"
 }
 
-if [ -z "$CONF_DIR" ]; then
-    # this should be set by Containerfile, but set a default if not
-    CONF_DIR="/opt/containerjfr.d"
-fi
-export SSL_KEYSTORE="$CONF_DIR/keystore.p12"
-export SSL_KEY_PASS="$(genpass)"
-export SSL_STORE_PASS="$SSL_KEY_PASS"
 export SSL_TRUSTSTORE_PASS="$(cat $SSL_TRUSTSTORE_PASS_FILE)"
 
 if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
@@ -64,36 +57,6 @@ function importTrustStores() {
             -file "$cert"\
             -storepass "$SSL_TRUSTSTORE_PASS"
     done
-}
-
-function generateSslCert() {
-    pushd /tmp
-
-    keytool -genkeypair -v \
-        -alias container-jfr \
-        -dname "cn=container-jfr, o=Red Hat, c=US" \
-        -storetype PKCS12 \
-        -validity 180 \
-        -keyalg RSA \
-        -keypass "$SSL_KEY_PASS" \
-        -storepass "$SSL_STORE_PASS" \
-        -keystore "$SSL_KEYSTORE"
-
-    keytool -exportcert -v \
-        -alias container-jfr \
-        -keystore "$SSL_KEYSTORE" \
-        -storepass "$SSL_STORE_PASS" \
-        -file server.cer
-
-    keytool -importcert -v \
-        -noprompt \
-        -trustcacerts \
-        -keystore "$SSL_TRUSTSTORE" \
-        -alias selftrust \
-        -file server.cer \
-        -storepass "$SSL_TRUSTSTORE_PASS"
-
-    popd
 }
 
 if [ -z "$CONTAINER_JFR_RJMX_PORT" ]; then
@@ -133,11 +96,10 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl.need.client.auth=true")
 
     if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
-        generateSslCert
         banner "Using self-signed SSL certificate"
 
         KEYSTORE_PATH="$SSL_KEYSTORE"
-        KEYSTORE_PASS="$SSL_KEY_PASS"
+        KEYSTORE_PASS="$SSL_TRUSTSTORE_PASS"
     fi
 
     FLAGS+=("-Djavax.net.ssl.keyStore=$KEYSTORE_PATH")
