@@ -9,4 +9,4 @@ ENV SSL_TRUSTSTORE=$CONF_DIR/truststore.p12 \
 
 COPY include/truststore-setup.sh /usr/local/bin
 
-RUN sh /usr/local/bin/truststore-setup.sh
+RUN /usr/local/bin/truststore-setup.sh
