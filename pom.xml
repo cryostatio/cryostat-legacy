@@ -17,8 +17,8 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
-  <baseImage>registry.access.redhat.com/ubi8/openjdk-11</baseImage>
-  <baseImageTag>1.3-6</baseImageTag>
+  <baseImage>quay.io/rh-jmc-team/container-jfr-base</baseImage>
+  <baseImageTag>0.1.0</baseImageTag>
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
@@ -346,9 +346,6 @@
           <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
           <entrypoint>${containerjfr.entrypoint}</entrypoint>
-          <args>
-            <arg>-w</arg>
-          </args>
           <ports>
             <port>${containerjfr.webPort}</port>
             <port>${containerjfr.listenPort}</port>

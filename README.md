@@ -50,14 +50,20 @@ To re-run integration tests without a rebuild, do
 `mvn exec:exec@start-container failsafe:integration-test
 exec:exec@stop-container`.
 
-An OCI image can be built to your local `podman` image registry using
-`mvn package`. This will normally be a full-fledged image including built
+The application OCI image is built on top of a custom base image, built in the
+`base-image` directory. To produce a new base image simply run
+`sh base-image/build.sh`. This will default to using `podman` to build, which
+can be overriden by setting the environment variable `BUILDER` to another
+OCI-compliant image builder. The tag and version of the base image can also be
+overriden using the `IMAGE` and `TAG` environment variables.
+
+An application OCI image can be built to your local `podman` image registry
+using `mvn package`. This will normally be a full-fledged image including built
 web-client assets. To skip building the web-client and not include its assets
 in the OCI image, use `mvn -Dcontainerjfr.minimal=true clean package`. The
 `clean` phase should always be specified here, or else previously-generated
-client assets will still be included into the built image.
-
-To use other OCI builders, use the `imageBuilder` Maven property, ex.
+client assets will still be included into the built image. To use other OCI
+builders, use the `imageBuilder` Maven property, ex.
 `mvn -DimageBuilder=$(which docker) clean verify` to build to Docker instead of
 Podman.
 
