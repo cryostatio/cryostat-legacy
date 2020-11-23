@@ -155,12 +155,12 @@ targets must have RJMX enabled. `container-jfr` has several strategies for
 automatic discovery of potential targets. Each strategy will be tested in order
 until a working strategy is found.
 
-The primary target discovery mechanism uses the Kubernetes API to list services
-and expose all discovered services as potential targets. This is runtime
-dynamic, allowing `container-jfr` to discover new services which come online
-after `container-jfr`, or to detect when known services disappear later. This
-requires the `container-jfr` pod to have authorization to list services within
-its own namespace.
+The primary target discovery mechanism uses the OpenShift/Kubernetes API to list
+service endpoints and expose all discovered services as potential targets. This
+is runtime dynamic, allowing `container-jfr` to discover new services which come
+online after `container-jfr`, or to detect when known services disappear later.
+This requires the `container-jfr` pod to have authorization to list services
+within its own namespace.
 
 The secondary target discovery mechanism is based on Kubernetes environment
 variable service discovery. In this mode, environment variables available to
@@ -185,13 +185,26 @@ To enable RJMX on port 9091, the following JVM flag should be passed at target
 startup:
 
 ```
-    '-Dcom.sun.management.jmxremote.port=9091',
+    '-Dcom.sun.management.jmxremote.port=9091'
 ```
 
 The port number 9091 is arbitrary and may be configured to suit individual
-deployments, so long as the two `port` properties above match the desired port
+deployments, so long as the `port` property above matches the desired port
 number and the deployment network configuration allows connections on the
 configured port.
+
+Additionally, the following flags are recommended to enable JMX authentication
+and connection encryption:
+
+```
+-Dcom.sun.management.jmxremote.authenticate=true # enable JMX authentication
+-Dcom.sun.management.jmxremote.password.file=/app/resources/jmxremote.password # define users for JMX auth
+-Dcom.sun.management.jmxremote.access.file=/app/resources/jmxremote.access # set permissions for JMX users
+-Dcom.sun.management.jmxremote.ssl=true # enable JMX SSL
+-Dcom.sun.management.jmxremote.registry.ssl=true
+-Djavax.net.ssl.keyStore=/app/resources/keystore # set your SSL keystore
+-Djavax.net.ssl.keyStorePassword=somePassword # set your SSL keystore password
+```
 
 ## EVENT TEMPLATES
 
