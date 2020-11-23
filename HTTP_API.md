@@ -1204,6 +1204,7 @@
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Recordings in target JVMs**                                             |                                                                                 |
+| Search event types that can be produced by a target JVM                   | [`TargetEventsSearchGetHandler`](#TargetEventsSearchGetHandler)                 |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
 | Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler-1)                     |
 | **Security**                                                              |                                                                                 |
@@ -1211,6 +1212,49 @@
 
 ### Flight Recorder
 
+* #### `TargetEventsSearchGetHandler`
+
+    ###### synopsis
+    Returns a list of event types that can be produced by a target JVM,
+    where the event name, category, label, etc. matches the given query.
+    This is useful for preparing event options strings.
+
+    ###### request
+    `GET /api/v2/targets/:targetId/eventsSearch/:query`
+
+    `targetId` - The location of the target JVM to connect to,
+    in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
+    Should use percent-encoding.
+
+    `query` - The search query.
+
+    ###### response
+    `200` - The body is a JSON array of event objects.
+
+    The format of an event is
+    `{"name":"$NAME","typeId":"$TYPE_ID","description":"$DESCRIPTION","category":[$CATEGORIES],"options":{$OPTIONS}}`.
+
+    `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - The target could not be found. The body is an error message.
+
+    `427` - JMX authentication failed. The body is an error message.
+    There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error. The body is an error message.
+
+    `502` - JMX connection failed. This is generally because the target
+    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    certificate.
+
+    ###### example
+    ```
+    $ curl localhost:8181/api/v2/targets/localhost/eventsSearch/javaerrorthrow
+    [{"name":"Java Error","typeId":"jdk.JavaErrorThrow","description":"An object derived from java.lang.Error has been created. OutOfMemoryErrors are ignored","category":["Java Application"],"options":{"enabled":{"name":"Enabled","description":"Record event","defaultValue":"false"},"threshold":{"name":"Threshold","description":"Record event with duration above or equal to threshold","defaultValue":"0ns[ns]"},"stackTrace":{"name":"Stack Trace","description":"Record stack traces","defaultValue":"false"}}}] 
+    ```
 
 * #### `TargetRecordingOptionsListGetHandler`
 
