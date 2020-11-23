@@ -30,31 +30,19 @@ function createJmxCredentials() {
     chmod 400 "$USRFILE"
 }
 
-export SSL_KEYSTORE="/tmp/keystore.p12"
+if [ -z "$CONF_DIR" ]; then
+    # this should be set by Containerfile, but set a default if not
+    CONF_DIR="/opt/containerjfr.d"
+fi
+export SSL_KEYSTORE="$CONF_DIR/keystore.p12"
 export SSL_KEY_PASS="$(genpass)"
 export SSL_STORE_PASS="$SSL_KEY_PASS"
-export SSL_TRUSTSTORE="/tmp/truststore.p12"
-export SSL_TRUSTSTORE_PASS="$(genpass)"
-export SSL_TRUSTSTORE_PASS_FILE="/tmp/truststore.pass"
+export SSL_TRUSTSTORE_PASS="$(cat $SSL_TRUSTSTORE_PASS_FILE)"
 
 if [ -z "$SSL_TRUSTSTORE_DIR" ]; then
     SSL_TRUSTSTORE_DIR="/truststore"
 fi
-
 export SSL_TRUSTSTORE_DIR
-function createSslStores() {
-    pushd /tmp
-
-    keytool -importkeystore \
-        -noprompt \
-        -storetype PKCS12 \
-        -srckeystore /usr/lib/jvm/java-11-openjdk/lib/security/cacerts \
-        -srcstorepass changeit \
-        -destkeystore "$SSL_TRUSTSTORE" \
-        -deststorepass "$SSL_TRUSTSTORE_PASS"
-
-    popd
-}
 
 function importTrustStores() {
     if [ ! -d "$SSL_TRUSTSTORE_DIR" ]; then
@@ -125,7 +113,6 @@ FLAGS=(
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
 )
 
-createSslStores
 importTrustStores
 
 if [ "$CONTAINER_JFR_DISABLE_JMX_AUTH" = "true" ]; then
