@@ -201,7 +201,7 @@ and connection encryption:
 -Dcom.sun.management.jmxremote.password.file=/app/resources/jmxremote.password # define users for JMX auth
 -Dcom.sun.management.jmxremote.access.file=/app/resources/jmxremote.access # set permissions for JMX users
 -Dcom.sun.management.jmxremote.ssl=true # enable JMX SSL
--Dcom.sun.management.jmxremote.registry.ssl=true
+-Dcom.sun.management.jmxremote.registry.ssl=true # enable JMX registry SSL
 -Djavax.net.ssl.keyStore=/app/resources/keystore # set your SSL keystore
 -Djavax.net.ssl.keyStorePassword=somePassword # set your SSL keystore password
 ```
