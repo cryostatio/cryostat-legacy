@@ -8,3 +8,5 @@ build/
 target/
 bin/
 truststore/
+certs/*.p12
+certs/*.pass
