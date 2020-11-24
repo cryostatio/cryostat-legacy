@@ -45,6 +45,7 @@ import java.nio.file.Path;
 
 import org.apache.commons.lang3.tuple.Pair;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
@@ -56,6 +57,7 @@ import io.vertx.core.net.PfxOptions;
 class SslConfiguration {
     private final Environment env;
     private final FileSystem fs;
+    private final Logger logger;
 
     private final SslConfigurationStrategy strategy;
 
@@ -64,14 +66,20 @@ class SslConfiguration {
     private static final String KEY_PATH_ENV = "KEY_PATH";
     private static final String CERT_PATH_ENV = "CERT_PATH";
 
-    SslConfiguration(Environment env, FileSystem fs) throws SslConfigurationException {
+    SslConfiguration(Environment env, FileSystem fs, Logger logger)
+            throws SslConfigurationException {
         this.env = env;
         this.fs = fs;
+        this.logger = logger;
 
         {
             Path path = obtainKeyStorePathIfSpecified();
             if (path != null) {
                 strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
+                logger.info(
+                        String.format(
+                                "Selected SSL KeyStore strategy with keystore %s",
+                                path.toString()));
                 return;
             }
         }
@@ -79,7 +87,13 @@ class SslConfiguration {
         {
             Pair<Path, Path> pair = obtainKeyCertPathPairIfSpecified();
             if (pair != null) {
-                strategy = new KeyCertStrategy(pair.getLeft(), pair.getRight());
+                Path key = pair.getLeft();
+                Path cert = pair.getRight();
+                strategy = new KeyCertStrategy(key, cert);
+                logger.info(
+                        String.format(
+                                "Selected SSL KeyCert strategy with key %s and cert %s",
+                                key.toString(), cert.toString()));
                 return;
             }
         }
@@ -88,6 +102,7 @@ class SslConfiguration {
             Path path = discoverKeyStorePathInDefaultLocations();
             if (path != null) {
                 strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
+                logger.info("Selected SSL KeyStore strategy in default location");
                 return;
             }
         }
@@ -96,17 +111,21 @@ class SslConfiguration {
             Pair<Path, Path> pair = discoverKeyCertPathPairInDefaultLocations();
             if (pair != null) {
                 strategy = new KeyCertStrategy(pair.getLeft(), pair.getRight());
+                logger.info("Selected SSL KeyCert strategy in default location");
                 return;
             }
         }
 
         strategy = new NoSslStrategy();
+        logger.info("Selected NoSSL strategy");
     }
 
     // Test-only constructor
-    SslConfiguration(Environment env, FileSystem fs, SslConfigurationStrategy strategy) {
+    SslConfiguration(
+            Environment env, FileSystem fs, Logger logger, SslConfigurationStrategy strategy) {
         this.env = env;
         this.fs = fs;
+        this.logger = logger;
         this.strategy = strategy;
     }
 
@@ -117,7 +136,10 @@ class SslConfiguration {
 
         Path path = fs.pathOf(env.getEnv(KEYSTORE_PATH_ENV)).normalize();
         if (!fs.exists(path)) {
-            throw new SslConfigurationException("KEYSTORE_PATH refers to a non-existent file");
+            throw new SslConfigurationException(
+                    String.format(
+                            "KEYSTORE_PATH refers to a non-existent file: \"%s\"",
+                            path.toString()));
         }
 
         return path;
@@ -135,11 +157,15 @@ class SslConfiguration {
         Path key = fs.pathOf(env.getEnv(KEY_PATH_ENV)).normalize();
         Path cert = fs.pathOf(env.getEnv(CERT_PATH_ENV)).normalize();
         if (!fs.exists(key)) {
-            throw new SslConfigurationException("KEY_PATH refers to a non-existent file");
+            throw new SslConfigurationException(
+                    String.format(
+                            "KEY_PATH refers to a non-existent file: \"%s\"", key.toString()));
         }
 
         if (!fs.exists(cert)) {
-            throw new SslConfigurationException("CERT_PATH refers to a non-existent file");
+            throw new SslConfigurationException(
+                    String.format(
+                            "CERT_PATH refers to a non-existent file: \"%s\"", cert.toString()));
         }
 
         return Pair.of(key, cert);
