@@ -51,7 +51,7 @@ if [ -z "$CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP" ]; then
     CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP="200"
 fi
 
-if [ -z "$KEYSTORE_PATH" ]; then
+if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname $0)/certs/container-jfr-keystore.p12" ] ; then
     KEYSTORE_PATH="/certs/container-jfr-keystore.p12"
     KEYSTORE_PASS="$(cat $(dirname $0)/certs/keystore.pass)"
 fi
