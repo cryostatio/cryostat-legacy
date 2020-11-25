@@ -2,7 +2,7 @@
 
 set -x
 
-CERTS_DIR=$(dirname $0)
+CERTS_DIR=$(realpath $(dirname $0))
 
 SSL_KEYSTORE=container-jfr-keystore.p12
 
@@ -79,4 +79,4 @@ keytool \
     -file server.cer \
     -storepass "$SSL_TRUSTSTORE_PASS"
 
-rm server.cer
+mv server.cer "$CERTS_DIR/../truststore/dev-self-signed.cer"
