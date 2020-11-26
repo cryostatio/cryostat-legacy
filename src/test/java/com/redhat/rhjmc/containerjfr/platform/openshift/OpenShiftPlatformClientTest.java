@@ -47,6 +47,7 @@ import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -56,6 +57,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -64,7 +66,9 @@ import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
@@ -74,6 +78,8 @@ import io.fabric8.kubernetes.api.model.EndpointSubset;
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.api.model.EndpointsList;
 import io.fabric8.kubernetes.api.model.ObjectReference;
+import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.Watcher.Action;
 import io.fabric8.kubernetes.client.dsl.MixedOperation;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -219,6 +225,245 @@ class OpenShiftPlatformClientTest {
 
         MatcherAssert.assertThat(namespaceCaptor.getValue(), Matchers.equalTo(namespace));
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
+    }
+
+    @Test
+    public void shouldSubscribeWatchWhenStarted() throws Exception {
+        String namespace = "some-namespace";
+        setMockNamespace(namespace);
+
+        MixedOperation op = Mockito.mock(MixedOperation.class);
+        Mockito.when(osClient.endpoints()).thenReturn(op);
+        Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
+
+        Mockito.verifyNoInteractions(osClient);
+
+        platformClient.start();
+
+        InOrder inOrder = Mockito.inOrder(osClient, op);
+        inOrder.verify(osClient).endpoints();
+        inOrder.verify(op).inNamespace(namespace);
+        inOrder.verify(op).watch(Mockito.any(Watcher.class));
+        Mockito.verifyNoMoreInteractions(osClient);
+        Mockito.verifyNoMoreInteractions(op);
+    }
+
+    @Test
+    public void shouldNotifyOnAsyncAdded() throws Exception {
+        String namespace = "some-namespace";
+        setMockNamespace(namespace);
+
+        MixedOperation op = Mockito.mock(MixedOperation.class);
+        Mockito.when(osClient.endpoints()).thenReturn(op);
+        Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
+
+        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
+                            }
+                        });
+
+        ObjectReference objRef = Mockito.mock(ObjectReference.class);
+        Mockito.when(objRef.getName()).thenReturn("targetA");
+        EndpointAddress address = Mockito.mock(EndpointAddress.class);
+        Mockito.when(address.getIp()).thenReturn("127.0.0.1");
+        Mockito.when(address.getTargetRef()).thenReturn(objRef);
+        EndpointPort port = Mockito.mock(EndpointPort.class);
+        Mockito.when(port.getPort()).thenReturn(9999);
+        Mockito.when(port.getName()).thenReturn("jfr-jmx");
+        EndpointSubset subset = Mockito.mock(EndpointSubset.class);
+        Mockito.when(subset.getAddresses()).thenReturn(Arrays.asList(address));
+        Mockito.when(subset.getPorts()).thenReturn(Collections.singletonList(port));
+
+        Endpoints endpoints = Mockito.mock(Endpoints.class);
+        Mockito.when(endpoints.getSubsets()).thenReturn(Arrays.asList(subset));
+
+        Notification notification = Mockito.mock(Notification.class);
+        Notification.Builder builder = Mockito.mock(Notification.Builder.class);
+        Mockito.when(builder.metaCategory(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.message(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.build()).thenReturn(notification);
+        Mockito.when(notificationFactory.createBuilder()).thenReturn(builder);
+
+        platformClient.start();
+
+        ArgumentCaptor<Watcher> watcherCaptor = ArgumentCaptor.forClass(Watcher.class);
+        Mockito.verify(op).watch(watcherCaptor.capture());
+        Watcher watcher = watcherCaptor.getValue();
+        MatcherAssert.assertThat(watcher, Matchers.notNullValue());
+
+        watcher.eventReceived(Action.ADDED, endpoints);
+
+        ServiceRef serviceRef =
+                new ServiceRef(
+                        connectionToolkit,
+                        address.getIp(),
+                        port.getPort(),
+                        address.getTargetRef().getName());
+
+        Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
+        Mockito.verify(builder).metaCategory("TargetJvmDiscovery");
+        Mockito.verify(builder)
+                .message(
+                        Map.of("event", Map.of("kind", EventKind.FOUND, "serviceRef", serviceRef)));
+        Mockito.verify(builder).build();
+        Mockito.verify(notification, Mockito.times(1)).send();
+    }
+
+    @Test
+    public void shouldNotifyOnAsyncDeleted() throws Exception {
+        String namespace = "some-namespace";
+        setMockNamespace(namespace);
+
+        MixedOperation op = Mockito.mock(MixedOperation.class);
+        Mockito.when(osClient.endpoints()).thenReturn(op);
+        Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
+
+        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
+                            }
+                        });
+
+        ObjectReference objRef = Mockito.mock(ObjectReference.class);
+        Mockito.when(objRef.getName()).thenReturn("targetA");
+        EndpointAddress address = Mockito.mock(EndpointAddress.class);
+        Mockito.when(address.getIp()).thenReturn("127.0.0.1");
+        Mockito.when(address.getTargetRef()).thenReturn(objRef);
+        EndpointPort port = Mockito.mock(EndpointPort.class);
+        Mockito.when(port.getPort()).thenReturn(9999);
+        Mockito.when(port.getName()).thenReturn("jfr-jmx");
+        EndpointSubset subset = Mockito.mock(EndpointSubset.class);
+        Mockito.when(subset.getAddresses()).thenReturn(Arrays.asList(address));
+        Mockito.when(subset.getPorts()).thenReturn(Collections.singletonList(port));
+
+        Endpoints endpoints = Mockito.mock(Endpoints.class);
+        Mockito.when(endpoints.getSubsets()).thenReturn(Arrays.asList(subset));
+
+        Notification notification = Mockito.mock(Notification.class);
+        Notification.Builder builder = Mockito.mock(Notification.Builder.class);
+        Mockito.when(builder.metaCategory(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.message(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.build()).thenReturn(notification);
+        Mockito.when(notificationFactory.createBuilder()).thenReturn(builder);
+
+        platformClient.start();
+
+        ArgumentCaptor<Watcher> watcherCaptor = ArgumentCaptor.forClass(Watcher.class);
+        Mockito.verify(op).watch(watcherCaptor.capture());
+        Watcher watcher = watcherCaptor.getValue();
+        MatcherAssert.assertThat(watcher, Matchers.notNullValue());
+
+        watcher.eventReceived(Action.DELETED, endpoints);
+
+        ServiceRef serviceRef =
+                new ServiceRef(
+                        connectionToolkit,
+                        address.getIp(),
+                        port.getPort(),
+                        address.getTargetRef().getName());
+
+        Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
+        Mockito.verify(builder).metaCategory("TargetJvmDiscovery");
+        Mockito.verify(builder)
+                .message(Map.of("event", Map.of("kind", EventKind.LOST, "serviceRef", serviceRef)));
+        Mockito.verify(builder).build();
+        Mockito.verify(notification, Mockito.times(1)).send();
+    }
+
+    @Test
+    public void shouldNotifyOnAsyncModified() throws Exception {
+        String namespace = "some-namespace";
+        setMockNamespace(namespace);
+
+        MixedOperation op = Mockito.mock(MixedOperation.class);
+        Mockito.when(osClient.endpoints()).thenReturn(op);
+        Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
+
+        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
+                            }
+                        });
+
+        ObjectReference objRef = Mockito.mock(ObjectReference.class);
+        Mockito.when(objRef.getName()).thenReturn("targetA");
+        EndpointAddress address = Mockito.mock(EndpointAddress.class);
+        Mockito.when(address.getIp()).thenReturn("127.0.0.1");
+        Mockito.when(address.getTargetRef()).thenReturn(objRef);
+        EndpointPort port = Mockito.mock(EndpointPort.class);
+        Mockito.when(port.getPort()).thenReturn(9999);
+        Mockito.when(port.getName()).thenReturn("jfr-jmx");
+        EndpointSubset subset = Mockito.mock(EndpointSubset.class);
+        Mockito.when(subset.getAddresses()).thenReturn(Arrays.asList(address));
+        Mockito.when(subset.getPorts()).thenReturn(Collections.singletonList(port));
+
+        Endpoints endpoints = Mockito.mock(Endpoints.class);
+        Mockito.when(endpoints.getSubsets()).thenReturn(Arrays.asList(subset));
+
+        Notification notification = Mockito.mock(Notification.class);
+        Notification.Builder builder = Mockito.mock(Notification.Builder.class);
+        Mockito.when(builder.metaCategory(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.message(Mockito.any())).thenReturn(builder);
+        Mockito.when(builder.build()).thenReturn(notification);
+        Mockito.when(notificationFactory.createBuilder()).thenReturn(builder);
+
+        platformClient.start();
+
+        ArgumentCaptor<Watcher> watcherCaptor = ArgumentCaptor.forClass(Watcher.class);
+        Mockito.verify(op).watch(watcherCaptor.capture());
+        Watcher watcher = watcherCaptor.getValue();
+        MatcherAssert.assertThat(watcher, Matchers.notNullValue());
+
+        watcher.eventReceived(Action.MODIFIED, endpoints);
+
+        ServiceRef serviceRef =
+                new ServiceRef(
+                        connectionToolkit,
+                        address.getIp(),
+                        port.getPort(),
+                        address.getTargetRef().getName());
+
+        Mockito.verify(notificationFactory, Mockito.times(2)).createBuilder();
+        Mockito.verify(builder, Mockito.times(2)).metaCategory("TargetJvmDiscovery");
+
+        InOrder messageOrder = Mockito.inOrder(builder);
+        messageOrder
+                .verify(builder)
+                .message(Map.of("event", Map.of("kind", EventKind.LOST, "serviceRef", serviceRef)));
+        messageOrder
+                .verify(builder)
+                .message(
+                        Map.of("event", Map.of("kind", EventKind.FOUND, "serviceRef", serviceRef)));
+        Mockito.verify(builder, Mockito.times(2)).build();
+        Mockito.verify(notification, Mockito.times(2)).send();
     }
 
     private void setMockNamespace(String namespace) throws IOException {
