@@ -98,28 +98,42 @@ class OpenShiftPlatformClient extends AbstractPlatformClient {
                 .watch(
                         new Watcher<Endpoints>() {
                             @Override
-                            @SuppressFBWarnings(
-                                    value = "SF_SWITCH_FALLTHROUGH",
-                                    justification =
-                                            "The MODIFIED -> ADDED fallthrough is intentional")
                             public void eventReceived(Action action, Endpoints endpoints) {
-                                EventKind kind = null;
                                 switch (action) {
                                     case MODIFIED:
                                         // FIXME is this correct in all circumstances?
                                         // watch detects undeployed and redeployed as a "DELETED"
                                         // and then a "MODIFIED", so here we will treat "MODIFIED"
-                                        // as a "DELETED" and then fall-through to another "ADDED".
+                                        // as a "DELETED" and then an "ADDED".
                                         // If the service is actually just modified and not
                                         // redeployed then this remove/add logic should still result
                                         // in the correct end state seen by subscribed notification
                                         // clients.
-                                        eventReceived(Action.DELETED, endpoints);
+                                        List<ServiceRef> refs = getServiceRefs(endpoints);
+                                        refs.forEach(
+                                                serviceRef ->
+                                                        notifyAsyncTargetDiscovery(
+                                                                EventKind.LOST, serviceRef));
+                                        refs.forEach(
+                                                serviceRef ->
+                                                        notifyAsyncTargetDiscovery(
+                                                                EventKind.FOUND, serviceRef));
+                                        break;
                                     case ADDED:
-                                        kind = EventKind.FOUND;
+                                        getServiceRefs(endpoints)
+                                                .forEach(
+                                                        serviceRef ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.FOUND,
+                                                                        serviceRef));
                                         break;
                                     case DELETED:
-                                        kind = EventKind.LOST;
+                                        getServiceRefs(endpoints)
+                                                .forEach(
+                                                        serviceRef ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.LOST,
+                                                                        serviceRef));
                                         break;
                                     case ERROR:
                                     default:
@@ -127,13 +141,6 @@ class OpenShiftPlatformClient extends AbstractPlatformClient {
                                                 new IllegalArgumentException(action.toString()));
                                         return;
                                 }
-
-                                final EventKind fKind = kind;
-                                getServiceRefs(endpoints)
-                                        .forEach(
-                                                serviceRef ->
-                                                        notifyAsyncTargetDiscovery(
-                                                                fKind, serviceRef));
                             }
 
                             @Override
