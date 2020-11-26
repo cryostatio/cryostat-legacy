@@ -75,6 +75,7 @@ class OpenShiftPlatformClient extends AbstractPlatformClient {
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
     private final Logger logger;
+    private String namespace;
 
     OpenShiftPlatformClient(
             OpenShiftClient osClient,
@@ -91,8 +92,9 @@ class OpenShiftPlatformClient extends AbstractPlatformClient {
 
     @Override
     public void start() throws IOException {
+        this.namespace = getNamespace();
         osClient.endpoints()
-                .inNamespace(getNamespace())
+                .inNamespace(namespace)
                 .watch(
                         new Watcher<Endpoints>() {
                             @Override
@@ -144,7 +146,11 @@ class OpenShiftPlatformClient extends AbstractPlatformClient {
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
-            return osClient.endpoints().inNamespace(getNamespace()).list().getItems().stream()
+            if (namespace == null) {
+                logger.error("OpenShift namespace could not be determined");
+                return Collections.emptyList();
+            }
+            return osClient.endpoints().inNamespace(namespace).list().getItems().stream()
                     .flatMap(endpoints -> getServiceRefs(endpoints).stream())
                     .collect(Collectors.toList());
         } catch (Exception e) {
