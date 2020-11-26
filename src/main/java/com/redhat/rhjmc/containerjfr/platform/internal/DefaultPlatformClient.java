@@ -44,7 +44,6 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -52,22 +51,20 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-class DefaultPlatformClient implements PlatformClient, Consumer<JvmDiscoveryEvent> {
+class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<JvmDiscoveryEvent> {
 
     private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
-    private final NotificationFactory notificationFactory;
 
     DefaultPlatformClient(
             Logger logger,
             JvmDiscoveryClient discoveryClient,
             NotificationFactory notificationFactory) {
+        super(notificationFactory);
         this.logger = logger;
         this.discoveryClient = discoveryClient;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -83,15 +80,7 @@ class DefaultPlatformClient implements PlatformClient, Consumer<JvmDiscoveryEven
                     new ServiceRef(
                             evt.getJvmDescriptor().getJmxServiceUrl(),
                             evt.getJvmDescriptor().getMainClass());
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(NOTIFICATION_CATEGORY)
-                    .message(
-                            Map.of(
-                                    "event",
-                                    Map.of("kind", evt.getEventKind(), "serviceRef", serviceRef)))
-                    .build()
-                    .send();
+            notifyAsyncTargetDiscovery(evt.getEventKind(), serviceRef);
         } catch (MalformedURLException e) {
             logger.warn(e);
         }

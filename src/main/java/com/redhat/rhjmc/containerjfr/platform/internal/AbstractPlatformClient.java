@@ -39,13 +39,39 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.platform;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
-import java.io.IOException;
-import java.util.List;
+import java.util.Map;
 
-public interface PlatformClient {
-    void start() throws IOException;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-    List<ServiceRef> listDiscoverableServices();
+public abstract class AbstractPlatformClient implements PlatformClient {
+
+    public static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
+
+    protected final NotificationFactory notificationFactory;
+
+    protected AbstractPlatformClient(NotificationFactory notificationFactory) {
+        this.notificationFactory = notificationFactory;
+    }
+
+    protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
+        notificationFactory
+            .createBuilder()
+            .metaCategory(NOTIFICATION_CATEGORY)
+            .message(
+                    Map.of(
+                        "event",
+                        Map.of(
+                            "kind",
+                            eventKind,
+                            "serviceRef",
+                            serviceRef)))
+            .build()
+            .send();
+    }
+
 }

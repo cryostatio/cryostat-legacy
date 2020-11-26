@@ -46,19 +46,18 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
-
-import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
+import com.redhat.rhjmc.containerjfr.platform.internal.AbstractPlatformClient;
+
+import org.apache.commons.lang3.StringUtils;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -70,12 +69,11 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.openshift.client.OpenShiftClient;
 
-class OpenShiftPlatformClient implements PlatformClient {
+class OpenShiftPlatformClient extends AbstractPlatformClient {
 
     private final OpenShiftClient osClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
-    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     OpenShiftPlatformClient(
@@ -84,10 +82,10 @@ class OpenShiftPlatformClient implements PlatformClient {
             FileSystem fs,
             NotificationFactory notificationFactory,
             Logger logger) {
+        super(notificationFactory);
         this.osClient = osClient;
         this.connectionToolkit = connectionToolkit;
         this.fs = fs;
-        this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
 
@@ -130,26 +128,11 @@ class OpenShiftPlatformClient implements PlatformClient {
                                 }
                                 final EventKind fKind = kind;
 
-                                //TODO refactor this and extract the NotificationFactory to an
-                                //abstract base class with a method for sending notifications given
-                                //only the EventKind and ServiceRef
                                 getServiceRefs(endpoints)
                                         .forEach(
-                                                serviceRef -> {
-                                                    notificationFactory
-                                                            .createBuilder()
-                                                            .metaCategory(NOTIFICATION_CATEGORY)
-                                                            .message(
-                                                                    Map.of(
-                                                                            "event",
-                                                                            Map.of(
-                                                                                    "kind",
-                                                                                    fKind,
-                                                                                    "serviceRef",
-                                                                                    serviceRef)))
-                                                            .build()
-                                                            .send();
-                                                });
+                                                serviceRef ->
+                                                    notifyAsyncTargetDiscovery(fKind, serviceRef)
+                                                );
                             }
 
                             @Override
