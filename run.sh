@@ -51,8 +51,13 @@ if [ -z "$CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP" ]; then
     CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP="200"
 fi
 
-if [ ! -d "$PWD/truststore" ]; then
-    mkdir "$PWD/truststore"
+if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname $0)/certs/container-jfr-keystore.p12" ] ; then
+    KEYSTORE_PATH="/certs/container-jfr-keystore.p12"
+    KEYSTORE_PASS="$(cat $(dirname $0)/certs/keystore.pass)"
+fi
+
+if [ ! -d "$(dirname $0)/truststore" ]; then
+    mkdir "$(dirname $0)/truststore"
 fi
 
 if ! podman pod exists container-jfr; then
@@ -68,7 +73,8 @@ podman run \
     --pod container-jfr \
     --mount type=tmpfs,target=/flightrecordings \
     --mount type=tmpfs,target=/templates \
-    --mount type=bind,source="$PWD/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     -e CONTAINER_JFR_DISABLE_SSL=$CONTAINER_JFR_DISABLE_SSL \
     -e CONTAINER_JFR_DISABLE_JMX_AUTH=$CONTAINER_JFR_DISABLE_JMX_AUTH \
     -e CONTAINER_JFR_RJMX_USER=$CONTAINER_JFR_RJMX_USER \

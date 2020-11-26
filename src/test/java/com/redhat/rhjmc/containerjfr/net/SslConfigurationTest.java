@@ -66,6 +66,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
@@ -78,13 +79,14 @@ import io.vertx.core.net.PfxOptions;
 class SslConfigurationTest {
     @Mock Environment env;
     @Mock FileSystem fs;
+    @Mock Logger logger;
     @Mock SslConfiguration.SslConfigurationStrategy strategy;
 
     SslConfiguration sslConf;
 
     @BeforeEach
     void setup() {
-        sslConf = new SslConfiguration(env, fs, strategy);
+        sslConf = new SslConfiguration(env, fs, logger, strategy);
     }
 
     @Test
@@ -95,7 +97,7 @@ class SslConfigurationTest {
         when(dne.resolve(anyString())).thenReturn(dne);
         when(fs.exists(any(Path.class))).thenReturn(false);
 
-        sslConf = new SslConfiguration(env, fs);
+        sslConf = new SslConfiguration(env, fs, logger);
 
         MatcherAssert.assertThat(sslConf.enabled(), Matchers.equalTo(false));
     }

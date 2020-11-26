@@ -131,9 +131,9 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static SslConfiguration provideSslConfiguration(Environment env, FileSystem fs) {
+    static SslConfiguration provideSslConfiguration(Environment env, FileSystem fs, Logger logger) {
         try {
-            return new SslConfiguration(env, fs);
+            return new SslConfiguration(env, fs, logger);
         } catch (SslConfiguration.SslConfigurationException e) {
             throw new RuntimeException(e); // @Provides methods may only throw unchecked exceptions
         }
