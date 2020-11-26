@@ -106,26 +106,33 @@ public abstract class PlatformModule {
     @Singleton
     static PlatformDetectionStrategy<?> providePlatformStrategy(
             Logger logger, Set<PlatformDetectionStrategy<?>> strategies, Environment env) {
+        PlatformDetectionStrategy<?> strat = null;
         if (env.hasEnv(PLATFORM_STRATEGY_ENV_VAR)) {
             String platform = env.getEnv(PLATFORM_STRATEGY_ENV_VAR);
             logger.info(
                     String.format(
                             "Selecting configured PlatformDetectionStrategy \"%s\"", platform));
-            for (PlatformDetectionStrategy<?> strat : strategies) {
-                if (Objects.equals(platform, strat.getClass().getCanonicalName())) {
-                    return strat;
+            for (PlatformDetectionStrategy<?> s : strategies) {
+                if (Objects.equals(platform, s.getClass().getCanonicalName())) {
+                    strat = s;
+                    break;
                 }
             }
-            throw new RuntimeException(
-                    String.format("Selected PlatformDetectionStrategy \"%s\" not found", platform));
+            if (strat == null) {
+                throw new RuntimeException(
+                        String.format(
+                                "Selected PlatformDetectionStrategy \"%s\" not found", platform));
+            }
         }
-        PlatformDetectionStrategy<?> strat =
-                strategies.stream()
-                        // reverse sort, higher priorities should be earlier in the stream
-                        .sorted((a, b) -> Integer.compare(b.getPriority(), a.getPriority()))
-                        .filter(PlatformDetectionStrategy::isAvailable)
-                        .findFirst()
-                        .orElseThrow();
+        if (strat == null) {
+            strat =
+                    strategies.stream()
+                            // reverse sort, higher priorities should be earlier in the stream
+                            .sorted((a, b) -> Integer.compare(b.getPriority(), a.getPriority()))
+                            .filter(PlatformDetectionStrategy::isAvailable)
+                            .findFirst()
+                            .orElseThrow();
+        }
         strat.getPlatformClient().start();
         return strat;
     }
