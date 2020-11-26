@@ -71,13 +71,9 @@ class DefaultPlatformClient implements PlatformClient, Consumer<JvmDiscoveryEven
     }
 
     @Override
-    public void start() {
+    public void start() throws IOException {
         discoveryClient.addListener(this);
-        try {
-            discoveryClient.start();
-        } catch (IOException e) {
-            logger.error(e);
-        }
+        discoveryClient.start();
     }
 
     @Override

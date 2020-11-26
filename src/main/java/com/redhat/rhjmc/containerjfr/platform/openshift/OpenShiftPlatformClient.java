@@ -46,6 +46,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -53,7 +54,9 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
@@ -61,7 +64,10 @@ import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
+import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.openshift.client.OpenShiftClient;
 
 class OpenShiftPlatformClient implements PlatformClient {
@@ -69,38 +75,96 @@ class OpenShiftPlatformClient implements PlatformClient {
     private final OpenShiftClient osClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     OpenShiftPlatformClient(
             OpenShiftClient osClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             FileSystem fs,
+            NotificationFactory notificationFactory,
             Logger logger) {
         this.osClient = osClient;
         this.connectionToolkit = connectionToolkit;
         this.fs = fs;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
 
     @Override
-    public void start() {}
+    @SuppressFBWarnings(
+            value = "SF_SWITCH_FALLTHROUGH",
+            justification = "The MODIFIED -> ADDED fallthrough is intentional")
+    public void start() throws IOException {
+        osClient.endpoints()
+                .inNamespace(getNamespace())
+                .watch(
+                        new Watcher<Endpoints>() {
+                            @Override
+                            public void eventReceived(Action action, Endpoints endpoints) {
+                                EventKind kind = null;
+                                switch (action) {
+                                    case MODIFIED:
+                                        // FIXME is this correct in all circumstances?
+                                        // watch detects undeployed and redeployed as a "DELETED"
+                                        // and then a "MODIFIED", so here we will treat "MODIFIED"
+                                        // as a "DELETED" and then fall-through to another "ADDED".
+                                        // If the service is actually just modified and not
+                                        // redeployed then this remove/add logic should still result
+                                        // in the correct end state seen by subscribed notification
+                                        // clients.
+                                        eventReceived(Action.DELETED, endpoints);
+                                    case ADDED:
+                                        kind = EventKind.FOUND;
+                                        break;
+                                    case DELETED:
+                                        kind = EventKind.LOST;
+                                        break;
+                                    case ERROR:
+                                    default:
+                                        logger.warn(
+                                                new IllegalArgumentException(action.toString()));
+                                }
+                                if (kind == null) {
+                                    return;
+                                }
+                                final EventKind fKind = kind;
+
+                                //TODO refactor this and extract the NotificationFactory to an
+                                //abstract base class with a method for sending notifications given
+                                //only the EventKind and ServiceRef
+                                getServiceRefs(endpoints)
+                                        .forEach(
+                                                serviceRef -> {
+                                                    notificationFactory
+                                                            .createBuilder()
+                                                            .metaCategory(NOTIFICATION_CATEGORY)
+                                                            .message(
+                                                                    Map.of(
+                                                                            "event",
+                                                                            Map.of(
+                                                                                    "kind",
+                                                                                    fKind,
+                                                                                    "serviceRef",
+                                                                                    serviceRef)))
+                                                            .build()
+                                                            .send();
+                                                });
+                            }
+
+                            @Override
+                            public void onClose(KubernetesClientException clientException) {
+                                logger.warn(clientException);
+                            }
+                        });
+    }
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
-            List<ServiceRef> refs = new ArrayList<>();
-            osClient.endpoints().inNamespace(getNamespace()).list().getItems().stream()
-                    .flatMap(endpoints -> endpoints.getSubsets().stream())
-                    .forEach(
-                            subset ->
-                                    subset.getPorts().stream()
-                                            .filter(this::isCompatiblePort)
-                                            .forEach(
-                                                    port ->
-                                                            refs.addAll(
-                                                                    createServiceRefs(
-                                                                            subset, port))));
-            return refs;
+            return osClient.endpoints().inNamespace(getNamespace()).list().getItems().stream()
+                    .flatMap(endpoints -> getServiceRefs(endpoints).stream())
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             logger.warn(e);
             return Collections.emptyList();
@@ -109,6 +173,20 @@ class OpenShiftPlatformClient implements PlatformClient {
 
     private boolean isCompatiblePort(EndpointPort port) {
         return "jfr-jmx".equals(port.getName()) || 9091 == port.getPort();
+    }
+
+    private List<ServiceRef> getServiceRefs(Endpoints endpoints) {
+        List<ServiceRef> refs = new ArrayList<>();
+        endpoints.getSubsets().stream()
+                .forEach(
+                        subset ->
+                                subset.getPorts().stream()
+                                        .filter(this::isCompatiblePort)
+                                        .forEach(
+                                                port ->
+                                                        refs.addAll(
+                                                                createServiceRefs(subset, port))));
+        return refs;
     }
 
     private List<ServiceRef> createServiceRefs(EndpointSubset subset, EndpointPort port) {

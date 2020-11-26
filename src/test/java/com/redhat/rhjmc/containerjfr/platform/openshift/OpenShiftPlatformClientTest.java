@@ -65,6 +65,7 @@ import org.mockito.stubbing.Answer;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import io.fabric8.kubernetes.api.model.EndpointAddress;
@@ -84,12 +85,14 @@ class OpenShiftPlatformClientTest {
     @Mock OpenShiftClient osClient;
     @Mock JFRConnectionToolkit connectionToolkit;
     @Mock FileSystem fs;
+    @Mock NotificationFactory notificationFactory;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
         this.platformClient =
-                new OpenShiftPlatformClient(osClient, () -> connectionToolkit, fs, logger);
+                new OpenShiftPlatformClient(
+                        osClient, () -> connectionToolkit, fs, notificationFactory, logger);
     }
 
     @Test

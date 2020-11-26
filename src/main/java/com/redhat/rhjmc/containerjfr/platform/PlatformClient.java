@@ -41,12 +41,13 @@
  */
 package com.redhat.rhjmc.containerjfr.platform;
 
+import java.io.IOException;
 import java.util.List;
 
 public interface PlatformClient {
     static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
 
-    void start();
+    void start() throws IOException;
 
     List<ServiceRef> listDiscoverableServices();
 }

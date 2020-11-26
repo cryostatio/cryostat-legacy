@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -77,7 +78,7 @@ class KubeApiPlatformClient implements PlatformClient {
     }
 
     @Override
-    public void start() {}
+    public void start() throws IOException {}
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
