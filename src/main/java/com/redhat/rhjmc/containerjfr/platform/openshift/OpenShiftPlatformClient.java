@@ -49,6 +49,8 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
@@ -56,8 +58,6 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 import com.redhat.rhjmc.containerjfr.platform.internal.AbstractPlatformClient;
-
-import org.apache.commons.lang3.StringUtils;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -90,15 +90,16 @@ class OpenShiftPlatformClient extends AbstractPlatformClient {
     }
 
     @Override
-    @SuppressFBWarnings(
-            value = "SF_SWITCH_FALLTHROUGH",
-            justification = "The MODIFIED -> ADDED fallthrough is intentional")
     public void start() throws IOException {
         osClient.endpoints()
                 .inNamespace(getNamespace())
                 .watch(
                         new Watcher<Endpoints>() {
                             @Override
+                            @SuppressFBWarnings(
+                                    value = "SF_SWITCH_FALLTHROUGH",
+                                    justification =
+                                            "The MODIFIED -> ADDED fallthrough is intentional")
                             public void eventReceived(Action action, Endpoints endpoints) {
                                 EventKind kind = null;
                                 switch (action) {
@@ -122,17 +123,15 @@ class OpenShiftPlatformClient extends AbstractPlatformClient {
                                     default:
                                         logger.warn(
                                                 new IllegalArgumentException(action.toString()));
+                                        return;
                                 }
-                                if (kind == null) {
-                                    return;
-                                }
-                                final EventKind fKind = kind;
 
+                                final EventKind fKind = kind;
                                 getServiceRefs(endpoints)
                                         .forEach(
                                                 serviceRef ->
-                                                    notifyAsyncTargetDiscovery(fKind, serviceRef)
-                                                );
+                                                        notifyAsyncTargetDiscovery(
+                                                                fKind, serviceRef));
                             }
 
                             @Override

@@ -60,18 +60,10 @@ public abstract class AbstractPlatformClient implements PlatformClient {
 
     protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
         notificationFactory
-            .createBuilder()
-            .metaCategory(NOTIFICATION_CATEGORY)
-            .message(
-                    Map.of(
-                        "event",
-                        Map.of(
-                            "kind",
-                            eventKind,
-                            "serviceRef",
-                            serviceRef)))
-            .build()
-            .send();
+                .createBuilder()
+                .metaCategory(NOTIFICATION_CATEGORY)
+                .message(Map.of("event", Map.of("kind", eventKind, "serviceRef", serviceRef)))
+                .build()
+                .send();
     }
-
 }

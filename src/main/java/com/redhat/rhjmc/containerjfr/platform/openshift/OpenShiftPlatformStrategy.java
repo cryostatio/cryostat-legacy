@@ -40,7 +40,7 @@
  * #L%
  */
 
-//FIXME move the openshift package under the internal package
+// FIXME move the openshift package under the internal package
 package com.redhat.rhjmc.containerjfr.platform.openshift;
 
 import java.nio.file.Files;
