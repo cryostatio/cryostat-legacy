@@ -52,6 +52,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
 import dagger.Binds;
 import dagger.Module;
@@ -105,8 +106,10 @@ public abstract class HttpApiV1Module {
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
-            Clock clock) {
-        return new TargetRecordingPatchSave(fs, recordingsPath, targetConnectionManager, clock);
+            Clock clock,
+            PlatformClient platformClient) {
+        return new TargetRecordingPatchSave(
+                fs, recordingsPath, targetConnectionManager, clock, platformClient);
     }
 
     @Provides
