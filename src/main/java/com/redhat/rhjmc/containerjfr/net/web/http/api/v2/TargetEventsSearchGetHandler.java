@@ -41,9 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -58,23 +56,25 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 
-class TargetEventsSearchGetHandler extends AbstractAuthenticatedRequestHandler {
+class TargetEventsSearchGetHandler
+        extends AbstractV2RequestHandler<List<SerializableEventTypeInfo>> {
 
     private final TargetConnectionManager targetConnectionManager;
-    private final Gson gson;
 
     @Inject
     TargetEventsSearchGetHandler(
             AuthManager auth, TargetConnectionManager targetConnectionManager, Gson gson) {
-        super(auth);
+        super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
-        this.gson = gson;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
@@ -93,32 +93,33 @@ class TargetEventsSearchGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String query = ctx.pathParam("query");
-        List<SerializableEventTypeInfo> events =
-                targetConnectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromContext(ctx),
-                        connection -> {
-                            Collection<? extends IEventTypeInfo> matchingEvents =
-                                    connection.getService().getAvailableEventTypes().stream()
-                                            .filter(
-                                                    event ->
-                                                            eventMatchesSearchTerm(
-                                                                    event, query.toLowerCase()))
-                                            .collect(Collectors.toList());
-                            List<SerializableEventTypeInfo> eventsList =
-                                    new ArrayList<>(matchingEvents.size());
-                            for (IEventTypeInfo info : matchingEvents) {
-                                eventsList.add(new SerializableEventTypeInfo(info));
-                            }
-                            return eventsList;
-                        });
-        ctx.response().end(gson.toJson(events));
+    public IntermediateResponse<List<SerializableEventTypeInfo>> handle(RequestParams params)
+            throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                getConnectionDescriptorFromParams(params),
+                connection -> {
+                    String query = params.pathParams.get("query");
+                    List<SerializableEventTypeInfo> matchingEvents =
+                            connection.getService().getAvailableEventTypes().stream()
+                                    .filter(
+                                            event ->
+                                                    eventMatchesSearchTerm(
+                                                            event, query.toLowerCase()))
+                                    .map(SerializableEventTypeInfo::new)
+                                    .collect(Collectors.toList());
+                    return new IntermediateResponse<List<SerializableEventTypeInfo>>()
+                            .body(matchingEvents);
+                });
     }
 
     private boolean eventMatchesSearchTerm(IEventTypeInfo event, String term) {

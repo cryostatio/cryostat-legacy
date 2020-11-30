@@ -47,13 +47,14 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -63,7 +64,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -76,9 +76,6 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
 
 @ExtendWith(MockitoExtension.class)
 class TargetEventsSearchGetHandlerTest {
@@ -116,25 +113,16 @@ class TargetEventsSearchGetHandlerTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-        Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
-        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-        Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        RequestParams params =
+                new RequestParams(
+                        Map.of("targetId", "foo:9091", "query", "foo"),
+                        MultiMap.caseInsensitiveMultiMap(),
+                        MultiMap.caseInsensitiveMultiMap(),
+                        Set.of());
 
-        Mockito.when(ctx.pathParam("query")).thenReturn("foo");
-        handler.handleAuthenticated(ctx);
+        IntermediateResponse<List<SerializableEventTypeInfo>> result = handler.handle(params);
 
-        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(resp).end(responseCaptor.capture());
-        List<SerializableEventTypeInfo> result =
-                gson.fromJson(
-                        responseCaptor.getValue(),
-                        new TypeToken<List<SerializableEventTypeInfo>>() {}.getType());
-
-        MatcherAssert.assertThat(result, Matchers.equalTo(Collections.emptyList()));
+        MatcherAssert.assertThat(result.body, Matchers.equalTo(Collections.emptyList()));
     }
 
     @Test
@@ -178,30 +166,28 @@ class TargetEventsSearchGetHandlerTest {
         when(targetConnectionManager.executeConnectedTask(
                         Mockito.any(ConnectionDescriptor.class), Mockito.any()))
                 .thenAnswer(
-                        arg0 -> ((ConnectedTask<Object>) arg0.getArgument(1)).execute(connection));
+                        arg0 -> {
+                            try {
+                                return ((ConnectedTask<Object>) arg0.getArgument(1))
+                                        .execute(connection);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                throw e;
+                            }
+                        });
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-        Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
-        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-        Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-
-        Mockito.when(ctx.pathParam("query")).thenReturn("foo");
-        handler.handleAuthenticated(ctx);
-
-        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(resp).end(responseCaptor.capture());
-        List<SerializableEventTypeInfo> result =
-                gson.fromJson(
-                        responseCaptor.getValue(),
-                        new TypeToken<List<SerializableEventTypeInfo>>() {}.getType());
+        RequestParams params =
+                new RequestParams(
+                        Map.of("targetId", "foo:9091", "query", "foo"),
+                        MultiMap.caseInsensitiveMultiMap(),
+                        MultiMap.caseInsensitiveMultiMap(),
+                        Set.of());
+        IntermediateResponse<List<SerializableEventTypeInfo>> result = handler.handle(params);
 
         MatcherAssert.assertThat(
-                result,
+                result.body,
                 Matchers.equalTo(
                         Arrays.asList(
                                 new SerializableEventTypeInfo(infoA),

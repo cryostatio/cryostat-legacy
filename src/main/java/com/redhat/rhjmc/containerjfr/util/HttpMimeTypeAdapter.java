@@ -39,35 +39,32 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
+package com.redhat.rhjmc.containerjfr.util;
 
-import java.util.Map;
-import java.util.Set;
+import java.io.IOException;
+import java.util.Objects;
 
-import io.vertx.core.MultiMap;
-import io.vertx.ext.web.FileUpload;
-import io.vertx.ext.web.RoutingContext;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
 
-class RequestParams {
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
-    protected final Map<String, String> pathParams;
-    protected final MultiMap queryParams;
-    protected final MultiMap headers;
-    protected final Set<FileUpload> fileUploads;
+public class HttpMimeTypeAdapter extends TypeAdapter<HttpMimeType> {
 
-    RequestParams(
-            Map<String, String> pathParams,
-            MultiMap queryParams,
-            MultiMap headers,
-            Set<FileUpload> fileUploads) {
-        this.pathParams = pathParams;
-        this.queryParams = queryParams;
-        this.headers = headers;
-        this.fileUploads = fileUploads;
+    @Override
+    public HttpMimeType read(JsonReader reader) throws IOException {
+        String token = reader.nextString();
+        for (HttpMimeType mime : HttpMimeType.values()) {
+            if (Objects.equals(mime.mime(), token)) {
+                return mime;
+            }
+        }
+        return null;
     }
 
-    static RequestParams from(RoutingContext ctx) {
-        return new RequestParams(
-                ctx.pathParams(), ctx.queryParams(), ctx.request().headers(), ctx.fileUploads());
+    @Override
+    public void write(JsonWriter writer, HttpMimeType mime) throws IOException {
+        writer.value(mime.mime());
     }
 }

@@ -51,4 +51,28 @@ class IntermediateResponse<T> {
     protected String statusMessage;
     protected T body;
 
+    IntermediateResponse<T> addHeader(String key, String value) {
+        this.headers.put(key, value);
+        return this;
+    }
+
+    IntermediateResponse<T> removeHeader(String key) {
+        this.headers.remove(key);
+        return this;
+    }
+
+    IntermediateResponse<T> statusCode(int statusCode) {
+        this.statusCode = statusCode;
+        return this;
+    }
+
+    IntermediateResponse<T> statusMessage(String statusMessage) {
+        this.statusMessage = statusMessage;
+        return this;
+    }
+
+    IntermediateResponse<T> body(T body) {
+        this.body = body;
+        return this;
+    }
 }

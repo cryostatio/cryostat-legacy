@@ -44,18 +44,22 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
+import java.util.Map;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -63,7 +67,7 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-abstract class AbstractV2RequestHandler implements RequestHandler {
+abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
     abstract boolean requiresAuthentication();
 
@@ -80,52 +84,54 @@ abstract class AbstractV2RequestHandler implements RequestHandler {
         this.gson = gson;
     }
 
-    abstract <T> IntermediateResponse<T> handle(RequestParams requestParams) throws Exception;
+    abstract IntermediateResponse<T> handle(RequestParams requestParams) throws Exception;
+
+    abstract HttpMimeType mimeType();
 
     @Override
     public void handle(RoutingContext ctx) {
         RequestParams requestParams = RequestParams.from(ctx);
-            try {
-                if (requiresAuthentication() && !validateRequestAuthorization(ctx.request()).get()) {
-                    throw new HttpStatusException(401);
-                }
-                writeResponse(ctx, handle(requestParams));
-            } catch (HttpStatusException e) {
-                throw e;
-            } catch (ConnectionException e) {
-                Throwable cause = e.getCause();
-                if (cause instanceof SecurityException) {
-                    ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                    throw new HttpStatusException(427, "JMX Authentication Failure", e);
-                }
-                Throwable rootCause = ExceptionUtils.getRootCause(e);
-                if (rootCause instanceof ConnectIOException) {
-                    throw new HttpStatusException(502, "Target SSL Untrusted", e);
-                }
-                throw new HttpStatusException(500, e);
-            } catch (Exception e) {
-                throw new HttpStatusException(500, e.getMessage(), e);
+        try {
+            if (requiresAuthentication() && !validateRequestAuthorization(ctx.request()).get()) {
+                throw new HttpStatusException(401);
             }
+            writeResponse(ctx, handle(requestParams));
+        } catch (HttpStatusException e) {
+            throw e;
+        } catch (ConnectionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SecurityException) {
+                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                throw new HttpStatusException(427, "JMX Authentication Failure", e);
+            }
+            Throwable rootCause = ExceptionUtils.getRootCause(e);
+            if (rootCause instanceof ConnectIOException) {
+                throw new HttpStatusException(502, "Target SSL Untrusted", e);
+            }
+            throw new HttpStatusException(500, e);
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e.getMessage(), e);
+        }
     }
 
     protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
         return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
     }
 
-    protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {
-        String targetId = ctx.pathParam("targetId");
+    protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParams params) {
+        String targetId = params.pathParams.get("targetId");
         Credentials credentials = null;
-        if (ctx.request().headers().contains(JMX_AUTHORIZATION_HEADER)) {
-            String proxyAuth = ctx.request().getHeader(JMX_AUTHORIZATION_HEADER);
+        if (params.headers.contains(JMX_AUTHORIZATION_HEADER)) {
+            String proxyAuth = params.headers.get(JMX_AUTHORIZATION_HEADER);
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
             if (!m.find()) {
-                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
                 throw new HttpStatusException(
                         427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
             } else {
                 String t = m.group("type");
                 if (!"basic".equals(t.toLowerCase())) {
-                    ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                    params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
                     throw new HttpStatusException(
                             427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
                 } else {
@@ -136,7 +142,7 @@ abstract class AbstractV2RequestHandler implements RequestHandler {
                                         Base64.getDecoder().decode(m.group("credentials")),
                                         StandardCharsets.UTF_8);
                     } catch (IllegalArgumentException iae) {
-                        ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                        params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new HttpStatusException(
                                 427,
                                 JMX_AUTHORIZATION_HEADER
@@ -145,7 +151,7 @@ abstract class AbstractV2RequestHandler implements RequestHandler {
                     }
                     String[] parts = c.split(":");
                     if (parts.length != 2) {
-                        ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                        params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new HttpStatusException(
                                 427,
                                 "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
@@ -157,14 +163,21 @@ abstract class AbstractV2RequestHandler implements RequestHandler {
         return new ConnectionDescriptor(targetId, credentials);
     }
 
-    protected void writeResponse(RoutingContext ctx, IntermediateResponse<?> intermediateResponse) {
+    protected void writeResponse(RoutingContext ctx, IntermediateResponse<T> intermediateResponse) {
         HttpServerResponse response = ctx.response();
         response.setStatusCode(intermediateResponse.statusCode);
         if (intermediateResponse.statusMessage != null) {
             response.setStatusMessage(intermediateResponse.statusMessage);
         }
         intermediateResponse.headers.forEach(response::putHeader);
-        response.end(gson.toJson(intermediateResponse.body));
-    }
 
+        Map body =
+                Map.of(
+                        "meta",
+                        Map.of("type", mimeType(), "status", response.getStatusMessage()),
+                        "data",
+                        intermediateResponse.body);
+
+        response.end(gson.toJson(body));
+    }
 }
