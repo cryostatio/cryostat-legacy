@@ -42,7 +42,6 @@
 package com.redhat.rhjmc.containerjfr.platform.openshift;
 
 import java.io.BufferedReader;
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.Collections;
@@ -87,6 +86,8 @@ import io.fabric8.openshift.client.OpenShiftClient;
 @ExtendWith(MockitoExtension.class)
 class OpenShiftPlatformClientTest {
 
+    static final String NAMESPACE = "foo-namespace";
+
     OpenShiftPlatformClient platformClient;
     @Mock OpenShiftClient osClient;
     @Mock JFRConnectionToolkit connectionToolkit;
@@ -95,7 +96,13 @@ class OpenShiftPlatformClientTest {
     @Mock Logger logger;
 
     @BeforeEach
-    void setup() {
+    void setup() throws Exception {
+        BufferedReader mockReader = Mockito.mock(BufferedReader.class);
+        Mockito.lenient().when(fs.readFile(Mockito.any(Path.class))).thenReturn(mockReader);
+        Mockito.lenient()
+                .when(mockReader.lines())
+                .thenReturn(Collections.singletonList(NAMESPACE).stream());
+
         this.platformClient =
                 new OpenShiftPlatformClient(
                         osClient, () -> connectionToolkit, fs, notificationFactory, logger);
@@ -103,15 +110,11 @@ class OpenShiftPlatformClientTest {
 
     @Test
     void shouldReturnEmptyListIfNoEndpointsFound() throws Exception {
-        String namespace = "foo-namespace";
-        setMockNamespace(namespace);
-
         MixedOperation mockNamespaceOperation = Mockito.mock(MixedOperation.class);
         Mockito.when(osClient.endpoints()).thenReturn(mockNamespaceOperation);
 
-        ArgumentCaptor<String> namespaceCaptor = ArgumentCaptor.forClass(String.class);
         NonNamespaceOperation mockOperation = Mockito.mock(NonNamespaceOperation.class);
-        Mockito.when(mockNamespaceOperation.inNamespace(namespaceCaptor.capture()))
+        Mockito.when(mockNamespaceOperation.inNamespace(Mockito.anyString()))
                 .thenReturn(mockOperation);
 
         EndpointsList mockListable = Mockito.mock(EndpointsList.class);
@@ -120,22 +123,18 @@ class OpenShiftPlatformClientTest {
         List<Endpoints> mockEndpoints = Collections.emptyList();
         Mockito.when(mockListable.getItems()).thenReturn(mockEndpoints);
 
+        platformClient.start();
         List<ServiceRef> result = platformClient.listDiscoverableServices();
-        MatcherAssert.assertThat(namespaceCaptor.getValue(), Matchers.equalTo(namespace));
         MatcherAssert.assertThat(result, Matchers.equalTo(Collections.emptyList()));
     }
 
     @Test
     void shouldReturnListOfMatchingEndpointRefs() throws Exception {
-        String namespace = "foo-namespace";
-        setMockNamespace(namespace);
-
         MixedOperation mockNamespaceOperation = Mockito.mock(MixedOperation.class);
         Mockito.when(osClient.endpoints()).thenReturn(mockNamespaceOperation);
 
-        ArgumentCaptor<String> namespaceCaptor = ArgumentCaptor.forClass(String.class);
         NonNamespaceOperation mockOperation = Mockito.mock(NonNamespaceOperation.class);
-        Mockito.when(mockNamespaceOperation.inNamespace(namespaceCaptor.capture()))
+        Mockito.when(mockNamespaceOperation.inNamespace(Mockito.anyString()))
                 .thenReturn(mockOperation);
 
         EndpointsList mockListable = Mockito.mock(EndpointsList.class);
@@ -203,6 +202,7 @@ class OpenShiftPlatformClientTest {
                             }
                         });
 
+        platformClient.start();
         List<ServiceRef> result = platformClient.listDiscoverableServices();
         ServiceRef serv1 =
                 new ServiceRef(
@@ -223,15 +223,11 @@ class OpenShiftPlatformClientTest {
                         port3.getPort(),
                         address4.getTargetRef().getName());
 
-        MatcherAssert.assertThat(namespaceCaptor.getValue(), Matchers.equalTo(namespace));
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
     }
 
     @Test
     public void shouldSubscribeWatchWhenStarted() throws Exception {
-        String namespace = "some-namespace";
-        setMockNamespace(namespace);
-
         MixedOperation op = Mockito.mock(MixedOperation.class);
         Mockito.when(osClient.endpoints()).thenReturn(op);
         Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
@@ -242,7 +238,7 @@ class OpenShiftPlatformClientTest {
 
         InOrder inOrder = Mockito.inOrder(osClient, op);
         inOrder.verify(osClient).endpoints();
-        inOrder.verify(op).inNamespace(namespace);
+        inOrder.verify(op).inNamespace(NAMESPACE);
         inOrder.verify(op).watch(Mockito.any(Watcher.class));
         Mockito.verifyNoMoreInteractions(osClient);
         Mockito.verifyNoMoreInteractions(op);
@@ -250,9 +246,6 @@ class OpenShiftPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncAdded() throws Exception {
-        String namespace = "some-namespace";
-        setMockNamespace(namespace);
-
         MixedOperation op = Mockito.mock(MixedOperation.class);
         Mockito.when(osClient.endpoints()).thenReturn(op);
         Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
@@ -321,9 +314,6 @@ class OpenShiftPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncDeleted() throws Exception {
-        String namespace = "some-namespace";
-        setMockNamespace(namespace);
-
         MixedOperation op = Mockito.mock(MixedOperation.class);
         Mockito.when(osClient.endpoints()).thenReturn(op);
         Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
@@ -391,9 +381,6 @@ class OpenShiftPlatformClientTest {
 
     @Test
     public void shouldNotifyOnAsyncModified() throws Exception {
-        String namespace = "some-namespace";
-        setMockNamespace(namespace);
-
         MixedOperation op = Mockito.mock(MixedOperation.class);
         Mockito.when(osClient.endpoints()).thenReturn(op);
         Mockito.when(op.inNamespace(Mockito.anyString())).thenReturn(op);
@@ -464,11 +451,5 @@ class OpenShiftPlatformClientTest {
                         Map.of("event", Map.of("kind", EventKind.FOUND, "serviceRef", serviceRef)));
         Mockito.verify(builder, Mockito.times(2)).build();
         Mockito.verify(notification, Mockito.times(2)).send();
-    }
-
-    private void setMockNamespace(String namespace) throws IOException {
-        BufferedReader mockReader = Mockito.mock(BufferedReader.class);
-        Mockito.when(fs.readFile(Mockito.any(Path.class))).thenReturn(mockReader);
-        Mockito.when(mockReader.lines()).thenReturn(Collections.singletonList(namespace).stream());
     }
 }
