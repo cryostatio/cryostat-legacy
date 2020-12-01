@@ -41,8 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
-import java.util.Objects;
-
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class ApiException extends HttpStatusException {
@@ -53,7 +51,7 @@ public class ApiException extends HttpStatusException {
     ApiException(int statusCode, String apiStatus, String reason, Throwable cause) {
         super(statusCode, cause);
         this.apiStatus = apiStatus;
-        this.reason = Objects.requireNonNull(reason);
+        this.reason = reason;
     }
 
     ApiException(int statusCode, String apiStatus, String reason) {
