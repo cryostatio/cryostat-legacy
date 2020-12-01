@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.EnglishReasonPhraseCatalog;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
@@ -71,6 +72,7 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.v2.ApiException;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
@@ -133,24 +135,40 @@ public class WebServer {
 
                     ctx.response().setStatusCode(exception.getStatusCode());
 
-                    String payload =
-                            exception.getPayload() != null
-                                    ? exception.getPayload()
-                                    : exception.getMessage();
-
-                    String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
-                    if (accept.contains(HttpMimeType.JSON.mime())
-                            && accept.indexOf(HttpMimeType.JSON.mime())
-                                    < accept.indexOf(HttpMimeType.PLAINTEXT.mime())) {
+                    if (exception instanceof ApiException) {
+                        ApiException ex = (ApiException) exception;
+                        String apiStatus =
+                                ex.getApiStatus() != null
+                                        ? ex.getApiStatus()
+                                        : EnglishReasonPhraseCatalog.INSTANCE.getReason(
+                                                ex.getStatusCode(), null);
+                        Map meta = Map.of("status", apiStatus, "type", HttpMimeType.PLAINTEXT);
+                        Map data = Map.of("reason", ex.getFailureReason());
+                        Map body = Map.of("meta", meta, "data", data);
                         ctx.response()
                                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                                .end(gson.toJson(Map.of("message", payload)));
-                        return;
-                    }
+                                .end(gson.toJson(body));
+                    } else {
+                        // kept for V1 API handler compatibility
+                        String payload =
+                                exception.getPayload() != null
+                                        ? exception.getPayload()
+                                        : exception.getMessage();
 
-                    ctx.response()
-                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime())
-                            .end(payload);
+                        String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
+                        if (accept.contains(HttpMimeType.JSON.mime())
+                                && accept.indexOf(HttpMimeType.JSON.mime())
+                                        < accept.indexOf(HttpMimeType.PLAINTEXT.mime())) {
+                            ctx.response()
+                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                                    .end(gson.toJson(Map.of("message", payload)));
+                            return;
+                        }
+
+                        ctx.response()
+                                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime())
+                                .end(payload);
+                    }
                 };
 
         requestHandlers.forEach(

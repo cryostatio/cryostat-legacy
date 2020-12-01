@@ -65,7 +65,6 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
@@ -93,24 +92,25 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         RequestParams requestParams = RequestParams.from(ctx);
         try {
             if (requiresAuthentication() && !validateRequestAuthorization(ctx.request()).get()) {
-                throw new HttpStatusException(401);
+                throw new ApiException(401, "HTTP Authorization Failure");
             }
             writeResponse(ctx, handle(requestParams));
-        } catch (HttpStatusException e) {
+        } catch (ApiException e) {
             throw e;
         } catch (ConnectionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof SecurityException) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(427, "JMX Authentication Failure", e);
+                // FIXME should be 401, needs web-client to be adapted for V2 format
+                throw new ApiException(427, "JMX Authentication Failure", e);
             }
             Throwable rootCause = ExceptionUtils.getRootCause(e);
             if (rootCause instanceof ConnectIOException) {
-                throw new HttpStatusException(502, "Target SSL Untrusted", e);
+                throw new ApiException(502, "Target SSL Untrusted", e);
             }
-            throw new HttpStatusException(500, e);
+            throw new ApiException(500, e.getMessage(), e);
         } catch (Exception e) {
-            throw new HttpStatusException(500, e.getMessage(), e);
+            throw new ApiException(500, e.getMessage(), e);
         }
     }
 
@@ -126,13 +126,12 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
             if (!m.find()) {
                 params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(
-                        427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
+                throw new ApiException(427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
             } else {
                 String t = m.group("type");
                 if (!"basic".equals(t.toLowerCase())) {
                     params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
-                    throw new HttpStatusException(
+                    throw new ApiException(
                             427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
                 } else {
                     String c;
@@ -143,7 +142,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                                         StandardCharsets.UTF_8);
                     } catch (IllegalArgumentException iae) {
                         params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
-                        throw new HttpStatusException(
+                        throw new ApiException(
                                 427,
                                 JMX_AUTHORIZATION_HEADER
                                         + " credentials do not appear to be Base64-encoded",
@@ -152,7 +151,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                     String[] parts = c.split(":");
                     if (parts.length != 2) {
                         params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
-                        throw new HttpStatusException(
+                        throw new ApiException(
                                 427,
                                 "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
                     }
