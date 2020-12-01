@@ -45,8 +45,8 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -146,82 +146,82 @@ class RecordingOptionsCustomizerCommandTest {
             })
     void shouldKnownValidateKeyValueArg(String arg) {
         assertDoesNotThrow(() -> command.validate(new String[] {arg}));
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldExpectUnsetArg() {
         assertDoesNotThrow(() -> command.validate(new String[] {"-toDisk"}));
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldSetMaxAge() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         command.execute(new String[] {"maxAge=123"});
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.MAX_AGE, "123");
         verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldSetMaxSize() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         command.execute(new String[] {"maxSize=123"});
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.MAX_SIZE, "123");
         verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldSetToDisk() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         command.execute(new String[] {"toDisk=true"});
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldUnsetMaxAge() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         command.execute(new String[] {"-maxAge"});
         verify(customizer).unset(RecordingOptionsCustomizer.OptionKey.MAX_AGE);
         verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldUnsetMaxSize() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         command.execute(new String[] {"-maxSize"});
         verify(customizer).unset(RecordingOptionsCustomizer.OptionKey.MAX_SIZE);
         verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldUnsetToDisk() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         command.execute(new String[] {"-toDisk"});
         verify(customizer).unset(RecordingOptionsCustomizer.OptionKey.TO_DISK);
         verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldReturnSuccessOutput() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         Command.Output<?> out = command.execute(new String[] {"toDisk=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(Command.SuccessOutput.class));
         verify(customizer).set(RecordingOptionsCustomizer.OptionKey.TO_DISK, "true");
         verifyNoMoreInteractions(customizer);
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
     void shouldReturnExceptionOutput() throws Exception {
-        verifyZeroInteractions(customizer);
+        verifyNoInteractions(customizer);
         doThrow(NullPointerException.class).when(customizer).set(Mockito.any(), Mockito.any());
         Command.Output<?> out = command.execute(new String[] {"toDisk=true"});
         MatcherAssert.assertThat(out, Matchers.instanceOf(Command.ExceptionOutput.class));

@@ -46,8 +46,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.URL;
@@ -90,7 +90,7 @@ class PrintUrlCommandTest {
     @Test
     void shouldExpectNoArgs() {
         assertDoesNotThrow(() -> command.validate(new String[0]));
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
@@ -105,7 +105,7 @@ class PrintUrlCommandTest {
 
     @Test
     void shouldReturnStringOutput() throws Exception {
-        verifyZeroInteractions(exporter);
+        verifyNoInteractions(exporter);
         URL url = mock(URL.class);
         when(url.toString()).thenReturn("mock-url");
         when(exporter.getHostUrl()).thenReturn(url);

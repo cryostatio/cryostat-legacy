@@ -46,8 +46,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.util.Collection;
@@ -125,7 +125,7 @@ class AbstractRecordingCommandTest extends TestBase {
 
     @Test
     void shouldBuildSelectedEventMap() throws Exception {
-        verifyZeroInteractions(eventOptionsBuilderFactory);
+        verifyNoInteractions(eventOptionsBuilderFactory);
 
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
@@ -171,7 +171,7 @@ class AbstractRecordingCommandTest extends TestBase {
 
     @Test
     void shouldBuildAllEventMap() throws Exception {
-        verifyZeroInteractions(eventOptionsBuilderFactory);
+        verifyNoInteractions(eventOptionsBuilderFactory);
 
         EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
         when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);

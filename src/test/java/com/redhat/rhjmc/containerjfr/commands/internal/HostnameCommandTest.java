@@ -45,7 +45,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.UnknownHostException;
@@ -82,7 +82,7 @@ class HostnameCommandTest {
     @Test
     void shouldExpectNoArgs() {
         assertDoesNotThrow(() -> command.validate(new String[0]));
-        verifyZeroInteractions(cw);
+        verifyNoInteractions(cw);
     }
 
     @Test
