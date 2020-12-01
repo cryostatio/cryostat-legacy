@@ -189,7 +189,7 @@ class BasicAuthManagerTest {
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
-            Mockito.verifyZeroInteractions(logger);
+            Mockito.verifyNoInteractions(logger);
         }
 
         @Test
@@ -211,7 +211,7 @@ class BasicAuthManagerTest {
             Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
             Assertions.assertFalse(mgr.validateToken(() -> "user:sass").get());
             Assertions.assertFalse(mgr.validateToken(() -> "user2:pass").get());
-            Mockito.verifyZeroInteractions(logger);
+            Mockito.verifyNoInteractions(logger);
         }
 
         @Test
@@ -238,7 +238,7 @@ class BasicAuthManagerTest {
             Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
             Assertions.assertFalse(mgr.validateToken(() -> "foo:bar").get());
             Assertions.assertTrue(mgr.validateToken(() -> "admin:admin").get());
-            Mockito.verifyZeroInteractions(logger);
+            Mockito.verifyNoInteractions(logger);
         }
     }
 

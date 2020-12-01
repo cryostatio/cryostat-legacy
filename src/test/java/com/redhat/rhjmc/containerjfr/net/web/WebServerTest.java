@@ -42,7 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net.web;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -96,9 +96,9 @@ class WebServerTest {
 
     @Test
     void shouldDoNothingOnInit() {
-        verifyZeroInteractions(connection);
-        verifyZeroInteractions(service);
-        verifyZeroInteractions(httpServer);
+        verifyNoInteractions(connection);
+        verifyNoInteractions(service);
+        verifyNoInteractions(httpServer);
     }
 
     @Test

@@ -46,8 +46,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -376,7 +376,7 @@ class CommandExecutorTest {
 
         executor.run();
 
-        verifyZeroInteractions(commandRegistry);
+        verifyNoInteractions(commandRegistry);
         verify(server).writeMessage(Mockito.any(MalformedMessageResponseMessage.class));
     }
 
@@ -406,7 +406,7 @@ class CommandExecutorTest {
 
         executor.run();
 
-        verifyZeroInteractions(commandRegistry);
+        verifyNoInteractions(commandRegistry);
 
         ArgumentCaptor<CommandExceptionResponseMessage> messageCaptor =
                 ArgumentCaptor.forClass(CommandExceptionResponseMessage.class);
@@ -572,7 +572,7 @@ class CommandExecutorTest {
         ResponseMessage<String> message = messageCaptor.getValue();
         MatcherAssert.assertThat(message.status, Matchers.equalTo(-2));
 
-        verifyZeroInteractions(commandRegistry);
+        verifyNoInteractions(commandRegistry);
 
         ArgumentCaptor<Exception> logCaptor = ArgumentCaptor.forClass(Exception.class);
         verify(logger).warn(logCaptor.capture());
