@@ -47,6 +47,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import javax.management.remote.JMXServiceURL;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -69,6 +71,8 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -82,6 +86,7 @@ class TargetRecordingPatchSaveTest {
     @Mock Path recordingsPath;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Clock clock;
+    @Mock PlatformClient platformClient;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
@@ -94,7 +99,8 @@ class TargetRecordingPatchSaveTest {
     @BeforeEach
     void setup() {
         this.patchSave =
-                new TargetRecordingPatchSave(fs, recordingsPath, targetConnectionManager, clock);
+                new TargetRecordingPatchSave(
+                        fs, recordingsPath, targetConnectionManager, clock, platformClient);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
     }
 
@@ -123,7 +129,7 @@ class TargetRecordingPatchSaveTest {
     }
 
     @Test
-    void shouldSaveRecording() throws Exception {
+    void shouldSaveRecordingWithAlias() throws Exception {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -140,7 +146,144 @@ class TargetRecordingPatchSaveTest {
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi"),
+                        "some.Alias.1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi"),
+                        "some.Alias.2");
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9093/jmxrmi"),
+                        "some.Alias.3");
+
+        Mockito.when(platformClient.listDiscoverableServices())
+                .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
+        Mockito.when(jfrConnection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi")));
+
+        Instant now = Instant.now();
+        Mockito.when(clock.now()).thenReturn(now);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        InputStream stream = Mockito.mock(InputStream.class);
+        Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
+        Path destination = Mockito.mock(Path.class);
+        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+
+        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
+
+        InOrder inOrder = Mockito.inOrder(resp);
+        inOrder.verify(resp).setStatusCode(200);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".jfr");
+        Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+    }
+
+    @Test
+    void shouldSaveRecordingWithoutAlias() throws Exception {
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(), Mockito.any(ConnectedTask.class)))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                ConnectedTask task = (ConnectedTask) invocation.getArgument(1);
+                                return task.execute(jfrConnection);
+                            }
+                        });
+        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi"),
+                        "some.Alias.1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi"));
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9093/jmxrmi"),
+                        "some.Alias.3");
+
+        Mockito.when(platformClient.listDiscoverableServices())
+                .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
+        Mockito.when(jfrConnection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi")));
         Mockito.when(jfrConnection.getHost()).thenReturn("some-hostname.local");
+
+        Instant now = Instant.now();
+        Mockito.when(clock.now()).thenReturn(now);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        InputStream stream = Mockito.mock(InputStream.class);
+        Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
+        Path destination = Mockito.mock(Path.class);
+        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+
+        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
+
+        InOrder inOrder = Mockito.inOrder(resp);
+        inOrder.verify(resp).setStatusCode(200);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        inOrder.verify(resp).end("some-hostname-local_someRecording_" + timestamp + ".jfr");
+        Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+    }
+
+    @Test
+    void shouldSaveRecordingWithoutServiceRef() throws Exception {
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(), Mockito.any(ConnectedTask.class)))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                ConnectedTask task = (ConnectedTask) invocation.getArgument(1);
+                                return task.execute(jfrConnection);
+                            }
+                        });
+        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi"),
+                        "some.Alias.1");
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9093/jmxrmi"),
+                        "some.Alias.3");
+
+        Mockito.when(platformClient.listDiscoverableServices())
+                .thenReturn(List.of(serviceRef1, serviceRef3));
+        Mockito.when(jfrConnection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi")));
+        Mockito.when(jfrConnection.getHost()).thenReturn("some-hostname.local");
+
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
@@ -178,7 +321,30 @@ class TargetRecordingPatchSaveTest {
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        Mockito.when(jfrConnection.getHost()).thenReturn("some-hostname.local");
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi"),
+                        "some.Alias.1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi"),
+                        "some.Alias.2");
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9093/jmxrmi"),
+                        "some.Alias.3");
+
+        Mockito.when(platformClient.listDiscoverableServices())
+                .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
+        Mockito.when(jfrConnection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi")));
+
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
@@ -192,7 +358,7 @@ class TargetRecordingPatchSaveTest {
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        inOrder.verify(resp).end("some-hostname-local_someRecording_" + timestamp + ".jfr");
+        inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".jfr");
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
     }
 
@@ -214,7 +380,30 @@ class TargetRecordingPatchSaveTest {
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        Mockito.when(jfrConnection.getHost()).thenReturn("some-hostname.local");
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi"),
+                        "some.Alias.1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi"),
+                        "some.Alias.2");
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9093/jmxrmi"),
+                        "some.Alias.3");
+
+        Mockito.when(platformClient.listDiscoverableServices())
+                .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
+        Mockito.when(jfrConnection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL(
+                                "service:jmx:rmi:///jndi/rmi://container-jfr:9092/jmxrmi")));
+
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
@@ -228,7 +417,7 @@ class TargetRecordingPatchSaveTest {
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        inOrder.verify(resp).end("some-hostname-local_someRecording_" + timestamp + ".1.jfr");
+        inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".1.jfr");
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
     }
 }

@@ -58,6 +58,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -68,17 +69,20 @@ class TargetRecordingPatchSave {
     private final Path recordingsPath;
     private final TargetConnectionManager targetConnectionManager;
     private final Clock clock;
+    private final PlatformClient platformClient;
 
     @Inject
     TargetRecordingPatchSave(
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
-            Clock clock) {
+            Clock clock,
+            PlatformClient platformClient) {
         this.fs = fs;
         this.recordingsPath = recordingsPath;
         this.targetConnectionManager = targetConnectionManager;
         this.clock = clock;
+        this.platformClient = platformClient;
     }
 
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
@@ -116,7 +120,27 @@ class TargetRecordingPatchSave {
         if (recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);
         }
-        String targetName = connection.getHost().replaceAll("[\\._]+", "-");
+
+        // TODO: To avoid having to perform this lookup each time, we should implement
+        // something like a map from targetIds to corresponding ServiceRefs
+        String targetName =
+                platformClient.listDiscoverableServices().stream()
+                        .filter(
+                                serviceRef -> {
+                                    try {
+                                        return serviceRef
+                                                        .getJMXServiceUrl()
+                                                        .equals(connection.getJMXURL())
+                                                && serviceRef.getAlias().isPresent();
+                                    } catch (IOException ioe) {
+                                        return false;
+                                    }
+                                })
+                        .map(s -> s.getAlias().get())
+                        .findFirst()
+                        .orElse(connection.getHost())
+                        .replaceAll("[\\._]+", "-");
+
         String timestamp =
                 clock.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
