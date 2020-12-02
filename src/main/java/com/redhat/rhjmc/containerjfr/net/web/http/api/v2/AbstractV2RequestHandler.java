@@ -51,15 +51,17 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;

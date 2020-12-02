@@ -48,16 +48,6 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import com.google.gson.Gson;
-import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -70,7 +60,19 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.openjdk.jmc.rjmx.ConnectionException;
+
+import com.google.gson.Gson;
+
+import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -112,8 +114,7 @@ class AbstractV2RequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
-        ApiException ex =
-                Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
     }
 
@@ -122,8 +123,7 @@ class AbstractV2RequestHandlerTest {
         when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
-        ApiException ex =
-                Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -179,7 +179,8 @@ class AbstractV2RequestHandlerTest {
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(502));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("Target SSL Untrusted"));
+            MatcherAssert.assertThat(
+                    ex.getFailureReason(), Matchers.equalTo("Target SSL Untrusted"));
         }
 
         @Test
@@ -231,9 +232,7 @@ class AbstractV2RequestHandlerTest {
                             headers.contains(
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(
-                            headers.get(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             ApiException ex =
@@ -256,9 +255,7 @@ class AbstractV2RequestHandlerTest {
                             headers.contains(
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(
-                            headers.get(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             ApiException ex =
@@ -266,7 +263,8 @@ class AbstractV2RequestHandlerTest {
             ex.printStackTrace();
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(427));
             MatcherAssert.assertThat(
-                    ex.getFailureReason(), Matchers.equalTo("Unacceptable X-JMX-Authorization type"));
+                    ex.getFailureReason(),
+                    Matchers.equalTo("Unacceptable X-JMX-Authorization type"));
         }
 
         @ParameterizedTest
@@ -282,9 +280,7 @@ class AbstractV2RequestHandlerTest {
                             headers.contains(
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(
-                            headers.get(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             ApiException ex =
@@ -307,9 +303,7 @@ class AbstractV2RequestHandlerTest {
                             headers.contains(
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(
-                            headers.get(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(authHeader);
 
             ApiException ex =
@@ -329,9 +323,7 @@ class AbstractV2RequestHandlerTest {
                             headers.contains(
                                     AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn(true);
-            Mockito.when(
-                            headers.get(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
+            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
                     .thenReturn("Basic Zm9vOmJhcg==");
 
             Assertions.assertDoesNotThrow(() -> handler.handle(ctx));
@@ -405,5 +397,4 @@ class AbstractV2RequestHandlerTest {
             return new IntermediateResponse<String>().body("should have thrown");
         }
     }
-
 }

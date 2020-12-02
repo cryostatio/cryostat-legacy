@@ -142,12 +142,13 @@ public class WebServer {
                                         ? ex.getApiStatus()
                                         : EnglishReasonPhraseCatalog.INSTANCE.getReason(
                                                 ex.getStatusCode(), null);
-                        Map meta = Map.of("status", apiStatus, "type", HttpMimeType.PLAINTEXT);
-                        Map data = Map.of("reason", ex.getFailureReason());
-                        Map body = Map.of("meta", meta, "data", data);
+                        ApiErrorResponse resp =
+                                new ApiErrorResponse(
+                                        new ApiErrorMeta(HttpMimeType.PLAINTEXT, apiStatus),
+                                        new ApiErrorData(ex.getFailureReason()));
                         ctx.response()
                                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                                .end(gson.toJson(body));
+                                .end(gson.toJson(resp));
                     } else {
                         // kept for V1 API handler compatibility
                         String payload =
@@ -287,5 +288,33 @@ public class WebServer {
 
     private String getTargetId(JFRConnection conn) throws IOException {
         return conn.getJMXURL().toString();
+    }
+
+    static class ApiErrorResponse {
+        private final ApiErrorMeta meta;
+        private final ApiErrorData data;
+
+        ApiErrorResponse(ApiErrorMeta meta, ApiErrorData data) {
+            this.meta = meta;
+            this.data = data;
+        }
+    }
+
+    static class ApiErrorMeta {
+        private final HttpMimeType type;
+        private final String status;
+
+        ApiErrorMeta(HttpMimeType type, String status) {
+            this.type = type;
+            this.status = status;
+        }
+    }
+
+    static class ApiErrorData {
+        private final String reason;
+
+        ApiErrorData(String reason) {
+            this.reason = reason;
+        }
     }
 }
