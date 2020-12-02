@@ -42,9 +42,13 @@
 package com.redhat.rhjmc.containerjfr.net.web.http.api;
 
 public class ApiResultData<T> extends ApiData {
-    protected final T result;
+    protected T result;
 
     public ApiResultData(T result) {
         this.result = result;
+    }
+
+    public T getResult() {
+        return this.result;
     }
 }

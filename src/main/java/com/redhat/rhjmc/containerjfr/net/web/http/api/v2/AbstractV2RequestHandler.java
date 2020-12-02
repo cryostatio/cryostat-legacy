@@ -64,7 +64,6 @@ import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResponse;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResultData;
 
 import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 
@@ -90,10 +89,13 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     abstract HttpMimeType mimeType();
 
     @Override
-    public void handle(RoutingContext ctx) {
+    public final void handle(RoutingContext ctx) {
         RequestParams requestParams = RequestParams.from(ctx);
         try {
-            if (requiresAuthentication() && !validateRequestAuthorization(ctx.request()).get()) {
+            if (requiresAuthentication()
+                    && !validateRequestAuthorization(
+                                    requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
+                            .get()) {
                 throw new ApiException(401, "HTTP Authorization Failure");
             }
             writeResponse(ctx, handle(requestParams));
@@ -116,23 +118,23 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         }
     }
 
-    protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
-        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+    protected Future<Boolean> validateRequestAuthorization(String authHeader) throws Exception {
+        return auth.validateHttpHeader(() -> authHeader);
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParams params) {
-        String targetId = params.pathParams.get("targetId");
+        String targetId = params.getPathParams().get("targetId");
         Credentials credentials = null;
-        if (params.headers.contains(JMX_AUTHORIZATION_HEADER)) {
-            String proxyAuth = params.headers.get(JMX_AUTHORIZATION_HEADER);
+        if (params.getHeaders().contains(JMX_AUTHORIZATION_HEADER)) {
+            String proxyAuth = params.getHeaders().get(JMX_AUTHORIZATION_HEADER);
             Matcher m = AUTH_HEADER_PATTERN.matcher(proxyAuth);
             if (!m.find()) {
-                params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
+                params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
                 throw new ApiException(427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
             } else {
                 String t = m.group("type");
                 if (!"basic".equals(t.toLowerCase())) {
-                    params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
+                    params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
                     throw new ApiException(
                             427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
                 } else {
@@ -143,7 +145,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                                         Base64.getDecoder().decode(m.group("credentials")),
                                         StandardCharsets.UTF_8);
                     } catch (IllegalArgumentException iae) {
-                        params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
+                        params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new ApiException(
                                 427,
                                 JMX_AUTHORIZATION_HEADER
@@ -152,7 +154,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                     }
                     String[] parts = c.split(":");
                     if (parts.length != 2) {
-                        params.headers.set(JMX_AUTHENTICATE_HEADER, "Basic");
+                        params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");
                         throw new ApiException(
                                 427,
                                 "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");

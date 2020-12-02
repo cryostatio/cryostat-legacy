@@ -108,7 +108,7 @@ class TargetEventsSearchGetHandler
         return targetConnectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(params),
                 connection -> {
-                    String query = params.pathParams.get("query");
+                    String query = params.getPathParams().get("query");
                     List<SerializableEventTypeInfo> matchingEvents =
                             connection.getService().getAvailableEventTypes().stream()
                                     .filter(

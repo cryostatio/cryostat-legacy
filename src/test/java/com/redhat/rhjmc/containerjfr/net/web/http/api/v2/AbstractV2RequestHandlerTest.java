@@ -69,7 +69,6 @@ import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
@@ -99,7 +98,7 @@ class AbstractV2RequestHandlerTest {
         Mockito.lenient().when(ctx.queryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.lenient().when(ctx.fileUploads()).thenReturn(Collections.emptySet());
 
-        this.headers = Mockito.mock(MultiMap.class);
+        this.headers = MultiMap.caseInsensitiveMultiMap();
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.lenient().when(req.headers()).thenReturn(headers);
@@ -209,8 +208,7 @@ class AbstractV2RequestHandlerTest {
         @Test
         void shouldUseNoCredentialsWithoutAuthorizationHeader() {
             String targetId = "fooTarget";
-            Mockito.when(pathParams.get("targetId")).thenReturn(targetId);
-            Mockito.when(headers.contains(Mockito.anyString())).thenReturn(false);
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
 
             handler.handle(ctx);
             ConnectionDescriptor desc = handler.desc;
@@ -227,13 +225,8 @@ class AbstractV2RequestHandlerTest {
                 })
         void shouldThrow427WithMalformedAuthorizationHeader(String authHeader) {
             String targetId = "fooTarget";
-            Mockito.when(pathParams.get("targetId")).thenReturn(targetId);
-            Mockito.when(
-                            headers.contains(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(true);
-            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(authHeader);
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
+            headers.set(AbstractV2RequestHandler.JMX_AUTHORIZATION_HEADER, authHeader);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -250,13 +243,8 @@ class AbstractV2RequestHandlerTest {
                 })
         void shouldThrow427WithBadAuthorizationType(String authHeader) {
             String targetId = "fooTarget";
-            Mockito.when(pathParams.get("targetId")).thenReturn(targetId);
-            Mockito.when(
-                            headers.contains(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(true);
-            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(authHeader);
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
+            headers.set(AbstractV2RequestHandler.JMX_AUTHORIZATION_HEADER, authHeader);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -275,13 +263,8 @@ class AbstractV2RequestHandlerTest {
                 })
         void shouldThrow427WithBadCredentialFormat(String authHeader) {
             String targetId = "fooTarget";
-            Mockito.when(pathParams.get("targetId")).thenReturn(targetId);
-            Mockito.when(
-                            headers.contains(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(true);
-            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(authHeader);
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
+            headers.set(AbstractV2RequestHandler.JMX_AUTHORIZATION_HEADER, authHeader);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -298,13 +281,8 @@ class AbstractV2RequestHandlerTest {
                 })
         void shouldThrow427WithUnencodedCredentials(String authHeader) {
             String targetId = "fooTarget";
-            Mockito.when(pathParams.get("targetId")).thenReturn(targetId);
-            Mockito.when(
-                            headers.contains(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(true);
-            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(authHeader);
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
+            headers.set(AbstractV2RequestHandler.JMX_AUTHORIZATION_HEADER, authHeader);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -318,13 +296,8 @@ class AbstractV2RequestHandlerTest {
         @Test
         void shouldIncludeCredentialsFromAppropriateHeader() {
             String targetId = "fooTarget";
-            Mockito.when(pathParams.get("targetId")).thenReturn(targetId);
-            Mockito.when(
-                            headers.contains(
-                                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn(true);
-            Mockito.when(headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER))
-                    .thenReturn("Basic Zm9vOmJhcg==");
+            Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", targetId));
+            headers.set(AbstractV2RequestHandler.JMX_AUTHORIZATION_HEADER, "Basic Zm9vOmJhcg==");
 
             Assertions.assertDoesNotThrow(() -> handler.handle(ctx));
             ConnectionDescriptor desc = handler.desc;
@@ -394,7 +367,7 @@ class AbstractV2RequestHandlerTest {
         @Override
         public IntermediateResponse<String> handle(RequestParams params) throws Exception {
             desc = getConnectionDescriptorFromParams(params);
-            return new IntermediateResponse<String>().body("should have thrown");
+            return new IntermediateResponse<String>().body("");
         }
     }
 }

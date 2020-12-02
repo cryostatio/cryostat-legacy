@@ -46,15 +46,23 @@ import java.util.Objects;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 public class ApiMeta {
-    protected final HttpMimeType type;
-    protected final String status;
+    protected HttpMimeType type;
+    protected String status;
 
     public ApiMeta(HttpMimeType type, String status) {
         this.type = Objects.requireNonNull(type);
-        this.status = status;
+        this.status = status == null ? "OK" : status;
     }
 
     public ApiMeta(HttpMimeType type) {
         this(type, null);
+    }
+
+    public HttpMimeType getMimeType() {
+        return this.type;
+    }
+
+    public String getStatus() {
+        return this.status;
     }
 }

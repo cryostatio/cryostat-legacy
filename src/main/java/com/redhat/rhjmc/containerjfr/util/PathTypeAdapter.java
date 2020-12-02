@@ -39,22 +39,25 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.net.web.http.api;
+package com.redhat.rhjmc.containerjfr.util;
 
-public class ApiResponse<T extends ApiData> {
-    protected ApiMeta meta;
-    protected T data;
+import java.io.IOException;
+import java.nio.file.Path;
 
-    public ApiResponse(ApiMeta meta, T data) {
-        this.meta = meta;
-        this.data = data;
+import com.google.gson.TypeAdapter;
+import com.google.gson.stream.JsonReader;
+import com.google.gson.stream.JsonWriter;
+
+public class PathTypeAdapter extends TypeAdapter<Path> {
+
+    @Override
+    public Path read(JsonReader reader) throws IOException {
+        String token = reader.nextString();
+        return Path.of(token);
     }
 
-    public ApiMeta getMeta() {
-        return this.meta;
-    }
-
-    public ApiData getData() {
-        return this.data;
+    @Override
+    public void write(JsonWriter writer, Path path) throws IOException {
+        writer.value(path.toString());
     }
 }

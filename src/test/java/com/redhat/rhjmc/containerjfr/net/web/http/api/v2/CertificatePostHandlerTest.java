@@ -51,6 +51,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -61,14 +62,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import com.google.gson.Gson;
 
+import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.security.CertificateValidator;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiData;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiMeta;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResponse;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResultData;
 
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
@@ -82,6 +93,7 @@ class CertificatePostHandlerTest {
     @Mock Environment env;
     @Mock FileSystem fs;
     @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @Mock RoutingContext ctx;
     @Mock FileOutputStream outStream;
@@ -96,8 +108,17 @@ class CertificatePostHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new CertificatePostHandler(
-                        auth, env, fs, logger, (file) -> outStream, certValidator);
+                new CertificatePostHandler(auth, env, fs, gson, (file) -> outStream, certValidator);
+
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
+        Mockito.lenient().when(req.headers()).thenReturn(headers);
+        Mockito.lenient().when(ctx.request()).thenReturn(req);
+
+        Mockito.lenient()
+                .when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
     }
 
     @Test
@@ -114,8 +135,7 @@ class CertificatePostHandlerTest {
     void shouldThrow400IfNoCertInRequest() {
         Mockito.when(ctx.fileUploads()).thenReturn(Collections.<FileUpload>emptySet());
         HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 
@@ -125,8 +145,7 @@ class CertificatePostHandlerTest {
         Mockito.when(fu.name()).thenReturn("cert");
         Mockito.when(env.hasEnv(Mockito.any())).thenReturn(false);
         HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
@@ -144,8 +163,7 @@ class CertificatePostHandlerTest {
         Mockito.when(truststorePath.toString()).thenReturn("/truststore/certificate.cer");
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
         HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(409));
     }
 
@@ -167,10 +185,8 @@ class CertificatePostHandlerTest {
         Mockito.when(certValidator.parseCertificates(Mockito.any()))
                 .thenThrow(new CertificateException("parsing error"));
 
-        CertificateException ex =
-                Assertions.assertThrows(
-                        CertificateException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(ex.getMessage(), Matchers.equalTo("parsing error"));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("parsing error"));
     }
 
     @Test
@@ -198,9 +214,14 @@ class CertificatePostHandlerTest {
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
 
-        handler.handleAuthenticated(ctx);
+        handler.handle(ctx);
 
         Mockito.verify(outStream).write("certificate".getBytes());
-        Mockito.verify(resp).end("Saved: /truststore/certificate.cer");
+
+        ApiMeta meta = new ApiMeta(HttpMimeType.PLAINTEXT);
+        ApiData data = new ApiResultData(truststorePath);
+        ApiResponse expected = new ApiResponse(meta, data);
+
+        Mockito.verify(resp).end(gson.toJson(expected));
     }
 }

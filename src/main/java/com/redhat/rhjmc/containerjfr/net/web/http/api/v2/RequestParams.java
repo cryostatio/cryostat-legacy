@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -50,24 +52,61 @@ import io.vertx.ext.web.RoutingContext;
 
 class RequestParams {
 
-    protected final Map<String, String> pathParams;
-    protected final MultiMap queryParams;
-    protected final MultiMap headers;
-    protected final Set<FileUpload> fileUploads;
+    private final Map<String, String> pathParams;
+    private final MultiMap queryParams;
+    private final MultiMap headers;
+    private final Set<FileUpload> fileUploads;
 
     RequestParams(
             Map<String, String> pathParams,
             MultiMap queryParams,
             MultiMap headers,
             Set<FileUpload> fileUploads) {
-        this.pathParams = pathParams;
-        this.queryParams = queryParams;
-        this.headers = headers;
-        this.fileUploads = fileUploads;
+        this.pathParams = new HashMap<>(pathParams);
+        this.queryParams = MultiMap.caseInsensitiveMultiMap();
+        this.queryParams.addAll(queryParams);
+        this.headers = MultiMap.caseInsensitiveMultiMap();
+        this.headers.addAll(headers);
+        this.fileUploads = new HashSet<>(fileUploads);
     }
 
     static RequestParams from(RoutingContext ctx) {
-        return new RequestParams(
-                ctx.pathParams(), ctx.queryParams(), ctx.request().headers(), ctx.fileUploads());
+        Map<String, String> pathParams = new HashMap<>();
+        if (ctx != null && ctx.pathParams() != null) {
+            pathParams.putAll(ctx.pathParams());
+        }
+
+        MultiMap queryParams = MultiMap.caseInsensitiveMultiMap();
+        if (ctx != null && ctx.queryParams() != null) {
+            queryParams.addAll(ctx.queryParams());
+        }
+
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        if (ctx != null && ctx.request() != null && ctx.request().headers() != null) {
+            headers.addAll(ctx.request().headers());
+        }
+
+        Set<FileUpload> fileUploads = new HashSet<>();
+        if (ctx != null && ctx.fileUploads() != null) {
+            fileUploads.addAll(ctx.fileUploads());
+        }
+
+        return new RequestParams(pathParams, queryParams, headers, fileUploads);
+    }
+
+    Map<String, String> getPathParams() {
+        return this.pathParams;
+    }
+
+    MultiMap getQueryParams() {
+        return this.queryParams;
+    }
+
+    MultiMap getHeaders() {
+        return this.headers;
+    }
+
+    Set<FileUpload> getFileUploads() {
+        return this.fileUploads;
     }
 }

@@ -43,9 +43,11 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateEncodingException;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.function.Function;
@@ -53,26 +55,24 @@ import java.util.function.Function;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.security.CertificateValidator;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
+class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
 
     static final String PATH = "certificates";
 
     private final Environment env;
     private final FileSystem fs;
-    private final Logger logger;
 
     private static final String TRUSTSTORE_DIR = "SSL_TRUSTSTORE_DIR";
 
@@ -84,15 +84,19 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             Environment env,
             FileSystem fs,
-            Logger logger,
+            Gson gson,
             @Named("OutputStreamFunction") Function<File, FileOutputStream> outputStreamFunction,
             CertificateValidator certValidator) {
-        super(auth);
+        super(auth, gson);
         this.env = env;
         this.fs = fs;
-        this.logger = logger;
         this.outputStreamFunction = outputStreamFunction;
         this.certValidator = certValidator;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
@@ -111,6 +115,11 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.PLAINTEXT;
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
@@ -121,9 +130,9 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+    public IntermediateResponse<Path> handle(RequestParams params) throws ApiException {
         FileUpload cert = null;
-        for (FileUpload fu : ctx.fileUploads()) {
+        for (FileUpload fu : params.getFileUploads()) {
             if ("cert".equals(fu.name())) {
                 cert = fu;
                 break;
@@ -131,21 +140,20 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         if (cert == null) {
-            throw new HttpStatusException(
-                    400, "A file named \"cert\" was not included in the request");
+            throw new ApiException(400, "A file named \"cert\" was not included in the request");
         }
 
         Path certPath = fs.pathOf(cert.uploadedFileName());
 
         if (!env.hasEnv(TRUSTSTORE_DIR)) {
-            throw new HttpStatusException(500, "Truststore directory not set");
+            throw new ApiException(500, "Truststore directory not set");
         }
 
         String truststoreDir = env.getEnv(TRUSTSTORE_DIR);
         Path filePath = fs.pathOf(truststoreDir, cert.fileName()).normalize();
 
         if (fs.exists(filePath)) {
-            throw new HttpStatusException(409, filePath.toString() + " Certificate already exists");
+            throw new ApiException(409, filePath.toString() + " Certificate already exists");
         }
 
         try (InputStream fis = fs.newInputStream(certPath);
@@ -158,8 +166,14 @@ class CertificatePostHandler extends AbstractAuthenticatedRequestHandler {
                 byte[] buf = certificate.getEncoded();
                 out.write(buf);
             }
+        } catch (IOException ioe) {
+            throw new ApiException(500, ioe.getMessage(), ioe);
+        } catch (CertificateEncodingException cee) {
+            throw new ApiException(500, cee.getMessage(), cee);
+        } catch (Exception e) {
+            throw new ApiException(500, e.getMessage(), e);
         }
 
-        ctx.response().end("Saved: " + filePath);
+        return new IntermediateResponse<Path>().body(filePath);
     }
 }
