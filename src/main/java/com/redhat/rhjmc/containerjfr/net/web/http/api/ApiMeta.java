@@ -42,17 +42,16 @@
 package com.redhat.rhjmc.containerjfr.net.web.http.api;
 
 import java.util.Objects;
-import java.util.Optional;
 
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 public class ApiMeta {
     protected final HttpMimeType type;
-    protected final Optional<String> status;
+    protected final String status;
 
     public ApiMeta(HttpMimeType type, String status) {
         this.type = Objects.requireNonNull(type);
-        this.status = Optional.ofNullable(status);
+        this.status = status;
     }
 
     public ApiMeta(HttpMimeType type) {
