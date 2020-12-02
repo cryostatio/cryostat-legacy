@@ -58,13 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.EnglishReasonPhraseCatalog;
-
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
-
 import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -72,7 +66,14 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiData;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiMeta;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResponse;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v2.ApiException;
+
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.EnglishReasonPhraseCatalog;
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
@@ -144,7 +145,7 @@ public class WebServer {
                                                 ex.getStatusCode(), null);
                         ApiErrorResponse resp =
                                 new ApiErrorResponse(
-                                        new ApiErrorMeta(HttpMimeType.PLAINTEXT, apiStatus),
+                                        new ApiMeta(HttpMimeType.PLAINTEXT, apiStatus),
                                         new ApiErrorData(ex.getFailureReason()));
                         ctx.response()
                                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
@@ -290,27 +291,13 @@ public class WebServer {
         return conn.getJMXURL().toString();
     }
 
-    static class ApiErrorResponse {
-        private final ApiErrorMeta meta;
-        private final ApiErrorData data;
-
-        ApiErrorResponse(ApiErrorMeta meta, ApiErrorData data) {
-            this.meta = meta;
-            this.data = data;
+    static class ApiErrorResponse extends ApiResponse<ApiErrorData> {
+        ApiErrorResponse(ApiMeta meta, ApiErrorData data) {
+            super(meta, data);
         }
     }
 
-    static class ApiErrorMeta {
-        private final HttpMimeType type;
-        private final String status;
-
-        ApiErrorMeta(HttpMimeType type, String status) {
-            this.type = type;
-            this.status = status;
-        }
-    }
-
-    static class ApiErrorData {
+    static class ApiErrorData extends ApiData {
         private final String reason;
 
         ApiErrorData(String reason) {
