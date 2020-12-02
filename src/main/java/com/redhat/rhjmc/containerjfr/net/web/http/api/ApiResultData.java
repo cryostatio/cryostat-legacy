@@ -41,21 +41,10 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api;
 
-import java.util.Objects;
-import java.util.Optional;
+public class ApiResultData<T> extends ApiData {
+    protected final T result;
 
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
-
-public class ApiMeta {
-    protected final HttpMimeType type;
-    protected final Optional<String> status;
-
-    public ApiMeta(HttpMimeType type, String status) {
-        this.type = Objects.requireNonNull(type);
-        this.status = Optional.ofNullable(status);
-    }
-
-    public ApiMeta(HttpMimeType type) {
-        this(type, null);
+    public ApiResultData(T result) {
+        this.result = result;
     }
 }

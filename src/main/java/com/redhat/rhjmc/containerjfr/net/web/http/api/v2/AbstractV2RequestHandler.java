@@ -44,24 +44,22 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang.exception.ExceptionUtils;
-
-import org.openjdk.jmc.rjmx.ConnectionException;
-
 import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiMeta;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResponse;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResultData;
+
+import org.apache.commons.lang.exception.ExceptionUtils;
+import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -172,20 +170,9 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         }
         intermediateResponse.headers.forEach(response::putHeader);
 
-        Map<String, String> meta = new HashMap<>();
-        meta.put("type", Objects.requireNonNull(mimeType()).mime());
-        if (response.getStatusMessage() != null) {
-            meta.put("status", response.getStatusMessage());
-        }
-
-        Map<String, T> data = new HashMap<>();
-        if (intermediateResponse.body != null) {
-            data.put("data", intermediateResponse.body);
-        }
-
-        Map<String, Map<String, ?>> body = new HashMap<>();
-        body.put("meta", meta);
-        body.put("data", data);
+        ApiMeta meta = new ApiMeta(mimeType(), response.getStatusMessage());
+        ApiResultData<T> data = new ApiResultData<>(intermediateResponse.body);
+        ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
 
         response.end(gson.toJson(body));
     }
