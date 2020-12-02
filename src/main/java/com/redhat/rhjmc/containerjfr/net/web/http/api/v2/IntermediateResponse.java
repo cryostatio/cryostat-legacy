@@ -46,10 +46,10 @@ import java.util.Map;
 
 class IntermediateResponse<T> {
 
-    protected final Map<String, String> headers = new HashMap<>();
-    protected int statusCode = 200;
-    protected String statusMessage;
-    protected T body;
+    private final Map<String, String> headers = new HashMap<>();
+    private int statusCode = 200;
+    private String statusMessage;
+    private T body;
 
     IntermediateResponse<T> addHeader(String key, String value) {
         this.headers.put(key, value);
@@ -74,5 +74,21 @@ class IntermediateResponse<T> {
     IntermediateResponse<T> body(T body) {
         this.body = body;
         return this;
+    }
+
+    int getStatusCode() {
+        return this.statusCode;
+    }
+
+    Map<String, String> getHeaders() {
+        return this.headers;
+    }
+
+    String getStatusMessage() {
+        return this.statusMessage;
+    }
+
+    T getBody() {
+        return this.body;
     }
 }

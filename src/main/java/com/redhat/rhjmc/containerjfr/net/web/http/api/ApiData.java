@@ -41,4 +41,4 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api;
 
-public class ApiData { }
+public class ApiData {}

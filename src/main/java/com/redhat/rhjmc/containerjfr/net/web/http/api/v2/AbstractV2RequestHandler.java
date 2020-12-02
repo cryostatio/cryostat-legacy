@@ -48,7 +48,12 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.lang.exception.ExceptionUtils;
+
+import org.openjdk.jmc.rjmx.ConnectionException;
+
 import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
@@ -57,9 +62,6 @@ import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiMeta;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResponse;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResultData;
-
-import org.apache.commons.lang.exception.ExceptionUtils;
-import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
@@ -164,14 +166,14 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
     protected void writeResponse(RoutingContext ctx, IntermediateResponse<T> intermediateResponse) {
         HttpServerResponse response = ctx.response();
-        response.setStatusCode(intermediateResponse.statusCode);
-        if (intermediateResponse.statusMessage != null) {
-            response.setStatusMessage(intermediateResponse.statusMessage);
+        response.setStatusCode(intermediateResponse.getStatusCode());
+        if (intermediateResponse.getStatusMessage() != null) {
+            response.setStatusMessage(intermediateResponse.getStatusMessage());
         }
-        intermediateResponse.headers.forEach(response::putHeader);
+        intermediateResponse.getHeaders().forEach(response::putHeader);
 
         ApiMeta meta = new ApiMeta(mimeType(), response.getStatusMessage());
-        ApiResultData<T> data = new ApiResultData<>(intermediateResponse.body);
+        ApiResultData<T> data = new ApiResultData<>(intermediateResponse.getBody());
         ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
 
         response.end(gson.toJson(body));

@@ -58,7 +58,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.EnglishReasonPhraseCatalog;
+
+import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
+
 import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -70,10 +76,6 @@ import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiData;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiMeta;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResponse;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v2.ApiException;
-
-import org.apache.http.client.utils.URIBuilder;
-import org.apache.http.impl.EnglishReasonPhraseCatalog;
-import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;

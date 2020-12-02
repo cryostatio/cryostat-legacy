@@ -122,7 +122,7 @@ class TargetEventsSearchGetHandlerTest {
 
         IntermediateResponse<List<SerializableEventTypeInfo>> result = handler.handle(params);
 
-        MatcherAssert.assertThat(result.body, Matchers.equalTo(Collections.emptyList()));
+        MatcherAssert.assertThat(result.getBody(), Matchers.equalTo(Collections.emptyList()));
     }
 
     @Test
@@ -187,7 +187,7 @@ class TargetEventsSearchGetHandlerTest {
         IntermediateResponse<List<SerializableEventTypeInfo>> result = handler.handle(params);
 
         MatcherAssert.assertThat(
-                result.body,
+                result.getBody(),
                 Matchers.equalTo(
                         Arrays.asList(
                                 new SerializableEventTypeInfo(infoA),
