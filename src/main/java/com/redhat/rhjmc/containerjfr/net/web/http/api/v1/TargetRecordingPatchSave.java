@@ -121,6 +121,8 @@ class TargetRecordingPatchSave {
             recordingName = recordingName.substring(0, recordingName.length() - 4);
         }
 
+        // TODO: To avoid having to perform this lookup each time, we should implement
+        // something like a map from targetIds to corresponding ServiceRefs
         String targetName =
                 platformClient.listDiscoverableServices().stream()
                         .filter(
