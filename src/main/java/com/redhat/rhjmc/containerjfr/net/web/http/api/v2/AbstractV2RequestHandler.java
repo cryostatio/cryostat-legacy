@@ -106,11 +106,12 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
             if (cause instanceof SecurityException) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                 // FIXME should be 401, needs web-client to be adapted for V2 format
-                throw new ApiException(427, "JMX Authentication Failure", e);
+                throw new ApiException(
+                        427, "Authentication Failure", "JMX Authentication Failure", e);
             }
             Throwable rootCause = ExceptionUtils.getRootCause(e);
             if (rootCause instanceof ConnectIOException) {
-                throw new ApiException(502, "Target SSL Untrusted", e);
+                throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
             }
             throw new ApiException(500, e.getMessage(), e);
         } catch (Exception e) {
