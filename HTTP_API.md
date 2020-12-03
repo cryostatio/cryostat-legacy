@@ -1305,22 +1305,22 @@ The handler-specific descriptions below describe how each handler populates the
     Should use percent-encoding.
 
     ###### response
-    `200` - The body is a JSON array of recording option objects.
+    `200` - The result is a JSON array of recording option objects.
 
     The format of a recording option is
     `{"name":"$NAME","description":"$DESCRIPTION","defaultValue":"$DEFAULT"}`.
 
-    `401` - User authentication failed. The body is an error message.
+    `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `404` - The target could not be found. The body is an error message.
+    `404` - The target could not be found. The reason is an error message.
 
-    `427` - JMX authentication failed. The body is an error message.
+    `427` - JMX authentication failed. The reason is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
+    `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but ContainerJFR does not trust the
@@ -1329,7 +1329,7 @@ The handler-specific descriptions below describe how each handler populates the
     ###### example
     ```
     $ curl localhost:8181/api/v2/targets/localhost/recordingOptionsList
-    [{"name":"Name","description":"Recording name","defaultValue":"Recording"},{"name":"Duration","description":"Duration of recording","defaultValue":"30s[s]"},{"name":"Max Size","description":"Maximum size of recording","defaultValue":"0B[B]"},{"name":"Max Age","description":"Maximum age of the events in the recording","defaultValue":"0s[s]"},{"name":"To disk","description":"Record to disk","defaultValue":"false"},{"name":"Dump on Exit","description":"Dump recording data to disk on JVM exit","defaultValue":"false"}]
+    {"meta":{"status":"OK","type":"application/json"},"data":{result:[{"name":"Name","description":"Recording name","defaultValue":"Recording"},{"name":"Duration","description":"Duration of recording","defaultValue":"30s[s]"},{"name":"Max Size","description":"Maximum size of recording","defaultValue":"0B[B]"},{"name":"Max Age","description":"Maximum age of the events in the recording","defaultValue":"0s[s]"},{"name":"To disk","description":"Record to disk","defaultValue":"false"},{"name":"Dump on Exit","description":"Dump recording data to disk on JVM exit","defaultValue":"false"}]}}
     ```
 
 * #### `TargetSnapshotPostHandler`

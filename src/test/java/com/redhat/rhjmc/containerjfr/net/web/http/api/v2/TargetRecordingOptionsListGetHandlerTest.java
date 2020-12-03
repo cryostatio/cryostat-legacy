@@ -44,9 +44,21 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -57,21 +69,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
-import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -125,22 +124,44 @@ class TargetRecordingOptionsListGetHandlerTest {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("foo:9091");
+        Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "foo:9091"));
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        handler.handleAuthenticated(ctx);
+        Mockito.when(auth.validateHttpHeader(Mockito.any())).thenReturn(CompletableFuture.completedFuture(true));
+
+        try {
+            handler.handle(ctx);
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
+        }
 
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(resp).end(responseCaptor.capture());
-        List<SerializableOptionDescriptor> result =
+        Map<String, Object> response =
                 gson.fromJson(
                         responseCaptor.getValue(),
-                        new TypeToken<List<SerializableOptionDescriptor>>() {}.getType());
+                        new TypeToken<Map<String, Object>>() {}.getType());
+
+        Map<String, Object> expected = new HashMap<>();
+        Map<String, Object> meta = new HashMap<>();
+        Map<String, Object> data = new HashMap<>();
+        List<Object> result = new ArrayList<>();
+        result.add(Map.of("name", "foo", "description", "Foo Option", "defaultValue", "bar"));
+
+        expected.put("meta", meta);
+        meta.put("status", "OK");
+        meta.put("type", "application/json");
+        expected.put("data", data);
+        data.put("result", result);
 
         MatcherAssert.assertThat(
-                result,
-                Matchers.equalTo(Arrays.asList(new SerializableOptionDescriptor(descriptor))));
+                response,
+                Matchers.equalTo(
+                expected
+                    )
+                );
     }
 }
