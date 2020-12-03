@@ -1347,21 +1347,21 @@ The handler-specific descriptions below describe how each handler populates the
     Should use percent-encoding.
 
     ###### response
-    `201` - The body is a descriptor of the newly started recording, in the form
+    `201` - The response is a descriptor of the newly created recording, in the form
     `{"downloadUrl":"$DOWNLOAD_URL","reportUrl":"$REPORT_URL","id":$ID,"name":"$NAME","state":"$STATE","startTime":$START_TIME,"duration":$DURATION,"continuous":$CONTINUOUS,"toDisk":$TO_DISK,"maxSize":$MAX_SIZE,"maxAge":$MAX_AGE}`. The `Location` header will also be set
     to the same URL as in the `downloadUrl` field.
 
-    `401` - User authentication failed. The body is an error message.
+    `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `404` - The target could not be found. The body is an error message.
+    `404` - The target could not be found. The reason is an error message.
 
-    `427` - JMX authentication failed. The body is an error message.
+    `427` - JMX authentication failed. The reason is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
+    `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but ContainerJFR does not trust the
@@ -1370,7 +1370,7 @@ The handler-specific descriptions below describe how each handler populates the
     ###### example
     ```
     $ curl -X POST localhost:8181/api/v2/targets/localhost/snapshot
-    {"downloadUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/recordings/snapshot-1","reportUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/reports/snapshot-1","id":1,"name":"snapshot-1","state":"STOPPED","startTime":1601998841300,"duration":0,"continuous":true,"toDisk":true,"maxSize":0,"maxAge":0}
+{"meta":{"status":"OK","type":"application/json"},"data":{"result":{"downloadUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/recordings/snapshot-1","reportUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/reports/snapshot-1","id":1,"name":"snapshot-1","state":"STOPPED","startTime":1601998841300,"duration":0,"continuous":true,"toDisk":true,"maxSize":0,"maxAge":0}}}
     ```
 
 ### Security

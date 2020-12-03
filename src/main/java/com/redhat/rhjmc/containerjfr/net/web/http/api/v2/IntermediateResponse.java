@@ -46,17 +46,17 @@ import java.util.Map;
 
 class IntermediateResponse<T> {
 
-    private final Map<String, String> headers = new HashMap<>();
+    private final Map<CharSequence, CharSequence> headers = new HashMap<>();
     private int statusCode = 200;
     private String statusMessage;
     private T body;
 
-    IntermediateResponse<T> addHeader(String key, String value) {
+    IntermediateResponse<T> addHeader(CharSequence key, CharSequence value) {
         this.headers.put(key, value);
         return this;
     }
 
-    IntermediateResponse<T> removeHeader(String key) {
+    IntermediateResponse<T> removeHeader(CharSequence key) {
         this.headers.remove(key);
         return this;
     }
@@ -80,7 +80,7 @@ class IntermediateResponse<T> {
         return this.statusCode;
     }
 
-    Map<String, String> getHeaders() {
+    Map<CharSequence, CharSequence> getHeaders() {
         return this.headers;
     }
 
