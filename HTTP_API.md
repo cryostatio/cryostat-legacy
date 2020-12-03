@@ -1199,6 +1199,41 @@
 
 ## V2 API
 
+Unless otherwise specified, all V2 API handlers respond to requests with a
+metadata-wrapped and JSON-encoded response format with the following general
+form:
+
+```
+{ "meta:" { "status:" "statusString", "type:" "mime/type"}, "data:" { "someKey:" someValue } }
+```
+
+`statusString` will always be `OK` if the response status code is `200`. If the
+response status code is `4xx` or `5xx` then `statusString` may match the HTTP
+response status message, or it may provide more detail specific to the handler
+and the exact cause of failure.
+
+`type` is a MIME type specifier (ex. `application/json`, `text/plain`) which
+hints to the client how the response `data` is formatted. The `data` key will
+always be included and the value will always be an object, but the contents of
+the object vary by handler.
+
+`someKey` may be named anything. The most common name on successful requests is
+`result`, but this may vary by handler. The associated value may be anything and
+varies by handler. It may be a plain text string, or a next object, or an array.
+
+The response format on failure is similar:
+
+```
+{"meta":{"type":"text/plain","status":"Authentication Failure"},"data":{"reason":"JMX Authentication Failure"}}
+```
+
+Any response with a `4xx` or `5xx` status code will have `someKey` replaced by
+`reason` as explained above, and the value of `reason` will be a plain text
+string containing some additional detail about the failure.
+
+The handler-specific descriptions below describe how each handler populates the
+`type` and `data` fields. The general formats follow as above.
+
 ### Quick Reference
 
 | What you want to do                                                       | Which handler you should use                                                    |
@@ -1229,22 +1264,22 @@
     `query` - The search query.
 
     ###### response
-    `200` - The body is a JSON array of event objects.
+    `200` - The result is a JSON array of event objects.
 
     The format of an event is
     `{"name":"$NAME","typeId":"$TYPE_ID","description":"$DESCRIPTION","category":[$CATEGORIES],"options":{$OPTIONS}}`.
 
-    `401` - User authentication failed. The body is an error message.
+    `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `404` - The target could not be found. The body is an error message.
+    `404` - The target could not be found. The reason is an error message.
 
-    `427` - JMX authentication failed. The body is an error message.
+    `427` - JMX authentication failed. The reason is an error message.
     There will be an `X-JMX-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - There was an unexpected error. The body is an error message.
+    `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
     application has SSL enabled over JMX, but ContainerJFR does not trust the
@@ -1253,7 +1288,7 @@
     ###### example
     ```
     $ curl localhost:8181/api/v2/targets/localhost/eventsSearch/javaerrorthrow
-    [{"name":"Java Error","typeId":"jdk.JavaErrorThrow","description":"An object derived from java.lang.Error has been created. OutOfMemoryErrors are ignored","category":["Java Application"],"options":{"enabled":{"name":"Enabled","description":"Record event","defaultValue":"false"},"threshold":{"name":"Threshold","description":"Record event with duration above or equal to threshold","defaultValue":"0ns[ns]"},"stackTrace":{"name":"Stack Trace","description":"Record stack traces","defaultValue":"false"}}}] 
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Java Error","typeId":"jdk.JavaErrorThrow","description":"An object derived from java.lang.Error has been created. OutOfMemoryErrors are ignored","category":["Java Application"],"options":{"enabled":{"name":"Enabled","description":"Record event","defaultValue":"false"},"threshold":{"name":"Threshold","description":"Record event with duration above or equal to threshold","defaultValue":"0ns[ns]"},"stackTrace":{"name":"Stack Trace","description":"Record stack traces","defaultValue":"false"}}}]}}
     ```
 
 * #### `TargetRecordingOptionsListGetHandler`
@@ -1271,7 +1306,7 @@
 
     ###### response
     `200` - The body is a JSON array of recording option objects.
-    
+
     The format of a recording option is
     `{"name":"$NAME","description":"$DESCRIPTION","defaultValue":"$DEFAULT"}`.
 
@@ -1352,16 +1387,16 @@
     The certificate should be uploaded in a form with the name `cert`.
 
     ###### response
-    `200` - The body is `Saved: $PATH`, where `$PATH` is the path of the saved file.
+    `200` - The result is the path of the saved file in the server's storage.
 
-    `400` - No `cert` was found in the request form. The body is the error message `A file named "cert" was not included in the request`.
+    `400` - No `cert` was found in the request form. The reason is the error message `A file named "cert" was not included in the request`.
 
-    `409` - A certificate with the same filename already exists in the truststore directory. The body includes the path where the file already exists.
+    `409` - A certificate with the same filename already exists in the truststore directory. The reason includes the path where the file already exists.
 
-    `500` - The `SSL_TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The body is an error message.
+    `500` - The `SSL_TRUSTSTORE_DIR` environment variable is not set, or there is an unexpected error. The reason is an error message.
 
     ###### example
     ```
     $ curl -F cert=@vertx-fib-demo.cer localhost:8181/api/v2/certificates
-    Saved: /truststore/vertx-fib-demo.cer
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":"/truststore/vertx-fib-demo.cer"}}
     ```
