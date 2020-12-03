@@ -185,10 +185,6 @@ class TargetSnapshotPostHandlerTest {
         result.put("toDisk", false);
         result.put("continuous", false);
         MatcherAssert.assertThat(parsed, Matchers.equalTo(expected));
-
-// Expected: <{duration=0.0, maxAge=0.0, toDisk=false, continuous=false, name=snapshot-1, downloadUrl=http://example.com/download, startTime=0.0, maxSize=0.0, id=1.0, reportUrl=http://example.com/report, state=STOPPED}>
-//      but: was <{meta={type=text/plain, status=OK}, data={result={downloadUrl=http://example.com/download, reportUrl=http://example.com/report, id=1.0, name=snapshot-1, state=STOPPED, startTime=0.0, duration=0.0, continuous=false, toD
-// isk=false, maxSize=0.0, maxAge=0.0}}}>
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

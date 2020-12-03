@@ -50,16 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,8 +59,20 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
+import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -129,7 +131,8 @@ class TargetRecordingOptionsListGetHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any())).thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         try {
             handler.handle(ctx);
@@ -157,11 +160,6 @@ class TargetRecordingOptionsListGetHandlerTest {
         expected.put("data", data);
         data.put("result", result);
 
-        MatcherAssert.assertThat(
-                response,
-                Matchers.equalTo(
-                expected
-                    )
-                );
+        MatcherAssert.assertThat(response, Matchers.equalTo(expected));
     }
 }

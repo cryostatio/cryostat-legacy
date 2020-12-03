@@ -47,18 +47,19 @@ import java.util.Map;
 
 import javax.inject.Inject;
 
+import org.openjdk.jmc.common.unit.IOptionDescriptor;
+
 import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-
-import org.openjdk.jmc.common.unit.IOptionDescriptor;
-
 import io.vertx.core.http.HttpMethod;
 
-class TargetRecordingOptionsListGetHandler extends AbstractV2RequestHandler<List<SerializableOptionDescriptor>> {
+class TargetRecordingOptionsListGetHandler
+        extends AbstractV2RequestHandler<List<SerializableOptionDescriptor>> {
 
     private final TargetConnectionManager connectionManager;
 
@@ -100,7 +101,8 @@ class TargetRecordingOptionsListGetHandler extends AbstractV2RequestHandler<List
     }
 
     @Override
-    IntermediateResponse<List<SerializableOptionDescriptor>> handle(RequestParams requestParams) throws Exception {
+    IntermediateResponse<List<SerializableOptionDescriptor>> handle(RequestParams requestParams)
+            throws Exception {
         List<SerializableOptionDescriptor> options =
                 connectionManager.executeConnectedTask(
                         getConnectionDescriptorFromParams(requestParams),

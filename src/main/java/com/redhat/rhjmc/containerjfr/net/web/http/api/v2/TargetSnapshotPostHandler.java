@@ -43,7 +43,12 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
 import javax.inject.Inject;
 
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
 import com.google.gson.Gson;
+
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -52,15 +57,12 @@ import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
-class TargetSnapshotPostHandler extends AbstractV2RequestHandler<HyperlinkedSerializableRecordingDescriptor>{
+class TargetSnapshotPostHandler
+        extends AbstractV2RequestHandler<HyperlinkedSerializableRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
@@ -105,8 +107,8 @@ class TargetSnapshotPostHandler extends AbstractV2RequestHandler<HyperlinkedSeri
     }
 
     @Override
-    IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(RequestParams requestParams)
-            throws Exception {
+    IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
+            RequestParams requestParams) throws Exception {
         HyperlinkedSerializableRecordingDescriptor desc =
                 targetConnectionManager.executeConnectedTask(
                         getConnectionDescriptorFromParams(requestParams),
@@ -134,9 +136,10 @@ class TargetSnapshotPostHandler extends AbstractV2RequestHandler<HyperlinkedSeri
                                     webServer.get().getDownloadURL(connection, rename),
                                     webServer.get().getReportURL(connection, rename));
                         });
-        return new
-            IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>().statusCode(201).addHeader(HttpHeaders.LOCATION,
-                    desc.getDownloadUrl()).body(desc);
+        return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
+                .statusCode(201)
+                .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
+                .body(desc);
     }
 
     static class SnapshotDescriptor extends HyperlinkedSerializableRecordingDescriptor {
