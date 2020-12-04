@@ -84,13 +84,13 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         this.gson = gson;
     }
 
-    abstract IntermediateResponse<T> handle(RequestParams requestParams) throws Exception;
+    abstract IntermediateResponse<T> handle(RequestParameters requestParams) throws Exception;
 
     abstract HttpMimeType mimeType();
 
     @Override
     public final void handle(RoutingContext ctx) {
-        RequestParams requestParams = RequestParams.from(ctx);
+        RequestParameters requestParams = RequestParameters.from(ctx);
         try {
             if (requiresAuthentication()
                     && !validateRequestAuthorization(
@@ -123,7 +123,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         return auth.validateHttpHeader(() -> authHeader);
     }
 
-    protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParams params) {
+    protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {
         String targetId = params.getPathParams().get("targetId");
         Credentials credentials = null;
         if (params.getHeaders().contains(JMX_AUTHORIZATION_HEADER)) {

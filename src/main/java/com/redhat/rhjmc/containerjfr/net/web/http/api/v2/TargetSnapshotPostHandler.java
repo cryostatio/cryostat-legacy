@@ -108,7 +108,7 @@ class TargetSnapshotPostHandler
 
     @Override
     IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
-            RequestParams requestParams) throws Exception {
+            RequestParameters requestParams) throws Exception {
         HyperlinkedSerializableRecordingDescriptor desc =
                 targetConnectionManager.executeConnectedTask(
                         getConnectionDescriptorFromParams(requestParams),

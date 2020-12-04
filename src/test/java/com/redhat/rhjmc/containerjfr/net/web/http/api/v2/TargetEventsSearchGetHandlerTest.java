@@ -113,8 +113,8 @@ class TargetEventsSearchGetHandlerTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn(Collections.emptyList());
 
-        RequestParams params =
-                new RequestParams(
+        RequestParameters params =
+                new RequestParameters(
                         Map.of("targetId", "foo:9091", "query", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
@@ -178,8 +178,8 @@ class TargetEventsSearchGetHandlerTest {
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableEventTypes()).thenReturn((List) events);
 
-        RequestParams params =
-                new RequestParams(
+        RequestParameters params =
+                new RequestParameters(
                         Map.of("targetId", "foo:9091", "query", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),

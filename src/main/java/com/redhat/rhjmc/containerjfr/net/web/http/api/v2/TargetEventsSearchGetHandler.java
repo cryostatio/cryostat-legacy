@@ -103,7 +103,7 @@ class TargetEventsSearchGetHandler
     }
 
     @Override
-    public IntermediateResponse<List<SerializableEventTypeInfo>> handle(RequestParams params)
+    public IntermediateResponse<List<SerializableEventTypeInfo>> handle(RequestParameters params)
             throws Exception {
         return targetConnectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(params),

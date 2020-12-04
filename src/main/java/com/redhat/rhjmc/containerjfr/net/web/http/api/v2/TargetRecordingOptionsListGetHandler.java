@@ -101,7 +101,7 @@ class TargetRecordingOptionsListGetHandler
     }
 
     @Override
-    IntermediateResponse<List<SerializableOptionDescriptor>> handle(RequestParams requestParams)
+    IntermediateResponse<List<SerializableOptionDescriptor>> handle(RequestParameters requestParams)
             throws Exception {
         List<SerializableOptionDescriptor> options =
                 connectionManager.executeConnectedTask(

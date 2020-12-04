@@ -130,7 +130,7 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
     }
 
     @Override
-    public IntermediateResponse<Path> handle(RequestParams params) throws ApiException {
+    public IntermediateResponse<Path> handle(RequestParameters params) throws ApiException {
         FileUpload cert = null;
         for (FileUpload fu : params.getFileUploads()) {
             if ("cert".equals(fu.name())) {

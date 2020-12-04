@@ -338,7 +338,7 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Override
-        public IntermediateResponse<String> handle(RequestParams params) throws Exception {
+        public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             return new IntermediateResponse<String>().body("OK");
         }
     }
@@ -352,7 +352,7 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Override
-        public IntermediateResponse<String> handle(RequestParams params) throws Exception {
+        public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             throw thrown;
         }
     }
@@ -365,7 +365,7 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Override
-        public IntermediateResponse<String> handle(RequestParams params) throws Exception {
+        public IntermediateResponse<String> handle(RequestParameters params) throws Exception {
             desc = getConnectionDescriptorFromParams(params);
             return new IntermediateResponse<String>().body("");
         }

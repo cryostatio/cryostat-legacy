@@ -50,14 +50,14 @@ import io.vertx.core.MultiMap;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 
-class RequestParams {
+class RequestParameters {
 
     private final Map<String, String> pathParams;
     private final MultiMap queryParams;
     private final MultiMap headers;
     private final Set<FileUpload> fileUploads;
 
-    RequestParams(
+    RequestParameters(
             Map<String, String> pathParams,
             MultiMap queryParams,
             MultiMap headers,
@@ -70,7 +70,7 @@ class RequestParams {
         this.fileUploads = new HashSet<>(fileUploads);
     }
 
-    static RequestParams from(RoutingContext ctx) {
+    static RequestParameters from(RoutingContext ctx) {
         Map<String, String> pathParams = new HashMap<>();
         if (ctx != null && ctx.pathParams() != null) {
             pathParams.putAll(ctx.pathParams());
@@ -91,7 +91,7 @@ class RequestParams {
             fileUploads.addAll(ctx.fileUploads());
         }
 
-        return new RequestParams(pathParams, queryParams, headers, fileUploads);
+        return new RequestParameters(pathParams, queryParams, headers, fileUploads);
     }
 
     Map<String, String> getPathParams() {
