@@ -39,7 +39,6 @@ package io.cryostat;
 
 import javax.inject.Singleton;
 
-import dagger.Component;
 import io.cryostat.commands.CommandExecutor;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
@@ -49,6 +48,8 @@ import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.rules.RuleRegistry;
+
+import dagger.Component;
 
 class Cryostat {
 

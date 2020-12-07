@@ -43,13 +43,15 @@ package io.cryostat.rules;
 
 import javax.inject.Singleton;
 
-import dagger.Module;
-import dagger.Provides;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.web.http.api.v1.TargetRecordingsPostHandler;
 import io.cryostat.platform.PlatformClient;
+
+import dagger.Module;
+import dagger.Provides;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -60,6 +62,7 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     public static RuleRegistry provideRuleRegistry(
+            CredentialsManager credentialsManager,
             PlatformClient platformClient,
             NetworkConfiguration netConf,
             Vertx vertx,
@@ -73,6 +76,11 @@ public abstract class RulesModule {
                         .setDefaultPort(netConf.getInternalWebServerPort())
                         .setTrustAll(true)
                         .setVerifyHost(false);
-        return new RuleRegistry(platformClient, WebClient.create(vertx, opts), postHandler, logger);
+        return new RuleRegistry(
+                credentialsManager,
+                platformClient,
+                WebClient.create(vertx, opts),
+                postHandler,
+                logger);
     }
 }

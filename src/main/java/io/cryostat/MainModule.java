@@ -46,13 +46,8 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-import dagger.Module;
-import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.commands.CommandsModule;
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
@@ -67,8 +62,15 @@ import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+import dagger.Module;
+import dagger.Provides;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+
 @Module(
         includes = {
+            ConfigurationModule.class,
             PlatformModule.class,
             SystemModule.class,
             NetworkModule.class,

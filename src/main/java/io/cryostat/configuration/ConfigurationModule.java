@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Container JFR
+ * %%
+ * Copyright (C) 2020 Red Hat, Inc.
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,57 +37,56 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
-package io.cryostat.platform.internal;
+package io.cryostat.configuration;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import javax.inject.Named;
+import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.net.AuthManager;
+import io.cryostat.core.sys.FileSystem;
 
-import dagger.Lazy;
+import com.google.gson.Gson;
+import dagger.Module;
+import dagger.Provides;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
+@Module
+public abstract class ConfigurationModule {
+    public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
 
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final Logger logger;
-    private final AuthManager authMgr;
-    private final Environment env;
-    private final NotificationFactory notificationFactory;
-
-    KubeEnvPlatformStrategy(
-            Logger logger,
-            AuthManager authMgr,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            NotificationFactory notificationFactory) {
-        this.logger = logger;
-        this.authMgr = authMgr;
-        this.connectionToolkit = connectionToolkit;
-        this.env = env;
-        this.notificationFactory = notificationFactory;
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    @Provides
+    @Singleton
+    @Named(CONFIGURATION_PATH)
+    static Path provideConfigurationPath(Logger logger, Environment env) {
+        String path = env.getEnv("CRYOSTAT_CONFIG_PATH", "/opt/cryostat.d");
+        logger.info(String.format("Local config path set as %s", path));
+        return Paths.get(path);
     }
 
-    @Override
-    public int getPriority() {
-        return PRIORITY_PLATFORM;
-    }
+    @Provides
+    @Singleton
+    static CredentialsManager provideCredentialsManager(
+            @Named(CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson, Logger logger) {
+        try {
+            CredentialsManager credentialsManager =
+                    new CredentialsManager(confDir, fs, gson, logger);
 
-    @Override
-    public boolean isAvailable() {
-        logger.trace("Testing KubeEnv Platform Availability");
-        return env.getEnv().keySet().stream().anyMatch(s -> s.equals("KUBERNETES_SERVICE_HOST"));
-    }
+            credentialsManager.addCredentials(
+                    "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
 
-    @Override
-    public KubeEnvPlatformClient getPlatformClient() {
-        logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(connectionToolkit, env, notificationFactory, logger);
-    }
-
-    @Override
-    public AuthManager getAuthManager() {
-        return authMgr;
+            credentialsManager.load();
+            return credentialsManager;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
