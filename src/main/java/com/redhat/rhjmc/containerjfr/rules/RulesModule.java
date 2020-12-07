@@ -39,62 +39,41 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.rules;
 
 import javax.inject.Singleton;
 
-import com.redhat.rhjmc.containerjfr.commands.CommandExecutor;
-import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingsPostHandler;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
-import dagger.Component;
 
-class ContainerJfr {
+import dagger.Module;
+import dagger.Provides;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
-    public static void main(String[] args) throws Exception {
-        ContainerJfrCore.initialize();
+@Module
+public abstract class RulesModule {
 
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace("env: {}", environment.getEnv().toString());
-
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "container-jfr"));
-
-        Client client = DaggerContainerJfr_Client.builder().build();
-
-        client.ruleRegistry().loadRules();
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-        client.platformClient().start();
-
-        client.commandExecutor().run();
-    }
-
+    @Provides
     @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        RuleRegistry ruleRegistry();
-
-        HttpServer httpServer();
-
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        PlatformClient platformClient();
-
-        CommandExecutor commandExecutor();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
-        }
+    public static RuleRegistry provideRuleRegistry(
+            PlatformClient platformClient,
+            NetworkConfiguration netConf,
+            Vertx vertx,
+            HttpServer server,
+            TargetRecordingsPostHandler postHandler,
+            Logger logger) {
+        WebClientOptions opts =
+                new WebClientOptions()
+                        .setSsl(server.isSsl())
+                        .setDefaultHost("localhost")
+                        .setDefaultPort(netConf.getInternalWebServerPort())
+                        .setTrustAll(true)
+                        .setVerifyHost(false);
+        return new RuleRegistry(platformClient, WebClient.create(vertx, opts), postHandler, logger);
     }
 }
