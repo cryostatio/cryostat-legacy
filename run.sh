@@ -71,8 +71,9 @@ fi
 
 podman run \
     --pod container-jfr \
-    --mount type=tmpfs,target=/flightrecordings \
-    --mount type=tmpfs,target=/templates \
+    --mount type=tmpfs,target=/var/containerjfr/conf.d \
+    --mount type=tmpfs,target=/var/containerjfr/templates.d \
+    --mount type=tmpfs,target=/var/containerjfr/recordings.d \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     -e CONTAINER_JFR_PLATFORM=$CONTAINER_JFR_PLATFORM \
@@ -89,8 +90,9 @@ podman run \
     -e CONTAINER_JFR_LISTEN_PORT=$CONTAINER_JFR_LISTEN_PORT \
     -e CONTAINER_JFR_EXT_LISTEN_PORT=$CONTAINER_JFR_EXT_LISTEN_PORT \
     -e CONTAINER_JFR_AUTH_MANAGER=$CONTAINER_JFR_AUTH_MANAGER \
-    -e CONTAINER_JFR_ARCHIVE_PATH="/flightrecordings" \
-    -e CONTAINER_JFR_TEMPLATE_PATH="/templates" \
+    -e CONTAINER_JFR_CONFIG_PATH="/var/containerjfr/conf.d" \
+    -e CONTAINER_JFR_ARCHIVE_PATH="/var/containerjfr/recordings.d" \
+    -e CONTAINER_JFR_TEMPLATE_PATH="/var/containerjfr/templates.d" \
     -e CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP="$CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP" \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
     -e GRAFANA_DASHBOARD_URL=$GRAFANA_DASHBOARD_URL \

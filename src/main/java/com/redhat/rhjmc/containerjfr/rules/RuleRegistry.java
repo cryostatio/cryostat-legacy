@@ -48,7 +48,9 @@ import java.util.function.Consumer;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.utils.URLEncodedUtils;
 
+import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
@@ -66,16 +68,19 @@ import io.vertx.ext.web.multipart.MultipartForm;
 public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
 
     private final Set<Rule> rules;
+    private final CredentialsManager credentialsManager;
     private final WebClient webClient;
     private final RequestHandler postHandler;
     private final Logger logger;
 
     RuleRegistry(
+            CredentialsManager credentialsManager,
             PlatformClient platformClient,
             WebClient webClient,
             TargetRecordingsPostHandler postHandler,
             Logger logger) {
         this.rules = new HashSet<>();
+        this.credentialsManager = credentialsManager;
         this.webClient = webClient;
         this.postHandler = postHandler;
         this.logger = logger;
@@ -90,8 +95,6 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
         defaultRule.description = "This rule enables the Continuous template by default";
         defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
         defaultRule.duration = -1;
-        defaultRule.username = "admin";
-        defaultRule.password = "adminpass123";
         this.addRule(defaultRule);
     }
 
@@ -106,11 +109,7 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
         }
         this.rules.forEach(
                 rule -> {
-                    if (!Rule.ALL_TARGETS.equals(rule.targetAlias)
-                            && !tde.getServiceRef()
-                                    .getAlias()
-                                    .orElse("")
-                                    .equals(rule.targetAlias)) {
+                    if (!tde.getServiceRef().getAlias().orElse("").equals(rule.targetAlias)) {
                         return;
                     }
                     this.logger.trace(
@@ -136,13 +135,17 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
                                                             .getJMXServiceUrl()
                                                             .toString()));
                     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-                    if (rule.username != null) {
+                    Credentials credentials = credentialsManager.getCredentials(rule.targetAlias);
+                    if (credentials != null) {
                         headers.add(
                                 AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
                                 String.format(
                                         "Basic %s",
                                         Base64.encodeBase64String(
-                                                String.format("%s:%s", rule.username, rule.password)
+                                                String.format(
+                                                                "%s:%s",
+                                                                credentials.getUsername(),
+                                                                credentials.getPassword())
                                                         .getBytes())));
                     }
                     this.webClient

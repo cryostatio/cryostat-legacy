@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.rules;
 
 import javax.inject.Singleton;
 
+import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
@@ -61,6 +62,7 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     public static RuleRegistry provideRuleRegistry(
+            CredentialsManager credentialsManager,
             PlatformClient platformClient,
             NetworkConfiguration netConf,
             Vertx vertx,
@@ -74,6 +76,11 @@ public abstract class RulesModule {
                         .setDefaultPort(netConf.getInternalWebServerPort())
                         .setTrustAll(true)
                         .setVerifyHost(false);
-        return new RuleRegistry(platformClient, WebClient.create(vertx, opts), postHandler, logger);
+        return new RuleRegistry(
+                credentialsManager,
+                platformClient,
+                WebClient.create(vertx, opts),
+                postHandler,
+                logger);
     }
 }

@@ -39,20 +39,55 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.rules;
+package com.redhat.rhjmc.containerjfr.configuration;
 
-public class Rule {
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
-    String name;
+import javax.inject.Named;
+import javax.inject.Singleton;
 
-    String description;
+import com.google.gson.Gson;
 
-    // TODO for now, simply allow matching based on target's alias. This should be expanded to allow
-    // for different match parameters such as port number, port name, container/pod label, etc.,
-    //  and allow wildcards
-    String targetAlias;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
-    String eventSpecifier;
+import dagger.Module;
+import dagger.Provides;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-    int duration;
+@Module
+public abstract class ConfigurationModule {
+    public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
+
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    @Provides
+    @Singleton
+    @Named(CONFIGURATION_PATH)
+    static Path provideConfigurationPath(Logger logger, Environment env) {
+        String path = env.getEnv("CONTAINER_JFR_CONFIG_PATH", "/var/containerjfr/conf.d");
+        logger.info(String.format("Local config path set as %s", path));
+        return Paths.get(path);
+    }
+
+    @Provides
+    @Singleton
+    static CredentialsManager provideCredentialsManager(
+            @Named(CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson, Logger logger) {
+        try {
+            CredentialsManager credentialsManager =
+                    new CredentialsManager(confDir, fs, gson, logger);
+
+            credentialsManager.addCredentials(
+                    "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
+
+            credentialsManager.load();
+            return credentialsManager;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 }
