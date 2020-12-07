@@ -46,6 +46,12 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
+
+import dagger.Module;
+import dagger.Provides;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.commands.CommandsModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -54,17 +60,12 @@ import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
+import io.cryostat.rules.RulesModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
-
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import dagger.Module;
-import dagger.Provides;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Module(
         includes = {
@@ -74,6 +75,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
             MessagingModule.class,
             CommandsModule.class,
             TemplatesModule.class,
+            RulesModule.class,
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
