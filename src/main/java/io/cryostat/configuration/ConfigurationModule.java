@@ -41,7 +41,6 @@
  */
 package io.cryostat.configuration;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -49,7 +48,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 
@@ -76,17 +74,6 @@ public abstract class ConfigurationModule {
     @Singleton
     static CredentialsManager provideCredentialsManager(
             @Named(CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson, Logger logger) {
-        try {
-            CredentialsManager credentialsManager =
-                    new CredentialsManager(confDir, fs, gson, logger);
-
-            credentialsManager.addCredentials(
-                    "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
-
-            credentialsManager.load();
-            return credentialsManager;
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return new CredentialsManager(confDir, fs, gson, logger);
     }
 }

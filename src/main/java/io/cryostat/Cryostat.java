@@ -40,8 +40,10 @@ package io.cryostat;
 import javax.inject.Singleton;
 
 import io.cryostat.commands.CommandExecutor;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
@@ -65,6 +67,12 @@ class Cryostat {
 
         Client client = DaggerCryostat_Client.builder().build();
 
+        // FIXME remove this, only here for testing
+        client.credentialsManager()
+                .addCredentials(
+                        "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
+
+        client.credentialsManager().load();
         client.ruleRegistry().loadRules();
         client.httpServer().start();
         client.webServer().start();
@@ -77,6 +85,8 @@ class Cryostat {
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
+        CredentialsManager credentialsManager();
+
         RuleRegistry ruleRegistry();
 
         HttpServer httpServer();
