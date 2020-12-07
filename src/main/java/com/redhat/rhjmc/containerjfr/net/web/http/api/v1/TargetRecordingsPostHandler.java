@@ -81,7 +81,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
+public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     // TODO extract this somewhere more appropriate
     public static final Template ALL_EVENTS_TEMPLATE =

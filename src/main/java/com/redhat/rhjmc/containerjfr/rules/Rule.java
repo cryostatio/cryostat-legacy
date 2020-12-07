@@ -39,62 +39,28 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr;
+package com.redhat.rhjmc.containerjfr.rules;
 
-import javax.inject.Singleton;
+public class Rule {
 
-import com.redhat.rhjmc.containerjfr.commands.CommandExecutor;
-import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
-import com.redhat.rhjmc.containerjfr.net.HttpServer;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
-import dagger.Component;
+    public static final String ALL_TARGETS = "ALL_TARGETS";
 
-class ContainerJfr {
+    String name;
 
-    public static void main(String[] args) throws Exception {
-        ContainerJfrCore.initialize();
+    String description;
 
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
+    // TODO for now, simply allow matching based on target's alias. This should be expanded to allow
+    // for different match parameters such as port number, port name, container/pod label, etc.,
+    //  and allow wildcards
+    String targetAlias;
 
-        logger.trace("env: {}", environment.getEnv().toString());
+    String eventSpecifier;
 
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "container-jfr"));
+    int duration;
 
-        Client client = DaggerContainerJfr_Client.builder().build();
-
-        client.ruleRegistry().loadRules();
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-        client.platformClient().start();
-
-        client.commandExecutor().run();
-    }
-
-    @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        RuleRegistry ruleRegistry();
-
-        HttpServer httpServer();
-
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        PlatformClient platformClient();
-
-        CommandExecutor commandExecutor();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
-        }
-    }
+    // TODO the user should not need to provide credentials per-rule. There should instead be some
+    // configuration allowing the user to specify credentials per target, which is automatically
+    // incorporated by the RuleRegistry when processing rules and discovery events
+    String username;
+    String password;
 }

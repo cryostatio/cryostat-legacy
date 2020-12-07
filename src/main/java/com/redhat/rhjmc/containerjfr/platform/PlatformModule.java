@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.platform;
 
-import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
@@ -126,12 +125,6 @@ public abstract class PlatformModule {
                             .filter(PlatformDetectionStrategy::isAvailable)
                             .findFirst()
                             .orElseThrow();
-        }
-        try {
-            strat.getPlatformClient().start();
-        } catch (IOException ioe) {
-            logger.error(ioe);
-            throw new RuntimeException(ioe);
         }
         return strat;
     }

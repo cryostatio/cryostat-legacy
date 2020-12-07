@@ -59,6 +59,7 @@ import com.redhat.rhjmc.containerjfr.messaging.MessagingModule;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
+import com.redhat.rhjmc.containerjfr.rules.RulesModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
 import com.redhat.rhjmc.containerjfr.util.GsonJmxServiceUrlAdapter;
@@ -77,6 +78,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
             MessagingModule.class,
             CommandsModule.class,
             TemplatesModule.class,
+            RulesModule.class,
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
