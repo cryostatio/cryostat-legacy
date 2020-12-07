@@ -52,6 +52,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
+import com.redhat.rhjmc.containerjfr.configuration.ConfigurationModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
@@ -72,6 +73,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Module(
         includes = {
+            ConfigurationModule.class,
             PlatformModule.class,
             SystemModule.class,
             NetworkModule.class,
