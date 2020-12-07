@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Container JFR
+ * %%
+ * Copyright (C) 2020 Red Hat, Inc.
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,63 +37,30 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
-package io.cryostat;
+package io.cryostat.rules;
 
-import javax.inject.Singleton;
+public class Rule {
 
-import dagger.Component;
-import io.cryostat.commands.CommandExecutor;
-import io.cryostat.core.CryostatCore;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.MessagingServer;
-import io.cryostat.net.HttpServer;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.rules.RuleRegistry;
+    public static final String ALL_TARGETS = "ALL_TARGETS";
 
-class Cryostat {
+    String name;
 
-    public static void main(String[] args) throws Exception {
-        CryostatCore.initialize();
+    String description;
 
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
+    // TODO for now, simply allow matching based on target's alias. This should be expanded to allow
+    // for different match parameters such as port number, port name, container/pod label, etc.,
+    //  and allow wildcards
+    String targetAlias;
 
-        logger.trace("env: {}", environment.getEnv().toString());
+    String eventSpecifier;
 
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
+    int duration;
 
-        Client client = DaggerCryostat_Client.builder().build();
-
-        client.ruleRegistry().loadRules();
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-        client.platformClient().start();
-
-        client.commandExecutor().run();
-    }
-
-    @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        RuleRegistry ruleRegistry();
-
-        HttpServer httpServer();
-
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        PlatformClient platformClient();
-
-        CommandExecutor commandExecutor();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
-        }
-    }
+    // TODO the user should not need to provide credentials per-rule. There should instead be some
+    // configuration allowing the user to specify credentials per target, which is automatically
+    // incorporated by the RuleRegistry when processing rules and discovery events
+    String username;
+    String password;
 }

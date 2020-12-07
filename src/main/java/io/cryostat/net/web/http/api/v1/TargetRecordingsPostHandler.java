@@ -77,7 +77,7 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 
-class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
+public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     // TODO extract this somewhere more appropriate
     public static final Template ALL_EVENTS_TEMPLATE =

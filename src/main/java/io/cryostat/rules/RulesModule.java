@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Container JFR
+ * %%
+ * Copyright (C) 2020 Red Hat, Inc.
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,63 +37,42 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
-package io.cryostat;
+package io.cryostat.rules;
 
 import javax.inject.Singleton;
 
-import dagger.Component;
-import io.cryostat.commands.CommandExecutor;
-import io.cryostat.core.CryostatCore;
+import dagger.Module;
+import dagger.Provides;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
-import io.cryostat.net.web.WebServer;
+import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.web.http.api.v1.TargetRecordingsPostHandler;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.rules.RuleRegistry;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
 
-class Cryostat {
+@Module
+public abstract class RulesModule {
 
-    public static void main(String[] args) throws Exception {
-        CryostatCore.initialize();
-
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace("env: {}", environment.getEnv().toString());
-
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
-
-        Client client = DaggerCryostat_Client.builder().build();
-
-        client.ruleRegistry().loadRules();
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-        client.platformClient().start();
-
-        client.commandExecutor().run();
-    }
-
+    @Provides
     @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        RuleRegistry ruleRegistry();
-
-        HttpServer httpServer();
-
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        PlatformClient platformClient();
-
-        CommandExecutor commandExecutor();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
-        }
+    public static RuleRegistry provideRuleRegistry(
+            PlatformClient platformClient,
+            NetworkConfiguration netConf,
+            Vertx vertx,
+            HttpServer server,
+            TargetRecordingsPostHandler postHandler,
+            Logger logger) {
+        WebClientOptions opts =
+                new WebClientOptions()
+                        .setSsl(server.isSsl())
+                        .setDefaultHost("localhost")
+                        .setDefaultPort(netConf.getInternalWebServerPort())
+                        .setTrustAll(true)
+                        .setVerifyHost(false);
+        return new RuleRegistry(platformClient, WebClient.create(vertx, opts), postHandler, logger);
     }
 }
