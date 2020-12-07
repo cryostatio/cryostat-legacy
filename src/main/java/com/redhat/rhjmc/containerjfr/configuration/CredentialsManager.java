@@ -80,7 +80,7 @@ public class CredentialsManager {
 
     public void load() throws IOException {
         this.fs.listDirectoryChildren(this.confDir).stream()
-                .peek(n -> logger.info("Credentials file: " + n))
+                .peek(n -> logger.trace("Credentials file: " + n))
                 .map(confDir::resolve)
                 .map(
                         path -> {
@@ -94,41 +94,40 @@ public class CredentialsManager {
                 .filter(Objects::nonNull)
                 .map(
                         reader ->
-                                gson.fromJson(
+                                (List<StoredCredentials>) gson.fromJson(
                                         reader,
                                         new TypeToken<List<StoredCredentials>>() {}.getType()))
-                .forEach(
-                        storedCredentialsList -> {
-                            logger.info("Found stored credentials");
-                            logger.info(gson.toJson(storedCredentialsList));
-                        });
+                .flatMap(List::stream)
+                .forEach(sc ->
+                    credentialsMap.put(sc.getTargetId(),
+                            sc.getCredentials())
+                        );
     }
 
-    public boolean addCredentials(String alias, Credentials credentials) throws IOException {
-        boolean replaced = credentialsMap.containsKey(alias);
-        credentialsMap.put(alias, credentials);
+    public boolean addCredentials(String targetId, Credentials credentials) throws IOException {
+        boolean replaced = credentialsMap.containsKey(targetId);
+        credentialsMap.put(targetId, credentials);
         fs.writeString(
-                confDir.resolve(String.format("%d.json", alias.hashCode())),
-                gson.toJson(List.of(new StoredCredentials(alias, credentials))));
+                confDir.resolve(String.format("%d.json", targetId.hashCode())),
+                gson.toJson(List.of(new StoredCredentials(targetId, credentials))));
         return replaced;
     }
 
-    public Credentials getCredentials(String alias) {
-        return this.credentialsMap.get(alias);
+    public Credentials getCredentials(String targetId) {
+        return this.credentialsMap.get(targetId);
     }
 
     public static class StoredCredentials {
-        // TODO this should optionally match on target service URL, not just alias
-        private final String alias;
+        private final String targetId;
         private final Credentials credentials;
 
-        StoredCredentials(String alias, Credentials credentials) {
-            this.alias = alias;
+        StoredCredentials(String targetId, Credentials credentials) {
+            this.targetId = targetId;
             this.credentials = credentials;
         }
 
-        public String getAlias() {
-            return this.alias;
+        public String getTargetId() {
+            return this.targetId;
         }
 
         public Credentials getCredentials() {
