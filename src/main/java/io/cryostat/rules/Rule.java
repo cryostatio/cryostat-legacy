@@ -43,8 +43,6 @@ package io.cryostat.rules;
 
 public class Rule {
 
-    public static final String ALL_TARGETS = "ALL_TARGETS";
-
     String name;
 
     String description;
@@ -57,10 +55,4 @@ public class Rule {
     String eventSpecifier;
 
     int duration;
-
-    // TODO the user should not need to provide credentials per-rule. There should instead be some
-    // configuration allowing the user to specify credentials per target, which is automatically
-    // incorporated by the RuleRegistry when processing rules and discovery events
-    String username;
-    String password;
 }

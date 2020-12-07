@@ -45,10 +45,6 @@ import java.util.Set;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.google.gson.Gson;
-
-import dagger.Module;
-import dagger.Provides;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
@@ -60,6 +56,10 @@ import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.platform.internal.MergingPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
+
+import com.google.gson.Gson;
+import dagger.Module;
+import dagger.Provides;
 
 @Module(includes = {PlatformStrategyModule.class})
 public abstract class PlatformModule {

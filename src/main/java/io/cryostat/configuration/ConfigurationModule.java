@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Container JFR
+ * %%
+ * Copyright (C) 2020 Red Hat, Inc.
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,64 +37,56 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
-package io.cryostat;
+package io.cryostat.configuration;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.cryostat.commands.CommandExecutor;
-import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.MessagingServer;
-import io.cryostat.net.HttpServer;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.rules.RuleRegistry;
+import io.cryostat.core.sys.FileSystem;
 
-import dagger.Component;
+import com.google.gson.Gson;
+import dagger.Module;
+import dagger.Provides;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
-class Cryostat {
+@Module
+public abstract class ConfigurationModule {
+    public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
 
-    public static void main(String[] args) throws Exception {
-        CryostatCore.initialize();
-
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace("env: {}", environment.getEnv().toString());
-
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
-
-        Client client = DaggerCryostat_Client.builder().build();
-
-        client.ruleRegistry().loadRules();
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-        client.platformClient().start();
-
-        client.commandExecutor().run();
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    @Provides
+    @Singleton
+    @Named(CONFIGURATION_PATH)
+    static Path provideConfigurationPath(Logger logger, Environment env) {
+        String path = env.getEnv("CRYOSTAT_CONFIG_PATH", "/opt/cryostat.d");
+        logger.info(String.format("Local config path set as %s", path));
+        return Paths.get(path);
     }
 
+    @Provides
     @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        RuleRegistry ruleRegistry();
+    static CredentialsManager provideCredentialsManager(
+            @Named(CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson, Logger logger) {
+        try {
+            CredentialsManager credentialsManager =
+                    new CredentialsManager(confDir, fs, gson, logger);
 
-        HttpServer httpServer();
+            credentialsManager.addCredentials(
+                    "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
 
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        PlatformClient platformClient();
-
-        CommandExecutor commandExecutor();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
+            credentialsManager.load();
+            return credentialsManager;
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }

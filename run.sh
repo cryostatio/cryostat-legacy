@@ -75,8 +75,9 @@ fi
 
 podman run \
     --pod cryostat \
-    --mount type=tmpfs,target=/flightrecordings \
-    --mount type=tmpfs,target=/templates \
+    --mount type=tmpfs,target=/opt/cryostat.d/conf.d \
+    --mount type=tmpfs,target=/opt/cryostat.d/recordings.d \
+    --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
@@ -94,8 +95,9 @@ podman run \
     -e CRYOSTAT_LISTEN_PORT=$CRYOSTAT_LISTEN_PORT \
     -e CRYOSTAT_EXT_LISTEN_PORT=$CRYOSTAT_EXT_LISTEN_PORT \
     -e CRYOSTAT_AUTH_MANAGER=$CRYOSTAT_AUTH_MANAGER \
-    -e CRYOSTAT_ARCHIVE_PATH="/flightrecordings" \
-    -e CRYOSTAT_TEMPLATE_PATH="/templates" \
+    -e CRYOSTAT_CONFIG_PATH="/opt/cryostat.d/config.d" \
+    -e CRYOSTAT_ARCHIVE_PATH="/opt/cryostat.d/recordings.d" \
+    -e CRYOSTAT_TEMPLATE_PATH="/opt/cryostat.d/templates.d" \
     -e CRYOSTAT_CLIENTLIB_PATH="/clientlib" \
     -e CRYOSTAT_REPORT_GENERATION_MAX_HEAP="$CRYOSTAT_REPORT_GENERATION_MAX_HEAP" \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
