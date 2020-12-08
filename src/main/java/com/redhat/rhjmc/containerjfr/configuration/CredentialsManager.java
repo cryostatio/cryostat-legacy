@@ -94,14 +94,13 @@ public class CredentialsManager {
                 .filter(Objects::nonNull)
                 .map(
                         reader ->
-                                (List<StoredCredentials>) gson.fromJson(
-                                        reader,
-                                        new TypeToken<List<StoredCredentials>>() {}.getType()))
+                                (List<StoredCredentials>)
+                                        gson.fromJson(
+                                                reader,
+                                                new TypeToken<
+                                                        List<StoredCredentials>>() {}.getType()))
                 .flatMap(List::stream)
-                .forEach(sc ->
-                    credentialsMap.put(sc.getTargetId(),
-                            sc.getCredentials())
-                        );
+                .forEach(sc -> credentialsMap.put(sc.getTargetId(), sc.getCredentials()));
     }
 
     public boolean addCredentials(String targetId, Credentials credentials) throws IOException {
