@@ -101,6 +101,8 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
         this.rules.add(rule);
     }
 
+    // FIXME this should be abstracted into something other than the Registry - it's really a
+    // separate responsibility
     @Override
     public void accept(TargetDiscoveryEvent tde) {
         if (!EventKind.FOUND.equals(tde.getEventKind())) {
@@ -119,6 +121,13 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
                                     rule.description,
                                     tde.getServiceRef().getJMXServiceUrl()));
 
+                    // FIXME using an HTTP request to localhost here works well enough, but is
+                    // needlessly complex. The API handler targeted here should be refactored to
+                    // extract the logic that creates the recording from the logic that simply
+                    // figures out the recording parameters from the POST form, path param, and
+                    // headers. Then the handler should consume the API exposed by this refactored
+                    // chunk, and this refactored chunk can also be consumed here rather than firing
+                    // HTTP requests to ourselves
                     MultipartForm form = MultipartForm.create();
                     form.attribute(
                             "recordingName",
