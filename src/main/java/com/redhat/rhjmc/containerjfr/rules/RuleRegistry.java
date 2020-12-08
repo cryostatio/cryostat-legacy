@@ -47,59 +47,28 @@ import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.client.utils.URLEncodedUtils;
 import com.google.gson.Gson;
 
-import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.Credentials;
-import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
-import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingsPostHandler;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.platform.TargetDiscoveryEvent;
-import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.multipart.MultipartForm;
-
-public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
+public class RuleRegistry {
 
     private final Path rulesDir;
     private final FileSystem fs;
     private final Set<Rule> rules;
-    private final CredentialsManager credentialsManager;
-    private final WebClient webClient;
-    private final RequestHandler postHandler;
     private final Gson gson;
     private final Logger logger;
 
-    RuleRegistry(
-            Path rulesDir,
-            FileSystem fs,
-            CredentialsManager credentialsManager,
-            PlatformClient platformClient,
-            WebClient webClient,
-            TargetRecordingsPostHandler postHandler,
-            Gson gson,
-            Logger logger) {
+    RuleRegistry(Path rulesDir, FileSystem fs, Gson gson, Logger logger) {
         this.rulesDir = rulesDir;
         this.fs = fs;
-        this.credentialsManager = credentialsManager;
-        this.webClient = webClient;
-        this.postHandler = postHandler;
         this.gson = gson;
         this.logger = logger;
         this.rules = new HashSet<>();
-        platformClient.addTargetDiscoveryListener(this);
     }
 
     public void loadRules() throws IOException {
@@ -131,88 +100,17 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
         loadRules();
     }
 
-    private static String sanitizeRuleName(String name) {
-        // FIXME this is not robust
-        return String.format("auto_%s", name.replaceAll("\\s", "_"));
+    public Set<Rule> getRules(ServiceRef serviceRef) {
+        if (!serviceRef.getAlias().isPresent()) {
+            return Set.of();
+        }
+        return rules.stream()
+                .filter(r -> r.targetAlias.equals(serviceRef.getAlias().get()))
+                .collect(Collectors.toSet());
     }
 
-    // FIXME this should be abstracted into something other than the Registry - it's really a
-    // separate responsibility
-    @Override
-    public void accept(TargetDiscoveryEvent tde) {
-        if (!EventKind.FOUND.equals(tde.getEventKind())) {
-            return;
-        }
-        this.rules.forEach(
-                rule -> {
-                    if (tde.getServiceRef().getAlias().isPresent()
-                            && !tde.getServiceRef().getAlias().get().equals(rule.targetAlias)) {
-                        return;
-                    }
-                    this.logger.trace(
-                            String.format(
-                                    "Activating rule %s for target %s",
-                                    rule.name,
-                                    rule.description,
-                                    tde.getServiceRef().getJMXServiceUrl()));
-
-                    // FIXME using an HTTP request to localhost here works well enough, but is
-                    // needlessly complex. The API handler targeted here should be refactored to
-                    // extract the logic that creates the recording from the logic that simply
-                    // figures out the recording parameters from the POST form, path param, and
-                    // headers. Then the handler should consume the API exposed by this refactored
-                    // chunk, and this refactored chunk can also be consumed here rather than firing
-                    // HTTP requests to ourselves
-                    MultipartForm form = MultipartForm.create();
-                    form.attribute("recordingName", sanitizeRuleName(rule.name));
-                    form.attribute("events", rule.eventSpecifier);
-                    if (rule.duration > 0) {
-                        form.attribute("duration", String.valueOf(rule.duration));
-                    }
-                    String path =
-                            postHandler
-                                    .path()
-                                    .replaceAll(
-                                            ":targetId",
-                                            URLEncodedUtils.formatSegments(
-                                                    tde.getServiceRef()
-                                                            .getJMXServiceUrl()
-                                                            .toString()));
-                    MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-                    Credentials credentials =
-                            credentialsManager.getCredentials(tde.getServiceRef().getAlias().get());
-                    if (credentials != null) {
-                        headers.add(
-                                AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
-                                String.format(
-                                        "Basic %s",
-                                        Base64.encodeBase64String(
-                                                String.format(
-                                                                "%s:%s",
-                                                                credentials.getUsername(),
-                                                                credentials.getPassword())
-                                                        .getBytes())));
-                    }
-                    this.webClient
-                            .post(path)
-                            .timeout(30_000L)
-                            .putHeaders(headers)
-                            .sendMultipartForm(
-                                    form,
-                                    ar -> {
-                                        if (ar.failed()) {
-                                            this.logger.error(
-                                                    new RuntimeException(
-                                                            "Activation of automatic rule failed",
-                                                            ar.cause()));
-                                            return;
-                                        }
-                                        HttpResponse<Buffer> resp = ar.result();
-                                        if (!HttpStatusCodeIdentifier.isSuccessCode(
-                                                resp.statusCode())) {
-                                            this.logger.error(resp.bodyAsString());
-                                        }
-                                    });
-                });
+    static String sanitizeRuleName(String name) {
+        // FIXME this is not robust
+        return String.format("auto_%s", name.replaceAll("\\s", "_"));
     }
 }

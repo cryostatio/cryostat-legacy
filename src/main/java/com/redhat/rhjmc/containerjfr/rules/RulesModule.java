@@ -71,7 +71,7 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    public static RuleRegistry provideRuleRegistry(
+    static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             FileSystem fs,
             CredentialsManager credentialsManager,
@@ -82,6 +82,28 @@ public abstract class RulesModule {
             TargetRecordingsPostHandler postHandler,
             Gson gson,
             Logger logger) {
+        try {
+            Path rulesDir = confDir.resolve(RULES_SUBDIRECTORY);
+            if (!fs.isDirectory(rulesDir)) {
+                Files.createDirectory(rulesDir);
+            }
+            return new RuleRegistry(rulesDir, fs, gson, logger);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Provides
+    @Singleton
+    static RuleProcessor provideRuleProcessor(
+            PlatformClient platformClient,
+            RuleRegistry registry,
+            CredentialsManager credentialsManager,
+            NetworkConfiguration netConf,
+            Vertx vertx,
+            HttpServer server,
+            TargetRecordingsPostHandler postHandler,
+            Logger logger) {
         WebClientOptions opts =
                 new WebClientOptions()
                         .setSsl(server.isSsl())
@@ -89,22 +111,12 @@ public abstract class RulesModule {
                         .setDefaultPort(netConf.getInternalWebServerPort())
                         .setTrustAll(true)
                         .setVerifyHost(false);
-        try {
-            Path rulesDir = confDir.resolve(RULES_SUBDIRECTORY);
-            if (!fs.isDirectory(rulesDir)) {
-                Files.createDirectory(rulesDir);
-            }
-            return new RuleRegistry(
-                    rulesDir,
-                    fs,
-                    credentialsManager,
-                    platformClient,
-                    WebClient.create(vertx, opts),
-                    postHandler,
-                    gson,
-                    logger);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+        return new RuleProcessor(
+                platformClient,
+                registry,
+                credentialsManager,
+                WebClient.create(vertx, opts),
+                postHandler,
+                logger);
     }
 }
