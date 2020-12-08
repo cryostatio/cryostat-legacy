@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
@@ -112,6 +113,8 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
             Throwable rootCause = ExceptionUtils.getRootCause(e);
             if (rootCause instanceof ConnectIOException) {
                 throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
+            } else if (rootCause instanceof UnknownHostException) {
+                throw new ApiException(404, "Connection Failure", "Target Not Found", e);
             }
             throw new ApiException(500, e.getMessage(), e);
         } catch (Exception e) {

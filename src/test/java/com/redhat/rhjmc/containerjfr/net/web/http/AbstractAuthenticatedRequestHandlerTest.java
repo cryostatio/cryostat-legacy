@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.net.web.http;
 
 import static org.mockito.Mockito.when;
 
+import java.net.UnknownHostException;
 import java.rmi.ConnectIOException;
 import java.util.concurrent.CompletableFuture;
 
@@ -160,6 +161,19 @@ class AbstractAuthenticatedRequestHandlerTest {
                     Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(502));
             MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Target SSL Untrusted"));
+        }
+
+        @Test
+        void shouldThrow404IfConnectionFailsDueToInvalidTarget() {
+            Exception cause = new UnknownHostException("localhostt");
+            Exception expectedException = new ConnectionException("");
+            expectedException.initCause(cause);
+            handler = new ThrowingAuthenticatedHandler(auth, expectedException);
+
+            HttpStatusException ex =
+                    Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+            MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Target Not Found"));
         }
 
         @Test

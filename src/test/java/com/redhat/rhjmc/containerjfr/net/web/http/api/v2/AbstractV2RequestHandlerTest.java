@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
 import static org.mockito.Mockito.when;
 
+import java.net.UnknownHostException;
 import java.rmi.ConnectIOException;
 import java.util.Collections;
 import java.util.Map;
@@ -180,6 +181,19 @@ class AbstractV2RequestHandlerTest {
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(502));
             MatcherAssert.assertThat(
                     ex.getFailureReason(), Matchers.equalTo("Target SSL Untrusted"));
+        }
+
+        @Test
+        void shouldThrow404IfConnectionFailsDueToInvalidTarget() {
+            Exception cause = new UnknownHostException("localhostt");
+            Exception expectedException = new ConnectionException("");
+            expectedException.initCause(cause);
+            handler = new ThrowingAuthenticatedHandler(auth, gson, expectedException);
+
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("Target Not Found"));
         }
 
         @Test
