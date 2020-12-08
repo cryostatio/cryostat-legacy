@@ -43,6 +43,7 @@ package io.cryostat.rules;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -127,11 +128,17 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
 
     public void addRule(Rule rule) throws IOException {
         Path destination = rulesDir.resolve(sanitizeRuleName(rule.name) + ".json");
-        this.fs.writeString(destination, gson.toJson(List.of(rule)));
+        this.fs.writeString(
+                destination,
+                gson.toJson(List.of(rule)),
+                StandardOpenOption.WRITE,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING);
         loadRules();
     }
 
     private static String sanitizeRuleName(String name) {
+        // FIXME this is not robust
         return String.format("auto_%s", name.replaceAll("\\s", "_"));
     }
 

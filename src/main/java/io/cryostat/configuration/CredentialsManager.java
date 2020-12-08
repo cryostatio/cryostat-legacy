@@ -43,6 +43,7 @@ package io.cryostat.configuration;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -110,7 +111,10 @@ public class CredentialsManager {
                     credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
             fs.writeString(
                     destination,
-                    gson.toJson(List.of(new StoredCredentials(targetId, credentials))));
+                    gson.toJson(List.of(new StoredCredentials(targetId, credentials))),
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
             // FIXME abstract setPosixFilePermissions into FileSystem and uncomment this
             // TODO do we need to secure these file contents further than simply applying owner-only
             // permissions? Is it possible for other containers or processes to read target
