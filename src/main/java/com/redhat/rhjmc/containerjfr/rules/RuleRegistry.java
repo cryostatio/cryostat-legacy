@@ -41,17 +41,24 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
+import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.utils.URLEncodedUtils;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingsPostHandler;
@@ -67,39 +74,66 @@ import io.vertx.ext.web.multipart.MultipartForm;
 
 public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
 
+    private final Path rulesDir;
+    private final FileSystem fs;
     private final Set<Rule> rules;
     private final CredentialsManager credentialsManager;
     private final WebClient webClient;
     private final RequestHandler postHandler;
+    private final Gson gson;
     private final Logger logger;
 
     RuleRegistry(
+            Path rulesDir,
+            FileSystem fs,
             CredentialsManager credentialsManager,
             PlatformClient platformClient,
             WebClient webClient,
             TargetRecordingsPostHandler postHandler,
+            Gson gson,
             Logger logger) {
-        this.rules = new HashSet<>();
+        this.rulesDir = rulesDir;
+        this.fs = fs;
         this.credentialsManager = credentialsManager;
         this.webClient = webClient;
         this.postHandler = postHandler;
+        this.gson = gson;
         this.logger = logger;
+        this.rules = new HashSet<>();
         platformClient.addTargetDiscoveryListener(this);
     }
 
-    public void loadRules() {
-        // TODO load from disk
-        Rule defaultRule = new Rule();
-        defaultRule.targetAlias = "es.andrewazor.demo.Main";
-        defaultRule.name = "Default Rule";
-        defaultRule.description = "This rule enables the Continuous template by default";
-        defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
-        defaultRule.duration = -1;
-        this.addRule(defaultRule);
+    public void loadRules() throws IOException {
+        this.fs.listDirectoryChildren(rulesDir).stream()
+                .peek(n -> logger.trace("Rules file: " + n))
+                .map(rulesDir::resolve)
+                .map(
+                        path -> {
+                            try {
+                                return fs.readFile(path);
+                            } catch (IOException e) {
+                                logger.warn(e);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
+                .map(
+                        reader ->
+                                (List<Rule>)
+                                        gson.fromJson(
+                                                reader, new TypeToken<List<Rule>>() {}.getType()))
+                .flatMap(List::stream)
+                .forEach(rules::add);
     }
 
-    void addRule(Rule rule) {
-        this.rules.add(rule);
+    public void addRule(Rule rule) throws IOException {
+        Path destination = rulesDir.resolve(sanitizeRuleName(rule.name) + ".json");
+        this.fs.writeString(destination, gson.toJson(List.of(rule)));
+        loadRules();
+    }
+
+    private static String sanitizeRuleName(String name) {
+        return String.format("auto_%s", name.replaceAll("\\s", "_"));
     }
 
     // FIXME this should be abstracted into something other than the Registry - it's really a
@@ -130,9 +164,7 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
                     // chunk, and this refactored chunk can also be consumed here rather than firing
                     // HTTP requests to ourselves
                     MultipartForm form = MultipartForm.create();
-                    form.attribute(
-                            "recordingName",
-                            String.format("auto_%s", rule.name.replaceAll("\\s", "_")));
+                    form.attribute("recordingName", sanitizeRuleName(rule.name));
                     form.attribute("events", rule.eventSpecifier);
                     if (rule.duration > 0) {
                         form.attribute("duration", String.valueOf(rule.duration));

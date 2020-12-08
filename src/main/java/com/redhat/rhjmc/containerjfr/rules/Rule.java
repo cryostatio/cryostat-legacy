@@ -41,18 +41,31 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 public class Rule {
 
-    String name;
+    public String name;
 
-    String description;
+    public String description;
 
     // TODO for now, simply allow matching based on target's alias. This should be expanded to allow
     // for different match parameters such as port number, port name, container/pod label, etc.,
     //  and allow wildcards
-    String targetAlias;
+    public String targetAlias;
 
-    String eventSpecifier;
+    public String eventSpecifier;
 
-    int duration;
+    public int duration;
+
+    @Override
+    public boolean equals(Object o) {
+        return EqualsBuilder.reflectionEquals(this, o);
+    }
+
+    @Override
+    public int hashCode() {
+        return HashCodeBuilder.reflectionHashCode(this);
+    }
 }

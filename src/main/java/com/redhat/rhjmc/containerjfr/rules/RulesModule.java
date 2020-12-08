@@ -41,10 +41,19 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
+import com.google.gson.Gson;
+
+import com.redhat.rhjmc.containerjfr.configuration.ConfigurationModule;
 import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingsPostHandler;
@@ -58,16 +67,20 @@ import io.vertx.ext.web.client.WebClientOptions;
 
 @Module
 public abstract class RulesModule {
+    public static final String RULES_SUBDIRECTORY = "rules";
 
     @Provides
     @Singleton
     public static RuleRegistry provideRuleRegistry(
+            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            FileSystem fs,
             CredentialsManager credentialsManager,
             PlatformClient platformClient,
             NetworkConfiguration netConf,
             Vertx vertx,
             HttpServer server,
             TargetRecordingsPostHandler postHandler,
+            Gson gson,
             Logger logger) {
         WebClientOptions opts =
                 new WebClientOptions()
@@ -76,11 +89,22 @@ public abstract class RulesModule {
                         .setDefaultPort(netConf.getInternalWebServerPort())
                         .setTrustAll(true)
                         .setVerifyHost(false);
-        return new RuleRegistry(
-                credentialsManager,
-                platformClient,
-                WebClient.create(vertx, opts),
-                postHandler,
-                logger);
+        try {
+            Path rulesDir = confDir.resolve(RULES_SUBDIRECTORY);
+            if (!fs.isDirectory(rulesDir)) {
+                Files.createDirectory(rulesDir);
+            }
+            return new RuleRegistry(
+                    rulesDir,
+                    fs,
+                    credentialsManager,
+                    platformClient,
+                    WebClient.create(vertx, opts),
+                    postHandler,
+                    gson,
+                    logger);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
