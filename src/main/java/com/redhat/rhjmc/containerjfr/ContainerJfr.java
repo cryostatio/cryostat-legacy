@@ -53,6 +53,7 @@ import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.rules.Rule;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
 import dagger.Component;
 
@@ -74,6 +75,15 @@ class ContainerJfr {
         client.credentialsManager()
                 .addCredentials(
                         "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
+
+        // FIXME remove this, only here for testing
+        Rule defaultRule = new Rule();
+        defaultRule.targetAlias = "es.andrewazor.demo.Main";
+        defaultRule.name = "Default Rule";
+        defaultRule.description = "This rule enables the Continuous template by default";
+        defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
+        defaultRule.duration = -1;
+        client.ruleRegistry().addRule(defaultRule);
 
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
