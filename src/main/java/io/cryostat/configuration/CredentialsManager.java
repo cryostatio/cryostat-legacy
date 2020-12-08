@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -54,7 +53,6 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 public class CredentialsManager {
 
@@ -87,14 +85,7 @@ public class CredentialsManager {
                             }
                         })
                 .filter(Objects::nonNull)
-                .map(
-                        reader ->
-                                (List<StoredCredentials>)
-                                        gson.fromJson(
-                                                reader,
-                                                new TypeToken<
-                                                        List<StoredCredentials>>() {}.getType()))
-                .flatMap(List::stream)
+                .map(reader -> gson.fromJson(reader, StoredCredentials.class))
                 .forEach(sc -> credentialsMap.put(sc.getTargetId(), sc.getCredentials()));
     }
 
@@ -111,7 +102,7 @@ public class CredentialsManager {
                     credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
             fs.writeString(
                     destination,
-                    gson.toJson(List.of(new StoredCredentials(targetId, credentials))),
+                    gson.toJson(new StoredCredentials(targetId, credentials)),
                     StandardOpenOption.WRITE,
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
