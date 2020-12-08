@@ -42,17 +42,11 @@
 package io.cryostat.configuration;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.attribute.PosixFilePermission;
-import java.nio.file.attribute.PosixFilePermissions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-
-import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -63,8 +57,6 @@ import com.google.gson.reflect.TypeToken;
 
 public class CredentialsManager {
 
-    static final String SUBDIRECTORY = "credentials";
-
     private final Path credentialsDir;
     private final FileSystem fs;
     private final Gson gson;
@@ -72,12 +64,8 @@ public class CredentialsManager {
 
     private final Map<String, Credentials> credentialsMap;
 
-    CredentialsManager(
-            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
-            FileSystem fs,
-            Gson gson,
-            Logger logger) {
-        this.credentialsDir = confDir.resolve(SUBDIRECTORY);
+    CredentialsManager(Path credentialsDir, FileSystem fs, Gson gson, Logger logger) {
+        this.credentialsDir = credentialsDir;
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
@@ -85,17 +73,6 @@ public class CredentialsManager {
     }
 
     public void load() throws IOException {
-        if (!fs.isDirectory(credentialsDir)) {
-            // FIXME abstract createDirectory into FileSystem
-            Files.createDirectory(
-                    credentialsDir,
-                    PosixFilePermissions.asFileAttribute(
-                            Set.of(
-                                    PosixFilePermission.OWNER_READ,
-                                    PosixFilePermission.OWNER_WRITE,
-                                    PosixFilePermission.OWNER_EXECUTE)));
-        }
-
         this.fs.listDirectoryChildren(credentialsDir).stream()
                 .peek(n -> logger.trace("Credentials file: " + n))
                 .map(credentialsDir::resolve)
