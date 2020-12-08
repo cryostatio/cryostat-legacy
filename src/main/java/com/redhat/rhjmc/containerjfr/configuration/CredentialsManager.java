@@ -42,11 +42,15 @@
 package com.redhat.rhjmc.containerjfr.configuration;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.inject.Named;
 
@@ -59,7 +63,9 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 
 public class CredentialsManager {
 
-    private final Path confDir;
+    static final String SUBDIRECTORY = "credentials";
+
+    private final Path credentialsDir;
     private final FileSystem fs;
     private final Gson gson;
     private final Logger logger;
@@ -71,7 +77,7 @@ public class CredentialsManager {
             FileSystem fs,
             Gson gson,
             Logger logger) {
-        this.confDir = confDir;
+        this.credentialsDir = confDir.resolve(SUBDIRECTORY);
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
@@ -79,9 +85,20 @@ public class CredentialsManager {
     }
 
     public void load() throws IOException {
-        this.fs.listDirectoryChildren(this.confDir).stream()
+        if (!fs.isDirectory(credentialsDir)) {
+            // FIXME abstract createDirectory into FileSystem
+            Files.createDirectory(
+                    credentialsDir,
+                    PosixFilePermissions.asFileAttribute(
+                            Set.of(
+                                    PosixFilePermission.OWNER_READ,
+                                    PosixFilePermission.OWNER_WRITE,
+                                    PosixFilePermission.OWNER_EXECUTE)));
+        }
+
+        this.fs.listDirectoryChildren(credentialsDir).stream()
                 .peek(n -> logger.trace("Credentials file: " + n))
-                .map(confDir::resolve)
+                .map(credentialsDir::resolve)
                 .map(
                         path -> {
                             try {
@@ -107,7 +124,7 @@ public class CredentialsManager {
         boolean replaced = credentialsMap.containsKey(targetId);
         credentialsMap.put(targetId, credentials);
         fs.writeString(
-                confDir.resolve(String.format("%d.json", targetId.hashCode())),
+                credentialsDir.resolve(String.format("%d.json", targetId.hashCode())),
                 gson.toJson(List.of(new StoredCredentials(targetId, credentials))));
         return replaced;
     }
