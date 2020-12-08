@@ -51,6 +51,7 @@ import java.util.Objects;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -111,7 +112,9 @@ public class CredentialsManager {
             fs.writeString(
                     destination,
                     gson.toJson(List.of(new StoredCredentials(targetId, credentials))),
-                    StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
             // FIXME abstract setPosixFilePermissions into FileSystem and uncomment this
             // TODO do we need to secure these file contents further than simply applying owner-only
             // permissions? Is it possible for other containers or processes to read target
