@@ -43,17 +43,15 @@ package com.redhat.rhjmc.containerjfr.rules;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.apache.commons.codec.binary.Base64;
-import org.apache.http.client.utils.URLEncodedUtils;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
-
 import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
@@ -65,6 +63,9 @@ import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingsPostHan
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.TargetDiscoveryEvent;
 import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.http.client.utils.URLEncodedUtils;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
@@ -128,11 +129,12 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
 
     public void addRule(Rule rule) throws IOException {
         Path destination = rulesDir.resolve(sanitizeRuleName(rule.name) + ".json");
-        this.fs.writeString(destination, gson.toJson(List.of(rule)));
+        this.fs.writeString(destination, gson.toJson(List.of(rule)), StandardOpenOption.WRITE, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         loadRules();
     }
 
     private static String sanitizeRuleName(String name) {
+        // FIXME this is not robust
         return String.format("auto_%s", name.replaceAll("\\s", "_"));
     }
 
