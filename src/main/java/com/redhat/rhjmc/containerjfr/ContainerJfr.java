@@ -54,7 +54,6 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
-
 import dagger.Component;
 
 class ContainerJfr {
@@ -71,9 +70,10 @@ class ContainerJfr {
 
         Client client = DaggerContainerJfr_Client.builder().build();
 
-        //FIXME remove this, only here for testing
-        client.credentialsManager().addCredentials(
-                "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
+        // FIXME remove this, only here for testing
+        client.credentialsManager()
+                .addCredentials(
+                        "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
 
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();

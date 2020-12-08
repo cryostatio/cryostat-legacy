@@ -109,13 +109,15 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
         }
         this.rules.forEach(
                 rule -> {
-                    if (tde.getServiceRef().getAlias().isPresent() && !tde.getServiceRef().getAlias().get().equals(rule.targetAlias)) {
+                    if (tde.getServiceRef().getAlias().isPresent()
+                            && !tde.getServiceRef().getAlias().get().equals(rule.targetAlias)) {
                         return;
                     }
                     this.logger.trace(
                             String.format(
                                     "Activating rule %s for target %s",
-                                    rule.name, rule.description,
+                                    rule.name,
+                                    rule.description,
                                     tde.getServiceRef().getJMXServiceUrl()));
 
                     MultipartForm form = MultipartForm.create();
@@ -137,7 +139,8 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
                                                             .toString()));
                     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
                     Credentials credentials =
-                        credentialsManager.getCredentials(tde.getServiceRef().getJMXServiceUrl().toString());
+                            credentialsManager.getCredentials(
+                                    tde.getServiceRef().getJMXServiceUrl().toString());
                     if (credentials != null) {
                         headers.add(
                                 AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
