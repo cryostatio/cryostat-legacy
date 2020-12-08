@@ -70,11 +70,12 @@ class ContainerJfr {
 
         Client client = DaggerContainerJfr_Client.builder().build();
 
-        client.credentialsManager().load();
         // FIXME remove this, only here for testing
         client.credentialsManager()
                 .addCredentials(
                         "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
+
+        client.credentialsManager().load();
         client.ruleRegistry().loadRules();
         client.httpServer().start();
         client.webServer().start();
