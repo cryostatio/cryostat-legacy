@@ -54,20 +54,19 @@ import com.redhat.rhjmc.containerjfr.jmc.serialization.HyperlinkedSerializableRe
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 
-class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
+class TargetSnapshotPostHandler
+        extends AbstractV2RequestHandler<HyperlinkedSerializableRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    private final Gson gson;
 
     @Inject
     TargetSnapshotPostHandler(
@@ -76,11 +75,15 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             Lazy<WebServer> webServer,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Gson gson) {
-        super(auth);
+        super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
-        this.gson = gson;
+    }
+
+    @Override
+    boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
@@ -99,10 +102,16 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        HyperlinkedSerializableRecordingDescriptor result =
+    HttpMimeType mimeType() {
+        return HttpMimeType.PLAINTEXT;
+    }
+
+    @Override
+    IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
+            RequestParameters requestParams) throws Exception {
+        HyperlinkedSerializableRecordingDescriptor desc =
                 targetConnectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromContext(ctx),
+                        getConnectionDescriptorFromParams(requestParams),
                         connection -> {
                             IRecordingDescriptor descriptor =
                                     connection.getService().getSnapshotRecording();
@@ -127,9 +136,10 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
                                     webServer.get().getDownloadURL(connection, rename),
                                     webServer.get().getReportURL(connection, rename));
                         });
-        ctx.response().setStatusCode(201);
-        ctx.response().putHeader(HttpHeaders.LOCATION, result.getDownloadUrl());
-        ctx.response().end(gson.toJson(result));
+        return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
+                .statusCode(201)
+                .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
+                .body(desc);
     }
 
     static class SnapshotDescriptor extends HyperlinkedSerializableRecordingDescriptor {

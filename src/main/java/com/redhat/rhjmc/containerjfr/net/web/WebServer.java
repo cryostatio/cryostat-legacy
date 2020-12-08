@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.http.client.utils.URIBuilder;
+import org.apache.http.impl.EnglishReasonPhraseCatalog;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
@@ -71,6 +72,10 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiData;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiMeta;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiResponse;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.v2.ApiException;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
@@ -133,24 +138,41 @@ public class WebServer {
 
                     ctx.response().setStatusCode(exception.getStatusCode());
 
-                    String payload =
-                            exception.getPayload() != null
-                                    ? exception.getPayload()
-                                    : exception.getMessage();
-
-                    String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
-                    if (accept.contains(HttpMimeType.JSON.mime())
-                            && accept.indexOf(HttpMimeType.JSON.mime())
-                                    < accept.indexOf(HttpMimeType.PLAINTEXT.mime())) {
+                    if (exception instanceof ApiException) {
+                        ApiException ex = (ApiException) exception;
+                        String apiStatus =
+                                ex.getApiStatus() != null
+                                        ? ex.getApiStatus()
+                                        : EnglishReasonPhraseCatalog.INSTANCE.getReason(
+                                                ex.getStatusCode(), null);
+                        ApiErrorResponse resp =
+                                new ApiErrorResponse(
+                                        new ApiMeta(HttpMimeType.PLAINTEXT, apiStatus),
+                                        new ApiErrorData(ex.getFailureReason()));
                         ctx.response()
                                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                                .end(gson.toJson(Map.of("message", payload)));
-                        return;
-                    }
+                                .end(gson.toJson(resp));
+                    } else {
+                        // kept for V1 API handler compatibility
+                        String payload =
+                                exception.getPayload() != null
+                                        ? exception.getPayload()
+                                        : exception.getMessage();
 
-                    ctx.response()
-                            .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime())
-                            .end(payload);
+                        String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
+                        if (accept.contains(HttpMimeType.JSON.mime())
+                                && accept.indexOf(HttpMimeType.JSON.mime())
+                                        < accept.indexOf(HttpMimeType.PLAINTEXT.mime())) {
+                            ctx.response()
+                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
+                                    .end(gson.toJson(Map.of("message", payload)));
+                            return;
+                        }
+
+                        ctx.response()
+                                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime())
+                                .end(payload);
+                    }
                 };
 
         requestHandlers.forEach(
@@ -269,5 +291,19 @@ public class WebServer {
 
     private String getTargetId(JFRConnection conn) throws IOException {
         return conn.getJMXURL().toString();
+    }
+
+    static class ApiErrorResponse extends ApiResponse<ApiErrorData> {
+        ApiErrorResponse(ApiMeta meta, ApiErrorData data) {
+            super(meta, data);
+        }
+    }
+
+    static class ApiErrorData extends ApiData {
+        private final String reason;
+
+        ApiErrorData(String reason) {
+            this.reason = reason;
+        }
     }
 }

@@ -54,23 +54,25 @@ import com.google.gson.Gson;
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 
-class TargetRecordingOptionsListGetHandler extends AbstractAuthenticatedRequestHandler {
+class TargetRecordingOptionsListGetHandler
+        extends AbstractV2RequestHandler<List<SerializableOptionDescriptor>> {
 
     private final TargetConnectionManager connectionManager;
-    private final Gson gson;
 
     @Inject
     TargetRecordingOptionsListGetHandler(
             AuthManager auth, TargetConnectionManager connectionManager, Gson gson) {
-        super(auth);
+        super(auth, gson);
         this.connectionManager = connectionManager;
-        this.gson = gson;
+    }
+
+    @Override
+    boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
@@ -89,15 +91,21 @@ class TargetRecordingOptionsListGetHandler extends AbstractAuthenticatedRequestH
     }
 
     @Override
+    HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+    IntermediateResponse<List<SerializableOptionDescriptor>> handle(RequestParameters requestParams)
+            throws Exception {
         List<SerializableOptionDescriptor> options =
                 connectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromContext(ctx),
+                        getConnectionDescriptorFromParams(requestParams),
                         connection -> {
                             Map<String, IOptionDescriptor<?>> origOptions =
                                     connection.getService().getAvailableRecordingOptions();
@@ -108,6 +116,6 @@ class TargetRecordingOptionsListGetHandler extends AbstractAuthenticatedRequestH
                             }
                             return serializableOptions;
                         });
-        ctx.response().end(gson.toJson(options));
+        return new IntermediateResponse<List<SerializableOptionDescriptor>>().body(options);
     }
 }

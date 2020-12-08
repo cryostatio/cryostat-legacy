@@ -57,10 +57,13 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingModule;
 import com.redhat.rhjmc.containerjfr.net.NetworkModule;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.platform.PlatformModule;
 import com.redhat.rhjmc.containerjfr.sys.SystemModule;
 import com.redhat.rhjmc.containerjfr.templates.TemplatesModule;
 import com.redhat.rhjmc.containerjfr.util.GsonJmxServiceUrlAdapter;
+import com.redhat.rhjmc.containerjfr.util.HttpMimeTypeAdapter;
+import com.redhat.rhjmc.containerjfr.util.PathTypeAdapter;
 
 import dagger.Module;
 import dagger.Provides;
@@ -110,6 +113,8 @@ public abstract class MainModule {
                 .serializeNulls()
                 .disableHtmlEscaping()
                 .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
+                .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
+                .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                 .create();
     }
 

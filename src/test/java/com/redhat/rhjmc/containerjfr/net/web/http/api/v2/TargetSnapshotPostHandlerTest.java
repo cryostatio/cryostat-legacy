@@ -116,7 +116,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("someHost");
+        Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
 
         IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
 
@@ -165,17 +165,25 @@ class TargetSnapshotPostHandlerTest {
                         endCaptor.getValue(), new TypeToken<Map<String, Object>>() {}.getType());
 
         Map<String, Object> expected = new HashMap<>();
-        expected.put("name", "snapshot-1");
-        expected.put("id", 1.0);
-        expected.put("downloadUrl", "http://example.com/download");
-        expected.put("reportUrl", "http://example.com/report");
-        expected.put("startTime", 0.0);
-        expected.put("state", "STOPPED");
-        expected.put("duration", 0.0);
-        expected.put("maxAge", 0.0);
-        expected.put("maxSize", 0.0);
-        expected.put("toDisk", false);
-        expected.put("continuous", false);
+        Map<String, Object> meta = new HashMap<>();
+        Map<String, Object> data = new HashMap<>();
+        Map<String, Object> result = new HashMap<>();
+        expected.put("meta", meta);
+        meta.put("type", "text/plain");
+        meta.put("status", "OK");
+        expected.put("data", data);
+        data.put("result", result);
+        result.put("name", "snapshot-1");
+        result.put("id", 1.0);
+        result.put("downloadUrl", "http://example.com/download");
+        result.put("reportUrl", "http://example.com/report");
+        result.put("startTime", 0.0);
+        result.put("state", "STOPPED");
+        result.put("duration", 0.0);
+        result.put("maxAge", 0.0);
+        result.put("maxSize", 0.0);
+        result.put("toDisk", false);
+        result.put("continuous", false);
         MatcherAssert.assertThat(parsed, Matchers.equalTo(expected));
     }
 
