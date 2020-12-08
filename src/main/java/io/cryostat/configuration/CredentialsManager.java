@@ -98,18 +98,28 @@ public class CredentialsManager {
     }
 
     public boolean addCredentials(String targetId, Credentials credentials) throws IOException {
+        return addCredentials(targetId, credentials, false);
+    }
+
+    public boolean addCredentials(String targetId, Credentials credentials, boolean persist)
+            throws IOException {
         boolean replaced = credentialsMap.containsKey(targetId);
         credentialsMap.put(targetId, credentials);
-        Path destination = credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
-        fs.writeString(
-                destination, gson.toJson(List.of(new StoredCredentials(targetId, credentials))));
-        // FIXME abstract setPosixFilePermissions into FileSystem and uncomment this
-        // TODO do we need to secure these file contents further than simply applying owner-only
-        // permissions? Is it possible for other containers or processes to read target credentials
-        // in the mounted volume?
-        // Files.setPosixFilePermissions(destination,
-        //         PosixFilePermissions.asFileAttribute(Set.of(PosixFilePermission.OWNER_READ,
-        //                 PosixFilePermission.OWNER_WRITE)));
+        if (persist) {
+            Path destination =
+                    credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
+            fs.writeString(
+                    destination,
+                    gson.toJson(List.of(new StoredCredentials(targetId, credentials))));
+            // FIXME abstract setPosixFilePermissions into FileSystem and uncomment this
+            // TODO do we need to secure these file contents further than simply applying owner-only
+            // permissions? Is it possible for other containers or processes to read target
+            // credentials
+            // in the mounted volume?
+            // Files.setPosixFilePermissions(destination,
+            //         PosixFilePermissions.asFileAttribute(Set.of(PosixFilePermission.OWNER_READ,
+            //                 PosixFilePermission.OWNER_WRITE)));
+        }
         return replaced;
     }
 

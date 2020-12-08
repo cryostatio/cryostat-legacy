@@ -41,15 +41,23 @@
  */
 package io.cryostat.rules;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.web.http.api.v1.TargetRecordingsPostHandler;
 import io.cryostat.platform.PlatformClient;
 
+import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.Vertx;
@@ -58,16 +66,20 @@ import io.vertx.ext.web.client.WebClientOptions;
 
 @Module
 public abstract class RulesModule {
+    public static final String RULES_SUBDIRECTORY = "rules";
 
     @Provides
     @Singleton
     public static RuleRegistry provideRuleRegistry(
+            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            FileSystem fs,
             CredentialsManager credentialsManager,
             PlatformClient platformClient,
             NetworkConfiguration netConf,
             Vertx vertx,
             HttpServer server,
             TargetRecordingsPostHandler postHandler,
+            Gson gson,
             Logger logger) {
         WebClientOptions opts =
                 new WebClientOptions()
@@ -76,11 +88,22 @@ public abstract class RulesModule {
                         .setDefaultPort(netConf.getInternalWebServerPort())
                         .setTrustAll(true)
                         .setVerifyHost(false);
-        return new RuleRegistry(
-                credentialsManager,
-                platformClient,
-                WebClient.create(vertx, opts),
-                postHandler,
-                logger);
+        try {
+            Path rulesDir = confDir.resolve(RULES_SUBDIRECTORY);
+            if (!fs.isDirectory(rulesDir)) {
+                Files.createDirectory(rulesDir);
+            }
+            return new RuleRegistry(
+                    rulesDir,
+                    fs,
+                    credentialsManager,
+                    platformClient,
+                    WebClient.create(vertx, opts),
+                    postHandler,
+                    gson,
+                    logger);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
