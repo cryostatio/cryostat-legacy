@@ -147,8 +147,7 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
                                                             .toString()));
                     MultiMap headers = MultiMap.caseInsensitiveMultiMap();
                     Credentials credentials =
-                            credentialsManager.getCredentials(
-                                    tde.getServiceRef().getJMXServiceUrl().toString());
+                            credentialsManager.getCredentials(tde.getServiceRef().getAlias().get());
                     if (credentials != null) {
                         headers.add(
                                 AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
