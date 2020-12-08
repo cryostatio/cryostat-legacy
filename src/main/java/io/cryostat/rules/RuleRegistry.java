@@ -45,7 +45,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -63,7 +62,6 @@ import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
@@ -117,12 +115,7 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
                             }
                         })
                 .filter(Objects::nonNull)
-                .map(
-                        reader ->
-                                (List<Rule>)
-                                        gson.fromJson(
-                                                reader, new TypeToken<List<Rule>>() {}.getType()))
-                .flatMap(List::stream)
+                .map(reader -> gson.fromJson(reader, Rule.class))
                 .forEach(rules::add);
     }
 
@@ -130,7 +123,7 @@ public class RuleRegistry implements Consumer<TargetDiscoveryEvent> {
         Path destination = rulesDir.resolve(sanitizeRuleName(rule.name) + ".json");
         this.fs.writeString(
                 destination,
-                gson.toJson(List.of(rule)),
+                gson.toJson(rule),
                 StandardOpenOption.WRITE,
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
