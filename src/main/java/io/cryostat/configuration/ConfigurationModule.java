@@ -41,8 +41,13 @@
  */
 package io.cryostat.configuration;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.PosixFilePermission;
+import java.nio.file.attribute.PosixFilePermissions;
+import java.util.Set;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -59,6 +64,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 @Module
 public abstract class ConfigurationModule {
     public static final String CONFIGURATION_PATH = "CONFIGURATION_PATH";
+    public static final String CREDENTIALS_SUBDIRECTORY = "credentials";
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
     @Provides
@@ -74,6 +80,20 @@ public abstract class ConfigurationModule {
     @Singleton
     static CredentialsManager provideCredentialsManager(
             @Named(CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson, Logger logger) {
-        return new CredentialsManager(confDir, fs, gson, logger);
+        try {
+            Path credentialsDir = confDir.resolve(CREDENTIALS_SUBDIRECTORY);
+            if (!fs.isDirectory(credentialsDir)) {
+                Files.createDirectory(
+                        credentialsDir,
+                        PosixFilePermissions.asFileAttribute(
+                                Set.of(
+                                        PosixFilePermission.OWNER_READ,
+                                        PosixFilePermission.OWNER_WRITE,
+                                        PosixFilePermission.OWNER_EXECUTE)));
+            }
+            return new CredentialsManager(credentialsDir, fs, gson, logger);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 }
