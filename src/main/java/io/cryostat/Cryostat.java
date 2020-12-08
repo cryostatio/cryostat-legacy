@@ -49,6 +49,7 @@ import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import dagger.Component;
@@ -71,6 +72,15 @@ class Cryostat {
         client.credentialsManager()
                 .addCredentials(
                         "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
+
+        // FIXME remove this, only here for testing
+        Rule defaultRule = new Rule();
+        defaultRule.targetAlias = "es.andrewazor.demo.Main";
+        defaultRule.name = "Default Rule";
+        defaultRule.description = "This rule enables the Continuous template by default";
+        defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
+        defaultRule.duration = -1;
+        client.ruleRegistry().addRule(defaultRule);
 
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
