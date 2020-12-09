@@ -56,7 +56,6 @@ import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.rules.Rule;
 import com.redhat.rhjmc.containerjfr.rules.RuleProcessor;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
-
 import dagger.Component;
 
 class ContainerJfr {
