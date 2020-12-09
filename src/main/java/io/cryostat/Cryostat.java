@@ -50,6 +50,7 @@ import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.rules.Rule;
+import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;
 
 import dagger.Component;
@@ -84,6 +85,7 @@ class Cryostat {
 
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
+        client.ruleProcessor().enable();
         client.httpServer().start();
         client.webServer().start();
         client.messagingServer().start();
@@ -98,6 +100,8 @@ class Cryostat {
         CredentialsManager credentialsManager();
 
         RuleRegistry ruleRegistry();
+
+        RuleProcessor ruleProcessor();
 
         HttpServer httpServer();
 

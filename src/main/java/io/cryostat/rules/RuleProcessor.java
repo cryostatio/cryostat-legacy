@@ -63,6 +63,7 @@ import org.apache.http.client.utils.URLEncodedUtils;
 
 public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
 
+    private final PlatformClient platformClient;
     private final RuleRegistry registry;
     private final CredentialsManager credentialsManager;
     private final WebClient webClient;
@@ -76,12 +77,20 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             WebClient webClient,
             RequestHandler postHandler,
             Logger logger) {
+        this.platformClient = platformClient;
         this.registry = registry;
         this.credentialsManager = credentialsManager;
         this.webClient = webClient;
         this.postHandler = postHandler;
         this.logger = logger;
-        platformClient.addTargetDiscoveryListener(this);
+    }
+
+    public void enable() {
+        this.platformClient.addTargetDiscoveryListener(this);
+    }
+
+    public void disable() {
+        this.platformClient.removeTargetDiscoveryListener(this);
     }
 
     @Override
