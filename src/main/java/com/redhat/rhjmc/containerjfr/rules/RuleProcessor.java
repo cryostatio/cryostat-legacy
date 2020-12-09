@@ -41,7 +41,12 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
+
+import javax.management.remote.JMXServiceURL;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -116,72 +121,86 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                             rule.description,
                                             tde.getServiceRef().getJMXServiceUrl()));
 
-                            // FIXME using an HTTP request to localhost here works well enough, but
-                            // is
-                            // needlessly complex. The API handler targeted here should be
-                            // refactored to
-                            // extract the logic that creates the recording from the logic that
-                            // simply
-                            // figures out the recording parameters from the POST form, path param,
-                            // and
-                            // headers. Then the handler should consume the API exposed by this
-                            // refactored
-                            // chunk, and this refactored chunk can also be consumed here rather
-                            // than firing
-                            // HTTP requests to ourselves
-                            MultipartForm form = MultipartForm.create();
-                            form.attribute(
-                                    "recordingName", RuleRegistry.sanitizeRuleName(rule.name));
-                            form.attribute("events", rule.eventSpecifier);
-                            if (rule.duration > 0) {
-                                form.attribute("duration", String.valueOf(rule.duration));
+                            try {
+                                Future<Boolean> success =
+                                        startRuleRecording(
+                                                tde.getServiceRef().getJMXServiceUrl(),
+                                                RuleRegistry.sanitizeRuleName(rule.name),
+                                                rule.eventSpecifier,
+                                                rule.duration,
+                                                credentialsManager.getCredentials(
+                                                        tde.getServiceRef().getAlias().get()));
+                                if (success.get()) {
+                                    logger.trace("Rule activation successful");
+                                } else {
+                                    logger.trace("Rule activation failed");
+                                }
+                            } catch (InterruptedException | ExecutionException e) {
+                                logger.error(e);
                             }
-                            String path =
-                                    postHandler
-                                            .path()
-                                            .replaceAll(
-                                                    ":targetId",
-                                                    URLEncodedUtils.formatSegments(
-                                                            tde.getServiceRef()
-                                                                    .getJMXServiceUrl()
-                                                                    .toString()));
-                            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-                            Credentials credentials =
-                                    credentialsManager.getCredentials(
-                                            tde.getServiceRef().getAlias().get());
-                            if (credentials != null) {
-                                headers.add(
-                                        AbstractAuthenticatedRequestHandler
-                                                .JMX_AUTHORIZATION_HEADER,
-                                        String.format(
-                                                "Basic %s",
-                                                Base64.encodeBase64String(
-                                                        String.format(
-                                                                        "%s:%s",
-                                                                        credentials.getUsername(),
-                                                                        credentials.getPassword())
-                                                                .getBytes())));
-                            }
-                            this.webClient
-                                    .post(path)
-                                    .timeout(30_000L)
-                                    .putHeaders(headers)
-                                    .sendMultipartForm(
-                                            form,
-                                            ar -> {
-                                                if (ar.failed()) {
-                                                    this.logger.error(
-                                                            new RuntimeException(
-                                                                    "Activation of automatic rule failed",
-                                                                    ar.cause()));
-                                                    return;
-                                                }
-                                                HttpResponse<Buffer> resp = ar.result();
-                                                if (!HttpStatusCodeIdentifier.isSuccessCode(
-                                                        resp.statusCode())) {
-                                                    this.logger.error(resp.bodyAsString());
-                                                }
-                                            });
                         });
+    }
+
+    private Future<Boolean> startRuleRecording(
+            JMXServiceURL serviceUrl,
+            String recordingName,
+            String eventSpecifier,
+            int duration,
+            Credentials credentials) {
+        // FIXME using an HTTP request to localhost here works well enough, but is needlessly
+        // complex. The API handler targeted here should be refactored to extract the logic that
+        // creates the recording from the logic that simply figures out the recording parameters
+        // from the POST form, path param, and headers. Then the handler should consume the API
+        // exposed by this refactored chunk, and this refactored chunk can also be consumed here
+        // rather than firing HTTP requests to ourselves
+        MultipartForm form = MultipartForm.create();
+        form.attribute("recordingName", RuleRegistry.sanitizeRuleName(recordingName));
+        form.attribute("events", eventSpecifier);
+        if (duration > 0) {
+            form.attribute("duration", String.valueOf(duration));
+        }
+        String path =
+                postHandler
+                        .path()
+                        .replaceAll(
+                                ":targetId", URLEncodedUtils.formatSegments(serviceUrl.toString()));
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        if (credentials != null) {
+            headers.add(
+                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
+                    String.format(
+                            "Basic %s",
+                            Base64.encodeBase64String(
+                                    String.format(
+                                                    "%s:%s",
+                                                    credentials.getUsername(),
+                                                    credentials.getPassword())
+                                            .getBytes())));
+        }
+
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        this.webClient
+                .post(path)
+                .timeout(30_000L)
+                .putHeaders(headers)
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            if (ar.failed()) {
+                                this.logger.error(
+                                        new RuntimeException(
+                                                "Activation of automatic rule failed", ar.cause()));
+                                result.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            HttpResponse<Buffer> resp = ar.result();
+                            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
+                                this.logger.error(resp.bodyAsString());
+                                result.complete(false);
+                                return;
+                            }
+                            result.complete(true);
+                        });
+        return result;
     }
 }
