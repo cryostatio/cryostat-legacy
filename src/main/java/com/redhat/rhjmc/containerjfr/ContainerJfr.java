@@ -54,7 +54,9 @@ import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.rules.Rule;
+import com.redhat.rhjmc.containerjfr.rules.RuleProcessor;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
+
 import dagger.Component;
 
 class ContainerJfr {
@@ -87,6 +89,7 @@ class ContainerJfr {
 
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
+        client.ruleProcessor().enable();
         client.httpServer().start();
         client.webServer().start();
         client.messagingServer().start();
@@ -101,6 +104,8 @@ class ContainerJfr {
         CredentialsManager credentialsManager();
 
         RuleRegistry ruleRegistry();
+
+        RuleProcessor ruleProcessor();
 
         HttpServer httpServer();
 
