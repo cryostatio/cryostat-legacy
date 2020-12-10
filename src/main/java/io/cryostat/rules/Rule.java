@@ -57,7 +57,11 @@ public class Rule {
 
     public String eventSpecifier;
 
-    public int duration;
+    public int durationSeconds = -1;
+
+    public int archivalPeriodSeconds = 30;
+
+    public boolean keepOldArchives;
 
     @Override
     public boolean equals(Object o) {
