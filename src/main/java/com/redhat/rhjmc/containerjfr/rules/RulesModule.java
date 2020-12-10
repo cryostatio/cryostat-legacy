@@ -57,6 +57,8 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.RecordingDeleteHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingPatchHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingsPostHandler;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
@@ -105,7 +107,7 @@ public abstract class RulesModule {
                 Executors.newScheduledThreadPool(1),
                 credentialsManager,
                 webClient,
-                postHandler,
+                postHandler.path(),
                 periodicArchiverFactory,
                 logger);
     }
@@ -113,8 +115,11 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     static PeriodicArchiverFactory providePeriodicArchivedFactory(
-            @Named(RULES_WEB_CLIENT) WebClient webClient, Logger logger) {
-        return new PeriodicArchiverFactory(webClient, logger);
+            @Named(RULES_WEB_CLIENT) WebClient webClient,
+            TargetRecordingPatchHandler archiveHandler,
+            RecordingDeleteHandler deleteHandler,
+            Logger logger) {
+        return new PeriodicArchiverFactory(webClient, archiveHandler, deleteHandler, logger);
     }
 
     @Provides
