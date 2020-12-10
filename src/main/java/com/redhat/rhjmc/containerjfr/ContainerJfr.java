@@ -78,15 +78,15 @@ class ContainerJfr {
                         "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
 
         // FIXME remove this, only here for testing
-        Rule defaultRule = new Rule();
-        defaultRule.targetAlias = "es.andrewazor.demo.Main";
-        defaultRule.name = "Default Rule";
-        defaultRule.description = "This rule enables the Continuous template by default";
-        defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
-        defaultRule.durationSeconds = -1;
-        defaultRule.preserveArchives = 3;
-        defaultRule.archivalPeriodSeconds = 60;
-        defaultRule.maxAgeSeconds = defaultRule.archivalPeriodSeconds;
+        Rule defaultRule =
+                new Rule.Builder()
+                        .name("Default Rule")
+                        .targetAlias("es.andrewazor.demo.Main")
+                        .description("This rule enables the Continuous template by default")
+                        .eventSpecifier("template=Continuous,type=TARGET")
+                        .preservedArchives(3)
+                        .archivalPeriodSeconds(60)
+                        .build();
         client.ruleRegistry().addRule(defaultRule);
 
         client.credentialsManager().load();
