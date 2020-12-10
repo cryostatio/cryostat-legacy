@@ -90,7 +90,7 @@ public class RuleRegistry {
     }
 
     public void addRule(Rule rule) throws IOException {
-        Path destination = rulesDir.resolve(sanitizeRuleName(rule.name) + ".json");
+        Path destination = rulesDir.resolve(sanitizeRuleName(rule.getName()) + ".json");
         this.fs.writeString(
                 destination,
                 gson.toJson(rule),
@@ -105,7 +105,7 @@ public class RuleRegistry {
             return Set.of();
         }
         return rules.stream()
-                .filter(r -> r.targetAlias.equals(serviceRef.getAlias().get()))
+                .filter(r -> r.getTargetAlias().equals(serviceRef.getAlias().get()))
                 .collect(Collectors.toSet());
     }
 

@@ -124,17 +124,17 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                     && !tde.getServiceRef()
                                             .getAlias()
                                             .get()
-                                            .equals(rule.targetAlias)) {
+                                            .equals(rule.getTargetAlias())) {
                                 return;
                             }
                             this.logger.trace(
                                     String.format(
                                             "Activating rule %s for target %s",
-                                            rule.name,
-                                            rule.description,
+                                            rule.getName(),
+                                            rule.getDescription(),
                                             tde.getServiceRef().getJMXServiceUrl()));
 
-                            String sanitizedName = RuleRegistry.sanitizeRuleName(rule.name);
+                            String sanitizedName = RuleRegistry.sanitizeRuleName(rule.getName());
                             Credentials credentials =
                                     credentialsManager.getCredentials(
                                             tde.getServiceRef().getAlias().get());
@@ -143,10 +143,9 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                         startRuleRecording(
                                                 tde.getServiceRef().getJMXServiceUrl(),
                                                 sanitizedName,
-                                                rule.eventSpecifier,
-                                                rule.durationSeconds,
-                                                rule.maxSize,
-                                                rule.maxAgeSeconds,
+                                                rule.getEventSpecifier(),
+                                                rule.getMaxSizeBytes(),
+                                                rule.getMaxAgeSeconds(),
                                                 credentials);
                                 if (!success.get()) {
                                     logger.trace("Rule activation failed");
@@ -157,7 +156,8 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                             }
 
                             logger.trace("Rule activation successful");
-                            if (rule.preserveArchives <= 0 || rule.archivalPeriodSeconds <= 0) {
+                            if (rule.getPreservedArchives() <= 0
+                                    || rule.getArchivalPeriodSeconds() <= 0) {
                                 return;
                             }
                             // FIXMe provide PeriodicArchivers via DI/factory for testability
@@ -168,10 +168,10 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                                     tde.getServiceRef(),
                                                     credentials,
                                                     sanitizedName,
-                                                    rule.preserveArchives,
+                                                    rule.getPreservedArchives(),
                                                     logger),
-                                            rule.archivalPeriodSeconds,
-                                            rule.archivalPeriodSeconds,
+                                            rule.getArchivalPeriodSeconds(),
+                                            rule.getArchivalPeriodSeconds(),
                                             TimeUnit.SECONDS));
                         });
     }
@@ -180,8 +180,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             JMXServiceURL serviceUrl,
             String recordingName,
             String eventSpecifier,
-            int duration,
-            int maxSize,
+            int maxSizeBytes,
             int maxAgeSeconds,
             Credentials credentials) {
         // FIXME using an HTTP request to localhost here works well enough, but is needlessly
@@ -193,14 +192,11 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         MultipartForm form = MultipartForm.create();
         form.attribute("recordingName", recordingName);
         form.attribute("events", eventSpecifier);
-        if (duration > 0) {
-            form.attribute("duration", String.valueOf(duration));
-        }
         if (maxAgeSeconds > 0) {
             form.attribute("maxAge", String.valueOf(maxAgeSeconds));
         }
-        if (maxSize > 0) {
-            form.attribute("maxSize", String.valueOf(maxSize));
+        if (maxSizeBytes > 0) {
+            form.attribute("maxSize", String.valueOf(maxSizeBytes));
         }
         String path =
                 postHandler
