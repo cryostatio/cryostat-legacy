@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.rules;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
@@ -112,11 +113,14 @@ class PeriodicArchiver implements Runnable {
         // rather than firing HTTP requests to ourselves
 
         // FIXME don't hardcode this path
-        String path =
-                "/api/v1/targets/"
-                        + URLEncodedUtils.formatSegments(serviceRef.getJMXServiceUrl().toString())
-                        + "/recordings/"
-                        + URLEncodedUtils.formatSegments(recordingName);
+        URI path =
+                URI.create(
+                                "/api/v1/targets/"
+                                        + URLEncodedUtils.formatSegments(
+                                                serviceRef.getJMXServiceUrl().toString())
+                                        + "/recordings/"
+                                        + URLEncodedUtils.formatSegments(recordingName))
+                        .normalize();
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (credentials != null) {
             headers.add(
@@ -133,7 +137,7 @@ class PeriodicArchiver implements Runnable {
 
         CompletableFuture<String> future = new CompletableFuture<>();
         this.webClient
-                .patch(path)
+                .patch(path.toString())
                 .timeout(30_000L)
                 .putHeaders(headers)
                 .sendBuffer(
@@ -165,9 +169,12 @@ class PeriodicArchiver implements Runnable {
                 .forEach(
                         recordingName -> {
                             logger.info(String.format("Pruning %s", recordingName));
-                            String path =
-                                    "/api/v1/recordings/"
-                                            + URLEncodedUtils.formatSegments(recordingName);
+                            URI path =
+                                    URI.create(
+                                                    "/api/v1/recordings/"
+                                                            + URLEncodedUtils.formatSegments(
+                                                                    recordingName))
+                                            .normalize();
                             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
                             if (credentials != null) {
                                 headers.add(
@@ -186,7 +193,7 @@ class PeriodicArchiver implements Runnable {
                             CompletableFuture<Boolean> future = new CompletableFuture<>();
                             futures.add(future);
                             this.webClient
-                                    .delete(path)
+                                    .delete(path.toString())
                                     .timeout(30_000L)
                                     .putHeaders(headers)
                                     .send(
