@@ -164,10 +164,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                             tasks.add(
                                     scheduler.scheduleAtFixedRate(
                                             periodicArchiverFactory.create(
-                                                    tde.getServiceRef(),
-                                                    credentials,
-                                                    rule.getName(),
-                                                    rule.getPreservedArchives()),
+                                                    tde.getServiceRef(), credentials, rule),
                                             rule.getArchivalPeriodSeconds(),
                                             rule.getArchivalPeriodSeconds(),
                                             TimeUnit.SECONDS));
