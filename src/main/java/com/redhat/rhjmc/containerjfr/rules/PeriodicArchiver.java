@@ -65,35 +65,32 @@ import io.vertx.ext.web.client.WebClient;
 
 class PeriodicArchiver implements Runnable {
 
-    private final WebClient webClient;
     private final ServiceRef serviceRef;
     private final Credentials credentials;
-    private final String recordingName;
-    private final int preservedArchives;
+    private final Rule rule;
+    private final WebClient webClient;
     private final Logger logger;
 
     private final Queue<String> previousRecordings;
 
     PeriodicArchiver(
-            WebClient webClient,
             ServiceRef serviceRef,
             Credentials credentials,
-            String recordingName,
-            int preservedArchives,
+            Rule rule,
+            WebClient webClient,
             Logger logger) {
         this.webClient = webClient;
         this.serviceRef = serviceRef;
         this.credentials = credentials;
-        this.recordingName = recordingName;
-        this.preservedArchives = preservedArchives;
+        this.rule = rule;
         this.logger = logger;
 
-        this.previousRecordings = new ArrayDeque<>(this.preservedArchives);
+        this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
 
     @Override
     public void run() {
-        logger.trace(String.format("PeriodicArchiver for %s running", recordingName));
+        logger.trace(String.format("PeriodicArchiver for %s running", rule.getName()));
 
         try {
             performArchival();
@@ -103,7 +100,7 @@ class PeriodicArchiver implements Runnable {
     }
 
     void performArchival() throws InterruptedException, ExecutionException {
-        while (this.previousRecordings.size() > this.preservedArchives - 1) {
+        while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
             pruneArchive(this.previousRecordings.remove());
         }
 
@@ -121,7 +118,7 @@ class PeriodicArchiver implements Runnable {
                                         + URLEncodedUtils.formatSegments(
                                                 serviceRef.getJMXServiceUrl().toString())
                                         + "/recordings/"
-                                        + URLEncodedUtils.formatSegments(recordingName))
+                                        + URLEncodedUtils.formatSegments(rule.getName()))
                         .normalize();
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (credentials != null) {
