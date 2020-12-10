@@ -83,7 +83,7 @@ class ContainerJfr {
         defaultRule.name = "Default Rule";
         defaultRule.description = "This rule enables the Continuous template by default";
         defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
-        defaultRule.duration = -1;
+        defaultRule.durationSeconds = -1;
         client.ruleRegistry().addRule(defaultRule);
 
         client.credentialsManager().load();

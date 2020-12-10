@@ -41,9 +41,13 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.management.remote.JMXServiceURL;
@@ -71,24 +75,31 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
 
     private final PlatformClient platformClient;
     private final RuleRegistry registry;
+    private final ScheduledExecutorService scheduler;
     private final CredentialsManager credentialsManager;
     private final WebClient webClient;
     private final RequestHandler postHandler;
     private final Logger logger;
 
+    private final Set<Future<?>> tasks;
+
     RuleProcessor(
             PlatformClient platformClient,
             RuleRegistry registry,
+            ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
             WebClient webClient,
             RequestHandler postHandler,
             Logger logger) {
         this.platformClient = platformClient;
         this.registry = registry;
+        this.scheduler = scheduler;
         this.credentialsManager = credentialsManager;
         this.webClient = webClient;
         this.postHandler = postHandler;
         this.logger = logger;
+
+        this.tasks = new HashSet<>();
     }
 
     public void enable() {
@@ -97,6 +108,8 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
 
     public void disable() {
         this.platformClient.removeTargetDiscoveryListener(this);
+        this.tasks.forEach(f -> f.cancel(true));
+        this.tasks.clear();
     }
 
     @Override
@@ -121,23 +134,43 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                             rule.description,
                                             tde.getServiceRef().getJMXServiceUrl()));
 
+                            String sanitizedName = RuleRegistry.sanitizeRuleName(rule.name);
+                            Credentials credentials =
+                                    credentialsManager.getCredentials(
+                                            tde.getServiceRef().getAlias().get());
                             try {
                                 Future<Boolean> success =
                                         startRuleRecording(
                                                 tde.getServiceRef().getJMXServiceUrl(),
-                                                RuleRegistry.sanitizeRuleName(rule.name),
+                                                sanitizedName,
                                                 rule.eventSpecifier,
-                                                rule.duration,
-                                                credentialsManager.getCredentials(
-                                                        tde.getServiceRef().getAlias().get()));
-                                if (success.get()) {
-                                    logger.trace("Rule activation successful");
-                                } else {
+                                                rule.durationSeconds,
+                                                credentials);
+                                if (!success.get()) {
                                     logger.trace("Rule activation failed");
+                                    return;
                                 }
                             } catch (InterruptedException | ExecutionException e) {
                                 logger.error(e);
                             }
+
+                            logger.trace("Rule activation successful");
+                            if (rule.archivalPeriodSeconds <= 0) {
+                                return;
+                            }
+                            // FIXMe provide PeriodicArchivers via DI/factory for testability
+                            tasks.add(
+                                    scheduler.scheduleAtFixedRate(
+                                            new PeriodicArchiver(
+                                                    webClient,
+                                                    tde.getServiceRef(),
+                                                    credentials,
+                                                    sanitizedName,
+                                                    rule.keepOldArchives,
+                                                    logger),
+                                            rule.archivalPeriodSeconds,
+                                            rule.archivalPeriodSeconds,
+                                            TimeUnit.SECONDS));
                         });
     }
 
@@ -154,7 +187,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         // exposed by this refactored chunk, and this refactored chunk can also be consumed here
         // rather than firing HTTP requests to ourselves
         MultipartForm form = MultipartForm.create();
-        form.attribute("recordingName", RuleRegistry.sanitizeRuleName(recordingName));
+        form.attribute("recordingName", recordingName);
         form.attribute("events", eventSpecifier);
         if (duration > 0) {
             form.attribute("duration", String.valueOf(duration));

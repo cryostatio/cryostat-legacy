@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.rules;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.Executors;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -114,6 +115,7 @@ public abstract class RulesModule {
         return new RuleProcessor(
                 platformClient,
                 registry,
+                Executors.newScheduledThreadPool(1),
                 credentialsManager,
                 WebClient.create(vertx, opts),
                 postHandler,
