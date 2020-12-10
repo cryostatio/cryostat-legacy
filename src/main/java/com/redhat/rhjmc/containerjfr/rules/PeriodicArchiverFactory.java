@@ -56,12 +56,7 @@ class PeriodicArchiverFactory {
         this.logger = logger;
     }
 
-    PeriodicArchiver create(
-            ServiceRef serviceRef,
-            Credentials credentials,
-            String recordingName,
-            int preservedArchives) {
-        return new PeriodicArchiver(
-                webClient, serviceRef, credentials, recordingName, preservedArchives, logger);
+    PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule) {
+        return new PeriodicArchiver(serviceRef, credentials, rule, webClient, logger);
     }
 }
