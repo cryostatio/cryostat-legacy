@@ -81,6 +81,7 @@ class Cryostat {
         defaultRule.description = "This rule enables the Continuous template by default";
         defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
         defaultRule.durationSeconds = -1;
+        defaultRule.preserveArchives = 3;
         client.ruleRegistry().addRule(defaultRule);
 
         client.credentialsManager().load();

@@ -43,10 +43,11 @@ package io.cryostat.rules;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.ArrayDeque;
+import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -67,26 +68,26 @@ class PeriodicArchiver implements Runnable {
     private final ServiceRef serviceRef;
     private final Credentials credentials;
     private final String recordingName;
-    private final boolean keepOldArchives;
+    private final int preserveArchives;
     private final Logger logger;
 
-    private final List<String> previousRecordings;
+    private final Queue<String> previousRecordings;
 
     PeriodicArchiver(
             WebClient webClient,
             ServiceRef serviceRef,
             Credentials credentials,
             String recordingName,
-            boolean keepOldSnapshots,
+            int preserveArchives,
             Logger logger) {
         this.webClient = webClient;
         this.serviceRef = serviceRef;
         this.credentials = credentials;
         this.recordingName = recordingName;
-        this.keepOldArchives = keepOldSnapshots;
+        this.preserveArchives = preserveArchives;
         this.logger = logger;
 
-        this.previousRecordings = new ArrayList<>(1);
+        this.previousRecordings = new ArrayDeque<>(this.preserveArchives);
     }
 
     @Override
@@ -95,15 +96,16 @@ class PeriodicArchiver implements Runnable {
 
         try {
             performArchival();
-            if (!keepOldArchives && this.previousRecordings.size() > 1) {
-                pruneArchives();
-            }
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
         }
     }
 
     void performArchival() throws InterruptedException, ExecutionException {
+        while (this.previousRecordings.size() > this.preserveArchives - 1) {
+            pruneArchive(this.previousRecordings.remove());
+        }
+
         // FIXME using an HTTP request to localhost here works well enough, but is needlessly
         // complex. The API handler targeted here should be refactored to extract the logic that
         // creates the recording from the logic that simply figures out the recording parameters
@@ -159,64 +161,47 @@ class PeriodicArchiver implements Runnable {
         this.previousRecordings.add(future.get());
     }
 
-    void pruneArchives() {
-        logger.trace("Pruning old archived recordings");
+    Future<Boolean> pruneArchive(String recordingName) {
+        logger.trace(String.format("Pruning %s", recordingName));
+        URI path =
+                URI.create("/api/v1/recordings/" + URLEncodedUtils.formatSegments(recordingName))
+                        .normalize();
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        if (credentials != null) {
+            headers.add(
+                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
+                    String.format(
+                            "Basic %s",
+                            Base64.encodeBase64String(
+                                    String.format(
+                                                    "%s:%s",
+                                                    credentials.getUsername(),
+                                                    credentials.getPassword())
+                                            .getBytes())));
+        }
 
-        List<CompletableFuture<Boolean>> futures = new ArrayList<>(previousRecordings.size());
-        this.previousRecordings
-                .subList(1, previousRecordings.size())
-                .forEach(
-                        recordingName -> {
-                            logger.trace(String.format("Pruning %s", recordingName));
-                            URI path =
-                                    URI.create(
-                                                    "/api/v1/recordings/"
-                                                            + URLEncodedUtils.formatSegments(
-                                                                    recordingName))
-                                            .normalize();
-                            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-                            if (credentials != null) {
-                                headers.add(
-                                        AbstractAuthenticatedRequestHandler
-                                                .JMX_AUTHORIZATION_HEADER,
-                                        String.format(
-                                                "Basic %s",
-                                                Base64.encodeBase64String(
-                                                        String.format(
-                                                                        "%s:%s",
-                                                                        credentials.getUsername(),
-                                                                        credentials.getPassword())
-                                                                .getBytes())));
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        this.webClient
+                .delete(path.toString())
+                .timeout(30_000L)
+                .putHeaders(headers)
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                this.logger.error(
+                                        new IOException("Archival prune failed", ar.cause()));
+                                future.completeExceptionally(ar.cause());
+                                return;
                             }
-
-                            CompletableFuture<Boolean> future = new CompletableFuture<>();
-                            futures.add(future);
-                            this.webClient
-                                    .delete(path.toString())
-                                    .timeout(30_000L)
-                                    .putHeaders(headers)
-                                    .send(
-                                            ar -> {
-                                                if (ar.failed()) {
-                                                    this.logger.error(
-                                                            new IOException(
-                                                                    "Archival prune failed",
-                                                                    ar.cause()));
-                                                    future.completeExceptionally(ar.cause());
-                                                    return;
-                                                }
-                                                HttpResponse<Buffer> resp = ar.result();
-                                                if (!HttpStatusCodeIdentifier.isSuccessCode(
-                                                        resp.statusCode())) {
-                                                    this.logger.error(resp.bodyAsString());
-                                                    future.completeExceptionally(
-                                                            new IOException(resp.bodyAsString()));
-                                                    return;
-                                                }
-                                                previousRecordings.remove(recordingName);
-                                                future.complete(true);
-                                            });
+                            HttpResponse<Buffer> resp = ar.result();
+                            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
+                                this.logger.error(resp.bodyAsString());
+                                future.completeExceptionally(new IOException(resp.bodyAsString()));
+                                return;
+                            }
+                            previousRecordings.remove(recordingName);
+                            future.complete(true);
                         });
-        CompletableFuture.allOf(futures.toArray(new CompletableFuture[futures.size()])).join();
+        return future;
     }
 }
