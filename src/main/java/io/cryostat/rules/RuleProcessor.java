@@ -57,7 +57,6 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.HttpStatusCodeIdentifier;
@@ -77,7 +76,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     private final ScheduledExecutorService scheduler;
     private final CredentialsManager credentialsManager;
     private final WebClient webClient;
-    private final RequestHandler postHandler;
+    private final String postPath;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
 
@@ -89,7 +88,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
             WebClient webClient,
-            RequestHandler postHandler,
+            String postPath,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
         this.platformClient = platformClient;
@@ -97,7 +96,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         this.scheduler = scheduler;
         this.credentialsManager = credentialsManager;
         this.webClient = webClient;
-        this.postHandler = postHandler;
+        this.postPath = postPath;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
 
@@ -194,10 +193,8 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             form.attribute("maxSize", String.valueOf(maxSizeBytes));
         }
         String path =
-                postHandler
-                        .path()
-                        .replaceAll(
-                                ":targetId", URLEncodedUtils.formatSegments(serviceUrl.toString()));
+                postPath.replaceAll(
+                        ":targetId", URLEncodedUtils.formatSegments(serviceUrl.toString()));
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (credentials != null) {
             headers.add(

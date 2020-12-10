@@ -68,6 +68,8 @@ class PeriodicArchiver implements Runnable {
     private final Credentials credentials;
     private final Rule rule;
     private final WebClient webClient;
+    private final String archiveRequestPath;
+    private final String deleteRequestPath;
     private final Logger logger;
 
     private final Queue<String> previousRecordings;
@@ -77,8 +79,12 @@ class PeriodicArchiver implements Runnable {
             Credentials credentials,
             Rule rule,
             WebClient webClient,
+            String archiveRequestPath,
+            String deleteRequestPath,
             Logger logger) {
         this.webClient = webClient;
+        this.archiveRequestPath = archiveRequestPath;
+        this.deleteRequestPath = deleteRequestPath;
         this.serviceRef = serviceRef;
         this.credentials = credentials;
         this.rule = rule;
@@ -110,14 +116,16 @@ class PeriodicArchiver implements Runnable {
         // exposed by this refactored chunk, and this refactored chunk can also be consumed here
         // rather than firing HTTP requests to ourselves
 
-        // FIXME don't hardcode this path
         URI path =
                 URI.create(
-                                "/api/v1/targets/"
-                                        + URLEncodedUtils.formatSegments(
-                                                serviceRef.getJMXServiceUrl().toString())
-                                        + "/recordings/"
-                                        + URLEncodedUtils.formatSegments(rule.getName()))
+                                archiveRequestPath
+                                        .replaceAll(
+                                                ":targetId",
+                                                URLEncodedUtils.formatSegments(
+                                                        serviceRef.getJMXServiceUrl().toString()))
+                                        .replaceAll(
+                                                ":recordingName",
+                                                URLEncodedUtils.formatSegments(rule.getName())))
                         .normalize();
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (credentials != null) {
@@ -161,7 +169,10 @@ class PeriodicArchiver implements Runnable {
     Future<Boolean> pruneArchive(String recordingName) {
         logger.trace(String.format("Pruning %s", recordingName));
         URI path =
-                URI.create("/api/v1/recordings/" + URLEncodedUtils.formatSegments(recordingName))
+                URI.create(
+                                deleteRequestPath.replaceAll(
+                                        ":recordingName",
+                                        URLEncodedUtils.formatSegments(recordingName)))
                         .normalize();
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (credentials != null) {

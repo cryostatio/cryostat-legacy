@@ -55,6 +55,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.web.http.api.v1.RecordingDeleteHandler;
+import io.cryostat.net.web.http.api.v1.TargetRecordingPatchHandler;
 import io.cryostat.net.web.http.api.v1.TargetRecordingsPostHandler;
 import io.cryostat.platform.PlatformClient;
 
@@ -104,7 +106,7 @@ public abstract class RulesModule {
                 Executors.newScheduledThreadPool(1),
                 credentialsManager,
                 webClient,
-                postHandler,
+                postHandler.path(),
                 periodicArchiverFactory,
                 logger);
     }
@@ -112,8 +114,11 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     static PeriodicArchiverFactory providePeriodicArchivedFactory(
-            @Named(RULES_WEB_CLIENT) WebClient webClient, Logger logger) {
-        return new PeriodicArchiverFactory(webClient, logger);
+            @Named(RULES_WEB_CLIENT) WebClient webClient,
+            TargetRecordingPatchHandler archiveHandler,
+            RecordingDeleteHandler deleteHandler,
+            Logger logger) {
+        return new PeriodicArchiverFactory(webClient, archiveHandler, deleteHandler, logger);
     }
 
     @Provides
