@@ -61,7 +61,7 @@ public class Rule {
 
     public int archivalPeriodSeconds = 30;
 
-    public boolean keepOldArchives;
+    public int preserveArchives;
 
     @Override
     public boolean equals(Object o) {
