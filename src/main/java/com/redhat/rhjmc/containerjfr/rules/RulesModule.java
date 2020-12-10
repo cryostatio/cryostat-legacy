@@ -69,6 +69,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 @Module
 public abstract class RulesModule {
     public static final String RULES_SUBDIRECTORY = "rules";
+    public static final String RULES_WEB_CLIENT = "RULES_WEB_CLIENT";
 
     @Provides
     @Singleton
@@ -94,25 +95,16 @@ public abstract class RulesModule {
             PlatformClient platformClient,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
-            NetworkConfiguration netConf,
-            Vertx vertx,
-            HttpServer server,
+            @Named(RULES_WEB_CLIENT) WebClient webClient,
             TargetRecordingsPostHandler postHandler,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
-        WebClientOptions opts =
-                new WebClientOptions()
-                        .setSsl(server.isSsl())
-                        .setDefaultHost("localhost")
-                        .setDefaultPort(netConf.getInternalWebServerPort())
-                        .setTrustAll(true)
-                        .setVerifyHost(false);
         return new RuleProcessor(
                 platformClient,
                 registry,
                 Executors.newScheduledThreadPool(1),
                 credentialsManager,
-                WebClient.create(vertx, opts),
+                webClient,
                 postHandler,
                 periodicArchiverFactory,
                 logger);
@@ -121,7 +113,22 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     static PeriodicArchiverFactory providePeriodicArchivedFactory(
-            WebClient webClient, Logger logger) {
+            @Named(RULES_WEB_CLIENT) WebClient webClient, Logger logger) {
         return new PeriodicArchiverFactory(webClient, logger);
+    }
+
+    @Provides
+    @Singleton
+    @Named(RULES_WEB_CLIENT)
+    static WebClient provideRulesWebClient(
+            Vertx vertx, HttpServer server, NetworkConfiguration netConf) {
+        WebClientOptions opts =
+                new WebClientOptions()
+                        .setSsl(server.isSsl())
+                        .setDefaultHost("localhost")
+                        .setDefaultPort(netConf.getInternalWebServerPort())
+                        .setTrustAll(true)
+                        .setVerifyHost(false);
+        return WebClient.create(vertx, opts);
     }
 }
