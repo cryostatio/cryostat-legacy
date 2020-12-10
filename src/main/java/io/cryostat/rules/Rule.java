@@ -41,31 +41,77 @@
  */
 package io.cryostat.rules;
 
+import java.util.Objects;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class Rule {
 
-    public String name;
-
-    public String description;
-
+    private final String name;
+    private final String description;
     // TODO for now, simply allow matching based on target's alias. This should be expanded to allow
     // for different match parameters such as port number, port name, container/pod label, etc.,
     //  and allow wildcards
-    public String targetAlias;
+    private final String targetAlias;
+    private final String eventSpecifier;
+    private final int archivalPeriodSeconds;
+    private final int preservedArchives;
+    private final int maxAgeSeconds;
+    private final int maxSizeBytes;
 
-    public String eventSpecifier;
+    Rule(Builder builder) {
+        this.name = requireNonBlank(builder.name, "ruleName");
+        this.description = builder.description;
+        this.targetAlias = requireNonBlank(builder.targetAlias, "targetAlias");
+        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, "eventSpecifier");
+        this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
+        this.preservedArchives = builder.preservedArchives;
+        this.maxAgeSeconds =
+                builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : archivalPeriodSeconds;
+        this.maxSizeBytes = builder.maxSizeBytes;
+    }
 
-    public int maxAgeSeconds;
+    public String getName() {
+        return this.name;
+    }
 
-    public int maxSize;
+    public String getDescription() {
+        return this.description;
+    }
 
-    public int durationSeconds = -1;
+    public String getTargetAlias() {
+        return this.targetAlias;
+    }
 
-    public int archivalPeriodSeconds = 30;
+    public String getEventSpecifier() {
+        return this.eventSpecifier;
+    }
 
-    public int preserveArchives;
+    public int getArchivalPeriodSeconds() {
+        return this.archivalPeriodSeconds;
+    }
+
+    public int getPreservedArchives() {
+        return this.preservedArchives;
+    }
+
+    public int getMaxAgeSeconds() {
+        return this.maxAgeSeconds;
+    }
+
+    public int getMaxSizeBytes() {
+        return this.maxSizeBytes;
+    }
+
+    private String requireNonBlank(String s, String name) {
+        if (StringUtils.isBlank(Objects.requireNonNull(s))) {
+            throw new IllegalArgumentException(
+                    String.format("%s cannot be blank, was %s", name, s));
+        }
+        return s;
+    }
 
     @Override
     public boolean equals(Object o) {
@@ -75,5 +121,60 @@ public class Rule {
     @Override
     public int hashCode() {
         return HashCodeBuilder.reflectionHashCode(this);
+    }
+
+    public static class Builder {
+        private String name;
+        private String description;
+        private String targetAlias;
+        private String eventSpecifier;
+        private int archivalPeriodSeconds = 30;
+        private int preservedArchives = 1;
+        private int maxAgeSeconds;
+        private int maxSizeBytes = -1;
+
+        public Builder name(String name) {
+            this.name = name;
+            return this;
+        }
+
+        public Builder description(String description) {
+            this.description = description;
+            return this;
+        }
+
+        public Builder targetAlias(String targetAlias) {
+            this.targetAlias = targetAlias;
+            return this;
+        }
+
+        public Builder eventSpecifier(String eventSpecifier) {
+            this.eventSpecifier = eventSpecifier;
+            return this;
+        }
+
+        public Builder archivalPeriodSeconds(int archivalPeriodSeconds) {
+            this.archivalPeriodSeconds = archivalPeriodSeconds;
+            return this;
+        }
+
+        public Builder preservedArchives(int preservedArchives) {
+            this.preservedArchives = preservedArchives;
+            return this;
+        }
+
+        public Builder maxAgeSeconds(int maxAgeSeconds) {
+            this.maxAgeSeconds = maxAgeSeconds;
+            return this;
+        }
+
+        public Builder maxSizeBytes(int maxSizeBytes) {
+            this.maxSizeBytes = maxSizeBytes;
+            return this;
+        }
+
+        public Rule build() {
+            return new Rule(this);
+        }
     }
 }

@@ -68,7 +68,7 @@ class PeriodicArchiver implements Runnable {
     private final ServiceRef serviceRef;
     private final Credentials credentials;
     private final String recordingName;
-    private final int preserveArchives;
+    private final int preservedArchives;
     private final Logger logger;
 
     private final Queue<String> previousRecordings;
@@ -78,16 +78,16 @@ class PeriodicArchiver implements Runnable {
             ServiceRef serviceRef,
             Credentials credentials,
             String recordingName,
-            int preserveArchives,
+            int preservedArchives,
             Logger logger) {
         this.webClient = webClient;
         this.serviceRef = serviceRef;
         this.credentials = credentials;
         this.recordingName = recordingName;
-        this.preserveArchives = preserveArchives;
+        this.preservedArchives = preservedArchives;
         this.logger = logger;
 
-        this.previousRecordings = new ArrayDeque<>(this.preserveArchives);
+        this.previousRecordings = new ArrayDeque<>(this.preservedArchives);
     }
 
     @Override
@@ -102,7 +102,7 @@ class PeriodicArchiver implements Runnable {
     }
 
     void performArchival() throws InterruptedException, ExecutionException {
-        while (this.previousRecordings.size() > this.preserveArchives - 1) {
+        while (this.previousRecordings.size() > this.preservedArchives - 1) {
             pruneArchive(this.previousRecordings.remove());
         }
 
