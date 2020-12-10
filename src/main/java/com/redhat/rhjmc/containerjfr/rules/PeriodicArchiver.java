@@ -164,6 +164,7 @@ class PeriodicArchiver implements Runnable {
                 .subList(1, previousRecordings.size())
                 .forEach(
                         recordingName -> {
+                            logger.info(String.format("Pruning %s", recordingName));
                             String path =
                                     "/api/v1/recordings/"
                                             + URLEncodedUtils.formatSegments(recordingName);
@@ -193,7 +194,7 @@ class PeriodicArchiver implements Runnable {
                                                 if (ar.failed()) {
                                                     this.logger.error(
                                                             new IOException(
-                                                                    "Periodic archival failed",
+                                                                    "Archival prune failed",
                                                                     ar.cause()));
                                                     future.completeExceptionally(ar.cause());
                                                     return;
@@ -206,6 +207,7 @@ class PeriodicArchiver implements Runnable {
                                                             new IOException(resp.bodyAsString()));
                                                     return;
                                                 }
+                                                previousRecordings.remove(recordingName);
                                                 future.complete(true);
                                             });
                         });
