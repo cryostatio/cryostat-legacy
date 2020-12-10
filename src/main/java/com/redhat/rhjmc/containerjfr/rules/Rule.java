@@ -62,7 +62,7 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) {
-        this.name = requireNonBlank(builder.name, "ruleName");
+        this.name = sanitizeRuleName(requireNonBlank(builder.name, "ruleName"));
         this.description = builder.description;
         this.targetAlias = requireNonBlank(builder.targetAlias, "targetAlias");
         this.eventSpecifier = requireNonBlank(builder.eventSpecifier, "eventSpecifier");
@@ -105,7 +105,12 @@ public class Rule {
         return this.maxSizeBytes;
     }
 
-    private String requireNonBlank(String s, String name) {
+    static String sanitizeRuleName(String name) {
+        // FIXME this is not robust
+        return String.format("auto_%s", name.replaceAll("\\s", "_"));
+    }
+
+    private static String requireNonBlank(String s, String name) {
         if (StringUtils.isBlank(Objects.requireNonNull(s))) {
             throw new IllegalArgumentException(
                     String.format("%s cannot be blank, was %s", name, s));
