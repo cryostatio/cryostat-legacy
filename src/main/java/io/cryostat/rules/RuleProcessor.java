@@ -78,6 +78,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     private final CredentialsManager credentialsManager;
     private final WebClient webClient;
     private final RequestHandler postHandler;
+    private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
 
     private final Set<Future<?>> tasks;
@@ -89,6 +90,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             CredentialsManager credentialsManager,
             WebClient webClient,
             RequestHandler postHandler,
+            PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
         this.platformClient = platformClient;
         this.registry = registry;
@@ -96,6 +98,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         this.credentialsManager = credentialsManager;
         this.webClient = webClient;
         this.postHandler = postHandler;
+        this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
 
         this.tasks = new HashSet<>();
@@ -158,16 +161,13 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                     || rule.getArchivalPeriodSeconds() <= 0) {
                                 return;
                             }
-                            // FIXMe provide PeriodicArchivers via DI/factory for testability
                             tasks.add(
                                     scheduler.scheduleAtFixedRate(
-                                            new PeriodicArchiver(
-                                                    webClient,
+                                            periodicArchiverFactory.create(
                                                     tde.getServiceRef(),
                                                     credentials,
                                                     rule.getName(),
-                                                    rule.getPreservedArchives(),
-                                                    logger),
+                                                    rule.getPreservedArchives()),
                                             rule.getArchivalPeriodSeconds(),
                                             rule.getArchivalPeriodSeconds(),
                                             TimeUnit.SECONDS));

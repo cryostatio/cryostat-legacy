@@ -103,6 +103,7 @@ public abstract class RulesModule {
             Vertx vertx,
             HttpServer server,
             TargetRecordingsPostHandler postHandler,
+            PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
         WebClientOptions opts =
                 new WebClientOptions()
@@ -118,6 +119,14 @@ public abstract class RulesModule {
                 credentialsManager,
                 WebClient.create(vertx, opts),
                 postHandler,
+                periodicArchiverFactory,
                 logger);
+    }
+
+    @Provides
+    @Singleton
+    static PeriodicArchiverFactory providePeriodicArchivedFactory(
+            WebClient webClient, Logger logger) {
+        return new PeriodicArchiverFactory(webClient, logger);
     }
 }
