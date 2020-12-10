@@ -91,7 +91,7 @@ class PeriodicArchiver implements Runnable {
 
     @Override
     public void run() {
-        logger.info(String.format("PeriodicArchiver for %s running", recordingName));
+        logger.trace(String.format("PeriodicArchiver for %s running", recordingName));
 
         try {
             performArchival();
@@ -160,14 +160,14 @@ class PeriodicArchiver implements Runnable {
     }
 
     void pruneArchives() {
-        logger.info("Pruning old archived recordings");
+        logger.trace("Pruning old archived recordings");
 
         List<CompletableFuture<Boolean>> futures = new ArrayList<>(previousRecordings.size());
         this.previousRecordings
                 .subList(1, previousRecordings.size())
                 .forEach(
                         recordingName -> {
-                            logger.info(String.format("Pruning %s", recordingName));
+                            logger.trace(String.format("Pruning %s", recordingName));
                             URI path =
                                     URI.create(
                                                     "/api/v1/recordings/"
