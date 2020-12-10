@@ -51,7 +51,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
+public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = "targets/:targetId/recordings/:recordingName";
 

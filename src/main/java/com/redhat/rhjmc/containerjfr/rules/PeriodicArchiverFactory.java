@@ -43,20 +43,37 @@ package com.redhat.rhjmc.containerjfr.rules;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.RecordingDeleteHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingPatchHandler;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 import io.vertx.ext.web.client.WebClient;
 
 class PeriodicArchiverFactory {
 
     private final WebClient webClient;
+    private final TargetRecordingPatchHandler archiveHandler;
+    private final RecordingDeleteHandler deleteHandler;
     private final Logger logger;
 
-    PeriodicArchiverFactory(WebClient webClient, Logger logger) {
+    PeriodicArchiverFactory(
+            WebClient webClient,
+            TargetRecordingPatchHandler archiveHandler,
+            RecordingDeleteHandler deleteHandler,
+            Logger logger) {
         this.webClient = webClient;
+        this.archiveHandler = archiveHandler;
+        this.deleteHandler = deleteHandler;
         this.logger = logger;
     }
 
     PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule) {
-        return new PeriodicArchiver(serviceRef, credentials, rule, webClient, logger);
+        return new PeriodicArchiver(
+                serviceRef,
+                credentials,
+                rule,
+                webClient,
+                archiveHandler.path(),
+                deleteHandler.path(),
+                logger);
     }
 }
