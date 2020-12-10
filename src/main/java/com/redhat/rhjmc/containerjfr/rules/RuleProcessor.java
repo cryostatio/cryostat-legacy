@@ -145,6 +145,8 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                                 sanitizedName,
                                                 rule.eventSpecifier,
                                                 rule.durationSeconds,
+                                                rule.maxSize,
+                                                rule.maxAgeSeconds,
                                                 credentials);
                                 if (!success.get()) {
                                     logger.trace("Rule activation failed");
@@ -179,6 +181,8 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             String recordingName,
             String eventSpecifier,
             int duration,
+            int maxSize,
+            int maxAgeSeconds,
             Credentials credentials) {
         // FIXME using an HTTP request to localhost here works well enough, but is needlessly
         // complex. The API handler targeted here should be refactored to extract the logic that
@@ -191,6 +195,12 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         form.attribute("events", eventSpecifier);
         if (duration > 0) {
             form.attribute("duration", String.valueOf(duration));
+        }
+        if (maxAgeSeconds > 0) {
+            form.attribute("maxAge", String.valueOf(maxAgeSeconds));
+        }
+        if (maxSize > 0) {
+            form.attribute("maxSize", String.valueOf(maxSize));
         }
         String path =
                 postHandler

@@ -57,6 +57,10 @@ public class Rule {
 
     public String eventSpecifier;
 
+    public int maxAgeSeconds;
+
+    public int maxSize;
+
     public int durationSeconds = -1;
 
     public int archivalPeriodSeconds = 30;

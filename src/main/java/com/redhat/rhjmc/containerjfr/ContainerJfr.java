@@ -85,6 +85,8 @@ class ContainerJfr {
         defaultRule.eventSpecifier = "template=Continuous,type=TARGET";
         defaultRule.durationSeconds = -1;
         defaultRule.preserveArchives = 3;
+        defaultRule.archivalPeriodSeconds = 60;
+        defaultRule.maxAgeSeconds = defaultRule.archivalPeriodSeconds;
         client.ruleRegistry().addRule(defaultRule);
 
         client.credentialsManager().load();
