@@ -51,8 +51,8 @@ import io.vertx.ext.web.client.WebClient;
 class PeriodicArchiverFactory {
 
     private final WebClient webClient;
-    private final TargetRecordingPatchHandler archiveHandler;
-    private final RecordingDeleteHandler deleteHandler;
+    private final String archiveRequestPath;
+    private final String deleteRequestPath;
     private final Logger logger;
 
     PeriodicArchiverFactory(
@@ -61,8 +61,8 @@ class PeriodicArchiverFactory {
             RecordingDeleteHandler deleteHandler,
             Logger logger) {
         this.webClient = webClient;
-        this.archiveHandler = archiveHandler;
-        this.deleteHandler = deleteHandler;
+        this.archiveRequestPath = archiveHandler.path();
+        this.deleteRequestPath = deleteHandler.path();
         this.logger = logger;
     }
 
@@ -72,8 +72,8 @@ class PeriodicArchiverFactory {
                 credentials,
                 rule,
                 webClient,
-                archiveHandler.path(),
-                deleteHandler.path(),
+                archiveRequestPath,
+                deleteRequestPath,
                 logger);
     }
 }
