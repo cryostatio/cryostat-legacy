@@ -74,12 +74,6 @@ public abstract class RulesModule {
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
             FileSystem fs,
-            CredentialsManager credentialsManager,
-            PlatformClient platformClient,
-            NetworkConfiguration netConf,
-            Vertx vertx,
-            HttpServer server,
-            TargetRecordingsPostHandler postHandler,
             Gson gson,
             Logger logger) {
         try {
