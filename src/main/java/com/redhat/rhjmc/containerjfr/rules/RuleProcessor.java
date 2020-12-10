@@ -155,7 +155,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                             }
 
                             logger.trace("Rule activation successful");
-                            if (rule.archivalPeriodSeconds <= 0) {
+                            if (rule.preserveArchives <= 0 || rule.archivalPeriodSeconds <= 0) {
                                 return;
                             }
                             // FIXMe provide PeriodicArchivers via DI/factory for testability
@@ -166,7 +166,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                                     tde.getServiceRef(),
                                                     credentials,
                                                     sanitizedName,
-                                                    rule.keepOldArchives,
+                                                    rule.preserveArchives,
                                                     logger),
                                             rule.archivalPeriodSeconds,
                                             rule.archivalPeriodSeconds,
