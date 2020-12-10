@@ -133,7 +133,6 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                             rule.getDescription(),
                                             tde.getServiceRef().getJMXServiceUrl()));
 
-                            String sanitizedName = RuleRegistry.sanitizeRuleName(rule.getName());
                             Credentials credentials =
                                     credentialsManager.getCredentials(
                                             tde.getServiceRef().getAlias().get());
@@ -141,7 +140,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                 Future<Boolean> success =
                                         startRuleRecording(
                                                 tde.getServiceRef().getJMXServiceUrl(),
-                                                sanitizedName,
+                                                rule.getName(),
                                                 rule.getEventSpecifier(),
                                                 rule.getMaxSizeBytes(),
                                                 rule.getMaxAgeSeconds(),
@@ -166,7 +165,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                                     webClient,
                                                     tde.getServiceRef(),
                                                     credentials,
-                                                    sanitizedName,
+                                                    rule.getName(),
                                                     rule.getPreservedArchives(),
                                                     logger),
                                             rule.getArchivalPeriodSeconds(),

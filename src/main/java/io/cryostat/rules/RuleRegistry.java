@@ -90,7 +90,7 @@ public class RuleRegistry {
     }
 
     public void addRule(Rule rule) throws IOException {
-        Path destination = rulesDir.resolve(sanitizeRuleName(rule.getName()) + ".json");
+        Path destination = rulesDir.resolve(rule.getName() + ".json");
         this.fs.writeString(
                 destination,
                 gson.toJson(rule),
@@ -107,10 +107,5 @@ public class RuleRegistry {
         return rules.stream()
                 .filter(r -> r.getTargetAlias().equals(serviceRef.getAlias().get()))
                 .collect(Collectors.toSet());
-    }
-
-    static String sanitizeRuleName(String name) {
-        // FIXME this is not robust
-        return String.format("auto_%s", name.replaceAll("\\s", "_"));
     }
 }
