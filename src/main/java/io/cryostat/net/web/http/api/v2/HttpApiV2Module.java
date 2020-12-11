@@ -110,4 +110,12 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindCertificatePostBodyHandler(CertificatePostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialsPostHandler(CredentialsPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindCredentialsPostBodyHandler(CredentialsPostBodyHandler handler);
 }
