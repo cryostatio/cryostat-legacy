@@ -5,14 +5,17 @@
 curl -vLk \
     -X POST \
     -H "X-JMX-Authorization: Basic $(echo -n admin:adminpass123 | base64)" \
-    -F username=smoketest \
-    -F password=smoketest \
+    -F username=admin \
+    -F password=adminpass123 \
     -F persist=true \
     https://0.0.0.0:8181/api/v2/targets/localhost%3A9093/credentials
 
-sleep 5
-
 curl -vLk \
-    -X DELETE \
-    -H "X-JMX-Authorization: Basic $(echo -n admin:adminpass123 | base64)" \
-    https://0.0.0.0:8181/api/v2/targets/localhost%3A9093/credentials
+    -X POST \
+    -F name="Default Rule" \
+    -F targetAlias="es.andrewazor.demo.Main" \
+    -F description="This is a test rule" \
+    -F eventSpecifier="template=Continuous,type=TARGET" \
+    -F archivalPeriodSeconds="60" \
+    -F preservedArchives="3" \
+    https://0.0.0.0:8181/api/v2/rules
