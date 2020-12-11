@@ -1,14 +1,15 @@
 #!/bin/sh
 
-# TODO delete me, this should be an integration test
+# FIXME this should be an integration test
+
+demoAppServiceUrl="service:jmx:rmi:///jndi/rmi://container-jfr:9093/jmxrmi"
 
 curl -vLk \
     -X POST \
-    -H "X-JMX-Authorization: Basic $(echo -n admin:adminpass123 | base64)" \
     -F username=admin \
     -F password=adminpass123 \
     -F persist=true \
-    https://0.0.0.0:8181/api/v2/targets/localhost%3A9093/credentials
+    "https://0.0.0.0:8181/api/v2/credentials/$(echo -n $demoAppServiceUrl | jq -sRr @uri)"
 
 curl -vLk \
     -X POST \

@@ -139,7 +139,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
 
                             Credentials credentials =
                                     credentialsManager.getCredentials(
-                                            tde.getServiceRef().getAlias().get());
+                                            tde.getServiceRef().getJMXServiceUrl().toString());
                             try {
                                 Future<Boolean> success =
                                         startRuleRecording(
