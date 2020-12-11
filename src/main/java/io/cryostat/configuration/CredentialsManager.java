@@ -98,10 +98,8 @@ public class CredentialsManager {
         boolean replaced = credentialsMap.containsKey(targetId);
         credentialsMap.put(targetId, credentials);
         if (persist) {
-            Path destination =
-                    credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
             fs.writeString(
-                    destination,
+                    getPersistedPath(targetId),
                     gson.toJson(new StoredCredentials(targetId, credentials)),
                     StandardOpenOption.WRITE,
                     StandardOpenOption.CREATE,
@@ -118,8 +116,17 @@ public class CredentialsManager {
         return replaced;
     }
 
+    public void removeCredentials(String targetId) throws IOException {
+        this.credentialsMap.remove(targetId);
+        fs.deleteIfExists(getPersistedPath(targetId));
+    }
+
     public Credentials getCredentials(String targetId) {
         return this.credentialsMap.get(targetId);
+    }
+
+    private Path getPersistedPath(String targetId) {
+        return credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
     }
 
     public static class StoredCredentials {
