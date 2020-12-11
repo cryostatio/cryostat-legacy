@@ -42,34 +42,27 @@
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.StringUtils;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 
-class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
+class CredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
 
-    static final String PATH = "targets/:targetId/credentials";
+    static final String PATH = CredentialsPostHandler.PATH;
 
     private final CredentialsManager credentialsManager;
-    private final Logger logger;
 
     @Inject
-    CredentialsPostHandler(
-            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+    CredentialsDeleteHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
-        this.logger = logger;
     }
 
     @Override
@@ -84,7 +77,7 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
+        return HttpMethod.DELETE;
     }
 
     @Override
@@ -110,30 +103,12 @@ class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         String targetId = params.getPathParams().get("targetId");
-        String username;
-        String password;
         try {
-            username =
-                    Objects.requireNonNull(
-                            params.getFormAttributes().get("username"), "Username is required");
-            password =
-                    Objects.requireNonNull(
-                            params.getFormAttributes().get("password"), "Password is required");
-        } catch (NullPointerException npe) {
-            throw new ApiException(400, npe.getMessage(), npe);
-        }
-        boolean persist =
-                Boolean.valueOf(
-                        StringUtils.defaultString(
-                                params.getFormAttributes().get("persist"), "false"));
-
-        try {
-            this.credentialsManager.addCredentials(
-                    targetId, new Credentials(username, password), persist);
+            this.credentialsManager.removeCredentials(targetId);
         } catch (IOException e) {
-            throw new ApiException(500, "IOException occurred while persisting credentials", e);
+            throw new ApiException(
+                    500, "IOException occurred while clearing persisted credentials", e);
         }
-
         return new IntermediateResponse<Void>().body(null);
     }
 }
