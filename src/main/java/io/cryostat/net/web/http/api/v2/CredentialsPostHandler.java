@@ -59,7 +59,7 @@ import org.apache.commons.lang3.StringUtils;
 
 class CredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
-    static final String PATH = "targets/:targetId/credentials";
+    static final String PATH = "credentials/:targetId";
 
     private final CredentialsManager credentialsManager;
     private final Logger logger;
