@@ -27,6 +27,10 @@ curl -vLk \
     -F preservedArchives="3" \
     https://0.0.0.0:8181/api/v2/rules
 
+curl -vLk \
+    -X GET \
+    https://0.0.0.0:8181/api/v2/rules/Default_Rule
+
 podman run \
     --name vertx-fib-demo \
     --pod container-jfr \
