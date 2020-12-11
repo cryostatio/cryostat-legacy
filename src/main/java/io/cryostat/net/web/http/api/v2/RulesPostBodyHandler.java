@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Container JFR
+ * %%
+ * Copyright (C) 2020 Red Hat, Inc.
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,72 +37,51 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
-package io.cryostat;
+package io.cryostat.net.web.http.api.v2;
 
-import javax.inject.Singleton;
+import javax.inject.Inject;
 
-import io.cryostat.commands.CommandExecutor;
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.CryostatCore;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.MessagingServer;
-import io.cryostat.net.HttpServer;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.rules.RuleProcessor;
-import io.cryostat.rules.RuleRegistry;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import dagger.Component;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class Cryostat {
+class RulesPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    public static void main(String[] args) throws Exception {
-        CryostatCore.initialize();
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
-        final Logger logger = Logger.INSTANCE;
-        final Environment environment = new Environment();
-
-        logger.trace("env: {}", environment.getEnv().toString());
-
-        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
-
-        Client client = DaggerCryostat_Client.builder().build();
-
-        client.credentialsManager().load();
-        client.ruleRegistry().loadRules();
-        client.ruleProcessor().enable();
-        client.httpServer().start();
-        client.webServer().start();
-        client.messagingServer().start();
-        client.platformClient().start();
-
-        client.commandExecutor().run();
+    @Inject
+    RulesPostBodyHandler(AuthManager auth) {
+        super(auth);
     }
 
-    @Singleton
-    @Component(modules = {MainModule.class})
-    interface Client {
-        CredentialsManager credentialsManager();
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
 
-        RuleRegistry ruleRegistry();
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2;
+    }
 
-        RuleProcessor ruleProcessor();
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
 
-        HttpServer httpServer();
+    @Override
+    public String path() {
+        return basePath() + RulesPostHandler.PATH;
+    }
 
-        WebServer webServer();
-
-        MessagingServer messagingServer();
-
-        PlatformClient platformClient();
-
-        CommandExecutor commandExecutor();
-
-        @Component.Builder
-        interface Builder {
-            Client build();
-        }
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
     }
 }
