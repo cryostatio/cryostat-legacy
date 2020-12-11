@@ -43,7 +43,6 @@ import io.cryostat.commands.CommandExecutor;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
@@ -68,11 +67,6 @@ class Cryostat {
         logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "cryostat"));
 
         Client client = DaggerCryostat_Client.builder().build();
-
-        // FIXME remove this, only here for testing
-        client.credentialsManager()
-                .addCredentials(
-                        "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
 
         // FIXME remove this, only here for testing
         Rule defaultRule =
