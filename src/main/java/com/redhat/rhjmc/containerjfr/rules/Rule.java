@@ -107,7 +107,7 @@ public class Rule {
 
     static String sanitizeRuleName(String name) {
         // FIXME this is not robust
-        return String.format("auto_%s", name.replaceAll("\\s", "_"));
+        return name.replaceAll("\\s", "_");
     }
 
     private static String requireNonBlank(String s, String name) {

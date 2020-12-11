@@ -41,9 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
-import java.io.IOException;
-import java.util.function.Function;
-
 import javax.inject.Inject;
 
 import com.google.gson.Gson;
@@ -54,19 +51,17 @@ import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 import com.redhat.rhjmc.containerjfr.rules.Rule;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
-
-import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 
-class RulesPostHandler extends AbstractV2RequestHandler<String> {
+class RulesGetHandler extends AbstractV2RequestHandler<Rule> {
 
-    static final String PATH = "rules";
+    static final String PATH = "rules/:ruleName";
 
     private final RuleRegistry ruleRegistry;
     private final Logger logger;
 
     @Inject
-    RulesPostHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
+    RulesGetHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
         super(auth, gson);
         this.ruleRegistry = ruleRegistry;
         this.logger = logger;
@@ -84,7 +79,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
+        return HttpMethod.GET;
     }
 
     @Override
@@ -94,67 +89,13 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public HttpMimeType mimeType() {
-        return HttpMimeType.PLAINTEXT;
+        return HttpMimeType.JSON;
     }
 
     @Override
-    public boolean isAsync() {
-        return false;
-    }
-
-    @Override
-    public boolean isOrdered() {
-        return true;
-    }
-
-    @Override
-    public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
-        Rule.Builder builder =
-                new Rule.Builder()
-                        .name(params.getFormAttributes().get("name"))
-                        .targetAlias(params.getFormAttributes().get("targetAlias"))
-                        .description(params.getFormAttributes().get("description"))
-                        .eventSpecifier(params.getFormAttributes().get("eventSpecifier"));
-
-        builder = setOptionalInt(builder, "archivalPeriodSeconds", params);
-        builder = setOptionalInt(builder, "preservedArchives", params);
-        builder = setOptionalInt(builder, "maxAgeSeconds", params);
-        builder = setOptionalInt(builder, "maxSizeBytes", params);
-
-        Rule rule = builder.build();
-
-        try {
-            rule = this.ruleRegistry.addRule(rule);
-        } catch (IOException e) {
-            throw new ApiException(500, "IOException occurred while writing rule definition", e);
-        }
-
-        return new IntermediateResponse<String>().statusCode(201).body(rule.getName());
-    }
-
-    private Rule.Builder setOptionalInt(Rule.Builder builder, String key, RequestParameters params)
-            throws IllegalArgumentException {
-        MultiMap attrs = params.getFormAttributes();
-        if (!attrs.contains(key)) {
-            return builder;
-        }
-        Function<Integer, Rule.Builder> fn;
-        switch (key) {
-            case "archivalPeriodSeconds":
-                fn = builder::archivalPeriodSeconds;
-                break;
-            case "preservedArchives":
-                fn = builder::preservedArchives;
-                break;
-            case "maxAgeSeconds":
-                fn = builder::maxAgeSeconds;
-                break;
-            case "maxSizeBytes":
-                fn = builder::maxSizeBytes;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown key " + key);
-        }
-        return fn.apply(Integer.valueOf(attrs.get(key)));
+    public IntermediateResponse<Rule> handle(RequestParameters params) throws ApiException {
+        String name = params.getPathParams().get("ruleName");
+        return new IntermediateResponse<Rule>()
+                .body(this.ruleRegistry.getRule(name).orElseThrow(() -> new ApiException(404)));
     }
 }
