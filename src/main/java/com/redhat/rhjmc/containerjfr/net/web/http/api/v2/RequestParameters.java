@@ -55,18 +55,22 @@ class RequestParameters {
     private final Map<String, String> pathParams;
     private final MultiMap queryParams;
     private final MultiMap headers;
+    private final MultiMap formAttributes;
     private final Set<FileUpload> fileUploads;
 
     RequestParameters(
             Map<String, String> pathParams,
             MultiMap queryParams,
             MultiMap headers,
+            MultiMap formAttributes,
             Set<FileUpload> fileUploads) {
         this.pathParams = new HashMap<>(pathParams);
         this.queryParams = MultiMap.caseInsensitiveMultiMap();
         this.queryParams.addAll(queryParams);
         this.headers = MultiMap.caseInsensitiveMultiMap();
         this.headers.addAll(headers);
+        this.formAttributes = MultiMap.caseInsensitiveMultiMap();
+        this.formAttributes.addAll(formAttributes);
         this.fileUploads = new HashSet<>(fileUploads);
     }
 
@@ -86,12 +90,17 @@ class RequestParameters {
             headers.addAll(ctx.request().headers());
         }
 
+        MultiMap formAttributes = MultiMap.caseInsensitiveMultiMap();
+        if (ctx != null && ctx.request() != null && ctx.request().formAttributes() != null) {
+            formAttributes.addAll(ctx.request().formAttributes());
+        }
+
         Set<FileUpload> fileUploads = new HashSet<>();
         if (ctx != null && ctx.fileUploads() != null) {
             fileUploads.addAll(ctx.fileUploads());
         }
 
-        return new RequestParameters(pathParams, queryParams, headers, fileUploads);
+        return new RequestParameters(pathParams, queryParams, headers, formAttributes, fileUploads);
     }
 
     Map<String, String> getPathParams() {
@@ -104,6 +113,10 @@ class RequestParameters {
 
     MultiMap getHeaders() {
         return this.headers;
+    }
+
+    MultiMap getFormAttributes() {
+        return this.formAttributes;
     }
 
     Set<FileUpload> getFileUploads() {
