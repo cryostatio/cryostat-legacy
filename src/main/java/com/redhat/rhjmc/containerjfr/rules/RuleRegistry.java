@@ -46,6 +46,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -89,7 +90,7 @@ public class RuleRegistry {
                 .forEach(rules::add);
     }
 
-    public void addRule(Rule rule) throws IOException {
+    public Rule addRule(Rule rule) throws IOException {
         Path destination = rulesDir.resolve(rule.getName() + ".json");
         this.fs.writeString(
                 destination,
@@ -98,6 +99,11 @@ public class RuleRegistry {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
         loadRules();
+        return rule;
+    }
+
+    public Optional<Rule> getRule(String name) {
+        return this.rules.stream().filter(r -> Objects.equals(r.getName(), name)).findFirst();
     }
 
     public Set<Rule> getRules(ServiceRef serviceRef) {
@@ -107,5 +113,45 @@ public class RuleRegistry {
         return rules.stream()
                 .filter(r -> r.getTargetAlias().equals(serviceRef.getAlias().get()))
                 .collect(Collectors.toSet());
+    }
+
+    public void deleteRule(String name) throws IOException {
+        this.rules.removeIf(r -> Objects.equals(r.getName(), name));
+        this.fs.listDirectoryChildren(rulesDir).stream()
+                .filter(s -> Objects.equals(s, name))
+                .map(rulesDir::resolve)
+                .forEach(
+                        path -> {
+                            try {
+                                fs.deleteIfExists(path);
+                            } catch (IOException e) {
+                                logger.warn(e);
+                            }
+                        });
+    }
+
+    public void deleteRules(ServiceRef serviceRef) throws IOException {
+        this.fs.listDirectoryChildren(rulesDir).stream()
+                .map(rulesDir::resolve)
+                .map(
+                        p -> {
+                            try {
+                                return fs.readFile(p);
+                            } catch (IOException e) {
+                                logger.warn(e);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
+                .map(reader -> gson.fromJson(reader, Rule.class))
+                .filter(rule -> Objects.equals(rule.getTargetAlias(), serviceRef.getAlias().get()))
+                .forEach(
+                        rule -> {
+                            try {
+                                deleteRule(rule.getName());
+                            } catch (IOException e) {
+                                logger.warn(e);
+                            }
+                        });
     }
 }
