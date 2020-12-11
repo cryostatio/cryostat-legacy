@@ -110,4 +110,12 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindCredentialsDeleteHandler(CredentialsDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRulesPostHandler(RulesPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRulesPostBodyHandler(RulesPostBodyHandler handler);
 }

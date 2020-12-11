@@ -114,6 +114,8 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         this.tasks.clear();
     }
 
+    // FIXME should the processor should also be able to apply new rules to targets that have
+    // already appeared?
     @Override
     public void accept(TargetDiscoveryEvent tde) {
         if (!EventKind.FOUND.equals(tde.getEventKind())) {
