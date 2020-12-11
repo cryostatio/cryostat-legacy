@@ -47,7 +47,6 @@ import com.redhat.rhjmc.containerjfr.commands.CommandExecutor;
 import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
@@ -71,11 +70,6 @@ class ContainerJfr {
         logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "container-jfr"));
 
         Client client = DaggerContainerJfr_Client.builder().build();
-
-        // FIXME remove this, only here for testing
-        client.credentialsManager()
-                .addCredentials(
-                        "es.andrewazor.demo.Main", new Credentials("admin", "adminpass123"));
 
         // FIXME remove this, only here for testing
         Rule defaultRule =
