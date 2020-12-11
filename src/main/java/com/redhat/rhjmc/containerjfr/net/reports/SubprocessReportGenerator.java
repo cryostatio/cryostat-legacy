@@ -86,7 +86,7 @@ import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.Reco
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
-class SubprocessReportGenerator {
+public class SubprocessReportGenerator {
 
     static final String SUBPROCESS_MAX_HEAP_ENV = "CONTAINER_JFR_REPORT_GENERATION_MAX_HEAP";
     static String ENV_USERNAME = "TARGET_USERNAME";
@@ -388,7 +388,7 @@ class SubprocessReportGenerator {
         throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
     }
 
-    enum ExitStatus {
+    public enum ExitStatus {
         OK(0, ""),
         TARGET_CONNECTION_FAILURE(1, "Connection to target JVM failed."),
         NO_SUCH_RECORDING(2, "No such recording was found."),
@@ -418,15 +418,15 @@ class SubprocessReportGenerator {
         }
     }
 
-    static class ReportGenerationException extends Exception {
+    public static class ReportGenerationException extends Exception {
         private final ExitStatus status;
 
-        ReportGenerationException(ExitStatus status) {
+        public ReportGenerationException(ExitStatus status) {
             super(String.format("[%d] %s", status.code, status.message));
             this.status = status;
         }
 
-        ExitStatus getStatus() {
+        public ExitStatus getStatus() {
             return status;
         }
     }

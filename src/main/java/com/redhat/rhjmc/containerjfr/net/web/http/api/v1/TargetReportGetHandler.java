@@ -53,6 +53,8 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ReportGenerationException;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
@@ -111,7 +113,14 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                                     .get(getConnectionDescriptorFromContext(ctx), recordingName)
                                     .get(TimeoutHandler.TIMEOUT_MS, TimeUnit.MILLISECONDS));
         } catch (CompletionException | ExecutionException ee) {
-            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+
+            Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
+
+            if (rootCause instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, ee);
+            } else if (rootCause instanceof ReportGenerationException
+                    && ((ReportGenerationException) rootCause).getStatus()
+                            == ExitStatus.TARGET_CONNECTION_FAILURE) {
                 throw new HttpStatusException(404, ee);
             }
             throw ee;
