@@ -52,7 +52,6 @@ import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.web.WebServer;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.rules.Rule;
 import com.redhat.rhjmc.containerjfr.rules.RuleProcessor;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
 import dagger.Component;
@@ -70,18 +69,6 @@ class ContainerJfr {
         logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "container-jfr"));
 
         Client client = DaggerContainerJfr_Client.builder().build();
-
-        // FIXME remove this, only here for testing
-        Rule defaultRule =
-                new Rule.Builder()
-                        .name("Default Rule")
-                        .targetAlias("es.andrewazor.demo.Main")
-                        .description("This rule enables the Continuous template by default")
-                        .eventSpecifier("template=Continuous,type=TARGET")
-                        .preservedArchives(3)
-                        .archivalPeriodSeconds(60)
-                        .build();
-        client.ruleRegistry().addRule(defaultRule);
 
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
