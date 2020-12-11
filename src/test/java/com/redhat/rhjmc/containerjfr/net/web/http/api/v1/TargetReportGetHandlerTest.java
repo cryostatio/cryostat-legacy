@@ -47,6 +47,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 
 import org.hamcrest.MatcherAssert;
@@ -63,6 +64,8 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
+import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ReportGenerationException;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
@@ -143,6 +146,35 @@ class TargetReportGetHandlerTest {
 
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+    }
+
+    @Test
+    void shouldRespond404IfTargetNotFound() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
+
+        String targetId = "fooHost:0";
+        String recordingName = "foo";
+        Future<String> content =
+                CompletableFuture.failedFuture(
+                        new ExecutionException(
+                                new ReportGenerationException(
+                                        ExitStatus.TARGET_CONNECTION_FAILURE)));
+        when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
+
+        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

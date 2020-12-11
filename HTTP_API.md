@@ -517,8 +517,7 @@
     `200` - The body is a JSON array of event type objects.
 
     The format for an event type is
-    `{"name":"$NAME","typeId":"$TYPE_ID","description":"$DESCRIPTION",
-    "category":[$CATEGORIES],"options":{$OPTIONS}}`
+    `{"name":"$NAME","typeId":"$TYPE_ID","description":"$DESCRIPTION","category":[$CATEGORIES],"options":{$OPTIONS}}`
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -632,7 +631,7 @@
     100  530k    0  530k    0     0  9303k      0 --:--:-- --:--:-- --:--:-- 9303k
     ```
 
-* ### `TargetRecordingOptionsGetHandler`
+* #### `TargetRecordingOptionsGetHandler`
 
     ###### synopsis
     Returns the default recording options of a target JVM.
@@ -670,7 +669,7 @@
     ```
 
 
-* ### `TargetRecordingOptionsPatchHandler`
+* #### `TargetRecordingOptionsPatchHandler`
 
     ###### synopsis
     Sets the default recording options of a target JVM.
@@ -687,7 +686,7 @@
     `toDisk` - Whether a recording is stored to disk;
     either `true` or `false`.
 
-    **The request must include the following fields:**
+    **The request may include the following fields:**
 
     `maxAge` - The maximum event age of a recording, in seconds.
     A value of zero means there is no maximum event age.

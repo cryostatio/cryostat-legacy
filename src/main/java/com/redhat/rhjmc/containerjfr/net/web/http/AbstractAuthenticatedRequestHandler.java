@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http;
 
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
@@ -94,6 +95,8 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             Throwable rootCause = ExceptionUtils.getRootCause(e);
             if (rootCause instanceof ConnectIOException) {
                 throw new HttpStatusException(502, "Target SSL Untrusted", e);
+            } else if (rootCause instanceof UnknownHostException) {
+                throw new HttpStatusException(404, "Target Not Found", e);
             }
             throw new HttpStatusException(500, e);
         } catch (Exception e) {
