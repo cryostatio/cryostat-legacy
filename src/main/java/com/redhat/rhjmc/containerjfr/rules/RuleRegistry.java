@@ -133,29 +133,4 @@ public class RuleRegistry {
                             }
                         });
     }
-
-    public void deleteRules(ServiceRef serviceRef) throws IOException {
-        this.fs.listDirectoryChildren(rulesDir).stream()
-                .map(rulesDir::resolve)
-                .map(
-                        p -> {
-                            try {
-                                return fs.readFile(p);
-                            } catch (IOException e) {
-                                logger.warn(e);
-                                return null;
-                            }
-                        })
-                .filter(Objects::nonNull)
-                .map(reader -> gson.fromJson(reader, Rule.class))
-                .filter(rule -> Objects.equals(rule.getTargetAlias(), serviceRef.getAlias().get()))
-                .forEach(
-                        rule -> {
-                            try {
-                                deleteRule(rule.getName());
-                            } catch (IOException e) {
-                                logger.warn(e);
-                            }
-                        });
-    }
 }
