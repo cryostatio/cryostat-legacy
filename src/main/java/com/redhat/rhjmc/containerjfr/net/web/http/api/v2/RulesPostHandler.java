@@ -111,7 +111,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
-        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE).split("\\s")[0];
+        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE).split(";")[0];
         HttpMimeType mime = HttpMimeType.fromString(rawMime);
         if (mime == null) {
             throw new ApiException(415, "Bad content type: " + rawMime);
