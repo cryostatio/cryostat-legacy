@@ -53,7 +53,7 @@ import com.redhat.rhjmc.containerjfr.rules.Rule;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
 import io.vertx.core.http.HttpMethod;
 
-class RulesGetHandler extends AbstractV2RequestHandler<Rule> {
+class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
 
     static final String PATH = RulesPostHandler.PATH + "/:ruleName";
 
@@ -61,7 +61,7 @@ class RulesGetHandler extends AbstractV2RequestHandler<Rule> {
     private final Logger logger;
 
     @Inject
-    RulesGetHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
+    RuleGetHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
         super(auth, gson);
         this.ruleRegistry = ruleRegistry;
         this.logger = logger;
