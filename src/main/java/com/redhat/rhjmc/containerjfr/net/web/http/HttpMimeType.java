@@ -46,7 +46,10 @@ public enum HttpMimeType {
     HTML("text/html"),
     JSON("application/json"),
     OCTET_STREAM("application/octet-stream"),
-    JFC("application/jfc+xml");
+    JFC("application/jfc+xml"),
+    MULTIPART_FORM("multipart/form-data"),
+    URLENCODED_FORM("application/x-www-form-urlencoded"),
+    UNKNOWN(null);
 
     private final String mime;
 
@@ -64,5 +67,14 @@ public enum HttpMimeType {
 
     public String subType() {
         return mime().split("/")[1];
+    }
+
+    public static HttpMimeType fromString(String type) {
+        for (HttpMimeType mime : values()) {
+            if (mime.mime().equals(type)) {
+                return mime;
+            }
+        }
+        return UNKNOWN;
     }
 }
