@@ -60,7 +60,8 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
     private final CredentialsManager credentialsManager;
 
     @Inject
-    TargetCredentialsDeleteHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+    TargetCredentialsDeleteHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
     }
