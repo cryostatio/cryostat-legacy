@@ -115,7 +115,8 @@ class TargetEventsSearchGetHandlerTest {
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
-                        Set.of());
+                        Set.of(),
+                        null);
 
         IntermediateResponse<List<SerializableEventTypeInfo>> result = handler.handle(params);
 
@@ -182,7 +183,8 @@ class TargetEventsSearchGetHandlerTest {
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
-                        Set.of());
+                        Set.of(),
+                        null);
         IntermediateResponse<List<SerializableEventTypeInfo>> result = handler.handle(params);
 
         MatcherAssert.assertThat(

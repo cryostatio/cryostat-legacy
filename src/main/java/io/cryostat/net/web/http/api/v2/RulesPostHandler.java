@@ -109,19 +109,29 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
-        Rule.Builder builder =
-                new Rule.Builder()
-                        .name(params.getFormAttributes().get("name"))
-                        .targetAlias(params.getFormAttributes().get("targetAlias"))
-                        .description(params.getFormAttributes().get("description"))
-                        .eventSpecifier(params.getFormAttributes().get("eventSpecifier"));
+        Rule rule;
+        switch (HttpMimeType.fromString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE))) {
+            case MULTIPART_FORM:
+                Rule.Builder builder =
+                        new Rule.Builder()
+                                .name(params.getFormAttributes().get("name"))
+                                .targetAlias(params.getFormAttributes().get("targetAlias"))
+                                .description(params.getFormAttributes().get("description"))
+                                .eventSpecifier(params.getFormAttributes().get("eventSpecifier"));
 
-        builder = setOptionalInt(builder, "archivalPeriodSeconds", params);
-        builder = setOptionalInt(builder, "preservedArchives", params);
-        builder = setOptionalInt(builder, "maxAgeSeconds", params);
-        builder = setOptionalInt(builder, "maxSizeBytes", params);
+                builder = setOptionalInt(builder, "archivalPeriodSeconds", params);
+                builder = setOptionalInt(builder, "preservedArchives", params);
+                builder = setOptionalInt(builder, "maxAgeSeconds", params);
+                builder = setOptionalInt(builder, "maxSizeBytes", params);
 
-        Rule rule = builder.build();
+                rule = builder.build();
+                break;
+            case JSON:
+                rule = gson.fromJson(params.getBody(), Rule.class);
+                break;
+            default:
+                throw new ApiException(415);
+        }
 
         try {
             rule = this.ruleRegistry.addRule(rule);
@@ -131,9 +141,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
         return new IntermediateResponse<String>()
                 .statusCode(201)
-                .addHeader(
-                        HttpHeaders.LOCATION,
-                        RulesGetHandler.PATH.replaceAll(":ruleName", rule.getName()))
+                .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), rule.getName()))
                 .body(rule.getName());
     }
 
