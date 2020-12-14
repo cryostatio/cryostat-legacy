@@ -115,6 +115,10 @@ public class RuleRegistry {
                 .collect(Collectors.toSet());
     }
 
+    public Set<Rule> getRules() {
+        return new HashSet<>(rules);
+    }
+
     public void deleteRule(String name) throws IOException {
         this.rules.removeIf(r -> Objects.equals(r.getName(), name));
         this.fs.listDirectoryChildren(rulesDir).stream()
