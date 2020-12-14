@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -210,7 +211,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                                     "%s:%s",
                                                     credentials.getUsername(),
                                                     credentials.getPassword())
-                                            .getBytes())));
+                                            .getBytes(StandardCharsets.UTF_8))));
         }
 
         CompletableFuture<Boolean> result = new CompletableFuture<>();
