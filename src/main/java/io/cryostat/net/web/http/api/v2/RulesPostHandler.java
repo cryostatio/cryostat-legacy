@@ -55,6 +55,7 @@ import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
 class RulesPostHandler extends AbstractV2RequestHandler<String> {
@@ -128,7 +129,12 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             throw new ApiException(500, "IOException occurred while writing rule definition", e);
         }
 
-        return new IntermediateResponse<String>().statusCode(201).body(rule.getName());
+        return new IntermediateResponse<String>()
+                .statusCode(201)
+                .addHeader(
+                        HttpHeaders.LOCATION,
+                        RulesGetHandler.PATH.replaceAll(":ruleName", rule.getName()))
+                .body(rule.getName());
     }
 
     private Rule.Builder setOptionalInt(Rule.Builder builder, String key, RequestParameters params)
