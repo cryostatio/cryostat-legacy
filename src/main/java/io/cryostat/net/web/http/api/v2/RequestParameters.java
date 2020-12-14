@@ -99,13 +99,13 @@ class RequestParameters {
             fileUploads.addAll(ctx.fileUploads());
         }
 
+        String body = null;
+        if (ctx != null) {
+            body = ctx.getBodyAsString();
+        }
+
         return new RequestParameters(
-                pathParams,
-                queryParams,
-                headers,
-                formAttributes,
-                fileUploads,
-                ctx.getBodyAsString());
+                pathParams, queryParams, headers, formAttributes, fileUploads, body);
     }
 
     Map<String, String> getPathParams() {

@@ -43,6 +43,7 @@ package io.cryostat.rules;
 
 import java.io.IOException;
 import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -138,7 +139,7 @@ class PeriodicArchiver implements Runnable {
                                                     "%s:%s",
                                                     credentials.getUsername(),
                                                     credentials.getPassword())
-                                            .getBytes())));
+                                            .getBytes(StandardCharsets.UTF_8))));
         }
 
         CompletableFuture<String> future = new CompletableFuture<>();
@@ -185,7 +186,7 @@ class PeriodicArchiver implements Runnable {
                                                     "%s:%s",
                                                     credentials.getUsername(),
                                                     credentials.getPassword())
-                                            .getBytes())));
+                                            .getBytes(StandardCharsets.UTF_8))));
         }
 
         CompletableFuture<Boolean> future = new CompletableFuture<>();
