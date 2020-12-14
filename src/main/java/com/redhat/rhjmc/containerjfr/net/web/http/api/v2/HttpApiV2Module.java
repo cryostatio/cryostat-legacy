@@ -121,6 +121,10 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindRuleDeleteHandler(RuleDeleteHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindRulesPostHandler(RulesPostHandler handler);
 
     @Binds
