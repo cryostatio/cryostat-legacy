@@ -254,9 +254,11 @@
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=cryostat-itest</argument>
               <argument>--mount</argument>
-              <argument>type=tmpfs,target=/flightrecordings</argument>
+              <argument>type=tmpfs,target=/var/containerjfr/conf.d</argument>
               <argument>--mount</argument>
-              <argument>type=tmpfs,target=/templates</argument>
+              <argument>type=tmpfs,target=/var/containerjfr/templates.d</argument>
+              <argument>--mount</argument>
+              <argument>type=tmpfs,target=/var/containerjfr/recordings.d</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -272,9 +274,11 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_EXT_WEB_PORT=${cryostat.itest.webPort}</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_ARCHIVE_PATH=/flightrecordings</argument>
+              <argument>CRYOSTAT_CONFIG_PATH=/opt/cryostat.d/conf.d</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_TEMPLATE_PATH=/templates</argument>
+              <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
               <argument>--env</argument>
               <argument>GRAFANA_DATASOURCE_URL=http://abc</argument>
               <argument>--detach</argument>
