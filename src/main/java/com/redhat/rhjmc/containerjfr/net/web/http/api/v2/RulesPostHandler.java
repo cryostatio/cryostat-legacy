@@ -47,7 +47,6 @@ import java.util.function.Function;
 import javax.inject.Inject;
 
 import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
@@ -56,6 +55,7 @@ import com.redhat.rhjmc.containerjfr.rules.Rule;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
 class RulesPostHandler extends AbstractV2RequestHandler<String> {
@@ -129,7 +129,10 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             throw new ApiException(500, "IOException occurred while writing rule definition", e);
         }
 
-        return new IntermediateResponse<String>().statusCode(201).body(rule.getName());
+        return new IntermediateResponse<String>()
+            .statusCode(201)
+            .addHeader(HttpHeaders.LOCATION, RulesGetHandler.PATH.replaceAll(":ruleName", rule.getName()))
+            .body(rule.getName());
     }
 
     private Rule.Builder setOptionalInt(Rule.Builder builder, String key, RequestParameters params)

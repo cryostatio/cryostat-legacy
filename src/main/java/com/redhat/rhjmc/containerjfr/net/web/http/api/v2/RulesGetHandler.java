@@ -55,7 +55,7 @@ import io.vertx.core.http.HttpMethod;
 
 class RulesGetHandler extends AbstractV2RequestHandler<Rule> {
 
-    static final String PATH = "rules/:ruleName";
+    static final String PATH = RulesPostHandler.PATH + "/:ruleName";
 
     private final RuleRegistry ruleRegistry;
     private final Logger logger;
