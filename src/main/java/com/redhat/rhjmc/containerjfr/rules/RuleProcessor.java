@@ -119,6 +119,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     // already appeared?
     @Override
     public void accept(TargetDiscoveryEvent tde) {
+        // FIXME handle target disappearing. Cancel associated PeriodicArchiver, if any.
         if (!EventKind.FOUND.equals(tde.getEventKind())) {
             return;
         }
