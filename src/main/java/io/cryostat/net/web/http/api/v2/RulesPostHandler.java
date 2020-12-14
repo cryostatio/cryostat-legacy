@@ -110,8 +110,15 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
-        switch (HttpMimeType.fromString(params.getHeaders().get(HttpHeaders.CONTENT_TYPE))) {
+        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE).split("\\s")[0];
+        HttpMimeType mime = HttpMimeType.fromString(rawMime);
+        if (mime == null) {
+            throw new ApiException(415, "Bad content type: " + rawMime);
+        }
+        switch (mime) {
+                // TODO test if these both get parsed properly into the FormAttributes
             case MULTIPART_FORM:
+            case URLENCODED_FORM:
                 Rule.Builder builder =
                         new Rule.Builder()
                                 .name(params.getFormAttributes().get("name"))
@@ -130,7 +137,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 rule = gson.fromJson(params.getBody(), Rule.class);
                 break;
             default:
-                throw new ApiException(415);
+                throw new ApiException(415, "Bad content type: " + rawMime);
         }
 
         try {
