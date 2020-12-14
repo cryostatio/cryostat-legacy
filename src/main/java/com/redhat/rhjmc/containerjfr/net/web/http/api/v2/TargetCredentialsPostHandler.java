@@ -41,28 +41,40 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v2;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import javax.inject.Inject;
 
+import org.apache.commons.lang3.StringUtils;
+import com.google.gson.Gson;
+
+import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
-
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
 
-class CredentialsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
-    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
+    static final String PATH = "targets/:targetId/credentials";
+
+    private final CredentialsManager credentialsManager;
+    private final Logger logger;
 
     @Inject
-    CredentialsPostBodyHandler(AuthManager auth) {
-        super(auth);
+    TargetCredentialsPostHandler(
+            AuthManager auth, CredentialsManager credentialsManager, Gson gson, Logger logger) {
+        super(auth, gson);
+        this.credentialsManager = credentialsManager;
+        this.logger = logger;
     }
 
     @Override
-    public int getPriority() {
-        return DEFAULT_PRIORITY - 1;
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
@@ -77,11 +89,51 @@ class CredentialsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return basePath() + CredentialsPostHandler.PATH;
+        return basePath() + PATH;
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        BODY_HANDLER.handle(ctx);
+    public HttpMimeType mimeType() {
+        return HttpMimeType.PLAINTEXT;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
+    public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
+        String targetId = params.getPathParams().get("targetId");
+        String username;
+        String password;
+        try {
+            username =
+                    Objects.requireNonNull(
+                            params.getFormAttributes().get("username"), "Username is required");
+            password =
+                    Objects.requireNonNull(
+                            params.getFormAttributes().get("password"), "Password is required");
+        } catch (NullPointerException npe) {
+            throw new ApiException(400, npe.getMessage(), npe);
+        }
+        boolean persist =
+                Boolean.valueOf(
+                        StringUtils.defaultString(
+                                params.getFormAttributes().get("persist"), "false"));
+
+        try {
+            this.credentialsManager.addCredentials(
+                    targetId, new Credentials(username, password), persist);
+        } catch (IOException e) {
+            throw new ApiException(500, "IOException occurred while persisting credentials", e);
+        }
+
+        return new IntermediateResponse<Void>().body(null);
     }
 }
