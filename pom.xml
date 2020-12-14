@@ -260,9 +260,11 @@
               <argument>--pod=${containerjfr.itest.podName}</argument>
               <argument>--name=container-jfr-itest</argument>
               <argument>--mount</argument>
-              <argument>type=tmpfs,target=/flightrecordings</argument>
+              <argument>type=tmpfs,target=/var/containerjfr/conf.d</argument>
               <argument>--mount</argument>
-              <argument>type=tmpfs,target=/templates</argument>
+              <argument>type=tmpfs,target=/var/containerjfr/templates.d</argument>
+              <argument>--mount</argument>
+              <argument>type=tmpfs,target=/var/containerjfr/recordings.d</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -278,9 +280,11 @@
               <argument>--env</argument>
               <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_ARCHIVE_PATH=/flightrecordings</argument>
+              <argument>CONTAINER_JFR_CONFIG_PATH=/var/containerjfr/conf.d</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_TEMPLATE_PATH=/templates</argument>
+              <argument>CONTAINER_JFR_ARCHIVE_PATH=/var/containerjfr/recordings.d</argument>
+              <argument>--env</argument>
+              <argument>CONTAINER_JFR_TEMPLATE_PATH=/var/containerjfr/templates.d</argument>
               <argument>--env</argument>
               <argument>GRAFANA_DATASOURCE_URL=http://abc</argument>
               <argument>--detach</argument>
