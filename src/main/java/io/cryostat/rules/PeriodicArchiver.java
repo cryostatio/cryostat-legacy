@@ -96,7 +96,8 @@ class PeriodicArchiver implements Runnable {
 
     @Override
     public void run() {
-        logger.trace(String.format("PeriodicArchiver for %s running", rule.getName()));
+        // FIXME auto_ prefix should not be hardcoded
+        logger.trace(String.format("PeriodicArchiver for %s running", "auto_" + rule.getName()));
 
         try {
             performArchival();
@@ -126,7 +127,9 @@ class PeriodicArchiver implements Runnable {
                                                         serviceRef.getJMXServiceUrl().toString()))
                                         .replaceAll(
                                                 ":recordingName",
-                                                URLEncodedUtils.formatSegments(rule.getName())))
+                                                // FIXME auto_ prefix should not be hardcoded
+                                                URLEncodedUtils.formatSegments(
+                                                        "auto_" + rule.getName())))
                         .normalize();
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (credentials != null) {
