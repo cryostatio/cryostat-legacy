@@ -41,6 +41,8 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
@@ -53,15 +55,15 @@ import io.cryostat.rules.RuleRegistry;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
-class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
+class RulesGetHandler extends AbstractV2RequestHandler<Set<Rule>> {
 
-    static final String PATH = RulesPostHandler.PATH + "/:ruleName";
+    static final String PATH = RulesPostHandler.PATH;
 
     private final RuleRegistry ruleRegistry;
     private final Logger logger;
 
     @Inject
-    RuleGetHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
+    RulesGetHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
         super(auth, gson);
         this.ruleRegistry = ruleRegistry;
         this.logger = logger;
@@ -93,9 +95,7 @@ class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
     }
 
     @Override
-    public IntermediateResponse<Rule> handle(RequestParameters params) throws ApiException {
-        String name = params.getPathParams().get("ruleName");
-        return new IntermediateResponse<Rule>()
-                .body(this.ruleRegistry.getRule(name).orElseThrow(() -> new ApiException(404)));
+    public IntermediateResponse<Set<Rule>> handle(RequestParameters params) throws ApiException {
+        return new IntermediateResponse<Set<Rule>>().body(this.ruleRegistry.getRules());
     }
 }
