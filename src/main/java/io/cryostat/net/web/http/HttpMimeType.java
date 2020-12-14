@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http;
 
+import java.util.EnumSet;
+
 public enum HttpMimeType {
     PLAINTEXT("text/plain"),
     HTML("text/html"),
@@ -66,7 +68,7 @@ public enum HttpMimeType {
     }
 
     public static HttpMimeType fromString(String type) {
-        for (HttpMimeType mime : values()) {
+        for (HttpMimeType mime : EnumSet.complementOf(EnumSet.of(UNKNOWN))) {
             if (mime.mime().equals(type)) {
                 return mime;
             }
