@@ -53,14 +53,14 @@ import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpMethod;
 
-class CredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
+class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
 
-    static final String PATH = CredentialsPostHandler.PATH;
+    static final String PATH = TargetCredentialsPostHandler.PATH;
 
     private final CredentialsManager credentialsManager;
 
     @Inject
-    CredentialsDeleteHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
+    TargetCredentialsDeleteHandler(AuthManager auth, CredentialsManager credentialsManager, Gson gson) {
         super(auth, gson);
         this.credentialsManager = credentialsManager;
     }
