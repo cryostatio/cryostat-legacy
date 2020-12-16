@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.reports;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
@@ -102,11 +104,27 @@ public abstract class ReportsModule {
     static SubprocessReportGenerator provideSubprocessReportGenerator(
             Environment env,
             FileSystem fs,
+            TargetConnectionManager targetConnectionManager,
             Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilder,
             Logger logger) {
+        Provider<Path> tempFileProvider =
+                () -> {
+                    try {
+                        return Files.createTempFile(null, null);
+                    } catch (IOException e) {
+                        logger.error(e);
+                        throw new RuntimeException(e);
+                    }
+                };
         return new SubprocessReportGenerator(
-                env, fs, reportTransformers, javaProcessBuilder, logger);
+                env,
+                fs,
+                targetConnectionManager,
+                reportTransformers,
+                javaProcessBuilder,
+                tempFileProvider,
+                logger);
     }
 
     @Provides

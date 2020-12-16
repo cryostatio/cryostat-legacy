@@ -45,11 +45,12 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+
+import javax.inject.Provider;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -68,6 +69,7 @@ import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ExitStatus;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
@@ -77,11 +79,15 @@ class SubprocessReportGeneratorTest {
 
     @Mock Environment env;
     @Mock FileSystem fs;
+    @Mock TargetConnectionManager targetConnectionManager;
     @Mock JavaProcess.Builder javaProcessBuilder;
     @Mock Logger logger;
     @Mock Process proc;
     ConnectionDescriptor connectionDescriptor;
     RecordingDescriptor recordingDescriptor;
+    @Mock Path recordingFile;
+    @Mock Path tempFile;
+    Provider<Path> tempFileProvider;
     SubprocessReportGenerator generator;
 
     @BeforeEach
@@ -89,6 +95,12 @@ class SubprocessReportGeneratorTest {
         connectionDescriptor =
                 new ConnectionDescriptor("fooHost:1234", new Credentials("someUser", "somePass"));
         recordingDescriptor = new RecordingDescriptor(connectionDescriptor, "testRecording");
+
+        tempFileProvider = () -> tempFile;
+        Mockito.lenient().when(tempFile.toAbsolutePath()).thenReturn(tempFile);
+        Mockito.lenient().when(tempFile.toString()).thenReturn("/dest/serializedtransformers.tmp");
+        Mockito.lenient().when(recordingFile.toAbsolutePath()).thenReturn(recordingFile);
+        Mockito.lenient().when(recordingFile.toString()).thenReturn("/dest/recording.tmp");
 
         Mockito.lenient()
                 .when(javaProcessBuilder.env(Mockito.anyMap()))
@@ -110,13 +122,15 @@ class SubprocessReportGeneratorTest {
                 new SubprocessReportGenerator(
                         env,
                         fs,
+                        targetConnectionManager,
                         Set.of(new TestReportTransformer()),
                         () -> javaProcessBuilder,
+                        tempFileProvider,
                         logger);
     }
 
     @Test
-    void shouldThrowIfRecordingDescriptorIsNull() {
+    void shouldThrowIfRecordingPathIsNull() {
         Assertions.assertThrows(
                 IllegalArgumentException.class,
                 () -> generator.exec(null, Mockito.mock(Path.class), Duration.ofSeconds(10)));
@@ -126,7 +140,7 @@ class SubprocessReportGeneratorTest {
     void shouldThrowIfDestinationFileIsNull() {
         Assertions.assertThrows(
                 IllegalArgumentException.class,
-                () -> generator.exec(recordingDescriptor, null, Duration.ofSeconds(10)));
+                () -> generator.exec(recordingFile, null, Duration.ofSeconds(10)));
     }
 
     @Test
@@ -135,7 +149,7 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingDescriptor, dest, Duration.ofSeconds(10));
+        generator.exec(recordingFile, dest, Duration.ofSeconds(10));
 
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
         Mockito.verify(fs)
@@ -157,29 +171,9 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingDescriptor, dest, Duration.ofSeconds(10));
+        generator.exec(recordingFile, dest, Duration.ofSeconds(10));
 
         Mockito.verify(javaProcessBuilder).klazz(SubprocessReportGenerator.class);
-    }
-
-    @Test
-    void shouldSetEnvVarsForCredentials() throws Exception {
-        Path dest = Mockito.mock(Path.class);
-        Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
-        Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
-
-        generator.exec(recordingDescriptor, dest, Duration.ofSeconds(10));
-
-        ArgumentCaptor<Map<String, String>> captor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(javaProcessBuilder).env(captor.capture());
-        MatcherAssert.assertThat(
-                captor.getValue(),
-                Matchers.equalTo(
-                        Map.of(
-                                SubprocessReportGenerator.ENV_USERNAME,
-                                "someUser",
-                                SubprocessReportGenerator.ENV_PASSWORD,
-                                "somePass")));
     }
 
     @Test
@@ -188,10 +182,7 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        Mockito.when(env.getEnv("SSL_TRUSTSTORE")).thenReturn("/some/truststore.p12");
-        Mockito.when(env.getEnv("SSL_TRUSTSTORE_PASS")).thenReturn("THEPASSWORD");
-
-        generator.exec(recordingDescriptor, dest, Duration.ofSeconds(10));
+        generator.exec(recordingFile, dest, Duration.ofSeconds(10));
 
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).jvmArgs(captor.capture());
@@ -202,9 +193,7 @@ class SubprocessReportGeneratorTest {
                         "-XX:+ExitOnOutOfMemoryError",
                         "-XX:+UnlockExperimentalVMOptions",
                         "-XX:+UseEpsilonGC",
-                        "-XX:+AlwaysPreTouch",
-                        "-Djavax.net.ssl.trustStore=/some/truststore.p12",
-                        "-Djavax.net.ssl.trustStorePassword=THEPASSWORD");
+                        "-XX:+AlwaysPreTouch");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
     }
 
@@ -214,12 +203,12 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
 
-        generator.exec(recordingDescriptor, dest, Duration.ofSeconds(10));
+        generator.exec(recordingFile, dest, Duration.ofSeconds(10));
 
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).processArgs(captor.capture());
 
-        List<String> expected = List.of("fooHost:1234", "testRecording", "/dest/somefile.tmp");
+        List<String> expected = List.of("/dest/recording.tmp", "/dest/somefile.tmp");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
     }
 
@@ -233,8 +222,7 @@ class SubprocessReportGeneratorTest {
         Assertions.assertTimeoutPreemptively(
                 Duration.ofSeconds(2),
                 () -> {
-                    Future<Path> path =
-                            generator.exec(recordingDescriptor, dest, Duration.ofSeconds(10));
+                    Future<Path> path = generator.exec(recordingFile, dest, Duration.ofSeconds(10));
                     MatcherAssert.assertThat(path.get(), Matchers.sameInstance(dest));
                 });
     }
@@ -256,14 +244,14 @@ class SubprocessReportGeneratorTest {
                                     () ->
                                             generator
                                                     .exec(
-                                                            recordingDescriptor,
+                                                            recordingFile,
                                                             dest,
                                                             Duration.ofSeconds(10))
                                                     .get());
                     MatcherAssert.assertThat(
                             ex.getMessage(),
                             Matchers.containsString(
-                                    "Recording testRecording not found in target fooHost:1234"));
+                                    "Recording /dest/recording.tmp not found in target archives"));
                 });
     }
 

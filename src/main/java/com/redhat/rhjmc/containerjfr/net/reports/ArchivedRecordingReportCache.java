@@ -54,8 +54,6 @@ import javax.inject.Provider;
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
-import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.web.WebModule;
 import com.redhat.rhjmc.containerjfr.net.web.http.generic.TimeoutHandler;
@@ -109,15 +107,12 @@ class ArchivedRecordingReportCache {
                                         String.format(
                                                 "Archived report cache miss for %s",
                                                 recordingName));
-                                ConnectionDescriptor cd =
-                                        new ConnectionDescriptor(recording.toUri().toString());
-                                RecordingDescriptor rd = new RecordingDescriptor(cd, "");
                                 try {
                                     Path saveFile =
                                             subprocessReportGeneratorProvider
                                                     .get()
                                                     .exec(
-                                                            rd,
+                                                            recording,
                                                             dest,
                                                             Duration.ofMillis(
                                                                     TimeoutHandler.TIMEOUT_MS))

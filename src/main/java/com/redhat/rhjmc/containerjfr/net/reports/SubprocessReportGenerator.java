@@ -41,13 +41,9 @@
  */
 package com.redhat.rhjmc.containerjfr.net.reports;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.net.URI;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -57,7 +53,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
@@ -73,9 +68,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportGenerator;
 import com.redhat.rhjmc.containerjfr.core.reports.ReportTransformer;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -94,36 +87,42 @@ public class SubprocessReportGenerator {
 
     private final Environment env;
     private final FileSystem fs;
+    private final TargetConnectionManager targetConnectionManager;
     private final Set<ReportTransformer> reportTransformers;
     private final Provider<JavaProcess.Builder> javaProcessBuilderProvider;
+    // FIXME extract TempFileProvider to FileSystem
+    private final Provider<Path> tempFileProvider;
     private final Logger logger;
 
     SubprocessReportGenerator(
             Environment env,
             FileSystem fs,
+            TargetConnectionManager targetConnectionManager,
             Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilderProvider,
+            Provider<Path> tempFileProvider,
             Logger logger) {
         this.env = env;
         this.fs = fs;
+        this.targetConnectionManager = targetConnectionManager;
         this.reportTransformers = reportTransformers;
         this.javaProcessBuilderProvider = javaProcessBuilderProvider;
+        this.tempFileProvider = tempFileProvider;
         this.logger = logger;
     }
 
-    Future<Path> exec(
-            RecordingDescriptor recordingDescriptor, Path destinationFile, Duration timeout)
+    CompletableFuture<Path> exec(Path recording, Path saveFile, Duration timeout)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
-        if (recordingDescriptor == null) {
+        if (recording == null) {
             throw new IllegalArgumentException("Recording may not be null");
         }
-        if (destinationFile == null) {
+        if (saveFile == null) {
             throw new IllegalArgumentException("Destination may not be null");
         }
         fs.writeString(
-                destinationFile,
+                saveFile,
                 serializeTransformersSet(),
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING,
@@ -133,7 +132,6 @@ public class SubprocessReportGenerator {
                 javaProcessBuilderProvider
                         .get()
                         .klazz(SubprocessReportGenerator.class)
-                        .env(createEnv(recordingDescriptor.connectionDescriptor))
                         // FIXME the heap size should be determined by some heuristics if not
                         // defined in env.
                         // See https://github.com/rh-jmc-team/container-jfr/issues/287
@@ -141,7 +139,7 @@ public class SubprocessReportGenerator {
                                 createJvmArgs(
                                         Integer.parseInt(
                                                 env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "200"))))
-                        .processArgs(createProcessArgs(recordingDescriptor, destinationFile))
+                        .processArgs(createProcessArgs(recording, saveFile))
                         .exec();
         return CompletableFuture.supplyAsync(
                 () -> {
@@ -150,11 +148,10 @@ public class SubprocessReportGenerator {
                         ExitStatus status = ExitStatus.byExitCode(proc.exitValue());
                         switch (status) {
                             case OK:
-                                return destinationFile;
+                                return saveFile;
                             case NO_SUCH_RECORDING:
                                 throw new RecordingNotFoundException(
-                                        recordingDescriptor.connectionDescriptor.getTargetId(),
-                                        recordingDescriptor.recordingName);
+                                        "archives", recording.toString());
                             default:
                                 throw new ReportGenerationException(status);
                         }
@@ -173,30 +170,41 @@ public class SubprocessReportGenerator {
                 });
     }
 
-    Future<Path> exec(RecordingDescriptor recordingDescriptor, Duration timeout)
-            throws NoSuchMethodException, SecurityException, IllegalAccessException,
-                    IllegalArgumentException, InvocationTargetException, IOException,
-                    InterruptedException, ReportGenerationException {
+    Future<Path> exec(RecordingDescriptor recordingDescriptor, Duration timeout) throws Exception {
         // TODO add a FileSystem abstraction around Files.createTemp*
-        return exec(recordingDescriptor, Files.createTempFile(null, null), timeout);
+        Path recording =
+                getRecordingFromLiveTarget(
+                        recordingDescriptor.recordingName,
+                        recordingDescriptor.connectionDescriptor);
+        CompletableFuture<Path> cf = exec(recording, tempFileProvider.get(), timeout);
+        cf.whenCompleteAsync(
+                (p, t) -> {
+                    try {
+                        fs.deleteIfExists(p);
+                    } catch (IOException e) {
+                        logger.warn(e);
+                    }
+                });
+        return cf;
     }
 
-    private Map<String, String> createEnv(ConnectionDescriptor connectionDescriptor)
-            throws NoSuchMethodException, SecurityException, IllegalAccessException,
-                    IllegalArgumentException, InvocationTargetException {
-        if (connectionDescriptor.getCredentials().isEmpty()) {
-            return Collections.emptyMap();
-        }
-        // FIXME don't use reflection for this
-        Credentials c = connectionDescriptor.getCredentials().get();
-        Method mtdUsername = c.getClass().getDeclaredMethod("getUsername");
-        mtdUsername.trySetAccessible();
-        Method mtdPassword = c.getClass().getDeclaredMethod("getPassword");
-        mtdPassword.trySetAccessible();
+    Path getRecordingFromLiveTarget(String recordingName, ConnectionDescriptor cd)
+            throws Exception {
+        return this.targetConnectionManager.executeConnectedTask(
+                cd, conn -> copyRecordingToFile(conn, recordingName, tempFileProvider.get()));
+    }
 
-        String username = (String) mtdUsername.invoke(c);
-        String password = (String) mtdPassword.invoke(c);
-        return Map.of(ENV_USERNAME, username, ENV_PASSWORD, password);
+    Path copyRecordingToFile(JFRConnection conn, String recordingName, Path path) throws Exception {
+        for (IRecordingDescriptor rec : conn.getService().getAvailableRecordings()) {
+            if (!Objects.equals(rec.getName(), recordingName)) {
+                continue;
+            }
+            try (InputStream stream = conn.getService().openStream(rec, false)) {
+                this.fs.copy(stream, path, StandardCopyOption.REPLACE_EXISTING);
+                return path;
+            }
+        }
+        throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
     }
 
     private List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
@@ -211,17 +219,11 @@ public class SubprocessReportGenerator {
                 // quickly, or if we're running up against the memory limit, fail early
                 "-XX:+UnlockExperimentalVMOptions",
                 "-XX:+UseEpsilonGC",
-                "-XX:+AlwaysPreTouch",
-                // reuse same truststore as parent process
-                "-Djavax.net.ssl.trustStore=" + env.getEnv("SSL_TRUSTSTORE"),
-                "-Djavax.net.ssl.trustStorePassword=" + env.getEnv("SSL_TRUSTSTORE_PASS"));
+                "-XX:+AlwaysPreTouch");
     }
 
-    private List<String> createProcessArgs(RecordingDescriptor recordingDescriptor, Path saveFile) {
-        return List.of(
-                recordingDescriptor.connectionDescriptor.getTargetId(),
-                recordingDescriptor.recordingName,
-                saveFile.toAbsolutePath().toString());
+    private List<String> createProcessArgs(Path recording, Path saveFile) {
+        return List.of(recording.toAbsolutePath().toString(), saveFile.toAbsolutePath().toString());
     }
 
     private String serializeTransformersSet() {
@@ -286,32 +288,22 @@ public class SubprocessReportGenerator {
             System.exit(ExitStatus.OTHER.code);
         }
 
-        if (args.length != 3) {
+        if (args.length != 2) {
             throw new IllegalArgumentException(Arrays.asList(args).toString());
         }
-        var targetId = args[0];
-        var recordingName = args[1];
-        var saveFile = Paths.get(args[2]);
-
-        var env = new Environment();
-        String username = env.getEnv(ENV_USERNAME);
-        String password = env.getEnv(ENV_PASSWORD);
-
-        ConnectionDescriptor cd;
-        if (username == null) {
-            cd = new ConnectionDescriptor(targetId);
-        } else {
-            cd = new ConnectionDescriptor(targetId, new Credentials(username, password));
+        var recording = Paths.get(args[0]);
+        Set<ReportTransformer> transformers = Collections.emptySet();
+        var saveFile = Paths.get(args[1]);
+        try {
+            transformers = deserializeTransformers(fs.readString(saveFile));
+        } catch (Exception e) {
+            Logger.INSTANCE.error(e);
+            System.exit(ExitStatus.OTHER.code);
         }
+
         try {
             Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
-            String report;
-            URI uri = new URI(targetId);
-            if ("file".equals(uri.getScheme())) {
-                report = getReportFromArchivedRecording(Paths.get(uri.getPath()), saveFile);
-            } else {
-                report = getReportFromLiveTarget(recordingName, cd, saveFile);
-            }
+            String report = generateReportFromFile(recording, transformers);
             Logger.INSTANCE.info(
                     SubprocessReportGenerator.class.getName() + " writing report to file");
 
@@ -335,57 +327,18 @@ public class SubprocessReportGenerator {
         }
     }
 
-    static String getReportFromArchivedRecording(Path recording, Path saveFile) throws Exception {
+    static String generateReportFromFile(Path recording, Set<ReportTransformer> transformers)
+            throws Exception {
         var fs = new FileSystem();
         if (!fs.isRegularFile(recording)) {
             throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
         try (InputStream stream = fs.newInputStream(recording)) {
-            var transformers = deserializeTransformers(fs.readString(saveFile));
             return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new ReportGenerationException(ExitStatus.IO_EXCEPTION);
         }
-    }
-
-    static String getReportFromLiveTarget(
-            String recordingName, ConnectionDescriptor cd, Path saveFile) throws Exception {
-        var fs = new FileSystem();
-
-        var transformers = deserializeTransformers(fs.readString(saveFile));
-
-        var tk = new JFRConnectionToolkit(Logger.INSTANCE::info, fs, new Environment());
-        Path path =
-                new TargetConnectionManager(Logger.INSTANCE, () -> tk)
-                        .executeConnectedTask(
-                                cd,
-                                conn -> {
-                                    try {
-                                        return copyRecordingToFile(conn, recordingName, saveFile);
-                                    } catch (ReportGenerationException rge) {
-                                        System.exit(ExitStatus.NO_SUCH_RECORDING.code);
-                                        throw rge;
-                                    }
-                                });
-
-        try (InputStream stream = new BufferedInputStream(fs.newInputStream(path))) {
-            return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
-        }
-    }
-
-    static Path copyRecordingToFile(JFRConnection conn, String recordingName, Path path)
-            throws Exception {
-        for (IRecordingDescriptor rec : conn.getService().getAvailableRecordings()) {
-            if (!Objects.equals(rec.getName(), recordingName)) {
-                continue;
-            }
-            try (InputStream stream = conn.getService().openStream(rec, false)) {
-                Files.copy(stream, path, StandardCopyOption.REPLACE_EXISTING);
-                return path;
-            }
-        }
-        throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
     }
 
     public enum ExitStatus {
