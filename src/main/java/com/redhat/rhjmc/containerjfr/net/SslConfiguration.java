@@ -89,7 +89,8 @@ class SslConfiguration {
                 strategy = new KeyCertStrategy(key, cert);
                 logger.info(
                         "Selected SSL KeyCert strategy with key {} and cert {}",
-                        key.toString(), cert.toString());
+                        key.toString(),
+                        cert.toString());
                 return;
             }
         }

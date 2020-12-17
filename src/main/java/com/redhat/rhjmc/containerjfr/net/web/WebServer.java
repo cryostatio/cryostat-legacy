@@ -195,9 +195,7 @@ public class WebServer {
                     }
                     route = route.failureHandler(failureHandler);
                     if (!handler.isAvailable()) {
-                        logger.trace(
-                                String.format(
-                                        "%s handler disabled", handler.getClass().getSimpleName()));
+                        logger.trace("{} handler disabled", handler.getClass().getSimpleName());
                         route = route.disable();
                     }
                 });

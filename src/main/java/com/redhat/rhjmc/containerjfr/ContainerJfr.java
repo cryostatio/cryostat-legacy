@@ -60,7 +60,7 @@ class ContainerJfr {
         final Logger logger = Logger.INSTANCE;
         final Environment environment = new Environment();
 
-        logger.trace(String.format("env: %s", environment.getEnv().toString()));
+        logger.trace("env: {}", environment.getEnv().toString());
 
         logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "container-jfr"));
 
