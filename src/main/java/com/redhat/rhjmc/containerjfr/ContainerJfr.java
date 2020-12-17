@@ -62,10 +62,7 @@ class ContainerJfr {
 
         logger.trace(String.format("env: %s", environment.getEnv().toString()));
 
-        logger.info(
-                String.format(
-                        "%s started.",
-                        System.getProperty("java.rmi.server.hostname", "container-jfr")));
+        logger.info("{} started.", System.getProperty("java.rmi.server.hostname", "container-jfr"));
 
         Client client = DaggerContainerJfr_Client.builder().build();
 

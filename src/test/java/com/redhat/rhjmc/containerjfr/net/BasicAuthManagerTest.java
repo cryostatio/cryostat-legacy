@@ -83,7 +83,8 @@ class BasicAuthManagerTest {
             mgr.loadConfig();
 
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            Mockito.verify(logger).warn(messageCaptor.capture());
+            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
+            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
             MatcherAssert.assertThat(
                     messageCaptor.getValue(),
                     Matchers.stringContainsInOrder("User properties file", "does not exist"));
@@ -103,7 +104,8 @@ class BasicAuthManagerTest {
             mgr.loadConfig();
 
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            Mockito.verify(logger).warn(messageCaptor.capture());
+            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
+            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
             MatcherAssert.assertThat(
                     messageCaptor.getValue(),
                     Matchers.stringContainsInOrder("User properties path", "is not a file"));
@@ -124,7 +126,8 @@ class BasicAuthManagerTest {
             mgr.loadConfig();
 
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            Mockito.verify(logger).warn(messageCaptor.capture());
+            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
+            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
             MatcherAssert.assertThat(
                     messageCaptor.getValue(),
                     Matchers.stringContainsInOrder("User properties file", "is not readable"));
@@ -156,7 +159,8 @@ class BasicAuthManagerTest {
         void shouldFailAuthenticationWhenCredentialsMalformed() throws Exception {
             Assertions.assertFalse(mgr.validateToken(() -> "user").get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            Mockito.verify(logger).warn(messageCaptor.capture());
+            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
+            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
             MatcherAssert.assertThat(
                     messageCaptor.getValue(),
                     Matchers.stringContainsInOrder("User properties file", "does not exist"));
@@ -166,7 +170,8 @@ class BasicAuthManagerTest {
         void shouldFailAuthenticationWhenNoMatchFound() throws Exception {
             Assertions.assertFalse(mgr.validateToken(() -> "user:pass").get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-            Mockito.verify(logger).warn(messageCaptor.capture());
+            ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
+            Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
             MatcherAssert.assertThat(
                     messageCaptor.getValue(),
                     Matchers.stringContainsInOrder("User properties file", "does not exist"));
