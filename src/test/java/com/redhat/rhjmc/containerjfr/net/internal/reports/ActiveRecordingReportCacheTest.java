@@ -87,10 +87,18 @@ class ActiveRecordingReportCacheTest {
     @Mock JavaProcess.Builder javaProcessBuilder;
     Provider<JavaProcess.Builder> javaProcessBuilderProvider = () -> javaProcessBuilder;
     final String report = "<html><body><p>This is a report</p></body></html>";
+    Provider<Path> tempFileProvider = () -> destinationFile;
 
     class TestSubprocessReportGenerator extends SubprocessReportGenerator {
         TestSubprocessReportGenerator(FileSystem fs, Set<ReportTransformer> reportTransformers) {
-            super(env, fs, reportTransformers, javaProcessBuilderProvider, logger);
+            super(
+                    env,
+                    fs,
+                    targetConnectionManager,
+                    reportTransformers,
+                    javaProcessBuilderProvider,
+                    tempFileProvider,
+                    logger);
         }
     }
 
