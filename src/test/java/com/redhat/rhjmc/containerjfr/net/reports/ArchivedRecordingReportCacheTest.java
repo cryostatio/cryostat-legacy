@@ -42,10 +42,10 @@
 package com.redhat.rhjmc.containerjfr.net.reports;
 
 import java.io.IOException;
-import java.net.URI;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -66,7 +66,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ExitStatus;
 import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ReportGenerationException;
 
@@ -76,7 +75,7 @@ class ArchivedRecordingReportCacheTest {
     ArchivedRecordingReportCache cache;
     @Mock Path savedRecordingsPath;
     @Mock Path webServerTempPath;
-    @Mock Future<Path> pathFuture;
+    @Mock CompletableFuture<Path> pathFuture;
     @Mock Path destinationFile;
     @Mock FileSystem fs;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
@@ -141,9 +140,6 @@ class ArchivedRecordingReportCacheTest {
     void getShouldGenerateAndCacheReport() throws Exception {
         Path recording = Mockito.mock(Path.class);
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(recording);
-        URI fileUri = Mockito.mock(URI.class);
-        Mockito.when(recording.toUri()).thenReturn(fileUri);
-        Mockito.when(fileUri.toString()).thenReturn("file:///some/path/file.jfr");
         Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
@@ -153,7 +149,7 @@ class ArchivedRecordingReportCacheTest {
         Mockito.when(pathFuture.get()).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Path.class),
                                 Mockito.any(Path.class),
                                 Mockito.any(Duration.class)))
                 .thenReturn(pathFuture);
@@ -189,9 +185,6 @@ class ArchivedRecordingReportCacheTest {
     void shouldThrowErrorIfReportGenerationFails() throws Exception {
         Path recording = Mockito.mock(Path.class);
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(recording);
-        URI fileUri = Mockito.mock(URI.class);
-        Mockito.when(recording.toUri()).thenReturn(fileUri);
-        Mockito.when(fileUri.toString()).thenReturn("file:///some/path/file.jfr");
         Mockito.when(webServerTempPath.resolve(Mockito.anyString())).thenReturn(destinationFile);
         Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
@@ -200,7 +193,7 @@ class ArchivedRecordingReportCacheTest {
 
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(RecordingDescriptor.class),
+                                Mockito.any(Path.class),
                                 Mockito.any(Path.class),
                                 Mockito.any(Duration.class)))
                 .thenThrow(
