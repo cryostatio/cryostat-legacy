@@ -124,7 +124,7 @@ public abstract class MainModule {
     @Named(RECORDINGS_PATH)
     static Path provideSavedRecordingsPath(Logger logger, Environment env) {
         String ARCHIVE_PATH = env.getEnv("CONTAINER_JFR_ARCHIVE_PATH", "/flightrecordings");
-        logger.info(String.format("Local save path for flight recordings set as %s", ARCHIVE_PATH));
+        logger.info("Local save path for flight recordings set as {}", ARCHIVE_PATH);
         return Paths.get(ARCHIVE_PATH);
     }
 }

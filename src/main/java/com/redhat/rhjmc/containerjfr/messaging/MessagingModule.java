@@ -112,17 +112,11 @@ public abstract class MessagingModule {
                                     MAX_CONNECTIONS_ENV_VAR,
                                     String.valueOf(DEFAULT_MAX_CONNECTIONS)));
             if (maxConn > MAX_CONNECTIONS) {
-                logger.info(
-                        String.format(
-                                "Requested maximum WebSocket connections %d is too large.",
-                                maxConn));
+                logger.info("Requested maximum WebSocket connections {} is too large.", maxConn);
                 return MAX_CONNECTIONS;
             }
             if (maxConn < MIN_CONNECTIONS) {
-                logger.info(
-                        String.format(
-                                "Requested maximum WebSocket connections %d is too small.",
-                                maxConn));
+                logger.info("Requested maximum WebSocket connections {} is too small.", maxConn);
                 return MIN_CONNECTIONS;
             }
             return maxConn;

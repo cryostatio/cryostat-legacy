@@ -195,8 +195,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                     HttpMimeType.JSON.mime())
                                             .end(gson.toJson(Map.of("name", res2.result())));
 
-                                    logger.info(
-                                            String.format("Recording saved as %s", res2.result()));
+                                    logger.info("Recording saved as {}", res2.result());
                                 }));
     }
 
