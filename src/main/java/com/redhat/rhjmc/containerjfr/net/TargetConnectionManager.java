@@ -43,6 +43,7 @@ package com.redhat.rhjmc.containerjfr.net;
 
 import java.net.MalformedURLException;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -125,6 +126,7 @@ public class TargetConnectionManager {
     private JFRConnection attemptConnectAsJMXServiceURL(ConnectionDescriptor connectionDescriptor)
             throws Exception {
         return connect(
+                connectionDescriptor,
                 new JMXServiceURL(connectionDescriptor.getTargetId()),
                 connectionDescriptor.getCredentials());
     }
@@ -142,14 +144,21 @@ public class TargetConnectionManager {
             port = "9091";
         }
         return connect(
+                connectionDescriptor,
                 jfrConnectionToolkit.get().createServiceURL(host, Integer.parseInt(port)),
                 connectionDescriptor.getCredentials());
     }
 
-    private JFRConnection connect(JMXServiceURL url, Optional<Credentials> credentials)
+    private JFRConnection connect(
+            ConnectionDescriptor cacheKey, JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
         logger.info("Creating connection for {}", url.toString());
-        return jfrConnectionToolkit.get().connect(url, credentials.orElse(null));
+        return jfrConnectionToolkit
+                .get()
+                .connect(
+                        url,
+                        credentials.orElse(null),
+                        Collections.singletonList(() -> this.connections.invalidate(cacheKey)));
     }
 
     public interface ConnectedTask<T> {

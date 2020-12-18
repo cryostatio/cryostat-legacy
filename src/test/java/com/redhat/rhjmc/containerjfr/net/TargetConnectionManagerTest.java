@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.net;
 
 import java.time.Duration;
+import java.util.List;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -50,6 +51,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -89,7 +91,7 @@ class TargetConnectionManagerTest {
                                         String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
                             }
                         });
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any()))
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
                             @Override
@@ -128,7 +130,7 @@ class TargetConnectionManagerTest {
                                         String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
                             }
                         });
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any()))
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
                             @Override
@@ -141,6 +143,41 @@ class TargetConnectionManagerTest {
         JFRConnection conn1 = mgr.executeConnectedTask(desc, a -> a);
         JFRConnection conn2 = mgr.executeConnectedTask(desc, a -> a);
         MatcherAssert.assertThat(conn1, Matchers.sameInstance(conn2));
+    }
+
+    @Test
+    void shouldCreateNewConnectionIfPreviousExplicitlyClosed() throws Exception {
+        Mockito.when(jfrConnectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<JMXServiceURL>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
+                            }
+                        });
+        ArgumentCaptor<List<Runnable>> closeListeners = ArgumentCaptor.forClass(List.class);
+        Mockito.when(
+                        jfrConnectionToolkit.connect(
+                                Mockito.any(), Mockito.any(), closeListeners.capture()))
+                .thenAnswer(
+                        new Answer<JFRConnection>() {
+                            @Override
+                            public JFRConnection answer(InvocationOnMock invocation)
+                                    throws Throwable {
+                                return Mockito.mock(JFRConnection.class);
+                            }
+                        });
+        ConnectionDescriptor desc = new ConnectionDescriptor("foo");
+        JFRConnection conn1 = mgr.executeConnectedTask(desc, a -> a);
+        closeListeners.getValue().forEach(Runnable::run);
+        JFRConnection conn2 = mgr.executeConnectedTask(desc, a -> a);
+        MatcherAssert.assertThat(conn1, Matchers.not(Matchers.sameInstance(conn2)));
     }
 
     @Test
@@ -162,7 +199,7 @@ class TargetConnectionManagerTest {
                                         String.format("/jndi/rmi://%s:%d/jmxrmi", host, port));
                             }
                         });
-        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any()))
+        Mockito.when(jfrConnectionToolkit.connect(Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer<JFRConnection>() {
                             @Override
