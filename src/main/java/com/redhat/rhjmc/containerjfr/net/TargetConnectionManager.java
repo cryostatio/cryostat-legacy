@@ -107,13 +107,7 @@ public class TargetConnectionManager
         return task.execute(connections.get(connectionDescriptor));
     }
 
-    /**
-     * Returns a new JFRConnection to the specified Target. This does not do any connection reuse or
-     * other management, so clients are responsible for cleaning up the connection when they are
-     * finished with it. When possible, clients should use executeConnectedTask instead, which does
-     * perform automatic cleanup when the provided task has been completed.
-     */
-    public JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
+    private JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
         try {
             return attemptConnectAsJMXServiceURL(connectionDescriptor);
         } catch (MalformedURLException mue) {

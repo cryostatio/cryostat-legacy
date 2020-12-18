@@ -47,12 +47,7 @@ import java.util.Optional;
 
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.tuple.Pair;
-
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
@@ -111,45 +106,39 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Optional<Pair<InputStream, AutoCloseable>> descriptor =
-                getRecordingDescriptor(connectionDescriptor, recordingName);
-        if (descriptor.isEmpty()) {
+        Optional<InputStream> stream =
+                targetConnectionManager.executeConnectedTask(
+                        connectionDescriptor,
+                        conn ->
+                                conn.getService().getAvailableRecordings().stream()
+                                        .filter(r -> Objects.equals(recordingName, r.getName()))
+                                        .map(
+                                                desc -> {
+                                                    try {
+                                                        return conn.getService()
+                                                                .openStream(desc, false);
+                                                    } catch (Exception e) {
+                                                        logger.error(e);
+                                                        return null;
+                                                    }
+                                                })
+                                        .filter(Objects::nonNull)
+                                        .findFirst());
+        if (stream.isEmpty()) {
             throw new HttpStatusException(404, String.format("%s not found", recordingName));
         }
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        try (InputStream stream = descriptor.get().getLeft()) {
+        try (InputStream s = stream.get()) {
             byte[] buff = new byte[WRITE_BUFFER_SIZE];
             int n;
-            while ((n = stream.read(buff)) != -1) {
+            while ((n = s.read(buff)) != -1) {
                 // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
                 ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
             }
 
             ctx.response().end();
-        } finally {
-            try {
-                descriptor.get().getRight().close();
-            } catch (Exception e) {
-                logger.warn(e);
-            }
-        }
-    }
-
-    Optional<Pair<InputStream, AutoCloseable>> getRecordingDescriptor(
-            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
-        JFRConnection connection = targetConnectionManager.connect(connectionDescriptor);
-        Optional<IRecordingDescriptor> desc =
-                connection.getService().getAvailableRecordings().stream()
-                        .filter(r -> Objects.equals(recordingName, r.getName()))
-                        .findFirst();
-        if (desc.isPresent()) {
-            return Optional.of(
-                    Pair.of(connection.getService().openStream(desc.get(), false), connection));
-        } else {
-            connection.close();
-            return Optional.empty();
         }
     }
 }
