@@ -260,10 +260,9 @@ public class SubprocessReportGenerator {
                                 () -> {
                                     long elapsedTime = System.nanoTime() - startTime;
                                     Logger.INSTANCE.info(
-                                            String.format(
-                                                    "%s shutting down after %dms",
-                                                    SubprocessReportGenerator.class.getName(),
-                                                    TimeUnit.NANOSECONDS.toMillis(elapsedTime)));
+                                            "{} shutting down after {}ms",
+                                            SubprocessReportGenerator.class.getName(),
+                                            TimeUnit.NANOSECONDS.toMillis(elapsedTime));
                                 }));
 
         var fs = new FileSystem();

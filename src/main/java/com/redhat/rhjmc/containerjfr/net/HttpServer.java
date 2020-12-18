@@ -108,12 +108,11 @@ public class HttpServer {
         future.join(); // wait for async deployment to complete
 
         logger.info(
-                String.format(
-                        "%s service running on %s://%s:%d",
-                        isSsl() ? "HTTPS" : "HTTP",
-                        isSsl() ? "https" : "http",
-                        netConf.getWebServerHost(),
-                        netConf.getExternalWebServerPort()));
+                "{} service running on {}://{}:{}",
+                isSsl() ? "HTTPS" : "HTTP",
+                isSsl() ? "https" : "http",
+                netConf.getWebServerHost(),
+                netConf.getExternalWebServerPort());
         this.isAlive = true;
     }
 
