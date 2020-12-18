@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Objects;
 import java.util.Optional;
@@ -136,6 +137,10 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             while ((n = s.read(buff)) != -1) {
                 // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
                 ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
+                if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
+                    throw new IOException(
+                            "Target connection unexpectedly closed while streaming recording");
+                }
             }
 
             ctx.response().end();

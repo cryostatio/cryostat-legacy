@@ -154,6 +154,7 @@ class TargetRecordingGetHandlerTest {
                                 return task.execute(connection);
                             }
                         });
+        when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
 
         handler.handle(ctx);
 
@@ -202,6 +203,7 @@ class TargetRecordingGetHandlerTest {
                                 return task.execute(connection);
                             }
                         });
+        when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
 
         handler.handle(ctx);
 

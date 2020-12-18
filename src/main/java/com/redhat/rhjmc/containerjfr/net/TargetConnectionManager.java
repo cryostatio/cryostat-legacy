@@ -115,6 +115,23 @@ public class TargetConnectionManager {
         return task.execute(connections.get(connectionDescriptor));
     }
 
+    /**
+     * Mark a connection as still in use by the consumer. Connections expire from cache and are
+     * automatically closed after {@link TargetConnectionManager.DEFAULT_TTL}. For long-running
+     * operations which may hold the connection open and active for longer than the default TTL,
+     * this method provides a way for the consumer to inform the {@link TargetConnectionManager} and
+     * its internal cache that the connection is in fact still active and should not be
+     * expired/closed. This will extend the lifetime of the cache entry by another TTL into the
+     * future from the time this method is called. This may be done repeatedly as long as the
+     * connection is required to remain active.
+     *
+     * @return false if the connection for the specified {@link ConnectionDescriptor} was already
+     *     removed from cache, true if it is still active and was refresh
+     */
+    public boolean markConnectionInUse(ConnectionDescriptor connectionDescriptor) {
+        return connections.getIfPresent(connectionDescriptor) != null;
+    }
+
     private JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
         try {
             return attemptConnectAsJMXServiceURL(connectionDescriptor);
