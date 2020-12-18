@@ -61,8 +61,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import dagger.Lazy;
 
-public class TargetConnectionManager
-        implements RemovalListener<ConnectionDescriptor, JFRConnection> {
+public class TargetConnectionManager {
 
     public static final Pattern HOST_PORT_PAIR_PATTERN =
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
@@ -83,23 +82,31 @@ public class TargetConnectionManager
                 Caffeine.newBuilder()
                         .scheduler(Scheduler.systemScheduler())
                         .expireAfterAccess(ttl)
-                        .removalListener(this)
+                        .removalListener(
+                                new RemovalListener<ConnectionDescriptor, JFRConnection>() {
+                                    @Override
+                                    public void onRemoval(
+                                            ConnectionDescriptor descriptor,
+                                            JFRConnection connection,
+                                            RemovalCause cause) {
+                                        if (descriptor == null) {
+                                            logger.warn(
+                                                    "Connection eviction triggered with null descriptor");
+                                            return;
+                                        }
+                                        if (connection == null) {
+                                            logger.warn(
+                                                    "Connection eviction triggered with null connection");
+                                            return;
+                                        }
+                                        logger.info(
+                                                String.format(
+                                                        "Removing cached connection for %s",
+                                                        descriptor.getTargetId()));
+                                        connection.close();
+                                    }
+                                })
                         .build(this::connect);
-    }
-
-    @Override
-    public void onRemoval(
-            ConnectionDescriptor descriptor, JFRConnection connection, RemovalCause cause) {
-        if (descriptor == null) {
-            logger.warn("Connection eviction triggered with null descriptor");
-            return;
-        }
-        if (connection == null) {
-            logger.warn("Connection eviction triggered with null connection");
-            return;
-        }
-        logger.info(String.format("Removing cached connection for %s", descriptor.getTargetId()));
-        connection.close();
     }
 
     public <T> T executeConnectedTask(
