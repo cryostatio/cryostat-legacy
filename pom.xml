@@ -44,7 +44,7 @@
 
   <com.google.dagger.version>2.26</com.google.dagger.version>
 
-  <com.redhat.rhjmc.containerjfr.core.version>0.15.0</com.redhat.rhjmc.containerjfr.core.version>
+  <com.redhat.rhjmc.containerjfr.core.version>1.0.0</com.redhat.rhjmc.containerjfr.core.version>
 
   <org.apache.commons.lang3.version>3.9</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.13</org.apache.commons.codec.version>
