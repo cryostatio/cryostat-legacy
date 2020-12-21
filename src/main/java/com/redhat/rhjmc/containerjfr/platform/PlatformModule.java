@@ -84,12 +84,10 @@ public abstract class PlatformModule {
         final String authManagerClass;
         if (env.hasEnv(AUTH_MANAGER_ENV_VAR)) {
             authManagerClass = env.getEnv(AUTH_MANAGER_ENV_VAR);
-            logger.info(String.format("Selecting configured AuthManager \"%s\"", authManagerClass));
+            logger.info("Selecting configured AuthManager \"{}\"", authManagerClass);
         } else {
             authManagerClass = platformStrategy.getAuthManager().getClass().getCanonicalName();
-            logger.info(
-                    String.format(
-                            "Selecting platform default AuthManager \"%s\"", authManagerClass));
+            logger.info("Selecting platform default AuthManager \"{}\"", authManagerClass);
         }
         return authManagers.stream()
                 .filter(mgr -> Objects.equals(mgr.getClass().getCanonicalName(), authManagerClass))
@@ -109,9 +107,7 @@ public abstract class PlatformModule {
         PlatformDetectionStrategy<?> strat = null;
         if (env.hasEnv(PLATFORM_STRATEGY_ENV_VAR)) {
             String platform = env.getEnv(PLATFORM_STRATEGY_ENV_VAR);
-            logger.info(
-                    String.format(
-                            "Selecting configured PlatformDetectionStrategy \"%s\"", platform));
+            logger.info("Selecting configured PlatformDetectionStrategy \"{}\"", platform);
             for (PlatformDetectionStrategy<?> s : strategies) {
                 if (Objects.equals(platform, s.getClass().getCanonicalName())) {
                     strat = s;

@@ -116,10 +116,10 @@ class ActiveRecordingReportCache {
         RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
         boolean hasKey = cache.asMap().containsKey(key);
         if (hasKey) {
-            logger.trace(String.format("Invalidated active report cache for %s", recordingName));
+            logger.trace("Invalidated active report cache for {}", recordingName);
             cache.invalidate(key);
         } else {
-            logger.trace(String.format("No cache entry for %s to invalidate", recordingName));
+            logger.trace("No cache entry for {} to invalidate", recordingName);
         }
         return hasKey;
     }
@@ -128,9 +128,7 @@ class ActiveRecordingReportCache {
         Path saveFile = null;
         try {
             generationLock.lock();
-            logger.trace(
-                    String.format(
-                            "Active report cache miss for %s", recordingDescriptor.recordingName));
+            logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile =
                         subprocessReportGeneratorProvider
@@ -163,7 +161,7 @@ class ActiveRecordingReportCache {
                                                     .findFirst();
                                     if (clone.isPresent()) {
                                         conn.getService().close(clone.get());
-                                        logger.trace("Cleaned dangling recording " + cloneName);
+                                        logger.trace("Cleaned dangling recording {}", cloneName);
                                     }
                                     return null;
                                 });

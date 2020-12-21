@@ -76,10 +76,7 @@ class SslConfiguration {
             Path path = obtainKeyStorePathIfSpecified();
             if (path != null) {
                 strategy = new KeyStoreStrategy(path, env.getEnv(KEYSTORE_PASS_ENV, ""));
-                logger.info(
-                        String.format(
-                                "Selected SSL KeyStore strategy with keystore %s",
-                                path.toString()));
+                logger.info("Selected SSL KeyStore strategy with keystore {}", path.toString());
                 return;
             }
         }
@@ -91,9 +88,9 @@ class SslConfiguration {
                 Path cert = pair.getRight();
                 strategy = new KeyCertStrategy(key, cert);
                 logger.info(
-                        String.format(
-                                "Selected SSL KeyCert strategy with key %s and cert %s",
-                                key.toString(), cert.toString()));
+                        "Selected SSL KeyCert strategy with key {} and cert {}",
+                        key.toString(),
+                        cert.toString());
                 return;
             }
         }

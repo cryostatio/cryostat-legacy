@@ -103,10 +103,7 @@ class ArchivedRecordingReportCache {
                     .findFirst()
                     .ifPresentOrElse(
                             recording -> {
-                                logger.trace(
-                                        String.format(
-                                                "Archived report cache miss for %s",
-                                                recordingName));
+                                logger.trace("Archived report cache miss for {}", recordingName);
                                 try {
                                     Path saveFile =
                                             subprocessReportGeneratorProvider
@@ -143,7 +140,7 @@ class ArchivedRecordingReportCache {
 
     boolean delete(String recordingName) {
         try {
-            logger.trace(String.format("Invalidating archived report cache for %s", recordingName));
+            logger.trace("Invalidating archived report cache for {}", recordingName);
             return fs.deleteIfExists(getCachedReportPath(recordingName));
         } catch (IOException ioe) {
             logger.warn(ioe);

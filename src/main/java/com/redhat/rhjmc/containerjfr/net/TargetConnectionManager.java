@@ -132,7 +132,7 @@ public class TargetConnectionManager {
 
     private JFRConnection connect(JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
-        logger.trace(String.format("Locking connection %s", url.toString()));
+        logger.trace("Locking connection {}", url.toString());
         lock.lockInterruptibly();
         return jfrConnectionToolkit
                 .get()
@@ -141,11 +141,7 @@ public class TargetConnectionManager {
                         credentials.orElse(null),
                         List.of(
                                 lock::unlock,
-                                () ->
-                                        logger.trace(
-                                                String.format(
-                                                        "Unlocking connection %s",
-                                                        url.toString()))));
+                                () -> logger.trace("Unlocking connection {}", url.toString())));
     }
 
     public interface ConnectedTask<T> {

@@ -95,7 +95,7 @@ public class MessagingServer implements AutoCloseable {
     }
 
     public void start() throws SocketException, UnknownHostException {
-        logger.info(String.format("Max concurrent WebSocket connections: %d", maxConnections));
+        logger.info("Max concurrent WebSocket connections: {}", maxConnections);
 
         server.websocketHandler(
                 (sws) -> {
@@ -107,22 +107,18 @@ public class MessagingServer implements AutoCloseable {
                     synchronized (connections) {
                         if (connections.size() >= maxConnections) {
                             logger.info(
-                                    String.format(
-                                            "Dropping remote client %s due to too many concurrent connections",
-                                            remoteAddress));
+                                    "Dropping remote client {} due to too many concurrent connections",
+                                    remoteAddress);
                             sws.reject();
                             sendClientActivityNotification(remoteAddress, "dropped");
                             return;
                         }
-                        logger.info(String.format("Connected remote client %s", remoteAddress));
+                        logger.info("Connected remote client {}", remoteAddress);
 
                         WsClient crw = new WsClient(this.logger, sws);
                         sws.closeHandler(
                                 (unused) -> {
-                                    logger.info(
-                                            String.format(
-                                                    "Disconnected remote client %s",
-                                                    remoteAddress));
+                                    logger.info("Disconnected remote client {}", remoteAddress);
                                     sendClientActivityNotification(remoteAddress, "disconnected");
                                     removeConnection(crw);
                                 });
@@ -173,7 +169,7 @@ public class MessagingServer implements AutoCloseable {
 
     public void writeMessage(WsMessage message) {
         String json = gson.toJson(message);
-        logger.info(String.format("Outgoing WS message: %s", json));
+        logger.info("Outgoing WS message: {}", json);
         synchronized (connections) {
             connections.keySet().forEach(c -> c.writeMessage(json));
         }

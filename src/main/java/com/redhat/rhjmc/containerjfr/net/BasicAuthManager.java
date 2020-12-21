@@ -146,15 +146,15 @@ class BasicAuthManager extends AbstractAuthManager {
     synchronized void loadConfig() {
         Path properties = fs.pathOf(System.getProperty("user.home"), USER_PROPERTIES_FILENAME);
         if (!fs.exists(properties)) {
-            logger.warn(String.format("User properties file \"%s\" does not exist", properties));
+            logger.warn("User properties file \"{}\" does not exist", properties);
             return;
         }
         if (!fs.isRegularFile(properties)) {
-            logger.warn(String.format("User properties path \"%s\" is not a file", properties));
+            logger.warn("User properties path \"{}\" is not a file", properties);
             return;
         }
         if (!fs.isReadable(properties)) {
-            logger.warn(String.format("User properties file \"%s\" is not readable", properties));
+            logger.warn("User properties file \"{}\" is not readable", properties);
             return;
         }
         try (Reader br = fs.readFile(properties)) {

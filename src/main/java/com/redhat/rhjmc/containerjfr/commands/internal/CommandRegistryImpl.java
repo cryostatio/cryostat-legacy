@@ -104,7 +104,7 @@ class CommandRegistryImpl implements CommandRegistry {
                                                     .getName()
                                                     .equals(annotation.annotationType().getName()));
             if (deprecated) {
-                logger.warn(String.format("Command \"%s\" is deprecated", commandName));
+                logger.warn("Command \"{}\" is deprecated", commandName);
             }
             return c.execute(args);
         } catch (Exception e) {

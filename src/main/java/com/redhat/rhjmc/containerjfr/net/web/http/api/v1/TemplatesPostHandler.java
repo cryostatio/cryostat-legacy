@@ -102,9 +102,7 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                 Path path = fs.pathOf(u.uploadedFileName());
                 try (InputStream is = fs.newInputStream(path)) {
                     if (!"template".equals(u.name())) {
-                        logger.info(
-                                String.format(
-                                        "Received unexpected file upload named %s", u.name()));
+                        logger.info("Received unexpected file upload named {}", u.name());
                         continue;
                     }
                     templateService.addTemplate(is);

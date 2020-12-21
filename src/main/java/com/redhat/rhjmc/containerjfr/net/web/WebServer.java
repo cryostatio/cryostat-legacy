@@ -178,9 +178,10 @@ public class WebServer {
         requestHandlers.forEach(
                 handler -> {
                     logger.trace(
-                            String.format(
-                                    "Registering request handler (priority %d) for [%s]\t%s",
-                                    handler.getPriority(), handler.httpMethod(), handler.path()));
+                            "Registering request handler (priority {}) for [{}]\t{}",
+                            handler.getPriority(),
+                            handler.httpMethod(),
+                            handler.path());
                     Route route;
                     if (RequestHandler.ALL_PATHS.equals(handler.path())) {
                         route = router.route();
@@ -195,9 +196,7 @@ public class WebServer {
                     }
                     route = route.failureHandler(failureHandler);
                     if (!handler.isAvailable()) {
-                        logger.trace(
-                                String.format(
-                                        "%s handler disabled", handler.getClass().getSimpleName()));
+                        logger.trace("{} handler disabled", handler.getClass().getSimpleName());
                         route = route.disable();
                     }
                 });
@@ -209,14 +208,13 @@ public class WebServer {
                             .endHandler(
                                     (res) ->
                                             logger.info(
-                                                    String.format(
-                                                            "(%s): %s %s %d %dms",
-                                                            req.remoteAddress().toString(),
-                                                            req.method().toString(),
-                                                            req.path(),
-                                                            req.response().getStatusCode(),
-                                                            Duration.between(start, Instant.now())
-                                                                    .toMillis())));
+                                                    "({}): {} {} {} {}ms",
+                                                    req.remoteAddress().toString(),
+                                                    req.method().toString(),
+                                                    req.path(),
+                                                    req.response().getStatusCode(),
+                                                    Duration.between(start, Instant.now())
+                                                            .toMillis()));
                     router.handle(req);
                 });
     }

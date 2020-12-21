@@ -65,7 +65,7 @@ class WsClient implements AutoCloseable, Handler<String> {
 
     @Override
     public void handle(String msg) {
-        logger.info(String.format("(%s): CMD %s", this.sws.remoteAddress().toString(), msg));
+        logger.info("({}): CMD {}", this.sws.remoteAddress().toString(), msg);
         inQ.add(msg);
     }
 
