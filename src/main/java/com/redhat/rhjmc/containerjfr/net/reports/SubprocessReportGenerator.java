@@ -171,16 +171,16 @@ public class SubprocessReportGenerator {
     }
 
     Future<Path> exec(RecordingDescriptor recordingDescriptor, Duration timeout) throws Exception {
-        // TODO add a FileSystem abstraction around Files.createTemp*
         Path recording =
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,
                         recordingDescriptor.connectionDescriptor);
-        CompletableFuture<Path> cf = exec(recording, tempFileProvider.get(), timeout);
-        cf.whenCompleteAsync(
+        Path saveFile = tempFileProvider.get();
+        CompletableFuture<Path> cf = exec(recording, saveFile, timeout);
+        cf.whenComplete(
                 (p, t) -> {
                     try {
-                        fs.deleteIfExists(p);
+                        fs.deleteIfExists(recording);
                     } catch (IOException e) {
                         logger.warn(e);
                     }
