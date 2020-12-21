@@ -63,6 +63,9 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Provider;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
+
 import org.openjdk.jmc.rjmx.ConnectionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -75,7 +78,6 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
@@ -337,6 +339,42 @@ public class SubprocessReportGenerator {
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new ReportGenerationException(ExitStatus.IO_EXCEPTION);
+        }
+    }
+
+    static class RecordingDescriptor {
+        final ConnectionDescriptor connectionDescriptor;
+        final String recordingName;
+
+        RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
+            this.connectionDescriptor = Objects.requireNonNull(connectionDescriptor);
+            this.recordingName = Objects.requireNonNull(recordingName);
+        }
+
+        @Override
+        public boolean equals(Object other) {
+            if (other == null) {
+                return false;
+            }
+            if (other == this) {
+                return true;
+            }
+            if (!(other instanceof RecordingDescriptor)) {
+                return false;
+            }
+            RecordingDescriptor rd = (RecordingDescriptor) other;
+            return new EqualsBuilder()
+                    .append(connectionDescriptor, rd.connectionDescriptor)
+                    .append(recordingName, rd.recordingName)
+                    .isEquals();
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder()
+                    .append(connectionDescriptor)
+                    .append(recordingName)
+                    .hashCode();
         }
     }
 
