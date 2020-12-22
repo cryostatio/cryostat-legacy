@@ -68,9 +68,9 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.reports.SubprocessReportGenerator.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 @ExtendWith(MockitoExtension.class)
