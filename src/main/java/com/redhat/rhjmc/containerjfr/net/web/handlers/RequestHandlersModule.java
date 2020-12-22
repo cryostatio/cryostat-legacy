@@ -45,8 +45,6 @@ import java.nio.file.Path;
 
 import javax.inject.Named;
 
-import com.google.inject.Provides;
-
 import com.redhat.rhjmc.containerjfr.MainModule;
 import com.redhat.rhjmc.containerjfr.core.sys.Clock;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -54,6 +52,7 @@ import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 
 import dagger.Binds;
 import dagger.Module;
+import dagger.Provides;
 import dagger.multibindings.IntoSet;
 
 @Module
@@ -116,7 +115,7 @@ public abstract class RequestHandlersModule {
             TargetRecordingPatchBodyHandler handler);
 
     @Provides
-    TargetRecordingPatchSave provideTargetRecordingPatchSave(
+    static TargetRecordingPatchSave provideTargetRecordingPatchSave(
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
@@ -125,7 +124,7 @@ public abstract class RequestHandlersModule {
     }
 
     @Provides
-    TargetRecordingPatchStop provideTargetRecordingPatchStop(
+    static TargetRecordingPatchStop provideTargetRecordingPatchStop(
             TargetConnectionManager targetConnectionManager) {
         return new TargetRecordingPatchStop(targetConnectionManager);
     }
