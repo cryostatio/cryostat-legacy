@@ -43,6 +43,7 @@
   <com.google.cloud.tools.jib.maven.plugin.version>2.6.0</com.google.cloud.tools.jib.maven.plugin.version>
 
   <com.google.dagger.version>2.26</com.google.dagger.version>
+  <com.google.guice.version>4.1.0</com.google.guice.version>
 
   <com.redhat.rhjmc.containerjfr.core.version>2.1.0</com.redhat.rhjmc.containerjfr.core.version>
 
@@ -66,6 +67,7 @@
   <org.jacoco.maven.plugin.version>0.8.5</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>1.27.0</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.12.1</org.jsoup.version>
+  <org.codehaus.plexus.utils.version>3.0.22</org.codehaus.plexus.utils.version>
 </properties>
 
 <dependencies>
@@ -88,6 +90,11 @@
     <groupId>com.google.dagger</groupId>
     <artifactId>dagger</artifactId>
     <version>${com.google.dagger.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>com.google.inject</groupId>
+    <artifactId>guice</artifactId>
+    <version>${com.google.guice.version}</version>
   </dependency>
   <dependency>
     <groupId>org.apache.commons</groupId>
@@ -143,6 +150,11 @@
     <groupId>org.jsoup</groupId>
     <artifactId>jsoup</artifactId>
     <version>${org.jsoup.version}</version>
+  </dependency>
+  <dependency>
+    <groupId>org.codehaus.plexus</groupId>
+    <artifactId>plexus-utils</artifactId>
+    <version>${org.codehaus.plexus.utils.version}</version>
   </dependency>
 
   <!-- test deps -->
