@@ -61,7 +61,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
@@ -70,8 +72,8 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.internal.reports.ActiveRecordingReportCache.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
 
 @ExtendWith(MockitoExtension.class)
@@ -86,8 +88,9 @@ class SubprocessReportGeneratorTest {
     ConnectionDescriptor connectionDescriptor;
     RecordingDescriptor recordingDescriptor;
     @Mock Path recordingFile;
-    @Mock Path tempFile;
-    Provider<Path> tempFileProvider;
+    @Mock Path tempFile1;
+    @Mock Path tempFile2;
+    @Mock Provider<Path> tempFileProvider;
     SubprocessReportGenerator generator;
 
     @BeforeEach
@@ -96,9 +99,12 @@ class SubprocessReportGeneratorTest {
                 new ConnectionDescriptor("fooHost:1234", new Credentials("someUser", "somePass"));
         recordingDescriptor = new RecordingDescriptor(connectionDescriptor, "testRecording");
 
-        tempFileProvider = () -> tempFile;
-        Mockito.lenient().when(tempFile.toAbsolutePath()).thenReturn(tempFile);
-        Mockito.lenient().when(tempFile.toString()).thenReturn("/dest/serializedtransformers.tmp");
+        tempFileProvider = Mockito.mock(Provider.class);
+        Mockito.lenient().when(tempFileProvider.get()).thenReturn(tempFile1).thenReturn(tempFile2);
+        Mockito.lenient().when(tempFile1.toAbsolutePath()).thenReturn(tempFile1);
+        Mockito.lenient().when(tempFile1.toString()).thenReturn("/tmp/file1.tmp");
+        Mockito.lenient().when(tempFile2.toAbsolutePath()).thenReturn(tempFile2);
+        Mockito.lenient().when(tempFile2.toString()).thenReturn("/tmp/file2.tmp");
         Mockito.lenient().when(recordingFile.toAbsolutePath()).thenReturn(recordingFile);
         Mockito.lenient().when(recordingFile.toString()).thenReturn("/dest/recording.tmp");
 
@@ -253,6 +259,49 @@ class SubprocessReportGeneratorTest {
                             Matchers.containsString(
                                     "Recording /dest/recording.tmp not found in target archives"));
                 });
+    }
+
+    @Test
+    void shouldExecuteProcessAndDeleteRecordingOnCompletion() throws Exception {
+        Mockito.when(proc.waitFor(10_000, TimeUnit.MILLISECONDS)).thenReturn(true);
+        Mockito.when(proc.exitValue()).thenReturn(ExitStatus.OK.code);
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .then(
+                        new Answer<Path>() {
+                            @Override
+                            public Path answer(InvocationOnMock invocation) throws Throwable {
+                                return tempFileProvider.get();
+                            }
+                        });
+
+        Path result = generator.exec(recordingDescriptor, Duration.ofSeconds(10)).get();
+
+        MatcherAssert.assertThat(result, Matchers.sameInstance(tempFile2));
+        Mockito.verify(fs).deleteIfExists(tempFile1);
+    }
+
+    @Test
+    void shouldExecuteProcessAndDeleteRecordingOnFailure() throws Exception {
+        Mockito.when(proc.waitFor(10_000, TimeUnit.MILLISECONDS)).thenReturn(true);
+        Mockito.when(proc.exitValue()).thenReturn(ExitStatus.NO_SUCH_RECORDING.code);
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .then(
+                        new Answer<Path>() {
+                            @Override
+                            public Path answer(InvocationOnMock invocation) throws Throwable {
+                                return tempFileProvider.get();
+                            }
+                        });
+
+        Assertions.assertThrows(
+                ExecutionException.class,
+                () -> {
+                    generator.exec(recordingDescriptor, Duration.ofSeconds(10)).get();
+                });
+
+        Mockito.verify(fs).deleteIfExists(tempFile1);
     }
 
     static class TestReportTransformer implements ReportTransformer {

@@ -43,7 +43,6 @@ package com.redhat.rhjmc.containerjfr.net.internal.reports;
 
 import java.nio.file.Path;
 import java.time.Duration;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -52,9 +51,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
 import javax.inject.Provider;
-
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -67,6 +63,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ExitStatus;
+import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.RecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.net.internal.reports.SubprocessReportGenerator.ReportGenerationException;
 import com.redhat.rhjmc.containerjfr.net.web.handlers.TimeoutHandler;
 
@@ -161,42 +158,6 @@ class ActiveRecordingReportCache {
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
             }
-        }
-    }
-
-    static class RecordingDescriptor {
-        final ConnectionDescriptor connectionDescriptor;
-        final String recordingName;
-
-        RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
-            this.connectionDescriptor = Objects.requireNonNull(connectionDescriptor);
-            this.recordingName = Objects.requireNonNull(recordingName);
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == null) {
-                return false;
-            }
-            if (other == this) {
-                return true;
-            }
-            if (!(other instanceof RecordingDescriptor)) {
-                return false;
-            }
-            RecordingDescriptor rd = (RecordingDescriptor) other;
-            return new EqualsBuilder()
-                    .append(connectionDescriptor, rd.connectionDescriptor)
-                    .append(recordingName, rd.recordingName)
-                    .isEquals();
-        }
-
-        @Override
-        public int hashCode() {
-            return new HashCodeBuilder()
-                    .append(connectionDescriptor)
-                    .append(recordingName)
-                    .hashCode();
         }
     }
 }
