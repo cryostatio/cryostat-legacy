@@ -79,6 +79,11 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String templateName = ctx.pathParam("templateName");
         try {

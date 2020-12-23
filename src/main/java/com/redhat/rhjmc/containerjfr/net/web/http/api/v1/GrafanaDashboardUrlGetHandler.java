@@ -85,6 +85,13 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
         return HttpMethod.GET;
     }
 
+    // This handler is not async, but it's simple enough that it doesn't need
+    // to be run in a seperate worker thread.
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
+
     @Override
     public void handle(RoutingContext ctx) {
         if (!this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
