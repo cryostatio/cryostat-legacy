@@ -179,7 +179,7 @@ class SubprocessReportGenerator {
                         recordingDescriptor.connectionDescriptor);
         Path saveFile = tempFileProvider.get();
         CompletableFuture<Path> cf = exec(recording, saveFile, timeout);
-        cf.whenComplete(
+        return cf.whenComplete(
                 (p, t) -> {
                     try {
                         fs.deleteIfExists(recording);
@@ -187,7 +187,6 @@ class SubprocessReportGenerator {
                         logger.warn(e);
                     }
                 });
-        return cf;
     }
 
     Path getRecordingFromLiveTarget(String recordingName, ConnectionDescriptor cd)
