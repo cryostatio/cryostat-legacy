@@ -47,8 +47,8 @@ Unit tests can be run with `mvn test`. Integration tests and additional quality
 tools can be run with `mvn verify`.
 
 To re-run integration tests without a rebuild, do
-`mvn exec:exec@start-container exec:exec@wait-for-container
-failsafe:integration-test exec:exec@stop-container`.
+`mvn exec:exec@create-pod exec:exec@start-container exec:exec@wait-for-container
+failsafe:integration-test exec:exec@stop-container exec:exec@destroy-pod`.
 
 The application OCI image is built on top of a custom base image, built in the
 `base-image` directory. To produce a new base image simply run

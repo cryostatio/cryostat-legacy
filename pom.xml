@@ -215,6 +215,26 @@
       </configuration>
       <executions>
         <execution>
+          <id>create-pod</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+              <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>pod</argument>
+              <argument>create</argument>
+              <argument>--replace</argument>
+              <argument>--name=container-jfr-itests</argument>
+              <argument>--publish</argument>
+              <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
+              <argument>--publish</argument>
+              <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
           <id>start-container</id>
           <phase>pre-integration-test</phase>
           <goals>
@@ -224,16 +244,12 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
-              <argument>--hostname=container-jfr</argument>
+              <argument>--pod=container-jfr-itests</argument>
               <argument>--name=container-jfr-itest</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/flightrecordings</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/templates</argument>
-              <argument>--publish</argument>
-              <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
-              <argument>--publish</argument>
-              <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -287,6 +303,22 @@
             <arguments>
               <argument>kill</argument>
               <argument>container-jfr-itest</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
+          <id>destroy-pod</id>
+          <phase>post-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>pod</argument>
+              <argument>rm</argument>
+              <argument>--force</argument>
+              <argument>container-jfr-itests</argument>
             </arguments>
           </configuration>
         </execution>
