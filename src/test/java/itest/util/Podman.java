@@ -43,10 +43,14 @@ package itest.util;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 
@@ -65,27 +69,8 @@ public abstract class Podman {
     }
 
     public static String run(String imageSpec) throws Exception {
-        Process proc = null;
-        try {
-            String[] args = {
-                "podman", "run", "--quiet", "--pod=" + POD_NAME, "--detach", "--rm", imageSpec
-            };
-            System.out.println(String.join(" ", args));
-            proc = new ProcessBuilder().command(args).start();
-            proc.waitFor(STARTUP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-            String out = IOUtils.toString(proc.getInputStream(), "UTF-8").trim();
-            String err = IOUtils.toString(proc.getErrorStream(), "UTF-8").trim();
-            System.out.println(out);
-            System.out.println(err);
-            if (proc.exitValue() != 0) {
-                throw new PodmanException(proc.exitValue(), out, err);
-            }
-            return out;
-        } finally {
-            if (proc != null) {
-                proc.destroyForcibly();
-            }
-        }
+        return runCommand("run", "--quiet", "--pod=" + POD_NAME, "--detach", "--rm", imageSpec)
+                .out();
     }
 
     public static void waitForContainerState(String id, String state) throws Exception {
@@ -93,32 +78,15 @@ public abstract class Podman {
         long elapsed = 0;
         state = String.format("\"%s\"", Objects.requireNonNull(state));
         while (elapsed < STARTUP_TIMEOUT.toMillis()) {
-            Process proc = null;
-            try {
-                String[] args = {
-                    "podman", "container", "inspect", "--format=\"{{.State.Status}}\"", id
-                };
-                System.out.println(String.join(" ", args));
-                proc = new ProcessBuilder().command(args).start();
-                proc.waitFor(STARTUP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-                String out = IOUtils.toString(proc.getInputStream(), "UTF-8").trim();
-                String err = IOUtils.toString(proc.getErrorStream(), "UTF-8").trim();
-                if (proc.exitValue() != 0) {
-                    throw new PodmanException(proc.exitValue(), out, err);
-                }
-                if (state.trim().equalsIgnoreCase(out)) {
-                    break;
-                }
-                System.out.println(out);
-                long now = System.currentTimeMillis();
-                long delta = now - start;
-                elapsed += delta;
-                Thread.sleep(5_000L);
-            } finally {
-                if (proc != null) {
-                    proc.destroyForcibly();
-                }
+            String out =
+                    runCommand("container", "inspect", "--format=\"{{.State.Status}}\"", id).out();
+            if (state.trim().equalsIgnoreCase(out)) {
+                break;
             }
+            long now = System.currentTimeMillis();
+            long delta = now - start;
+            elapsed += delta;
+            Thread.sleep(2_000L);
         }
         if (elapsed >= STARTUP_TIMEOUT.toMillis()) {
             throw new PodmanException(
@@ -129,18 +97,29 @@ public abstract class Podman {
     }
 
     public static String rm(String id) throws Exception {
+        return runCommand("rm", "--force", id).out();
+    }
+
+    private static CommandOutput runCommand(String... args) throws Exception {
         Process proc = null;
         try {
-            String[] args = {"podman", "rm", "--force", id};
-            System.out.println(String.join(" ", args));
-            proc = new ProcessBuilder().command(args).start();
+            List<String> argsList = new ArrayList<>();
+            argsList.add("podman");
+            argsList.addAll(Arrays.asList(args));
+            System.out.println(argsList);
+            proc = new ProcessBuilder().command(argsList).start();
             proc.waitFor(STARTUP_TIMEOUT.toMillis(), TimeUnit.MILLISECONDS);
-            String out = IOUtils.toString(proc.getInputStream(), "UTF-8").trim();
-            String err = IOUtils.toString(proc.getErrorStream(), "UTF-8").trim();
-            if (proc.exitValue() != 0) {
-                throw new PodmanException(proc.exitValue(), out, err);
+            CommandOutput co = new CommandOutput(proc);
+            if (StringUtils.isNotBlank(co.out())) {
+                System.out.println(co.out());
             }
-            return out;
+            if (StringUtils.isNotBlank(co.err())) {
+                System.out.println(co.err());
+            }
+            if (co.exitValue() != 0) {
+                throw new PodmanException(co);
+            }
+            return co;
         } finally {
             if (proc != null) {
                 proc.destroyForcibly();
@@ -148,9 +127,37 @@ public abstract class Podman {
         }
     }
 
+    public static class CommandOutput {
+
+        private final int exitValue;
+        private final String out;
+        private final String err;
+
+        CommandOutput(Process proc) throws IOException {
+            this.exitValue = proc.exitValue();
+            this.out = IOUtils.toString(proc.getInputStream(), "UTF-8").trim();
+            this.err = IOUtils.toString(proc.getErrorStream(), "UTF-8").trim();
+        }
+
+        public int exitValue() {
+            return exitValue;
+        }
+
+        public String out() {
+            return out;
+        }
+
+        public String err() {
+            return err;
+        }
+    }
+
     public static class PodmanException extends IOException {
-        PodmanException(int status, String out, String err) {
-            super(String.format("Exit status %d: out: %s - err: %s", status, out, err));
+        PodmanException(CommandOutput co) {
+            super(
+                    String.format(
+                            "Exit status %d: out: %s - err: %s",
+                            co.exitValue(), co.out(), co.err()));
         }
 
         PodmanException(String reason) {
