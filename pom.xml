@@ -29,6 +29,7 @@
   <containerjfr.webPort>8181</containerjfr.webPort>
   <containerjfr.listenPort>9090</containerjfr.listenPort>
   <containerjfr.itest.webPort>8181</containerjfr.itest.webPort>
+  <containerjfr.itest.podName>container-jfr-itests</containerjfr.itest.podName>
 
   <org.apache.maven.plugins.compiler.version>3.6.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>3.0.0-M4</org.apache.maven.plugins.surefire.version>
@@ -226,7 +227,7 @@
               <argument>pod</argument>
               <argument>create</argument>
               <argument>--replace</argument>
-              <argument>--name=container-jfr-itests</argument>
+              <argument>--name=${containerjfr.itest.podName}</argument>
               <argument>--publish</argument>
               <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
               <argument>--publish</argument>
@@ -244,7 +245,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
-              <argument>--pod=container-jfr-itests</argument>
+              <argument>--pod=${containerjfr.itest.podName}</argument>
               <argument>--name=container-jfr-itest</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/flightrecordings</argument>
@@ -318,7 +319,7 @@
               <argument>pod</argument>
               <argument>rm</argument>
               <argument>--force</argument>
-              <argument>container-jfr-itests</argument>
+              <argument>${containerjfr.itest.podName}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -354,6 +355,7 @@
       <configuration>
         <systemPropertyVariables>
           <containerJfrWebPort>${containerjfr.itest.webPort}</containerJfrWebPort>
+          <containerJfrPodName>${containerjfr.itest.podName}</containerJfrPodName>
         </systemPropertyVariables>
       </configuration>
     </plugin>

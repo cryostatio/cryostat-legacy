@@ -48,6 +48,8 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+
 public abstract class Podman {
 
     private Podman() {}
@@ -55,17 +57,18 @@ public abstract class Podman {
     // this can take some time if an image needs to be pulled
     public static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(60);
 
+    public static final String POD_NAME;
+
+    static {
+        Environment env = new Environment();
+        POD_NAME = env.getProperty("containerJfrPodName");
+    }
+
     public static String run(String imageSpec) throws Exception {
         Process proc = null;
         try {
             String[] args = {
-                "podman",
-                "run",
-                "--quiet",
-                "--pod=container-jfr-itests",
-                "--detach",
-                "--rm",
-                imageSpec
+                "podman", "run", "--quiet", "--pod=" + POD_NAME, "--detach", "--rm", imageSpec
             };
             System.out.println(String.join(" ", args));
             proc = new ProcessBuilder().command(args).start();

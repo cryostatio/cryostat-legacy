@@ -100,12 +100,16 @@ class ConnectToExternalTargetsIT extends TestBase {
                 Set.of(
                         Map.of(
                                 "connectUrl",
-                                "service:jmx:rmi:///jndi/rmi://container-jfr-itests:9091/jmxrmi",
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
+                                        Podman.POD_NAME),
                                 "alias",
                                 "com.redhat.rhjmc.containerjfr.ContainerJfr"),
                         Map.of(
                                 "connectUrl",
-                                "service:jmx:rmi:///jndi/rmi://container-jfr-itests:9093/jmxrmi",
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi",
+                                        Podman.POD_NAME),
                                 "alias",
                                 "es.andrewazor.demo.Main"));
         MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
