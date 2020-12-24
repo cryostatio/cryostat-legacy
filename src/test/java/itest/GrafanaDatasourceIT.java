@@ -47,6 +47,8 @@ import java.util.concurrent.TimeUnit;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 
@@ -61,7 +63,8 @@ public class GrafanaDatasourceIT extends ITestBase {
 
     // Disabled for now due to conflict with UploadRecordingIT;
     // See https://github.com/rh-jmc-team/container-jfr/pull/229
-    // @Test
+    @Disabled
+    @Test
     public void shouldFail() throws Exception {
         CompletableFuture<Integer> future = new CompletableFuture<>();
         req.send(
