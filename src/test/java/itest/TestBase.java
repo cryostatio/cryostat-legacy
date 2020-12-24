@@ -67,7 +67,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import itest.util.Utils;
 
-public abstract class ITestBase {
+public abstract class TestBase {
 
     static final int REQUEST_TIMEOUT_SECONDS = 30;
     static final WebClient webClient = Utils.getWebClient();

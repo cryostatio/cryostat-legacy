@@ -51,7 +51,7 @@ import org.junit.jupiter.api.Test;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 
-public class NoopAuthIT extends ITestBase {
+public class NoopAuthIT extends TestBase {
 
     HttpRequest<Buffer> req;
 

@@ -57,7 +57,7 @@ import org.junit.jupiter.api.Test;
 import io.vertx.core.json.JsonArray;
 import itest.util.Podman;
 
-class ConnectToExternalTargetsIT extends ITestBase {
+class ConnectToExternalTargetsIT extends TestBase {
 
     static final List<String> CONTAINERS = new ArrayList<>();
 

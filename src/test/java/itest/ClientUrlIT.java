@@ -52,7 +52,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 import itest.util.Utils;
 
-public class ClientUrlIT extends ITestBase {
+public class ClientUrlIT extends TestBase {
 
     HttpRequest<Buffer> req;
 

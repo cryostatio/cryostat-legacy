@@ -54,7 +54,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
 
-public class UploadRecordingIT extends ITestBase {
+public class UploadRecordingIT extends TestBase {
 
     static final String TARGET_ID = "localhost";
     static final String RECORDING_NAME = "upload_recording_it_rec";

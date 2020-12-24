@@ -60,7 +60,7 @@ import itest.util.Utils;
 // in favour of the HTTP API anyway. The WebSocket connection will only be used for the Notification
 // channel going forward. FIXME add Notification channel tests.
 @Disabled
-public class BasicCommandChannelIT extends ITestBase {
+public class BasicCommandChannelIT extends TestBase {
 
     @Test
     public void shouldGetPingResponse() throws Exception {

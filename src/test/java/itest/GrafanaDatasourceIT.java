@@ -52,7 +52,7 @@ import org.junit.jupiter.api.Test;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 
-public class GrafanaDatasourceIT extends ITestBase {
+public class GrafanaDatasourceIT extends TestBase {
 
     HttpRequest<Buffer> req;
 
