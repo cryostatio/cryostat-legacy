@@ -81,6 +81,11 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         List<SerializableEventTypeInfo> templates =
                 connectionManager.executeConnectedTask(

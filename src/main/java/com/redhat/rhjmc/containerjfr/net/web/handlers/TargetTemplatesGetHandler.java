@@ -80,6 +80,11 @@ class TargetTemplatesGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         List<Template> templates =
                 connectionManager.executeConnectedTask(

@@ -96,6 +96,11 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         Pattern bool = Pattern.compile("true|false");
         MultiMap attrs = ctx.request().formAttributes();
