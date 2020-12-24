@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package itest;
+package itest.util;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -48,12 +48,14 @@ import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
 
-abstract class PodmanUtils {
+public abstract class Podman {
+
+    private Podman() {}
 
     // this can take some time if an image needs to be pulled
-    static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(60);
+    public static final Duration STARTUP_TIMEOUT = Duration.ofSeconds(60);
 
-    static String run(String imageSpec) throws Exception {
+    public static String run(String imageSpec) throws Exception {
         Process proc = null;
         try {
             String[] args = {
@@ -83,7 +85,7 @@ abstract class PodmanUtils {
         }
     }
 
-    static void waitForContainerState(String id, String state) throws Exception {
+    public static void waitForContainerState(String id, String state) throws Exception {
         long start = System.currentTimeMillis();
         long elapsed = 0;
         state = String.format("\"%s\"", Objects.requireNonNull(state));
@@ -123,7 +125,7 @@ abstract class PodmanUtils {
         }
     }
 
-    static String rm(String id) throws Exception {
+    public static String rm(String id) throws Exception {
         Process proc = null;
         try {
             String[] args = {"podman", "rm", "--force", id};
@@ -143,7 +145,7 @@ abstract class PodmanUtils {
         }
     }
 
-    static class PodmanException extends IOException {
+    public static class PodmanException extends IOException {
         PodmanException(int status, String out, String err) {
             super(String.format("Exit status %d: out: %s - err: %s", status, out, err));
         }

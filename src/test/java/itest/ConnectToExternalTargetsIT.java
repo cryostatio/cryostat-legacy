@@ -55,19 +55,20 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import io.vertx.core.json.JsonArray;
+import itest.util.Podman;
 
 class ConnectToExternalTargetsIT extends ITestBase {
 
-    static List<String> CONTAINERS = new ArrayList<>();
+    static final List<String> CONTAINERS = new ArrayList<>();
 
     @BeforeAll
     static void setup() throws Exception {
         Set<String> specs = Set.of("quay.io/andrewazores/vertx-fib-demo:0.3.0");
         for (String spec : specs) {
-            CONTAINERS.add(PodmanUtils.run(spec));
+            CONTAINERS.add(Podman.run(spec));
         }
         for (String id : CONTAINERS) {
-            PodmanUtils.waitForContainerState(id, "running");
+            Podman.waitForContainerState(id, "running");
         }
         Thread.sleep(7_500L); // wait for JDP to discover new containers
     }
@@ -75,7 +76,7 @@ class ConnectToExternalTargetsIT extends ITestBase {
     @AfterAll
     static void cleanup() throws Exception {
         for (String id : CONTAINERS) {
-            PodmanUtils.rm(id);
+            Podman.rm(id);
         }
     }
 
