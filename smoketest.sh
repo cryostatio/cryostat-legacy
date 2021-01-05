@@ -56,8 +56,9 @@ function runGrafana() {
     configureGrafanaDatasource
 }
 
-if ! podman pod exists container-jfr; then
+function createPod() {
     podman pod create \
+        --replace \
         --hostname container-jfr \
         --name container-jfr \
         --publish 9091:9091 \
@@ -72,8 +73,15 @@ if ! podman pod exists container-jfr; then
     # 3000: grafana
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo RJMX
-fi
+}
 
+function destroyPod() {
+    podman pod kill container-jfr
+    podman pod rm container-jfr
+}
+trap destroyPod EXIT
+
+createPod
 runDemoApp
 runJfrDatasource
 runGrafana
