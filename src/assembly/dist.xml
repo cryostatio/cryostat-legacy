@@ -13,7 +13,7 @@
   </dependencySets>
   <fileSets>
     <fileSet>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory />
       <directory>${project.basedir}/src/main/extras</directory>
       <includes>
         <include>${containerjfr.entrypoint}</include>
@@ -21,7 +21,7 @@
       <fileMode>0755</fileMode>
     </fileSet>
     <fileSet>
-      <outputDirectory>/</outputDirectory>
+      <outputDirectory />
       <directory>${project.build.directory}/assets</directory>
     </fileSet>
   </fileSets>
