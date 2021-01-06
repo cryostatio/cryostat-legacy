@@ -37,6 +37,7 @@
   <org.apache.maven.plugins.info.reports.version>3.0.0</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.1.0</org.apache.maven.plugins.clean.version>
   <org.apache.maven.plugins.resources.version>3.1.0</org.apache.maven.plugins.resources.version>
+  <org.apache.maven.plugins.assembly.version>3.1.0</org.apache.maven.plugins.assembly.version>
   <com.github.eirslett.frontend.plugin.version>1.9.1</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>1.6.0</org.codehaus.mojo.exec.plugin.version>
   <org.codehaus.mojo.license.plugin.version>2.0.0</org.codehaus.mojo.license.plugin.version>
@@ -615,6 +616,31 @@
                 </resources>
                 <outputDirectory>${project.build.directory}/assets/app/resources/com/redhat/rhjmc/containerjfr/net/web</outputDirectory>
               </configuration>
+            </execution>
+          </executions>
+        </plugin>
+      </plugins>
+    </build>
+  </profile>
+  <profile>
+    <id>dist</id>
+    <build>
+      <plugins>
+        <plugin>
+          <artifactId>maven-assembly-plugin</artifactId>
+          <version>${org.apache.maven.plugins.assembly.version}</version>
+          <configuration>
+            <descriptors>
+              <descriptor>src/assembly/dist.xml</descriptor>
+            </descriptors>
+          </configuration>
+          <executions>
+            <execution>
+              <id>assemble-dist</id>
+              <phase>package</phase>
+              <goals>
+                <goal>single</goal>
+              </goals>
             </execution>
           </executions>
         </plugin>
