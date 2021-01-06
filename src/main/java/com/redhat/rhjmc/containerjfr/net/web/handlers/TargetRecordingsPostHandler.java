@@ -128,6 +128,11 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         MultiMap attrs = ctx.request().formAttributes();
         String recordingName = attrs.get("recordingName");

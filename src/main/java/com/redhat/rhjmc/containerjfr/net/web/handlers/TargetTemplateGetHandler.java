@@ -74,6 +74,11 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         String templateName = ctx.pathParam("templateName");
         TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));

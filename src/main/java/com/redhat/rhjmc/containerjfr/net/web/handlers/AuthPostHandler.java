@@ -65,6 +65,13 @@ class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
         return "/api/v1/auth";
     }
 
+    // This handler is not async, but it's simple enough that it doesn't need
+    // to be run in a seperate worker thread.
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
+
     @Override
     void handleAuthenticated(RoutingContext ctx) throws Exception {
         ctx.response().setStatusCode(200);

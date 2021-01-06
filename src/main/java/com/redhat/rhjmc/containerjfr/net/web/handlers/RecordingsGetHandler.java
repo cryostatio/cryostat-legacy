@@ -101,6 +101,11 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         if (!fs.exists(savedRecordingsPath)) {
             throw new HttpStatusException(
