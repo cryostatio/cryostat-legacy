@@ -96,6 +96,11 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
             for (FileUpload u : ctx.fileUploads()) {

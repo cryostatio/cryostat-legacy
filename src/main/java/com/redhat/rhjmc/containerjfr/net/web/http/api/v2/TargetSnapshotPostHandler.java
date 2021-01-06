@@ -107,6 +107,11 @@ class TargetSnapshotPostHandler
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
     IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
             RequestParameters requestParams) throws Exception {
         HyperlinkedSerializableRecordingDescriptor desc =
