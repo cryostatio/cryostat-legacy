@@ -33,8 +33,8 @@ Unit tests can be run with `mvn test`. Integration tests and additional quality
 tools can be run with `mvn verify`.
 
 To re-run integration tests without a rebuild, do
-`mvn exec:exec@start-container failsafe:integration-test
-exec:exec@stop-container`.
+`mvn exec:exec@create-pod exec:exec@start-container exec:exec@wait-for-container
+failsafe:integration-test exec:exec@stop-container exec:exec@destroy-pod`.
 
 An OCI image can be built to your local `podman` image registry using
 `mvn package`. This will normally be a full-fledged image including built
