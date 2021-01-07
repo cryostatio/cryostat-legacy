@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package itest;
+package itest.util;
 
 import io.vertx.core.Vertx;
 import io.vertx.core.file.FileSystem;
@@ -47,7 +47,7 @@ import io.vertx.core.http.HttpClient;
 import io.vertx.core.http.HttpClientOptions;
 import io.vertx.ext.web.client.WebClient;
 
-public class IntegrationTestUtils {
+public class Utils {
 
     public static final int WEB_PORT;
 
@@ -55,7 +55,7 @@ public class IntegrationTestUtils {
         WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebPort"));
     }
 
-    static final HttpClientOptions HTTP_CLIENT_OPTIONS;
+    public static final HttpClientOptions HTTP_CLIENT_OPTIONS;
 
     static {
         HTTP_CLIENT_OPTIONS =
@@ -69,7 +69,7 @@ public class IntegrationTestUtils {
     }
 
     private static final Vertx VERTX = Vertx.vertx();
-    static final HttpClient HTTP_CLIENT = VERTX.createHttpClient(HTTP_CLIENT_OPTIONS);
+    public static final HttpClient HTTP_CLIENT = VERTX.createHttpClient(HTTP_CLIENT_OPTIONS);
     private static final WebClient WEB_CLIENT_INSTANCE = WebClient.wrap(HTTP_CLIENT);
 
     public static WebClient getWebClient() {

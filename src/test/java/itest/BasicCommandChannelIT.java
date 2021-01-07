@@ -54,12 +54,13 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import itest.util.Utils;
 
 // Disabled - broken by WebSocket Notification channel noise, but the CommandChannel is deprecated
 // in favour of the HTTP API anyway. The WebSocket connection will only be used for the Notification
 // channel going forward. FIXME add Notification channel tests.
 @Disabled
-public class BasicCommandChannelIT extends ITestBase {
+public class BasicCommandChannelIT extends TestBase {
 
     @Test
     public void shouldGetPingResponse() throws Exception {
@@ -89,9 +90,7 @@ public class BasicCommandChannelIT extends ITestBase {
         assertResponseStatus(resp);
         String url = resp.getString("payload");
         MatcherAssert.assertThat(
-                url,
-                Matchers.equalTo(
-                        String.format("http://0.0.0.0:%d", IntegrationTestUtils.WEB_PORT)));
+                url, Matchers.equalTo(String.format("http://0.0.0.0:%d", Utils.WEB_PORT)));
     }
 
     @Test

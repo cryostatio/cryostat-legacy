@@ -65,17 +65,18 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import itest.util.Utils;
 
-public abstract class ITestBase {
+public abstract class TestBase {
 
     static final int REQUEST_TIMEOUT_SECONDS = 30;
-    static final WebClient webClient = IntegrationTestUtils.getWebClient();
+    static final WebClient webClient = Utils.getWebClient();
 
     static CompletableFuture<JsonObject> sendMessage(String command, String... args)
             throws InterruptedException, ExecutionException, TimeoutException {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
 
-        IntegrationTestUtils.HTTP_CLIENT.webSocket(
+        Utils.HTTP_CLIENT.webSocket(
                 getClientUrl().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 ar -> {
                     if (ar.failed()) {
@@ -176,7 +177,7 @@ public abstract class ITestBase {
                                 new Exception(String.format("HTTP %d", resp.statusCode())));
                         return;
                     }
-                    FileSystem fs = IntegrationTestUtils.getFileSystem();
+                    FileSystem fs = Utils.getFileSystem();
                     String file = fs.createTempFileBlocking(filename, fileSuffix);
                     fs.writeFileBlocking(file, ar.result().body());
                     future.complete(Paths.get(file));
