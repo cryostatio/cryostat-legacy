@@ -76,7 +76,7 @@ public class BasicCommandChannelIT extends TestBase {
         JsonObject resp = sendMessage("hostname").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertResponseStatus(resp);
         String hostname = resp.getString("payload");
-        MatcherAssert.assertThat(hostname, Matchers.equalTo("container-jfr"));
+        MatcherAssert.assertThat(hostname, Matchers.equalTo("container-jfr-itests"));
     }
 
     @Test
@@ -119,7 +119,7 @@ public class BasicCommandChannelIT extends TestBase {
                                     new JsonObject(
                                             Map.of(
                                                     "connectUrl",
-                                                    "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi",
+                                                    "service:jmx:rmi:///jndi/rmi://container-jfr-itests:9091/jmxrmi",
                                                     "alias",
                                                     "com.redhat.rhjmc.containerjfr.ContainerJfr"));
                             MatcherAssert.assertThat(
