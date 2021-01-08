@@ -50,8 +50,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
+import itest.util.Utils;
 
-public class ClientUrlIT extends ITestBase {
+public class ClientUrlIT extends TestBase {
 
     HttpRequest<Buffer> req;
 
@@ -122,6 +123,6 @@ public class ClientUrlIT extends ITestBase {
                 Matchers.equalTo(
                         String.format(
                                 "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
-                                IntegrationTestUtils.WEB_PORT)));
+                                Utils.WEB_PORT)));
     }
 }

@@ -54,7 +54,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 
-public class RecordingWorkflowIT extends ITestBase {
+public class RecordingWorkflowIT extends TestBase {
 
     static final String TARGET_ID = "localhost";
     static final String TEST_RECORDING_NAME = "workflow_itest";

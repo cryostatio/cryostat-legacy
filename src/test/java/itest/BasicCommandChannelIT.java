@@ -53,8 +53,9 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import itest.util.Utils;
 
-public class BasicCommandChannelIT extends ITestBase {
+public class BasicCommandChannelIT extends TestBase {
 
     @Test
     public void shouldGetPingResponse() throws Exception {
@@ -75,7 +76,7 @@ public class BasicCommandChannelIT extends ITestBase {
         JsonObject resp = sendMessage("hostname").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertResponseStatus(resp);
         String hostname = resp.getString("payload");
-        MatcherAssert.assertThat(hostname, Matchers.equalTo("container-jfr"));
+        MatcherAssert.assertThat(hostname, Matchers.equalTo("container-jfr-itests"));
     }
 
     @Test
@@ -84,9 +85,7 @@ public class BasicCommandChannelIT extends ITestBase {
         assertResponseStatus(resp);
         String url = resp.getString("payload");
         MatcherAssert.assertThat(
-                url,
-                Matchers.equalTo(
-                        String.format("http://0.0.0.0:%d", IntegrationTestUtils.WEB_PORT)));
+                url, Matchers.equalTo(String.format("http://0.0.0.0:%d", Utils.WEB_PORT)));
     }
 
     @Test
@@ -120,7 +119,7 @@ public class BasicCommandChannelIT extends ITestBase {
                                     new JsonObject(
                                             Map.of(
                                                     "connectUrl",
-                                                    "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi",
+                                                    "service:jmx:rmi:///jndi/rmi://container-jfr-itests:9091/jmxrmi",
                                                     "alias",
                                                     "com.redhat.rhjmc.containerjfr.ContainerJfr"));
                             MatcherAssert.assertThat(

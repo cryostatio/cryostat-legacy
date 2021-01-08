@@ -29,6 +29,7 @@
   <containerjfr.webPort>8181</containerjfr.webPort>
   <containerjfr.listenPort>9090</containerjfr.listenPort>
   <containerjfr.itest.webPort>8181</containerjfr.itest.webPort>
+  <containerjfr.itest.podName>container-jfr-itests</containerjfr.itest.podName>
 
   <org.apache.maven.plugins.compiler.version>3.6.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>3.0.0-M4</org.apache.maven.plugins.surefire.version>
@@ -213,6 +214,26 @@
       </configuration>
       <executions>
         <execution>
+          <id>create-pod</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+              <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>pod</argument>
+              <argument>create</argument>
+              <argument>--replace</argument>
+              <argument>--name=${containerjfr.itest.podName}</argument>
+              <argument>--publish</argument>
+              <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
+              <argument>--publish</argument>
+              <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
           <id>start-container</id>
           <phase>pre-integration-test</phase>
           <goals>
@@ -222,16 +243,12 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
-              <argument>--hostname=container-jfr</argument>
+              <argument>--pod=${containerjfr.itest.podName}</argument>
               <argument>--name=container-jfr-itest</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/flightrecordings</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/templates</argument>
-              <argument>--publish</argument>
-              <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
-              <argument>--publish</argument>
-              <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
               <argument>--env</argument>
               <argument>CONTAINER_JFR_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -288,6 +305,22 @@
             </arguments>
           </configuration>
         </execution>
+        <execution>
+          <id>destroy-pod</id>
+          <phase>post-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>pod</argument>
+              <argument>rm</argument>
+              <argument>--force</argument>
+              <argument>${containerjfr.itest.podName}</argument>
+            </arguments>
+          </configuration>
+        </execution>
       </executions>
     </plugin>
     <plugin>
@@ -320,6 +353,7 @@
       <configuration>
         <systemPropertyVariables>
           <containerJfrWebPort>${containerjfr.itest.webPort}</containerJfrWebPort>
+          <containerJfrPodName>${containerjfr.itest.podName}</containerJfrPodName>
         </systemPropertyVariables>
       </configuration>
     </plugin>
