@@ -9,6 +9,10 @@
 set -x
 set -e
 
+if [ -z "$CJFR_HOST" ]; then
+    CJFR_HOST="https://0.0.0.0:8181"
+fi
+
 echo "Killing vertx-fib-demo container"
 podman kill vertx-fib-demo
 
@@ -22,7 +26,7 @@ curl -k \
     -F username=admin \
     -F password=adminpass123 \
     -F persist=true \
-    "https://0.0.0.0:8181/api/v2/targets/$demoAppTargetId/credentials"
+    "$CJFR_HOST/api/v2/targets/$demoAppTargetId/credentials"
 
 sleep 5
 echo "POSTing a rule definition"
@@ -34,19 +38,19 @@ curl -k \
     -F eventSpecifier="template=Continuous,type=TARGET" \
     -F archivalPeriodSeconds="60" \
     -F preservedArchives="3" \
-    https://0.0.0.0:8181/api/v2/rules
+    "$CJFR_HOST/api/v2/rules"
 
 sleep 5
 echo "GETing the same rule definition"
 curl -k \
     -X GET \
-    https://0.0.0.0:8181/api/v2/rules/Default_Rule
+    "$CJFR_HOST/api/v2/rules/Default_Rule"
 
 sleep 5
 echo "GETing all rule definitions"
 curl -k \
     -X GET \
-    https://0.0.0.0:8181/api/v2/rules
+    "$CJFR_HOST/api/v2/rules"
 
 sleep 5
 echo "Restarting vertx-fib-demo"
