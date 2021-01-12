@@ -126,7 +126,7 @@ public class TargetConnectionManager {
      * connection is required to remain active.
      *
      * @return false if the connection for the specified {@link ConnectionDescriptor} was already
-     *     removed from cache, true if it is still active and was refresh
+     *     removed from cache, true if it is still active and was refreshed
      */
     public boolean markConnectionInUse(ConnectionDescriptor connectionDescriptor) {
         return connections.getIfPresent(connectionDescriptor) != null;
