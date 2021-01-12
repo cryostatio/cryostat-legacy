@@ -45,8 +45,14 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.IOUtils;
@@ -63,41 +69,77 @@ public abstract class Podman {
 
     public static final String POD_NAME;
 
+    public static final ExecutorService POOL = Executors.newCachedThreadPool();
+
     static {
         Environment env = new Environment();
         POD_NAME = env.getProperty("containerJfrPodName");
     }
 
-    public static String run(String imageSpec) throws Exception {
-        return runCommand("run", "--quiet", "--pod=" + POD_NAME, "--detach", "--rm", imageSpec)
-                .out();
+    public static String run(ImageSpec imageSpec) throws Exception {
+        List<String> args = new ArrayList<>();
+        args.add("run");
+        args.add("--quiet");
+        args.add("--pod=" + POD_NAME);
+        args.add("--detach");
+        args.add("--rm");
+
+        imageSpec
+                .envs
+                .entrySet()
+                .forEach(
+                        env -> {
+                            args.add("--env");
+                            args.add(env.getKey() + "=" + env.getValue());
+                        });
+
+        args.add(imageSpec.imageSpec);
+
+        return runCommand(args.toArray(new String[0])).out();
     }
 
-    public static void waitForContainerState(String id, String state) throws Exception {
-        long start = System.currentTimeMillis();
-        long elapsed = 0;
-        state = String.format("\"%s\"", Objects.requireNonNull(state));
-        while (elapsed < STARTUP_TIMEOUT.toMillis()) {
-            String out =
-                    runCommand("container", "inspect", "--format=\"{{.State.Status}}\"", id).out();
-            if (state.trim().equalsIgnoreCase(out)) {
-                break;
-            }
-            long now = System.currentTimeMillis();
-            long delta = now - start;
-            elapsed += delta;
-            Thread.sleep(2_000L);
-        }
-        if (elapsed >= STARTUP_TIMEOUT.toMillis()) {
-            throw new PodmanException(
-                    String.format(
-                            "Container %s did not reach %s state in %ds",
-                            id, state, STARTUP_TIMEOUT.toSeconds()));
-        }
+    public static Future<Void> waitForContainerState(String id, String state) {
+        CompletableFuture<Void> cf = new CompletableFuture<>();
+
+        POOL.submit(
+                () -> {
+                    try {
+                        long start = System.currentTimeMillis();
+                        long elapsed = 0;
+                        String fmtState = String.format("\"%s\"", Objects.requireNonNull(state));
+                        while (elapsed < STARTUP_TIMEOUT.toMillis()) {
+                            String out =
+                                    runCommand(
+                                                    "container",
+                                                    "inspect",
+                                                    "--format=\"{{.State.Status}}\"",
+                                                    id)
+                                            .out();
+                            if (fmtState.trim().equalsIgnoreCase(out)) {
+                                break;
+                            }
+                            long now = System.currentTimeMillis();
+                            long delta = now - start;
+                            elapsed += delta;
+                            Thread.sleep(2_000L);
+                        }
+                        if (elapsed >= STARTUP_TIMEOUT.toMillis()) {
+                            throw new PodmanException(
+                                    String.format(
+                                            "Container %s did not reach %s state in %ds",
+                                            id, fmtState, STARTUP_TIMEOUT.toSeconds()));
+                        }
+                        cf.complete(null);
+                    } catch (Exception e) {
+                        cf.completeExceptionally(e);
+                    }
+                });
+
+        return cf;
     }
 
-    public static String rm(String id) throws Exception {
-        return runCommand("rm", "--force", id).out();
+    public static String kill(String id) throws Exception {
+        return runCommand("kill", id).out();
     }
 
     private static CommandOutput runCommand(String... args) throws Exception {
@@ -162,6 +204,20 @@ public abstract class Podman {
 
         PodmanException(String reason) {
             super(reason);
+        }
+    }
+
+    public static class ImageSpec {
+        final Map<String, String> envs;
+        final String imageSpec;
+
+        public ImageSpec(String imageSpec) {
+            this(imageSpec, Collections.emptyMap());
+        }
+
+        public ImageSpec(String imageSpec, Map<String, String> envs) {
+            this.imageSpec = imageSpec;
+            this.envs = envs;
         }
     }
 }
