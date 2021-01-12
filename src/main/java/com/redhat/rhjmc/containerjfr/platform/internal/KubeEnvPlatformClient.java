@@ -41,6 +41,7 @@
  */
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -71,7 +72,7 @@ class KubeEnvPlatformClient implements PlatformClient {
     }
 
     @Override
-    public void start() {}
+    public void start() throws IOException {}
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {

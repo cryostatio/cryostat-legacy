@@ -53,29 +53,37 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
+import com.redhat.rhjmc.containerjfr.platform.internal.AbstractPlatformClient;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
+import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watcher;
 import io.fabric8.openshift.client.OpenShiftClient;
 
-class OpenShiftPlatformClient implements PlatformClient {
+class OpenShiftPlatformClient extends AbstractPlatformClient {
 
     private final OpenShiftClient osClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final FileSystem fs;
     private final Logger logger;
+    private String namespace;
 
     OpenShiftPlatformClient(
             OpenShiftClient osClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             FileSystem fs,
+            NotificationFactory notificationFactory,
             Logger logger) {
+        super(notificationFactory);
         this.osClient = osClient;
         this.connectionToolkit = connectionToolkit;
         this.fs = fs;
@@ -83,24 +91,75 @@ class OpenShiftPlatformClient implements PlatformClient {
     }
 
     @Override
-    public void start() {}
+    public void start() throws IOException {
+        this.namespace = getNamespace();
+        osClient.endpoints()
+                .inNamespace(namespace)
+                .watch(
+                        new Watcher<Endpoints>() {
+                            @Override
+                            public void eventReceived(Action action, Endpoints endpoints) {
+                                switch (action) {
+                                    case MODIFIED:
+                                        // FIXME is this correct in all circumstances?
+                                        // watch detects undeployed and redeployed as a "DELETED"
+                                        // and then a "MODIFIED", so here we will treat "MODIFIED"
+                                        // as a "DELETED" and then an "ADDED".
+                                        // If the service is actually just modified and not
+                                        // redeployed then this remove/add logic should still result
+                                        // in the correct end state seen by subscribed notification
+                                        // clients.
+                                        List<ServiceRef> refs = getServiceRefs(endpoints);
+                                        refs.forEach(
+                                                serviceRef ->
+                                                        notifyAsyncTargetDiscovery(
+                                                                EventKind.LOST, serviceRef));
+                                        refs.forEach(
+                                                serviceRef ->
+                                                        notifyAsyncTargetDiscovery(
+                                                                EventKind.FOUND, serviceRef));
+                                        break;
+                                    case ADDED:
+                                        getServiceRefs(endpoints)
+                                                .forEach(
+                                                        serviceRef ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.FOUND,
+                                                                        serviceRef));
+                                        break;
+                                    case DELETED:
+                                        getServiceRefs(endpoints)
+                                                .forEach(
+                                                        serviceRef ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.LOST,
+                                                                        serviceRef));
+                                        break;
+                                    case ERROR:
+                                    default:
+                                        logger.warn(
+                                                new IllegalArgumentException(action.toString()));
+                                        return;
+                                }
+                            }
+
+                            @Override
+                            public void onClose(KubernetesClientException clientException) {
+                                logger.warn(clientException);
+                            }
+                        });
+    }
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
-            List<ServiceRef> refs = new ArrayList<>();
-            osClient.endpoints().inNamespace(getNamespace()).list().getItems().stream()
-                    .flatMap(endpoints -> endpoints.getSubsets().stream())
-                    .forEach(
-                            subset ->
-                                    subset.getPorts().stream()
-                                            .filter(this::isCompatiblePort)
-                                            .forEach(
-                                                    port ->
-                                                            refs.addAll(
-                                                                    createServiceRefs(
-                                                                            subset, port))));
-            return refs;
+            if (namespace == null) {
+                logger.error("OpenShift namespace could not be determined");
+                return Collections.emptyList();
+            }
+            return osClient.endpoints().inNamespace(namespace).list().getItems().stream()
+                    .flatMap(endpoints -> getServiceRefs(endpoints).stream())
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             logger.warn(e);
             return Collections.emptyList();
@@ -109,6 +168,20 @@ class OpenShiftPlatformClient implements PlatformClient {
 
     private boolean isCompatiblePort(EndpointPort port) {
         return "jfr-jmx".equals(port.getName()) || 9091 == port.getPort();
+    }
+
+    private List<ServiceRef> getServiceRefs(Endpoints endpoints) {
+        List<ServiceRef> refs = new ArrayList<>();
+        endpoints.getSubsets().stream()
+                .forEach(
+                        subset ->
+                                subset.getPorts().stream()
+                                        .filter(this::isCompatiblePort)
+                                        .forEach(
+                                                port ->
+                                                        refs.addAll(
+                                                                createServiceRefs(subset, port))));
+        return refs;
     }
 
     private List<ServiceRef> createServiceRefs(EndpointSubset subset, EndpointPort port) {

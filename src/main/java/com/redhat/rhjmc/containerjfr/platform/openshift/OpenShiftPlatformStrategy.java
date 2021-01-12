@@ -39,6 +39,8 @@
  * SOFTWARE.
  * #L%
  */
+
+// FIXME move the openshift package under the internal package
 package com.redhat.rhjmc.containerjfr.platform.openshift;
 
 import java.nio.file.Files;
@@ -48,6 +50,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
 
@@ -65,13 +68,15 @@ public class OpenShiftPlatformStrategy
     private final FileSystem fs;
     private OpenShiftClient osClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
+    private final NotificationFactory notificationFactory;
 
     public OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
             Environment env,
-            FileSystem fs) {
+            FileSystem fs,
+            NotificationFactory notificationFactory) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.fs = fs;
@@ -82,6 +87,7 @@ public class OpenShiftPlatformStrategy
             this.osClient = null;
         }
         this.connectionToolkit = connectionToolkit;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -116,7 +122,8 @@ public class OpenShiftPlatformStrategy
     @Override
     public OpenShiftPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new OpenShiftPlatformClient(osClient, connectionToolkit, fs, logger);
+        return new OpenShiftPlatformClient(
+                osClient, connectionToolkit, fs, notificationFactory, logger);
     }
 
     @Override
