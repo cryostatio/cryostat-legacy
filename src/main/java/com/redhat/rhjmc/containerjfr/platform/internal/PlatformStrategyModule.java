@@ -76,13 +76,9 @@ public abstract class PlatformStrategyModule {
             NotificationFactory notificationFactory) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
-                        logger,
-                        openShiftAuthManager,
-                        connectionToolkit,
-                        env,
-                        fs,
-                        notificationFactory),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit),
+                        logger, openShiftAuthManager, connectionToolkit, fs, notificationFactory),
+                new KubeApiPlatformStrategy(
+                        logger, noopAuthManager, connectionToolkit, fs, notificationFactory),
                 new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
                 new DefaultPlatformStrategy(
                         logger, noopAuthManager, discoveryClient, notificationFactory));
