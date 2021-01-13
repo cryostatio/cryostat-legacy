@@ -42,41 +42,62 @@
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Paths;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.Configuration;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.util.Config;
+import io.fabric8.kubernetes.client.Config;
+import io.fabric8.kubernetes.client.DefaultKubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClient;
 
-class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
+public class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     private final Logger logger;
     private final AuthManager authMgr;
-    private CoreV1Api api;
-    private final String namespace;
+    private final FileSystem fs;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
+    private final NotificationFactory notificationFactory;
+    private KubernetesClient k8sClient;
 
-    KubeApiPlatformStrategy(
-            Logger logger, NoopAuthManager authMgr, Lazy<JFRConnectionToolkit> connectionToolkit) {
+    protected KubeApiPlatformStrategy(
+            Logger logger,
+            NoopAuthManager authMgr,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            FileSystem fs,
+            NotificationFactory notificationFactory) {
         this.logger = logger;
         this.authMgr = authMgr;
         try {
-            Configuration.setDefaultApiClient(Config.fromCluster());
-            this.api = new CoreV1Api();
-        } catch (IOException e) {
-            this.api = null;
+            this.k8sClient = new DefaultKubernetesClient();
+        } catch (Exception e) {
+            logger.info(e);
+            this.k8sClient = null;
         }
         this.connectionToolkit = connectionToolkit;
-        this.namespace = getNamespace();
+        this.fs = fs;
+        this.notificationFactory = notificationFactory;
+    }
+
+    protected KubeApiPlatformStrategy(
+            Logger logger,
+            NoopAuthManager authMgr,
+            KubernetesClient k8sClient,
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            FileSystem fs,
+            NotificationFactory notificationFactory) {
+        this.logger = logger;
+        this.authMgr = authMgr;
+        this.k8sClient = k8sClient;
+        this.connectionToolkit = connectionToolkit;
+        this.fs = fs;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -87,23 +108,28 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public boolean isAvailable() {
         logger.trace("Testing KubeApi Platform Availability");
-        if (api == null || namespace == null) {
+        if (k8sClient == null) {
             return false;
         }
         try {
-            api.listNamespacedService(
-                    namespace, null, null, null, null, null, null, null, null, null);
-        } catch (ApiException e) {
-            logger.debug(e.getResponseBody());
+            String namespace = getNamespace();
+            if (namespace == null) {
+                return false;
+            }
+            // ServiceAccount should have sufficient permissions on its own to do this
+            k8sClient.endpoints().inNamespace(namespace).list();
+            return true;
+        } catch (Exception e) {
+            logger.info(e);
             return false;
         }
-        return true;
     }
 
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(api, namespace, connectionToolkit, logger);
+        return new KubeApiPlatformClient(
+                getNamespace(), k8sClient, connectionToolkit, notificationFactory, logger);
     }
 
     @Override
@@ -112,10 +138,11 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
-    private static String getNamespace() {
+    private String getNamespace() {
         try {
-            return Files.readString(Paths.get(Config.SERVICEACCOUNT_ROOT, "namespace"));
+            return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
         } catch (IOException e) {
+            logger.info(e);
             return null;
         }
     }

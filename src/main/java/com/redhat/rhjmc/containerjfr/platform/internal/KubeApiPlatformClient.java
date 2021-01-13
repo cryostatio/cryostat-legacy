@@ -50,69 +50,129 @@ import java.util.stream.Collectors;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 import dagger.Lazy;
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1EndpointPort;
-import io.kubernetes.client.models.V1EndpointSubset;
+import io.fabric8.kubernetes.api.model.EndpointPort;
+import io.fabric8.kubernetes.api.model.EndpointSubset;
+import io.fabric8.kubernetes.api.model.Endpoints;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.kubernetes.client.Watcher;
 
-class KubeApiPlatformClient implements PlatformClient {
+public class KubeApiPlatformClient extends AbstractPlatformClient {
 
-    private final CoreV1Api api;
-    private final String namespace;
+    private final KubernetesClient k8sClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
+    private final String namespace;
 
-    KubeApiPlatformClient(
-            CoreV1Api api,
+    public KubeApiPlatformClient(
             String namespace,
+            KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            NotificationFactory notificationFactory,
             Logger logger) {
-        this.api = api;
+        super(notificationFactory);
         this.namespace = namespace;
+        this.k8sClient = k8sClient;
         this.connectionToolkit = connectionToolkit;
         this.logger = logger;
     }
 
     @Override
-    public void start() throws IOException {}
+    public void start() throws IOException {
+        k8sClient
+                .endpoints()
+                .inNamespace(namespace)
+                .watch(
+                        new Watcher<Endpoints>() {
+                            @Override
+                            public void eventReceived(Action action, Endpoints endpoints) {
+                                switch (action) {
+                                    case MODIFIED:
+                                        // FIXME is this correct in all circumstances?
+                                        // watch detects undeployed and redeployed as a "DELETED"
+                                        // and then a "MODIFIED", so here we will treat "MODIFIED"
+                                        // as a "DELETED" and then an "ADDED".
+                                        // If the service is actually just modified and not
+                                        // redeployed then this remove/add logic should still result
+                                        // in the correct end state seen by subscribed notification
+                                        // clients.
+                                        List<ServiceRef> refs = getServiceRefs(endpoints);
+                                        refs.forEach(
+                                                serviceRef ->
+                                                        notifyAsyncTargetDiscovery(
+                                                                EventKind.LOST, serviceRef));
+                                        refs.forEach(
+                                                serviceRef ->
+                                                        notifyAsyncTargetDiscovery(
+                                                                EventKind.FOUND, serviceRef));
+                                        break;
+                                    case ADDED:
+                                        getServiceRefs(endpoints)
+                                                .forEach(
+                                                        serviceRef ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.FOUND,
+                                                                        serviceRef));
+                                        break;
+                                    case DELETED:
+                                        getServiceRefs(endpoints)
+                                                .forEach(
+                                                        serviceRef ->
+                                                                notifyAsyncTargetDiscovery(
+                                                                        EventKind.LOST,
+                                                                        serviceRef));
+                                        break;
+                                    case ERROR:
+                                    default:
+                                        logger.warn(
+                                                new IllegalArgumentException(action.toString()));
+                                        return;
+                                }
+                            }
+
+                            @Override
+                            public void onClose(KubernetesClientException clientException) {
+                                logger.warn(clientException);
+                            }
+                        });
+    }
 
     @Override
     public List<ServiceRef> listDiscoverableServices() {
         try {
-            List<ServiceRef> refs = new ArrayList<>();
-            api
-                    .listNamespacedEndpoints(
-                            namespace, null, null, null, null, null, null, null, null, null)
-                    .getItems().stream()
-                    .flatMap(l -> l.getSubsets().stream())
-                    .forEach(
-                            s ->
-                                    s.getPorts().stream()
-                                            .filter(this::isCompatiblePort)
-                                            .forEach(
-                                                    port -> {
-                                                        refs.addAll(createServiceRefs(s, port));
-                                                    }));
-            return refs;
-        } catch (ApiException e) {
-            logger.warn(e.getMessage());
-            logger.warn(e.getResponseBody());
-            return Collections.emptyList();
+            return k8sClient.endpoints().inNamespace(namespace).list().getItems().stream()
+                    .flatMap(endpoints -> getServiceRefs(endpoints).stream())
+                    .collect(Collectors.toList());
         } catch (Exception e) {
             logger.warn(e);
             return Collections.emptyList();
         }
     }
 
-    private boolean isCompatiblePort(V1EndpointPort port) {
+    private boolean isCompatiblePort(EndpointPort port) {
         return "jfr-jmx".equals(port.getName()) || 9091 == port.getPort();
     }
 
-    private List<ServiceRef> createServiceRefs(V1EndpointSubset subset, V1EndpointPort port) {
+    private List<ServiceRef> getServiceRefs(Endpoints endpoints) {
+        List<ServiceRef> refs = new ArrayList<>();
+        endpoints.getSubsets().stream()
+                .forEach(
+                        subset ->
+                                subset.getPorts().stream()
+                                        .filter(this::isCompatiblePort)
+                                        .forEach(
+                                                port ->
+                                                        refs.addAll(
+                                                                createServiceRefs(subset, port))));
+        return refs;
+    }
+
+    private List<ServiceRef> createServiceRefs(EndpointSubset subset, EndpointPort port) {
         return subset.getAddresses().stream()
                 .map(
                         addr -> {

@@ -51,8 +51,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
-import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
-import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftPlatformStrategy;
+import com.redhat.rhjmc.containerjfr.net.OpenShiftAuthManager;
 
 import dagger.Lazy;
 import dagger.Module;
@@ -76,13 +75,9 @@ public abstract class PlatformStrategyModule {
             NotificationFactory notificationFactory) {
         return Set.of(
                 new OpenShiftPlatformStrategy(
-                        logger,
-                        openShiftAuthManager,
-                        connectionToolkit,
-                        env,
-                        fs,
-                        notificationFactory),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit),
+                        logger, openShiftAuthManager, connectionToolkit, fs, notificationFactory),
+                new KubeApiPlatformStrategy(
+                        logger, noopAuthManager, connectionToolkit, fs, notificationFactory),
                 new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
                 new DefaultPlatformStrategy(
                         logger, noopAuthManager, discoveryClient, notificationFactory));
