@@ -634,7 +634,7 @@
             </execution>
             <execution>
               <id>yarn run build</id>
-              <phase>prepare-package</phase>
+              <phase>compile</phase>
               <goals>
                 <goal>yarn</goal>
               </goals>
