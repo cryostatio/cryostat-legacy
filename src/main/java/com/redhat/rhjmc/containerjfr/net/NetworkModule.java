@@ -153,4 +153,14 @@ public abstract class NetworkModule {
     @Binds
     @IntoSet
     abstract AuthManager bindBasicAuthManager(BasicAuthManager mgr);
+
+    @Provides
+    @Singleton
+    static OpenShiftAuthManager provideOpenShiftAuthManager(Logger logger, FileSystem fs) {
+        return new OpenShiftAuthManager(logger, fs);
+    }
+
+    @Binds
+    @IntoSet
+    abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
 }

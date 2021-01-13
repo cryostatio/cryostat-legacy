@@ -50,8 +50,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
-import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
-import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftPlatformStrategy;
+import com.redhat.rhjmc.containerjfr.net.OpenShiftAuthManager;
 
 import dagger.Lazy;
 import dagger.Module;
@@ -75,7 +74,7 @@ public abstract class PlatformStrategyModule {
         return Set.of(
                 new OpenShiftPlatformStrategy(
                         logger, openShiftAuthManager, connectionToolkit, env, fs),
-                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, resolver),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, fs),
                 new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
                 new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
     }

@@ -41,201 +41,168 @@
  */
 package com.redhat.rhjmc.containerjfr.platform.internal;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
-import static org.mockito.Mockito.when;
-
-import java.net.MalformedURLException;
-import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
+import javax.management.remote.JMXServiceURL;
+
+import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
-import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
-import io.kubernetes.client.ApiException;
-import io.kubernetes.client.apis.CoreV1Api;
-import io.kubernetes.client.models.V1Service;
-import io.kubernetes.client.models.V1ServiceList;
-import io.kubernetes.client.models.V1ServicePort;
-import io.kubernetes.client.models.V1ServiceSpec;
+import io.fabric8.kubernetes.api.model.EndpointAddress;
+import io.fabric8.kubernetes.api.model.EndpointPort;
+import io.fabric8.kubernetes.api.model.EndpointSubset;
+import io.fabric8.kubernetes.api.model.Endpoints;
+import io.fabric8.kubernetes.api.model.EndpointsList;
+import io.fabric8.kubernetes.api.model.ObjectReference;
+import io.fabric8.kubernetes.client.KubernetesClient;
+import io.fabric8.kubernetes.client.dsl.MixedOperation;
+import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
 
 @ExtendWith(MockitoExtension.class)
 class KubeApiPlatformClientTest {
 
-    KubeApiPlatformClient client;
-    @Mock CoreV1Api api;
-    String namespace = "someNamespace";
+    static final String NAMESPACE = "foo-namespace";
+
+    KubeApiPlatformClient platformClient;
+    @Mock KubernetesClient k8sClient;
     @Mock JFRConnectionToolkit connectionToolkit;
-    @Mock NetworkResolver resolver;
+    @Mock Environment env;
     @Mock Logger logger;
 
     @BeforeEach
-    void setup() {
-        client =
-                new KubeApiPlatformClient(
-                        api, namespace, () -> connectionToolkit, resolver, logger);
+    void setup() throws Exception {
+        this.platformClient =
+                new KubeApiPlatformClient(NAMESPACE, k8sClient, () -> connectionToolkit, logger);
     }
 
-    @Nested
-    class DiscoverableServicesTests {
+    @Test
+    void shouldReturnEmptyListIfNoEndpointsFound() throws Exception {
+        MixedOperation mockNamespaceOperation = Mockito.mock(MixedOperation.class);
+        Mockito.when(k8sClient.endpoints()).thenReturn(mockNamespaceOperation);
 
-        @Test
-        void discoversNoServicesIfApiThrows() throws ApiException {
-            when(api.listNamespacedService(
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any()))
-                    .thenThrow(ApiException.class);
+        NonNamespaceOperation mockOperation = Mockito.mock(NonNamespaceOperation.class);
+        Mockito.when(mockNamespaceOperation.inNamespace(Mockito.anyString()))
+                .thenReturn(mockOperation);
 
-            assertThat(client.listDiscoverableServices(), Matchers.empty());
+        EndpointsList mockListable = Mockito.mock(EndpointsList.class);
+        Mockito.when(mockOperation.list()).thenReturn(mockListable);
 
-            verify(api)
-                    .listNamespacedService(
-                            namespace, null, null, null, null, null, null, null, null, null);
-            verifyNoMoreInteractions(api);
-            verifyZeroInteractions(resolver);
-        }
+        List<Endpoints> mockEndpoints = Collections.emptyList();
+        Mockito.when(mockListable.getItems()).thenReturn(mockEndpoints);
 
-        @Test
-        void discoversAndResolvesServices()
-                throws ApiException, UnknownHostException, MalformedURLException {
-            V1ServiceList mockServiceList = mock(V1ServiceList.class);
+        List<ServiceRef> result = platformClient.listDiscoverableServices();
+        MatcherAssert.assertThat(result, Matchers.equalTo(Collections.emptyList()));
+    }
 
-            V1Service mockServiceA = mock(V1Service.class);
-            V1ServiceSpec aSpec = mock(V1ServiceSpec.class);
-            when(aSpec.getClusterIP()).thenReturn("127.0.0.1");
-            when(mockServiceA.getSpec()).thenReturn(aSpec);
-            V1ServicePort aPort1 = mock(V1ServicePort.class);
-            when(aPort1.getPort()).thenReturn(123);
-            V1ServicePort aPort2 = mock(V1ServicePort.class);
-            when(aPort2.getPort()).thenReturn(456);
-            when(aSpec.getPorts()).thenReturn(Arrays.asList(aPort1, aPort2));
+    @Test
+    void shouldReturnListOfMatchingEndpointRefs() throws Exception {
+        MixedOperation mockNamespaceOperation = Mockito.mock(MixedOperation.class);
+        Mockito.when(k8sClient.endpoints()).thenReturn(mockNamespaceOperation);
 
-            V1Service mockServiceB = mock(V1Service.class);
-            V1ServiceSpec bSpec = mock(V1ServiceSpec.class);
-            when(bSpec.getClusterIP()).thenReturn("10.0.0.1");
-            when(mockServiceB.getSpec()).thenReturn(bSpec);
-            V1ServicePort bPort = mock(V1ServicePort.class);
-            when(bPort.getPort()).thenReturn(7899);
-            when(bSpec.getPorts()).thenReturn(Arrays.asList(bPort));
+        NonNamespaceOperation mockOperation = Mockito.mock(NonNamespaceOperation.class);
+        Mockito.when(mockNamespaceOperation.inNamespace(Mockito.anyString()))
+                .thenReturn(mockOperation);
 
-            when(mockServiceList.getItems()).thenReturn(Arrays.asList(mockServiceA, mockServiceB));
-            when(api.listNamespacedService(
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any()))
-                    .thenReturn(mockServiceList);
-            when(resolver.resolveCanonicalHostName("127.0.0.1")).thenReturn("ServiceA.local");
-            when(resolver.resolveCanonicalHostName("10.0.0.1")).thenReturn("b-service.example.com");
+        EndpointsList mockListable = Mockito.mock(EndpointsList.class);
+        Mockito.when(mockOperation.list()).thenReturn(mockListable);
 
-            List<ServiceRef> result = client.listDiscoverableServices();
+        ObjectReference objRef1 = Mockito.mock(ObjectReference.class);
+        // Mockito.when(objRef1.getName()).thenReturn("targetA");
+        ObjectReference objRef2 = Mockito.mock(ObjectReference.class);
+        Mockito.when(objRef2.getName()).thenReturn("targetB");
+        ObjectReference objRef3 = Mockito.mock(ObjectReference.class);
+        Mockito.when(objRef3.getName()).thenReturn("targetC");
+        ObjectReference objRef4 = Mockito.mock(ObjectReference.class);
+        Mockito.when(objRef4.getName()).thenReturn("targetD");
 
-            ServiceRef serv1 =
-                    new ServiceRef(connectionToolkit, "127.0.0.1", 123, "ServiceA.local");
-            ServiceRef serv2 =
-                    new ServiceRef(connectionToolkit, "127.0.0.1", 456, "ServiceA.local");
-            ServiceRef serv3 =
-                    new ServiceRef(connectionToolkit, "10.0.0.1", 7899, "b-service.example.com");
+        EndpointAddress address1 = Mockito.mock(EndpointAddress.class);
+        // Mockito.when(address1.getIp()).thenReturn("127.0.0.1");
+        // Mockito.when(address1.getTargetRef()).thenReturn(objRef1);
+        EndpointAddress address2 = Mockito.mock(EndpointAddress.class);
+        Mockito.when(address2.getIp()).thenReturn("127.0.0.2");
+        Mockito.when(address2.getTargetRef()).thenReturn(objRef2);
+        EndpointAddress address3 = Mockito.mock(EndpointAddress.class);
+        Mockito.when(address3.getIp()).thenReturn("127.0.0.3");
+        Mockito.when(address3.getTargetRef()).thenReturn(objRef3);
+        EndpointAddress address4 = Mockito.mock(EndpointAddress.class);
+        Mockito.when(address4.getIp()).thenReturn("127.0.0.4");
+        Mockito.when(address4.getTargetRef()).thenReturn(objRef4);
 
-            assertThat(result, Matchers.contains(serv1, serv2, serv3));
+        EndpointPort port1 = Mockito.mock(EndpointPort.class);
+        Mockito.when(port1.getPort()).thenReturn(80);
+        Mockito.when(port1.getName()).thenReturn("tcp-80");
+        EndpointPort port2 = Mockito.mock(EndpointPort.class);
+        Mockito.when(port2.getPort()).thenReturn(9999);
+        Mockito.when(port2.getName()).thenReturn("jfr-jmx");
+        EndpointPort port3 = Mockito.mock(EndpointPort.class);
+        Mockito.when(port3.getPort()).thenReturn(9091);
+        Mockito.when(port3.getName()).thenReturn("tcp-9091");
 
-            assertThat(result, Matchers.hasSize(3));
+        EndpointSubset subset1 = Mockito.mock(EndpointSubset.class);
+        // Mockito.when(subset1.getAddresses()).thenReturn(Collections.singletonList(address1));
+        Mockito.when(subset1.getPorts()).thenReturn(Collections.singletonList(port1));
+        EndpointSubset subset2 = Mockito.mock(EndpointSubset.class);
+        Mockito.when(subset2.getAddresses()).thenReturn(Arrays.asList(address2, address3));
+        Mockito.when(subset2.getPorts()).thenReturn(Collections.singletonList(port2));
+        EndpointSubset subset3 = Mockito.mock(EndpointSubset.class);
+        Mockito.when(subset3.getAddresses()).thenReturn(Collections.singletonList(address4));
+        Mockito.when(subset3.getPorts()).thenReturn(Collections.singletonList(port3));
 
-            verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");
-            verify(resolver).resolveCanonicalHostName("10.0.0.1");
-            verifyNoMoreInteractions(resolver);
-            verify(api)
-                    .listNamespacedService(
-                            namespace, null, null, null, null, null, null, null, null, null);
-            verifyNoMoreInteractions(api);
-        }
+        Endpoints endpoint = Mockito.mock(Endpoints.class);
+        Mockito.when(endpoint.getSubsets()).thenReturn(Arrays.asList(subset1, subset2, subset3));
 
-        @Test
-        void ignoresUnresolveableServices()
-                throws ApiException, UnknownHostException, MalformedURLException {
-            V1ServiceList mockServiceList = mock(V1ServiceList.class);
+        Mockito.when(mockListable.getItems()).thenReturn(Collections.singletonList(endpoint));
 
-            V1Service mockServiceA = mock(V1Service.class);
-            V1ServiceSpec aSpec = mock(V1ServiceSpec.class);
-            when(aSpec.getClusterIP()).thenReturn("127.0.0.1");
-            when(mockServiceA.getSpec()).thenReturn(aSpec);
-            V1ServicePort aPort1 = mock(V1ServicePort.class);
-            when(aPort1.getPort()).thenReturn(123);
-            V1ServicePort aPort2 = mock(V1ServicePort.class);
-            when(aPort2.getPort()).thenReturn(456);
-            when(aSpec.getPorts()).thenReturn(Arrays.asList(aPort1, aPort2));
+        Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
+                                String host = args.getArgument(0);
+                                int port = args.getArgument(1);
+                                return new JMXServiceURL(
+                                        "rmi",
+                                        "",
+                                        0,
+                                        "/jndi/rmi://" + host + ":" + port + "/jmxrmi");
+                            }
+                        });
 
-            V1Service mockServiceB = mock(V1Service.class);
-            V1ServiceSpec bSpec = mock(V1ServiceSpec.class);
-            when(bSpec.getClusterIP()).thenReturn("10.0.0.1");
-            when(mockServiceB.getSpec()).thenReturn(bSpec);
-            V1ServicePort bPort = mock(V1ServicePort.class);
-            when(bPort.getPort()).thenReturn(7899);
-            when(bSpec.getPorts()).thenReturn(Arrays.asList(bPort));
+        List<ServiceRef> result = platformClient.listDiscoverableServices();
+        ServiceRef serv1 =
+                new ServiceRef(
+                        connectionToolkit,
+                        address2.getIp(),
+                        port2.getPort(),
+                        address2.getTargetRef().getName());
+        ServiceRef serv2 =
+                new ServiceRef(
+                        connectionToolkit,
+                        address3.getIp(),
+                        port2.getPort(),
+                        address3.getTargetRef().getName());
+        ServiceRef serv3 =
+                new ServiceRef(
+                        connectionToolkit,
+                        address4.getIp(),
+                        port3.getPort(),
+                        address4.getTargetRef().getName());
 
-            when(mockServiceList.getItems()).thenReturn(Arrays.asList(mockServiceA, mockServiceB));
-            when(api.listNamespacedService(
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any(),
-                            Mockito.any()))
-                    .thenReturn(mockServiceList);
-            when(resolver.resolveCanonicalHostName("127.0.0.1")).thenReturn("ServiceA.local");
-            when(resolver.resolveCanonicalHostName("10.0.0.1"))
-                    .thenThrow(UnknownHostException.class);
-
-            List<ServiceRef> result = client.listDiscoverableServices();
-
-            ServiceRef serv1 =
-                    new ServiceRef(connectionToolkit, "127.0.0.1", 123, "ServiceA.local");
-            ServiceRef serv2 =
-                    new ServiceRef(connectionToolkit, "127.0.0.1", 456, "ServiceA.local");
-
-            assertThat(result, Matchers.contains(serv1, serv2));
-            assertThat(result, Matchers.hasSize(2));
-
-            verify(resolver, Mockito.times(2)).resolveCanonicalHostName("127.0.0.1");
-            verify(resolver).resolveCanonicalHostName("10.0.0.1");
-            verifyNoMoreInteractions(resolver);
-            verify(api)
-                    .listNamespacedService(
-                            namespace, null, null, null, null, null, null, null, null, null);
-            verifyNoMoreInteractions(api);
-        }
+        MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
     }
 }
