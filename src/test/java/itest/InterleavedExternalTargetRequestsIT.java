@@ -139,6 +139,10 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
 
         verifyInMemoryRecordingsCreated();
 
+        deleteInMemoryRecordings();
+
+        verifyInmemoryRecordingsDeleted();
+
         long stop = System.nanoTime();
         long elapsed = stop - start;
         System.out.println(
@@ -212,6 +216,72 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                                             recordingInfo.getString("state"),
                                             Matchers.equalTo("RUNNING"));
 
+                                    cf.complete(null);
+                                }
+                            });
+        }
+        CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
+                .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void deleteInMemoryRecordings() throws Exception {
+        List<CompletableFuture<Void>> cfs = new ArrayList<>();
+        for (int i = 0; i < CONTAINERS.size(); i++) {
+            final int fi = i;
+            CompletableFuture<Void> cf = new CompletableFuture<>();
+            cfs.add(cf);
+            Podman.POOL.submit(
+                    () -> {
+                        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+                        webClient
+                                .delete(
+                                        String.format(
+                                                "/api/v1/targets/%s/recordings/%s",
+                                                Podman.POD_NAME + ":" + (9093 + fi),
+                                                "interleaved-" + fi))
+                                .putHeader(
+                                        "X-JMX-Authorization",
+                                        "Basic "
+                                                + Base64.getEncoder()
+                                                        .encodeToString(
+                                                                "admin:adminpass123".getBytes()))
+                                .sendForm(
+                                        form,
+                                        ar -> {
+                                            if (assertRequestStatus(ar, cf)) {
+                                                cf.complete(null);
+                                            }
+                                        });
+                    });
+        }
+        CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
+                .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    }
+
+    private void verifyInmemoryRecordingsDeleted() throws Exception {
+        List<CompletableFuture<Void>> cfs = new ArrayList<>();
+        for (int i = 0; i < CONTAINERS.size(); i++) {
+            final int fi = i;
+            CompletableFuture<Void> cf = new CompletableFuture<>();
+            cfs.add(cf);
+            webClient
+                    .get(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings",
+                                    Podman.POD_NAME + ":" + (9093 + fi)))
+                    .putHeader(
+                            "X-JMX-Authorization",
+                            "Basic "
+                                    + Base64.getEncoder()
+                                            .encodeToString("admin:adminpass123".getBytes()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, cf)) {
+                                    JsonArray listResp = ar.result().bodyAsJsonArray();
+                                    MatcherAssert.assertThat(
+                                            "list should have size 0 after recording deletion",
+                                            listResp.size(),
+                                            Matchers.equalTo(0));
                                     cf.complete(null);
                                 }
                             });
