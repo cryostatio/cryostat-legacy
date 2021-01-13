@@ -140,9 +140,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
         verifyInMemoryRecordingsCreated();
 
         long stop = System.nanoTime();
-
         long elapsed = stop - start;
-
         System.out.println(
                 String.format("Elapsed time: %dms", TimeUnit.NANOSECONDS.toMillis(elapsed)));
     }
@@ -178,17 +176,21 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                                         });
                     });
         }
-        CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0])).join();
+        CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
+                .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     private void verifyInMemoryRecordingsCreated() throws Exception {
+        List<CompletableFuture<Void>> cfs = new ArrayList<>();
         for (int i = 0; i < CONTAINERS.size(); i++) {
-            CompletableFuture<JsonArray> cf = new CompletableFuture<>();
+            final int fi = i;
+            CompletableFuture<Void> cf = new CompletableFuture<>();
+            cfs.add(cf);
             webClient
                     .get(
                             String.format(
                                     "/api/v1/targets/%s/recordings",
-                                    Podman.POD_NAME + ":" + (9093 + i)))
+                                    Podman.POD_NAME + ":" + (9093 + fi)))
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
@@ -197,18 +199,24 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, cf)) {
-                                    cf.complete(ar.result().bodyAsJsonArray());
+                                    JsonArray listResp = ar.result().bodyAsJsonArray();
+                                    MatcherAssert.assertThat(
+                                            "list should have size 1 after recording creation",
+                                            listResp.size(),
+                                            Matchers.equalTo(1));
+                                    JsonObject recordingInfo = listResp.getJsonObject(0);
+                                    MatcherAssert.assertThat(
+                                            recordingInfo.getString("name"),
+                                            Matchers.equalTo("interleaved-" + fi));
+                                    MatcherAssert.assertThat(
+                                            recordingInfo.getString("state"),
+                                            Matchers.equalTo("RUNNING"));
+
+                                    cf.complete(null);
                                 }
                             });
-            JsonArray listResp = cf.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            MatcherAssert.assertThat(
-                    "list should have size 1 after recording creation",
-                    listResp.size(),
-                    Matchers.equalTo(1));
-            JsonObject recordingInfo = listResp.getJsonObject(0);
-            MatcherAssert.assertThat(
-                    recordingInfo.getString("name"), Matchers.equalTo("interleaved-" + i));
-            MatcherAssert.assertThat(recordingInfo.getString("state"), Matchers.equalTo("RUNNING"));
         }
+        CompletableFuture.allOf(cfs.toArray(new CompletableFuture[0]))
+                .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 }
