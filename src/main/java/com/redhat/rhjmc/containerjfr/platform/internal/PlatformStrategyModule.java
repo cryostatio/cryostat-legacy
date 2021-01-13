@@ -51,8 +51,7 @@ import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.NetworkResolver;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
-import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
-import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftPlatformStrategy;
+import com.redhat.rhjmc.containerjfr.net.OpenShiftAuthManager;
 
 import dagger.Lazy;
 import dagger.Module;

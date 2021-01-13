@@ -40,8 +40,7 @@
  * #L%
  */
 
-// FIXME move the openshift package under the internal package
-package com.redhat.rhjmc.containerjfr.platform.openshift;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
 import java.io.IOException;
 import java.nio.file.Paths;
@@ -51,8 +50,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.platform.internal.KubeApiPlatformClient;
-import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
+import com.redhat.rhjmc.containerjfr.net.OpenShiftAuthManager;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
