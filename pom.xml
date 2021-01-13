@@ -658,6 +658,9 @@
                 <resources>
                   <resource>
                     <directory>web-client/dist</directory>
+                    <excludes>
+                        <exclude>cache/**/*</exclude>
+                    </excludes>
                   </resource>
                 </resources>
                 <outputDirectory>${project.build.directory}/assets/app/resources/com/redhat/rhjmc/containerjfr/net/web</outputDirectory>
