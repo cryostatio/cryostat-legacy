@@ -101,9 +101,8 @@ public class TargetConnectionManager {
                                             return;
                                         }
                                         logger.info(
-                                                String.format(
-                                                        "Removing cached connection for %s",
-                                                        descriptor.getTargetId()));
+                                                "Removing cached connection for {}",
+                                                descriptor.getTargetId());
                                         connection.close();
                                     }
                                 })
