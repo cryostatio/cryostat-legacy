@@ -42,15 +42,19 @@
 package com.redhat.rhjmc.containerjfr.net;
 
 import java.net.MalformedURLException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.time.Duration;
+import java.util.Collections;
 import java.util.Optional;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.management.remote.JMXServiceURL;
+
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalListener;
+import com.github.benmanes.caffeine.cache.Scheduler;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
@@ -63,42 +67,71 @@ public class TargetConnectionManager {
     public static final Pattern HOST_PORT_PAIR_PATTERN =
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
-    private final Logger logger;
-    // FIXME verify concurrent connection safety and remove locking
-    private final ReentrantLock lock = new ReentrantLock();
-    // maintain a short-lived cache of connections to allow nested ConnectedTasks
-    // without having to manage connection reuse
-    private final Map<ConnectionDescriptor, JFRConnection> activeConnections = new HashMap<>();
-    private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
+    static final Duration DEFAULT_TTL = Duration.ofSeconds(90);
 
-    public TargetConnectionManager(Logger logger, Lazy<JFRConnectionToolkit> jfrConnectionToolkit) {
-        this.logger = logger;
+    private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
+    private final Logger logger;
+
+    private final LoadingCache<ConnectionDescriptor, JFRConnection> connections;
+
+    TargetConnectionManager(
+            Lazy<JFRConnectionToolkit> jfrConnectionToolkit, Duration ttl, Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
+        this.logger = logger;
+
+        this.connections =
+                Caffeine.newBuilder()
+                        .scheduler(Scheduler.systemScheduler())
+                        .expireAfterAccess(ttl)
+                        .removalListener(
+                                new RemovalListener<ConnectionDescriptor, JFRConnection>() {
+                                    @Override
+                                    public void onRemoval(
+                                            ConnectionDescriptor descriptor,
+                                            JFRConnection connection,
+                                            RemovalCause cause) {
+                                        if (descriptor == null) {
+                                            logger.warn(
+                                                    "Connection eviction triggered with null descriptor");
+                                            return;
+                                        }
+                                        if (connection == null) {
+                                            logger.warn(
+                                                    "Connection eviction triggered with null connection");
+                                            return;
+                                        }
+                                        logger.info(
+                                                "Removing cached connection for {}",
+                                                descriptor.getTargetId());
+                                        connection.close();
+                                    }
+                                })
+                        .build(this::connect);
     }
 
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
-        try {
-            if (activeConnections.containsKey(connectionDescriptor)) {
-                return task.execute(activeConnections.get(connectionDescriptor));
-            } else {
-                try (JFRConnection connection = connect(connectionDescriptor)) {
-                    activeConnections.put(connectionDescriptor, connection);
-                    return task.execute(connection);
-                }
-            }
-        } finally {
-            activeConnections.remove(connectionDescriptor);
-        }
+        return task.execute(connections.get(connectionDescriptor));
     }
 
     /**
-     * Returns a new JFRConnection to the specified Target. This does not do any connection reuse or
-     * other management, so clients are responsible for cleaning up the connection when they are
-     * finished with it. When possible, clients should use executeConnectedTask instead, which does
-     * perform automatic cleanup when the provided task has been completed.
+     * Mark a connection as still in use by the consumer. Connections expire from cache and are
+     * automatically closed after {@link TargetConnectionManager.DEFAULT_TTL}. For long-running
+     * operations which may hold the connection open and active for longer than the default TTL,
+     * this method provides a way for the consumer to inform the {@link TargetConnectionManager} and
+     * its internal cache that the connection is in fact still active and should not be
+     * expired/closed. This will extend the lifetime of the cache entry by another TTL into the
+     * future from the time this method is called. This may be done repeatedly as long as the
+     * connection is required to remain active.
+     *
+     * @return false if the connection for the specified {@link ConnectionDescriptor} was already
+     *     removed from cache, true if it is still active and was refreshed
      */
-    public JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
+    public boolean markConnectionInUse(ConnectionDescriptor connectionDescriptor) {
+        return connections.getIfPresent(connectionDescriptor) != null;
+    }
+
+    private JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
         try {
             return attemptConnectAsJMXServiceURL(connectionDescriptor);
         } catch (MalformedURLException mue) {
@@ -109,6 +142,7 @@ public class TargetConnectionManager {
     private JFRConnection attemptConnectAsJMXServiceURL(ConnectionDescriptor connectionDescriptor)
             throws Exception {
         return connect(
+                connectionDescriptor,
                 new JMXServiceURL(connectionDescriptor.getTargetId()),
                 connectionDescriptor.getCredentials());
     }
@@ -126,22 +160,21 @@ public class TargetConnectionManager {
             port = "9091";
         }
         return connect(
+                connectionDescriptor,
                 jfrConnectionToolkit.get().createServiceURL(host, Integer.parseInt(port)),
                 connectionDescriptor.getCredentials());
     }
 
-    private JFRConnection connect(JMXServiceURL url, Optional<Credentials> credentials)
+    private JFRConnection connect(
+            ConnectionDescriptor cacheKey, JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
-        logger.trace("Locking connection {}", url.toString());
-        lock.lockInterruptibly();
+        logger.info("Creating connection for {}", url.toString());
         return jfrConnectionToolkit
                 .get()
                 .connect(
                         url,
                         credentials.orElse(null),
-                        List.of(
-                                lock::unlock,
-                                () -> logger.trace("Unlocking connection {}", url.toString())));
+                        Collections.singletonList(() -> this.connections.invalidate(cacheKey)));
     }
 
     public interface ConnectedTask<T> {

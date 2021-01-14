@@ -12,11 +12,27 @@ function runContainerJFR() {
         exec "$DIR/run.sh"
 }
 
-function runDemoApp() {
+function runDemoApps() {
     podman run \
-        --name vertx-fib-demo \
+        --name vertx-fib-demo-1 \
+        --env JMX_PORT=9093 \
         --pod container-jfr \
-        --rm -d quay.io/andrewazores/vertx-fib-demo:0.4.0
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
+
+    podman run \
+        --name vertx-fib-demo-2 \
+        --env JMX_PORT=9094 \
+        --env USE_AUTH=true \
+        --pod container-jfr \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
+
+    podman run \
+        --name vertx-fib-demo-3 \
+        --env JMX_PORT=9095 \
+        --env USE_SSL=true \
+        --env USE_AUTH=true \
+        --pod container-jfr \
+        --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
 }
 
 function runJfrDatasource() {
@@ -66,13 +82,17 @@ function createPod() {
         --publish 8080:8080 \
         --publish 3000:3000 \
         --publish 8081:8081 \
-        --publish 9093:9093
+        --publish 9093:9093 \
+        --publish 9094:9094 \
+        --publish 9095:9095
     # 9091: ContainerJFR RJMX
     # 8181: ContainerJFR web services
     # 8080: jfr-datasource
     # 3000: grafana
     # 8081: vertx-fib-demo
-    # 9093: vertx-fib-demo RJMX
+    # 9093: vertx-fib-demo-1 RJMX
+    # 9094: vertx-fib-demo-2 RJMX
+    # 9095: vertx-fib-demo-3 RJMX
 }
 
 function destroyPod() {
@@ -82,7 +102,7 @@ function destroyPod() {
 trap destroyPod EXIT
 
 createPod
-runDemoApp
+runDemoApps
 runJfrDatasource
 runGrafana
 runContainerJFR

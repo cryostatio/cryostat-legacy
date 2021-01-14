@@ -94,7 +94,8 @@ public abstract class NetworkModule {
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
             Logger logger, Lazy<JFRConnectionToolkit> connectionToolkit) {
-        return new TargetConnectionManager(logger, connectionToolkit);
+        return new TargetConnectionManager(
+                connectionToolkit, TargetConnectionManager.DEFAULT_TTL, logger);
     }
 
     @Provides

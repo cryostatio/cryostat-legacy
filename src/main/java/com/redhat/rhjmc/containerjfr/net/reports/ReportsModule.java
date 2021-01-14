@@ -76,7 +76,7 @@ public abstract class ReportsModule {
     @Named(REPORT_GENERATION_LOCK)
     /** Used to ensure that only one report is generated at a time */
     static ReentrantLock provideReportGenerationLock() {
-        return new ReentrantLock();
+        return new ReentrantLock(true);
     }
 
     @Provides

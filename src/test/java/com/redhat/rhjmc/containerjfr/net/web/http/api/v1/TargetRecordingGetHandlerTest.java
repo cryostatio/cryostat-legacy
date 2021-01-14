@@ -58,7 +58,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -66,8 +68,8 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
@@ -143,8 +145,16 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<Object>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                ConnectedTask task = invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
 
         handler.handle(ctx);
 
@@ -184,8 +194,16 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName + ".jfr");
 
-        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<Object>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                ConnectedTask task = invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
 
         handler.handle(ctx);
 
@@ -203,8 +221,15 @@ class TargetRecordingGetHandlerTest {
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<Object>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                ConnectedTask task = invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenReturn(List.of());
 
@@ -226,8 +251,15 @@ class TargetRecordingGetHandlerTest {
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        when(targetConnectionManager.connect(Mockito.any(ConnectionDescriptor.class)))
-                .thenReturn(connection);
+        when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<Object>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                ConnectedTask task = invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
         when(connection.getService()).thenReturn(service);
         when(service.getAvailableRecordings()).thenThrow(NullPointerException.class);
 

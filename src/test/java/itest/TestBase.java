@@ -127,11 +127,13 @@ public abstract class TestBase {
     static boolean assertRequestStatus(
             AsyncResult<HttpResponse<Buffer>> result, CompletableFuture<?> future) {
         if (result.failed()) {
+            result.cause().printStackTrace();
             future.completeExceptionally(result.cause());
             return false;
         }
         HttpResponse<Buffer> response = result.result();
         if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode())) {
+            System.err.println("HTTP " + response.statusCode() + ": " + response.statusMessage());
             future.completeExceptionally(new Exception(response.statusMessage()));
             return false;
         }
