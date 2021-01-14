@@ -633,7 +633,7 @@
             </execution>
             <execution>
               <id>yarn run build</id>
-              <phase>prepare-package</phase>
+              <phase>compile</phase>
               <goals>
                 <goal>yarn</goal>
               </goals>
@@ -657,6 +657,9 @@
                 <resources>
                   <resource>
                     <directory>web-client/dist</directory>
+                    <excludes>
+                        <exclude>cache/**/*</exclude>
+                    </excludes>
                   </resource>
                 </resources>
                 <outputDirectory>${project.build.directory}/assets/app/resources/com/redhat/rhjmc/containerjfr/net/web</outputDirectory>
