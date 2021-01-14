@@ -39,9 +39,9 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.platform.openshift;
+package com.redhat.rhjmc.containerjfr.platform.internal;
 
-import java.nio.file.Files;
+import java.io.IOException;
 import java.nio.file.Paths;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
@@ -49,7 +49,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
+import com.redhat.rhjmc.containerjfr.net.OpenShiftAuthManager;
 
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -57,8 +57,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
-public class OpenShiftPlatformStrategy
-        implements PlatformDetectionStrategy<OpenShiftPlatformClient> {
+class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     private final Logger logger;
     private final AuthManager authMgr;
@@ -66,7 +65,7 @@ public class OpenShiftPlatformStrategy
     private OpenShiftClient osClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
 
-    public OpenShiftPlatformStrategy(
+    OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
@@ -97,15 +96,11 @@ public class OpenShiftPlatformStrategy
             return false;
         }
         try {
-            // if we aren't in Kubernetes then we definitely aren't in OpenShift
-            if (!Files.exists(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))) {
+            String namespace = getNamespace();
+            if (namespace == null) {
                 return false;
             }
-            // OpenShift has Routes but if we're running in a different Kubernetes disto,
-            // we should get some exception about an unknown type here
-            // TODO verify this assumption in some other Kubernetes
-            // ServiceAccount should have sufficient permissions on its own to do this
-            osClient.routes().list();
+            osClient.routes().inNamespace(namespace).list();
             return true;
         } catch (Exception e) {
             logger.info(e);
@@ -114,13 +109,23 @@ public class OpenShiftPlatformStrategy
     }
 
     @Override
-    public OpenShiftPlatformClient getPlatformClient() {
+    public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new OpenShiftPlatformClient(osClient, connectionToolkit, fs, logger);
+        return new KubeApiPlatformClient(getNamespace(), osClient, connectionToolkit, logger);
     }
 
     @Override
     public AuthManager getAuthManager() {
         return authMgr;
+    }
+
+    @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
+    private String getNamespace() {
+        try {
+            return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
+        } catch (IOException e) {
+            logger.info(e);
+            return null;
+        }
     }
 }

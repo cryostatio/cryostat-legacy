@@ -55,14 +55,11 @@ import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.NoopAuthManager;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformDetectionStrategy;
 import com.redhat.rhjmc.containerjfr.platform.internal.PlatformStrategyModule;
-import com.redhat.rhjmc.containerjfr.platform.openshift.OpenShiftAuthManager;
 import com.redhat.rhjmc.containerjfr.tui.ConnectionMode;
 
-import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import dagger.multibindings.IntoSet;
 
 @Module(includes = {PlatformStrategyModule.class})
 public abstract class PlatformModule {
@@ -146,14 +143,4 @@ public abstract class PlatformModule {
     static JvmDiscoveryClient provideJvmDiscoveryClient(Logger logger) {
         return new JvmDiscoveryClient(logger);
     }
-
-    @Provides
-    @Singleton
-    static OpenShiftAuthManager provideOpenShiftAuthManager(Logger logger, FileSystem fs) {
-        return new OpenShiftAuthManager(logger, fs);
-    }
-
-    @Binds
-    @IntoSet
-    abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
 }

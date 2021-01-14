@@ -39,7 +39,7 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.platform.openshift;
+package com.redhat.rhjmc.containerjfr.net;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -56,8 +56,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-import com.redhat.rhjmc.containerjfr.net.AbstractAuthManager;
-import com.redhat.rhjmc.containerjfr.net.AuthenticationScheme;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.client.Config;
