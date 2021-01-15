@@ -45,11 +45,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.platform.ServiceRef;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,17 +54,26 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.platform.ServiceRef;
+
 @ExtendWith(MockitoExtension.class)
 class KubeEnvPlatformClientTest {
 
     KubeEnvPlatformClient client;
     @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
+    @Mock NotificationFactory notificationFactory;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(() -> connectionToolkit, env, logger);
+        client =
+                new KubeEnvPlatformClient(
+                        () -> connectionToolkit, env, notificationFactory, logger);
     }
 
     @Nested

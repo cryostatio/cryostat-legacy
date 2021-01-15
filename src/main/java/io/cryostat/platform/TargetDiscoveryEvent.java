@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Container JFR
+ * %%
+ * Copyright (C) 2020 Red Hat, Inc.
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,56 +37,26 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
-package io.cryostat.platform.internal;
+package io.cryostat.platform;
 
-import dagger.Lazy;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnectionToolkit;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.net.AuthManager;
+import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 
-class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatformClient> {
+public class TargetDiscoveryEvent {
+    private final EventKind kind;
+    private final ServiceRef serviceRef;
 
-    private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final Logger logger;
-    private final AuthManager authMgr;
-    private final Environment env;
-    private final NotificationFactory notificationFactory;
-
-    KubeEnvPlatformStrategy(
-            Logger logger,
-            AuthManager authMgr,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            NotificationFactory notificationFactory) {
-        this.logger = logger;
-        this.authMgr = authMgr;
-        this.connectionToolkit = connectionToolkit;
-        this.env = env;
-        this.notificationFactory = notificationFactory;
+    public TargetDiscoveryEvent(EventKind kind, ServiceRef serviceRef) {
+        this.kind = kind;
+        this.serviceRef = serviceRef;
     }
 
-    @Override
-    public int getPriority() {
-        return PRIORITY_PLATFORM;
+    public EventKind getEventKind() {
+        return this.kind;
     }
 
-    @Override
-    public boolean isAvailable() {
-        logger.trace("Testing KubeEnv Platform Availability");
-        return env.getEnv().keySet().stream().anyMatch(s -> s.equals("KUBERNETES_SERVICE_HOST"));
-    }
-
-    @Override
-    public KubeEnvPlatformClient getPlatformClient() {
-        logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(connectionToolkit, env, notificationFactory, logger);
-    }
-
-    @Override
-    public AuthManager getAuthManager() {
-        return authMgr;
+    public ServiceRef getServiceRef() {
+        return this.serviceRef;
     }
 }

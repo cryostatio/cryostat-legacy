@@ -53,7 +53,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
-public class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
+class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     private final Logger logger;
     private final AuthManager authMgr;
@@ -62,7 +62,7 @@ public class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<Kube
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final NotificationFactory notificationFactory;
 
-    public OpenShiftPlatformStrategy(
+    OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,

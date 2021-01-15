@@ -45,15 +45,14 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import dagger.Lazy;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.platform.PlatformClient;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
 
-import dagger.Lazy;
-
-class KubeEnvPlatformClient implements PlatformClient {
+class KubeEnvPlatformClient extends AbstractPlatformClient {
 
     private static final Pattern SERVICE_ENV_PATTERN =
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
@@ -62,7 +61,11 @@ class KubeEnvPlatformClient implements PlatformClient {
     private final Logger logger;
 
     KubeEnvPlatformClient(
-            Lazy<JFRConnectionToolkit> connectionToolkit, Environment env, Logger logger) {
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            Environment env,
+            NotificationFactory notificationFactory,
+            Logger logger) {
+        super(notificationFactory);
         this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.logger = logger;
