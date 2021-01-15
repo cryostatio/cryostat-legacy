@@ -27,7 +27,6 @@ curl -k \
     -X POST \
     -F username=admin \
     -F password=adminpass123 \
-    -F persist=true \
     "$CJFR_HOST/api/v2/targets/$demoAppTargetId/credentials"
 
 sleep 5
