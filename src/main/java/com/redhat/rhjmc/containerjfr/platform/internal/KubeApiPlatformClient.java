@@ -62,14 +62,14 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
 
-public class KubeApiPlatformClient extends AbstractPlatformClient {
+class KubeApiPlatformClient extends AbstractPlatformClient {
 
     private final KubernetesClient k8sClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
     private final Logger logger;
     private final String namespace;
 
-    public KubeApiPlatformClient(
+    KubeApiPlatformClient(
             String namespace,
             KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,

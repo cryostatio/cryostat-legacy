@@ -52,11 +52,11 @@ import java.util.stream.Collectors;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 import dagger.Lazy;
 
-class KubeEnvPlatformClient implements PlatformClient {
+class KubeEnvPlatformClient extends AbstractPlatformClient {
 
     private static final Pattern SERVICE_ENV_PATTERN =
             Pattern.compile("([\\S]+)_PORT_([\\d]+)_TCP_ADDR");
@@ -65,7 +65,11 @@ class KubeEnvPlatformClient implements PlatformClient {
     private final Logger logger;
 
     KubeEnvPlatformClient(
-            Lazy<JFRConnectionToolkit> connectionToolkit, Environment env, Logger logger) {
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            Environment env,
+            NotificationFactory notificationFactory,
+            Logger logger) {
+        super(notificationFactory);
         this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.logger = logger;

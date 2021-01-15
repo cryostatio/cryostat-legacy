@@ -61,6 +61,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 @ExtendWith(MockitoExtension.class)
@@ -69,11 +70,14 @@ class KubeEnvPlatformClientTest {
     KubeEnvPlatformClient client;
     @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
+    @Mock NotificationFactory notificationFactory;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(() -> connectionToolkit, env, logger);
+        client =
+                new KubeEnvPlatformClient(
+                        () -> connectionToolkit, env, notificationFactory, logger);
     }
 
     @Nested
