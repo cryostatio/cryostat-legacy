@@ -122,14 +122,9 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
         } catch (NullPointerException npe) {
             throw new ApiException(400, npe.getMessage(), npe);
         }
-        boolean persist =
-                Boolean.valueOf(
-                        StringUtils.defaultString(
-                                params.getFormAttributes().get("persist"), "false"));
 
         try {
-            this.credentialsManager.addCredentials(
-                    targetId, new Credentials(username, password), persist);
+            this.credentialsManager.addCredentials(targetId, new Credentials(username, password));
         } catch (IOException e) {
             throw new ApiException(500, "IOException occurred while persisting credentials", e);
         }
