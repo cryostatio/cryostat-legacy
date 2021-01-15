@@ -13,14 +13,16 @@ if [ -z "$CJFR_HOST" ]; then
     CJFR_HOST="https://0.0.0.0:8181"
 fi
 
-echo "Killing vertx-fib-demo container"
-podman kill vertx-fib-demo
+TARGET_CONTAINER=vertx-fib-demo-1
+
+echo "Killing $TARGET_CONTAINER container"
+podman kill $TARGET_CONTAINER
 
 demoAppServiceUrl="service:jmx:rmi:///jndi/rmi://container-jfr:9093/jmxrmi"
 demoAppTargetId="$(echo -n $demoAppServiceUrl | jq -sRr @uri)"
 
 sleep 2
-echo "POSTing vertx-fib-demo credentials"
+echo "POSTing $TARGET_CONTAINER credentials"
 curl -k \
     -X POST \
     -F username=admin \
@@ -53,8 +55,9 @@ curl -k \
     "$CJFR_HOST/api/v2/rules"
 
 sleep 5
-echo "Restarting vertx-fib-demo"
+echo "Restarting $TARGET_CONTAINER"
 podman run \
-    --name vertx-fib-demo \
+    --name $TARGET_CONTAINER \
     --pod container-jfr \
-    --rm -d quay.io/andrewazores/vertx-fib-demo:0.4.0
+    --env JMX_PORT=9093 \
+    --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
