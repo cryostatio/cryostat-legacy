@@ -95,7 +95,7 @@ public class CredentialsManager {
 
     // FIXME `persist` should not be a parameter here but rather a Strategy selected by ex. env var,
     // with corresponding backing storage either in-memory or on-disk (with in-memory cache?)
-    public boolean addCredentials(String targetId, Credentials credentials, boolean persist)
+    boolean addCredentials(String targetId, Credentials credentials, boolean persist)
             throws IOException {
         boolean replaced = credentialsMap.containsKey(targetId);
         credentialsMap.put(targetId, credentials);
