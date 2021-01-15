@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Container JFR
+ * %%
+ * Copyright (C) 2020 Red Hat, Inc.
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,19 +37,26 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
 package io.cryostat.platform;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.function.Consumer;
+import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 
-public interface PlatformClient {
-    void start() throws IOException;
+public class TargetDiscoveryEvent {
+    private final EventKind kind;
+    private final ServiceRef serviceRef;
 
-    List<ServiceRef> listDiscoverableServices();
+    public TargetDiscoveryEvent(EventKind kind, ServiceRef serviceRef) {
+        this.kind = kind;
+        this.serviceRef = serviceRef;
+    }
 
-    void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    public EventKind getEventKind() {
+        return this.kind;
+    }
 
-    void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    public ServiceRef getServiceRef() {
+        return this.serviceRef;
+    }
 }

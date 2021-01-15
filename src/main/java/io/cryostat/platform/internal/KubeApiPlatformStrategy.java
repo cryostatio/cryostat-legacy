@@ -53,7 +53,7 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
-public class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
+class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     private final Logger logger;
     private final AuthManager authMgr;
@@ -62,38 +62,23 @@ public class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeAp
     private final NotificationFactory notificationFactory;
     private KubernetesClient k8sClient;
 
-    protected KubeApiPlatformStrategy(
+    KubeApiPlatformStrategy(
             Logger logger,
             NoopAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            FileSystem fs,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
+        this.connectionToolkit = connectionToolkit;
+        this.notificationFactory = notificationFactory;
+        this.fs = fs;
         try {
             this.k8sClient = new DefaultKubernetesClient();
         } catch (Exception e) {
             logger.info(e);
             this.k8sClient = null;
         }
-        this.connectionToolkit = connectionToolkit;
-        this.fs = fs;
-        this.notificationFactory = notificationFactory;
-    }
-
-    protected KubeApiPlatformStrategy(
-            Logger logger,
-            NoopAuthManager authMgr,
-            KubernetesClient k8sClient,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            FileSystem fs,
-            NotificationFactory notificationFactory) {
-        this.logger = logger;
-        this.authMgr = authMgr;
-        this.k8sClient = k8sClient;
-        this.connectionToolkit = connectionToolkit;
-        this.fs = fs;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override

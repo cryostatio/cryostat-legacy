@@ -73,8 +73,9 @@ public abstract class PlatformStrategyModule {
                 new OpenShiftPlatformStrategy(
                         logger, openShiftAuthManager, connectionToolkit, fs, notificationFactory),
                 new KubeApiPlatformStrategy(
-                        logger, noopAuthManager, connectionToolkit, fs, notificationFactory),
-                new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
+                        logger, noopAuthManager, connectionToolkit, notificationFactory, fs),
+                new KubeEnvPlatformStrategy(
+                        logger, noopAuthManager, connectionToolkit, env, notificationFactory),
                 new DefaultPlatformStrategy(
                         logger, noopAuthManager, discoveryClient, notificationFactory));
     }

@@ -51,6 +51,7 @@ import javax.management.remote.JMXServiceURL;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
 
@@ -72,11 +73,14 @@ class KubeEnvPlatformClientTest {
     KubeEnvPlatformClient client;
     @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
+    @Mock NotificationFactory notificationFactory;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        client = new KubeEnvPlatformClient(() -> connectionToolkit, env, logger);
+        client =
+                new KubeEnvPlatformClient(
+                        () -> connectionToolkit, env, notificationFactory, logger);
     }
 
     @Nested
