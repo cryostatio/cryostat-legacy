@@ -39,56 +39,24 @@
  * SOFTWARE.
  * #L%
  */
-package com.redhat.rhjmc.containerjfr.platform.internal;
-
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.function.Consumer;
+package com.redhat.rhjmc.containerjfr.platform;
 
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
-import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
-import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
-import com.redhat.rhjmc.containerjfr.platform.TargetDiscoveryEvent;
 
-abstract class AbstractPlatformClient implements PlatformClient {
+public class TargetDiscoveryEvent {
+    private final EventKind kind;
+    private final ServiceRef serviceRef;
 
-    static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
-
-    protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
-
-    protected AbstractPlatformClient(NotificationFactory notificationFactory) {
-        this.discoveryListeners = new HashSet<>();
-
-        addTargetDiscoveryListener(
-                tde ->
-                        notificationFactory
-                                .createBuilder()
-                                .metaCategory(NOTIFICATION_CATEGORY)
-                                .message(
-                                        Map.of(
-                                                "event",
-                                                Map.of(
-                                                        "kind",
-                                                        tde.getEventKind(),
-                                                        "serviceRef",
-                                                        tde.getServiceRef())))
-                                .build()
-                                .send());
+    public TargetDiscoveryEvent(EventKind kind, ServiceRef serviceRef) {
+        this.kind = kind;
+        this.serviceRef = serviceRef;
     }
 
-    @Override
-    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
-        this.discoveryListeners.add(listener);
+    public EventKind getEventKind() {
+        return this.kind;
     }
 
-    @Override
-    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
-        this.discoveryListeners.remove(listener);
-    }
-
-    protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
-        discoveryListeners.forEach(c -> c.accept(new TargetDiscoveryEvent(eventKind, serviceRef)));
+    public ServiceRef getServiceRef() {
+        return this.serviceRef;
     }
 }

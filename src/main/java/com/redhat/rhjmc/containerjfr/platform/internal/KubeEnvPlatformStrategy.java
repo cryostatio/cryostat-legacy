@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.platform.internal;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import dagger.Lazy;
 
@@ -53,16 +54,19 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     private final Logger logger;
     private final AuthManager authMgr;
     private final Environment env;
+    private final NotificationFactory notificationFactory;
 
     KubeEnvPlatformStrategy(
             Logger logger,
             AuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env) {
+            Environment env,
+            NotificationFactory notificationFactory) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
         this.env = env;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -79,7 +83,7 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     @Override
     public KubeEnvPlatformClient getPlatformClient() {
         logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(connectionToolkit, env, logger);
+        return new KubeEnvPlatformClient(connectionToolkit, env, notificationFactory, logger);
     }
 
     @Override
