@@ -46,7 +46,6 @@ import java.util.Objects;
 
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.StringUtils;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
