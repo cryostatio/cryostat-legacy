@@ -55,7 +55,6 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import org.apache.commons.lang3.StringUtils;
 
 class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
