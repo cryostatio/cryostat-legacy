@@ -116,7 +116,6 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             throw new ApiException(415, "Bad content type: " + rawMime);
         }
         switch (mime) {
-                // TODO test if these both get parsed properly into the FormAttributes
             case MULTIPART_FORM:
             case URLENCODED_FORM:
                 Rule.Builder builder =
