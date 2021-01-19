@@ -64,7 +64,7 @@
   <com.github.spotbugs.plugin.version>4.1.4</com.github.spotbugs.plugin.version>
   <org.junit.jupiter.version>5.6.0</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
-  <org.mockito.version>3.2.4</org.mockito.version>
+  <org.mockito.version>3.7.7</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.5</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>1.27.0</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.12.1</org.jsoup.version>
