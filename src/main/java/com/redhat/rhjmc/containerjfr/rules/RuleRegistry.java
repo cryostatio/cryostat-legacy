@@ -91,6 +91,8 @@ public class RuleRegistry {
     }
 
     public Rule addRule(Rule rule) throws IOException {
+        // TODO ensure that in-memory `rules` set is kept consistent if/when Rule definitions are
+        // added which collide by name - ie, delete by name here first, allowing a full overwrite
         Path destination = rulesDir.resolve(rule.getName() + ".json");
         this.fs.writeString(
                 destination,
@@ -122,7 +124,7 @@ public class RuleRegistry {
     public void deleteRule(String name) throws IOException {
         this.rules.removeIf(r -> Objects.equals(r.getName(), name));
         this.fs.listDirectoryChildren(rulesDir).stream()
-                .filter(s -> Objects.equals(s, name))
+                .filter(s -> Objects.equals(s, name + ".json"))
                 .map(rulesDir::resolve)
                 .forEach(
                         path -> {
@@ -133,4 +135,6 @@ public class RuleRegistry {
                             }
                         });
     }
+
+    // TODO add deleteRules(ServiceRef serviceRef)
 }
