@@ -110,7 +110,8 @@ class RuleRegistryTest {
     void testLoadRulesSkipsFilesWhenExceptionThrown() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(TEST_RULE.getName()));
+        Mockito.when(fs.listDirectoryChildren(Mockito.any()))
+                .thenReturn(List.of(TEST_RULE.getName()));
         Mockito.when(fs.readFile(rulePath)).thenThrow(IOException.class);
 
         registry.loadRules();

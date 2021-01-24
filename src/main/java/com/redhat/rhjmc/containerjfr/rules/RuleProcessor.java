@@ -126,13 +126,6 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         registry.getRules(tde.getServiceRef())
                 .forEach(
                         rule -> {
-                            if (tde.getServiceRef().getAlias().isPresent()
-                                    && !tde.getServiceRef()
-                                            .getAlias()
-                                            .get()
-                                            .equals(rule.getTargetAlias())) {
-                                return;
-                            }
                             this.logger.trace(
                                     String.format(
                                             "Activating rule %s for target %s",
