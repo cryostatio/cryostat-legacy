@@ -255,6 +255,6 @@ class RuleRegistryTest {
 
         registry.deleteRule(TEST_RULE.getName());
 
-        Mockito.verify(logger).warn(Mockito.any(IOException.class));
+        Mockito.verify(logger, Mockito.times(2)).warn(Mockito.any(IOException.class));
     }
 }
