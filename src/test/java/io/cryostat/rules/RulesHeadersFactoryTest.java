@@ -41,47 +41,45 @@
  */
 package io.cryostat.rules;
 
+import java.util.Map;
 import java.util.function.Function;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
-import io.cryostat.net.web.http.api.v1.RecordingDeleteHandler;
-import io.cryostat.net.web.http.api.v1.TargetRecordingPatchHandler;
-import io.cryostat.platform.ServiceRef;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 
 import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.codec.binary.Base64;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
 
-class PeriodicArchiverFactory {
+class RulesHeadersFactoryTest {
 
-    private final WebClient webClient;
-    private final String archiveRequestPath;
-    private final String deleteRequestPath;
-    private final Function<Credentials, MultiMap> headersFactory;
-    private final Logger logger;
+    Function<Credentials, MultiMap> factory = RulesModule.provideRulesHeadersFactory();
 
-    PeriodicArchiverFactory(
-            WebClient webClient,
-            TargetRecordingPatchHandler archiveHandler,
-            RecordingDeleteHandler deleteHandler,
-            Function<Credentials, MultiMap> headersFactory,
-            Logger logger) {
-        this.webClient = webClient;
-        this.archiveRequestPath = archiveHandler.path();
-        this.deleteRequestPath = deleteHandler.path();
-        this.headersFactory = headersFactory;
-        this.logger = logger;
+    @Test
+    void testNoHeaderAddedIfCredentialsAreNull() {
+        MultiMap result = factory.apply(null);
+        MatcherAssert.assertThat(result, Matchers.emptyIterable());
     }
 
-    PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule) {
-        return new PeriodicArchiver(
-                serviceRef,
-                credentials,
-                rule,
-                webClient,
-                archiveRequestPath,
-                deleteRequestPath,
-                headersFactory,
-                logger);
+    @Test
+    void ensureCorrectHeaderWhenCredentialsProvided() {
+        Credentials credentials = new Credentials("foouser", "barpassword");
+        MultiMap result = factory.apply(credentials);
+        MatcherAssert.assertThat(result.size(), Matchers.is(1));
+        Map.Entry<String, String> header = result.entries().get(0);
+        MatcherAssert.assertThat(
+                header.getKey(),
+                Matchers.equalTo(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER));
+        MatcherAssert.assertThat(
+                header.getValue(),
+                Matchers.equalTo(
+                        "Basic "
+                                + Base64.encodeBase64String(
+                                        (credentials.getUsername()
+                                                        + ":"
+                                                        + credentials.getPassword())
+                                                .getBytes())));
     }
 }

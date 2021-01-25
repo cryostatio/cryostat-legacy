@@ -41,7 +41,6 @@
  */
 package io.cryostat.rules;
 
-import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -50,6 +49,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -57,7 +57,6 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.HttpStatusCodeIdentifier;
@@ -67,7 +66,6 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
-import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.utils.URLEncodedUtils;
 
 public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
@@ -79,6 +77,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     private final WebClient webClient;
     private final String postPath;
     private final PeriodicArchiverFactory periodicArchiverFactory;
+    private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
     private final Set<Future<?>> tasks;
@@ -91,6 +90,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             WebClient webClient,
             String postPath,
             PeriodicArchiverFactory periodicArchiverFactory,
+            Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
         this.platformClient = platformClient;
         this.registry = registry;
@@ -99,6 +99,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         this.webClient = webClient;
         this.postPath = postPath;
         this.periodicArchiverFactory = periodicArchiverFactory;
+        this.headersFactory = headersFactory;
         this.logger = logger;
 
         this.tasks = new HashSet<>();
@@ -192,24 +193,11 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         String path =
                 postPath.replaceAll(
                         ":targetId", URLEncodedUtils.formatSegments(serviceUrl.toString()));
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        if (credentials != null) {
-            headers.add(
-                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
-                    String.format(
-                            "Basic %s",
-                            Base64.encodeBase64String(
-                                    String.format(
-                                                    "%s:%s",
-                                                    credentials.getUsername(),
-                                                    credentials.getPassword())
-                                            .getBytes(StandardCharsets.UTF_8))));
-        }
 
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         this.webClient
                 .post(path)
-                .putHeaders(headers)
+                .putHeaders(headersFactory.apply(credentials))
                 .sendMultipartForm(
                         form,
                         ar -> {
