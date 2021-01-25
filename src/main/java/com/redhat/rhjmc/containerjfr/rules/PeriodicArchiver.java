@@ -147,7 +147,6 @@ class PeriodicArchiver implements Runnable {
         CompletableFuture<String> future = new CompletableFuture<>();
         this.webClient
                 .patch(path.toString())
-                .timeout(30_000L)
                 .putHeaders(headers)
                 .sendBuffer(
                         Buffer.buffer("save"),
@@ -194,7 +193,6 @@ class PeriodicArchiver implements Runnable {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         this.webClient
                 .delete(path.toString())
-                .timeout(30_000L)
                 .putHeaders(headers)
                 .send(
                         ar -> {
