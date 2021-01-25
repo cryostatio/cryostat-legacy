@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -60,6 +60,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 import com.redhat.rhjmc.containerjfr.platform.TargetDiscoveryEvent;
 import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
 
@@ -81,7 +82,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
-    private final Set<Future<?>> tasks;
+    private final Map<ServiceRef, Future<?>> tasks;
 
     RuleProcessor(
             PlatformClient platformClient,
@@ -103,7 +104,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         this.headersFactory = headersFactory;
         this.logger = logger;
 
-        this.tasks = new HashSet<>();
+        this.tasks = new HashMap<>();
     }
 
     public void enable() {
@@ -112,7 +113,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
 
     public void disable() {
         this.platformClient.removeTargetDiscoveryListener(this);
-        this.tasks.forEach(f -> f.cancel(true));
+        this.tasks.forEach((serviceRef, future) -> future.cancel(true));
         this.tasks.clear();
     }
 
@@ -120,9 +121,19 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     // already appeared?
     @Override
     public void accept(TargetDiscoveryEvent tde) {
-        // FIXME handle target disappearing. Cancel associated PeriodicArchiver, if any.
-        if (!EventKind.FOUND.equals(tde.getEventKind())) {
+        if (EventKind.CHANGED.equals(tde.getEventKind())) {
+            // ignore these
             return;
+        }
+        if (EventKind.LOST.equals(tde.getEventKind())) {
+            Future<?> task = tasks.remove(tde.getServiceRef());
+            if (task != null) {
+                task.cancel(true);
+            }
+            return;
+        }
+        if (!EventKind.FOUND.equals(tde.getEventKind())) {
+            throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
         registry.getRules(tde.getServiceRef())
                 .forEach(
@@ -159,7 +170,8 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                     || rule.getArchivalPeriodSeconds() <= 0) {
                                 return;
                             }
-                            tasks.add(
+                            tasks.put(
+                                    tde.getServiceRef(),
                                     scheduler.scheduleAtFixedRate(
                                             periodicArchiverFactory.create(
                                                     tde.getServiceRef(), credentials, rule),
