@@ -140,12 +140,14 @@ public class RuleRegistry {
     }
 
     public void deleteRules(ServiceRef serviceRef) throws IOException {
-        getRules(serviceRef).forEach(rule -> {
-            try {
-                deleteRule(rule);
-            } catch (IOException e) {
-                logger.warn(e);
-            }
-        });
+        getRules(serviceRef)
+                .forEach(
+                        rule -> {
+                            try {
+                                deleteRule(rule);
+                            } catch (IOException e) {
+                                logger.warn(e);
+                            }
+                        });
     }
 }
