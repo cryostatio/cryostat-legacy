@@ -77,6 +77,11 @@ public class Rule {
         return this.name;
     }
 
+    public String getRecordingName() {
+        // FIXME do something other than simply prepending "auto_"
+        return String.format("auto_%s", this.getName());
+    }
+
     public String getDescription() {
         return this.description;
     }

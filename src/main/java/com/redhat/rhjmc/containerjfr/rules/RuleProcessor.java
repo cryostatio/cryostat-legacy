@@ -140,8 +140,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                 Future<Boolean> success =
                                         startRuleRecording(
                                                 tde.getServiceRef().getJMXServiceUrl(),
-                                                // FIXME do something other than just prepend auto_
-                                                String.format("auto_%s", rule.getName()),
+                                                rule.getRecordingName(),
                                                 rule.getEventSpecifier(),
                                                 rule.getMaxSizeBytes(),
                                                 rule.getMaxAgeSeconds(),
