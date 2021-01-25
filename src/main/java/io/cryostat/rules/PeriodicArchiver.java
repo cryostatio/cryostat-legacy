@@ -91,6 +91,8 @@ class PeriodicArchiver implements Runnable {
         this.rule = rule;
         this.logger = logger;
 
+        // FIXME this needs to be populated at startup by scanning the existing archived recordings,
+        // in case we have been restarted and already previously processed archival for this rule
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
 
@@ -100,7 +102,7 @@ class PeriodicArchiver implements Runnable {
 
         try {
             while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
-                pruneArchive(this.previousRecordings.remove());
+                pruneArchive(this.previousRecordings.remove()).get();
             }
 
             performArchival();
@@ -175,6 +177,7 @@ class PeriodicArchiver implements Runnable {
                                         ":recordingName",
                                         URLEncodedUtils.formatSegments(recordingName)))
                         .normalize();
+        // TODO refactor and extract this header creation
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         if (credentials != null) {
             headers.add(
