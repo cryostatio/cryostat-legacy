@@ -210,7 +210,6 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         this.webClient
                 .post(path)
-                .timeout(30_000L)
                 .putHeaders(headers)
                 .sendMultipartForm(
                         form,
