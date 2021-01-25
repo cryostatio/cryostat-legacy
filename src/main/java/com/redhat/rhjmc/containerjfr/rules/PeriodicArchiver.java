@@ -43,19 +43,17 @@ package com.redhat.rhjmc.containerjfr.rules;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.function.Function;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.utils.URLEncodedUtils;
 
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
 
@@ -72,6 +70,7 @@ class PeriodicArchiver implements Runnable {
     private final WebClient webClient;
     private final String archiveRequestPath;
     private final String deleteRequestPath;
+    private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
     private final Queue<String> previousRecordings;
@@ -83,6 +82,7 @@ class PeriodicArchiver implements Runnable {
             WebClient webClient,
             String archiveRequestPath,
             String deleteRequestPath,
+            Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
         this.webClient = webClient;
         this.archiveRequestPath = archiveRequestPath;
@@ -90,6 +90,7 @@ class PeriodicArchiver implements Runnable {
         this.serviceRef = serviceRef;
         this.credentials = credentials;
         this.rule = rule;
+        this.headersFactory = headersFactory;
         this.logger = logger;
 
         // FIXME this needs to be populated at startup by scanning the existing archived recordings,
@@ -132,24 +133,11 @@ class PeriodicArchiver implements Runnable {
                                                 URLEncodedUtils.formatSegments(
                                                         rule.getRecordingName())))
                         .normalize();
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        if (credentials != null) {
-            headers.add(
-                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
-                    String.format(
-                            "Basic %s",
-                            Base64.encodeBase64String(
-                                    String.format(
-                                                    "%s:%s",
-                                                    credentials.getUsername(),
-                                                    credentials.getPassword())
-                                            .getBytes(StandardCharsets.UTF_8))));
-        }
 
         CompletableFuture<String> future = new CompletableFuture<>();
         this.webClient
                 .patch(path.toString())
-                .putHeaders(headers)
+                .putHeaders(headersFactory.apply(credentials))
                 .sendBuffer(
                         Buffer.buffer("save"),
                         ar -> {
@@ -178,25 +166,11 @@ class PeriodicArchiver implements Runnable {
                                         ":recordingName",
                                         URLEncodedUtils.formatSegments(recordingName)))
                         .normalize();
-        // TODO refactor and extract this header creation
-        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-        if (credentials != null) {
-            headers.add(
-                    AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
-                    String.format(
-                            "Basic %s",
-                            Base64.encodeBase64String(
-                                    String.format(
-                                                    "%s:%s",
-                                                    credentials.getUsername(),
-                                                    credentials.getPassword())
-                                            .getBytes(StandardCharsets.UTF_8))));
-        }
 
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         this.webClient
                 .delete(path.toString())
-                .putHeaders(headers)
+                .putHeaders(headersFactory.apply(credentials))
                 .send(
                         ar -> {
                             if (ar.failed()) {
