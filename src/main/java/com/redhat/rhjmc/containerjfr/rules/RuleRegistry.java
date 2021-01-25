@@ -139,5 +139,13 @@ public class RuleRegistry {
                         });
     }
 
-    // TODO add deleteRules(ServiceRef serviceRef)
+    public void deleteRules(ServiceRef serviceRef) throws IOException {
+        getRules(serviceRef).forEach(rule -> {
+            try {
+                deleteRule(rule);
+            } catch (IOException e) {
+                logger.warn(e);
+            }
+        });
+    }
 }
