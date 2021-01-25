@@ -99,7 +99,7 @@ class PeriodicArchiver implements Runnable {
 
     @Override
     public void run() {
-        logger.trace(String.format("PeriodicArchiver for %s running", rule.getRecordingName()));
+        logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
             while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
@@ -158,7 +158,7 @@ class PeriodicArchiver implements Runnable {
     }
 
     Future<Boolean> pruneArchive(String recordingName) {
-        logger.trace(String.format("Pruning %s", recordingName));
+        logger.trace("Pruning {}", recordingName);
         URI path =
                 URI.create(
                                 deleteRequestPath.replaceAll(

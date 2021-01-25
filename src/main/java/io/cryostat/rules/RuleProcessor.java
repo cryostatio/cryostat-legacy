@@ -134,11 +134,9 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                 .forEach(
                         rule -> {
                             this.logger.trace(
-                                    String.format(
-                                            "Activating rule %s for target %s",
-                                            rule.getName(),
-                                            rule.getDescription(),
-                                            tde.getServiceRef().getJMXServiceUrl()));
+                                    "Activating rule {} for target {}",
+                                    rule.getName(),
+                                    tde.getServiceRef().getJMXServiceUrl());
 
                             Credentials credentials =
                                     credentialsManager.getCredentials(
