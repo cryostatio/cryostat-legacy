@@ -131,7 +131,6 @@ class RuleProcessorTest {
         Mockito.when(response.statusCode()).thenReturn(200);
 
         Mockito.when(webClient.post(Mockito.any())).thenReturn(request);
-        Mockito.when(request.timeout(Mockito.anyLong())).thenReturn(request);
         Mockito.when(request.putHeaders(Mockito.any())).thenReturn(request);
         Mockito.doAnswer(
                         new Answer<Void>() {
