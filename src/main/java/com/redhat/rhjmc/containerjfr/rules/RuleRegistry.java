@@ -91,8 +91,7 @@ public class RuleRegistry {
     }
 
     public Rule addRule(Rule rule) throws IOException {
-        // TODO ensure that in-memory `rules` set is kept consistent if/when Rule definitions are
-        // added which collide by name - ie, delete by name here first, allowing a full overwrite
+        this.deleteRule(rule);
         Path destination = rulesDir.resolve(rule.getName() + ".json");
         this.fs.writeString(
                 destination,
@@ -119,6 +118,10 @@ public class RuleRegistry {
 
     public Set<Rule> getRules() {
         return new HashSet<>(rules);
+    }
+
+    public void deleteRule(Rule rule) throws IOException {
+        this.deleteRule(rule.getName());
     }
 
     public void deleteRule(String name) throws IOException {
