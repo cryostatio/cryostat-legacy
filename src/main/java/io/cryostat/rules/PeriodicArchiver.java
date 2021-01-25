@@ -99,6 +99,10 @@ class PeriodicArchiver implements Runnable {
         logger.trace(String.format("PeriodicArchiver for %s running", rule.getRecordingName()));
 
         try {
+            while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
+                pruneArchive(this.previousRecordings.remove());
+            }
+
             performArchival();
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
@@ -106,10 +110,6 @@ class PeriodicArchiver implements Runnable {
     }
 
     void performArchival() throws InterruptedException, ExecutionException {
-        while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
-            pruneArchive(this.previousRecordings.remove());
-        }
-
         // FIXME using an HTTP request to localhost here works well enough, but is needlessly
         // complex. The API handler targeted here should be refactored to extract the logic that
         // creates the recording from the logic that simply figures out the recording parameters
