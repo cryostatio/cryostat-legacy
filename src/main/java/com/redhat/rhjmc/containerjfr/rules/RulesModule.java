@@ -42,21 +42,26 @@
 package com.redhat.rhjmc.containerjfr.rules;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
+import java.util.function.Function;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.apache.commons.codec.binary.Base64;
 import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.configuration.ConfigurationModule;
 import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.HttpServer;
 import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
+import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.RecordingDeleteHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingPatchHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.TargetRecordingsPostHandler;
@@ -64,6 +69,7 @@ import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
 import dagger.Module;
 import dagger.Provides;
+import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -72,6 +78,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 public abstract class RulesModule {
     public static final String RULES_SUBDIRECTORY = "rules";
     public static final String RULES_WEB_CLIENT = "RULES_WEB_CLIENT";
+    public static final String RULES_HEADERS_FACTORY = "RULES_HEADERS_FACTORY";
 
     @Provides
     @Singleton
@@ -100,6 +107,7 @@ public abstract class RulesModule {
             @Named(RULES_WEB_CLIENT) WebClient webClient,
             TargetRecordingsPostHandler postHandler,
             PeriodicArchiverFactory periodicArchiverFactory,
+            @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
         return new RuleProcessor(
                 platformClient,
@@ -109,6 +117,7 @@ public abstract class RulesModule {
                 webClient,
                 postHandler.path(),
                 periodicArchiverFactory,
+                headersFactory,
                 logger);
     }
 
@@ -118,8 +127,10 @@ public abstract class RulesModule {
             @Named(RULES_WEB_CLIENT) WebClient webClient,
             TargetRecordingPatchHandler archiveHandler,
             RecordingDeleteHandler deleteHandler,
+            @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
-        return new PeriodicArchiverFactory(webClient, archiveHandler, deleteHandler, logger);
+        return new PeriodicArchiverFactory(
+                webClient, archiveHandler, deleteHandler, headersFactory, logger);
     }
 
     @Provides
@@ -135,5 +146,26 @@ public abstract class RulesModule {
                         .setTrustAll(true)
                         .setVerifyHost(false);
         return WebClient.create(vertx, opts);
+    }
+
+    @Provides
+    @Named(RULES_HEADERS_FACTORY)
+    static Function<Credentials, MultiMap> provideRulesHeadersFactory() {
+        return credentials -> {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            if (credentials != null) {
+                headers.add(
+                        AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER,
+                        String.format(
+                                "Basic %s",
+                                Base64.encodeBase64String(
+                                        String.format(
+                                                        "%s:%s",
+                                                        credentials.getUsername(),
+                                                        credentials.getPassword())
+                                                .getBytes(StandardCharsets.UTF_8))));
+            }
+            return headers;
+        };
     }
 }

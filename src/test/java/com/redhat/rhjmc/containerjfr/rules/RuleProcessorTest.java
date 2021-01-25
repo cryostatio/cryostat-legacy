@@ -41,7 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
-import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,7 +64,6 @@ import com.redhat.rhjmc.containerjfr.configuration.CredentialsManager;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
-import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 import com.redhat.rhjmc.containerjfr.platform.TargetDiscoveryEvent;
@@ -91,6 +89,7 @@ class RuleProcessorTest {
     @Mock WebClient webClient;
     String postPath = "/api/v1/targets/:targetId/recordings";
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
+    @Mock MultiMap headers;
     @Mock Logger logger;
 
     @BeforeEach
@@ -104,6 +103,7 @@ class RuleProcessorTest {
                         webClient,
                         postPath,
                         periodicArchiverFactory,
+                        c -> headers,
                         logger);
     }
 
@@ -195,13 +195,8 @@ class RuleProcessorTest {
 
         ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         Mockito.verify(request).putHeaders(headersCaptor.capture());
-        MultiMap headers = headersCaptor.getValue();
-        MatcherAssert.assertThat(
-                headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER),
-                Matchers.equalTo(
-                        "Basic "
-                                + Base64.getEncoder()
-                                        .encodeToString("foouser:barpassword".getBytes())));
+        MultiMap capturedHeaders = headersCaptor.getValue();
+        MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
 
         Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
     }
