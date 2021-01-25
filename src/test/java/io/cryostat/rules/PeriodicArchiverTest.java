@@ -41,13 +41,10 @@
  */
 package io.cryostat.rules;
 
-import java.util.Base64;
-
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.ServiceRef;
 
 import io.vertx.core.AsyncResult;
@@ -91,6 +88,7 @@ class PeriodicArchiverTest {
     @Mock WebClient webClient;
     String archiveRequestPath = "/api/v1/targets/:targetId/recordings/:recordingName";
     String deleteRequestPath = "/api/v1/recordings/:recordingName";
+    @Mock MultiMap headers;
     @Mock Logger logger;
 
     @BeforeEach
@@ -104,6 +102,7 @@ class PeriodicArchiverTest {
                         webClient,
                         archiveRequestPath,
                         deleteRequestPath,
+                        c -> headers,
                         logger);
     }
 
@@ -139,13 +138,8 @@ class PeriodicArchiverTest {
 
         ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         Mockito.verify(request).putHeaders(headersCaptor.capture());
-        MultiMap headers = headersCaptor.getValue();
-        MatcherAssert.assertThat(
-                headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER),
-                Matchers.equalTo(
-                        "Basic "
-                                + Base64.getEncoder()
-                                        .encodeToString("foouser:barpassword".getBytes())));
+        MultiMap capturedHeaders = headersCaptor.getValue();
+        MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
 
         Mockito.verify(webClient)
                 .patch(
@@ -182,13 +176,8 @@ class PeriodicArchiverTest {
 
         ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
         Mockito.verify(request).putHeaders(headersCaptor.capture());
-        MultiMap headers = headersCaptor.getValue();
-        MatcherAssert.assertThat(
-                headers.get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER),
-                Matchers.equalTo(
-                        "Basic "
-                                + Base64.getEncoder()
-                                        .encodeToString("foouser:barpassword".getBytes())));
+        MultiMap capturedHeaders = headersCaptor.getValue();
+        MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
 
         Mockito.verify(webClient).delete("/api/v1/recordings/auto_Test_Rule_1");
     }
