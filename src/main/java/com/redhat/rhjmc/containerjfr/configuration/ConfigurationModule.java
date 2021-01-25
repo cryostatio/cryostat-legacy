@@ -73,7 +73,7 @@ public abstract class ConfigurationModule {
     @Named(CONFIGURATION_PATH)
     static Path provideConfigurationPath(Logger logger, Environment env) {
         String path = env.getEnv("CONTAINER_JFR_CONFIG_PATH", "/var/containerjfr/conf.d");
-        logger.info(String.format("Local config path set as %s", path));
+        logger.info("Local config path set as {}", path);
         return Paths.get(path);
     }
 
