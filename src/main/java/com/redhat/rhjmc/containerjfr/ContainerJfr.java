@@ -46,8 +46,6 @@ import java.util.stream.Collectors;
 
 import javax.inject.Singleton;
 
-import org.apache.commons.lang3.StringUtils;
-
 import com.redhat.rhjmc.containerjfr.core.ContainerJfrCore;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -78,30 +76,13 @@ class ContainerJfr {
                                 .collect(Collectors.toList())
                                 .toString()));
 
-        final ExecutionMode mode;
-        final String clientArgs;
-        final int port;
-        if (args.length == 0 || args[0].equals("-w")) {
-            mode = ExecutionMode.WEBSOCKET;
-            clientArgs = null;
-        } else if (args[0].equals("-d")) {
-            mode = ExecutionMode.SOCKET;
-            clientArgs = null;
-        } else if (args[0].equals("-it") || StringUtils.isBlank(args[0])) {
-            mode = ExecutionMode.INTERACTIVE;
-            clientArgs = null;
-        } else {
-            mode = ExecutionMode.BATCH;
-            clientArgs = args[0];
-        }
-
-        Client client = DaggerContainerJfr_Client.builder().mode(mode).build();
+        Client client = DaggerContainerJfr_Client.builder().mode(ExecutionMode.WEBSOCKET).build();
 
         client.httpServer().start();
         client.webServer().start();
         client.messagingServer().start();
 
-        client.commandExecutor().run(clientArgs);
+        client.commandExecutor().run(null);
     }
 
     @Singleton

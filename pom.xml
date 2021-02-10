@@ -396,9 +396,6 @@
           <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
           <entrypoint>${containerjfr.entrypoint}</entrypoint>
-          <args>
-            <arg>-w</arg>
-          </args>
           <ports>
             <port>${containerjfr.webPort}</port>
             <port>${containerjfr.listenPort}</port>
