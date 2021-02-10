@@ -71,24 +71,14 @@ API. See [HTTP_API.md](HTTP_API.md).
 `smoketest.sh` builds upon `run.sh` and also deploys Grafana, jfr-datasource,
 and vertx-fib-demo as a sample app alongside ContainerJFR.
 
-There are six network-related environment variables that the client checks
+There are three webserver-related environment variables that the client checks
 during its runtime:
 `CONTAINER_JFR_WEB_HOST`, `CONTAINER_JFR_WEB_PORT`,
-`CONTAINER_JFR_EXT_WEB_PORT`, `CONTAINER_JFR_LISTEN_HOST`,
-`CONTAINER_JFR_LISTEN_PORT`, `CONTAINER_JFR_EXT_LISTEN_PORT`.
-The former three are used by the embedded webserver
-for controlling the port and hostname used and reported when making recordings
-available for export (download). The latter three are used when running the
-client in daemon/socket mode and controls the port that the client listens for
-connections on and which port is reported should be used for connecting to the
-command channel socket. (Note: the WebSocket server always listens on
-`CONTAINER_JFR_WEB_PORT` and advertises `CONTAINER_JFR_EXT_WEB_PORT` regardless
-of `CONTAINER_JFR_LISTEN_PORT` and `CONTAINER_JFR_EXT_LISTEN_PORT`.) These may
-be set by setting the environment variable before invoking the `run.sh` shell
-script, or if this script is not used, by using the `-e` environment variable
-flag in the `docker` or `podman` command invocation. If the `EXT` variables are
-unspecified then they default to the value of their non-EXT counterparts. If
-`LISTEN_HOST` is unspecified then it defaults to the value of `WEB_HOST`.
+`CONTAINER_JFR_EXT_WEB_PORT`.
+These are used by the embedded webserver for controlling the port and hostname
+used and reported when making recordings and automated reports available for
+export (download). These affect both the HTTP(S) API as well as the WebSocket
+command channel which runs overtop of the same webserver.
 
 The environment variable `CONTAINER_JFR_MAX_WS_CONNECTIONS` is used to
 configure the maximum number of concurrent WebSocket client connections that
