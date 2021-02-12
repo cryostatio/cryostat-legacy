@@ -59,4 +59,5 @@ podman run \
     --name $TARGET_CONTAINER \
     --pod container-jfr \
     --env JMX_PORT=9093 \
+    --env USE_AUTH=true \
     --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
