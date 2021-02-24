@@ -33,6 +33,11 @@ function runDemoApps() {
         --env USE_AUTH=true \
         --pod container-jfr \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
+
+    podman run \
+        --name quarkus-test \
+        --pod container-jfr \
+        --rm -d quay.io/andrewazores/quarkus-test:0.0.2
 }
 
 function runJfrDatasource() {
@@ -84,7 +89,9 @@ function createPod() {
         --publish 8081:8081 \
         --publish 9093:9093 \
         --publish 9094:9094 \
-        --publish 9095:9095
+        --publish 9095:9095 \
+        --publish 9096:9096 \
+        --publish 9999:9999
     # 9091: ContainerJFR RJMX
     # 8181: ContainerJFR web services
     # 8080: jfr-datasource
@@ -93,6 +100,8 @@ function createPod() {
     # 9093: vertx-fib-demo-1 RJMX
     # 9094: vertx-fib-demo-2 RJMX
     # 9095: vertx-fib-demo-3 RJMX
+    # 9096: quarkus-test RJMX
+    # 9999: quarkus-test HTTP
 }
 
 function destroyPod() {
