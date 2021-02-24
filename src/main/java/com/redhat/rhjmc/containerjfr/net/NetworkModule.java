@@ -162,6 +162,16 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
+    static TokenAuthManager provideTokenAuthManager(Logger logger, FileSystem fs) {
+        return new TokenAuthManager(logger, fs);
+    }
+
+    @Binds
+    @IntoSet
+    abstract AuthManager bindTokenAuthManager(TokenAuthManager mgr);
+
+    @Provides
+    @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(Logger logger, FileSystem fs) {
         return new OpenShiftAuthManager(logger, fs);
     }

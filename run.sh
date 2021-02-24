@@ -75,6 +75,7 @@ podman run \
     --mount type=tmpfs,target=/templates \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/config",destination=/config,relabel=shared,bind-propagation=shared \
     -e CONTAINER_JFR_PLATFORM=$CONTAINER_JFR_PLATFORM \
     -e CONTAINER_JFR_DISABLE_SSL=$CONTAINER_JFR_DISABLE_SSL \
     -e CONTAINER_JFR_DISABLE_JMX_AUTH=$CONTAINER_JFR_DISABLE_JMX_AUTH \
