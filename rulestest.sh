@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# FIXME this should be an integration test
+# FIXME remove this, this is a manual testing version of AutoRulesIT.java
 
 # run smoketest.sh first in a separate terminal, then this once the ContainerJFR instance has finished startup
 
