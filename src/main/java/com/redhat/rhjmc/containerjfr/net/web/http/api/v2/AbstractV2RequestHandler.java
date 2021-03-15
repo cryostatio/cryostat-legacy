@@ -146,7 +146,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                     try {
                         c =
                                 new String(
-                                        Base64.getDecoder().decode(m.group("credentials")),
+                                        Base64.getUrlDecoder().decode(m.group("credentials")),
                                         StandardCharsets.UTF_8);
                     } catch (IllegalArgumentException iae) {
                         params.getHeaders().set(JMX_AUTHENTICATE_HEADER, "Basic");

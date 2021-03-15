@@ -168,7 +168,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                                 .putHeader(
                                         "X-JMX-Authorization",
                                         "Basic "
-                                                + Base64.getEncoder()
+                                                + Base64.getUrlEncoder()
                                                         .encodeToString(
                                                                 "admin:adminpass123".getBytes()))
                                 .sendForm(
@@ -198,7 +198,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
-                                    + Base64.getEncoder()
+                                    + Base64.getUrlEncoder()
                                             .encodeToString("admin:adminpass123".getBytes()))
                     .send(
                             ar -> {
@@ -242,7 +242,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                                 .putHeader(
                                         "X-JMX-Authorization",
                                         "Basic "
-                                                + Base64.getEncoder()
+                                                + Base64.getUrlEncoder()
                                                         .encodeToString(
                                                                 "admin:adminpass123".getBytes()))
                                 .sendForm(
@@ -272,7 +272,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                     .putHeader(
                             "X-JMX-Authorization",
                             "Basic "
-                                    + Base64.getEncoder()
+                                    + Base64.getUrlEncoder()
                                             .encodeToString("admin:adminpass123".getBytes()))
                     .send(
                             ar -> {

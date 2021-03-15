@@ -308,6 +308,7 @@ class BasicAuthManagerTest {
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
+            // credentials: "user:pass"
             BufferedReader props =
                     new BufferedReader(
                             new StringReader(
@@ -316,6 +317,56 @@ class BasicAuthManagerTest {
             Assertions.assertTrue(
                     mgr.validateWebSocketSubProtocol(
                                     () -> "basic.authorization.containerjfr.dXNlcjpwYXNz")
+                            .get());
+        }
+
+        @Test
+        void shouldPassKnownCredentialsWithPadding() throws Exception {
+            Path mockPath = Mockito.mock(Path.class);
+            Mockito.when(
+                            fs.pathOf(
+                                    System.getProperty("user.home"),
+                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
+                    .thenReturn(mockPath);
+            Mockito.when(fs.exists(mockPath)).thenReturn(true);
+            Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
+            Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
+            // credentials: "user:pass1234"
+            BufferedReader props =
+                    new BufferedReader(
+                            new StringReader(
+                                    "user:bd94dcda26fccb4e68d6a31f9b5aac0b571ae266d822620e901ef7ebe3a11d4f"));
+            Mockito.when(fs.readFile(mockPath)).thenReturn(props);
+            Assertions.assertTrue(
+                    mgr.validateWebSocketSubProtocol(
+                                    () -> "basic.authorization.containerjfr.dXNlcjpwYXNzMTIzNA==")
+                            .get());
+        }
+
+        @Test
+        void shouldPassKnownCredentialsAndStrippedPadding() throws Exception {
+            Path mockPath = Mockito.mock(Path.class);
+            Mockito.when(
+                            fs.pathOf(
+                                    System.getProperty("user.home"),
+                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
+                    .thenReturn(mockPath);
+            Mockito.when(fs.exists(mockPath)).thenReturn(true);
+            Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
+            Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
+            // credentials: "user:pass1234"
+            BufferedReader props =
+                    new BufferedReader(
+                            new StringReader(
+                                    "user:bd94dcda26fccb4e68d6a31f9b5aac0b571ae266d822620e901ef7ebe3a11d4f"));
+            Mockito.when(fs.readFile(mockPath)).thenReturn(props);
+            // the subprotocol token part here should be "dXNlcjpwYXNzMTIzNA==", but the '='s are
+            // padding and stripped out. The decoder should treat these as optional, and the client
+            // is likely not to send them since they are not permitted by the WebSocket
+            // specification for the Sec-WebSocket-Protocol header
+            Assertions.assertTrue(
+                    mgr.validateWebSocketSubProtocol(
+                                    () -> "basic.authorization.containerjfr.dXNlcjpwYXNzMTIzNA")
                             .get());
         }
 
@@ -330,6 +381,7 @@ class BasicAuthManagerTest {
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
+            // credentials: "user:pass"
             BufferedReader props =
                     new BufferedReader(
                             new StringReader(
