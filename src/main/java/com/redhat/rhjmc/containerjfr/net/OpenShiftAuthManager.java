@@ -137,7 +137,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         String b64 = matcher.group(1);
         try {
             String decoded =
-                    new String(Base64.getDecoder().decode(b64), StandardCharsets.UTF_8).trim();
+                    new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
             return validateToken(() -> decoded);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
