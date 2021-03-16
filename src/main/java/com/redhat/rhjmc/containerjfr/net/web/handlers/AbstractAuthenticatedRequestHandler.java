@@ -119,7 +119,7 @@ abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
                     try {
                         c =
                                 new String(
-                                        Base64.getDecoder().decode(m.group("credentials")),
+                                        Base64.getUrlDecoder().decode(m.group("credentials")),
                                         StandardCharsets.UTF_8);
                     } catch (IllegalArgumentException iae) {
                         ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
