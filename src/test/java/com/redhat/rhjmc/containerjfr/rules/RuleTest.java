@@ -41,8 +41,103 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class RuleTest {}
+class RuleTest {
+
+    static final String NAME = "fooRule";
+    static final String TARGET_ALIAS = "someAlias";
+    static final String EVENT_SPECIFIER = "template=Something";
+
+    Rule.Builder builder;
+
+    @BeforeEach
+    void setup() {
+        builder = new Rule.Builder();
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldThrowOnBlankName(String s) {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(s)
+                                    .targetAlias(TARGET_ALIAS)
+                                    .eventSpecifier(EVENT_SPECIFIER)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(), Matchers.containsString("name cannot be blank, was " + s));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldThrowOnBlankTargetAlias(String s) {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .targetAlias(s)
+                                    .eventSpecifier(EVENT_SPECIFIER)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(), Matchers.containsString("targetAlias cannot be blank, was " + s));
+    }
+
+    @ParameterizedTest
+    @NullAndEmptySource
+    void shouldThrowOnBlankEventSpecifier(String s) {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME).targetAlias(TARGET_ALIAS).eventSpecifier(s).build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("eventSpecifier cannot be blank, was " + s));
+    }
+
+    @Test
+    void shouldDefaultToEmptyDescriptionIfLeftNull() {
+        Rule rule =
+                builder.name(NAME)
+                        .targetAlias(TARGET_ALIAS)
+                        .eventSpecifier(EVENT_SPECIFIER)
+                        .build();
+        MatcherAssert.assertThat(rule.getDescription(), Matchers.is(Matchers.emptyString()));
+    }
+
+    @Test
+    void shouldSanitizeName() {
+        Rule rule =
+                builder.name("Some Rule")
+                        .targetAlias(TARGET_ALIAS)
+                        .eventSpecifier(EVENT_SPECIFIER)
+                        .build();
+        MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
+    }
+
+    @Test
+    void shouldSanitizeRecordingNameAndMarkAsAutomatic() {
+        Rule rule =
+                builder.name("Some Rule")
+                        .targetAlias(TARGET_ALIAS)
+                        .eventSpecifier(EVENT_SPECIFIER)
+                        .build();
+        MatcherAssert.assertThat(rule.getRecordingName(), Matchers.equalTo("auto_Some_Rule"));
+    }
+}

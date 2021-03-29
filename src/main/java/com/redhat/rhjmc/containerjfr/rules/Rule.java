@@ -41,8 +41,6 @@
  */
 package com.redhat.rhjmc.containerjfr.rules;
 
-import java.util.Objects;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -62,16 +60,17 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME.getSerialKey()));
-        this.description = builder.description;
-        this.targetAlias =
-                requireNonBlank(builder.targetAlias, Attribute.TARGET_ALIAS.getSerialKey());
-        this.eventSpecifier =
-                requireNonBlank(builder.eventSpecifier, Attribute.EVENT_SPECIFIER.getSerialKey());
-        this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
-        this.preservedArchives = builder.preservedArchives;
+        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        this.description = builder.description == null ? "" : builder.description;
+        this.targetAlias = requireNonBlank(builder.targetAlias, Attribute.TARGET_ALIAS);
+        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, Attribute.EVENT_SPECIFIER);
+        this.archivalPeriodSeconds =
+                requireNonNegative(
+                        builder.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+        this.preservedArchives =
+                requireNonNegative(builder.preservedArchives, Attribute.PRESERVED_ARCHIVES);
         this.maxAgeSeconds =
-                builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : archivalPeriodSeconds;
+                builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
     }
 
@@ -117,12 +116,20 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
-    private static String requireNonBlank(String s, String name) {
-        if (StringUtils.isBlank(Objects.requireNonNull(s))) {
+    private static String requireNonBlank(String s, Attribute attr) {
+        if (StringUtils.isBlank(s)) {
             throw new IllegalArgumentException(
-                    String.format("%s cannot be blank, was %s", name, s));
+                    String.format("%s cannot be blank, was %s", attr, s));
         }
         return s;
+    }
+
+    private static int requireNonNegative(int i, Attribute attr) {
+        if (i < 0) {
+            throw new IllegalArgumentException(
+                    String.format("%s cannot be blank, was %d", attr, i));
+        }
+        return i;
     }
 
     @Override
@@ -142,7 +149,7 @@ public class Rule {
         private String eventSpecifier;
         private int archivalPeriodSeconds = 30;
         private int preservedArchives = 1;
-        private int maxAgeSeconds;
+        private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
 
         public Builder name(String name) {
