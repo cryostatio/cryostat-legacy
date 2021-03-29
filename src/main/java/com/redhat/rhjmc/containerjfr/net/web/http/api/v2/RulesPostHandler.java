@@ -113,7 +113,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         Rule rule;
         String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE);
         if (rawMime == null) {
-            throw new ApiException(415, "Bad content type: " + rawMime);
+            throw new ApiException(415, "Bad content type: null");
         }
         String firstMime = rawMime.split(";")[0];
         HttpMimeType mime = HttpMimeType.fromString(firstMime);
@@ -192,7 +192,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         }
         int value;
         try {
-            value = Integer.valueOf(attrs.get(key.getSerialKey()));
+            value = Integer.parseInt(attrs.get(key.getSerialKey()));
         } catch (NumberFormatException nfe) {
             throw new ApiException(
                     400,
