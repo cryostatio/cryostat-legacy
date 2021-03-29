@@ -51,6 +51,7 @@ import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
+import com.redhat.rhjmc.containerjfr.rules.Rule;
 import com.redhat.rhjmc.containerjfr.rules.RuleRegistry;
 import io.vertx.core.http.HttpMethod;
 
@@ -95,7 +96,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
-        String name = params.getPathParams().get("ruleName");
+        String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
         try {
             ruleRegistry.deleteRule(name);
         } catch (IOException e) {

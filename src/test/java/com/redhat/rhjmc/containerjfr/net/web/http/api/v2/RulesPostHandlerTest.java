@@ -191,12 +191,12 @@ class RulesPostHandlerTest {
                 String name, String targetAlias, String eventSpecifier) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
-            headers.set(HttpHeaders.CONTENT_TYPE, "multipart/form-data");
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);
-            form.set("name", name);
-            form.set("targetAlias", targetAlias);
-            form.set("eventSpecifier", eventSpecifier);
+            form.set(Rule.Attribute.NAME.getSerialKey(), name);
+            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), targetAlias);
+            form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), eventSpecifier);
 
             Assertions.assertThrows(NullPointerException.class, () -> handler.handle(params));
         }
@@ -212,12 +212,12 @@ class RulesPostHandlerTest {
         void throwsIfOptionalIntegerAttributesNegative(String attr) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
-            headers.set(HttpHeaders.CONTENT_TYPE, "multipart/form-data");
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);
-            form.set("name", "fooRule");
-            form.set("targetAlias", "someTarget");
-            form.set("eventSpecifier", "template=Something");
+            form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
+            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), "someTarget");
+            form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
             form.set(attr, "-1");
 
             ApiException ex =
@@ -227,21 +227,43 @@ class RulesPostHandlerTest {
             MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("-1"));
         }
 
+        @ParameterizedTest
+        @ValueSource(
+                strings = {
+                    "", "one", "|", "1.2",
+                })
+        void throwsIfOptionalIntegerAttributesNonInteger(String val) {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getFormAttributes()).thenReturn(form);
+            form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
+            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), "someTarget");
+            form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
+            form.set(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS.getSerialKey(), val);
+
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString(val));
+        }
+
         @Test
         void addsRuleAndReturnsResponse() {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
-            headers.set(HttpHeaders.CONTENT_TYPE, "multipart/form-data");
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);
-            form.set("name", "fooRule");
-            form.set("description", "rule description");
-            form.set("targetAlias", "someTarget");
-            form.set("eventSpecifier", "template=Something");
-            form.set("archivalPeriodSeconds", "60");
-            form.set("preservedArchives", "5");
-            form.set("maxAgeSeconds", "60");
-            form.set("maxSizeBytes", "8192");
+            form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
+            form.set(Rule.Attribute.DESCRIPTION.getSerialKey(), "rule description");
+            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), "someTarget");
+            form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
+            form.set(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS.getSerialKey(), "60");
+            form.set(Rule.Attribute.PRESERVED_ARCHIVES.getSerialKey(), "5");
+            form.set(Rule.Attribute.MAX_AGE_SECONDS.getSerialKey(), "60");
+            form.set(Rule.Attribute.MAX_SIZE_BYTES.getSerialKey(), "8192");
 
             IntermediateResponse<String> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));

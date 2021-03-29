@@ -55,7 +55,7 @@ import io.vertx.core.http.HttpMethod;
 
 class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
 
-    static final String PATH = RulesPostHandler.PATH + "/:ruleName";
+    static final String PATH = RulesPostHandler.PATH + "/:name";
 
     private final RuleRegistry ruleRegistry;
     private final Logger logger;
@@ -94,7 +94,7 @@ class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
 
     @Override
     public IntermediateResponse<Rule> handle(RequestParameters params) throws ApiException {
-        String name = params.getPathParams().get("ruleName");
+        String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
         return new IntermediateResponse<Rule>()
                 .body(this.ruleRegistry.getRule(name).orElseThrow(() -> new ApiException(404)));
     }

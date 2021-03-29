@@ -62,10 +62,12 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, "name"));
+        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME.getSerialKey()));
         this.description = builder.description;
-        this.targetAlias = requireNonBlank(builder.targetAlias, "targetAlias");
-        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, "eventSpecifier");
+        this.targetAlias =
+                requireNonBlank(builder.targetAlias, Attribute.TARGET_ALIAS.getSerialKey());
+        this.eventSpecifier =
+                requireNonBlank(builder.eventSpecifier, Attribute.EVENT_SPECIFIER.getSerialKey());
         this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
         this.preservedArchives = builder.preservedArchives;
         this.maxAgeSeconds =
@@ -185,6 +187,33 @@ public class Rule {
 
         public Rule build() {
             return new Rule(this);
+        }
+    }
+
+    public enum Attribute {
+        NAME("name"),
+        DESCRIPTION("description"),
+        TARGET_ALIAS("targetAlias"),
+        EVENT_SPECIFIER("eventSpecifier"),
+        ARCHIVAL_PERIOD_SECONDS("archivalPeriodSeconds"),
+        PRESERVED_ARCHIVES("preservedArchives"),
+        MAX_AGE_SECONDS("maxAgeSeconds"),
+        MAX_SIZE_BYTES("maxSizeBytes"),
+        ;
+
+        private final String serialKey;
+
+        Attribute(String serialKey) {
+            this.serialKey = serialKey;
+        }
+
+        public String getSerialKey() {
+            return serialKey;
+        }
+
+        @Override
+        public String toString() {
+            return getSerialKey();
         }
     }
 }
