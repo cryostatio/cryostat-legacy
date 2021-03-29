@@ -62,7 +62,7 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, "ruleName"));
+        this.name = sanitizeRuleName(requireNonBlank(builder.name, "name"));
         this.description = builder.description;
         this.targetAlias = requireNonBlank(builder.targetAlias, "targetAlias");
         this.eventSpecifier = requireNonBlank(builder.eventSpecifier, "eventSpecifier");

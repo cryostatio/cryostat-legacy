@@ -111,8 +111,12 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
-        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE).split(";")[0];
-        HttpMimeType mime = HttpMimeType.fromString(rawMime);
+        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE);
+        if (rawMime == null) {
+            throw new ApiException(415, "Bad content type: " + rawMime);
+        }
+        String firstMime = rawMime.split(";")[0];
+        HttpMimeType mime = HttpMimeType.fromString(firstMime);
         if (mime == null) {
             throw new ApiException(415, "Bad content type: " + rawMime);
         }
@@ -175,6 +179,11 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             default:
                 throw new IllegalArgumentException("Unknown key " + key);
         }
-        return fn.apply(Integer.valueOf(attrs.get(key)));
+        int value = Integer.valueOf(attrs.get(key));
+        if (value < 0) {
+            throw new ApiException(
+                    400, String.format("\"%s\" cannot be negative, was %d", key, value));
+        }
+        return fn.apply(value);
     }
 }
