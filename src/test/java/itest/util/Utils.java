@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 Cryostat
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -52,7 +52,7 @@ public class Utils {
     public static final int WEB_PORT;
 
     static {
-        WEB_PORT = Integer.valueOf(System.getProperty("containerJfrWebPort"));
+        WEB_PORT = Integer.valueOf(System.getProperty("cryostatWebPort"));
     }
 
     public static final HttpClientOptions HTTP_CLIENT_OPTIONS;

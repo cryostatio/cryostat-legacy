@@ -4,9 +4,9 @@ set -x
 
 CERTS_DIR=$(realpath $(dirname $0))
 
-SSL_KEYSTORE=container-jfr-keystore.p12
+SSL_KEYSTORE=cryostat-keystore.p12
 
-SSL_TRUSTSTORE=container-jfr-truststore.p12
+SSL_TRUSTSTORE=cryostat-truststore.p12
 
 SSL_KEYSTORE_PASS_FILE=keystore.pass
 
@@ -55,8 +55,8 @@ keytool \
 
 keytool \
     -genkeypair -v \
-    -alias custom-container-jfr \
-    -dname "cn=container-jfr, o=Red Hat, c=US" \
+    -alias custom-cryostat \
+    -dname "cn=cryostat, o=Cryostat, c=CA" \
     -storetype PKCS12 \
     -validity 365 \
     -keyalg RSA \
@@ -65,7 +65,7 @@ keytool \
 
 keytool \
     -exportcert -v \
-    -alias custom-container-jfr \
+    -alias custom-cryostat \
     -keystore "$SSL_KEYSTORE" \
     -storepass "$SSL_KEYSTORE_PASS" \
     -file server.cer

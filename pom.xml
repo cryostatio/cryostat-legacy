@@ -3,11 +3,11 @@
   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
 
 <modelVersion>4.0.0</modelVersion>
-<groupId>com.redhat.rhjmc.containerjfr</groupId>
-<artifactId>container-jfr</artifactId>
+<groupId>io.cryostat</groupId>
+<artifactId>cryostat</artifactId>
 <version>2.0.0-SNAPSHOT</version>
 <packaging>jar</packaging>
-<name>container-jfr</name>
+<name>cryostat</name>
 <url>http://maven.apache.org</url>
 
 <properties>
@@ -17,19 +17,19 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
-  <baseImage>quay.io/rh-jmc-team/container-jfr-base</baseImage>
+  <baseImage>quay.io/cryostatio/cryostat-base</baseImage>
   <baseImageTag>0.2.0</baseImageTag>
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
-  <containerjfr.minimal>false</containerjfr.minimal>
-  <containerjfr.imageStream>quay.io/rh-jmc-team/container-jfr</containerjfr.imageStream>
-  <containerjfr.entrypoint>/app/entrypoint.sh</containerjfr.entrypoint>
-  <containerjfr.rjmxPort>9091</containerjfr.rjmxPort>
-  <containerjfr.webPort>8181</containerjfr.webPort>
-  <containerjfr.listenPort>9090</containerjfr.listenPort>
-  <containerjfr.itest.webPort>8181</containerjfr.itest.webPort>
-  <containerjfr.itest.podName>container-jfr-itests</containerjfr.itest.podName>
+  <cryostat.minimal>false</cryostat.minimal>
+  <cryostat.imageStream>quay.io/cryostatio/cryostat</cryostat.imageStream>
+  <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
+  <cryostat.rjmxPort>9091</cryostat.rjmxPort>
+  <cryostat.webPort>8181</cryostat.webPort>
+  <cryostat.listenPort>9090</cryostat.listenPort>
+  <cryostat.itest.webPort>8181</cryostat.itest.webPort>
+  <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
 
   <org.apache.maven.plugins.compiler.version>3.8.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>3.0.0-M4</org.apache.maven.plugins.surefire.version>
@@ -48,7 +48,7 @@
   <com.google.dagger.version>2.34.1</com.google.dagger.version>
   <com.google.dagger.compiler.version>2.26</com.google.dagger.compiler.version>
 
-  <com.redhat.rhjmc.containerjfr.core.version>2.2.2</com.redhat.rhjmc.containerjfr.core.version>
+  <io.cryostat.core.version>2.3.0-SNAPSHOT</io.cryostat.core.version>
 
   <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.15</org.apache.commons.codec.version>
@@ -73,9 +73,9 @@
 
 <dependencies>
   <dependency>
-    <groupId>com.redhat.rhjmc</groupId>
-    <artifactId>containerjfr-core</artifactId>
-    <version>${com.redhat.rhjmc.containerjfr.core.version}</version>
+    <groupId>io.cryostat</groupId>
+    <artifactId>cryostat-core</artifactId>
+    <version>${io.cryostat.core.version}</version>
   </dependency>
   <dependency>
     <groupId>io.fabric8</groupId>
@@ -215,7 +215,7 @@
       <artifactId>exec-maven-plugin</artifactId>
       <version>${org.codehaus.mojo.exec.plugin.version}</version>
       <configuration>
-        <mainClass>com.redhat.rhjmc.containerjfr.ContainerJfr</mainClass>
+        <mainClass>io.cryostat.Cryostat</mainClass>
         <additionalClasspathElements>
           <additionalClasspathElement>${project.build.directory}/assets/app/resources</additionalClasspathElement>
         </additionalClasspathElements>
@@ -233,11 +233,11 @@
               <argument>pod</argument>
               <argument>create</argument>
               <argument>--replace</argument>
-              <argument>--name=${containerjfr.itest.podName}</argument>
+              <argument>--name=${cryostat.itest.podName}</argument>
               <argument>--publish</argument>
-              <argument>${containerjfr.rjmxPort}:${containerjfr.rjmxPort}</argument>
+              <argument>${cryostat.rjmxPort}:${cryostat.rjmxPort}</argument>
               <argument>--publish</argument>
-              <argument>${containerjfr.itest.webPort}:${containerjfr.itest.webPort}</argument>
+              <argument>${cryostat.itest.webPort}:${cryostat.itest.webPort}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -251,35 +251,35 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>run</argument>
-              <argument>--pod=${containerjfr.itest.podName}</argument>
-              <argument>--name=container-jfr-itest</argument>
+              <argument>--pod=${cryostat.itest.podName}</argument>
+              <argument>--name=cryostat-itest</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/flightrecordings</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/templates</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_DISABLE_JMX_AUTH=true</argument>
+              <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_DISABLE_SSL=true</argument>
+              <argument>CRYOSTAT_DISABLE_SSL=true</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_WEB_HOST=0.0.0.0</argument>
+              <argument>CRYOSTAT_WEB_HOST=0.0.0.0</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_LISTEN_HOST=0.0.0.0</argument>
+              <argument>CRYOSTAT_LISTEN_HOST=0.0.0.0</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_RJMX_PORT=9091</argument>
+              <argument>CRYOSTAT_RJMX_PORT=9091</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>CRYOSTAT_WEB_PORT=${cryostat.itest.webPort}</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_EXT_WEB_PORT=${containerjfr.itest.webPort}</argument>
+              <argument>CRYOSTAT_EXT_WEB_PORT=${cryostat.itest.webPort}</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_ARCHIVE_PATH=/flightrecordings</argument>
+              <argument>CRYOSTAT_ARCHIVE_PATH=/flightrecordings</argument>
               <argument>--env</argument>
-              <argument>CONTAINER_JFR_TEMPLATE_PATH=/templates</argument>
+              <argument>CRYOSTAT_TEMPLATE_PATH=/templates</argument>
               <argument>--env</argument>
               <argument>GRAFANA_DATASOURCE_URL=http://abc</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
-              <argument>${containerjfr.imageStream}:${containerjfr.imageVersion}</argument>
+              <argument>${cryostat.imageStream}:${cryostat.imageVersion}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -295,7 +295,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk http://0.0.0.0:${containerjfr.itest.webPort}/health; do sleep 10; done</argument>
+              <argument>until curl -sSk http://0.0.0.0:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
             </arguments>
           </configuration>
         </execution>
@@ -309,7 +309,7 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>kill</argument>
-              <argument>container-jfr-itest</argument>
+              <argument>cryostat-itest</argument>
             </arguments>
           </configuration>
         </execution>
@@ -325,7 +325,7 @@
               <argument>pod</argument>
               <argument>rm</argument>
               <argument>--force</argument>
-              <argument>${containerjfr.itest.podName}</argument>
+              <argument>${cryostat.itest.podName}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -360,8 +360,8 @@
       </executions>
       <configuration>
         <systemPropertyVariables>
-          <containerJfrWebPort>${containerjfr.itest.webPort}</containerJfrWebPort>
-          <containerJfrPodName>${containerjfr.itest.podName}</containerJfrPodName>
+          <cryostatJfrWebPort>${cryostat.itest.webPort}</cryostatJfrWebPort>
+          <cryostatJfrPodName>${cryostat.itest.podName}</cryostatJfrPodName>
         </systemPropertyVariables>
       </configuration>
     </plugin>
@@ -386,17 +386,17 @@
           <image>${baseImage}:${baseImageTag}</image>
         </from>
         <to>
-          <image>${containerjfr.imageStream}</image>
-          <tags>${containerjfr.imageVersion}</tags>
+          <image>${cryostat.imageStream}</image>
+          <tags>${cryostat.imageVersion}</tags>
         </to>
         <container>
           <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
-          <entrypoint>${containerjfr.entrypoint}</entrypoint>
+          <entrypoint>${cryostat.entrypoint}</entrypoint>
           <ports>
-            <port>${containerjfr.webPort}</port>
-            <port>${containerjfr.listenPort}</port>
-            <port>${containerjfr.rjmxPort}</port>
+            <port>${cryostat.webPort}</port>
+            <port>${cryostat.listenPort}</port>
+            <port>${cryostat.rjmxPort}</port>
           </ports>
         </container>
         <extraDirectories>
@@ -410,7 +410,7 @@
           </paths>
           <permissions>
             <permission>
-              <file>${containerjfr.entrypoint}</file>
+              <file>${cryostat.entrypoint}</file>
               <mode>755</mode>
             </permission>
           </permissions>
@@ -472,7 +472,7 @@
           <trimTrailingWhitespace/>
           <endWithNewline/>
           <importOrder>
-            <order>java,javax,org.openjdk.jmc,com.redhat.rhjmc.containerjfr,</order>
+            <order>java,javax,org.openjdk.jmc,io.cryostat,</order>
           </importOrder>
           <removeUnusedImports/>
         </java>
@@ -495,8 +495,8 @@
     <configuration>
       <licenseName>upl_v1</licenseName>
       <licenseResolver>${project.baseUri}/src/license</licenseResolver>
-      <projectName>Container JFR</projectName>
-      <organizationName>Red Hat, Inc.</organizationName>
+      <projectName>Cryostat</projectName>
+      <organizationName>Cryostat</organizationName>
       <inceptionYear>2020</inceptionYear>
       <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
       <roots>
@@ -553,24 +553,24 @@
     <id>minimal</id>
     <activation>
       <property>
-        <name>containerjfr.minimal</name>
+        <name>cryostat.minimal</name>
         <value>true</value>
       </property>
     </activation>
     <properties>
-      <containerjfr.imageVersion>${project.version}-minimal</containerjfr.imageVersion>
+      <cryostat.imageVersion>${project.version}-minimal</cryostat.imageVersion>
     </properties>
   </profile>
   <profile>
     <id>non-minimal</id>
     <activation>
       <property>
-        <name>containerjfr.minimal</name>
+        <name>cryostat.minimal</name>
         <value>!true</value>
       </property>
     </activation>
     <properties>
-      <containerjfr.imageVersion>${project.version}</containerjfr.imageVersion>
+      <cryostat.imageVersion>${project.version}</cryostat.imageVersion>
     </properties>
     <build>
       <plugins>
@@ -667,7 +667,7 @@
                     </excludes>
                   </resource>
                 </resources>
-                <outputDirectory>${project.build.directory}/assets/app/resources/com/redhat/rhjmc/containerjfr/net/web</outputDirectory>
+                <outputDirectory>${project.build.directory}/assets/app/resources/io/cryostat/net/web</outputDirectory>
               </configuration>
             </execution>
           </executions>

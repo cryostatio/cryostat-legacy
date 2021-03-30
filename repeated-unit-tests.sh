@@ -8,11 +8,11 @@ else
     runs=50
 fi
 
-logfile="cjfr-unittests-$(date -Iminutes).log"
+logfile="cryostat-unittests-$(date -Iminutes).log"
 
 runcount=0
 while [ $runcount -lt $runs ]; do
-    mvn -Dcontainerjfr.minimal=true surefire:test |& tee -a $logfile
+    mvn -Dcryostat.minimal=true surefire:test |& tee -a $logfile
     if [ $? -ne 0 ]; then
         failures=$((failures+1))
     fi

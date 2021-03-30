@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 Cryostat
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -55,7 +55,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import io.cryostat.core.sys.Environment;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -73,7 +73,7 @@ public abstract class Podman {
 
     static {
         Environment env = new Environment();
-        POD_NAME = env.getProperty("containerJfrPodName");
+        POD_NAME = env.getProperty("cryostatPodName");
     }
 
     public static String run(ImageSpec imageSpec) throws Exception {

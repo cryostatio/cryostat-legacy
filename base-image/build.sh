@@ -1,7 +1,7 @@
 #!/bin/sh
 
 if [ -z "$IMAGE" ]; then
-    IMAGE="quay.io/rh-jmc-team/container-jfr-base"
+    IMAGE="quay.io/cryostatio/cryostat-base"
 fi
 
 if [ -z "$TAG" ]; then

@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 Cryostat
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -81,7 +81,7 @@ public class BasicCommandChannelIT extends TestBase {
         JsonObject resp = sendMessage("hostname").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         assertResponseStatus(resp);
         String hostname = resp.getString("payload");
-        MatcherAssert.assertThat(hostname, Matchers.equalTo("container-jfr"));
+        MatcherAssert.assertThat(hostname, Matchers.equalTo("cryostat"));
     }
 
     @Test
@@ -124,9 +124,9 @@ public class BasicCommandChannelIT extends TestBase {
                                     new JsonObject(
                                             Map.of(
                                                     "connectUrl",
-                                                    "service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi",
+                                                    "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi",
                                                     "alias",
-                                                    "com.redhat.rhjmc.containerjfr.ContainerJfr"));
+                                                    "io.cryostat.Cryostat"));
                             MatcherAssert.assertThat(
                                     targets, Matchers.equalTo(new JsonArray(List.of(selfRef))));
                             f2.complete(ar.succeeded());
