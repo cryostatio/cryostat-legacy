@@ -198,7 +198,9 @@ class RulesPostHandlerTest {
             form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), targetAlias);
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), eventSpecifier);
 
-            Assertions.assertThrows(IllegalArgumentException.class, () -> handler.handle(params));
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
 
         @ParameterizedTest

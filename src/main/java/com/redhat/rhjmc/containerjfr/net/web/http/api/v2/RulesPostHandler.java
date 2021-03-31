@@ -145,7 +145,11 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, params);
                 builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, params);
 
-                rule = builder.build();
+                try {
+                    rule = builder.build();
+                } catch (IllegalArgumentException iae) {
+                    throw new ApiException(400, iae.getMessage(), iae);
+                }
                 break;
             case JSON:
                 rule = gson.fromJson(params.getBody(), Rule.class);
