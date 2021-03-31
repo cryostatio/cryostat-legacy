@@ -78,7 +78,8 @@ class RuleTest {
                                     .build();
                         });
         MatcherAssert.assertThat(
-                ex.getMessage(), Matchers.containsString("name cannot be blank, was " + s));
+                ex.getMessage(),
+                Matchers.containsString("\"name\" cannot be blank, was \"" + s + "\""));
     }
 
     @ParameterizedTest
@@ -94,7 +95,8 @@ class RuleTest {
                                     .build();
                         });
         MatcherAssert.assertThat(
-                ex.getMessage(), Matchers.containsString("targetAlias cannot be blank, was " + s));
+                ex.getMessage(),
+                Matchers.containsString("\"targetAlias\" cannot be blank, was \"" + s + "\""));
     }
 
     @ParameterizedTest
@@ -113,29 +115,34 @@ class RuleTest {
 
     @Test
     void shouldThrowOnNegativeArchivalPeriod() {
-        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () ->
-                {
-                    builder
-                        .name(NAME)
-                        .targetAlias(TARGET_ALIAS)
-                        .eventSpecifier(EVENT_SPECIFIER)
-                        .archivalPeriodSeconds(-1).build();
-                });
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .targetAlias(TARGET_ALIAS)
+                                    .eventSpecifier(EVENT_SPECIFIER)
+                                    .archivalPeriodSeconds(-1)
+                                    .build();
+                        });
         MatcherAssert.assertThat(
                 ex.getMessage(),
-                Matchers.containsString("\"archivalPeriodSeconds\" cannot be negative, was \"-1\""));
+                Matchers.containsString(
+                        "\"archivalPeriodSeconds\" cannot be negative, was \"-1\""));
     }
 
     @Test
     void shouldThrowOnNegativePreservedArchives() {
-        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () ->
-                {
-                    builder
-                        .name(NAME)
-                        .targetAlias(TARGET_ALIAS)
-                        .eventSpecifier(EVENT_SPECIFIER)
-                        .preservedArchives(-1).build();
-                });
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .targetAlias(TARGET_ALIAS)
+                                    .eventSpecifier(EVENT_SPECIFIER)
+                                    .preservedArchives(-1)
+                                    .build();
+                        });
         MatcherAssert.assertThat(
                 ex.getMessage(),
                 Matchers.containsString("\"preservedArchives\" cannot be negative, was \"-1\""));

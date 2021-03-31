@@ -94,7 +94,7 @@ public class RuleRegistry {
         if (hasRuleByName(rule.getName())) {
             throw new RuleException(
                     String.format(
-                            "Rule with name \"%s\" already exists; refusing" + "to overwrite",
+                            "Rule with name \"%s\" already exists; refusing to overwrite",
                             rule.getName()));
         }
         Path destination = rulesDir.resolve(rule.getName() + ".json");

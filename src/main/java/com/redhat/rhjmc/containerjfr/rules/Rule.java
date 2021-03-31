@@ -119,7 +119,7 @@ public class Rule {
     private static String requireNonBlank(String s, Attribute attr) {
         if (StringUtils.isBlank(s)) {
             throw new IllegalArgumentException(
-                    String.format("%s cannot be blank, was %s", attr, s));
+                    String.format("\"%s\" cannot be blank, was \"%s\"", attr, s));
         }
         return s;
     }
@@ -127,7 +127,7 @@ public class Rule {
     private static int requireNonNegative(int i, Attribute attr) {
         if (i < 0) {
             throw new IllegalArgumentException(
-                    String.format("%s cannot be blank, was %d", attr, i));
+                    String.format("\"%s\" cannot be negative, was \"%d\"", attr, i));
         }
         return i;
     }
