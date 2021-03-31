@@ -148,7 +148,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 try {
                     rule = builder.build();
                 } catch (IllegalArgumentException iae) {
-                    throw new ApiException(400, iae.getMessage(), iae);
+                    throw new ApiException(400, iae);
                 }
                 break;
             case JSON:
