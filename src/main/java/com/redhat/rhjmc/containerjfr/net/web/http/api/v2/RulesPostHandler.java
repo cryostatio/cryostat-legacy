@@ -201,10 +201,6 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                             attrs.get(key.getSerialKey()), key),
                     nfe);
         }
-        if (value < 0) {
-            throw new ApiException(
-                    400, String.format("\"%s\" cannot be negative, was %d", key, value));
-        }
         return fn.apply(value);
     }
 }

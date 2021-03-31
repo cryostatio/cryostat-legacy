@@ -108,7 +108,37 @@ class RuleTest {
                         });
         MatcherAssert.assertThat(
                 ex.getMessage(),
-                Matchers.containsString("eventSpecifier cannot be blank, was " + s));
+                Matchers.containsString("\"eventSpecifier\" cannot be blank, was \"" + s + "\""));
+    }
+
+    @Test
+    void shouldThrowOnNegativeArchivalPeriod() {
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () ->
+                {
+                    builder
+                        .name(NAME)
+                        .targetAlias(TARGET_ALIAS)
+                        .eventSpecifier(EVENT_SPECIFIER)
+                        .archivalPeriodSeconds(-1).build();
+                });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("\"archivalPeriodSeconds\" cannot be negative, was \"-1\""));
+    }
+
+    @Test
+    void shouldThrowOnNegativePreservedArchives() {
+        IllegalArgumentException ex = Assertions.assertThrows(IllegalArgumentException.class, () ->
+                {
+                    builder
+                        .name(NAME)
+                        .targetAlias(TARGET_ALIAS)
+                        .eventSpecifier(EVENT_SPECIFIER)
+                        .preservedArchives(-1).build();
+                });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("\"preservedArchives\" cannot be negative, was \"-1\""));
     }
 
     @Test

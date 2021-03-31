@@ -198,33 +198,7 @@ class RulesPostHandlerTest {
             form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), targetAlias);
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), eventSpecifier);
 
-            Assertions.assertThrows(NullPointerException.class, () -> handler.handle(params));
-        }
-
-        @ParameterizedTest
-        @ValueSource(
-                strings = {
-                    "archivalPeriodSeconds",
-                    "preservedArchives",
-                    "maxAgeSeconds",
-                    "maxSizeBytes",
-                })
-        void throwsIfOptionalIntegerAttributesNegative(String attr) {
-            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
-            Mockito.when(params.getHeaders()).thenReturn(headers);
-            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
-            MultiMap form = MultiMap.caseInsensitiveMultiMap();
-            Mockito.when(params.getFormAttributes()).thenReturn(form);
-            form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
-            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), "someTarget");
-            form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
-            form.set(attr, "-1");
-
-            ApiException ex =
-                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString(attr));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("-1"));
+            Assertions.assertThrows(IllegalArgumentException.class, () -> handler.handle(params));
         }
 
         @ParameterizedTest
