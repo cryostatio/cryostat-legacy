@@ -121,10 +121,6 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     // already appeared?
     @Override
     public void accept(TargetDiscoveryEvent tde) {
-        if (EventKind.CHANGED.equals(tde.getEventKind())) {
-            // ignore these
-            return;
-        }
         if (EventKind.LOST.equals(tde.getEventKind())) {
             Future<?> task = tasks.remove(tde.getServiceRef());
             if (task != null) {
