@@ -71,7 +71,7 @@ public class TimeoutHandler implements RequestHandler {
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.OTHER;
+        return null; // unused for ALL_PATHS handlers
     }
 
     @Override

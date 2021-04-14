@@ -41,6 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.net.web.http.generic;
 
+import java.util.stream.Stream;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +50,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
@@ -65,7 +68,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.impl.RoutingContextInternal;
 
 @ExtendWith(MockitoExtension.class)
 class CorsEnablingHandlerTest {
@@ -90,8 +93,8 @@ class CorsEnablingHandlerTest {
     }
 
     @Test
-    void shouldApplyToOtherMethod() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.OTHER));
+    void shouldHaveNullHttpMethod() {
+        MatcherAssert.assertThat(handler.httpMethod(), Matchers.nullValue());
     }
 
     @ParameterizedTest
@@ -104,7 +107,7 @@ class CorsEnablingHandlerTest {
     @Nested
     class HandlingTest {
 
-        @Mock RoutingContext ctx;
+        @Mock RoutingContextInternal ctx;
         @Mock HttpServerRequest req;
         @Mock HttpServerResponse res;
         @Mock MultiMap headers;
@@ -113,7 +116,8 @@ class CorsEnablingHandlerTest {
         void setRequestAndResponse() {
             Mockito.when(ctx.request()).thenReturn(req);
             Mockito.when(ctx.response()).thenReturn(res);
-            Mockito.when(req.headers()).thenReturn(headers);
+            Mockito.lenient().when(req.headers()).thenReturn(headers);
+            Mockito.lenient().when(res.headers()).thenReturn(headers);
         }
 
         @Test
@@ -143,14 +147,11 @@ class CorsEnablingHandlerTest {
                             WebServer.AUTH_SCHEME_HEADER
                                     + ","
                                     + AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER);
-            Mockito.verifyNoMoreInteractions(res);
             Mockito.verify(ctx).next();
         }
 
         @ParameterizedTest
-        @EnumSource(
-                value = HttpMethod.class,
-                names = {"GET", "POST", "PATCH", "OPTIONS", "HEAD", "DELETE"})
+        @MethodSource("httpMethods")
         void shouldRespondOKToOPTIONSWithAcceptedMethod(HttpMethod method) {
             Mockito.when(req.method()).thenReturn(HttpMethod.OPTIONS);
             Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn(CUSTOM_ORIGIN);
@@ -179,7 +180,17 @@ class CorsEnablingHandlerTest {
         void shouldRespond403ForCORSRequestWithInvalidOrigin() {
             Mockito.when(headers.get(HttpHeaders.ORIGIN)).thenReturn("http://example.com:1234/");
             handler.handle(ctx);
-            Mockito.verify(ctx).fail(403);
+            Mockito.verify(ctx).fail(Mockito.eq(403), Mockito.any(IllegalStateException.class));
+        }
+
+        Stream<Arguments> httpMethods() {
+            return Stream.of(
+                    Arguments.of(HttpMethod.GET),
+                    Arguments.of(HttpMethod.POST),
+                    Arguments.of(HttpMethod.PATCH),
+                    Arguments.of(HttpMethod.OPTIONS),
+                    Arguments.of(HttpMethod.HEAD),
+                    Arguments.of(HttpMethod.DELETE));
         }
     }
 }
