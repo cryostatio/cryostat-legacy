@@ -68,7 +68,7 @@
   <org.mockito.version>3.9.0</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.5</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>1.27.0</com.diffplug.spotless.maven.plugin.version>
-  <org.jsoup.version>1.12.1</org.jsoup.version>
+  <org.jsoup.version>1.13.1</org.jsoup.version>
   <org.codehaus.plexus.utils.version>3.2.0</org.codehaus.plexus.utils.version>
 </properties>
 
