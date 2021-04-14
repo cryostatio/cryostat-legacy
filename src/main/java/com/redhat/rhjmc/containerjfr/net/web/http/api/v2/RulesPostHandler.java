@@ -161,7 +161,10 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         try {
             rule = this.ruleRegistry.addRule(rule);
         } catch (IOException e) {
-            throw new ApiException(500, "IOException occurred while writing rule definition", e);
+            throw new ApiException(
+                    500,
+                    "IOException occurred while writing rule definition: " + e.getMessage(),
+                    e);
         }
 
         return new IntermediateResponse<String>()
