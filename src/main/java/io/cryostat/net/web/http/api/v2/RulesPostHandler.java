@@ -110,8 +110,12 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters params) throws ApiException {
         Rule rule;
-        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE).split(";")[0];
-        HttpMimeType mime = HttpMimeType.fromString(rawMime);
+        String rawMime = params.getHeaders().get(HttpHeaders.CONTENT_TYPE);
+        if (rawMime == null) {
+            throw new ApiException(415, "Bad content type: null");
+        }
+        String firstMime = rawMime.split(";")[0];
+        HttpMimeType mime = HttpMimeType.fromString(firstMime);
         if (mime == null) {
             throw new ApiException(415, "Bad content type: " + rawMime);
         }
@@ -120,17 +124,31 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             case URLENCODED_FORM:
                 Rule.Builder builder =
                         new Rule.Builder()
-                                .name(params.getFormAttributes().get("name"))
-                                .targetAlias(params.getFormAttributes().get("targetAlias"))
-                                .description(params.getFormAttributes().get("description"))
-                                .eventSpecifier(params.getFormAttributes().get("eventSpecifier"));
+                                .name(
+                                        params.getFormAttributes()
+                                                .get(Rule.Attribute.NAME.getSerialKey()))
+                                .targetAlias(
+                                        params.getFormAttributes()
+                                                .get(Rule.Attribute.TARGET_ALIAS.getSerialKey()))
+                                .description(
+                                        params.getFormAttributes()
+                                                .get(Rule.Attribute.DESCRIPTION.getSerialKey()))
+                                .eventSpecifier(
+                                        params.getFormAttributes()
+                                                .get(
+                                                        Rule.Attribute.EVENT_SPECIFIER
+                                                                .getSerialKey()));
 
-                builder = setOptionalInt(builder, "archivalPeriodSeconds", params);
-                builder = setOptionalInt(builder, "preservedArchives", params);
-                builder = setOptionalInt(builder, "maxAgeSeconds", params);
-                builder = setOptionalInt(builder, "maxSizeBytes", params);
+                builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, params);
+                builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, params);
+                builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, params);
+                builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, params);
 
-                rule = builder.build();
+                try {
+                    rule = builder.build();
+                } catch (IllegalArgumentException iae) {
+                    throw new ApiException(400, iae);
+                }
                 break;
             case JSON:
                 rule = gson.fromJson(params.getBody(), Rule.class);
@@ -142,7 +160,10 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         try {
             rule = this.ruleRegistry.addRule(rule);
         } catch (IOException e) {
-            throw new ApiException(500, "IOException occurred while writing rule definition", e);
+            throw new ApiException(
+                    500,
+                    "IOException occurred while writing rule definition: " + e.getMessage(),
+                    e);
         }
 
         return new IntermediateResponse<String>()
@@ -151,29 +172,41 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 .body(rule.getName());
     }
 
-    private Rule.Builder setOptionalInt(Rule.Builder builder, String key, RequestParameters params)
+    private Rule.Builder setOptionalInt(
+            Rule.Builder builder, Rule.Attribute key, RequestParameters params)
             throws IllegalArgumentException {
         MultiMap attrs = params.getFormAttributes();
-        if (!attrs.contains(key)) {
+        if (!attrs.contains(key.getSerialKey())) {
             return builder;
         }
         Function<Integer, Rule.Builder> fn;
         switch (key) {
-            case "archivalPeriodSeconds":
+            case ARCHIVAL_PERIOD_SECONDS:
                 fn = builder::archivalPeriodSeconds;
                 break;
-            case "preservedArchives":
+            case PRESERVED_ARCHIVES:
                 fn = builder::preservedArchives;
                 break;
-            case "maxAgeSeconds":
+            case MAX_AGE_SECONDS:
                 fn = builder::maxAgeSeconds;
                 break;
-            case "maxSizeBytes":
+            case MAX_SIZE_BYTES:
                 fn = builder::maxSizeBytes;
                 break;
             default:
                 throw new IllegalArgumentException("Unknown key " + key);
         }
-        return fn.apply(Integer.valueOf(attrs.get(key)));
+        int value;
+        try {
+            value = Integer.parseInt(attrs.get(key.getSerialKey()));
+        } catch (NumberFormatException nfe) {
+            throw new ApiException(
+                    400,
+                    String.format(
+                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                            attrs.get(key.getSerialKey()), key),
+                    nfe);
+        }
+        return fn.apply(value);
     }
 }

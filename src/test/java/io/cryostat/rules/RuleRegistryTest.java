@@ -160,6 +160,18 @@ class RuleRegistryTest {
     }
 
     @Test
+    void testAddRuleThrowsExceptionOnDuplicateName() throws Exception {
+        Path rulePath = Mockito.mock(Path.class);
+        Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
+        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
+        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
+
+        registry.loadRules();
+
+        Assertions.assertThrows(IOException.class, () -> registry.addRule(TEST_RULE));
+    }
+
+    @Test
     void testGetRulebyName() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
@@ -255,6 +267,6 @@ class RuleRegistryTest {
 
         registry.deleteRule(TEST_RULE.getName());
 
-        Mockito.verify(logger, Mockito.times(2)).warn(Mockito.any(IOException.class));
+        Mockito.verify(logger).warn(Mockito.any(IOException.class));
     }
 }

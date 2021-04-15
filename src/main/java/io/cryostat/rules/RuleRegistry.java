@@ -91,7 +91,12 @@ public class RuleRegistry {
     }
 
     public Rule addRule(Rule rule) throws IOException {
-        this.deleteRule(rule);
+        if (hasRuleByName(rule.getName())) {
+            throw new RuleException(
+                    String.format(
+                            "Rule with name \"%s\" already exists; refusing to overwrite",
+                            rule.getName()));
+        }
         Path destination = rulesDir.resolve(rule.getName() + ".json");
         this.fs.writeString(
                 destination,
@@ -101,6 +106,10 @@ public class RuleRegistry {
                 StandardOpenOption.TRUNCATE_EXISTING);
         loadRules();
         return rule;
+    }
+
+    public boolean hasRuleByName(String name) {
+        return getRule(name).isPresent();
     }
 
     public Optional<Rule> getRule(String name) {
