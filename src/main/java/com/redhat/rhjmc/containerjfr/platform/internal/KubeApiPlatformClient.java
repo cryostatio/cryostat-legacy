@@ -59,8 +59,8 @@ import io.fabric8.kubernetes.api.model.EndpointPort;
 import io.fabric8.kubernetes.api.model.EndpointSubset;
 import io.fabric8.kubernetes.api.model.Endpoints;
 import io.fabric8.kubernetes.client.KubernetesClient;
-import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.kubernetes.client.Watcher;
+import io.fabric8.kubernetes.client.WatcherException;
 
 public class KubeApiPlatformClient extends AbstractPlatformClient {
 
@@ -136,8 +136,8 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                             }
 
                             @Override
-                            public void onClose(KubernetesClientException clientException) {
-                                logger.warn(clientException);
+                            public void onClose(WatcherException watcherException) {
+                                logger.warn(watcherException);
                             }
                         });
     }
