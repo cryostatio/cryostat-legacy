@@ -39,63 +39,12 @@
  * SOFTWARE.
  * #L%
  */
-package io.cryostat.net.web.http.api.v2;
+package com.redhat.rhjmc.containerjfr.rules;
 
-import javax.inject.Inject;
+import java.io.IOException;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.rules.Rule;
-import io.cryostat.rules.RuleRegistry;
-
-import com.google.gson.Gson;
-import io.vertx.core.http.HttpMethod;
-
-class RuleGetHandler extends AbstractV2RequestHandler<Rule> {
-
-    static final String PATH = RulesPostHandler.PATH + "/:name";
-
-    private final RuleRegistry ruleRegistry;
-    private final Logger logger;
-
-    @Inject
-    RuleGetHandler(AuthManager auth, RuleRegistry ruleRegistry, Gson gson, Logger logger) {
-        super(auth, gson);
-        this.ruleRegistry = ruleRegistry;
-        this.logger = logger;
-    }
-
-    @Override
-    public boolean requiresAuthentication() {
-        return true;
-    }
-
-    @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.V2;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
-    }
-
-    @Override
-    public String path() {
-        return basePath() + PATH;
-    }
-
-    @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
-    }
-
-    @Override
-    public IntermediateResponse<Rule> handle(RequestParameters params) throws ApiException {
-        String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
-        return new IntermediateResponse<Rule>()
-                .body(this.ruleRegistry.getRule(name).orElseThrow(() -> new ApiException(404)));
+public class RuleException extends IOException {
+    RuleException(String reason) {
+        super(reason);
     }
 }

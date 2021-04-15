@@ -49,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
@@ -95,7 +96,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
-        String name = params.getPathParams().get("ruleName");
+        String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
         try {
             ruleRegistry.deleteRule(name);
         } catch (IOException e) {

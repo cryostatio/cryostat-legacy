@@ -41,8 +41,6 @@
  */
 package io.cryostat.rules;
 
-import java.util.Objects;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -62,14 +60,17 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, "ruleName"));
-        this.description = builder.description;
-        this.targetAlias = requireNonBlank(builder.targetAlias, "targetAlias");
-        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, "eventSpecifier");
-        this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
-        this.preservedArchives = builder.preservedArchives;
+        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        this.description = builder.description == null ? "" : builder.description;
+        this.targetAlias = requireNonBlank(builder.targetAlias, Attribute.TARGET_ALIAS);
+        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, Attribute.EVENT_SPECIFIER);
+        this.archivalPeriodSeconds =
+                requireNonNegative(
+                        builder.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+        this.preservedArchives =
+                requireNonNegative(builder.preservedArchives, Attribute.PRESERVED_ARCHIVES);
         this.maxAgeSeconds =
-                builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : archivalPeriodSeconds;
+                builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
     }
 
@@ -115,12 +116,20 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
-    private static String requireNonBlank(String s, String name) {
-        if (StringUtils.isBlank(Objects.requireNonNull(s))) {
+    private static String requireNonBlank(String s, Attribute attr) {
+        if (StringUtils.isBlank(s)) {
             throw new IllegalArgumentException(
-                    String.format("%s cannot be blank, was %s", name, s));
+                    String.format("\"%s\" cannot be blank, was \"%s\"", attr, s));
         }
         return s;
+    }
+
+    private static int requireNonNegative(int i, Attribute attr) {
+        if (i < 0) {
+            throw new IllegalArgumentException(
+                    String.format("\"%s\" cannot be negative, was \"%d\"", attr, i));
+        }
+        return i;
     }
 
     @Override
@@ -140,7 +149,7 @@ public class Rule {
         private String eventSpecifier;
         private int archivalPeriodSeconds = 30;
         private int preservedArchives = 1;
-        private int maxAgeSeconds;
+        private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
 
         public Builder name(String name) {
@@ -185,6 +194,33 @@ public class Rule {
 
         public Rule build() {
             return new Rule(this);
+        }
+    }
+
+    public enum Attribute {
+        NAME("name"),
+        DESCRIPTION("description"),
+        TARGET_ALIAS("targetAlias"),
+        EVENT_SPECIFIER("eventSpecifier"),
+        ARCHIVAL_PERIOD_SECONDS("archivalPeriodSeconds"),
+        PRESERVED_ARCHIVES("preservedArchives"),
+        MAX_AGE_SECONDS("maxAgeSeconds"),
+        MAX_SIZE_BYTES("maxSizeBytes"),
+        ;
+
+        private final String serialKey;
+
+        Attribute(String serialKey) {
+            this.serialKey = serialKey;
+        }
+
+        public String getSerialKey() {
+            return serialKey;
+        }
+
+        @Override
+        public String toString() {
+            return getSerialKey();
         }
     }
 }
