@@ -63,9 +63,6 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Provider;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-
 import org.openjdk.jmc.rjmx.ConnectionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -80,6 +77,9 @@ import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.reports.ReportService.RecordingNotFoundException;
 import com.redhat.rhjmc.containerjfr.util.JavaProcess;
+
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class SubprocessReportGenerator {
 

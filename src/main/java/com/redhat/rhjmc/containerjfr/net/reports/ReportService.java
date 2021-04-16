@@ -44,9 +44,9 @@ package com.redhat.rhjmc.containerjfr.net.reports;
 import java.nio.file.Path;
 import java.util.concurrent.Future;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.redhat.rhjmc.containerjfr.net.ConnectionDescriptor;
+
+import org.apache.commons.lang3.tuple.Pair;
 
 public class ReportService {
 

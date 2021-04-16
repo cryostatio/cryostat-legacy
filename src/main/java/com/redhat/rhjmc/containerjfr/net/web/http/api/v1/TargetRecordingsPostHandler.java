@@ -51,16 +51,12 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.apache.commons.lang3.StringUtils;
-
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.google.gson.Gson;
 
 import com.redhat.rhjmc.containerjfr.commands.internal.EventOptionsBuilder;
 import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
@@ -75,11 +71,13 @@ import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHa
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
+import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.StringUtils;
 
 class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 

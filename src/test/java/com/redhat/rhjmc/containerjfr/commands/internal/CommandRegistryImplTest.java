@@ -56,6 +56,10 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.stream.Collectors;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.commands.internal.CommandRegistryImpl.CommandDefinitionException;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -65,10 +69,6 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.commands.internal.CommandRegistryImpl.CommandDefinitionException;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 @ExtendWith(MockitoExtension.class)
 public class CommandRegistryImplTest {

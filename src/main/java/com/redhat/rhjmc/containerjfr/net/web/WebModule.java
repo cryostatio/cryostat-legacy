@@ -49,8 +49,6 @@ import java.util.Set;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
@@ -59,6 +57,7 @@ import com.redhat.rhjmc.containerjfr.net.NetworkConfiguration;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpModule;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 
+import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 

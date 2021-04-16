@@ -45,11 +45,11 @@ import java.io.IOException;
 
 import javax.management.remote.JMXServiceURL;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
 
 public class GsonJmxServiceUrlAdapter extends TypeAdapter<JMXServiceURL> {
 

@@ -48,9 +48,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
 import com.redhat.rhjmc.containerjfr.commands.CommandsModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
@@ -65,6 +62,8 @@ import com.redhat.rhjmc.containerjfr.util.GsonJmxServiceUrlAdapter;
 import com.redhat.rhjmc.containerjfr.util.HttpMimeTypeAdapter;
 import com.redhat.rhjmc.containerjfr.util.PathTypeAdapter;
 
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;

@@ -43,10 +43,10 @@ package com.redhat.rhjmc.containerjfr.net;
 
 import java.util.Optional;
 
+import com.redhat.rhjmc.containerjfr.core.net.Credentials;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-
-import com.redhat.rhjmc.containerjfr.core.net.Credentials;
 
 public class ConnectionDescriptor {
 

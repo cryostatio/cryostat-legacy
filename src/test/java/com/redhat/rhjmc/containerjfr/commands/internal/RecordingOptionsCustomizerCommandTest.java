@@ -48,6 +48,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
+import com.redhat.rhjmc.containerjfr.commands.Command;
+import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
+import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -59,10 +63,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.redhat.rhjmc.containerjfr.commands.Command;
-import com.redhat.rhjmc.containerjfr.core.RecordingOptionsCustomizer;
-import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingOptionsCustomizerCommandTest {

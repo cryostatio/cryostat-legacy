@@ -42,6 +42,7 @@
 package com.redhat.rhjmc.containerjfr.messaging.notifications;
 
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
+
 import dagger.Lazy;
 
 public class NotificationFactory {

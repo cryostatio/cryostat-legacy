@@ -49,8 +49,6 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import com.redhat.rhjmc.containerjfr.core.net.Credentials;
@@ -61,6 +59,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public abstract class AbstractAuthenticatedRequestHandler implements RequestHandler {
 

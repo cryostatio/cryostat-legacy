@@ -44,11 +44,11 @@ package com.redhat.rhjmc.containerjfr.util;
 import java.io.IOException;
 import java.util.Objects;
 
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+
 import com.google.gson.TypeAdapter;
 import com.google.gson.stream.JsonReader;
 import com.google.gson.stream.JsonWriter;
-
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 
 public class HttpMimeTypeAdapter extends TypeAdapter<HttpMimeType> {
 

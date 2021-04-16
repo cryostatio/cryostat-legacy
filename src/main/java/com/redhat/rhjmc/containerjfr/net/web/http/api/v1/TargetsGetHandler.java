@@ -43,13 +43,12 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.AbstractAuthenticatedRequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 

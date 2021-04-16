@@ -48,6 +48,7 @@ import javax.inject.Inject;
 import com.redhat.rhjmc.containerjfr.commands.Command;
 import com.redhat.rhjmc.containerjfr.commands.CommandRegistry;
 import com.redhat.rhjmc.containerjfr.core.tui.ClientWriter;
+
 import dagger.Lazy;
 
 class HelpCommand implements Command {

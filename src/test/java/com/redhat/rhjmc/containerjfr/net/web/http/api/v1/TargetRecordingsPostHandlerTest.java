@@ -49,6 +49,32 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
+import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.common.unit.IQuantity;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import com.redhat.rhjmc.containerjfr.MainModule;
+import com.redhat.rhjmc.containerjfr.commands.internal.EventOptionsBuilder;
+import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
+import com.redhat.rhjmc.containerjfr.net.web.WebServer;
+
+import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -61,34 +87,6 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import org.openjdk.jmc.common.unit.IConstrainedMap;
-import org.openjdk.jmc.common.unit.IQuantity;
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
-import com.google.gson.Gson;
-
-import com.redhat.rhjmc.containerjfr.MainModule;
-import com.redhat.rhjmc.containerjfr.commands.internal.EventOptionsBuilder;
-import com.redhat.rhjmc.containerjfr.commands.internal.RecordingOptionsBuilderFactory;
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.net.JFRConnection;
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
-import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager.ConnectedTask;
-import com.redhat.rhjmc.containerjfr.net.web.WebServer;
-
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerRequest;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class TargetRecordingsPostHandlerTest {

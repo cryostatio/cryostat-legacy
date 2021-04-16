@@ -43,8 +43,6 @@ package com.redhat.rhjmc.containerjfr.net;
 
 import java.nio.file.Path;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
@@ -53,6 +51,7 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
+import org.apache.commons.lang3.tuple.Pair;
 
 class SslConfiguration {
     private final Environment env;

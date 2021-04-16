@@ -54,6 +54,7 @@ import com.redhat.rhjmc.containerjfr.core.net.JFRConnectionToolkit;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.platform.PlatformClient;
 import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
+
 import dagger.Lazy;
 
 class KubeEnvPlatformClient implements PlatformClient {

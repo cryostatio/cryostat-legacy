@@ -54,6 +54,14 @@ import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 
+import com.redhat.rhjmc.containerjfr.core.log.Logger;
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
+
+import io.vertx.core.http.HttpServerOptions;
+import io.vertx.core.net.JksOptions;
+import io.vertx.core.net.PemKeyCertOptions;
+import io.vertx.core.net.PfxOptions;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -65,15 +73,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.redhat.rhjmc.containerjfr.core.log.Logger;
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
-import com.redhat.rhjmc.containerjfr.core.sys.FileSystem;
-
-import io.vertx.core.http.HttpServerOptions;
-import io.vertx.core.net.JksOptions;
-import io.vertx.core.net.PemKeyCertOptions;
-import io.vertx.core.net.PfxOptions;
 
 @ExtendWith(MockitoExtension.class)
 class SslConfigurationTest {

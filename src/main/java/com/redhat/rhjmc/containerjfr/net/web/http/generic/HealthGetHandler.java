@@ -49,14 +49,13 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.RequestHandler;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
 
+import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;

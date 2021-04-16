@@ -43,6 +43,9 @@ package com.redhat.rhjmc.containerjfr.net.web.http.api.v1;
 
 import java.nio.file.Path;
 
+import com.redhat.rhjmc.containerjfr.net.AuthManager;
+
+import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,9 +53,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.redhat.rhjmc.containerjfr.net.AuthManager;
-import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingGetHandlerTest {
