@@ -69,7 +69,7 @@
   <org.jacoco.maven.plugin.version>0.8.6</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.10.1</com.diffplug.spotless.maven.plugin.version>
   <org.jsoup.version>1.13.1</org.jsoup.version>
-  <org.codehaus.plexus.utils.version>3.2.0</org.codehaus.plexus.utils.version>
+  <org.codehaus.plexus.utils.version>3.3.0</org.codehaus.plexus.utils.version>
 </properties>
 
 <dependencies>
