@@ -51,13 +51,13 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 
-import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableEventTypeInfo;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
 class TargetEventsSearchGetHandler

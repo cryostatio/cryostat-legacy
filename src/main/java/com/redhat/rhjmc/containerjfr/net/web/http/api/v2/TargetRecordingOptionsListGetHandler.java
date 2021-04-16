@@ -49,13 +49,13 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
 
-import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.jmc.serialization.SerializableOptionDescriptor;
 import com.redhat.rhjmc.containerjfr.net.AuthManager;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
 import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
 class TargetRecordingOptionsListGetHandler

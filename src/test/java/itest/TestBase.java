@@ -52,9 +52,6 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-
 import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.AsyncResult;
@@ -66,6 +63,8 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import itest.util.Utils;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 
 public abstract class TestBase {
 

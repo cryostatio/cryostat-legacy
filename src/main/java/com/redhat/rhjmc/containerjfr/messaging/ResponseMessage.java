@@ -41,8 +41,8 @@
  */
 package com.redhat.rhjmc.containerjfr.messaging;
 
-import org.apache.commons.lang3.builder.ToStringBuilder;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.lang3.builder.ToStringBuilder;
 
 @SuppressFBWarnings(
         value = "URF_UNREAD_FIELD",

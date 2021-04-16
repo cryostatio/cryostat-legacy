@@ -48,6 +48,13 @@ import java.util.Map;
 
 import javax.management.remote.JMXServiceURL;
 
+import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification.MetaType;
+import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
+import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
+import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -55,13 +62,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.redhat.rhjmc.containerjfr.core.net.discovery.JvmDiscoveryClient.EventKind;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.Notification.MetaType;
-import com.redhat.rhjmc.containerjfr.messaging.notifications.NotificationFactory;
-import com.redhat.rhjmc.containerjfr.net.web.http.HttpMimeType;
-import com.redhat.rhjmc.containerjfr.platform.ServiceRef;
 
 @ExtendWith(MockitoExtension.class)
 class AbstractPlatformClientTest {

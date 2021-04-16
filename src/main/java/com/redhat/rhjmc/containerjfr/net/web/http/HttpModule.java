@@ -44,6 +44,7 @@ package com.redhat.rhjmc.containerjfr.net.web.http;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v1.HttpApiV1Module;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.v2.HttpApiV2Module;
 import com.redhat.rhjmc.containerjfr.net.web.http.generic.HttpGenericModule;
+
 import dagger.Module;
 
 @Module(

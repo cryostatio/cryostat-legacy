@@ -43,10 +43,6 @@ package com.redhat.rhjmc.containerjfr.commands;
 
 import java.util.Collections;
 
-import org.apache.commons.lang3.StringUtils;
-import com.google.gson.Gson;
-import com.google.gson.JsonSyntaxException;
-
 import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.messaging.CommandExceptionResponseMessage;
@@ -59,7 +55,11 @@ import com.redhat.rhjmc.containerjfr.messaging.MalformedMessageResponseMessage;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 import com.redhat.rhjmc.containerjfr.messaging.ResponseMessage;
 import com.redhat.rhjmc.containerjfr.messaging.SuccessResponseMessage;
+
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import dagger.Lazy;
+import org.apache.commons.lang3.StringUtils;
 
 public class CommandExecutor {
 

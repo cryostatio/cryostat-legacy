@@ -47,10 +47,10 @@ import java.util.Map;
 
 import javax.management.remote.JMXServiceURL;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import com.redhat.rhjmc.containerjfr.commands.internal.FailedValidationException;
 import com.redhat.rhjmc.containerjfr.net.TargetConnectionManager;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 public interface Command {
 

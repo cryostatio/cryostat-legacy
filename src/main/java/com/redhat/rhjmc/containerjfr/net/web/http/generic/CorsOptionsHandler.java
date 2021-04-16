@@ -45,6 +45,7 @@ import javax.inject.Inject;
 
 import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 import com.redhat.rhjmc.containerjfr.net.web.http.api.ApiVersion;
+
 import io.vertx.core.http.HttpMethod;
 
 class CorsOptionsHandler extends CorsEnablingHandler {

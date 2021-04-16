@@ -44,6 +44,8 @@ package com.redhat.rhjmc.containerjfr.net;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import com.redhat.rhjmc.containerjfr.core.sys.Environment;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -53,8 +55,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.redhat.rhjmc.containerjfr.core.sys.Environment;
 
 @ExtendWith(MockitoExtension.class)
 class NetworkConfigurationTest {

@@ -43,12 +43,11 @@ package com.redhat.rhjmc.containerjfr.commands;
 
 import javax.inject.Singleton;
 
-import com.google.gson.Gson;
-
 import com.redhat.rhjmc.containerjfr.commands.internal.CommandsInternalModule;
 import com.redhat.rhjmc.containerjfr.core.log.Logger;
 import com.redhat.rhjmc.containerjfr.messaging.MessagingServer;
 
+import com.google.gson.Gson;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
