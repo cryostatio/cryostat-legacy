@@ -1,5 +1,6 @@
 # Container-JFR
 
+[![CI build](https://github.com/rh-jmc-team/container-jfr/actions/workflows/ci.yaml/badge.svg)](https://github.com/rh-jmc-team/container-jfr/actions/workflows/ci.yaml)
 [![Quay Repository](https://quay.io/repository/rh-jmc-team/container-jfr/status "Quay Repository")](https://quay.io/repository/rh-jmc-team/container-jfr)
 
 ## SEE ALSO
