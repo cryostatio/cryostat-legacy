@@ -62,7 +62,7 @@
   <com.github.ben-manes.caffeine.version>3.0.1</com.github.ben-manes.caffeine.version>
 
   <com.github.spotbugs.version>4.2.3</com.github.spotbugs.version>
-  <com.github.spotbugs.plugin.version>4.2.2</com.github.spotbugs.plugin.version>
+  <com.github.spotbugs.plugin.version>4.2.3</com.github.spotbugs.plugin.version>
   <org.junit.jupiter.version>5.7.1</org.junit.jupiter.version>
   <org.hamcrest.version>2.2</org.hamcrest.version>
   <org.mockito.version>3.9.0</org.mockito.version>
