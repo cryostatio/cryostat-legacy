@@ -360,8 +360,8 @@
       </executions>
       <configuration>
         <systemPropertyVariables>
-          <cryostatJfrWebPort>${cryostat.itest.webPort}</cryostatJfrWebPort>
-          <cryostatJfrPodName>${cryostat.itest.podName}</cryostatJfrPodName>
+          <cryostatWebPort>${cryostat.itest.webPort}</cryostatWebPort>
+          <cryostatPodName>${cryostat.itest.podName}</cryostatPodName>
         </systemPropertyVariables>
       </configuration>
     </plugin>
