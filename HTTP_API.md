@@ -256,7 +256,7 @@
     ###### example
     ```
     $ curl localhost:8181/foo
-    <!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>ContainerJFR</title><meta id="appName" name="application-name" content="ContainerJFR"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" href="https://www.patternfly.org/components/patternfly/dist/img/favicon.ico"><base href="/"><link href="app.css" rel="stylesheet"></head><body><noscript>Enabling JavaScript is required to run this app.</noscript><div id="root"></div><script src="app.bundle.js"></script></body></html>
+    <!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>Cryostat</title><meta id="appName" name="application-name" content="Cryostat"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" href="https://www.patternfly.org/components/patternfly/dist/img/favicon.ico"><base href="/"><link href="app.css" rel="stylesheet"></head><body><noscript>Enabling JavaScript is required to run this app.</noscript><div id="root"></div><script src="app.bundle.js"></script></body></html>
     ```
 
 
