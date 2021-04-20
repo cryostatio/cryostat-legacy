@@ -73,7 +73,7 @@ function runGrafana() {
         --pod cryostat \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
-        --rm -d quay.io/cryostat/cryostat-grafana-dashboard:0.1.0
+        --rm -d quay.io/cryostat/cryostat-grafana-dashboard:1.0.0-BETA3
     configureGrafanaDatasource
 }
 
