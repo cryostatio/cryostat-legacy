@@ -496,7 +496,7 @@
       <licenseName>upl_v1</licenseName>
       <licenseResolver>${project.baseUri}/src/license</licenseResolver>
       <projectName>Cryostat</projectName>
-      <organizationName>Cryostat</organizationName>
+      <organizationName>The Cryostat Authors</organizationName>
       <inceptionYear>2020</inceptionYear>
       <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
       <roots>
