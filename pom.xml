@@ -17,13 +17,13 @@
   <maven.compiler.source>${java.version}</maven.compiler.source>
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
-  <baseImage>quay.io/cryostatio/cryostat-base</baseImage>
+  <baseImage>quay.io/cryostat/cryostat-base</baseImage>
   <baseImageTag>0.1.0</baseImageTag>
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
   <cryostat.minimal>false</cryostat.minimal>
-  <cryostat.imageStream>quay.io/cryostatio/cryostat</cryostat.imageStream>
+  <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>

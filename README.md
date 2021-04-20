@@ -1,7 +1,7 @@
 # Cryostat
 
 [![CI build](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml/badge.svg)](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml)
-[![Quay Repository](https://quay.io/repository/cryostatio/cryostat/status "Quay Repository")](https://quay.io/repository/cryostatio/cryostat)
+[![Quay Repository](https://quay.io/repository/cryostat/cryostat/status "Quay Repository")](https://quay.io/repository/cryostat/cryostat)
 
 ## SEE ALSO
 

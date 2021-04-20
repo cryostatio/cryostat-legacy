@@ -44,7 +44,7 @@ function runJfrDatasource() {
     podman run \
         --name jfr-datasource \
         --pod cryostat \
-        --rm -d quay.io/cryostatio/jfr-datasource:0.0.1
+        --rm -d quay.io/cryostat/jfr-datasource:0.0.1
 }
 
 function configureGrafanaDatasource() {
@@ -73,7 +73,7 @@ function runGrafana() {
         --pod cryostat \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
-        --rm -d quay.io/cryostatio/cryostat-grafana-dashboard:0.1.0
+        --rm -d quay.io/cryostat/cryostat-grafana-dashboard:0.1.0
     configureGrafanaDatasource
 }
 

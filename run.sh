@@ -10,7 +10,7 @@ function cleanup() {
 trap cleanup EXIT
 
 if [ -z "$CRYOSTAT_IMAGE" ]; then
-    CRYOSTAT_IMAGE="quay.io/cryostatio/cryostat:latest"
+    CRYOSTAT_IMAGE="quay.io/cryostat/cryostat:latest"
 fi
 
 echo -e "\n\nRunning $CRYOSTAT_IMAGE ...\n\n"
