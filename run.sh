@@ -44,7 +44,7 @@ if [ -z "$CRYOSTAT_EXT_LISTEN_PORT" ]; then
 fi
 
 if [ -z "$CRYOSTAT_AUTH_MANAGER" ]; then
-    CRYOSTAT_AUTH_MANAGER="NoopAuthManager"
+    CRYOSTAT_AUTH_MANAGER="io.cryostat.net.NoopAuthManager"
 fi
 
 if [ -z "$CRYOSTAT_REPORT_GENERATION_MAX_HEAP" ]; then
