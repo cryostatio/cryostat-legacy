@@ -84,9 +84,12 @@ public class ClientAssetsIT extends TestBase {
 
     @Test
     public void indexHtmlShouldHaveScriptTag() {
+        Elements head = doc.getElementsByTag("head");
+        MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
         Elements body = doc.getElementsByTag("body");
         MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
-        Elements script = body.first().getElementsByTag("script");
+
+        Elements script = head.first().getElementsByTag("script");
         MatcherAssert.assertThat(
                 "Expected at least one <script>", script.size(), Matchers.greaterThanOrEqualTo(1));
 
