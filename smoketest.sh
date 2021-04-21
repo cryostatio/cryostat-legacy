@@ -3,12 +3,12 @@
 set -x
 set -e
 
-function runContainerJFR() {
+function runCryostat() {
     local DIR="$(dirname "$(readlink -f "$0")")"
     GRAFANA_DATASOURCE_URL="http://0.0.0.0:8080" \
         GRAFANA_DASHBOARD_URL="http://0.0.0.0:3000" \
-        CONTAINER_JFR_RJMX_USER=smoketest \
-        CONTAINER_JFR_RJMX_PASS=smoketest \
+        CRYOSTAT_RJMX_USER=smoketest \
+        CRYOSTAT_RJMX_PASS=smoketest \
         exec "$DIR/run.sh"
 }
 
@@ -16,14 +16,14 @@ function runDemoApps() {
     podman run \
         --name vertx-fib-demo-1 \
         --env JMX_PORT=9093 \
-        --pod container-jfr \
+        --pod cryostat \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
 
     podman run \
         --name vertx-fib-demo-2 \
         --env JMX_PORT=9094 \
         --env USE_AUTH=true \
-        --pod container-jfr \
+        --pod cryostat \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
 
     podman run \
@@ -31,20 +31,20 @@ function runDemoApps() {
         --env JMX_PORT=9095 \
         --env USE_SSL=true \
         --env USE_AUTH=true \
-        --pod container-jfr \
+        --pod cryostat \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.6.0
 
     podman run \
         --name quarkus-test \
-        --pod container-jfr \
+        --pod cryostat \
         --rm -d quay.io/andrewazores/quarkus-test:0.0.2
 }
 
 function runJfrDatasource() {
     podman run \
         --name jfr-datasource \
-        --pod container-jfr \
-        --rm -d quay.io/rh-jmc-team/jfr-datasource:0.0.1
+        --pod cryostat \
+        --rm -d quay.io/cryostat/jfr-datasource:1.0.0-BETA6
 }
 
 function configureGrafanaDatasource() {
@@ -70,18 +70,18 @@ function configureGrafanaDatasource() {
 function runGrafana() {
     podman run \
         --name grafana \
-        --pod container-jfr \
+        --pod cryostat \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
-        --rm -d quay.io/rh-jmc-team/container-jfr-grafana-dashboard:0.1.0
+        --rm -d quay.io/cryostat/cryostat-grafana-dashboard:1.0.0-BETA3
     configureGrafanaDatasource
 }
 
 function createPod() {
     podman pod create \
         --replace \
-        --hostname container-jfr \
-        --name container-jfr \
+        --hostname cryostat \
+        --name cryostat \
         --publish 9091:9091 \
         --publish 8181:8181 \
         --publish 8080:8080 \
@@ -92,8 +92,8 @@ function createPod() {
         --publish 9095:9095 \
         --publish 9096:9096 \
         --publish 9999:9999
-    # 9091: ContainerJFR RJMX
-    # 8181: ContainerJFR web services
+    # 9091: Cryostat RJMX
+    # 8181: Cryostat web services
     # 8080: jfr-datasource
     # 3000: grafana
     # 8081: vertx-fib-demo
@@ -105,8 +105,8 @@ function createPod() {
 }
 
 function destroyPod() {
-    podman pod kill container-jfr
-    podman pod rm container-jfr
+    podman pod kill cryostat
+    podman pod rm cryostat
 }
 trap destroyPod EXIT
 
@@ -114,4 +114,4 @@ createPod
 runDemoApps
 runJfrDatasource
 runGrafana
-runContainerJFR
+runCryostat

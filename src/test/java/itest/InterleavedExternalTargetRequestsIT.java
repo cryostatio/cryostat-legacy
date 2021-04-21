@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 The Cryostat Authors
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -117,7 +117,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                         String.format(
                                 "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME),
                         "alias",
-                        "com.redhat.rhjmc.containerjfr.ContainerJfr"));
+                        "io.cryostat.Cryostat"));
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             expected.add(
                     Map.of(

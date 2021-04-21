@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 The Cryostat Authors
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -79,14 +79,17 @@ public class ClientAssetsIT extends TestBase {
         MatcherAssert.assertThat(head.size(), Matchers.equalTo(1));
         Elements titles = head.first().getElementsByTag("title");
         MatcherAssert.assertThat(titles.size(), Matchers.equalTo(1));
-        MatcherAssert.assertThat(titles.first().text(), Matchers.equalTo("ContainerJFR"));
+        MatcherAssert.assertThat(titles.first().text(), Matchers.equalTo("Cryostat"));
     }
 
     @Test
     public void indexHtmlShouldHaveScriptTag() {
+        Elements head = doc.getElementsByTag("head");
+        MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
         Elements body = doc.getElementsByTag("body");
         MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
-        Elements script = body.first().getElementsByTag("script");
+
+        Elements script = head.first().getElementsByTag("script");
         MatcherAssert.assertThat(
                 "Expected at least one <script>", script.size(), Matchers.greaterThanOrEqualTo(1));
 

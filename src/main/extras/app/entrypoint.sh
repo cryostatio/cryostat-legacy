@@ -17,22 +17,22 @@ function genpass() {
 USRFILE="/tmp/jmxremote.access"
 PWFILE="/tmp/jmxremote.password"
 function createJmxCredentials() {
-    if [ -z "$CONTAINER_JFR_RJMX_USER" ]; then
-        CONTAINER_JFR_RJMX_USER="containerjfr"
+    if [ -z "$CRYOSTAT_RJMX_USER" ]; then
+        CRYOSTAT_RJMX_USER="cryostat"
     fi
-    if [ -z "$CONTAINER_JFR_RJMX_PASS" ]; then
-        CONTAINER_JFR_RJMX_PASS="$(genpass)"
+    if [ -z "$CRYOSTAT_RJMX_PASS" ]; then
+        CRYOSTAT_RJMX_PASS="$(genpass)"
     fi
 
-    echo -n "$CONTAINER_JFR_RJMX_USER $CONTAINER_JFR_RJMX_PASS" > "$PWFILE"
+    echo -n "$CRYOSTAT_RJMX_USER $CRYOSTAT_RJMX_PASS" > "$PWFILE"
     chmod 400 "$PWFILE"
-    echo -n "$CONTAINER_JFR_RJMX_USER readwrite" > "$USRFILE"
+    echo -n "$CRYOSTAT_RJMX_USER readwrite" > "$USRFILE"
     chmod 400 "$USRFILE"
 }
 
 if [ -z "$CONF_DIR" ]; then
     # this should be set by Containerfile, but set a default if not
-    CONF_DIR="/opt/containerjfr.d"
+    CONF_DIR="/opt/cryostat.d"
 fi
 export SSL_KEYSTORE="$CONF_DIR/keystore.p12"
 export SSL_KEY_PASS="$(genpass)"
@@ -70,8 +70,8 @@ function generateSslCert() {
     pushd /tmp
 
     keytool -genkeypair -v \
-        -alias container-jfr \
-        -dname "cn=container-jfr, o=Red Hat, c=US" \
+        -alias cryostat \
+        -dname "cn=cryostat, o=Cryostat, c=CA" \
         -storetype PKCS12 \
         -validity 180 \
         -keyalg RSA \
@@ -80,7 +80,7 @@ function generateSslCert() {
         -keystore "$SSL_KEYSTORE"
 
     keytool -exportcert -v \
-        -alias container-jfr \
+        -alias cryostat \
         -keystore "$SSL_KEYSTORE" \
         -storepass "$SSL_STORE_PASS" \
         -file server.cer
@@ -96,26 +96,26 @@ function generateSslCert() {
     popd
 }
 
-if [ -z "$CONTAINER_JFR_RJMX_PORT" ]; then
-    CONTAINER_JFR_RJMX_PORT=9091
+if [ -z "$CRYOSTAT_RJMX_PORT" ]; then
+    CRYOSTAT_RJMX_PORT=9091
 fi
 
-if [ -z "$CONTAINER_JFR_RMI_PORT" ]; then
-    CONTAINER_JFR_RMI_PORT=9091
+if [ -z "$CRYOSTAT_RMI_PORT" ]; then
+    CRYOSTAT_RMI_PORT=9091
 fi
 
 FLAGS=(
     "-XX:+CrashOnOutOfMemoryError"
     "-Dcom.sun.management.jmxremote.autodiscovery=true"
-    "-Dcom.sun.management.jmxremote.port=$CONTAINER_JFR_RJMX_PORT"
-    "-Dcom.sun.management.jmxremote.rmi.port=$CONTAINER_JFR_RMI_PORT"
+    "-Dcom.sun.management.jmxremote.port=$CRYOSTAT_RJMX_PORT"
+    "-Dcom.sun.management.jmxremote.rmi.port=$CRYOSTAT_RMI_PORT"
     "-Djavax.net.ssl.trustStore=$SSL_TRUSTSTORE"
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
 )
 
 importTrustStores
 
-if [ "$CONTAINER_JFR_DISABLE_JMX_AUTH" = "true" ]; then
+if [ "$CRYOSTAT_DISABLE_JMX_AUTH" = "true" ]; then
     banner "JMX Auth Disabled"
     FLAGS+=("-Dcom.sun.management.jmxremote.authenticate=false")
 else
@@ -125,7 +125,7 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.access.file=$USRFILE")
 fi
 
-if [ "$CONTAINER_JFR_DISABLE_SSL" = "true" ]; then
+if [ "$CRYOSTAT_DISABLE_SSL" = "true" ]; then
     banner "SSL Disabled"
     FLAGS+=("-Dcom.sun.management.jmxremote.ssl=false")
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=false")
@@ -146,8 +146,8 @@ else
     FLAGS+=("-Dcom.sun.management.jmxremote.registry.ssl=true")
 fi
 
-if [ -n "$CONTAINER_JFR_JUL_CONFIG" ]; then
-    FLAGS+=("-Djava.util.logging.config.file=$CONTAINER_JFR_JUL_CONFIG")
+if [ -n "$CRYOSTAT_JUL_CONFIG" ]; then
+    FLAGS+=("-Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG")
 fi
 
 export KEYSTORE_PATH
@@ -156,5 +156,5 @@ export SSL_TRUSTSTORE_DIR
 exec java \
     "${FLAGS[@]}" \
     -cp /app/resources:/app/classes:/app/libs/* \
-    com.redhat.rhjmc.containerjfr.ContainerJfr \
+    io.cryostat.Cryostat \
     "$@"

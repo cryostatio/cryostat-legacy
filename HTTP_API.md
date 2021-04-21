@@ -7,20 +7,20 @@
 | What you want to do                                                       | Which handler you should use                                                |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Miscellaneous**                                                         |                                                                             |
-| Get a URL you can use to access Container JFR's WebSocket command channel | [`ClientUrlGetHandler`](#ClientUrlGetHandler)                               |
-| Scan for and get a list of target JVMs visible to Container JFR           | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
+| Get a URL you can use to access Cryostat's WebSocket command channel      | [`ClientUrlGetHandler`](#ClientUrlGetHandler)                               |
+| Scan for and get a list of target JVMs visible to Cryostat                | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
 | Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
 | Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
 | Test user authentication                                                  | [`AuthPostHandler`](#AuthPostHandler)                                       |
-| Get the URL of Container JFR's Grafana dashboard                          | [`GrafanaDashboardUrlGetHandler`](#GrafanaDashboardUrlGetHandler)           |
-| Get the URL of Container JFR's Grafana datasource                         | [`GrafanaDatasourceUrlGetHandler`](#GrafanaDatasourceUrlGetHandler)         |
-| Check the status of Container JFR's Grafana datasource and dashboard      | [`HealthGetHandler`](#HealthGetHandler)                                     |
+| Get the URL of Cryostat's Grafana dashboard                               | [`GrafanaDashboardUrlGetHandler`](#GrafanaDashboardUrlGetHandler)           |
+| Get the URL of Cryostat's Grafana datasource                              | [`GrafanaDatasourceUrlGetHandler`](#GrafanaDatasourceUrlGetHandler)         |
+| Check the status of Cryostat's Grafana datasource and dashboard           | [`HealthGetHandler`](#HealthGetHandler)                                     |
 | **Events and event templates**                                            |                                                                             |
 | Get a list of event types that can be produced by a target JVM            | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                         |
 | Get a list of event templates known to a target JVM                       | [`TargetTemplatesGetHandler`](#TargetTemplatesGetHandler)                   |
 | Download a template from a target JVM                                     | [`TargetTemplateGetHandler`](#TargetTemplateGetHandler)                     |
-| Upload an event template to Container JFR                                 | [`TemplatesPostHandler`](#TemplatesPostHandler)                             |
-| Delete an event template that was uploaded to Container JFR               | [`TemplateDeleteHandler`](#TemplateDeleteHandler)                           |
+| Upload an event template to Cryostat                                      | [`TemplatesPostHandler`](#TemplatesPostHandler)                             |
+| Delete an event template that was uploaded to Cryostat                    | [`TemplateDeleteHandler`](#TemplateDeleteHandler)                           |
 | **Recordings in target JVMs**                                             |                                                                             |
 | Get a list of recordings in a target JVM                                  | [`TargetRecordingsGetHandler`](#TargetRecordingsGetHandler)                 |
 | Get the default recording options of a target JVM                         | [`TargetRecordingOptionsGetHandler`](#TargetRecordingOptionsGetHandler)     |
@@ -62,7 +62,7 @@
     regardless of the existence or contents of any
     `Authorization` header.
     For more details, see
-    [`README.md`](https://github.com/rh-jmc-team/container-jfr#user-authentication--authorization)).
+    [`README.md`](https://github.com/cryostatio/cryostat#user-authentication--authorization)).
 
     ###### response
     `200` - No body. Getting this response means that the header is valid
@@ -85,7 +85,7 @@
 * #### `ClientUrlGetHandler`
 
     ###### synopsis
-    Returns a URL that a client can connect to, to access Container JFR's
+    Returns a URL that a client can connect to, to access Cryostat's
     WebSocket command channel (see [COMMANDS.md](COMMANDS.md)).
 
     ###### request
@@ -107,7 +107,7 @@
 * #### `GrafanaDashboardUrlGetHandler`
 
     ###### synopsis
-    Returns the URL of the Grafana dashboard that Container JFR
+    Returns the URL of the Grafana dashboard that Cryostat
     is configured with (determined by the environment variable
     `GRAFANA_DASHBOARD_URL`).
 
@@ -117,7 +117,7 @@
     ###### response
     `200` - The body is `{"grafanaDashboardUrl":"$URL"}`.
 
-    `500` - Container JFR is not configured with a Grafana dashboard.
+    `500` - Cryostat is not configured with a Grafana dashboard.
     Or there was an unexpected error. The body is an error message.
 
     ###### example
@@ -130,7 +130,7 @@
 * #### `GrafanaDatasourceUrlGetHandler`
 
     ###### synopsis
-    Returns the URL of the Grafana datasource that Container JFR
+    Returns the URL of the Grafana datasource that Cryostat
     is configured with (determined by the environment variable
     `GRAFANA_DATASOURCE_URL`).
 
@@ -140,7 +140,7 @@
     ###### response
     `200` - The body is `{"grafanaDatasourceUrl":"$URL"}`
 
-    `500` - Container JFR is not configured with a Grafana datasource.
+    `500` - Cryostat is not configured with a Grafana datasource.
     Or there was an unexpected error. The body is an error message.
 
     ###### example
@@ -154,8 +154,8 @@
 
     ###### synopsis
     Returns whether or not the Grafana datasource and Grafana dashboard
-    that Container JFR is configured with are running properly.
-    Can also be used to see if Container JFR itself is running properly,
+    that Cryostat is configured with are running properly.
+    Can also be used to see if Cryostat itself is running properly,
     by checking for a valid response.
 
     ###### request
@@ -165,11 +165,11 @@
     `200` - The body is
     `{"datasourceAvailable":$DATASOURCE_AVAILABLE,"dashboardAvailable":$DASHBOARD_AVAILABLE}`.
 
-    `$DATASOURCE_AVAILABLE` is `true` if  Container JFR is configured with a
+    `$DATASOURCE_AVAILABLE` is `true` if  Cryostat is configured with a
     Grafana datasource and that datasource responds to a `GET` request
     with a `200`, and it is `false` otherwise.
 
-    `$DASHBOARD_AVAILABLE` is `true` if  Container JFR is configured with a
+    `$DASHBOARD_AVAILABLE` is `true` if  Cryostat is configured with a
     Grafana dashboard and that dashboard responds to a `GET` request
     with a `200`, and it is `false` otherwise.
 
@@ -185,14 +185,14 @@
 * #### `StaticAssetsGetHandler`
 
     ###### synopsis
-    Returns a static asset of the Container JFR web client.
+    Returns a static asset of the Cryostat web client.
 
     ###### request
     `GET /*`
 
     The path should be the directory path of the desired asset,
     assuming a root of
-    `target/assets/app/resources/com/redhat/rhjmc/containerjfr/net/web/`.
+    `target/assets/app/resources/io/cryostat/net/web/`.
 
     ###### response
 
@@ -235,7 +235,7 @@
     ###### example
     ```
     $ curl localhost:8181/api/v1/targets
-    [{"connectUrl":"service:jmx:rmi:///jndi/rmi://container-jfr:9091/jmxrmi","alias":"com.redhat.rhjmc.containerjfr.ContainerJfr"}]
+    [{"connectUrl":"service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi","alias":"io.cryostat.Cryostat"}]
     ```
 
 
@@ -249,15 +249,14 @@
     `GET /*`
 
     ###### response
-    `200` - The body is the Container JFR web client's
-    `index.html` HTML document.
+    `200` - The body is the Cryostat web client's `index.html` HTML document.
 
     `500` - There was an unexpected error. The body is an error message.
 
     ###### example
     ```
     $ curl localhost:8181/foo
-    <!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>ContainerJFR</title><meta id="appName" name="application-name" content="ContainerJFR"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" href="https://www.patternfly.org/components/patternfly/dist/img/favicon.ico"><base href="/"><link href="app.css" rel="stylesheet"></head><body><noscript>Enabling JavaScript is required to run this app.</noscript><div id="root"></div><script src="app.bundle.js"></script></body></html>
+    <!doctype html><html lang="en-US"><head><meta charset="utf-8"><title>Cryostat</title><meta id="appName" name="application-name" content="Cryostat"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" href="https://www.patternfly.org/components/patternfly/dist/img/favicon.ico"><base href="/"><link href="app.css" rel="stylesheet"></head><body><noscript>Enabling JavaScript is required to run this app.</noscript><div id="root"></div><script src="app.bundle.js"></script></body></html>
     ```
 
 
@@ -359,14 +358,14 @@
 * #### `RecordingsPostHandler`
 
     ###### synopsis
-    Uploads a recording from the client to Container JFR's archive.
+    Uploads a recording from the client to Cryostat's archive.
 
     ###### request
     `POST /api/v1/recordings`
 
     The recording should be uploaded in a form with the name `recording`.
     The filename of the recording must be in the following format, which is
-    the same format that Container JFR uses for recordings it saves itself
+    the same format that Cryostat uses for recordings it saves itself
     (all fields in brackets are optional):
     ```
     [$TARGET_NAME]_[$RECORDING_NAME]_[$DATE]T[$TIME]Z[.$COUNTER][.jfr]
@@ -413,7 +412,7 @@
 
     `500` - There was an unexpected error. The body is an error message.
 
-    `503` - `CONTAINER_JFR_ARCHIVE_PATH` is an invalid directory.
+    `503` - `CRYOSTAT_ARCHIVE_PATH` is an invalid directory.
     The body is an error message.
 
     ###### example
@@ -427,7 +426,7 @@
 
     ###### synopsis
     Uploads a recording that was saved to archive to
-    the Grafana datasource that Container JFR is configured with
+    the Grafana datasource that Cryostat is configured with
     (determined by the environment variable `GRAFANA_DATASOURCE_URL`).
 
     ###### request
@@ -437,7 +436,7 @@
     Should use percent-encoding.
 
     ###### response
-    `200` - The body is the body of the response that Container JFR got
+    `200` - The body is the body of the response that Cryostat got
     after sending the upload request to the Grafana datasource server.
 
     `401` - User authentication failed. The body is an error message.
@@ -452,10 +451,10 @@
     The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
-    `512` - Container JFR received an invalid response from the
+    `512` - Cryostat received an invalid response from the
     Grafana datasource after sending the upload request.
     The body is an error message.
 
@@ -532,7 +531,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -578,7 +577,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -620,7 +619,7 @@
     response. Or there was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -659,7 +658,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -714,7 +713,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -735,7 +734,7 @@
 
     Saves a recording in a target JVM to archive.
     The default directory used is `/flghtrecordings`, but the environment
-    variable `CONTAINER_JFR_ARCHIVE_PATH` can be used to specify a different
+    variable `CRYOSTAT_ARCHIVE_PATH` can be used to specify a different
     path.
 
     ###### request
@@ -770,7 +769,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     **STOP**
@@ -825,7 +824,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -896,7 +895,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -910,7 +909,7 @@
 
     ###### synopsis
     Uploads a recording of a target JVM to the Grafana datasource
-    that Container JFR is configured with
+    that Cryostat is configured with
     (determined by the environment variable `GRAFANA_DATASOURCE_URL`).
 
     ###### request
@@ -924,7 +923,7 @@
     Should use percent-encoding.
 
     ###### response
-    `200` - The body is the body from the response that Container JFR got
+    `200` - The body is the body from the response that Cryostat got
     after sending the upload request to the Grafana datasource.
 
     `401` - User authentication failed. The body is an error message.
@@ -944,10 +943,10 @@
     The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
-    `512` - Container JFR received an invalid response from the
+    `512` - Cryostat received an invalid response from the
     Grafana datasource after sending the upload request.
     The body is an error message.
 
@@ -995,7 +994,7 @@
     an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -1037,7 +1036,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -1080,7 +1079,7 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -1123,21 +1122,21 @@
     `500` - There was an unexpected error. The body is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
     ```
     $ curl localhost:8181/api/v1/targets/localhost/templates
-    [{"name":"Profiling","description":"Low overhead configuration for profiling, typically around 2 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"Continuous","description":"Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"ALL","description":"Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing ContainerJFR's own capabilities.","provider":"ContainerJFR","type":"TARGET"}]
+    [{"name":"Profiling","description":"Low overhead configuration for profiling, typically around 2 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"Continuous","description":"Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead.","provider":"Oracle","type":"TARGET"},{"name":"ALL","description":"Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing Cryostat's own capabilities.","provider":"Cryostat","type":"TARGET"}]
     ```
 
 
 * #### `TemplateDeleteHandler`
 
     ###### synopsis
-    Deletes an event template that was uploaded to Container JFR and is stored
-    in `CONTAINER_JFR_TEMPLATE_PATH`.
+    Deletes an event template that was uploaded to Cryostat and is stored
+    in `CRYOSTAT_TEMPLATE_PATH`.
 
     ###### request
     `DELETE /api/v1/templates/:templateName`
@@ -1155,7 +1154,7 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - `CONTAINER_JFR_TEMPLATE_PATH` is not set,
+    `500` - `CRYOSTAT_TEMPLATE_PATH` is not set,
     or it is set to an invalid path, or there was an unexpected error.
     The body is an error message.
 
@@ -1168,9 +1167,9 @@
 * #### `TemplatesPostHandler`
 
     ###### synopsis
-    Uploads an event template and makes it available for use by Container JFR.
+    Uploads an event template and makes it available for use by Cryostat.
     The template is saved to the path specified by
-    `CONTAINER_JFR_TEMPLATE_PATH`.
+    `CRYOSTAT_TEMPLATE_PATH`.
 
     ###### request
     `POST /api/v1/templates`
@@ -1187,7 +1186,7 @@
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
 
-    `500` - `CONTAINER_JFR_TEMPLATE_PATH` is not set,
+    `500` - `CRYOSTAT_TEMPLATE_PATH` is not set,
     or it is set to an invalid path, or there was an unexpected error.
     The body is an error message.
 
@@ -1281,7 +1280,7 @@ The handler-specific descriptions below describe how each handler populates the
     `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -1322,7 +1321,7 @@ The handler-specific descriptions below describe how each handler populates the
     `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example
@@ -1363,7 +1362,7 @@ The handler-specific descriptions below describe how each handler populates the
     `500` - There was an unexpected error. The reason is an error message.
 
     `502` - JMX connection failed. This is generally because the target
-    application has SSL enabled over JMX, but ContainerJFR does not trust the
+    application has SSL enabled over JMX, but Cryostat does not trust the
     certificate.
 
     ###### example

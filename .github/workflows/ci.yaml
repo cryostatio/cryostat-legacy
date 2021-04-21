@@ -13,8 +13,8 @@ jobs:
     steps:
     - uses: actions/checkout@v2
       with:
-        repository: rh-jmc-team/container-jfr-core
-        ref: v2.2.2 # FIXME this needs to be synced with pom.xml core version
+        repository: cryostatio/cryostat-core
+        ref: v2.2.3 # FIXME this needs to be synced with pom.xml core version
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
@@ -22,7 +22,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: container-jfr-core
-        path: /home/runner/.m2/repository/com/redhat/rhjmc/containerjfr-core/
+        path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: save
@@ -44,7 +44,7 @@ jobs:
     - uses: actions/download-artifact@v2
       with:
         name: container-jfr-core
-        path: /home/runner/.m2/repository/com/redhat/rhjmc/containerjfr-core/
+        path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
     - run: git submodule init
     - run: git submodule update
     # FIXME integration tests require Podman, CI runner uses Docker. Ideally this should all just be "clean verify"
