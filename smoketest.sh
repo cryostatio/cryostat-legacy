@@ -44,7 +44,7 @@ function runJfrDatasource() {
     podman run \
         --name jfr-datasource \
         --pod cryostat \
-        --rm -d quay.io/cryostat/jfr-datasource:0.0.1
+        --rm -d quay.io/cryostat/jfr-datasource:1.0.0-BETA6
 }
 
 function configureGrafanaDatasource() {
