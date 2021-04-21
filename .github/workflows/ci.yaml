@@ -1,7 +1,6 @@
 name: CI build
 
 on:
-  # TODO run on v1 branch as well, but this requires a different -core version
   push:
     branches: [ main ]
   pull_request:
