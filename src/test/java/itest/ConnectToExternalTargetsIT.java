@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 The Cryostat Authors
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -104,7 +104,7 @@ class ConnectToExternalTargetsIT extends TestBase {
                                         "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
                                         Podman.POD_NAME),
                                 "alias",
-                                "com.redhat.rhjmc.containerjfr.ContainerJfr"),
+                                "io.cryostat.Cryostat"),
                         Map.of(
                                 "connectUrl",
                                 String.format(

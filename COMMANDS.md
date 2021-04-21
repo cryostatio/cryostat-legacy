@@ -4,7 +4,7 @@
 
 This document provides a brief listing of the commands implemented by this
 client, including a short synopsis of any expected arguments. Sample outputs
-reflect the human-friendly output produced when running `container-jfr` in
+reflect the human-friendly output produced when running `cryostat` in
 `tty` or `tcp` modes. In `ws` mode the output will be semantically similar but
 formatted as a JSON response.
 
@@ -26,15 +26,15 @@ formatted as a JSON response.
     ###### synopsis
     Scans for discoverable target JVMs. This may use various discovery
     mechanisms, including Kubernetes service discovery or JDP. For more details
-    see [this document](https://github.com/rh-jmc-team/container-jfr#monitoring-applications).
+    see [this document](https://github.com/cryostatio/cryostat#monitoring-applications).
 
 * #### `ping`
     ###### usage
     `ping`
     ###### synopsis
-    Used to test the connection between `container-jfr` and whatever end client
+    Used to test the connection between `cryostat` and whatever end client
     is in use by the user, whether that is ex. netcat over a TCP socket or
-    `container-jfr-web`. Outputs "pong" unconditionally, signifying the
+    `cryostat-web`. Outputs "pong" unconditionally, signifying the
     connection is open and working.
 
 * #### `exit`
@@ -143,13 +143,13 @@ formatted as a JSON response.
     `save targetId foo`
     ###### synopsis
     Saves the named recording in the specified target JVM to persistent storage
-    attached to the `container-jfr` container. The saved recording contains a
+    attached to the `cryostat` container. The saved recording contains a
     snapshot of its parent in-memory recording at the time of the save and is
     not updated (unless overwritten by a new save in the future). A saved
     recording is not tied to the lifecycle of the JVM which produced it - that
     is, the recording will remain available even if the target JVM dies.
 
-    For `container-jfr` to be able to save recordings to persistent storage,
+    For `cryostat` to be able to save recordings to persistent storage,
     there must be persistent storage available to the container. The storage is
     expected to be mounted at the path `/flightrecordings` within the
     container. The exact type of persistent storage is not important, so long
@@ -225,7 +225,7 @@ formatted as a JSON response.
     configurations of event types with preset values for their associated
     options. These may include templates defined and supported by the
     specified remote target JVM as well as customized templates known to
-    `container-jfr`.
+    `cryostat`.
     ###### see also
     * [`start`](#start)
     * [`dump`](#dump)
@@ -261,7 +261,7 @@ formatted as a JSON response.
     ###### usage
     `list-saved`
     ###### synopsis
-    Lists saved recordings in persistent storage attached to `container-jfr`.
+    Lists saved recordings in persistent storage attached to `cryostat`.
     #### see also
     [`list`](#list)
 

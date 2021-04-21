@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 The Cryostat Authors
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -62,7 +62,7 @@ public class GrafanaDatasourceIT extends TestBase {
     }
 
     // Disabled for now due to conflict with UploadRecordingIT;
-    // See https://github.com/rh-jmc-team/container-jfr/pull/229
+    // See https://github.com/cryostatio/cryostat/pull/229
     @Disabled
     @Test
     public void shouldFail() throws Exception {
