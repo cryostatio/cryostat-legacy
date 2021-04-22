@@ -1,0 +1,53 @@
+name: CI build
+
+on:
+  push:
+    branches: [ main, v1 ]
+  pull_request:
+    branches: [ main, v1]
+
+jobs:
+  build-deps:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        repository: cryostatio/cryostat-core
+        ref: v1.2.3 # FIXME this needs to be synced with pom.xml core version
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: restore
+    - run: mvn -B -U -DskipTests=true clean install
+    - uses: actions/upload-artifact@v2
+      with:
+        name: container-jfr-core
+        path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: save
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [build-deps]
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: true
+    - uses: actions/setup-java@v2
+      with:
+        java-version: '11'
+        distribution: 'adopt'
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: restore
+    - uses: actions/download-artifact@v2
+      with:
+        name: container-jfr-core
+        path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
+    - run: git submodule init
+    - run: git submodule update
+    # FIXME integration tests require Podman, CI runner uses Docker. Ideally this should all just be "clean verify"
+    - run: mvn -B -U clean compile test spotbugs:check spotless:check
+    - uses: skjolber/maven-cache-github-action@v1
+      with:
+        step: save

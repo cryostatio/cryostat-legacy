@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 The Cryostat Authors
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -79,7 +79,7 @@ public class ClientAssetsIT extends TestBase {
         MatcherAssert.assertThat(head.size(), Matchers.equalTo(1));
         Elements titles = head.first().getElementsByTag("title");
         MatcherAssert.assertThat(titles.size(), Matchers.equalTo(1));
-        MatcherAssert.assertThat(titles.first().text(), Matchers.equalTo("ContainerJFR"));
+        MatcherAssert.assertThat(titles.first().text(), Matchers.equalTo("Cryostat"));
     }
 
     @Test

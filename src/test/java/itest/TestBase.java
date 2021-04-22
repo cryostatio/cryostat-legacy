@@ -1,8 +1,8 @@
 /*-
  * #%L
- * Container JFR
+ * Cryostat
  * %%
- * Copyright (C) 2020 Red Hat, Inc.
+ * Copyright (C) 2020 - 2021 The Cryostat Authors
  * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
@@ -55,7 +55,7 @@ import java.util.concurrent.TimeoutException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 
-import com.redhat.rhjmc.containerjfr.util.HttpStatusCodeIdentifier;
+import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.buffer.Buffer;

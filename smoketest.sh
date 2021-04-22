@@ -3,27 +3,27 @@
 set -x
 set -e
 
-function runContainerJFR() {
+function runCryostat() {
     local DIR="$(dirname "$(readlink -f "$0")")"
     GRAFANA_DATASOURCE_URL="http://0.0.0.0:8080" \
         GRAFANA_DASHBOARD_URL="http://0.0.0.0:3000" \
-        CONTAINER_JFR_RJMX_USER=smoketest \
-        CONTAINER_JFR_RJMX_PASS=smoketest \
+        CRYOSTAT_RJMX_USER=smoketest \
+        CRYOSTAT_RJMX_PASS=smoketest \
         exec "$DIR/run.sh"
 }
 
 function runDemoApp() {
     podman run \
         --name vertx-fib-demo \
-        --pod container-jfr \
+        --pod cryostat \
         --rm -d quay.io/andrewazores/vertx-fib-demo:0.4.0
 }
 
 function runJfrDatasource() {
     podman run \
         --name jfr-datasource \
-        --pod container-jfr \
-        --rm -d quay.io/rh-jmc-team/jfr-datasource:0.0.1
+        --pod cryostat \
+        --rm -d quay.io/cryostat/jfr-datasource:1.0.0-BETA6
 }
 
 function configureGrafanaDatasource() {
@@ -53,7 +53,7 @@ function configureGrafanaDashboard() {
     local TEMP="$(mktemp -d)"
     pushd "$TEMP"
     echo '{"overwrite":false,"dashboard":' > dashboard.json
-    curl https://raw.githubusercontent.com/rh-jmc-team/jfr-datasource/master/dashboards/dashboard.json >> dashboard.json
+    curl https://raw.githubusercontent.com/cryostatio/jfr-datasource/master/dashboards/dashboard.json >> dashboard.json
     echo "}" >> dashboard.json
     sed -i 's/"id": 1,/"id": null,/' dashboard.json
     curl -X POST -H "Content-Type: application/json" http://admin:admin@0.0.0.0:3000/api/dashboards/db -T - < dashboard.json
@@ -63,7 +63,7 @@ function configureGrafanaDashboard() {
 function runGrafana() {
     podman run \
         --name grafana \
-        --pod container-jfr \
+        --pod cryostat \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
         --rm -d docker.io/grafana/grafana:6.4.4
@@ -74,16 +74,16 @@ function runGrafana() {
 function createPod() {
     podman pod create \
         --replace \
-        --hostname container-jfr \
-        --name container-jfr \
+        --hostname cryostat \
+        --name cryostat \
         --publish 9091:9091 \
         --publish 8181:8181 \
         --publish 8080:8080 \
         --publish 3000:3000 \
         --publish 8081:8081 \
         --publish 9093:9093
-    # 9091: ContainerJFR RJMX
-    # 8181: ContainerJFR web services
+    # 9091: Cryostat RJMX
+    # 8181: Cryostat web services
     # 8080: jfr-datasource
     # 3000: grafana
     # 8081: vertx-fib-demo
@@ -91,8 +91,8 @@ function createPod() {
 }
 
 function destroyPod() {
-    podman pod kill container-jfr
-    podman pod rm container-jfr
+    podman pod kill cryostat
+    podman pod rm cryostat
 }
 trap destroyPod EXIT
 
@@ -100,4 +100,4 @@ createPod
 runDemoApp
 runJfrDatasource
 runGrafana
-runContainerJFR
+runCryostat

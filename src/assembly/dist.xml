@@ -16,7 +16,7 @@
       <outputDirectory />
       <directory>${project.basedir}/src/main/extras</directory>
       <includes>
-        <include>${containerjfr.entrypoint}</include>
+        <include>${cryostat.entrypoint}</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>
