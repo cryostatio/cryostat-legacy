@@ -41,7 +41,7 @@
   <org.apache.maven.plugins.assembly.version>3.3.0</org.apache.maven.plugins.assembly.version>
   <com.github.eirslett.frontend.plugin.version>1.11.3</com.github.eirslett.frontend.plugin.version>
   <org.codehaus.mojo.exec.plugin.version>3.0.0</org.codehaus.mojo.exec.plugin.version>
-  <org.codehaus.mojo.license.plugin.version>2.0.0</org.codehaus.mojo.license.plugin.version>
+  <com.mycila.license.maven.plugin.version>4.0</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>6.1.5</org.owasp.dependency.check.version>
   <com.google.cloud.tools.jib.maven.plugin.version>3.0.0</com.google.cloud.tools.jib.maven.plugin.version>
 
@@ -489,30 +489,29 @@
       <version>${org.apache.maven.plugins.info.reports.version}</version>
     </plugin>
     <plugin>
-    <groupId>org.codehaus.mojo</groupId>
-    <artifactId>license-maven-plugin</artifactId>
-    <version>${org.codehaus.mojo.license.plugin.version}</version>
-    <configuration>
-      <licenseName>upl_v1</licenseName>
-      <licenseResolver>${project.baseUri}/src/license</licenseResolver>
-      <projectName>Cryostat</projectName>
-      <organizationName>The Cryostat Authors</organizationName>
-      <inceptionYear>2020</inceptionYear>
-      <addJavaLicenseAfterPackage>false</addJavaLicenseAfterPackage>
-      <roots>
-        <root>src/main/java</root>
-        <root>src/test/java</root>
-      </roots>
-    </configuration>
-    <executions>
-      <execution>
-        <id>update-license</id>
-        <goals>
-          <goal>update-file-header</goal>
-        </goals>
-        <phase>process-sources</phase>
-      </execution>
-    </executions>
+      <groupId>com.mycila</groupId>
+      <artifactId>license-maven-plugin</artifactId>
+      <version>${com.mycila.license.maven.plugin.version}</version>
+      <configuration>
+        <licenseSets>
+          <licenseSet>
+            <header>LICENSE</header>
+            <includes>
+              <include>src/main/**/*.java</include>
+              <include>src/test/**/*.java</include>
+            </includes>
+          </licenseSet>
+        </licenseSets>
+      </configuration>
+      <executions>
+        <execution>
+          <id>update-license</id>
+          <goals>
+            <goal>check</goal>
+          </goals>
+          <phase>process-sources</phase>
+        </execution>
+      </executions>
     </plugin>
   </plugins>
 </build>
