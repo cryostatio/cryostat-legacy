@@ -53,7 +53,7 @@ function configureGrafanaDashboard() {
     local TEMP="$(mktemp -d)"
     pushd "$TEMP"
     echo '{"overwrite":false,"dashboard":' > dashboard.json
-    curl https://raw.githubusercontent.com/cryostat/jfr-datasource/master/dashboards/dashboard.json >> dashboard.json
+    curl https://raw.githubusercontent.com/cryostatio/jfr-datasource/master/dashboards/dashboard.json >> dashboard.json
     echo "}" >> dashboard.json
     sed -i 's/"id": 1,/"id": null,/' dashboard.json
     curl -X POST -H "Content-Type: application/json" http://admin:admin@0.0.0.0:3000/api/dashboards/db -T - < dashboard.json
