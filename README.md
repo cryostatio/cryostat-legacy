@@ -51,13 +51,6 @@ To re-run integration tests without a rebuild, do
 `mvn exec:exec@create-pod exec:exec@start-container exec:exec@wait-for-container
 failsafe:integration-test exec:exec@stop-container exec:exec@destroy-pod`.
 
-The application OCI image is built on top of a custom base image, built in the
-`base-image` directory. To produce a new base image simply run
-`sh base-image/build.sh`. This will default to using `podman` to build, which
-can be overriden by setting the environment variable `BUILDER` to another
-OCI-compliant image builder. The tag and version of the base image can also be
-overriden using the `IMAGE` and `TAG` environment variables.
-
 An application OCI image can be built to your local `podman` image registry
 using `mvn package`. This will normally be a full-fledged image including built
 web-client assets. To skip building the web-client and not include its assets
