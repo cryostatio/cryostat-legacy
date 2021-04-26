@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Map;
 
 import javax.inject.Inject;
 
@@ -47,8 +48,10 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateException;
 import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
@@ -63,14 +66,18 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     private final LocalStorageTemplateService templateService;
     private final FileSystem fs;
     private final Logger logger;
+    private final NotificationFactory notificationFactory;
+    private static final String NOTIFICATION_CATEGORY = "TemplateUploaded";
 
     @Inject
     TemplatesPostHandler(
             AuthManager auth,
             LocalStorageTemplateService templateService,
             FileSystem fs,
+            NotificationFactory notificationFactory,
             Logger logger) {
         super(auth);
+        this.notificationFactory = notificationFactory;
         this.templateService = templateService;
         this.fs = fs;
         this.logger = logger;
@@ -106,6 +113,13 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                         logger.info("Received unexpected file upload named {}", u.name());
                         continue;
                     }
+                    notificationFactory
+                            .createBuilder()
+                            .metaCategory(NOTIFICATION_CATEGORY)
+                            .metaType(HttpMimeType.JSON)
+                            .message(Map.of("template", u.uploadedFileName()))
+                            .build()
+                            .send();
                     templateService.addTemplate(is);
                 } finally {
                     fs.deleteIfExists(path);
