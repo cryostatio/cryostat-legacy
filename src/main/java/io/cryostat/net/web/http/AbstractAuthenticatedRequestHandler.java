@@ -45,6 +45,8 @@ import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import javax.security.sasl.SaslException;
+
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.core.net.Credentials;
@@ -83,7 +85,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             throw e;
         } catch (ConnectionException e) {
             Throwable cause = e.getCause();
-            if (cause instanceof SecurityException) {
+            if (cause instanceof SecurityException || cause instanceof SaslException) {
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                 throw new HttpStatusException(427, "JMX Authentication Failure", e);
             }

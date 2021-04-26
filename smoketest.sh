@@ -39,6 +39,8 @@ function runDemoApps() {
         --pod cryostat \
         --rm -d quay.io/andrewazores/quarkus-test:0.0.2
 
+    # copy a jboss-client.jar into /clientlib first
+    # manual entry URL: service:jmx:remote+http://localhost:9990
     podman run \
         --name wildfly \
         --pod cryostat \
@@ -96,7 +98,10 @@ function createPod() {
         --publish 9094:9094 \
         --publish 9095:9095 \
         --publish 9096:9096 \
-        --publish 9999:9999
+        --publish 9999:9999 \
+        --publish 8082:8082 \
+        --publish 9990:9990 \
+        --publish 9991:9991
     # 9091: Cryostat RJMX
     # 8181: Cryostat web services
     # 8080: jfr-datasource
@@ -107,6 +112,9 @@ function createPod() {
     # 9095: vertx-fib-demo-3 RJMX
     # 9096: quarkus-test RJMX
     # 9999: quarkus-test HTTP
+    # 8082: Wildfly HTTP
+    # 9990: Wildfly Admin Console
+    # 9990: Wildfly RJMX
 }
 
 function destroyPod() {
