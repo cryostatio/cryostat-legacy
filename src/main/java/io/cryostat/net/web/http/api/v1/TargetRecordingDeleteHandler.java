@@ -37,17 +37,20 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.Map;
 import java.util.Optional;
 
 import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
@@ -58,13 +61,17 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager targetConnectionManager;
     private final ReportService reportService;
+    private final NotificationFactory notificationFactory;
+    private static final String NOTIFICATION_CATEGORY = "RecordingDeleted";
 
     @Inject
     TargetRecordingDeleteHandler(
             AuthManager auth,
             TargetConnectionManager targetConnectionManager,
+            NotificationFactory notificationFactory,
             ReportService reportService) {
         super(auth);
+        this.notificationFactory = notificationFactory;
         this.targetConnectionManager = targetConnectionManager;
         this.reportService = reportService;
     }
@@ -103,6 +110,13 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
                     if (descriptor.isPresent()) {
                         connection.getService().close(descriptor.get());
                         reportService.delete(connectionDescriptor, recordingName);
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .metaType(HttpMimeType.JSON)
+                                .message(Map.of("recording", recordingName))
+                                .build()
+                                .send();
                         ctx.response().setStatusCode(200);
                         ctx.response().end();
                     } else {

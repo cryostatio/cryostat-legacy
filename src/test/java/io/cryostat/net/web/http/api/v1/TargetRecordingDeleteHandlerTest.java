@@ -37,7 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.Mockito.lenient;
+
 import java.util.List;
+import java.util.Map;
 
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
@@ -45,10 +48,13 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
@@ -75,6 +81,9 @@ class TargetRecordingDeleteHandlerTest {
     TargetRecordingDeleteHandler handler;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
 
     @Mock RoutingContext ctx;
@@ -85,8 +94,21 @@ class TargetRecordingDeleteHandlerTest {
 
     @BeforeEach
     void setup() {
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new TargetRecordingDeleteHandler(auth, targetConnectionManager, reportService);
+                new TargetRecordingDeleteHandler(
+                        auth, targetConnectionManager, notificationFactory, reportService);
     }
 
     @Test
@@ -165,6 +187,39 @@ class TargetRecordingDeleteHandlerTest {
                 Assertions.assertThrows(
                         HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+    }
+
+    @Test
+    void shouldFireNotificationWhenDeletingRecording() throws Exception {
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = createDescriptor("someRecording");
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+        handler.handleAuthenticated(ctx);
+        Mockito.verify(resp).setStatusCode(200);
+        Mockito.verify(resp).end();
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder).message(Map.of("recording", "someRecording"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     private static IRecordingDescriptor createDescriptor(String name)
