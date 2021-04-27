@@ -120,16 +120,6 @@ class TemplateDeleteHandlerTest {
         Mockito.verify(templateService).deleteTemplate("FooTemplate");
         Mockito.verify(ctx).response();
         Mockito.verify(resp).end();
-    }
-
-    @Test
-    void shouldSendNotificationOnDeletion() throws Exception {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-        Mockito.when(ctx.pathParam("templateName")).thenReturn("FooTemplate");
-        Mockito.when(ctx.response()).thenReturn(resp);
-
-        handler.handleAuthenticated(ctx);
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("TemplateDeleted");

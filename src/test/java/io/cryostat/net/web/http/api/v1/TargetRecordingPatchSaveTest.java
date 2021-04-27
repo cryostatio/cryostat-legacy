@@ -207,6 +207,14 @@ class TargetRecordingPatchSaveTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".jfr");
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", "some-Alias-2_someRecording_" + timestamp + ".jfr"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -438,66 +446,5 @@ class TargetRecordingPatchSaveTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".1.jfr");
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
-    }
-
-    @Test
-    void shouldFireNotification() throws Exception {
-        Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
-                .thenAnswer(
-                        new Answer<>() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(jfrConnection);
-                            }
-                        });
-        Mockito.when(jfrConnection.getService()).thenReturn(service);
-        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.when(descriptor.getName()).thenReturn(recordingName);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-
-        ServiceRef serviceRef1 =
-                new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
-                        "some.Alias.1");
-        ServiceRef serviceRef2 =
-                new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"),
-                        "some.Alias.2");
-        ServiceRef serviceRef3 =
-                new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),
-                        "some.Alias.3");
-
-        Mockito.when(platformClient.listDiscoverableServices())
-                .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
-        Mockito.when(jfrConnection.getJMXURL())
-                .thenReturn(
-                        (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-
-        Instant now = Instant.now();
-        Mockito.when(clock.now()).thenReturn(now);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
-        InputStream stream = Mockito.mock(InputStream.class);
-        Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
-        Path destination = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
-
-        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", "some-Alias-2_someRecording_" + timestamp + ".jfr"));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
     }
 }

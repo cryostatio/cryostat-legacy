@@ -53,6 +53,7 @@ import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -81,6 +82,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Path savedRecordingsPath;
     private final Gson gson;
     private final Logger logger;
+    private final NotificationFactory notificationFactory;
+    private static final String NOTIFICATION_CATEGORY = "RecordingArchived";
 
     @Inject
     RecordingsPostHandler(
@@ -89,13 +92,15 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
-            Logger logger) {
+            Logger logger,
+            NotificationFactory notificationFactory) {
         super(auth);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
         this.gson = gson;
         this.logger = logger;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -191,6 +196,14 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                             .end(gson.toJson(Map.of("name", res2.result())));
 
                                     logger.info("Recording saved as {}", res2.result());
+
+                                    notificationFactory
+                                            .createBuilder()
+                                            .metaCategory(NOTIFICATION_CATEGORY)
+                                            .metaType(HttpMimeType.JSON)
+                                            .message(Map.of("recording", res2.result()))
+                                            .build()
+                                            .send();
                                 }));
     }
 

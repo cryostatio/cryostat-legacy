@@ -166,29 +166,7 @@ class RecordingDeleteHandlerTest {
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
 
         Mockito.verify(reportService).delete(recordingName);
-    }
 
-    @Test
-    void shouldFireNotificationWhenDeletingRecording() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        String recordingName = "someRecording";
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(recordingName));
-
-        Path path = Mockito.mock(Path.class);
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(path);
-        Mockito.when(fs.exists(path)).thenReturn(true);
-
-        Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-
-        handler.handle(ctx);
-
-        Mockito.verify(fs).deleteIfExists(path);
-        Mockito.verify(reportService).delete(recordingName);
-        Mockito.verify(resp).setStatusCode(200);
-        Mockito.verify(resp).end();
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);

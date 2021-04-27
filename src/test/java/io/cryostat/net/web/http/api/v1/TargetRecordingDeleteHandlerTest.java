@@ -160,6 +160,13 @@ class TargetRecordingDeleteHandlerTest {
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
         inOrder.verify(resp).end();
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder).message(Map.of("recording", "someRecording"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -187,39 +194,6 @@ class TargetRecordingDeleteHandlerTest {
                 Assertions.assertThrows(
                         HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-    }
-
-    @Test
-    void shouldFireNotificationWhenDeletingRecording() throws Exception {
-        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
-        Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenAnswer(
-                        new Answer() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(connection);
-                            }
-                        });
-
-        Mockito.when(connection.getService()).thenReturn(service);
-        IRecordingDescriptor descriptor = createDescriptor("someRecording");
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        handler.handleAuthenticated(ctx);
-        Mockito.verify(resp).setStatusCode(200);
-        Mockito.verify(resp).end();
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", "someRecording"));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
     }
 
     private static IRecordingDescriptor createDescriptor(String name)
