@@ -44,6 +44,7 @@ import javax.inject.Named;
 import io.cryostat.MainModule;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.platform.PlatformClient;
@@ -102,9 +103,15 @@ public abstract class HttpApiV1Module {
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
             Clock clock,
-            PlatformClient platformClient) {
+            PlatformClient platformClient,
+            NotificationFactory notificationFactory) {
         return new TargetRecordingPatchSave(
-                fs, recordingsPath, targetConnectionManager, clock, platformClient);
+                fs,
+                recordingsPath,
+                targetConnectionManager,
+                clock,
+                platformClient,
+                notificationFactory);
     }
 
     @Provides

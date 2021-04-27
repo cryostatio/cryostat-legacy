@@ -37,11 +37,14 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.Mockito.lenient;
+
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -51,8 +54,11 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
@@ -81,6 +87,9 @@ class TargetRecordingPatchSaveTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
@@ -94,8 +103,25 @@ class TargetRecordingPatchSaveTest {
     void setup() {
         this.patchSave =
                 new TargetRecordingPatchSave(
-                        fs, recordingsPath, targetConnectionManager, clock, platformClient);
+                        fs,
+                        recordingsPath,
+                        targetConnectionManager,
+                        clock,
+                        platformClient,
+                        notificationFactory);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
     }
 
     @Test
@@ -412,5 +438,66 @@ class TargetRecordingPatchSaveTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".1.jfr");
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+    }
+
+    @Test
+    void shouldFireNotification() throws Exception {
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(),
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(jfrConnection);
+                            }
+                        });
+        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                        "some.Alias.1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"),
+                        "some.Alias.2");
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),
+                        "some.Alias.3");
+
+        Mockito.when(platformClient.listDiscoverableServices())
+                .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
+        Mockito.when(jfrConnection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
+
+        Instant now = Instant.now();
+        Mockito.when(clock.now()).thenReturn(now);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        InputStream stream = Mockito.mock(InputStream.class);
+        Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
+        Path destination = Mockito.mock(Path.class);
+        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+
+        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", "some-Alias-2_someRecording_" + timestamp + ".jfr"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 }

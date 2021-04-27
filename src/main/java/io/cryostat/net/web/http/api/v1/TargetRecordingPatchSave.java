@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.inject.Inject;
@@ -52,8 +53,10 @@ import io.cryostat.MainModule;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 
 import io.vertx.ext.web.RoutingContext;
@@ -66,6 +69,8 @@ class TargetRecordingPatchSave {
     private final TargetConnectionManager targetConnectionManager;
     private final Clock clock;
     private final PlatformClient platformClient;
+    private final NotificationFactory notificationFactory;
+    private static final String NOTIFICATION_CATEGORY = "RecordingArchived";
 
     @Inject
     TargetRecordingPatchSave(
@@ -73,12 +78,14 @@ class TargetRecordingPatchSave {
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
             Clock clock,
-            PlatformClient platformClient) {
+            PlatformClient platformClient,
+            NotificationFactory notificationFactory) {
         this.fs = fs;
         this.recordingsPath = recordingsPath;
         this.targetConnectionManager = targetConnectionManager;
         this.clock = clock;
         this.platformClient = platformClient;
+        this.notificationFactory = notificationFactory;
     }
 
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
@@ -108,6 +115,13 @@ class TargetRecordingPatchSave {
                         });
         ctx.response().setStatusCode(200);
         ctx.response().end(saveName);
+        notificationFactory
+                .createBuilder()
+                .metaCategory(NOTIFICATION_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of("recording", saveName))
+                .build()
+                .send();
     }
 
     private String saveRecording(JFRConnection connection, IRecordingDescriptor descriptor)
