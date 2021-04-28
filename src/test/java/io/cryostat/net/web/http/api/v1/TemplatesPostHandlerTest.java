@@ -37,16 +37,22 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.Mockito.lenient;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Map;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -71,10 +77,26 @@ class TemplatesPostHandlerTest {
     @Mock LocalStorageTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
 
     @BeforeEach
     void setup() {
-        this.handler = new TemplatesPostHandler(auth, templateService, fs, logger);
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
+        this.handler =
+                new TemplatesPostHandler(auth, templateService, fs, notificationFactory, logger);
     }
 
     @Test
@@ -162,5 +184,42 @@ class TemplatesPostHandlerTest {
         Mockito.verify(fs).deleteIfExists(uploadPath2);
         Mockito.verify(ctx).response();
         Mockito.verify(resp).end();
+    }
+
+    @Test
+    void shouldSendNotifcationOnTemplateDeletion() throws Exception {
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+
+        FileUpload upload1 = Mockito.mock(FileUpload.class);
+        Mockito.when(upload1.name()).thenReturn("template");
+        Mockito.when(upload1.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+
+        FileUpload upload2 = Mockito.mock(FileUpload.class);
+        Mockito.when(upload2.name()).thenReturn("unused");
+        Mockito.when(upload2.uploadedFileName()).thenReturn("/file-uploads/wxyz-9999");
+
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload1, upload2));
+
+        Path uploadPath1 = Mockito.mock(Path.class);
+        Path uploadPath2 = Mockito.mock(Path.class);
+        Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath1);
+        Mockito.when(fs.pathOf("/file-uploads/wxyz-9999")).thenReturn(uploadPath2);
+
+        InputStream stream1 = Mockito.mock(InputStream.class);
+        InputStream stream2 = Mockito.mock(InputStream.class);
+        Mockito.when(fs.newInputStream(uploadPath1)).thenReturn(stream1);
+        Mockito.when(fs.newInputStream(uploadPath2)).thenReturn(stream2);
+
+        handler.handleAuthenticated(ctx);
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("TemplateUploaded");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder).message(Map.of("template", "/file-uploads/abcd-1234"));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 }

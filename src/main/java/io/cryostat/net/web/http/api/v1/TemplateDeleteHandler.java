@@ -37,12 +37,16 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.Map;
+
 import javax.inject.Inject;
 
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateException;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
@@ -52,11 +56,17 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
     private final LocalStorageTemplateService templateService;
+    private final NotificationFactory notificationFactory;
+    private static final String NOTIFICATION_CATEGORY = "TemplateDeleted";
 
     @Inject
-    TemplateDeleteHandler(AuthManager auth, LocalStorageTemplateService templateService) {
+    TemplateDeleteHandler(
+            AuthManager auth,
+            LocalStorageTemplateService templateService,
+            NotificationFactory notificationFactory) {
         super(auth);
         this.templateService = templateService;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -85,6 +95,13 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
         try {
             this.templateService.deleteTemplate(templateName);
             ctx.response().end();
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("template", templateName))
+                    .build()
+                    .send();
         } catch (InvalidEventTemplateException iete) {
             throw new HttpStatusException(400, iete.getMessage(), iete);
         }

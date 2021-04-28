@@ -39,15 +39,18 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
@@ -59,17 +62,21 @@ class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
     private final ReportService reportService;
     private final FileSystem fs;
     private final Path savedRecordingsPath;
+    private final NotificationFactory notificationFactory;
+    private static final String NOTIFICATION_CATEGORY = "RecordingDeleted";
 
     @Inject
     RecordingDeleteHandler(
             AuthManager auth,
             ReportService reportService,
             FileSystem fs,
+            NotificationFactory notificationFactory,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
         super(auth);
         this.reportService = reportService;
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -106,6 +113,13 @@ class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
                                     throw new HttpStatusException(404, recordingName);
                                 }
                                 fs.deleteIfExists(path);
+                                notificationFactory
+                                        .createBuilder()
+                                        .metaCategory(NOTIFICATION_CATEGORY)
+                                        .metaType(HttpMimeType.JSON)
+                                        .message(Map.of("recording", recordingName))
+                                        .build()
+                                        .send();
                             } catch (IOException e) {
                                 throw new HttpStatusException(500, e.getMessage(), e);
                             } finally {

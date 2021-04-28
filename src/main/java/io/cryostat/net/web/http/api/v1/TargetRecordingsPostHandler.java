@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -60,6 +61,7 @@ import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
@@ -96,6 +98,8 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final Provider<WebServer> webServerProvider;
     private final Gson gson;
+    private final NotificationFactory notificationFactory;
+    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
 
     @Inject
     TargetRecordingsPostHandler(
@@ -104,13 +108,15 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             Provider<WebServer> webServerProvider,
-            Gson gson) {
+            Gson gson,
+            NotificationFactory notificationFactory) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.webServerProvider = webServerProvider;
         this.gson = gson;
+        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -187,7 +193,19 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                         .start(
                                                 recordingOptions,
                                                 enableEvents(connection, eventSpecifier));
-
+                                notificationFactory
+                                        .createBuilder()
+                                        .metaCategory(NOTIFICATION_CATEGORY)
+                                        .metaType(HttpMimeType.JSON)
+                                        .message(
+                                                Map.of(
+                                                        "recording",
+                                                        recordingName,
+                                                        "target",
+                                                        getConnectionDescriptorFromContext(ctx)
+                                                                .getTargetId()))
+                                        .build()
+                                        .send();
                                 return getDescriptorByName(connection, recordingName)
                                         .map(
                                                 d -> {

@@ -37,11 +37,14 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.Mockito.lenient;
+
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -51,8 +54,11 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
@@ -81,6 +87,9 @@ class TargetRecordingPatchSaveTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
@@ -94,8 +103,25 @@ class TargetRecordingPatchSaveTest {
     void setup() {
         this.patchSave =
                 new TargetRecordingPatchSave(
-                        fs, recordingsPath, targetConnectionManager, clock, platformClient);
+                        fs,
+                        recordingsPath,
+                        targetConnectionManager,
+                        clock,
+                        platformClient,
+                        notificationFactory);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
     }
 
     @Test
@@ -181,6 +207,19 @@ class TargetRecordingPatchSaveTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".jfr");
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "recording",
+                                "some-Alias-2_someRecording_" + timestamp + ".jfr",
+                                "target",
+                                targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test

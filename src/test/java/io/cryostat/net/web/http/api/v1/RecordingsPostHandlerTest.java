@@ -38,18 +38,20 @@
 package io.cryostat.net.web.http.api.v1;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.lenient;
 
 import java.nio.file.Path;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -83,9 +85,24 @@ class RecordingsPostHandlerTest {
     @Mock FileSystem cryoFs;
     @Mock Path recordingsPath;
     @Mock Logger logger;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
 
     @BeforeEach
     void setup() {
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
         when(httpServer.getVertx()).thenReturn(vertx);
         this.handler =
                 new RecordingsPostHandler(
@@ -94,7 +111,8 @@ class RecordingsPostHandlerTest {
                         cryoFs,
                         recordingsPath,
                         MainModule.provideGson(logger),
-                        logger);
+                        logger,
+                        notificationFactory);
     }
 
     @Test
@@ -233,5 +251,12 @@ class RecordingsPostHandlerTest {
         InOrder inOrder = Mockito.inOrder(rep);
         inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         inOrder.verify(rep).end("{\"name\":\"" + filename + "\"}");
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingSaved");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder).message(Map.of("recording", filename));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 }
