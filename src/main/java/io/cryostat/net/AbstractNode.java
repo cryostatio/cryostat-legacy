@@ -35,67 +35,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.net;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+public abstract class AbstractNode {
+    protected NodeType nodeType;
+    protected Map<String, String> labels;
 
-import io.cryostat.net.security.CertificateValidator;
-import io.cryostat.net.web.http.RequestHandler;
-
-import dagger.Binds;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
-
-@Module
-public abstract class HttpApiV2Module {
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostHandler(CertificatePostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingOptionsListGetHandler(
-            TargetRecordingOptionsListGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetEventsSearchGetHandler(TargetEventsSearchGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetEnvironmentGetHandler(TargetEnvironmentGetHandler handler);
-
-    @Provides
-    @Singleton
-    @Named("OutputStreamFunction")
-    static Function<File, FileOutputStream> provideOutputStreamFunction() throws RuntimeException {
-        return (File file) -> {
-            try {
-                return new FileOutputStream(file);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
+    protected AbstractNode(NodeType nodeType, Map<String, String> labels) {
+        this.nodeType = nodeType;
+        this.labels = labels;
     }
 
-    @Provides
-    static CertificateValidator provideCertificateValidator() {
-        return new CertificateValidator();
+    public enum NodeType {
+        NAMESPACE,
+        DEPLOYMENT,
+        POD,
+        CONTAINER;
     }
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostBodyHandler(CertificatePostBodyHandler handler);
 }

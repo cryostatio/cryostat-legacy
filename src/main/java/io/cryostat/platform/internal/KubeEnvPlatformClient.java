@@ -50,6 +50,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.net.EnvironmentNode;
 
 import dagger.Lazy;
 
@@ -77,6 +78,11 @@ class KubeEnvPlatformClient implements PlatformClient {
                 .map(this::envToServiceRef)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public EnvironmentNode getTargetEnvironment() {
+        return null;
     }
 
     private ServiceRef envToServiceRef(Map.Entry<String, String> entry) {

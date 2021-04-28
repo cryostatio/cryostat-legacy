@@ -39,8 +39,11 @@ package io.cryostat.platform.internal;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
-import java.util.List;
 import java.util.function.Consumer;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import io.cryostat.core.log.Logger;
@@ -48,6 +51,10 @@ import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.net.AbstractNode;
+import io.cryostat.net.AbstractNode.NodeType;
+import io.cryostat.net.EnvironmentNode;
+import io.cryostat.net.TargetNode;
 
 class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<JvmDiscoveryEvent> {
 
@@ -96,5 +103,23 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
                         })
                 .filter(s -> s != null)
                 .collect(Collectors.toList());
+    }
+
+@Override
+    public EnvironmentNode getTargetEnvironment() {
+        Map<String, String> rootLabels = new HashMap<String,String>();
+        rootLabels.put("name", "root");
+        EnvironmentNode root = new EnvironmentNode(NodeType.NAMESPACE, rootLabels);
+        List<ServiceRef> targets = listDiscoverableServices();
+        for (ServiceRef target : targets) {
+            Map<String, String> targetLabels = new HashMap<String,String>();
+            Optional<String> alias = target.getAlias();
+            if (alias.isPresent()) {
+                targetLabels.put("name", alias.get()); 
+            }
+            TargetNode targetNode = new TargetNode(AbstractNode.NodeType.CONTAINER, targetLabels, target);
+            root.addChildNode(targetNode);
+        }
+        return root;
     }
 }

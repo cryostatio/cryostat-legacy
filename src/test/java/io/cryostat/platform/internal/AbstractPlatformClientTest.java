@@ -48,6 +48,7 @@ import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.EnvironmentNode;
 import io.cryostat.platform.ServiceRef;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -115,6 +116,11 @@ class AbstractPlatformClientTest {
         @Override
         public List<ServiceRef> listDiscoverableServices() {
             return Collections.emptyList();
+        }
+
+        @Override
+        public EnvironmentNode getTargetEnvironment() {
+            return null;
         }
     }
 }

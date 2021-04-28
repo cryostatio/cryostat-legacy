@@ -37,6 +37,8 @@
  */
 package io.cryostat.platform;
 
+import io.cryostat.net.EnvironmentNode;
+
 import java.io.IOException;
 import java.util.List;
 
@@ -44,4 +46,6 @@ public interface PlatformClient {
     void start() throws IOException;
 
     List<ServiceRef> listDiscoverableServices();
+
+    EnvironmentNode getTargetEnvironment();
 }

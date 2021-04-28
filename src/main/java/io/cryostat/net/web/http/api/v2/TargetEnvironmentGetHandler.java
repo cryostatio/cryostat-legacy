@@ -37,65 +37,62 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.function.Function;
+import javax.inject.Inject;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import com.google.gson.Gson;
 
-import io.cryostat.net.security.CertificateValidator;
-import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.EnvironmentNode;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.vertx.core.http.HttpMethod;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
+class TargetEnvironmentGetHandler
+        extends AbstractV2RequestHandler<EnvironmentNode> {
 
-@Module
-public abstract class HttpApiV2Module {
+    private final PlatformClient platformClient;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
+    @Inject
+    TargetEnvironmentGetHandler(AuthManager auth, PlatformClient platformClient, Gson gson) {
+        super(auth, gson);
+        this.platformClient = platformClient;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostHandler(CertificatePostHandler handler);
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingOptionsListGetHandler(
-            TargetRecordingOptionsListGetHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetEventsSearchGetHandler(TargetEventsSearchGetHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetEnvironmentGetHandler(TargetEnvironmentGetHandler handler);
+    @Override
+    public String path() {
+        return basePath() + "targetEnvironment";
+    }
 
-    @Provides
-    @Singleton
-    @Named("OutputStreamFunction")
-    static Function<File, FileOutputStream> provideOutputStreamFunction() throws RuntimeException {
-        return (File file) -> {
-            try {
-                return new FileOutputStream(file);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public IntermediateResponse<EnvironmentNode> handle(RequestParameters params)
+            throws Exception {
+        return new IntermediateResponse<EnvironmentNode>().body(platformClient.getTargetEnvironment());
             }
-        };
-    }
 
-    @Provides
-    static CertificateValidator provideCertificateValidator() {
-        return new CertificateValidator();
     }
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostBodyHandler(CertificatePostBodyHandler handler);
-}
