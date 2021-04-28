@@ -212,7 +212,12 @@ class TargetRecordingPatchSaveTest {
         Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", "some-Alias-2_someRecording_" + timestamp + ".jfr"));
+                .message(
+                        Map.of(
+                                "recording",
+                                "some-Alias-2_someRecording_" + timestamp + ".jfr",
+                                "target",
+                                targetId));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }

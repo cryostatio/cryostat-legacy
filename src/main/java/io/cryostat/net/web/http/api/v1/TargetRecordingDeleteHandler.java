@@ -114,7 +114,12 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
                                 .createBuilder()
                                 .metaCategory(NOTIFICATION_CATEGORY)
                                 .metaType(HttpMimeType.JSON)
-                                .message(Map.of("recording", recordingName))
+                                .message(
+                                        Map.of(
+                                                "recording",
+                                                recordingName,
+                                                "target",
+                                                connectionDescriptor.getTargetId()))
                                 .build()
                                 .send();
                         ctx.response().setStatusCode(200);

@@ -83,7 +83,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Gson gson;
     private final Logger logger;
     private final NotificationFactory notificationFactory;
-    private static final String NOTIFICATION_CATEGORY = "RecordingArchived";
+    private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
 
     @Inject
     RecordingsPostHandler(

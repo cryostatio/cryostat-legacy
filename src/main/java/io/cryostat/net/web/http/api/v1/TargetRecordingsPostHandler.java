@@ -197,7 +197,13 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                         .createBuilder()
                                         .metaCategory(NOTIFICATION_CATEGORY)
                                         .metaType(HttpMimeType.JSON)
-                                        .message(Map.of("recording", recordingName))
+                                        .message(
+                                                Map.of(
+                                                        "recording",
+                                                        recordingName,
+                                                        "target",
+                                                        getConnectionDescriptorFromContext(ctx)
+                                                                .getTargetId()))
                                         .build()
                                         .send();
                                 return getDescriptorByName(connection, recordingName)

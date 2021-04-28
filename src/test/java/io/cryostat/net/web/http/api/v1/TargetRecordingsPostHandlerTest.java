@@ -248,7 +248,8 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingCreated");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", "someRecording"));
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", "someRecording", "target", "fooHost:9091"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }

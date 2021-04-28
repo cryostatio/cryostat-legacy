@@ -119,7 +119,8 @@ class TargetRecordingPatchSave {
                 .createBuilder()
                 .metaCategory(NOTIFICATION_CATEGORY)
                 .metaType(HttpMimeType.JSON)
-                .message(Map.of("recording", saveName))
+                .message(
+                        Map.of("recording", saveName, "target", connectionDescriptor.getTargetId()))
                 .build()
                 .send();
     }

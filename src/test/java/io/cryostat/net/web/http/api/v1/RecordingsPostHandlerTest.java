@@ -253,7 +253,7 @@ class RecordingsPostHandlerTest {
         inOrder.verify(rep).end("{\"name\":\"" + filename + "\"}");
 
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaCategory("RecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder).message(Map.of("recording", filename));
         Mockito.verify(notificationBuilder).build();

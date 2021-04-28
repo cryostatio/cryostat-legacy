@@ -113,10 +113,6 @@ class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
                                     throw new HttpStatusException(404, recordingName);
                                 }
                                 fs.deleteIfExists(path);
-                            } catch (IOException e) {
-                                throw new HttpStatusException(500, e.getMessage(), e);
-                            } finally {
-                                reportService.delete(recordingName);
                                 notificationFactory
                                         .createBuilder()
                                         .metaCategory(NOTIFICATION_CATEGORY)
@@ -124,6 +120,10 @@ class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
                                         .message(Map.of("recording", recordingName))
                                         .build()
                                         .send();
+                            } catch (IOException e) {
+                                throw new HttpStatusException(500, e.getMessage(), e);
+                            } finally {
+                                reportService.delete(recordingName);
                             }
                             ctx.response().setStatusCode(200);
                             ctx.response().end();

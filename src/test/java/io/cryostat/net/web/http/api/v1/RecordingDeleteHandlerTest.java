@@ -144,6 +144,13 @@ class RecordingDeleteHandlerTest {
         Mockito.verify(reportService).delete(recordingName);
         Mockito.verify(resp).setStatusCode(200);
         Mockito.verify(resp).end();
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -166,12 +173,5 @@ class RecordingDeleteHandlerTest {
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
 
         Mockito.verify(reportService).delete(recordingName);
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
     }
 }
