@@ -37,6 +37,8 @@
  */
 package io.cryostat;
 
+import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -75,6 +77,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
+    public static final String CONF_DIR = "CONF_DIR";
 
     @Provides
     @Singleton
@@ -118,8 +121,21 @@ public abstract class MainModule {
     @Singleton
     @Named(RECORDINGS_PATH)
     static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String ARCHIVE_PATH = env.getEnv("CRYOSTAT_ARCHIVE_PATH", "/flightrecordings");
-        logger.info("Local save path for flight recordings set as {}", ARCHIVE_PATH);
-        return Paths.get(ARCHIVE_PATH);
+        String archivePath = env.getEnv("CRYOSTAT_ARCHIVE_PATH", "/flightrecordings");
+        logger.info("Local save path for flight recordings set as {}", archivePath);
+        return Paths.get(archivePath);
+    }
+
+    @Provides
+    @Singleton
+    @Named(CONF_DIR)
+    static Path provideConfigurationPath(Environment env) {
+        Path path = Paths.get(env.getEnv(CONF_DIR)).resolve("conf");
+        try {
+            Files.createDirectory(path);
+            return path;
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 }

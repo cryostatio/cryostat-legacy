@@ -37,73 +37,47 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.util.function.Function;
+import javax.inject.Inject;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import io.cryostat.net.security.CertificateValidator;
-import io.cryostat.net.web.http.RequestHandler;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
+class TargetsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-@Module
-public abstract class HttpApiV2Module {
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetsPostHandler(TargetsPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetsPostBodyHandler(TargetsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetDeleteHandler(TargetDeleteHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostHandler(CertificatePostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingOptionsListGetHandler(
-            TargetRecordingOptionsListGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetEventsSearchGetHandler(TargetEventsSearchGetHandler handler);
-
-    @Provides
-    @Singleton
-    @Named("OutputStreamFunction")
-    static Function<File, FileOutputStream> provideOutputStreamFunction() throws RuntimeException {
-        return (File file) -> {
-            try {
-                return new FileOutputStream(file);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
+    @Inject
+    TargetsPostBodyHandler(AuthManager auth) {
+        super(auth);
     }
 
-    @Provides
-    static CertificateValidator provideCertificateValidator() {
-        return new CertificateValidator();
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostBodyHandler(CertificatePostBodyHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + TargetsPostHandler.PATH;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
+    }
 }
