@@ -38,6 +38,11 @@ function runDemoApps() {
         --name quarkus-test \
         --pod cryostat \
         --rm -d quay.io/andrewazores/quarkus-test:0.0.2
+
+    podman run \
+        --name wildfly \
+        --pod cryostat \
+        --rm -d quay.io/andrewazores/wildfly-demo:v0.0.1
 }
 
 function runJfrDatasource() {
