@@ -158,6 +158,20 @@ class TargetsPostHandlerTest {
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
     }
 
+    @ParameterizedTest
+    @NullAndEmptySource
+    void testRequestWithBadAlias(String alias) throws IOException {
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        RequestParameters params = Mockito.mock(RequestParameters.class);
+        Mockito.when(params.getFormAttributes()).thenReturn(attrs);
+
+        String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
+        attrs.set("connectUrl", connectUrl);
+        attrs.set("alias", alias);
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+    }
+
     @Test
     void testRequestWithDuplicateTarget() throws IOException {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
@@ -166,6 +180,7 @@ class TargetsPostHandlerTest {
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
 
         attrs.set("connectUrl", connectUrl);
+        attrs.set("alias", "TestTarget");
 
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(false);
 
@@ -181,6 +196,7 @@ class TargetsPostHandlerTest {
         String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
 
         attrs.set("connectUrl", connectUrl);
+        attrs.set("alias", "TestTarget");
 
         Mockito.when(customTargetPlatformClient.addTarget(Mockito.any()))
                 .thenThrow(IOException.class);

@@ -117,12 +117,16 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             if (StringUtils.isBlank(connectUrl)) {
                 throw new ApiException(400, "\"connectUrl\" form parameter must be provided");
             }
+            String alias = attrs.get("alias");
+            if (StringUtils.isBlank(alias)) {
+                throw new ApiException(400, "\"alias\" form parameter must be provided");
+            }
             JMXServiceURL jmxServiceURL = new JMXServiceURL(connectUrl);
             if (platformClient.listDiscoverableServices().stream()
                     .anyMatch(sr -> Objects.equals(jmxServiceURL, sr.getJMXServiceUrl()))) {
                 throw new ApiException(400, "Duplicate connectUrl");
             }
-            ServiceRef serviceRef = new ServiceRef(jmxServiceURL, attrs.get("alias"));
+            ServiceRef serviceRef = new ServiceRef(jmxServiceURL, alias);
             boolean v = customTargetPlatformClient.addTarget(serviceRef);
             if (!v) {
                 throw new ApiException(400, "Duplicate connectUrl");
