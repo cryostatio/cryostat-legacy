@@ -50,14 +50,14 @@ import java.util.TreeSet;
 import javax.inject.Named;
 import javax.management.remote.JMXServiceURL;
 
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
-
 import io.cryostat.MainModule;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
