@@ -18,7 +18,7 @@
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
   <baseImage>quay.io/cryostat/cryostat-base</baseImage>
-  <baseImageTag>0.1.0</baseImageTag>
+  <baseImageTag>@sha256:2e1f7da6f135bbbe1ec4a98dcf83c2f76e4f3de23d490c2b7cb3c635a89aad22</baseImageTag><!-- 0.1.1 -->
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
@@ -383,7 +383,7 @@
           <executable>${imageBuilder}</executable>
         </dockerClient>
         <from>
-          <image>${baseImage}:${baseImageTag}</image>
+          <image>${baseImage}${baseImageTag}</image>
         </from>
         <to>
           <image>${cryostat.imageStream}</image>
