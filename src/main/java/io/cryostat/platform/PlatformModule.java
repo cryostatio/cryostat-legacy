@@ -38,19 +38,26 @@
 package io.cryostat.platform;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.platform.internal.MergingPlatformClient;
 import io.cryostat.platform.internal.PlatformDetectionStrategy;
 import io.cryostat.platform.internal.PlatformStrategyModule;
 
+import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 
@@ -63,8 +70,29 @@ public abstract class PlatformModule {
     @Provides
     @Singleton
     static PlatformClient providePlatformClient(
-            PlatformDetectionStrategy<?> platformStrategy, Environment env, Logger logger) {
-        return platformStrategy.getPlatformClient();
+            PlatformDetectionStrategy<?> platformStrategy,
+            CustomTargetPlatformClient customTargetPlatformClient,
+            Logger logger) {
+        try {
+            PlatformClient client =
+                    new MergingPlatformClient(
+                            customTargetPlatformClient, platformStrategy.getPlatformClient());
+            client.start();
+            return client;
+        } catch (IOException ioe) {
+            logger.error(ioe);
+            throw new RuntimeException(ioe);
+        }
+    }
+
+    @Provides
+    @Singleton
+    static CustomTargetPlatformClient provideCustomTargetPlatformClient(
+            NotificationFactory notificationFactory,
+            @Named(MainModule.CONF_DIR) Path confDir,
+            FileSystem fs,
+            Gson gson) {
+        return new CustomTargetPlatformClient(notificationFactory, confDir, fs, gson);
     }
 
     @Provides
@@ -122,12 +150,6 @@ public abstract class PlatformModule {
                             .filter(PlatformDetectionStrategy::isAvailable)
                             .findFirst()
                             .orElseThrow();
-        }
-        try {
-            strat.getPlatformClient().start();
-        } catch (IOException ioe) {
-            logger.error(ioe);
-            throw new RuntimeException(ioe);
         }
         return strat;
     }

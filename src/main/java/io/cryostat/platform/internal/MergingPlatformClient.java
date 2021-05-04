@@ -35,75 +35,41 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v2;
+package io.cryostat.platform.internal;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.function.Function;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef;
 
-import io.cryostat.net.security.CertificateValidator;
-import io.cryostat.net.web.http.RequestHandler;
+public class MergingPlatformClient implements PlatformClient {
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.Provides;
-import dagger.multibindings.IntoSet;
+    private final List<PlatformClient> clients;
 
-@Module
-public abstract class HttpApiV2Module {
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetsPostHandler(TargetsPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetsPostBodyHandler(TargetsPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetDeleteHandler(TargetDeleteHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetSnapshotPostHandler(TargetSnapshotPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostHandler(CertificatePostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingOptionsListGetHandler(
-            TargetRecordingOptionsListGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetEventsSearchGetHandler(TargetEventsSearchGetHandler handler);
-
-    @Provides
-    @Singleton
-    @Named("OutputStreamFunction")
-    static Function<File, FileOutputStream> provideOutputStreamFunction() throws RuntimeException {
-        return (File file) -> {
-            try {
-                return new FileOutputStream(file);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
+    public MergingPlatformClient(List<PlatformClient> clients) {
+        this.clients = new ArrayList<>(clients);
     }
 
-    @Provides
-    static CertificateValidator provideCertificateValidator() {
-        return new CertificateValidator();
+    public MergingPlatformClient(PlatformClient... clients) {
+        this(Arrays.asList(clients));
     }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindCertificatePostBodyHandler(CertificatePostBodyHandler handler);
+    @Override
+    public void start() throws IOException {
+        for (PlatformClient client : clients) {
+            client.start();
+        }
+    }
+
+    @Override
+    public List<ServiceRef> listDiscoverableServices() {
+        return this.clients
+                .parallelStream()
+                .flatMap(client -> client.listDiscoverableServices().stream())
+                .collect(Collectors.toList());
+    }
 }

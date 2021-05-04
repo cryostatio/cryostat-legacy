@@ -114,6 +114,7 @@ class TargetEventsSearchGetHandlerTest {
                         Map.of("targetId", "foo:9091", "query", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
+                        MultiMap.caseInsensitiveMultiMap(),
                         Set.of());
 
         IntermediateResponse<List<SerializableEventTypeInfo>> result = handler.handle(params);
@@ -178,6 +179,7 @@ class TargetEventsSearchGetHandlerTest {
         RequestParameters params =
                 new RequestParameters(
                         Map.of("targetId", "foo:9091", "query", "foo"),
+                        MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
                         Set.of());

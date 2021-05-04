@@ -62,8 +62,12 @@ public class ApiException extends HttpStatusException {
         this(statusCode, null, reason, null);
     }
 
+    ApiException(int statusCode, Throwable cause) {
+        this(statusCode, null, cause.getMessage(), cause);
+    }
+
     ApiException(int statusCode) {
-        this(statusCode, null);
+        this(statusCode, (String) null);
     }
 
     public String getApiStatus() {
