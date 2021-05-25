@@ -158,6 +158,8 @@ fi
 export KEYSTORE_PATH
 export KEYSTORE_PASS
 export SSL_TRUSTSTORE_DIR
+
+set -x
 exec java \
     "${FLAGS[@]}" \
     -cp "$CLASSPATH" \
