@@ -92,7 +92,8 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             Throwable rootCause = ExceptionUtils.getRootCause(e);
             if (rootCause instanceof ConnectIOException) {
                 throw new HttpStatusException(502, "Target SSL Untrusted", e);
-            } else if (rootCause instanceof UnknownHostException) {
+            }
+            if (rootCause instanceof UnknownHostException) {
                 throw new HttpStatusException(404, "Target Not Found", e);
             }
             throw new HttpStatusException(500, e);
@@ -115,37 +116,34 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
                 ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
                 throw new HttpStatusException(
                         427, "Invalid " + JMX_AUTHORIZATION_HEADER + " format");
-            } else {
-                String t = m.group("type");
-                if (!"basic".equals(t.toLowerCase())) {
-                    ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                    throw new HttpStatusException(
-                            427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
-                } else {
-                    String c;
-                    try {
-                        c =
-                                new String(
-                                        Base64.getUrlDecoder().decode(m.group("credentials")),
-                                        StandardCharsets.UTF_8);
-                    } catch (IllegalArgumentException iae) {
-                        ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                        throw new HttpStatusException(
-                                427,
-                                JMX_AUTHORIZATION_HEADER
-                                        + " credentials do not appear to be Base64-encoded",
-                                iae);
-                    }
-                    String[] parts = c.split(":");
-                    if (parts.length != 2) {
-                        ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                        throw new HttpStatusException(
-                                427,
-                                "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
-                    }
-                    credentials = new Credentials(parts[0], parts[1]);
-                }
             }
+            String t = m.group("type");
+            if (!"basic".equals(t.toLowerCase())) {
+                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                throw new HttpStatusException(
+                        427, "Unacceptable " + JMX_AUTHORIZATION_HEADER + " type");
+            }
+            String c;
+            try {
+                c =
+                        new String(
+                                Base64.getUrlDecoder().decode(m.group("credentials")),
+                                StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException iae) {
+                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                throw new HttpStatusException(
+                        427,
+                        JMX_AUTHORIZATION_HEADER
+                                + " credentials do not appear to be Base64-encoded",
+                        iae);
+            }
+            String[] parts = c.split(":");
+            if (parts.length != 2) {
+                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+                throw new HttpStatusException(
+                        427, "Unrecognized " + JMX_AUTHORIZATION_HEADER + " credential format");
+            }
+            credentials = new Credentials(parts[0], parts[1]);
         }
         return new ConnectionDescriptor(targetId, credentials);
     }
