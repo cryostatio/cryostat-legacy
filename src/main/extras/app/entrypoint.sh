@@ -150,11 +150,18 @@ if [ -n "$CRYOSTAT_JUL_CONFIG" ]; then
     FLAGS+=("-Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG")
 fi
 
+CLASSPATH="/app/resources:/app/classes:/app/libs/*"
+if [ -n "CRYOSTAT_CLIENTLIB_PATH" ]; then
+    CLASSPATH="$CLASSPATH:$CRYOSTAT_CLIENTLIB_PATH/*"
+fi
+
 export KEYSTORE_PATH
 export KEYSTORE_PASS
 export SSL_TRUSTSTORE_DIR
+
+set -x
 exec java \
     "${FLAGS[@]}" \
-    -cp /app/resources:/app/classes:/app/libs/* \
+    -cp "$CLASSPATH" \
     io.cryostat.Cryostat \
     "$@"

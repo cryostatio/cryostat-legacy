@@ -60,6 +60,10 @@ if [ ! -d "$(dirname $0)/truststore" ]; then
     mkdir "$(dirname $0)/truststore"
 fi
 
+if [ ! -d "$(dirname $0)/clientlib" ]; then
+    mkdir "$(dirname $0)/clientlib"
+fi
+
 if ! podman pod exists cryostat; then
     podman pod create \
         --hostname cryostat \
@@ -75,6 +79,7 @@ podman run \
     --mount type=tmpfs,target=/templates \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
     -e CRYOSTAT_PLATFORM=$CRYOSTAT_PLATFORM \
     -e CRYOSTAT_DISABLE_SSL=$CRYOSTAT_DISABLE_SSL \
     -e CRYOSTAT_DISABLE_JMX_AUTH=$CRYOSTAT_DISABLE_JMX_AUTH \
@@ -91,6 +96,7 @@ podman run \
     -e CRYOSTAT_AUTH_MANAGER=$CRYOSTAT_AUTH_MANAGER \
     -e CRYOSTAT_ARCHIVE_PATH="/flightrecordings" \
     -e CRYOSTAT_TEMPLATE_PATH="/templates" \
+    -e CRYOSTAT_CLIENTLIB_PATH="/clientlib" \
     -e CRYOSTAT_REPORT_GENERATION_MAX_HEAP="$CRYOSTAT_REPORT_GENERATION_MAX_HEAP" \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
     -e GRAFANA_DASHBOARD_URL=$GRAFANA_DASHBOARD_URL \
