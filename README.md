@@ -39,10 +39,10 @@ required dependency, which is not currently published in an artefact repository
 and so must be built and installed into the Maven local repository.
 Instructions for doing so are available at that project's README.
 
+Submodules must be initialized via `git submodule init && git submodule update`.
+
 Once the `cryostat-core` local dependency is made available,
 `mvn compile` will build the project.
-
-Submodules must be initialized via `git submodule init && git submodule update`.
 
 Unit tests can be run with `mvn test`. Integration tests and additional quality
 tools can be run with `mvn verify`.
