@@ -18,7 +18,7 @@
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
   <baseImage>quay.io/cryostat/cryostat-base</baseImage>
-  <baseImageTag>@sha256:2e1f7da6f135bbbe1ec4a98dcf83c2f76e4f3de23d490c2b7cb3c635a89aad22</baseImageTag><!-- 0.1.1 -->
+  <baseImageTag>@sha256:233cb0897086bdb4ac74bd1d736c719ebebf660e2e7a6b5f25fc0b7e972d0a77</baseImageTag><!-- 0.2.0 -->
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
