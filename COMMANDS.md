@@ -86,23 +86,19 @@ formatted as a JSON response.
 
 * #### `start`
     ###### usage
-    `start targetId foo jdk.SocketRead:enabled=true,jdk.PhysicalMemory:period=10ms`
+    `start targetId foo template=Foo`
     ###### synopsis
     Starts a continuous recording in the target JVM with the given name
-    (`foo`), which will record events as configured in the events string.
+    (`foo`), which will record events as configured in the event template.
 
     The targetID is a `hostname:port` or `service:rmi:jmx://` JMX Service URL
     specifying the location of the remote target JVM to connect to.
 
-    The syntax of an individual event string is `eventID:option=value`.
-    The syntax of the overall events string is `event1,event2,event3`, for
-    N >= 1 events.
+    The event template (`template=Foo`) allows preset configurations of events 
+    and options to be enabled.
 
-    The event string may also be provided in the form `template=Foo`. This
-    format allows preset configurations of events and options to be enabled.
-
-    The eventID is the fully qualified event name. For information about the
-    events and options available, see `list-event-types` or `search-events`.
+    For information about the events and options available, see `list-event-types` 
+    or `search-events`.
     ###### see also
     * [`list-event-types`](#list-event-types)
     * [`search-events`](#search-events)
@@ -119,11 +115,11 @@ formatted as a JSON response.
 
 * #### `dump`
     ###### usage
-    `dump targetId foo 30 jdk.SocketRead:enabled=true`
+    `dump targetId foo 30 template=Foo`
     ###### synopsis
     Starts a recording in the specified target JVM with the given name (`foo`),
     with a fixed duration of the given number of seconds (`30`), and recording
-    events as configured in the events string.
+    events as configured in the event template.
     ###### see also
     [`start`](#start)
 
@@ -198,7 +194,6 @@ formatted as a JSON response.
     ###### synopsis
     Searches for event types that can be produced by the specified target JVM
     where the event name, category, label, etc. matches the given query (`foo`).
-    This is useful for preparing event options strings.
     ###### see also
     * [`start`](#start)
     * [`dump`](#dump)
@@ -210,7 +205,6 @@ formatted as a JSON response.
     `list-event-types targetId`
     ###### synopsis
     Lists event types that can be produced by the specified target JVM.
-    This is useful for preparing event options strings.
     ###### see also
     * [`start`](#start)
     * [`dump`](#dump)

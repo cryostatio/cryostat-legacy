@@ -89,8 +89,6 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
-    private static final Pattern EVENTS_PATTERN =
-            Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
 
     static final String PATH = "targets/:targetId/recordings";
     private final TargetConnectionManager targetConnectionManager;
@@ -255,50 +253,47 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     protected IConstrainedMap<EventOptionID> enableEvents(JFRConnection connection, String events)
             throws Exception {
-        if (TEMPLATE_PATTERN.matcher(events).matches()) {
-            Matcher m = TEMPLATE_PATTERN.matcher(events);
-            m.find();
-            String templateName = m.group(1);
-            String typeName = m.group(2);
-            if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
-                return enableAllEvents(connection);
-            }
-            if (typeName != null) {
-                return connection
-                        .getTemplateService()
-                        .getEvents(templateName, TemplateType.valueOf(typeName))
-                        .orElseThrow(
-                                () ->
-                                        new IllegalArgumentException(
-                                                String.format(
-                                                        "No template \"%s\" found with type %s",
-                                                        templateName, typeName)));
-            }
-            // if template type not specified, try to find a Custom template by that name. If none,
-            // fall back on finding a Target built-in template by the name. If not, throw an
-            // exception and bail out.
+        
+        Matcher m = TEMPLATE_PATTERN.matcher(events);
+        m.find();
+        String templateName = m.group(1);
+        String typeName = m.group(2);
+        if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
+            return enableAllEvents(connection);
+        }
+        if (typeName != null) {
             return connection
                     .getTemplateService()
-                    .getEvents(templateName, TemplateType.CUSTOM)
-                    .or(
-                            () -> {
-                                try {
-                                    return connection
-                                            .getTemplateService()
-                                            .getEvents(templateName, TemplateType.TARGET);
-                                } catch (Exception e) {
-                                    return Optional.empty();
-                                }
-                            })
+                    .getEvents(templateName, TemplateType.valueOf(typeName))
                     .orElseThrow(
                             () ->
                                     new IllegalArgumentException(
                                             String.format(
-                                                    "Invalid/unknown event template %s",
-                                                    templateName)));
+                                                    "No template \"%s\" found with type %s",
+                                                    templateName, typeName)));
         }
-
-        return enableSelectedEvents(connection, events);
+        // if template type not specified, try to find a Custom template by that name. If none,
+        // fall back on finding a Target built-in template by the name. If not, throw an
+        // exception and bail out.
+        return connection
+                .getTemplateService()
+                .getEvents(templateName, TemplateType.CUSTOM)
+                .or(
+                        () -> {
+                            try {
+                                return connection
+                                        .getTemplateService()
+                                        .getEvents(templateName, TemplateType.TARGET);
+                            } catch (Exception e) {
+                                return Optional.empty();
+                            }
+                        })
+                .orElseThrow(
+                        () ->
+                                new IllegalArgumentException(
+                                        String.format(
+                                                "Invalid/unknown event template %s",
+                                                templateName)));
     }
 
     protected IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
@@ -307,22 +302,6 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
             builder.addEvent(eventTypeInfo.getEventTypeID().getFullKey(), "enabled", "true");
-        }
-
-        return builder.build();
-    }
-
-    protected IConstrainedMap<EventOptionID> enableSelectedEvents(
-            JFRConnection connection, String events) throws Exception {
-        EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
-
-        Matcher matcher = EVENTS_PATTERN.matcher(events);
-        while (matcher.find()) {
-            String eventTypeId = matcher.group(1);
-            String option = matcher.group(2);
-            String value = matcher.group(3);
-
-            builder.addEvent(eventTypeId, option, value);
         }
 
         return builder.build();
