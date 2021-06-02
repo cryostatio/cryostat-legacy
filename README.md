@@ -200,6 +200,15 @@ and connection encryption:
 -Djavax.net.ssl.keyStorePassword=somePassword # set your SSL keystore password
 ```
 
+### JMX Connectors
+
+Cryostat supports end-user target applications using other JMX connectors than
+RMI (for example, WildFly `remote+http`) using "client library" configuration.
+The path pointed to by the environment variable `CRYOSTAT_CLIENTLIB_PATH` is
+appended to Cryostat's classpath. This path should be a directory within a
+volume mounted to the Cryostat container and containing library JARs (ex.
+`jboss-client.jar`) in a flat structure.
+
 ## EVENT TEMPLATES
 
 JDK Flight Recorder has event templates, which are preset definition of a set of
