@@ -253,7 +253,6 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     protected IConstrainedMap<EventOptionID> enableEvents(JFRConnection connection, String events)
             throws Exception {
-        
         Matcher m = TEMPLATE_PATTERN.matcher(events);
         m.find();
         String templateName = m.group(1);
