@@ -10,10 +10,15 @@ jobs:
   build-deps:
     runs-on: ubuntu-latest
     steps:
+    - id: get-core-version
+      # Query POM for core version and save as output parameter
+      run: |
+        CORE_VERSION="$(mvn help:evaluate -Dexpression=io.cryostat.core.version -q -DforceStdout)"
+        echo "::set-output name=core-version::$CORE_VERSION"
     - uses: actions/checkout@v2
       with:
         repository: cryostatio/cryostat-core
-        ref: v2.2.3 # FIXME this needs to be synced with pom.xml core version
+        ref: ${{ steps.get-core-version.outputs.core-version }}
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: restore
