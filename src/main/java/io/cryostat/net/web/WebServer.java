@@ -152,6 +152,10 @@ public class WebServer {
                                         ? exception.getPayload()
                                         : exception.getMessage();
 
+                        if(exception.getCause() != null) {
+                            payload += ": " + exception.getCause().getMessage();
+                        }
+
                         String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
                         if (accept.contains(HttpMimeType.JSON.mime())
                                 && accept.indexOf(HttpMimeType.JSON.mime())
