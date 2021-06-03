@@ -2,6 +2,7 @@
 
 [![CI build](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml/badge.svg)](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml)
 [![Quay Repository](https://quay.io/repository/cryostat/cryostat/status "Quay Repository")](https://quay.io/repository/cryostat/cryostat)
+[![Google Group : Cryostat Development](https://img.shields.io/badge/Google%20Group-Cryostat%20Development-blue.svg)](https://groups.google.com/g/cryostat-development)
 
 ## SEE ALSO
 
