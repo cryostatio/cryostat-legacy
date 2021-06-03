@@ -15,7 +15,7 @@ jobs:
       # Query POM for core version and save as output parameter
       run: |
         CORE_VERSION="$(mvn help:evaluate -Dexpression=io.cryostat.core.version -q -DforceStdout)"
-        echo "::set-output name=core-version::$CORE_VERSION"
+        echo "::set-output name=core-version::v$CORE_VERSION"
     outputs:
       core-version: ${{ steps.query-pom.outputs.core-version }}
 
