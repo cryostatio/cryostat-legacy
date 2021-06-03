@@ -69,6 +69,7 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import io.vertx.core.Vertx;
+import io.vertx.core.VertxOptions;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
 
@@ -155,7 +156,7 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static Vertx provideVertx() {
-        return Vertx.vertx();
+        return Vertx.vertx(new VertxOptions().setPreferNativeTransport(true));
     }
 
     @Provides

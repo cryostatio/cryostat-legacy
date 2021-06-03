@@ -122,6 +122,14 @@ public abstract class HttpApiV2Module {
     @IntoSet
     abstract RequestHandler bindTargetEventsGetHandler(TargetEventsGetHandler handler);
 
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindPodmanApiPostHandler(PodmanApiPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindPodmanApiPostBodyHandler(PodmanApiPostBodyHandler handler);
+
     @Provides
     @Singleton
     @Named("OutputStreamFunction")

@@ -59,6 +59,7 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
+import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
@@ -90,6 +91,11 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
 
     public abstract IntermediateResponse<T> handle(RequestParameters requestParams)
             throws Exception;
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2;
+    }
 
     @Override
     public final void handle(RoutingContext ctx) {

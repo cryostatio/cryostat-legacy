@@ -82,7 +82,10 @@ public class HttpServer extends AbstractVerticle {
                                         .setPort(netConf.getInternalWebServerPort())
                                         .addWebSocketSubProtocol("*")
                                         .setCompressionSupported(true)
-                                        .setLogActivity(true)));
+                                        .setLogActivity(true)
+                                        .setTcpFastOpen(true)
+                                        .setTcpNoDelay(true)
+                                        .setTcpQuickAck(true)));
 
         if (!sslConf.enabled()) {
             this.logger.warn("No available SSL certificates. Fallback to plain HTTP.");
