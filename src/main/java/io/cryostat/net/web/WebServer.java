@@ -152,7 +152,7 @@ public class WebServer {
                                         ? exception.getPayload()
                                         : exception.getMessage();
 
-                        if(exception.getCause() != null) {
+                        if (exception.getCause() != null) {
                             payload += ": " + exception.getCause().getMessage();
                         }
 
