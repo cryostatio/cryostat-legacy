@@ -74,6 +74,7 @@ import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
 
@@ -151,6 +152,11 @@ public class WebServer {
                                 exception.getPayload() != null
                                         ? exception.getPayload()
                                         : exception.getMessage();
+
+                        if (ExceptionUtils.hasCause(exception, HttpStatusException.class)) {
+                            payload +=
+                                    " caused by " + ExceptionUtils.getRootCauseMessage(exception);
+                        }
 
                         String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
                         if (accept.contains(HttpMimeType.JSON.mime())
