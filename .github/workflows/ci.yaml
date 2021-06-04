@@ -59,8 +59,7 @@ jobs:
         path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
     - run: git submodule init
     - run: git submodule update
-    # FIXME integration tests require Podman, CI runner uses Docker. Ideally this should all just be "clean verify"
-    - run: mvn -B -U clean compile test spotbugs:check spotless:check
+    - run: mvn -B -U clean verify
     - uses: skjolber/maven-cache-github-action@v1
       with:
         step: save
