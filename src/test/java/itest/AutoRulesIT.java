@@ -1,9 +1,6 @@
-/*-
- * #%L
- * Container JFR
- * %%
- * Copyright (C) 2020 Red Hat, Inc.
- * %%
+/*
+ * Copyright The Cryostat Authors
+ *
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -37,7 +34,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * #L%
  */
 package itest;
 
@@ -263,11 +259,11 @@ class AutoRulesIT extends TestBase {
         MatcherAssert.assertThat(
                 recording.getString("downloadUrl"),
                 Matchers.equalTo(
-                        "http://0.0.0.0:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcontainer-jfr-itests:9093%2Fjmxrmi/recordings/auto_Auto_Rule"));
+                        "http://0.0.0.0:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_Auto_Rule"));
         MatcherAssert.assertThat(
                 recording.getString("reportUrl"),
                 Matchers.equalTo(
-                        "http://0.0.0.0:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcontainer-jfr-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
+                        "http://0.0.0.0:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
     }
 
     @Test

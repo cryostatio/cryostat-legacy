@@ -95,7 +95,7 @@ podman run \
     -e CRYOSTAT_LISTEN_PORT=$CRYOSTAT_LISTEN_PORT \
     -e CRYOSTAT_EXT_LISTEN_PORT=$CRYOSTAT_EXT_LISTEN_PORT \
     -e CRYOSTAT_AUTH_MANAGER=$CRYOSTAT_AUTH_MANAGER \
-    -e CRYOSTAT_CONFIG_PATH="/opt/cryostat.d/config.d" \
+    -e CRYOSTAT_CONFIG_PATH="/opt/cryostat.d/conf.d" \
     -e CRYOSTAT_ARCHIVE_PATH="/opt/cryostat.d/recordings.d" \
     -e CRYOSTAT_TEMPLATE_PATH="/opt/cryostat.d/templates.d" \
     -e CRYOSTAT_CLIENTLIB_PATH="/clientlib" \

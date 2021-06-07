@@ -1,9 +1,6 @@
-/*-
- * #%L
- * Container JFR
- * %%
- * Copyright (C) 2020 Red Hat, Inc.
- * %%
+/*
+ * Copyright The Cryostat Authors
+ *
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -37,9 +34,8 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
- * #L%
  */
-package com.redhat.rhjmc.containerjfr.rules;
+package io.cryostat.rules;
 
 import java.io.IOException;
 

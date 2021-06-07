@@ -41,10 +41,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.TargetDiscoveryEvent;
 
 public class MergingPlatformClient implements PlatformClient {
 
@@ -71,5 +73,15 @@ public class MergingPlatformClient implements PlatformClient {
                 .parallelStream()
                 .flatMap(client -> client.listDiscoverableServices().stream())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.clients.forEach(pc -> pc.addTargetDiscoveryListener(listener));
+    }
+
+    @Override
+    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.clients.forEach(pc -> pc.removeTargetDiscoveryListener(listener));
     }
 }
