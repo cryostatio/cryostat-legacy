@@ -254,11 +254,11 @@
               <argument>--pod=${cryostat.itest.podName}</argument>
               <argument>--name=cryostat-itest</argument>
               <argument>--mount</argument>
-              <argument>type=tmpfs,target=/var/containerjfr/conf.d</argument>
+              <argument>type=tmpfs,target=/opt/cryostat.d/conf.d</argument>
               <argument>--mount</argument>
-              <argument>type=tmpfs,target=/var/containerjfr/templates.d</argument>
+              <argument>type=tmpfs,target=/opt/cryostat.d/templates.d</argument>
               <argument>--mount</argument>
-              <argument>type=tmpfs,target=/var/containerjfr/recordings.d</argument>
+              <argument>type=tmpfs,target=/opt/cryostat.d/recordings.d</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -276,7 +276,7 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_CONFIG_PATH=/opt/cryostat.d/conf.d</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
+              <argument>CRYOSTAT_ARCHIVE_PATH=/opt/cryostat.d/recordings.d</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
               <argument>--env</argument>
