@@ -32,8 +32,8 @@
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
 
   <org.apache.maven.plugins.compiler.version>3.8.1</org.apache.maven.plugins.compiler.version>
-  <org.apache.maven.plugins.surefire.version>3.0.0-M4</org.apache.maven.plugins.surefire.version>
-  <org.apache.maven.plugins.failsafe.version>3.0.0-M5</org.apache.maven.plugins.failsafe.version>
+  <org.apache.maven.plugins.surefire.version>2.22.2</org.apache.maven.plugins.surefire.version>
+  <org.apache.maven.plugins.failsafe.version>${org.apache.maven.plugins.surefire.version}</org.apache.maven.plugins.failsafe.version>
   <org.apache.maven.plugins.site.version>3.9.1</org.apache.maven.plugins.site.version>
   <org.apache.maven.plugins.info.reports.version>3.1.1</org.apache.maven.plugins.info.reports.version>
   <org.apache.maven.plugins.clean.version>3.1.0</org.apache.maven.plugins.clean.version>
@@ -335,15 +335,6 @@
       <groupId>org.apache.maven.plugins</groupId>
       <artifactId>maven-surefire-plugin</artifactId>
       <version>${org.apache.maven.plugins.surefire.version}</version>
-      <configuration>
-        <properties>
-          <configurationParameters>
-            junit.jupiter.execution.parallel.enabled=true
-            junit.jupiter.execution.parallel.mode.default=same_thread
-            junit.jupiter.execution.parallel.mode.classes.default=concurrent
-          </configurationParameters>
-        </properties>
-      </configuration>
     </plugin>
     <plugin>
       <groupId>org.apache.maven.plugins</groupId>
