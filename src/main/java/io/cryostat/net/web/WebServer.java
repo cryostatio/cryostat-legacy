@@ -54,7 +54,6 @@ import java.util.Set;
 
 import org.openjdk.jmc.rjmx.services.jfr.FlightRecorderException;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
@@ -69,6 +68,7 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Route;
@@ -231,9 +231,8 @@ public class WebServer {
     }
 
     @SuppressFBWarnings(
-        value = "URF_UNREAD_FIELD",
-        justification =
-                "The event fields are recorded with JFR instead of accessed directly")
+            value = "URF_UNREAD_FIELD",
+            justification = "The event fields are recorded with JFR instead of accessed directly")
     public static class WebServerRequestEvent extends Event {
         String remoteAddr;
         String method;
