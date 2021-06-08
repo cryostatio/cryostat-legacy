@@ -2,7 +2,7 @@
      Recommended way to edit .jfc files is to use Java Mission Control,
      see Window -> Flight Recorder Template Manager.
 -->
-<configuration version="2.0" label="Cryostat" description="Low overhead configuration safe for continuous use in production environments, typically less than 1 % overhead." provider="Oracle">
+<configuration version="2.0" label="Cryostat" description="Continuous self-profiling for Cryostat" provider="Cryostat">
  <event name="io.cyostat.net.web.WebServer.WebServerRequestEvent">
   <setting name="enabled">
    true
