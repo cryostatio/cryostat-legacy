@@ -74,6 +74,7 @@ import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import jdk.jfr.Event;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
@@ -203,19 +204,46 @@ public class WebServer {
         this.server.requestHandler(
                 req -> {
                     Instant start = Instant.now();
+                    WebServerRequestEvent evt =
+                            new WebServerRequestEvent(
+                                    req.remoteAddress().toString(),
+                                    req.method().toString(),
+                                    req.path());
+                    evt.begin();
+
                     req.response()
                             .endHandler(
-                                    (res) ->
-                                            logger.info(
-                                                    "({}): {} {} {} {}ms",
-                                                    req.remoteAddress().toString(),
-                                                    req.method().toString(),
-                                                    req.path(),
-                                                    req.response().getStatusCode(),
-                                                    Duration.between(start, Instant.now())
-                                                            .toMillis()));
+                                    (res) -> {
+                                        logger.info(
+                                                "({}): {} {} {} {}ms",
+                                                req.remoteAddress().toString(),
+                                                req.method().toString(),
+                                                req.path(),
+                                                req.response().getStatusCode(),
+                                                Duration.between(start, Instant.now()).toMillis());
+                                        evt.setStatusCode(req.response().getStatusCode());
+                                        evt.end();
+                                        evt.commit();
+                                    });
                     router.handle(req);
                 });
+    }
+
+    public static class WebServerRequestEvent extends Event {
+        String remoteAddr;
+        String method;
+        String path;
+        int statusCode;
+
+        public WebServerRequestEvent(String remoteAddr, String method, String path) {
+            this.remoteAddr = remoteAddr;
+            this.method = method;
+            this.path = path;
+        }
+
+        public void setStatusCode(int code) {
+            this.statusCode = code;
+        }
     }
 
     public void stop() {
@@ -229,7 +257,8 @@ public class WebServer {
     }
 
     URI getHostUri() throws SocketException, UnknownHostException, URISyntaxException {
-        // FIXME replace URIBuilder with another implementation. This is the only remaining use
+        // FIXME replace URIBuilder with another implementation. This is the only
+        // remaining use
         // of the Apache HttpComponents dependency
         return new URIBuilder()
                 .setScheme(server.isSsl() ? "https" : "http")
