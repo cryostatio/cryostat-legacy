@@ -171,7 +171,7 @@ public class MessagingServer implements AutoCloseable {
     public void writeMessage(WsMessage message) {
         String json = gson.toJson(message);
         logger.info("Outgoing WS message: {}", json);
-        WsMessageEmitted evt = new WsMessageEmitted(message);
+        WsMessageEmitted evt = new WsMessageEmitted(json);
 
         synchronized (connections) {
             connections
@@ -194,10 +194,10 @@ public class MessagingServer implements AutoCloseable {
             justification = "Event fields are recorded with JFR instead of accessed directly")
     public static class WsMessageEmitted extends Event {
         WsClient connection;
-        WsMessage message;
+        String json;
 
-        public WsMessageEmitted(WsMessage message) {
-            this.message = message;
+        public WsMessageEmitted(String json) {
+            this.json = json;
         }
 
         public void setConnection(WsClient connection) {
