@@ -43,7 +43,6 @@ import java.nio.file.Paths;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.NoopAuthManager;
 
@@ -59,19 +58,16 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     private final AuthManager authMgr;
     private final FileSystem fs;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final NotificationFactory notificationFactory;
     private KubernetesClient k8sClient;
 
     KubeApiPlatformStrategy(
             Logger logger,
             NoopAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            NotificationFactory notificationFactory,
             FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
-        this.notificationFactory = notificationFactory;
         this.fs = fs;
         try {
             this.k8sClient = new DefaultKubernetesClient();
@@ -109,8 +105,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(
-                getNamespace(), k8sClient, connectionToolkit, notificationFactory, logger);
+        return new KubeApiPlatformClient(getNamespace(), k8sClient, connectionToolkit, logger);
     }
 
     @Override

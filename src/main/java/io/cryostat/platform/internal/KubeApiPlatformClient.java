@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
 
@@ -70,9 +69,7 @@ class KubeApiPlatformClient extends AbstractPlatformClient {
             String namespace,
             KubernetesClient k8sClient,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            NotificationFactory notificationFactory,
             Logger logger) {
-        super(notificationFactory);
         this.namespace = namespace;
         this.k8sClient = k8sClient;
         this.connectionToolkit = connectionToolkit;

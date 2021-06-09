@@ -38,40 +38,20 @@
 package io.cryostat.platform.internal;
 
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 
 abstract class AbstractPlatformClient implements PlatformClient {
 
-    static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
-
     protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
 
-    protected AbstractPlatformClient(NotificationFactory notificationFactory) {
+    protected AbstractPlatformClient() {
         this.discoveryListeners = new HashSet<>();
-
-        addTargetDiscoveryListener(
-                tde ->
-                        notificationFactory
-                                .createBuilder()
-                                .metaCategory(NOTIFICATION_CATEGORY)
-                                .message(
-                                        Map.of(
-                                                "event",
-                                                Map.of(
-                                                        "kind",
-                                                        tde.getEventKind(),
-                                                        "serviceRef",
-                                                        tde.getServiceRef())))
-                                .build()
-                                .send());
     }
 
     @Override

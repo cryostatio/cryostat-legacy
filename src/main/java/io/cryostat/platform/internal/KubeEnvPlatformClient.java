@@ -48,7 +48,6 @@ import java.util.stream.Collectors;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
 
@@ -63,11 +62,7 @@ class KubeEnvPlatformClient extends AbstractPlatformClient {
     private final Logger logger;
 
     KubeEnvPlatformClient(
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            NotificationFactory notificationFactory,
-            Logger logger) {
-        super(notificationFactory);
+            Lazy<JFRConnectionToolkit> connectionToolkit, Environment env, Logger logger) {
         this.connectionToolkit = connectionToolkit;
         this.env = env;
         this.logger = logger;

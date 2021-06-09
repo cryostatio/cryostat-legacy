@@ -43,7 +43,6 @@ import java.nio.file.Paths;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.OpenShiftAuthManager;
 
@@ -60,14 +59,12 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
     private final FileSystem fs;
     private OpenShiftClient osClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final NotificationFactory notificationFactory;
 
     OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            FileSystem fs,
-            NotificationFactory notificationFactory) {
+            FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.fs = fs;
@@ -78,7 +75,6 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
             this.osClient = null;
         }
         this.connectionToolkit = connectionToolkit;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -109,8 +105,7 @@ class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlat
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new KubeApiPlatformClient(
-                getNamespace(), osClient, connectionToolkit, notificationFactory, logger);
+        return new KubeApiPlatformClient(getNamespace(), osClient, connectionToolkit, logger);
     }
 
     @Override
