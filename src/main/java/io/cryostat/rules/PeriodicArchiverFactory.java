@@ -41,8 +41,6 @@ import java.util.function.Function;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
-import io.cryostat.net.web.http.api.v1.RecordingDeleteHandler;
-import io.cryostat.net.web.http.api.v1.TargetRecordingPatchHandler;
 import io.cryostat.platform.ServiceRef;
 
 import io.vertx.core.MultiMap;
@@ -51,33 +49,18 @@ import io.vertx.ext.web.client.WebClient;
 class PeriodicArchiverFactory {
 
     private final WebClient webClient;
-    private final String archiveRequestPath;
-    private final String deleteRequestPath;
     private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
     PeriodicArchiverFactory(
-            WebClient webClient,
-            TargetRecordingPatchHandler archiveHandler,
-            RecordingDeleteHandler deleteHandler,
-            Function<Credentials, MultiMap> headersFactory,
-            Logger logger) {
+            WebClient webClient, Function<Credentials, MultiMap> headersFactory, Logger logger) {
         this.webClient = webClient;
-        this.archiveRequestPath = archiveHandler.path();
-        this.deleteRequestPath = deleteHandler.path();
         this.headersFactory = headersFactory;
         this.logger = logger;
     }
 
     PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule) {
         return new PeriodicArchiver(
-                serviceRef,
-                credentials,
-                rule,
-                webClient,
-                archiveRequestPath,
-                deleteRequestPath,
-                headersFactory,
-                logger);
+                serviceRef, credentials, rule, webClient, headersFactory, logger);
     }
 }

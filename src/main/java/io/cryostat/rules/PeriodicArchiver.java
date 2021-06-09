@@ -63,8 +63,6 @@ class PeriodicArchiver implements Runnable {
     private final Credentials credentials;
     private final Rule rule;
     private final WebClient webClient;
-    private final String archiveRequestPath;
-    private final String deleteRequestPath;
     private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
@@ -75,13 +73,9 @@ class PeriodicArchiver implements Runnable {
             Credentials credentials,
             Rule rule,
             WebClient webClient,
-            String archiveRequestPath,
-            String deleteRequestPath,
             Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
         this.webClient = webClient;
-        this.archiveRequestPath = archiveRequestPath;
-        this.deleteRequestPath = deleteRequestPath;
         this.serviceRef = serviceRef;
         this.credentials = credentials;
         this.rule = rule;
@@ -116,20 +110,6 @@ class PeriodicArchiver implements Runnable {
         // exposed by this refactored chunk, and this refactored chunk can also be consumed here
         // rather than firing HTTP requests to ourselves
 
-        // URI path =
-        //         URI.create(
-        //                         archiveRequestPath
-        //                                 .replaceAll(
-        //                                         ":targetId",
-        //                                         URLEncodedUtils.formatSegments(
-        //
-        // serviceRef.getJMXServiceUrl().toString()))
-        //                                 .replaceAll(
-        //                                         ":recordingName",
-        //                                         URLEncodedUtils.formatSegments(
-        //                                                 rule.getRecordingName())))
-        //                 .normalize();
-
         String path =
                 URI.create(
                                 String.format(
@@ -139,7 +119,7 @@ class PeriodicArchiver implements Runnable {
                                         URLEncodedUtils.formatSegments(rule.getRecordingName())))
                         .normalize()
                         .toString();
-        this.logger.info("PATCH \"save\" {}", path);
+        this.logger.trace("PATCH \"save\" {}", path);
 
         CompletableFuture<String> future = new CompletableFuture<>();
         this.webClient
@@ -167,16 +147,17 @@ class PeriodicArchiver implements Runnable {
 
     Future<Boolean> pruneArchive(String recordingName) {
         logger.trace("Pruning {}", recordingName);
-        URI path =
+        String path =
                 URI.create(
-                                deleteRequestPath.replaceAll(
-                                        ":recordingName",
+                                String.format(
+                                        "/api/v1/recordings/%s",
                                         URLEncodedUtils.formatSegments(recordingName)))
-                        .normalize();
-
+                        .normalize()
+                        .toString();
+        this.logger.trace("DELETE {}", path);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         this.webClient
-                .delete(path.toString())
+                .delete(path)
                 .putHeaders(headersFactory.apply(credentials))
                 .send(
                         ar -> {

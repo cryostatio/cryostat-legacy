@@ -80,7 +80,6 @@ public class RuleProcessor
     private final ScheduledExecutorService scheduler;
     private final CredentialsManager credentialsManager;
     private final WebClient webClient;
-    private final String postPath;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
@@ -93,7 +92,6 @@ public class RuleProcessor
             ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
             WebClient webClient,
-            String postPath,
             PeriodicArchiverFactory periodicArchiverFactory,
             Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
@@ -102,7 +100,6 @@ public class RuleProcessor
         this.scheduler = scheduler;
         this.credentialsManager = credentialsManager;
         this.webClient = webClient;
-        this.postPath = postPath;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.headersFactory = headersFactory;
         this.logger = logger;
@@ -231,9 +228,6 @@ public class RuleProcessor
         if (maxSizeBytes > 0) {
             form.attribute("maxSize", String.valueOf(maxSizeBytes));
         }
-        // String path =
-        //         postPath.replaceAll(
-        //                 ":targetId", URLEncodedUtils.formatSegments(serviceUrl.toString()));
         String path =
                 URI.create(
                                 String.format(
@@ -242,7 +236,7 @@ public class RuleProcessor
                         .normalize()
                         .toString();
 
-        this.logger.info("POST {}", path);
+        this.logger.trace("POST {}", path);
 
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         this.webClient
