@@ -63,6 +63,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
 public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
@@ -77,7 +78,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
     private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
-    private final Map<ServiceRef, Future<?>> tasks;
+    private final Map<Pair<ServiceRef, Rule>, Future<?>> tasks;
 
     RuleProcessor(
             PlatformClient platformClient,
@@ -108,19 +109,24 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
 
     public void disable() {
         this.platformClient.removeTargetDiscoveryListener(this);
-        this.tasks.forEach((serviceRef, future) -> future.cancel(true));
+        this.tasks.forEach((ruleExecution, future) -> future.cancel(true));
         this.tasks.clear();
     }
 
-    // FIXME should the processor should also be able to apply new rules to targets that have
+    // FIXME should the processor also be able to apply new rules to targets that have
     // already appeared?
     @Override
     public void accept(TargetDiscoveryEvent tde) {
         if (EventKind.LOST.equals(tde.getEventKind())) {
-            Future<?> task = tasks.remove(tde.getServiceRef());
-            if (task != null) {
-                task.cancel(true);
-            }
+            registry.getRules(tde.getServiceRef())
+                    .forEach(
+                            rule -> {
+                                Pair<ServiceRef, Rule> key = Pair.of(tde.getServiceRef(), rule);
+                                Future<?> task = tasks.remove(key);
+                                if (task != null) {
+                                    task.cancel(true);
+                                }
+                            });
             return;
         }
         if (!EventKind.FOUND.equals(tde.getEventKind())) {
@@ -160,7 +166,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                 return;
                             }
                             tasks.put(
-                                    tde.getServiceRef(),
+                                    Pair.of(tde.getServiceRef(), rule),
                                     scheduler.scheduleAtFixedRate(
                                             periodicArchiverFactory.create(
                                                     tde.getServiceRef(), credentials, rule),
