@@ -116,22 +116,34 @@ class PeriodicArchiver implements Runnable {
         // exposed by this refactored chunk, and this refactored chunk can also be consumed here
         // rather than firing HTTP requests to ourselves
 
-        URI path =
+        // URI path =
+        //         URI.create(
+        //                         archiveRequestPath
+        //                                 .replaceAll(
+        //                                         ":targetId",
+        //                                         URLEncodedUtils.formatSegments(
+        //
+        // serviceRef.getJMXServiceUrl().toString()))
+        //                                 .replaceAll(
+        //                                         ":recordingName",
+        //                                         URLEncodedUtils.formatSegments(
+        //                                                 rule.getRecordingName())))
+        //                 .normalize();
+
+        String path =
                 URI.create(
-                                archiveRequestPath
-                                        .replaceAll(
-                                                ":targetId",
-                                                URLEncodedUtils.formatSegments(
-                                                        serviceRef.getJMXServiceUrl().toString()))
-                                        .replaceAll(
-                                                ":recordingName",
-                                                URLEncodedUtils.formatSegments(
-                                                        rule.getRecordingName())))
-                        .normalize();
+                                String.format(
+                                        "/api/v1/targets/%s/recordings/%s",
+                                        URLEncodedUtils.formatSegments(
+                                                serviceRef.getJMXServiceUrl().toString()),
+                                        URLEncodedUtils.formatSegments(rule.getRecordingName())))
+                        .normalize()
+                        .toString();
+        this.logger.info("PATCH \"save\" {}", path);
 
         CompletableFuture<String> future = new CompletableFuture<>();
         this.webClient
-                .patch(path.toString())
+                .patch(path)
                 .putHeaders(headersFactory.apply(credentials))
                 .sendBuffer(
                         Buffer.buffer("save"),
