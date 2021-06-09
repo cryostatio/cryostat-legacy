@@ -65,8 +65,8 @@ import io.cryostat.net.web.http.api.ApiData;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.util.HttpStatusCodeIdentifier;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
+import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
