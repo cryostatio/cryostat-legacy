@@ -181,7 +181,9 @@ public class MessagingServer implements AutoCloseable {
                                 evt.begin();
                                 c.writeMessage(json);
                                 evt.end();
-                                evt.commit();
+                                if (evt.shouldCommit()) {
+                                    evt.commit();
+                                }
                             });
         }
     }
