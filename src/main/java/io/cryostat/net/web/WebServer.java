@@ -65,7 +65,6 @@ import io.cryostat.net.web.http.api.ApiData;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
@@ -80,7 +79,6 @@ import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
-import jdk.jfr.Threshold;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
@@ -240,7 +238,6 @@ public class WebServer {
     @Name("io.cryostat.next.web.WebServer.WebServerRequest")
     @Label("Web Server Request")
     @Category("Cryostat")
-    @Threshold(TimeoutHandler.TIMEOUT_MS + " ms")
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",
             justification = "The event fields are recorded with JFR instead of accessed directly")
