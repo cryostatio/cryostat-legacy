@@ -235,7 +235,7 @@ public class WebServer {
                 });
     }
 
-    @Name("io.cryostat.next.web.WebServer.WebServerRequest")
+    @Name("io.cryostat.net.web.WebServer.WebServerRequest")
     @Label("Web Server Request")
     @Category("Cryostat")
     @SuppressFBWarnings(
