@@ -200,7 +200,7 @@ public class MessagingServer implements AutoCloseable {
             this.message = message;
         }
 
-        public void SetConnection(WsClient connection) {
+        public void setConnection(WsClient connection) {
             this.connection = connection;
         }
     }
