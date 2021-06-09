@@ -42,8 +42,13 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 import io.cryostat.core.log.Logger;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Handler;
 import io.vertx.core.http.ServerWebSocket;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
 class WsClient implements AutoCloseable, Handler<String> {
 
@@ -83,10 +88,43 @@ class WsClient implements AutoCloseable, Handler<String> {
     void writeMessage(String message) {
         if (!this.sws.isClosed()) {
             try {
+                WsMessageEmitted evt =
+                        new WsMessageEmitted(
+                                sws.remoteAddress().host(),
+                                sws.remoteAddress().port(),
+                                sws.uri(),
+                                message.length());
+                evt.begin();
+
                 this.sws.writeTextMessage(message);
+
+                evt.end();
+                if (evt.shouldCommit()) {
+                    evt.commit();
+                }
             } catch (Exception e) {
                 logger.warn(e);
             }
+        }
+    }
+
+    @Name("io.cryostat.messaging.WsClient.WsMessageEmitted")
+    @Label("WebSocket Message Emitted")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "Event fields are recorded with JFR instead of accessed directly")
+    public static class WsMessageEmitted extends Event {
+        String remoteAddr;
+        String path;
+        int port;
+        int msgLen;
+
+        public WsMessageEmitted(String remoteAddr, int port, String path, int msgLen) {
+            this.remoteAddr = remoteAddr;
+            this.port = port;
+            this.path = path;
+            this.msgLen = msgLen;
         }
     }
 
