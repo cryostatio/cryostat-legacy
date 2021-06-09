@@ -61,3 +61,9 @@ podman run \
     --env HTTP_PORT=8081 \
     --env JMX_PORT=9094 \
     --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+
+sleep 5
+echo "Deleting rule definition"
+curl -k \
+    -X DELETE \
+    "$CRYOSTAT_HOST/api/v2/rules/Default_Rule"
