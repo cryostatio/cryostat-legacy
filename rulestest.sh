@@ -21,6 +21,11 @@ podman kill $TARGET_CONTAINER
 demoAppServiceUrl="service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi"
 demoAppTargetId="$(echo -n $demoAppServiceUrl | jq -sRr @uri)"
 
+echo "Deleting nonexistent rule definition"
+curl -k \
+    -X DELETE \
+    "$CRYOSTAT_HOST/api/v2/rules/Default_Rule"
+
 sleep 2
 echo "POSTing $TARGET_CONTAINER credentials"
 curl -k \

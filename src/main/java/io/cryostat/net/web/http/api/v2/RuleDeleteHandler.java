@@ -93,6 +93,9 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         String name = params.getPathParams().get(Rule.Attribute.NAME.getSerialKey());
+        if (!ruleRegistry.hasRuleByName(name)) {
+            throw new ApiException(404);
+        }
         try {
             ruleRegistry.deleteRule(name);
         } catch (IOException e) {
