@@ -40,7 +40,6 @@ package io.cryostat.platform.internal;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 
 import dagger.Lazy;
@@ -51,19 +50,16 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     private final Logger logger;
     private final AuthManager authMgr;
     private final Environment env;
-    private final NotificationFactory notificationFactory;
 
     KubeEnvPlatformStrategy(
             Logger logger,
             AuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            Environment env,
-            NotificationFactory notificationFactory) {
+            Environment env) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.connectionToolkit = connectionToolkit;
         this.env = env;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -80,7 +76,7 @@ class KubeEnvPlatformStrategy implements PlatformDetectionStrategy<KubeEnvPlatfo
     @Override
     public KubeEnvPlatformClient getPlatformClient() {
         logger.info("Selected KubeEnv Platform Strategy");
-        return new KubeEnvPlatformClient(connectionToolkit, env, notificationFactory, logger);
+        return new KubeEnvPlatformClient(connectionToolkit, env, logger);
     }
 
     @Override

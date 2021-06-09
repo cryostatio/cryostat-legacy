@@ -37,7 +37,6 @@
  */
 package io.cryostat.platform;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
@@ -70,29 +69,21 @@ public abstract class PlatformModule {
     @Provides
     @Singleton
     static PlatformClient providePlatformClient(
+            NotificationFactory notificationFactory,
             PlatformDetectionStrategy<?> platformStrategy,
             CustomTargetPlatformClient customTargetPlatformClient,
             Logger logger) {
-        try {
-            PlatformClient client =
-                    new MergingPlatformClient(
-                            customTargetPlatformClient, platformStrategy.getPlatformClient());
-            client.start();
-            return client;
-        } catch (IOException ioe) {
-            logger.error(ioe);
-            throw new RuntimeException(ioe);
-        }
+        return new MergingPlatformClient(
+                notificationFactory,
+                customTargetPlatformClient,
+                platformStrategy.getPlatformClient());
     }
 
     @Provides
     @Singleton
     static CustomTargetPlatformClient provideCustomTargetPlatformClient(
-            NotificationFactory notificationFactory,
-            @Named(MainModule.CONF_DIR) Path confDir,
-            FileSystem fs,
-            Gson gson) {
-        return new CustomTargetPlatformClient(notificationFactory, confDir, fs, gson);
+            @Named(MainModule.CONF_DIR) Path confDir, FileSystem fs, Gson gson) {
+        return new CustomTargetPlatformClient(confDir, fs, gson);
     }
 
     @Provides

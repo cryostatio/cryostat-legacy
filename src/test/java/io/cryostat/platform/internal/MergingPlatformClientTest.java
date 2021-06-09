@@ -43,6 +43,7 @@ import java.util.List;
 
 import javax.management.remote.JMXServiceURL;
 
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 
@@ -58,19 +59,20 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class MergingPlatformClientTest {
 
+    @Mock NotificationFactory notificationFactory;
     @Mock PlatformClient clientA;
     @Mock PlatformClient clientB;
     MergingPlatformClient mergingClient;
 
     @BeforeEach
     void setup() {
-        this.mergingClient = new MergingPlatformClient(clientA, clientB);
+        this.mergingClient = new MergingPlatformClient(notificationFactory, clientA, clientB);
     }
 
     @Test
     void testStart() throws IOException {
-        Mockito.verifyNoInteractions(clientA);
-        Mockito.verifyNoInteractions(clientB);
+        Mockito.verify(clientA).addTargetDiscoveryListener(mergingClient);
+        Mockito.verify(clientB).addTargetDiscoveryListener(mergingClient);
 
         mergingClient.start();
 

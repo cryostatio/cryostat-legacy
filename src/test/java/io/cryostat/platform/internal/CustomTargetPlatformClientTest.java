@@ -44,18 +44,16 @@ import java.nio.file.OpenOption;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.Notification.MetaType;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.TargetDiscoveryEvent;
 
 import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
@@ -64,7 +62,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -74,12 +71,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class CustomTargetPlatformClientTest {
 
     CustomTargetPlatformClient client;
-    @Mock NotificationFactory notificationFactory;
     @Mock Path confDir;
     @Mock Path saveFile;
     @Mock FileSystem fs;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
     Gson gson = MainModule.provideGson(null);
 
     static final ServiceRef SERVICE_REF;
@@ -99,25 +93,7 @@ class CustomTargetPlatformClientTest {
     void setup() {
         Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(saveFile);
 
-        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.meta(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.metaType(Mockito.any(MetaType.class)))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.metaCategory(Mockito.anyString()))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient()
-                .when(notificationBuilder.message(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
-
-        this.client = new CustomTargetPlatformClient(notificationFactory, confDir, fs, gson);
+        this.client = new CustomTargetPlatformClient(confDir, fs, gson);
     }
 
     @Test
@@ -160,8 +136,12 @@ class CustomTargetPlatformClientTest {
     }
 
     @Test
-    void testAddNewTarget() throws IOException {
+    void testAddNewTarget() throws Exception {
+        CompletableFuture<TargetDiscoveryEvent> future = new CompletableFuture<>();
+        client.addTargetDiscoveryListener(future::complete);
+
         Assertions.assertTrue(client.addTarget(SERVICE_REF));
+        TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
 
         Mockito.verify(fs)
                 .writeString(
@@ -169,25 +149,18 @@ class CustomTargetPlatformClientTest {
                         gson.toJson(List.of(SERVICE_REF)),
                         StandardOpenOption.TRUNCATE_EXISTING,
                         StandardOpenOption.CREATE);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("TargetJvmDiscovery");
-        ArgumentCaptor<Map<String, String>> messageCaptor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
-        Map<String, String> message = messageCaptor.getValue();
-        MatcherAssert.assertThat(
-                message,
-                Matchers.equalTo(
-                        Map.of(
-                                "event",
-                                Map.of("kind", EventKind.FOUND, "serviceRef", SERVICE_REF))));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
+
+        MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
+        MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(SERVICE_REF));
     }
 
     @Test
-    void testAddDuplicateTarget() throws IOException {
+    void testAddDuplicateTarget() throws Exception {
         Mockito.when(fs.isRegularFile(saveFile)).thenReturn(true);
         Mockito.when(fs.isReadable(saveFile)).thenReturn(true);
+
+        CompletableFuture<TargetDiscoveryEvent> future = Mockito.spy(new CompletableFuture<>());
+        client.addTargetDiscoveryListener(future::complete);
 
         BufferedReader reader =
                 new BufferedReader(new StringReader(gson.toJson(List.of(SERVICE_REF))));
@@ -199,13 +172,11 @@ class CustomTargetPlatformClientTest {
         Mockito.verify(fs, Mockito.never())
                 .writeString(
                         Mockito.any(), Mockito.anyString(), ArgumentMatchers.<OpenOption>any());
-        Mockito.verifyNoInteractions(notificationFactory);
-        Mockito.verifyNoInteractions(notificationBuilder);
-        Mockito.verifyNoInteractions(notification);
+        Mockito.verify(future, Mockito.never()).complete(Mockito.any());
     }
 
     @Test
-    void testRemoveTarget() throws IOException {
+    void testRemoveTarget() throws Exception {
         Mockito.when(fs.isRegularFile(saveFile)).thenReturn(true);
         Mockito.when(fs.isReadable(saveFile)).thenReturn(true);
 
@@ -213,8 +184,12 @@ class CustomTargetPlatformClientTest {
                 new BufferedReader(new StringReader(gson.toJson(List.of(SERVICE_REF))));
         Mockito.when(fs.readFile(saveFile)).thenReturn(reader);
 
+        CompletableFuture<TargetDiscoveryEvent> future = new CompletableFuture<>();
+        client.addTargetDiscoveryListener(future::complete);
+
         client.start();
         Assertions.assertTrue(client.removeTarget(SERVICE_REF));
+        TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
 
         Mockito.verify(fs)
                 .writeString(
@@ -222,35 +197,25 @@ class CustomTargetPlatformClientTest {
                         gson.toJson(List.of()),
                         StandardOpenOption.TRUNCATE_EXISTING,
                         StandardOpenOption.CREATE);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("TargetJvmDiscovery");
-        ArgumentCaptor<Map<String, String>> messageCaptor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
-        Map<String, String> message = messageCaptor.getValue();
-        MatcherAssert.assertThat(
-                message,
-                Matchers.equalTo(
-                        Map.of(
-                                "event",
-                                Map.of("kind", EventKind.LOST, "serviceRef", SERVICE_REF))));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
+        MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.LOST));
+        MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(SERVICE_REF));
     }
 
     @Test
     void testRemoveNonexistentTarget() throws IOException {
+        CompletableFuture<TargetDiscoveryEvent> future = Mockito.spy(new CompletableFuture<>());
+        client.addTargetDiscoveryListener(future::complete);
+
         Assertions.assertFalse(client.removeTarget(SERVICE_REF));
 
         Mockito.verify(fs, Mockito.never())
                 .writeString(
                         Mockito.any(), Mockito.anyString(), ArgumentMatchers.<OpenOption>any());
-        Mockito.verifyNoInteractions(notificationFactory);
-        Mockito.verifyNoInteractions(notificationBuilder);
-        Mockito.verifyNoInteractions(notification);
+        Mockito.verify(future, Mockito.never()).complete(Mockito.any());
     }
 
     @Test
-    void testRemoveTargetByUrl() throws IOException {
+    void testRemoveTargetByUrl() throws Exception {
         Mockito.when(fs.isRegularFile(saveFile)).thenReturn(true);
         Mockito.when(fs.isReadable(saveFile)).thenReturn(true);
 
@@ -258,8 +223,12 @@ class CustomTargetPlatformClientTest {
                 new BufferedReader(new StringReader(gson.toJson(List.of(SERVICE_REF))));
         Mockito.when(fs.readFile(saveFile)).thenReturn(reader);
 
+        CompletableFuture<TargetDiscoveryEvent> future = new CompletableFuture<>();
+        client.addTargetDiscoveryListener(future::complete);
+
         client.start();
         Assertions.assertTrue(client.removeTarget(SERVICE_REF.getJMXServiceUrl()));
+        TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
 
         Mockito.verify(fs)
                 .writeString(
@@ -267,30 +236,20 @@ class CustomTargetPlatformClientTest {
                         gson.toJson(List.of()),
                         StandardOpenOption.TRUNCATE_EXISTING,
                         StandardOpenOption.CREATE);
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("TargetJvmDiscovery");
-        ArgumentCaptor<Map<String, String>> messageCaptor = ArgumentCaptor.forClass(Map.class);
-        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
-        Map<String, String> message = messageCaptor.getValue();
-        MatcherAssert.assertThat(
-                message,
-                Matchers.equalTo(
-                        Map.of(
-                                "event",
-                                Map.of("kind", EventKind.LOST, "serviceRef", SERVICE_REF))));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
+        MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.LOST));
+        MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(SERVICE_REF));
     }
 
     @Test
     void testRemoveNonexistentTargetByUrl() throws IOException {
+        CompletableFuture<TargetDiscoveryEvent> future = Mockito.spy(new CompletableFuture<>());
+        client.addTargetDiscoveryListener(future::complete);
+
         Assertions.assertFalse(client.removeTarget(SERVICE_REF.getJMXServiceUrl()));
 
         Mockito.verify(fs, Mockito.never())
                 .writeString(
                         Mockito.any(), Mockito.anyString(), ArgumentMatchers.<OpenOption>any());
-        Mockito.verifyNoInteractions(notificationFactory);
-        Mockito.verifyNoInteractions(notificationBuilder);
-        Mockito.verifyNoInteractions(notification);
+        Mockito.verify(future, Mockito.never()).complete(Mockito.any());
     }
 }

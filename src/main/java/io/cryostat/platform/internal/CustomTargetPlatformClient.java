@@ -53,7 +53,6 @@ import javax.management.remote.JMXServiceURL;
 import io.cryostat.MainModule;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
@@ -69,11 +68,7 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     private final Gson gson;
 
     public CustomTargetPlatformClient(
-            NotificationFactory notificationFactory,
-            @Named(MainModule.CONF_DIR) Path confDir,
-            FileSystem fs,
-            Gson gson) {
-        super(notificationFactory);
+            @Named(MainModule.CONF_DIR) Path confDir, FileSystem fs, Gson gson) {
         this.targets =
                 new TreeSet<>(
                         (u1, u2) ->
