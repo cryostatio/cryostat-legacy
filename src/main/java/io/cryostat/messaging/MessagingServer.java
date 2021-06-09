@@ -59,6 +59,11 @@ import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
 public class MessagingServer implements AutoCloseable {
 
@@ -166,8 +171,37 @@ public class MessagingServer implements AutoCloseable {
     public void writeMessage(WsMessage message) {
         String json = gson.toJson(message);
         logger.info("Outgoing WS message: {}", json);
+        WsMessageEmitted evt = new WsMessageEmitted(message);
+
         synchronized (connections) {
-            connections.keySet().forEach(c -> c.writeMessage(json));
+            connections
+                    .keySet()
+                    .forEach(
+                            c -> {
+                                evt.begin();
+                                c.writeMessage(json);
+                                evt.end();
+                                evt.commit();
+                            });
+        }
+    }
+
+    @Name("io.cryostat.messaging.MessagingServer.WsMessageEmitted")
+    @Label("WsMessageEmitted")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "Event fields are recorded with JFR instead of accessed directly")
+    public static class WsMessageEmitted extends Event {
+        WsClient connection;
+        WsMessage message;
+
+        public WsMessageEmitted(WsMessage message) {
+            this.message = message;
+        }
+
+        public void SetConnection(WsClient connection) {
+            this.connection = connection;
         }
     }
 
