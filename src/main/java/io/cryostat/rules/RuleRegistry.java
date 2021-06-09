@@ -131,28 +131,17 @@ public class RuleRegistry {
 
     public void deleteRule(String name) throws IOException {
         this.rules.removeIf(r -> Objects.equals(r.getName(), name));
-        this.fs.listDirectoryChildren(rulesDir).stream()
-                .filter(s -> Objects.equals(s, name + ".json"))
-                .map(rulesDir::resolve)
-                .forEach(
-                        path -> {
-                            try {
-                                fs.deleteIfExists(path);
-                            } catch (IOException e) {
-                                logger.warn(e);
-                            }
-                        });
+        for (String child : this.fs.listDirectoryChildren(rulesDir)) {
+            if (!Objects.equals(child, name + ".json")) {
+                continue;
+            }
+            fs.deleteIfExists(rulesDir.resolve(child));
+        }
     }
 
     public void deleteRules(ServiceRef serviceRef) throws IOException {
-        getRules(serviceRef)
-                .forEach(
-                        rule -> {
-                            try {
-                                deleteRule(rule);
-                            } catch (IOException e) {
-                                logger.warn(e);
-                            }
-                        });
+        for (Rule rule : getRules(serviceRef)) {
+            deleteRule(rule);
+        }
     }
 }
