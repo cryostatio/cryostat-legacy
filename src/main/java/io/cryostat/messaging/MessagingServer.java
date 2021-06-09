@@ -187,7 +187,7 @@ public class MessagingServer implements AutoCloseable {
     }
 
     @Name("io.cryostat.messaging.MessagingServer.WsMessageEmitted")
-    @Label("WsMessageEmitted")
+    @Label("WebSocket Message Emitted")
     @Category("Cryostat")
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",
