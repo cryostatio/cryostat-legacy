@@ -18,7 +18,7 @@ TARGET_CONTAINER=vertx-fib-demo-2
 echo "Killing $TARGET_CONTAINER container"
 podman kill $TARGET_CONTAINER
 
-demoAppServiceUrl="service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"
+demoAppServiceUrl="service:jmx:rmi:///jndi/rmi://cryostat:9094/jmxrmi"
 demoAppTargetId="$(echo -n $demoAppServiceUrl | jq -sRr @uri)"
 
 sleep 2
