@@ -66,6 +66,7 @@ import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
+import io.cryostat.net.web.http.generic.TimeoutHandler;
 
 import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -75,7 +76,11 @@ import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import jdk.jfr.Category;
 import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+import jdk.jfr.Threshold;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
@@ -205,8 +210,8 @@ public class WebServer {
         this.server.requestHandler(
                 req -> {
                     Instant start = Instant.now();
-                    WebServerRequestEvent evt =
-                            new WebServerRequestEvent(
+                    WebServerRequest evt =
+                            new WebServerRequest(
                                     req.remoteAddress().toString(),
                                     req.method().toString(),
                                     req.path());
@@ -224,22 +229,28 @@ public class WebServer {
                                                 Duration.between(start, Instant.now()).toMillis());
                                         evt.setStatusCode(req.response().getStatusCode());
                                         evt.end();
-                                        evt.commit();
+                                        if (evt.shouldCommit()) {
+                                            evt.commit();
+                                        }
                                     });
                     router.handle(req);
                 });
     }
 
+    @Name("io.cryostat.next.web.WebServer.WebServerRequest")
+    @Label("Web Server Request")
+    @Category("Cryostat")
+    @Threshold(TimeoutHandler.TIMEOUT_MS + " ms")
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",
             justification = "The event fields are recorded with JFR instead of accessed directly")
-    public static class WebServerRequestEvent extends Event {
+    public static class WebServerRequest extends Event {
         String remoteAddr;
         String method;
         String path;
         int statusCode;
 
-        public WebServerRequestEvent(String remoteAddr, String method, String path) {
+        public WebServerRequest(String remoteAddr, String method, String path) {
             this.remoteAddr = remoteAddr;
             this.method = method;
             this.path = path;
