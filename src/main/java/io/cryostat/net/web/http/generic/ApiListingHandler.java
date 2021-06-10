@@ -44,12 +44,12 @@ import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
-import dagger.Lazy;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+
+import com.google.gson.Gson;
+import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
