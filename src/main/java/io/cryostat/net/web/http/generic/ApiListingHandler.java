@@ -95,8 +95,8 @@ class ApiListingHandler implements RequestHandler {
                                                 handler ->
                                                         Map.of(
                                                                 "version", handler.apiVersion(),
-                                                                "path", handler.path(),
-                                                                "verb", handler.httpMethod()))
+                                                                "verb", handler.httpMethod(),
+                                                                "path", handler.path()))
                                         .collect(Collectors.toList())));
     }
 
