@@ -64,10 +64,6 @@ public abstract class HttpGenericModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindApiListingHandler(ApiListingHandler handler);
-
-    @Binds
-    @IntoSet
     abstract RequestHandler bindStaticAssetsGetHandler(StaticAssetsGetHandler handler);
 
     @Binds

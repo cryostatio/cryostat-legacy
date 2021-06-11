@@ -35,31 +35,42 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.generic;
+package io.cryostat.net.web.http.api.v2;
 
-import java.util.Comparator;
-import java.util.Map;
+import java.net.URI;
+import java.net.URL;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
+import com.google.gson.annotations.SerializedName;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
 
-class ApiListingHandler implements RequestHandler {
+class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiResponse> {
 
+    private final Lazy<WebServer> webServer;
     private final Lazy<Set<RequestHandler>> handlers;
     private final Gson gson;
 
     @Inject
-    ApiListingHandler(Lazy<Set<RequestHandler>> handlers, Gson gson) {
+    ApiListingHandler(
+            Lazy<WebServer> webServer,
+            Lazy<Set<RequestHandler>> handlers,
+            AuthManager auth,
+            Gson gson) {
+        super(auth, gson);
+        this.webServer = webServer;
         this.handlers = handlers;
         this.gson = gson;
     }
@@ -80,31 +91,59 @@ class ApiListingHandler implements RequestHandler {
     }
 
     @Override
-    public void handle(RoutingContext ctx) {
-        ctx.response()
-                .end(
-                        gson.toJson(
-                                handlers.get().stream()
-                                        .filter(RequestHandler::isAvailable)
-                                        .filter(
-                                                handler ->
-                                                        !ApiVersion.GENERIC.equals(
-                                                                handler.apiVersion()))
-                                        .sorted(new HandlerComparator())
-                                        .map(
-                                                handler ->
-                                                        Map.of(
-                                                                "version", handler.apiVersion(),
-                                                                "verb", handler.httpMethod(),
-                                                                "path", handler.path()))
-                                        .collect(Collectors.toList())));
+    HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
     }
 
-    @SuppressFBWarnings("SE_COMPARATOR_SHOULD_BE_SERIALIZABLE")
-    static final class HandlerComparator implements Comparator<RequestHandler> {
-        @Override
-        public int compare(RequestHandler handler1, RequestHandler handler2) {
-            return handler1.path().compareTo(handler2.path());
+    @Override
+    public boolean requiresAuthentication() {
+        return false;
+    }
+
+    @Override
+    IntermediateResponse<ApiResponse> handle(RequestParameters requestParams) throws Exception {
+        List<SerializedHandler> serializedHandlers =
+                handlers.get().stream()
+                        .filter(RequestHandler::isAvailable)
+                        .filter(handler -> !ApiVersion.GENERIC.equals(handler.apiVersion()))
+                        .sorted((h1, h2) -> h1.path().compareTo(h2.path()))
+                        .map(SerializedHandler::new)
+                        .collect(Collectors.toList());
+
+        URL resourceFilePath = new URL(webServer.get().getHostUrl(), "HTTP_API.md");
+
+        return new IntermediateResponse<ApiResponse>()
+                .body(new ApiResponse(resourceFilePath, serializedHandlers));
+    }
+
+    @SuppressFBWarnings("URF_UNREAD_FIELD")
+    static class ApiResponse {
+        @SerializedName("overview")
+        private final URL resourceFilePath;
+
+        @SerializedName("endpoints")
+        private final List<SerializedHandler> handlers;
+
+        ApiResponse(URL resourceFilePath, List<SerializedHandler> handlers) {
+            this.resourceFilePath = resourceFilePath;
+            this.handlers = handlers;
+        }
+    }
+
+    @SuppressFBWarnings("URF_UNREAD_FIELD")
+    static class SerializedHandler {
+        @SerializedName("version")
+        private final ApiVersion apiVersion;
+
+        @SerializedName("verb")
+        private final HttpMethod httpMethod;
+
+        private final String path;
+
+        SerializedHandler(RequestHandler handler) {
+            this.apiVersion = handler.apiVersion();
+            this.httpMethod = handler.httpMethod();
+            this.path = URI.create(handler.path()).normalize().toString();
         }
     }
 }
