@@ -208,9 +208,11 @@ public class WebServer {
         this.server.requestHandler(
                 req -> {
                     Instant start = Instant.now();
+
                     WebServerRequest evt =
                             new WebServerRequest(
-                                    req.remoteAddress().toString(),
+                                    req.remoteAddress().host(),
+                                    req.remoteAddress().port(),
                                     req.method().toString(),
                                     req.path());
                     evt.begin();
@@ -242,13 +244,15 @@ public class WebServer {
             value = "URF_UNREAD_FIELD",
             justification = "The event fields are recorded with JFR instead of accessed directly")
     public static class WebServerRequest extends Event {
-        String remoteAddr;
+        String ipAddress;
+        int port;
         String method;
         String path;
         int statusCode;
 
-        public WebServerRequest(String remoteAddr, String method, String path) {
-            this.remoteAddr = remoteAddr;
+        public WebServerRequest(String ipAddr, int port, String method, String path) {
+            this.ipAddress = ipAddr;
+            this.port = port;
             this.method = method;
             this.path = path;
         }
