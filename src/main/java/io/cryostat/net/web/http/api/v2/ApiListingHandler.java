@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.net.URI;
 import java.net.URL;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -56,6 +57,7 @@ import com.google.gson.annotations.SerializedName;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiResponse> {
 
@@ -119,10 +121,10 @@ class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiRe
     @SuppressFBWarnings("URF_UNREAD_FIELD")
     static class ApiResponse {
         @SerializedName("overview")
-        private final URL resourceFilePath;
+        final URL resourceFilePath;
 
         @SerializedName("endpoints")
-        private final List<SerializedHandler> handlers;
+        final List<SerializedHandler> handlers;
 
         ApiResponse(URL resourceFilePath, List<SerializedHandler> handlers) {
             this.resourceFilePath = resourceFilePath;
@@ -133,17 +135,33 @@ class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiRe
     @SuppressFBWarnings("URF_UNREAD_FIELD")
     static class SerializedHandler {
         @SerializedName("version")
-        private final ApiVersion apiVersion;
+        final ApiVersion apiVersion;
 
         @SerializedName("verb")
-        private final HttpMethod httpMethod;
+        final HttpMethod httpMethod;
 
-        private final String path;
+        final String path;
 
         SerializedHandler(RequestHandler handler) {
             this.apiVersion = handler.apiVersion();
             this.httpMethod = handler.httpMethod();
             this.path = URI.create(handler.path()).normalize().toString();
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (!(o instanceof SerializedHandler)) {
+                return false;
+            }
+            SerializedHandler osh = (SerializedHandler) o;
+            return Objects.equals(apiVersion, osh.apiVersion)
+                    && Objects.equals(httpMethod, osh.httpMethod)
+                    && Objects.equals(path, osh.path);
+        }
+
+        @Override
+        public int hashCode() {
+            return new HashCodeBuilder().append(apiVersion).append(httpMethod).append(path).build();
         }
     }
 }
