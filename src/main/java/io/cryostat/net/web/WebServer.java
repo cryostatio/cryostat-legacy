@@ -244,14 +244,14 @@ public class WebServer {
             value = "URF_UNREAD_FIELD",
             justification = "The event fields are recorded with JFR instead of accessed directly")
     public static class WebServerRequest extends Event {
-        String ipAddress;
+        String host;
         int port;
         String method;
         String path;
         int statusCode;
 
-        public WebServerRequest(String ipAddr, int port, String method, String path) {
-            this.ipAddress = ipAddr;
+        public WebServerRequest(String host, int port, String method, String path) {
+            this.host = host;
             this.port = port;
             this.method = method;
             this.path = path;
