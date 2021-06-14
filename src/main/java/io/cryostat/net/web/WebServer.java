@@ -68,12 +68,17 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.ext.web.Route;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.impl.EnglishReasonPhraseCatalog;
@@ -203,19 +208,58 @@ public class WebServer {
         this.server.requestHandler(
                 req -> {
                     Instant start = Instant.now();
+
+                    WebServerRequest evt =
+                            new WebServerRequest(
+                                    req.remoteAddress().host(),
+                                    req.remoteAddress().port(),
+                                    req.method().toString(),
+                                    req.path());
+                    evt.begin();
+
                     req.response()
                             .endHandler(
-                                    (res) ->
-                                            logger.info(
-                                                    "({}): {} {} {} {}ms",
-                                                    req.remoteAddress().toString(),
-                                                    req.method().toString(),
-                                                    req.path(),
-                                                    req.response().getStatusCode(),
-                                                    Duration.between(start, Instant.now())
-                                                            .toMillis()));
+                                    (res) -> {
+                                        logger.info(
+                                                "({}): {} {} {} {}ms",
+                                                req.remoteAddress().toString(),
+                                                req.method().toString(),
+                                                req.path(),
+                                                req.response().getStatusCode(),
+                                                Duration.between(start, Instant.now()).toMillis());
+                                        evt.setStatusCode(req.response().getStatusCode());
+                                        evt.end();
+                                        if (evt.shouldCommit()) {
+                                            evt.commit();
+                                        }
+                                    });
                     router.handle(req);
                 });
+    }
+
+    @Name("io.cryostat.net.web.WebServer.WebServerRequest")
+    @Label("Web Server Request")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "The event fields are recorded with JFR instead of accessed directly")
+    public static class WebServerRequest extends Event {
+        String host;
+        int port;
+        String method;
+        String path;
+        int statusCode;
+
+        public WebServerRequest(String host, int port, String method, String path) {
+            this.host = host;
+            this.port = port;
+            this.method = method;
+            this.path = path;
+        }
+
+        public void setStatusCode(int code) {
+            this.statusCode = code;
+        }
     }
 
     public void stop() {
@@ -229,7 +273,8 @@ public class WebServer {
     }
 
     URI getHostUri() throws SocketException, UnknownHostException, URISyntaxException {
-        // FIXME replace URIBuilder with another implementation. This is the only remaining use
+        // FIXME replace URIBuilder with another implementation. This is the only
+        // remaining use
         // of the Apache HttpComponents dependency
         return new URIBuilder()
                 .setScheme(server.isSsl() ? "https" : "http")
