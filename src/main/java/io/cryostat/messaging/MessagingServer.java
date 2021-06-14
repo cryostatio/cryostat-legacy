@@ -166,14 +166,8 @@ public class MessagingServer implements AutoCloseable {
     public void writeMessage(WsMessage message) {
         String json = gson.toJson(message);
         logger.info("Outgoing WS message: {}", json);
-
         synchronized (connections) {
-            connections
-                    .keySet()
-                    .forEach(
-                            c -> {
-                                c.writeMessage(json);
-                            });
+            connections.keySet().forEach(c -> c.writeMessage(json));
         }
     }
 

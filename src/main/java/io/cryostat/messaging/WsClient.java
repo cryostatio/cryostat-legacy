@@ -87,23 +87,26 @@ class WsClient implements AutoCloseable, Handler<String> {
 
     void writeMessage(String message) {
         if (!this.sws.isClosed()) {
-            try {
-                WsMessageEmitted evt =
-                        new WsMessageEmitted(
-                                sws.remoteAddress().host(),
-                                sws.remoteAddress().port(),
-                                sws.uri(),
-                                message.length());
-                evt.begin();
+            WsMessageEmitted evt =
+                    new WsMessageEmitted(
+                            sws.remoteAddress().host(),
+                            sws.remoteAddress().port(),
+                            sws.uri(),
+                            message.length());
+            evt.begin();
 
+            try {
                 this.sws.writeTextMessage(message);
 
+            } catch (Exception e) {
+                logger.warn(e);
+                evt.setExceptionThrown(true);
+
+            } finally {
                 evt.end();
                 if (evt.shouldCommit()) {
                     evt.commit();
                 }
-            } catch (Exception e) {
-                logger.warn(e);
             }
         }
     }
@@ -115,16 +118,22 @@ class WsClient implements AutoCloseable, Handler<String> {
             value = "URF_UNREAD_FIELD",
             justification = "Event fields are recorded with JFR instead of accessed directly")
     public static class WsMessageEmitted extends Event {
-        String remoteAddr;
-        String path;
+        String host;
         int port;
+        String path;
         int msgLen;
+        boolean exceptionThrown;
 
-        public WsMessageEmitted(String remoteAddr, int port, String path, int msgLen) {
-            this.remoteAddr = remoteAddr;
+        public WsMessageEmitted(String host, int port, String path, int msgLen) {
+            this.host = host;
             this.port = port;
             this.path = path;
             this.msgLen = msgLen;
+            this.exceptionThrown = false;
+        }
+
+        public void setExceptionThrown(boolean exceptionThrown) {
+            this.exceptionThrown = exceptionThrown;
         }
     }
 
