@@ -110,6 +110,7 @@ class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiRe
                         .filter(handler -> !ApiVersion.GENERIC.equals(handler.apiVersion()))
                         .sorted((h1, h2) -> h1.path().compareTo(h2.path()))
                         .map(SerializedHandler::new)
+                        .distinct()
                         .collect(Collectors.toList());
 
         URL resourceFilePath = new URL(webServer.get().getHostUrl(), "HTTP_API.md");

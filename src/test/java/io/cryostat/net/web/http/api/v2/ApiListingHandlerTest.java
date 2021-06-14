@@ -343,6 +343,57 @@ class ApiListingHandlerTest {
                                     new ApiListingHandler.SerializedHandler(testHandler3),
                                     new ApiListingHandler.SerializedHandler(testHandler2))));
         }
+
+        @Test
+        void shouldFilterRepeatedHandlers() throws Exception {
+            RequestHandler testHandler1 =
+                    new TestRequestHandler() {
+                        @Override
+                        public ApiVersion apiVersion() {
+                            return ApiVersion.V2;
+                        }
+
+                        @Override
+                        public String path() {
+                            return basePath() + "test";
+                        }
+
+                        @Override
+                        public HttpMethod httpMethod() {
+                            return HttpMethod.POST;
+                        }
+                    };
+            // duplicate on purpose - this will serialize identically. This simulates ex.
+            // TargtPostHandler and TargetPostBodyHandler, which also serialize identically.
+            RequestHandler testHandler2 =
+                    new TestRequestHandler() {
+                        @Override
+                        public ApiVersion apiVersion() {
+                            return ApiVersion.V2;
+                        }
+
+                        @Override
+                        public String path() {
+                            return basePath() + "test";
+                        }
+
+                        @Override
+                        public HttpMethod httpMethod() {
+                            return HttpMethod.POST;
+                        }
+                    };
+            requestHandlers.add(testHandler1);
+            requestHandlers.add(testHandler2);
+
+            IntermediateResponse<ApiListingHandler.ApiResponse> response =
+                    handler.handle(requestParams);
+
+            ApiListingHandler.ApiResponse body = response.getBody();
+            MatcherAssert.assertThat(
+                    body.handlers,
+                    Matchers.equalTo(
+                            List.of(new ApiListingHandler.SerializedHandler(testHandler1))));
+        }
     }
 
     abstract static class TestRequestHandler implements RequestHandler {
