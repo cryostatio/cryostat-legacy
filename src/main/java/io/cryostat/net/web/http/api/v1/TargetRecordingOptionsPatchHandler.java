@@ -108,7 +108,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
         MultiMap attrs = ctx.request().formAttributes();
         if (attrs.contains("toDisk")) {
             Matcher m = bool.matcher(attrs.get("toDisk"));
-            if (!m.find()) throw new HttpStatusException(400, "Invalid options");
+            if (!m.matches()) throw new HttpStatusException(400, "Invalid options");
         }
         Arrays.asList("maxAge", "maxSize")
                 .forEach(
