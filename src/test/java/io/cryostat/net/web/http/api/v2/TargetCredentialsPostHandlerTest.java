@@ -130,10 +130,11 @@ class TargetCredentialsPostHandlerTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"", " ", "\t", "\n"})
-        void shouldRespond400WhenUsernameBlank() throws Exception {
+        void shouldRespond400WhenUsernameBlank(String username) throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
 
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.set("username", username);
             form.set("password", "abc123");
             Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
 
@@ -163,11 +164,12 @@ class TargetCredentialsPostHandlerTest {
 
         @ParameterizedTest
         @ValueSource(strings = {"", " ", "\t", "\n"})
-        void shouldRespond400WhenPasswordBlank() throws Exception {
+        void shouldRespond400WhenPasswordBlank(String password) throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
 
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             form.set("username", "adminuser");
+            form.set("password", password);
             Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
 
             ApiException ex =
