@@ -350,6 +350,7 @@
         </execution>
       </executions>
       <configuration>
+        <runOrder>random</runOrder>
         <systemPropertyVariables>
           <cryostatWebPort>${cryostat.itest.webPort}</cryostatWebPort>
           <cryostatPodName>${cryostat.itest.podName}</cryostatPodName>
