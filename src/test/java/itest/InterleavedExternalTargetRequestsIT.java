@@ -99,13 +99,19 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                 System.out.println("setup complete, continuing to tests");
                 break;
             } else if (numTargets < NUM_EXT_CONTAINERS + 1) {
-                System.err.println(String.format("%d targets found on attempt %d - waiting for setup to complete", numTargets, attempts + 1));
+                System.err.println(
+                        String.format(
+                                "%d targets found on attempt %d - waiting for setup to complete",
+                                numTargets, attempts + 1));
                 if (attempts > 6) {
                     throw new Exception("setup failed");
                 }
                 Thread.sleep(5_000);
             } else {
-                System.err.println(String.format("%d targets found on attempt %d - too many!", numTargets, attempts + 1));
+                System.err.println(
+                        String.format(
+                                "%d targets found on attempt %d - too many!",
+                                numTargets, attempts + 1));
                 throw new Exception("setup failed");
             }
             attempts++;
@@ -136,7 +142,10 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                             });
             int numTargets = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             if (numTargets > 1) {
-                System.err.println(String.format("%d targets found on attempt %d - waiting for teardown to complete", numTargets, attempts + 1));
+                System.err.println(
+                        String.format(
+                                "%d targets found on attempt %d - waiting for teardown to complete",
+                                numTargets, attempts + 1));
                 if (attempts++ > 6) {
                     throw new Exception("teardown failed");
                 }
