@@ -46,17 +46,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.client.utils.URLEncodedUtils;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.HttpStatusCodeIdentifier;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.client.utils.URLEncodedUtils;
 
 class PeriodicArchiver implements Runnable {
 

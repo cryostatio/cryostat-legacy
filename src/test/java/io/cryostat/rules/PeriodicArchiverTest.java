@@ -41,6 +41,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.remote.JMXServiceURL;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
+import io.cryostat.platform.ServiceRef;
+
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -53,17 +64,6 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
-
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
-import io.cryostat.platform.ServiceRef;
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
 class PeriodicArchiverTest {
@@ -94,8 +94,16 @@ class PeriodicArchiverTest {
         this.failureCounter = new AtomicInteger();
         this.archiver =
                 new PeriodicArchiver(
-                        serviceRef, credentials, rule, webClient, c -> headers, p ->
-                        { failureCounter.incrementAndGet(); return null; }, logger);
+                        serviceRef,
+                        credentials,
+                        rule,
+                        webClient,
+                        c -> headers,
+                        p -> {
+                            failureCounter.incrementAndGet();
+                            return null;
+                        },
+                        logger);
     }
 
     @Test

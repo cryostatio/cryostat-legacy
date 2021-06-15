@@ -163,8 +163,9 @@ class RuleProcessorTest {
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
 
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
-        Mockito.when(periodicArchiverFactory.create(Mockito.any(), Mockito.any(), Mockito.any(),
-                    Mockito.any()))
+        Mockito.when(
+                        periodicArchiverFactory.create(
+                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(periodicArchiver);
 
         processor.accept(tde);

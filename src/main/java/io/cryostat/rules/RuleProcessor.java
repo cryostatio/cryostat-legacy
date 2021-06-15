@@ -199,7 +199,9 @@ public class RuleProcessor
                                     Pair.of(tde.getServiceRef(), rule),
                                     scheduler.scheduleAtFixedRate(
                                             periodicArchiverFactory.create(
-                                                    tde.getServiceRef(), credentials, rule,
+                                                    tde.getServiceRef(),
+                                                    credentials,
+                                                    rule,
                                                     this::archivalFailureHandler),
                                             rule.getArchivalPeriodSeconds(),
                                             rule.getArchivalPeriodSeconds(),
@@ -208,8 +210,7 @@ public class RuleProcessor
     }
 
     private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
-        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it =
-            tasks.entrySet().iterator();
+        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it = tasks.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
             if (!Objects.equals(entry.getKey(), id)) {
