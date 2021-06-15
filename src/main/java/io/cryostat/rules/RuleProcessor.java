@@ -210,17 +210,9 @@ public class RuleProcessor
     }
 
     private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
-        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it = tasks.entrySet().iterator();
-        while (it.hasNext()) {
-            Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
-            if (!Objects.equals(entry.getKey(), id)) {
-                continue;
-            }
-            Future<?> task = entry.getValue();
-            if (task != null) {
-                task.cancel(true);
-            }
-            it.remove();
+        Future<?> task = tasks.get(id);
+        if (task != null) {
+            task.cancel(true);
         }
         return null;
     }
