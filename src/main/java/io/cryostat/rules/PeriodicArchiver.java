@@ -46,16 +46,17 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.client.utils.URLEncodedUtils;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.HttpStatusCodeIdentifier;
-
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import org.apache.http.client.utils.URLEncodedUtils;
 
 class PeriodicArchiver implements Runnable {
 
@@ -64,6 +65,7 @@ class PeriodicArchiver implements Runnable {
     private final Rule rule;
     private final WebClient webClient;
     private final Function<Credentials, MultiMap> headersFactory;
+    private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
 
     private final Queue<String> previousRecordings;
@@ -74,12 +76,14 @@ class PeriodicArchiver implements Runnable {
             Rule rule,
             WebClient webClient,
             Function<Credentials, MultiMap> headersFactory,
+            Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
             Logger logger) {
         this.webClient = webClient;
         this.serviceRef = serviceRef;
         this.credentials = credentials;
         this.rule = rule;
         this.headersFactory = headersFactory;
+        this.failureNotifier = failureNotifier;
         this.logger = logger;
 
         // FIXME this needs to be populated at startup by scanning the existing archived recordings,
@@ -99,6 +103,7 @@ class PeriodicArchiver implements Runnable {
             performArchival();
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
+            failureNotifier.apply(Pair.of(serviceRef, rule));
         }
     }
 

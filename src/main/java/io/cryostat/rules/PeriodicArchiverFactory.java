@@ -39,10 +39,11 @@ package io.cryostat.rules;
 
 import java.util.function.Function;
 
+import org.apache.commons.lang3.tuple.Pair;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
-
 import io.vertx.core.MultiMap;
 import io.vertx.ext.web.client.WebClient;
 
@@ -59,8 +60,9 @@ class PeriodicArchiverFactory {
         this.logger = logger;
     }
 
-    PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule) {
+    PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule,
+            Function<Pair<ServiceRef, Rule>, Void> failureNotifier) {
         return new PeriodicArchiver(
-                serviceRef, credentials, rule, webClient, headersFactory, logger);
+                serviceRef, credentials, rule, webClient, headersFactory, failureNotifier, logger);
     }
 }

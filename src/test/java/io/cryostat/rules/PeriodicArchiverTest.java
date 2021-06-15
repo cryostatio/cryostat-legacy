@@ -90,7 +90,7 @@ class PeriodicArchiverTest {
         this.serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
         this.archiver =
                 new PeriodicArchiver(
-                        serviceRef, credentials, rule, webClient, c -> headers, logger);
+                        serviceRef, credentials, rule, webClient, c -> headers, p -> null, logger);
     }
 
     @Test
