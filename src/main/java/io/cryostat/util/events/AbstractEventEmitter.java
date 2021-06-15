@@ -35,32 +35,22 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.rules;
+package io.cryostat.util.events;
 
-import java.util.function.Function;
+import java.util.HashSet;
+import java.util.Set;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
-import io.cryostat.platform.ServiceRef;
+public abstract class AbstractEventEmitter<T extends EventType, V> {
+    protected final Set<EventListener<T, V>> listeners = new HashSet<>();
 
-import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.WebClient;
-
-class PeriodicArchiverFactory {
-
-    private final WebClient webClient;
-    private final Function<Credentials, MultiMap> headersFactory;
-    private final Logger logger;
-
-    PeriodicArchiverFactory(
-            WebClient webClient, Function<Credentials, MultiMap> headersFactory, Logger logger) {
-        this.webClient = webClient;
-        this.headersFactory = headersFactory;
-        this.logger = logger;
+    public void addListener(EventListener<T, V> listener) {
+        this.listeners.add(listener);
     }
 
-    PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule) {
-        return new PeriodicArchiver(
-                serviceRef, credentials, rule, webClient, headersFactory, logger);
+    protected void emit(T eventType, V payload) {
+        this.listeners.forEach(
+                listener -> {
+                    listener.onEvent(new Event<>(eventType, payload));
+                });
     }
 }

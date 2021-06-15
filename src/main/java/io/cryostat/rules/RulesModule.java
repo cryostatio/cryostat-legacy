@@ -55,9 +55,6 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.api.v1.RecordingDeleteHandler;
-import io.cryostat.net.web.http.api.v1.TargetRecordingPatchHandler;
-import io.cryostat.net.web.http.api.v1.TargetRecordingsPostHandler;
 import io.cryostat.platform.PlatformClient;
 
 import com.google.gson.Gson;
@@ -100,7 +97,6 @@ public abstract class RulesModule {
             RuleRegistry registry,
             CredentialsManager credentialsManager,
             @Named(RULES_WEB_CLIENT) WebClient webClient,
-            TargetRecordingsPostHandler postHandler,
             PeriodicArchiverFactory periodicArchiverFactory,
             @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
@@ -110,7 +106,6 @@ public abstract class RulesModule {
                 Executors.newScheduledThreadPool(1),
                 credentialsManager,
                 webClient,
-                postHandler.path(),
                 periodicArchiverFactory,
                 headersFactory,
                 logger);
@@ -120,12 +115,9 @@ public abstract class RulesModule {
     @Singleton
     static PeriodicArchiverFactory providePeriodicArchivedFactory(
             @Named(RULES_WEB_CLIENT) WebClient webClient,
-            TargetRecordingPatchHandler archiveHandler,
-            RecordingDeleteHandler deleteHandler,
             @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
-        return new PeriodicArchiverFactory(
-                webClient, archiveHandler, deleteHandler, headersFactory, logger);
+        return new PeriodicArchiverFactory(webClient, headersFactory, logger);
     }
 
     @Provides

@@ -82,7 +82,6 @@ class RuleProcessorTest {
     @Mock ScheduledExecutorService scheduler;
     @Mock CredentialsManager credentialsManager;
     @Mock WebClient webClient;
-    String postPath = "/api/v1/targets/:targetId/recordings";
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
     @Mock MultiMap headers;
     @Mock Logger logger;
@@ -96,7 +95,6 @@ class RuleProcessorTest {
                         scheduler,
                         credentialsManager,
                         webClient,
-                        postPath,
                         periodicArchiverFactory,
                         c -> headers,
                         logger);
