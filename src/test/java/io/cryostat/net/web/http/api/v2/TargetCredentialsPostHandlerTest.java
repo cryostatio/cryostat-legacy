@@ -40,8 +40,17 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.util.Map;
 
-import com.google.gson.Gson;
+import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
+import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -54,16 +63,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.cryostat.MainModule;
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 class TargetCredentialsPostHandlerTest {
@@ -130,12 +129,7 @@ class TargetCredentialsPostHandlerTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings={
-            "",
-            " ",
-            "\t",
-            "\n"
-        })
+        @ValueSource(strings = {"", " ", "\t", "\n"})
         void shouldRespond400WhenUsernameBlank() throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
 
@@ -168,12 +162,7 @@ class TargetCredentialsPostHandlerTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings={
-            "",
-            " ",
-            "\t",
-            "\n"
-        })
+        @ValueSource(strings = {"", " ", "\t", "\n"})
         void shouldRespond400WhenPasswordBlank() throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
 

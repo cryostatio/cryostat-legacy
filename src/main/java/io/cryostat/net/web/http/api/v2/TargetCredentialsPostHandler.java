@@ -41,17 +41,16 @@ import java.io.IOException;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.StringUtils;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
