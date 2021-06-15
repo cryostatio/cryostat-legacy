@@ -166,6 +166,9 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
         } catch (CertificateEncodingException cee) {
             throw new ApiException(500, cee.getMessage(), cee);
         } catch (Exception e) {
+            if(fs.exists(filePath)) {
+                filePath.toFile().delete();
+            }
             throw new ApiException(500, e.getMessage(), e);
         }
 
