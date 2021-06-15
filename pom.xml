@@ -211,6 +211,30 @@
       </configuration>
     </plugin>
     <plugin>
+      <artifactId>maven-resources-plugin</artifactId>
+      <version>${org.apache.maven.plugins.resources.version}</version>
+      <executions>
+        <execution>
+          <id>copy-apidoc-resource</id>
+          <phase>prepare-package</phase>
+          <goals>
+            <goal>copy-resources</goal>
+          </goals>
+          <configuration>
+            <resources>
+              <resource>
+                <directory>${project.basedir}</directory>
+                <includes>
+                  <include>HTTP_API.md</include>
+                </includes>
+              </resource>
+            </resources>
+            <outputDirectory>${project.build.directory}/assets/app/resources/io/cryostat/net/web</outputDirectory>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+    <plugin>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>exec-maven-plugin</artifactId>
       <version>${org.codehaus.mojo.exec.plugin.version}</version>
@@ -653,7 +677,7 @@
                   <resource>
                     <directory>web-client/dist</directory>
                     <excludes>
-                        <exclude>cache/**/*</exclude>
+                      <exclude>cache/**/*</exclude>
                     </excludes>
                   </resource>
                 </resources>
