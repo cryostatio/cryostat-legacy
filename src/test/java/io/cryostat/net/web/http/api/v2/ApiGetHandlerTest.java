@@ -64,9 +64,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ApiListingHandlerTest {
+class ApiGetHandlerTest {
 
-    AbstractV2RequestHandler<ApiListingHandler.ApiResponse> handler;
+    AbstractV2RequestHandler<ApiGetHandler.ApiResponse> handler;
     @Mock WebServer webServer;
     Set<RequestHandler> requestHandlers;
     @Mock AuthManager auth;
@@ -76,7 +76,7 @@ class ApiListingHandlerTest {
     @BeforeEach
     void setup() {
         this.requestHandlers = new HashSet<>();
-        this.handler = new ApiListingHandler(() -> webServer, () -> requestHandlers, auth, gson);
+        this.handler = new ApiGetHandler(() -> webServer, () -> requestHandlers, auth, gson);
     }
 
     @Nested
@@ -140,14 +140,13 @@ class ApiListingHandlerTest {
                     };
             requestHandlers.add(testHandler1);
 
-            IntermediateResponse<ApiListingHandler.ApiResponse> response =
+            IntermediateResponse<ApiGetHandler.ApiResponse> response =
                     handler.handle(requestParams);
 
-            ApiListingHandler.ApiResponse body = response.getBody();
+            ApiGetHandler.ApiResponse body = response.getBody();
             MatcherAssert.assertThat(
                     body.handlers,
-                    Matchers.equalTo(
-                            List.of(new ApiListingHandler.SerializedHandler(testHandler1))));
+                    Matchers.equalTo(List.of(new ApiGetHandler.SerializedHandler(testHandler1))));
             MatcherAssert.assertThat(
                     body.resourceFilePath, Matchers.equalTo(new URL(hostUrl, "HTTP_API.md")));
         }
@@ -196,14 +195,13 @@ class ApiListingHandlerTest {
             requestHandlers.add(testHandler1);
             requestHandlers.add(testHandler2);
 
-            IntermediateResponse<ApiListingHandler.ApiResponse> response =
+            IntermediateResponse<ApiGetHandler.ApiResponse> response =
                     handler.handle(requestParams);
 
-            ApiListingHandler.ApiResponse body = response.getBody();
+            ApiGetHandler.ApiResponse body = response.getBody();
             MatcherAssert.assertThat(
                     body.handlers,
-                    Matchers.equalTo(
-                            List.of(new ApiListingHandler.SerializedHandler(testHandler2))));
+                    Matchers.equalTo(List.of(new ApiGetHandler.SerializedHandler(testHandler2))));
         }
 
         @Test
@@ -245,14 +243,13 @@ class ApiListingHandlerTest {
             requestHandlers.add(testHandler1);
             requestHandlers.add(testHandler2);
 
-            IntermediateResponse<ApiListingHandler.ApiResponse> response =
+            IntermediateResponse<ApiGetHandler.ApiResponse> response =
                     handler.handle(requestParams);
 
-            ApiListingHandler.ApiResponse body = response.getBody();
+            ApiGetHandler.ApiResponse body = response.getBody();
             MatcherAssert.assertThat(
                     body.handlers,
-                    Matchers.equalTo(
-                            List.of(new ApiListingHandler.SerializedHandler(testHandler2))));
+                    Matchers.equalTo(List.of(new ApiGetHandler.SerializedHandler(testHandler2))));
         }
 
         @Test
@@ -330,18 +327,18 @@ class ApiListingHandlerTest {
             requestHandlers.add(testHandler3);
             requestHandlers.add(testHandler4);
 
-            IntermediateResponse<ApiListingHandler.ApiResponse> response =
+            IntermediateResponse<ApiGetHandler.ApiResponse> response =
                     handler.handle(requestParams);
 
-            ApiListingHandler.ApiResponse body = response.getBody();
+            ApiGetHandler.ApiResponse body = response.getBody();
             MatcherAssert.assertThat(
                     body.handlers,
                     Matchers.equalTo(
                             List.of(
-                                    new ApiListingHandler.SerializedHandler(testHandler4),
-                                    new ApiListingHandler.SerializedHandler(testHandler1),
-                                    new ApiListingHandler.SerializedHandler(testHandler3),
-                                    new ApiListingHandler.SerializedHandler(testHandler2))));
+                                    new ApiGetHandler.SerializedHandler(testHandler4),
+                                    new ApiGetHandler.SerializedHandler(testHandler1),
+                                    new ApiGetHandler.SerializedHandler(testHandler3),
+                                    new ApiGetHandler.SerializedHandler(testHandler2))));
         }
 
         @Test
@@ -385,14 +382,13 @@ class ApiListingHandlerTest {
             requestHandlers.add(testHandler1);
             requestHandlers.add(testHandler2);
 
-            IntermediateResponse<ApiListingHandler.ApiResponse> response =
+            IntermediateResponse<ApiGetHandler.ApiResponse> response =
                     handler.handle(requestParams);
 
-            ApiListingHandler.ApiResponse body = response.getBody();
+            ApiGetHandler.ApiResponse body = response.getBody();
             MatcherAssert.assertThat(
                     body.handlers,
-                    Matchers.equalTo(
-                            List.of(new ApiListingHandler.SerializedHandler(testHandler1))));
+                    Matchers.equalTo(List.of(new ApiGetHandler.SerializedHandler(testHandler1))));
         }
     }
 

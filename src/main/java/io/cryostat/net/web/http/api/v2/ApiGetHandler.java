@@ -59,13 +59,13 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiResponse> {
+class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> {
 
     private final Lazy<WebServer> webServer;
     private final Lazy<Set<RequestHandler>> handlers;
 
     @Inject
-    ApiListingHandler(
+    ApiGetHandler(
             Lazy<WebServer> webServer,
             Lazy<Set<RequestHandler>> handlers,
             AuthManager auth,
