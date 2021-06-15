@@ -63,7 +63,6 @@ class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiRe
 
     private final Lazy<WebServer> webServer;
     private final Lazy<Set<RequestHandler>> handlers;
-    private final Gson gson;
 
     @Inject
     ApiListingHandler(
@@ -74,7 +73,6 @@ class ApiListingHandler extends AbstractV2RequestHandler<ApiListingHandler.ApiRe
         super(auth, gson);
         this.webServer = webServer;
         this.handlers = handlers;
-        this.gson = gson;
     }
 
     @Override
