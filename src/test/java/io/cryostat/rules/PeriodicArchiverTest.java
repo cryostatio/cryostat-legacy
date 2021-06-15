@@ -37,19 +37,10 @@
  */
 package io.cryostat.rules;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
-import io.cryostat.platform.ServiceRef;
-
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -62,6 +53,17 @@ import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
+
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
+import io.cryostat.platform.ServiceRef;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 
 @ExtendWith(MockitoExtension.class)
 class PeriodicArchiverTest {
@@ -83,14 +85,17 @@ class PeriodicArchiverTest {
                     .build();
     @Mock WebClient webClient;
     @Mock MultiMap headers;
+    AtomicInteger failureCounter;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() throws Exception {
         this.serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
+        this.failureCounter = new AtomicInteger();
         this.archiver =
                 new PeriodicArchiver(
-                        serviceRef, credentials, rule, webClient, c -> headers, p -> null, logger);
+                        serviceRef, credentials, rule, webClient, c -> headers, p ->
+                        { failureCounter.incrementAndGet(); return null; }, logger);
     }
 
     @Test
@@ -131,6 +136,45 @@ class PeriodicArchiverTest {
         Mockito.verify(webClient)
                 .patch(
                         "/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/auto_Test_Rule");
+    }
+
+    @Test
+    void testNotifyOnFailure() throws Exception {
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequest.class);
+
+        Mockito.when(webClient.patch(Mockito.any())).thenReturn(request);
+        Mockito.when(request.putHeaders(Mockito.any())).thenReturn(request);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock invocation) throws Throwable {
+                                AsyncResult res = Mockito.mock(AsyncResult.class);
+                                Mockito.when(res.failed()).thenReturn(true);
+                                Mockito.when(res.cause()).thenReturn(new Exception());
+                                ((Handler<AsyncResult>) invocation.getArgument(1)).handle(res);
+                                return null;
+                            }
+                        })
+                .when(request)
+                .sendBuffer(Mockito.any(), Mockito.any());
+
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
+        archiver.run();
+
+        ArgumentCaptor<Buffer> patchActionCaptor = ArgumentCaptor.forClass(Buffer.class);
+        Mockito.verify(request).sendBuffer(patchActionCaptor.capture(), Mockito.any());
+        Buffer patchAction = patchActionCaptor.getValue();
+        MatcherAssert.assertThat(patchAction.toString(), Matchers.equalTo("save"));
+
+        ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
+        Mockito.verify(request).putHeaders(headersCaptor.capture());
+        MultiMap capturedHeaders = headersCaptor.getValue();
+        MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
+
+        Mockito.verify(webClient)
+                .patch(
+                        "/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/auto_Test_Rule");
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(1));
     }
 
     @Test
