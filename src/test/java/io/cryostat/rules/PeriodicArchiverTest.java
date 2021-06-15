@@ -82,8 +82,6 @@ class PeriodicArchiverTest {
                     .archivalPeriodSeconds(67)
                     .build();
     @Mock WebClient webClient;
-    String archiveRequestPath = "/api/v1/targets/:targetId/recordings/:recordingName";
-    String deleteRequestPath = "/api/v1/recordings/:recordingName";
     @Mock MultiMap headers;
     @Mock Logger logger;
 
@@ -92,14 +90,7 @@ class PeriodicArchiverTest {
         this.serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
         this.archiver =
                 new PeriodicArchiver(
-                        serviceRef,
-                        credentials,
-                        rule,
-                        webClient,
-                        archiveRequestPath,
-                        deleteRequestPath,
-                        c -> headers,
-                        logger);
+                        serviceRef, credentials, rule, webClient, c -> headers, logger);
     }
 
     @Test

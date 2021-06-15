@@ -49,10 +49,13 @@ import java.util.stream.Collectors;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.rules.RuleRegistry.RuleEvent;
+import io.cryostat.util.events.AbstractEventEmitter;
+import io.cryostat.util.events.EventType;
 
 import com.google.gson.Gson;
 
-public class RuleRegistry {
+public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     private final Path rulesDir;
     private final FileSystem fs;
@@ -101,6 +104,7 @@ public class RuleRegistry {
                 StandardOpenOption.CREATE,
                 StandardOpenOption.TRUNCATE_EXISTING);
         loadRules();
+        emit(RuleEvent.ADDED, rule);
         return rule;
     }
 
@@ -130,29 +134,31 @@ public class RuleRegistry {
     }
 
     public void deleteRule(String name) throws IOException {
-        this.rules.removeIf(r -> Objects.equals(r.getName(), name));
-        this.fs.listDirectoryChildren(rulesDir).stream()
-                .filter(s -> Objects.equals(s, name + ".json"))
-                .map(rulesDir::resolve)
-                .forEach(
-                        path -> {
-                            try {
-                                fs.deleteIfExists(path);
-                            } catch (IOException e) {
-                                logger.warn(e);
-                            }
+        for (String child : this.fs.listDirectoryChildren(rulesDir)) {
+            if (!Objects.equals(child, name + ".json")) {
+                continue;
+            }
+            fs.deleteIfExists(rulesDir.resolve(child));
+        }
+        this.rules.stream()
+                .filter(r -> Objects.equals(r.getName(), name))
+                .findFirst()
+                .ifPresent(
+                        rule -> {
+                            emit(RuleEvent.REMOVED, rule);
+                            this.rules.remove(rule);
                         });
     }
 
     public void deleteRules(ServiceRef serviceRef) throws IOException {
-        getRules(serviceRef)
-                .forEach(
-                        rule -> {
-                            try {
-                                deleteRule(rule);
-                            } catch (IOException e) {
-                                logger.warn(e);
-                            }
-                        });
+        for (Rule rule : getRules(serviceRef)) {
+            deleteRule(rule);
+        }
+    }
+
+    enum RuleEvent implements EventType {
+        ADDED,
+        REMOVED,
+        ;
     }
 }

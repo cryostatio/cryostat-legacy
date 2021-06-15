@@ -35,32 +35,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.rules;
+package io.cryostat.util.events;
 
-import java.util.function.Function;
-
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
-import io.cryostat.platform.ServiceRef;
-
-import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.WebClient;
-
-class PeriodicArchiverFactory {
-
-    private final WebClient webClient;
-    private final Function<Credentials, MultiMap> headersFactory;
-    private final Logger logger;
-
-    PeriodicArchiverFactory(
-            WebClient webClient, Function<Credentials, MultiMap> headersFactory, Logger logger) {
-        this.webClient = webClient;
-        this.headersFactory = headersFactory;
-        this.logger = logger;
-    }
-
-    PeriodicArchiver create(ServiceRef serviceRef, Credentials credentials, Rule rule) {
-        return new PeriodicArchiver(
-                serviceRef, credentials, rule, webClient, headersFactory, logger);
-    }
+public interface EventListener<T extends EventType, V> {
+    void onEvent(Event<T, V> event);
 }

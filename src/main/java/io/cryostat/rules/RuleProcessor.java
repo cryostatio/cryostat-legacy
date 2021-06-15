@@ -37,8 +37,11 @@
  */
 package io.cryostat.rules;
 
+import java.net.URI;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
@@ -56,28 +59,32 @@ import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.cryostat.rules.RuleRegistry.RuleEvent;
 import io.cryostat.util.HttpStatusCodeIdentifier;
+import io.cryostat.util.events.Event;
+import io.cryostat.util.events.EventListener;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
-public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
+public class RuleProcessor
+        implements Consumer<TargetDiscoveryEvent>, EventListener<RuleRegistry.RuleEvent, Rule> {
 
     private final PlatformClient platformClient;
     private final RuleRegistry registry;
     private final ScheduledExecutorService scheduler;
     private final CredentialsManager credentialsManager;
     private final WebClient webClient;
-    private final String postPath;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
-    private final Map<ServiceRef, Future<?>> tasks;
+    private final Map<Pair<ServiceRef, Rule>, Future<?>> tasks;
 
     RuleProcessor(
             PlatformClient platformClient,
@@ -85,7 +92,6 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
             WebClient webClient,
-            String postPath,
             PeriodicArchiverFactory periodicArchiverFactory,
             Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
@@ -94,33 +100,63 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
         this.scheduler = scheduler;
         this.credentialsManager = credentialsManager;
         this.webClient = webClient;
-        this.postPath = postPath;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.headersFactory = headersFactory;
         this.logger = logger;
-
         this.tasks = new HashMap<>();
+
+        this.registry.addListener(this);
     }
 
     public void enable() {
         this.platformClient.addTargetDiscoveryListener(this);
     }
 
-    public void disable() {
+    public synchronized void disable() {
         this.platformClient.removeTargetDiscoveryListener(this);
-        this.tasks.forEach((serviceRef, future) -> future.cancel(true));
+        this.tasks.forEach((ruleExecution, future) -> future.cancel(true));
         this.tasks.clear();
     }
 
-    // FIXME should the processor should also be able to apply new rules to targets that have
-    // already appeared?
     @Override
-    public void accept(TargetDiscoveryEvent tde) {
+    public synchronized void onEvent(Event<RuleEvent, Rule> event) {
+        switch (event.getEventType()) {
+            case ADDED:
+                // FIXME the processor should also be able to apply new rules to targets that have
+                // already appeared
+                break;
+            case REMOVED:
+                Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it =
+                        tasks.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
+                    if (!Objects.equals(entry.getKey().getRight(), event.getPayload())) {
+                        continue;
+                    }
+                    Future<?> task = entry.getValue();
+                    if (task != null) {
+                        task.cancel(true);
+                    }
+                    it.remove();
+                }
+                break;
+            default:
+                throw new IllegalArgumentException(event.getEventType().toString());
+        }
+    }
+
+    @Override
+    public synchronized void accept(TargetDiscoveryEvent tde) {
         if (EventKind.LOST.equals(tde.getEventKind())) {
-            Future<?> task = tasks.remove(tde.getServiceRef());
-            if (task != null) {
-                task.cancel(true);
-            }
+            registry.getRules(tde.getServiceRef())
+                    .forEach(
+                            rule -> {
+                                Pair<ServiceRef, Rule> key = Pair.of(tde.getServiceRef(), rule);
+                                Future<?> task = tasks.remove(key);
+                                if (task != null) {
+                                    task.cancel(true);
+                                }
+                            });
             return;
         }
         if (!EventKind.FOUND.equals(tde.getEventKind())) {
@@ -160,7 +196,7 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
                                 return;
                             }
                             tasks.put(
-                                    tde.getServiceRef(),
+                                    Pair.of(tde.getServiceRef(), rule),
                                     scheduler.scheduleAtFixedRate(
                                             periodicArchiverFactory.create(
                                                     tde.getServiceRef(), credentials, rule),
@@ -193,8 +229,14 @@ public class RuleProcessor implements Consumer<TargetDiscoveryEvent> {
             form.attribute("maxSize", String.valueOf(maxSizeBytes));
         }
         String path =
-                postPath.replaceAll(
-                        ":targetId", URLEncodedUtils.formatSegments(serviceUrl.toString()));
+                URI.create(
+                                String.format(
+                                        "/api/v1/targets/%s/recordings",
+                                        URLEncodedUtils.formatSegments(serviceUrl.toString())))
+                        .normalize()
+                        .toString();
+
+        this.logger.trace("POST {}", path);
 
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         this.webClient

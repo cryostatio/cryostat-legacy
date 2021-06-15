@@ -225,7 +225,7 @@ class RuleRegistryTest {
     void testDeleteRuleDoesNothingIfNoneAdded() throws Exception {
         registry.deleteRule(TEST_RULE.getName());
         Mockito.verifyNoInteractions(gson);
-        Mockito.verify(fs).listDirectoryChildren(rulesDir);
+        Mockito.verify(fs).listDirectoryChildren(Mockito.any());
         Mockito.verifyNoMoreInteractions(fs);
         Mockito.verifyNoInteractions(rulesDir);
     }
@@ -252,7 +252,7 @@ class RuleRegistryTest {
     }
 
     @Test
-    void testDeleteLogsFileDeletionException() throws Exception {
+    void testDeletePropagatesFileDeletionException() throws Exception {
         Path rulePath = Mockito.mock(Path.class);
         Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
         Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
@@ -261,8 +261,6 @@ class RuleRegistryTest {
 
         registry.addRule(TEST_RULE);
 
-        registry.deleteRule(TEST_RULE.getName());
-
-        Mockito.verify(logger).warn(Mockito.any(IOException.class));
+        Assertions.assertThrows(IOException.class, () -> registry.deleteRule(TEST_RULE.getName()));
     }
 }
