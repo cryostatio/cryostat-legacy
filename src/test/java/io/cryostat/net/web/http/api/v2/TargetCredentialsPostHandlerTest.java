@@ -40,17 +40,8 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.util.Map;
 
-import io.cryostat.MainModule;
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -58,9 +49,21 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 class TargetCredentialsPostHandlerTest {
@@ -126,8 +129,52 @@ class TargetCredentialsPostHandlerTest {
                     ex.getFailureReason(), Matchers.equalTo("\"username\" is required."));
         }
 
+        @ParameterizedTest
+        @ValueSource(strings={
+            "",
+            " ",
+            "\t",
+            "\n"
+        })
+        void shouldRespond400WhenUsernameBlank() throws Exception {
+            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
+
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.set("password", "abc123");
+            Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
+
+            ApiException ex =
+                    Assertions.assertThrows(
+                            ApiException.class, () -> handler.handle(requestParams));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(
+                    ex.getFailureReason(), Matchers.equalTo("\"username\" is required."));
+        }
+
         @Test
         void shouldRespond400WhenPasswordOmitted() throws Exception {
+            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
+
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.set("username", "adminuser");
+            Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
+
+            ApiException ex =
+                    Assertions.assertThrows(
+                            ApiException.class, () -> handler.handle(requestParams));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(
+                    ex.getFailureReason(), Matchers.equalTo("\"password\" is required."));
+        }
+
+        @ParameterizedTest
+        @ValueSource(strings={
+            "",
+            " ",
+            "\t",
+            "\n"
+        })
+        void shouldRespond400WhenPasswordBlank() throws Exception {
             Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "fooTarget"));
 
             MultiMap form = MultiMap.caseInsensitiveMultiMap();

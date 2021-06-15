@@ -41,14 +41,16 @@ import java.io.IOException;
 
 import javax.inject.Inject;
 
+import com.google.gson.Gson;
+
+import org.apache.commons.lang3.StringUtils;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 
 class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
@@ -107,12 +109,12 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
         String username = params.getFormAttributes().get("username");
         String password = params.getFormAttributes().get("password");
 
-        if (username == null || password == null) {
+        if (StringUtils.isAnyBlank(username, password)) {
             StringBuilder sb = new StringBuilder();
-            if (username == null) {
+            if (StringUtils.isBlank(username)) {
                 sb.append("\"username\" is required.");
             }
-            if (password == null) {
+            if (StringUtils.isBlank(password)) {
                 sb.append(" \"password\" is required.");
             }
 
