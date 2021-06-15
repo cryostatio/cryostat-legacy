@@ -323,7 +323,9 @@ class TargetRecordingsPostHandlerTest {
                                                 arg0.getArgument(1))
                                         .execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
+        Mockito.when(service.getAvailableRecordings())
+                .thenReturn(Collections.emptyList())
+                .thenReturn(Arrays.asList(existingRecording));
         RecordingOptionsBuilder recordingOptionsBuilder =
                 Mockito.mock(RecordingOptionsBuilder.class);
         Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any()))
@@ -336,7 +338,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         attrs.addAll(requestValues);
-        attrs.add("recordingName", "testRecording");
+        attrs.add("recordingName", "someRecording");
         attrs.add("events", "foo.Bar:enabled=true");
         Mockito.when(req.formAttributes()).thenReturn(attrs);
 
