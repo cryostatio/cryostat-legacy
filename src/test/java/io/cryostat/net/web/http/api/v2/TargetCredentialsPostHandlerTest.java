@@ -123,7 +123,7 @@ class TargetCredentialsPostHandlerTest {
                             ApiException.class, () -> handler.handle(requestParams));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
             MatcherAssert.assertThat(
-                    ex.getFailureReason(), Matchers.equalTo("username is required."));
+                    ex.getFailureReason(), Matchers.equalTo("\"username\" is required."));
         }
 
         @Test
@@ -139,7 +139,7 @@ class TargetCredentialsPostHandlerTest {
                             ApiException.class, () -> handler.handle(requestParams));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
             MatcherAssert.assertThat(
-                    ex.getFailureReason(), Matchers.equalTo("password is required."));
+                    ex.getFailureReason(), Matchers.equalTo("\"password\" is required."));
         }
 
         @Test
@@ -155,7 +155,7 @@ class TargetCredentialsPostHandlerTest {
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
             MatcherAssert.assertThat(
                     ex.getFailureReason(),
-                    Matchers.equalTo("username is required. password is required."));
+                    Matchers.equalTo("\"username\" is required. \"password\" is required."));
         }
 
         @Test

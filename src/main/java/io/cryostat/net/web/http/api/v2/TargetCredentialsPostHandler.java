@@ -110,10 +110,10 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
         if (username == null || password == null) {
             StringBuilder sb = new StringBuilder();
             if (username == null) {
-                sb.append("username is required.");
+                sb.append("\"username\" is required.");
             }
             if (password == null) {
-                sb.append(" password is required.");
+                sb.append(" \"password\" is required.");
             }
 
             throw new ApiException(400, sb.toString().trim());
