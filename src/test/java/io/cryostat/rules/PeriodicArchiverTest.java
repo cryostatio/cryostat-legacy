@@ -167,21 +167,9 @@ class PeriodicArchiverTest {
                 .sendBuffer(Mockito.any(), Mockito.any());
 
         MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
+
         archiver.run();
 
-        ArgumentCaptor<Buffer> patchActionCaptor = ArgumentCaptor.forClass(Buffer.class);
-        Mockito.verify(request).sendBuffer(patchActionCaptor.capture(), Mockito.any());
-        Buffer patchAction = patchActionCaptor.getValue();
-        MatcherAssert.assertThat(patchAction.toString(), Matchers.equalTo("save"));
-
-        ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
-        Mockito.verify(request).putHeaders(headersCaptor.capture());
-        MultiMap capturedHeaders = headersCaptor.getValue();
-        MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
-
-        Mockito.verify(webClient)
-                .patch(
-                        "/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/auto_Test_Rule");
         MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(1));
     }
 
