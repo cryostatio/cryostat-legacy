@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -93,6 +94,7 @@ class CertificatePostHandlerTest {
     @Mock RoutingContext ctx;
     @Mock FileOutputStream outStream;
     @Mock FileUpload fu;
+    @Mock File malformed;
     @Mock Path truststorePath;
     @Mock Path fileUploadPath;
     @Mock CertificateValidator certValidator;
@@ -173,15 +175,17 @@ class CertificatePostHandlerTest {
         Mockito.when(env.getEnv(Mockito.any())).thenReturn("/truststore");
         Mockito.when(fs.pathOf("/truststore", "certificate.cer")).thenReturn(truststorePath);
         Mockito.when(truststorePath.normalize()).thenReturn(truststorePath);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(false, true);
 
         InputStream instream = new ByteArrayInputStream("not a certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
         Mockito.when(certValidator.parseCertificates(Mockito.any()))
                 .thenThrow(new CertificateException("parsing error"));
+        Mockito.when(truststorePath.toFile()).thenReturn(malformed);
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("parsing error"));
+        Mockito.verify(malformed, Mockito.times(1)).delete();
     }
 
     @Test
