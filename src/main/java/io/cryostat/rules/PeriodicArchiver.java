@@ -46,6 +46,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
@@ -61,7 +62,7 @@ import org.apache.http.client.utils.URLEncodedUtils;
 class PeriodicArchiver implements Runnable {
 
     private final ServiceRef serviceRef;
-    private final Credentials credentials;
+    private final CredentialsManager credentialsManager;
     private final Rule rule;
     private final WebClient webClient;
     private final Function<Credentials, MultiMap> headersFactory;
@@ -72,7 +73,7 @@ class PeriodicArchiver implements Runnable {
 
     PeriodicArchiver(
             ServiceRef serviceRef,
-            Credentials credentials,
+            CredentialsManager credentialsManager,
             Rule rule,
             WebClient webClient,
             Function<Credentials, MultiMap> headersFactory,
@@ -80,7 +81,7 @@ class PeriodicArchiver implements Runnable {
             Logger logger) {
         this.webClient = webClient;
         this.serviceRef = serviceRef;
-        this.credentials = credentials;
+        this.credentialsManager = credentialsManager;
         this.rule = rule;
         this.headersFactory = headersFactory;
         this.failureNotifier = failureNotifier;
@@ -129,7 +130,7 @@ class PeriodicArchiver implements Runnable {
         CompletableFuture<String> future = new CompletableFuture<>();
         this.webClient
                 .patch(path)
-                .putHeaders(headersFactory.apply(credentials))
+                .putHeaders(headersFactory.apply(credentialsManager.getCredentials(serviceRef)))
                 .sendBuffer(
                         Buffer.buffer("save"),
                         ar -> {
@@ -163,7 +164,7 @@ class PeriodicArchiver implements Runnable {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         this.webClient
                 .delete(path)
-                .putHeaders(headersFactory.apply(credentials))
+                .putHeaders(headersFactory.apply(credentialsManager.getCredentials(serviceRef)))
                 .send(
                         ar -> {
                             if (ar.failed()) {

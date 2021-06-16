@@ -47,6 +47,7 @@ import java.util.Objects;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 
@@ -122,6 +123,10 @@ public class CredentialsManager {
 
     public Credentials getCredentials(String targetId) {
         return this.credentialsMap.get(targetId);
+    }
+
+    public Credentials getCredentials(ServiceRef serviceRef) {
+        return getCredentials(serviceRef.getJMXServiceUrl().toString());
     }
 
     private Path getPersistedPath(String targetId) {
