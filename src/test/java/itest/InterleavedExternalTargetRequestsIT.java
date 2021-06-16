@@ -80,13 +80,82 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                                 .collect(Collectors.toList())
                                 .toArray(new CompletableFuture[0]))
                 .join();
-        Thread.sleep(7_500L); // wait for JDP to discover new containers
+
+        // Query every 5s for up to 6 queries, waiting until we have discovered the expected
+        // number of targets via JDP (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
+        int attempts = 0;
+        while (true) {
+            CompletableFuture<Integer> resp = new CompletableFuture<>();
+            webClient
+                    .get("/api/v1/targets")
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, resp)) {
+                                    resp.complete(ar.result().bodyAsJsonArray().size());
+                                }
+                            });
+            int numTargets = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (numTargets == NUM_EXT_CONTAINERS + 1) {
+                System.out.println("setup complete, continuing to tests");
+                break;
+            } else if (numTargets < NUM_EXT_CONTAINERS + 1) {
+                System.err.println(
+                        String.format(
+                                "%d targets found on attempt %d - waiting for setup to complete",
+                                numTargets, attempts + 1));
+                if (attempts > 6) {
+                    throw new Exception("setup failed");
+                }
+                Thread.sleep(5_000);
+            } else {
+                System.err.println(
+                        String.format(
+                                "%d targets found on attempt %d - too many!",
+                                numTargets, attempts + 1));
+                throw new Exception("setup failed");
+            }
+            attempts++;
+        }
     }
 
     @AfterAll
     static void cleanup() throws Exception {
         for (String id : CONTAINERS) {
             Podman.kill(id);
+        }
+
+        // Query every 5s for up to 6 queries. If we still see additional targets other than
+        // the Cryostat instance itself, bail out - teardown failed. JDP discovery may take some
+        // time to notice that targets have disappeared after the processes/containers are killed,
+        // but this should be only a few seconds.
+        // https://github.com/cryostatio/cryostat/issues/501#issuecomment-856264316
+        int attempts = 0;
+        while (true) {
+            CompletableFuture<Integer> resp = new CompletableFuture<>();
+            webClient
+                    .get("/api/v1/targets")
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, resp)) {
+                                    resp.complete(ar.result().bodyAsJsonArray().size());
+                                }
+                            });
+            int numTargets = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            if (numTargets > 1) {
+                System.err.println(
+                        String.format(
+                                "%d targets found on attempt %d - waiting for teardown to complete",
+                                numTargets, attempts + 1));
+                if (attempts++ > 6) {
+                    throw new Exception("teardown failed");
+                }
+                Thread.sleep(5_000);
+            } else if (numTargets == 0) {
+                throw new Exception("teardown failed - all containers gone, including Cryostat");
+            } else {
+                System.out.println("teardown complete");
+                break;
+            }
         }
     }
 
