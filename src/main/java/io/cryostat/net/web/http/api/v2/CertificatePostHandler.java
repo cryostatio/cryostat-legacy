@@ -154,14 +154,15 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
         try (InputStream fis = fs.newInputStream(certPath)) {
             Collection<? extends Certificate> certificates = certValidator.parseCertificates(fis);
 
-            FileOutputStream out = outputStreamFunction.apply(filePath.toFile());
-
-            Iterator<? extends Certificate> it = certificates.iterator();
-            while (it.hasNext()) {
-                Certificate certificate = (Certificate) it.next();
-                byte[] buf = certificate.getEncoded();
-                out.write(buf);
+            try (FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
+                Iterator<? extends Certificate> it = certificates.iterator();
+                while (it.hasNext()) {
+                    Certificate certificate = (Certificate) it.next();
+                    byte[] buf = certificate.getEncoded();
+                    out.write(buf);
+                }
             }
+
         } catch (IOException ioe) {
             throw new ApiException(500, ioe.getMessage(), ioe);
         } catch (CertificateEncodingException cee) {
