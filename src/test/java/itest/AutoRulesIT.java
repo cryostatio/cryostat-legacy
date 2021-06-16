@@ -65,6 +65,10 @@ class AutoRulesIT extends TestBase {
     static final List<String> CONTAINERS = new ArrayList<>();
     static final Map<String, String> NULL_RESULT = new HashMap<>();
 
+    final String jmxServiceUrl =
+            String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
+    final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
+
     static {
         NULL_RESULT.put("result", null);
     }
@@ -193,13 +197,7 @@ class AutoRulesIT extends TestBase {
         form.add("username", "admin");
         form.add("password", "adminpass123");
         webClient
-                .post(
-                        String.format(
-                                "/api/v2/targets/%s/credentials",
-                                String.format(
-                                                "service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi",
-                                                Podman.POD_NAME)
-                                        .replaceAll("/", "%2F")))
+                .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
                 .sendForm(
                         form,
                         ar -> {
@@ -293,7 +291,7 @@ class AutoRulesIT extends TestBase {
     void testCredentialsCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
-                .delete(String.format("/api/v2/targets/%s/credentials", Podman.POD_NAME + ":9093"))
+                .delete(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, response)) {

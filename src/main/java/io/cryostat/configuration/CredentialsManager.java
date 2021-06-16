@@ -114,9 +114,10 @@ public class CredentialsManager {
         return replaced;
     }
 
-    public void removeCredentials(String targetId) throws IOException {
-        this.credentialsMap.remove(targetId);
+    public boolean removeCredentials(String targetId) throws IOException {
+        Credentials deleted = this.credentialsMap.remove(targetId);
         fs.deleteIfExists(getPersistedPath(targetId));
+        return deleted != null;
     }
 
     public Credentials getCredentials(String targetId) {
