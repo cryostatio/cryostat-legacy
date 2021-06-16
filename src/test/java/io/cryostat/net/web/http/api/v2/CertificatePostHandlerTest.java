@@ -175,17 +175,16 @@ class CertificatePostHandlerTest {
         Mockito.when(env.getEnv(Mockito.any())).thenReturn("/truststore");
         Mockito.when(fs.pathOf("/truststore", "certificate.cer")).thenReturn(truststorePath);
         Mockito.when(truststorePath.normalize()).thenReturn(truststorePath);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false, true);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
 
         InputStream instream = new ByteArrayInputStream("not a certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
         Mockito.when(certValidator.parseCertificates(Mockito.any()))
                 .thenThrow(new CertificateException("parsing error"));
-        Mockito.when(truststorePath.toFile()).thenReturn(malformed);
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("parsing error"));
-        Mockito.verify(malformed, Mockito.times(1)).delete();
+        Mockito.verify(outStream, Mockito.times(0)).write(Mockito.any());
     }
 
     @Test

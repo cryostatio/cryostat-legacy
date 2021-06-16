@@ -151,10 +151,11 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
             throw new ApiException(409, filePath.toString() + " Certificate already exists");
         }
 
-        try (InputStream fis = fs.newInputStream(certPath);
-                FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
-
+        try (InputStream fis = fs.newInputStream(certPath)) {
             Collection<? extends Certificate> certificates = certValidator.parseCertificates(fis);
+
+            FileOutputStream out = outputStreamFunction.apply(filePath.toFile());
+
             Iterator<? extends Certificate> it = certificates.iterator();
             while (it.hasNext()) {
                 Certificate certificate = (Certificate) it.next();
@@ -166,18 +167,9 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
         } catch (CertificateEncodingException cee) {
             throw new ApiException(500, cee.getMessage(), cee);
         } catch (Exception e) {
-            deleteMalformedCert(filePath, e);
             throw new ApiException(500, e.getMessage(), e);
         }
 
         return new IntermediateResponse<Path>().body(filePath);
-    }
-
-    private void deleteMalformedCert(Path filePath, Exception e) {
-        if (fs.exists(filePath)) {
-            if (!filePath.toFile().delete()) {
-                throw new ApiException(500, e.getMessage(), e);
-            }
-        }
     }
 }
