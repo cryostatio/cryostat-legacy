@@ -38,7 +38,6 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import javax.inject.Inject;
 
@@ -51,6 +50,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
 class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
 
@@ -105,17 +105,19 @@ class TargetCredentialsPostHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         String targetId = params.getPathParams().get("targetId");
-        String username;
-        String password;
-        try {
-            username =
-                    Objects.requireNonNull(
-                            params.getFormAttributes().get("username"), "Username is required");
-            password =
-                    Objects.requireNonNull(
-                            params.getFormAttributes().get("password"), "Password is required");
-        } catch (NullPointerException npe) {
-            throw new ApiException(400, npe.getMessage(), npe);
+        String username = params.getFormAttributes().get("username");
+        String password = params.getFormAttributes().get("password");
+
+        if (StringUtils.isAnyBlank(username, password)) {
+            StringBuilder sb = new StringBuilder();
+            if (StringUtils.isBlank(username)) {
+                sb.append("\"username\" is required.");
+            }
+            if (StringUtils.isBlank(password)) {
+                sb.append(" \"password\" is required.");
+            }
+
+            throw new ApiException(400, sb.toString().trim());
         }
 
         try {
