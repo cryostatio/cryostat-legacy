@@ -166,12 +166,18 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
         } catch (CertificateEncodingException cee) {
             throw new ApiException(500, cee.getMessage(), cee);
         } catch (Exception e) {
-            if (fs.exists(filePath)) {
-                filePath.toFile().delete();
-            }
+            deleteMalformedCert(filePath, e);
             throw new ApiException(500, e.getMessage(), e);
         }
 
         return new IntermediateResponse<Path>().body(filePath);
+    }
+
+    private void deleteMalformedCert(Path filePath, Exception e) {
+        if (fs.exists(filePath)) {
+            if (!filePath.toFile().delete()) {
+                throw new ApiException(500, e.getMessage(), e);
+            }
+        }
     }
 }
