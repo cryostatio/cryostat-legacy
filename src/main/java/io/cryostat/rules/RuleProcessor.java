@@ -199,11 +199,22 @@ public class RuleProcessor
                                     Pair.of(tde.getServiceRef(), rule),
                                     scheduler.scheduleAtFixedRate(
                                             periodicArchiverFactory.create(
-                                                    tde.getServiceRef(), credentials, rule),
+                                                    tde.getServiceRef(),
+                                                    credentials,
+                                                    rule,
+                                                    this::archivalFailureHandler),
                                             rule.getArchivalPeriodSeconds(),
                                             rule.getArchivalPeriodSeconds(),
                                             TimeUnit.SECONDS));
                         });
+    }
+
+    private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
+        Future<?> task = tasks.get(id);
+        if (task != null) {
+            task.cancel(true);
+        }
+        return null;
     }
 
     private Future<Boolean> startRuleRecording(

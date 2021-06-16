@@ -40,7 +40,9 @@ package io.cryostat.rules;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -61,6 +63,7 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
 import io.vertx.ext.web.multipart.impl.FormDataPartImpl;
+import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -163,7 +166,9 @@ class RuleProcessorTest {
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
 
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
-        Mockito.when(periodicArchiverFactory.create(Mockito.any(), Mockito.any(), Mockito.any()))
+        Mockito.when(
+                        periodicArchiverFactory.create(
+                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(periodicArchiver);
 
         processor.accept(tde);
@@ -192,5 +197,80 @@ class RuleProcessorTest {
         MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
 
         Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
+    }
+
+    @Test
+    void testTaskCancellationOnFailure() throws Exception {
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> response = Mockito.mock(HttpResponse.class);
+        Mockito.when(response.statusCode()).thenReturn(200);
+
+        Mockito.when(webClient.post(Mockito.any())).thenReturn(request);
+        Mockito.when(request.putHeaders(Mockito.any())).thenReturn(request);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock invocation) throws Throwable {
+                                AsyncResult res = Mockito.mock(AsyncResult.class);
+                                Mockito.when(res.failed()).thenReturn(false);
+                                Mockito.when(res.result()).thenReturn(response);
+                                ((Handler<AsyncResult>) invocation.getArgument(1)).handle(res);
+                                return null;
+                            }
+                        })
+                .when(request)
+                .sendMultipartForm(Mockito.any(), Mockito.any());
+
+        String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
+        ServiceRef serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
+
+        Credentials credentials = new Credentials("foouser", "barpassword");
+        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+
+        TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
+
+        Rule rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .targetAlias("com.example.App")
+                        .eventSpecifier("template=Continuous")
+                        .maxAgeSeconds(30)
+                        .maxSizeBytes(1234)
+                        .preservedArchives(5)
+                        .archivalPeriodSeconds(67)
+                        .build();
+
+        Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
+        Mockito.when(
+                        periodicArchiverFactory.create(
+                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(periodicArchiver);
+
+        ScheduledFuture task = Mockito.mock(ScheduledFuture.class);
+        Mockito.when(
+                        scheduler.scheduleAtFixedRate(
+                                Mockito.any(Runnable.class),
+                                Mockito.anyLong(),
+                                Mockito.anyLong(),
+                                Mockito.any(TimeUnit.class)))
+                .thenReturn(task);
+
+        processor.accept(tde);
+
+        Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
+
+        ArgumentCaptor<Function<Pair<ServiceRef, Rule>, Void>> functionCaptor =
+                ArgumentCaptor.forClass(Function.class);
+        Mockito.verify(periodicArchiverFactory)
+                .create(Mockito.any(), Mockito.any(), Mockito.any(), functionCaptor.capture());
+        Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
+        Mockito.verify(task, Mockito.never()).cancel(Mockito.anyBoolean());
+
+        failureFunction.apply(Pair.of(serviceRef, rule));
+
+        Mockito.verify(task).cancel(true);
     }
 }

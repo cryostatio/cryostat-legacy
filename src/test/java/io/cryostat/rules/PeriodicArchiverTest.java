@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import java.util.concurrent.atomic.AtomicInteger;
+
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.core.log.Logger;
@@ -83,14 +85,25 @@ class PeriodicArchiverTest {
                     .build();
     @Mock WebClient webClient;
     @Mock MultiMap headers;
+    AtomicInteger failureCounter;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() throws Exception {
         this.serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
+        this.failureCounter = new AtomicInteger();
         this.archiver =
                 new PeriodicArchiver(
-                        serviceRef, credentials, rule, webClient, c -> headers, logger);
+                        serviceRef,
+                        credentials,
+                        rule,
+                        webClient,
+                        c -> headers,
+                        p -> {
+                            failureCounter.incrementAndGet();
+                            return null;
+                        },
+                        logger);
     }
 
     @Test
@@ -131,6 +144,33 @@ class PeriodicArchiverTest {
         Mockito.verify(webClient)
                 .patch(
                         "/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/auto_Test_Rule");
+    }
+
+    @Test
+    void testNotifyOnFailure() throws Exception {
+        HttpRequest<Buffer> request = Mockito.mock(HttpRequest.class);
+
+        Mockito.when(webClient.patch(Mockito.any())).thenReturn(request);
+        Mockito.when(request.putHeaders(Mockito.any())).thenReturn(request);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock invocation) throws Throwable {
+                                AsyncResult res = Mockito.mock(AsyncResult.class);
+                                Mockito.when(res.failed()).thenReturn(true);
+                                Mockito.when(res.cause()).thenReturn(new Exception());
+                                ((Handler<AsyncResult>) invocation.getArgument(1)).handle(res);
+                                return null;
+                            }
+                        })
+                .when(request)
+                .sendBuffer(Mockito.any(), Mockito.any());
+
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
+
+        archiver.run();
+
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(1));
     }
 
     @Test
