@@ -250,7 +250,8 @@ class TargetRecordingPatchSaveTest {
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"));
+                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"),
+                        null);
         ServiceRef serviceRef3 =
                 new ServiceRef(
                         new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),

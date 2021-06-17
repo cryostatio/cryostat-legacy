@@ -57,10 +57,6 @@ public class ServiceRef {
         this.alias = alias;
     }
 
-    public ServiceRef(JMXServiceURL jmxServiceUrl) throws MalformedURLException {
-        this(jmxServiceUrl, null);
-    }
-
     public JMXServiceURL getJMXServiceUrl() {
         return JMXServiceURL;
     }
