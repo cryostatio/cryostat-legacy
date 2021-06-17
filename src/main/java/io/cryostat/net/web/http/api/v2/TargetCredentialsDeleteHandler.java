@@ -101,11 +101,11 @@ class TargetCredentialsDeleteHandler extends AbstractV2RequestHandler<Void> {
     public IntermediateResponse<Void> handle(RequestParameters params) throws ApiException {
         String targetId = params.getPathParams().get("targetId");
         try {
-            this.credentialsManager.removeCredentials(targetId);
+            boolean status = this.credentialsManager.removeCredentials(targetId);
+            return new IntermediateResponse<Void>().statusCode(status ? 200 : 404);
         } catch (IOException e) {
             throw new ApiException(
                     500, "IOException occurred while clearing persisted credentials", e);
         }
-        return new IntermediateResponse<Void>().body(null);
     }
 }

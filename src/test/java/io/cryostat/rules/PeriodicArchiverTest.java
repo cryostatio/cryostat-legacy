@@ -41,8 +41,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.management.remote.JMXServiceURL;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
 
 import io.vertx.core.AsyncResult;
@@ -71,7 +71,7 @@ class PeriodicArchiverTest {
     PeriodicArchiver archiver;
     String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
     ServiceRef serviceRef;
-    Credentials credentials = new Credentials("foouser", "barpassword");
+    @Mock CredentialsManager credentialsManager;
     Rule rule =
             new Rule.Builder()
                     .name("Test Rule")
@@ -95,7 +95,7 @@ class PeriodicArchiverTest {
         this.archiver =
                 new PeriodicArchiver(
                         serviceRef,
-                        credentials,
+                        credentialsManager,
                         rule,
                         webClient,
                         c -> headers,
@@ -140,6 +140,8 @@ class PeriodicArchiverTest {
         Mockito.verify(request).putHeaders(headersCaptor.capture());
         MultiMap capturedHeaders = headersCaptor.getValue();
         MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
+
+        Mockito.verify(credentialsManager).getCredentials(serviceRef);
 
         Mockito.verify(webClient)
                 .patch(

@@ -47,6 +47,7 @@ import java.util.Objects;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
 
@@ -114,13 +115,18 @@ public class CredentialsManager {
         return replaced;
     }
 
-    public void removeCredentials(String targetId) throws IOException {
-        this.credentialsMap.remove(targetId);
+    public boolean removeCredentials(String targetId) throws IOException {
+        Credentials deleted = this.credentialsMap.remove(targetId);
         fs.deleteIfExists(getPersistedPath(targetId));
+        return deleted != null;
     }
 
     public Credentials getCredentials(String targetId) {
         return this.credentialsMap.get(targetId);
+    }
+
+    public Credentials getCredentials(ServiceRef serviceRef) {
+        return getCredentials(serviceRef.getJMXServiceUrl().toString());
     }
 
     private Path getPersistedPath(String targetId) {

@@ -200,7 +200,7 @@ public class RuleProcessor
                                     scheduler.scheduleAtFixedRate(
                                             periodicArchiverFactory.create(
                                                     tde.getServiceRef(),
-                                                    credentials,
+                                                    credentialsManager,
                                                     rule,
                                                     this::archivalFailureHandler),
                                             rule.getArchivalPeriodSeconds(),

@@ -42,7 +42,7 @@ curl -k \
     -F targetAlias="es.andrewazor.demo.Main" \
     -F description="This is a test rule" \
     -F eventSpecifier="template=Continuous,type=TARGET" \
-    -F archivalPeriodSeconds="60" \
+    -F archivalPeriodSeconds="5" \
     -F preservedArchives="3" \
     "$CRYOSTAT_HOST/api/v2/rules"
 
@@ -67,3 +67,9 @@ podman run \
     --env JMX_PORT=9094 \
     --env USE_AUTH=true \
     --rm -d quay.io/andrewazores/vertx-fib-demo:0.7.0
+
+sleep 15
+echo "Deleting credentials"
+curl -k \
+    -X DELETE \
+    "$CRYOSTAT_HOST/api/v2/targets/$demoAppTargetId/credentials"

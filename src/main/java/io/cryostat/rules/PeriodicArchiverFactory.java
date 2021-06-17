@@ -39,6 +39,7 @@ package io.cryostat.rules;
 
 import java.util.function.Function;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
@@ -62,10 +63,16 @@ class PeriodicArchiverFactory {
 
     PeriodicArchiver create(
             ServiceRef serviceRef,
-            Credentials credentials,
+            CredentialsManager credentialsManager,
             Rule rule,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier) {
         return new PeriodicArchiver(
-                serviceRef, credentials, rule, webClient, headersFactory, failureNotifier, logger);
+                serviceRef,
+                credentialsManager,
+                rule,
+                webClient,
+                headersFactory,
+                failureNotifier,
+                logger);
     }
 }
