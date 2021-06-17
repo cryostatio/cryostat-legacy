@@ -38,10 +38,9 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.List;
 import java.util.Optional;
-
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -121,7 +120,7 @@ class TargetsPostHandlerTest {
     }
 
     @Test
-    void testSuccessfulRequest() throws IOException {
+    void testSuccessfulRequest() throws Exception {
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         RequestParameters requestParameters = Mockito.mock(RequestParameters.class);
         Mockito.when(requestParameters.getFormAttributes()).thenReturn(attrs);
@@ -139,8 +138,7 @@ class TargetsPostHandlerTest {
         ArgumentCaptor<ServiceRef> refCaptor = ArgumentCaptor.forClass(ServiceRef.class);
         Mockito.verify(customTargetPlatformClient).addTarget(refCaptor.capture());
         ServiceRef captured = refCaptor.getValue();
-        MatcherAssert.assertThat(
-                captured.getJMXServiceUrl(), Matchers.equalTo(new JMXServiceURL(connectUrl)));
+        MatcherAssert.assertThat(captured.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
         MatcherAssert.assertThat(captured.getAlias(), Matchers.equalTo(Optional.of(alias)));
         MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }

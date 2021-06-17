@@ -35,46 +35,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform;
+package io.cryostat.util;
 
 import java.net.URI;
-import java.util.Optional;
+import java.net.URISyntaxException;
 
-import com.google.gson.annotations.SerializedName;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
-
-public class ServiceRef {
-
-    private final @SerializedName("connectUrl") URI serviceUri;
-    private final String alias;
-
-    public ServiceRef(URI uri, String alias) {
-        this.serviceUri = uri;
-        this.alias = alias;
-    }
-
-    public URI getServiceUri() {
-        return serviceUri;
-    }
-
-    public Optional<String> getAlias() {
-        return Optional.ofNullable(alias);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
-    }
-
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
+@SuppressWarnings("serial")
+public class RelativeURIException extends URISyntaxException {
+    public RelativeURIException(URI u) {
+        super(u.toString(), "Not a valid absolute URI");
     }
 }

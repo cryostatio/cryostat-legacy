@@ -35,46 +35,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform;
+package io.cryostat.util;
 
 import java.net.URI;
-import java.util.Optional;
+import java.net.URISyntaxException;
 
-import com.google.gson.annotations.SerializedName;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import javax.management.remote.JMXServiceURL;
 
-public class ServiceRef {
+public class URIUtil {
+    private URIUtil() {}
 
-    private final @SerializedName("connectUrl") URI serviceUri;
-    private final String alias;
-
-    public ServiceRef(URI uri, String alias) {
-        this.serviceUri = uri;
-        this.alias = alias;
+    public static URI createAbsolute(String uri) throws URISyntaxException, RelativeURIException {
+        URI u = new URI(uri);
+        if (!u.isAbsolute()) {
+            throw new RelativeURIException(u);
+        }
+        return u;
     }
 
-    public URI getServiceUri() {
-        return serviceUri;
-    }
-
-    public Optional<String> getAlias() {
-        return Optional.ofNullable(alias);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
-    }
-
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
+    public static URI convert(JMXServiceURL serviceUrl) throws URISyntaxException {
+        return new URI(serviceUrl.toString());
     }
 }

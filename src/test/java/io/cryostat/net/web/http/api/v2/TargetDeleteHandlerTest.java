@@ -38,10 +38,10 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.Map;
-
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -116,11 +116,11 @@ class TargetDeleteHandlerTest {
     }
 
     @Test
-    void testSuccessfulRequest() throws IOException {
+    void testSuccessfulRequest() throws IOException, URISyntaxException {
         Map<String, String> pathParams = new HashMap<>();
         RequestParameters requestParameters = Mockito.mock(RequestParameters.class);
         Mockito.when(requestParameters.getPathParams()).thenReturn(pathParams);
-        Mockito.when(customTargetPlatformClient.removeTarget(Mockito.any(JMXServiceURL.class)))
+        Mockito.when(customTargetPlatformClient.removeTarget(Mockito.any(URI.class)))
                 .thenReturn(true);
 
         String targetId = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
@@ -129,15 +129,15 @@ class TargetDeleteHandlerTest {
         IntermediateResponse<Void> response = handler.handle(requestParameters);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
 
-        ArgumentCaptor<JMXServiceURL> urlCaptor = ArgumentCaptor.forClass(JMXServiceURL.class);
-        Mockito.verify(customTargetPlatformClient).removeTarget(urlCaptor.capture());
-        JMXServiceURL captured = urlCaptor.getValue();
-        MatcherAssert.assertThat(captured, Matchers.equalTo(new JMXServiceURL(targetId)));
+        ArgumentCaptor<URI> uriCaptor = ArgumentCaptor.forClass(URI.class);
+        Mockito.verify(customTargetPlatformClient).removeTarget(uriCaptor.capture());
+        URI captured = uriCaptor.getValue();
+        MatcherAssert.assertThat(captured, Matchers.equalTo(new URI(targetId)));
     }
 
     @ParameterizedTest
     @NullAndEmptySource
-    @ValueSource(strings = {"badUrl", "bad:123", "http://example.com/foo"})
+    @ValueSource(strings = {"badUrl", "/some/path", ":8181/another", ":1234/with/a?query=param"})
     void testRequestWithBadTarget(String targetId) throws IOException {
         Map<String, String> pathParams = new HashMap<>();
         pathParams.put("targetId", targetId);
@@ -155,7 +155,7 @@ class TargetDeleteHandlerTest {
         Mockito.when(params.getPathParams()).thenReturn(pathParams);
         String targetId = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
         pathParams.put("targetId", targetId);
-        Mockito.when(customTargetPlatformClient.removeTarget(Mockito.any(JMXServiceURL.class)))
+        Mockito.when(customTargetPlatformClient.removeTarget(Mockito.any(URI.class)))
                 .thenReturn(false);
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
@@ -171,7 +171,7 @@ class TargetDeleteHandlerTest {
 
         pathParams.put("targetId", targetId);
 
-        Mockito.when(customTargetPlatformClient.removeTarget(Mockito.any(JMXServiceURL.class)))
+        Mockito.when(customTargetPlatformClient.removeTarget(Mockito.any(URI.class)))
                 .thenThrow(IOException.class);
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));

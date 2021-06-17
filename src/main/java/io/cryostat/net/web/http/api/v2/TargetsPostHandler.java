@@ -38,11 +38,11 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Objects;
 
 import javax.inject.Inject;
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -50,6 +50,7 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -121,19 +122,20 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
             if (StringUtils.isBlank(alias)) {
                 throw new ApiException(400, "\"alias\" form parameter must be provided");
             }
-            JMXServiceURL jmxServiceURL = new JMXServiceURL(connectUrl);
-            if (platformClient.listDiscoverableServices().stream()
-                    .anyMatch(sr -> Objects.equals(jmxServiceURL, sr.getJMXServiceUrl()))) {
-                throw new ApiException(400, "Duplicate connectUrl");
+            URI uri = URIUtil.createAbsolute(connectUrl);
+            for (ServiceRef serviceRef : platformClient.listDiscoverableServices()) {
+                if (Objects.equals(uri, serviceRef.getServiceUri())) {
+                    throw new ApiException(400, "Duplicate connectUrl");
+                }
             }
-            ServiceRef serviceRef = new ServiceRef(jmxServiceURL, alias);
+            ServiceRef serviceRef = new ServiceRef(uri, alias);
             boolean v = customTargetPlatformClient.addTarget(serviceRef);
             if (!v) {
                 throw new ApiException(400, "Duplicate connectUrl");
             }
             return new IntermediateResponse<ServiceRef>().body(serviceRef);
-        } catch (MalformedURLException mue) {
-            throw new ApiException(400, "Invalid connectUrl", mue);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, "Invalid connectUrl", use);
         } catch (IOException ioe) {
             throw new ApiException(500, "Internal Error", ioe);
         }

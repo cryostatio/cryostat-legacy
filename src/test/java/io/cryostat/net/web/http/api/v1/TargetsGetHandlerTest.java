@@ -48,6 +48,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.net.AuthManager;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -107,7 +108,9 @@ class TargetsGetHandlerTest {
                                         String.format("/jndi/rmi://%s:%s/jmxrmi", host, port));
                             }
                         });
-        ServiceRef target = new ServiceRef(connectionToolkit, "foo", 1, "foo");
+        ServiceRef target =
+                new ServiceRef(
+                        URIUtil.convert(connectionToolkit.createServiceURL("foo", 1)), "foo");
 
         List<ServiceRef> targets = Collections.singletonList(target);
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(targets);

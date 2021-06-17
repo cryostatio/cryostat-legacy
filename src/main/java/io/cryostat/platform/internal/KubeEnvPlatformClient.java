@@ -50,6 +50,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
 
@@ -87,7 +88,10 @@ class KubeEnvPlatformClient implements PlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
-            return new ServiceRef(connectionToolkit.get(), entry.getValue(), port, alias);
+            return new ServiceRef(
+                    URIUtil.convert(
+                            connectionToolkit.get().createServiceURL(entry.getValue(), port)),
+                    alias);
         } catch (Exception e) {
             logger.warn(e);
             return null;

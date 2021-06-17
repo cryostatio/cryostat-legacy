@@ -56,6 +56,7 @@ import io.cryostat.messaging.notifications.Notification.MetaType;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
@@ -88,7 +89,9 @@ class CustomTargetPlatformClientTest {
         try {
             SERVICE_REF =
                     new ServiceRef(
-                            new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi"),
+                            URIUtil.convert(
+                                    new JMXServiceURL(
+                                            "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi")),
                             "TestTarget");
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -259,7 +262,7 @@ class CustomTargetPlatformClientTest {
         Mockito.when(fs.readFile(saveFile)).thenReturn(reader);
 
         client.start();
-        Assertions.assertTrue(client.removeTarget(SERVICE_REF.getJMXServiceUrl()));
+        Assertions.assertTrue(client.removeTarget(SERVICE_REF.getServiceUri()));
 
         Mockito.verify(fs)
                 .writeString(
@@ -284,7 +287,7 @@ class CustomTargetPlatformClientTest {
 
     @Test
     void testRemoveNonexistentTargetByUrl() throws IOException {
-        Assertions.assertFalse(client.removeTarget(SERVICE_REF.getJMXServiceUrl()));
+        Assertions.assertFalse(client.removeTarget(SERVICE_REF.getServiceUri()));
 
         Mockito.verify(fs, Mockito.never())
                 .writeString(

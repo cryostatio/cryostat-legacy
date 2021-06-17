@@ -39,6 +39,7 @@ package io.cryostat.platform.internal;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
@@ -48,7 +49,6 @@ import java.util.SortedSet;
 import java.util.TreeSet;
 
 import javax.inject.Named;
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
@@ -74,12 +74,7 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
             FileSystem fs,
             Gson gson) {
         super(notificationFactory);
-        this.targets =
-                new TreeSet<>(
-                        (u1, u2) ->
-                                u1.getJMXServiceUrl()
-                                        .toString()
-                                        .compareTo(u2.getJMXServiceUrl().toString()));
+        this.targets = new TreeSet<>((u1, u2) -> u1.getServiceUri().compareTo(u2.getServiceUri()));
         this.saveFile = confDir.resolve(SAVEFILE_NAME);
         this.fs = fs;
         this.gson = gson;
@@ -121,10 +116,10 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
         return v;
     }
 
-    public boolean removeTarget(JMXServiceURL connectUrl) throws IOException {
+    public boolean removeTarget(URI connectUrl) throws IOException {
         ServiceRef ref = null;
         for (ServiceRef target : targets) {
-            if (Objects.equals(connectUrl, target.getJMXServiceUrl())) {
+            if (Objects.equals(connectUrl, target.getServiceUri())) {
                 ref = target;
                 break;
             }
