@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.function.Function;
 
 import javax.inject.Inject;
@@ -154,10 +153,13 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
         try (InputStream fis = fs.newInputStream(certPath)) {
             Collection<? extends Certificate> certificates = certValidator.parseCertificates(fis);
 
+            if (certificates.isEmpty()) {
+                throw new ApiException(500, "No certificates found");
+            }
+
             try (FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
-                Iterator<? extends Certificate> it = certificates.iterator();
-                while (it.hasNext()) {
-                    Certificate certificate = (Certificate) it.next();
+
+                for (Certificate certificate : certificates) {
                     byte[] buf = certificate.getEncoded();
                     out.write(buf);
                 }

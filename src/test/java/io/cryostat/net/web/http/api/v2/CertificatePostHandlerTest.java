@@ -49,6 +49,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -93,8 +94,8 @@ class CertificatePostHandlerTest {
 
     @Mock RoutingContext ctx;
     @Mock FileOutputStream outStream;
+    @Mock Function<File, FileOutputStream> outputStreamFunction;
     @Mock FileUpload fu;
-    @Mock File malformed;
     @Mock Path truststorePath;
     @Mock Path fileUploadPath;
     @Mock CertificateValidator certValidator;
@@ -184,7 +185,8 @@ class CertificatePostHandlerTest {
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("parsing error"));
-        Mockito.verify(outStream, Mockito.times(0)).write(Mockito.any());
+        Mockito.verify(outputStreamFunction, Mockito.never()).apply(Mockito.any());
+        Mockito.verify(outStream, Mockito.never()).write(Mockito.any());
     }
 
     @Test
