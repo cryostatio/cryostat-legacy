@@ -37,9 +37,8 @@
  */
 package io.cryostat.rules;
 
+import java.net.URI;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -90,7 +89,7 @@ class PeriodicArchiverTest {
 
     @BeforeEach
     void setup() throws Exception {
-        this.serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
+        this.serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
         this.failureCounter = new AtomicInteger();
         this.archiver =
                 new PeriodicArchiver(

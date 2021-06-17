@@ -50,8 +50,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import javax.management.remote.JMXServiceURL;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -168,15 +166,15 @@ public class RuleProcessor
                             this.logger.trace(
                                     "Activating rule {} for target {}",
                                     rule.getName(),
-                                    tde.getServiceRef().getJMXServiceUrl());
+                                    tde.getServiceRef().getServiceUri());
 
                             Credentials credentials =
                                     credentialsManager.getCredentials(
-                                            tde.getServiceRef().getJMXServiceUrl().toString());
+                                            tde.getServiceRef().getServiceUri().toString());
                             try {
                                 Future<Boolean> success =
                                         startRuleRecording(
-                                                tde.getServiceRef().getJMXServiceUrl(),
+                                                tde.getServiceRef().getServiceUri(),
                                                 rule.getRecordingName(),
                                                 rule.getEventSpecifier(),
                                                 rule.getMaxSizeBytes(),
@@ -218,7 +216,7 @@ public class RuleProcessor
     }
 
     private Future<Boolean> startRuleRecording(
-            JMXServiceURL serviceUrl,
+            URI serviceUri,
             String recordingName,
             String eventSpecifier,
             int maxSizeBytes,
@@ -243,7 +241,7 @@ public class RuleProcessor
                 URI.create(
                                 String.format(
                                         "/api/v1/targets/%s/recordings",
-                                        URLEncodedUtils.formatSegments(serviceUrl.toString())))
+                                        URLEncodedUtils.formatSegments(serviceUri.toString())))
                         .normalize()
                         .toString();
 

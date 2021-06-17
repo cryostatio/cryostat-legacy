@@ -121,7 +121,7 @@ class PeriodicArchiver implements Runnable {
                                 String.format(
                                         "/api/v1/targets/%s/recordings/%s",
                                         URLEncodedUtils.formatSegments(
-                                                serviceRef.getJMXServiceUrl().toString()),
+                                                serviceRef.getServiceUri().toString()),
                                         URLEncodedUtils.formatSegments(rule.getRecordingName())))
                         .normalize()
                         .toString();

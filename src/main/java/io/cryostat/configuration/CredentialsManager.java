@@ -126,7 +126,7 @@ public class CredentialsManager {
     }
 
     public Credentials getCredentials(ServiceRef serviceRef) {
-        return getCredentials(serviceRef.getJMXServiceUrl().toString());
+        return getCredentials(serviceRef.getServiceUri().toString());
     }
 
     private Path getPersistedPath(String targetId) {

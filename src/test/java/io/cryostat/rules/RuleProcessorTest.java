@@ -37,14 +37,13 @@
  */
 package io.cryostat.rules;
 
+import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
-
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -144,7 +143,7 @@ class RuleProcessorTest {
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
-        ServiceRef serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
+        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
         Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
@@ -222,7 +221,7 @@ class RuleProcessorTest {
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
         String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
-        ServiceRef serviceRef = new ServiceRef(new JMXServiceURL(jmxUrl), "com.example.App");
+        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
 
         Credentials credentials = new Credentials("foouser", "barpassword");
         Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
