@@ -87,7 +87,8 @@ class KubeEnvPlatformClient implements PlatformClient {
         String alias = matcher.group(1).toLowerCase();
         int port = Integer.parseInt(matcher.group(2));
         try {
-            return new ServiceRef(connectionToolkit.get(), entry.getValue(), port, alias);
+            return new ServiceRef(
+                    connectionToolkit.get().createServiceURL(entry.getValue(), port), alias);
         } catch (Exception e) {
             logger.warn(e);
             return null;

@@ -193,21 +193,15 @@ class KubeApiPlatformClientTest {
         List<ServiceRef> result = platformClient.listDiscoverableServices();
         ServiceRef serv1 =
                 new ServiceRef(
-                        connectionToolkit,
-                        address2.getIp(),
-                        port2.getPort(),
+                        connectionToolkit.createServiceURL(address2.getIp(), port2.getPort()),
                         address2.getTargetRef().getName());
         ServiceRef serv2 =
                 new ServiceRef(
-                        connectionToolkit,
-                        address3.getIp(),
-                        port2.getPort(),
+                        connectionToolkit.createServiceURL(address3.getIp(), port2.getPort()),
                         address3.getTargetRef().getName());
         ServiceRef serv3 =
                 new ServiceRef(
-                        connectionToolkit,
-                        address4.getIp(),
-                        port3.getPort(),
+                        connectionToolkit.createServiceURL(address4.getIp(), port3.getPort()),
                         address4.getTargetRef().getName());
 
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
@@ -285,9 +279,7 @@ class KubeApiPlatformClientTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
-                        connectionToolkit,
-                        address.getIp(),
-                        port.getPort(),
+                        connectionToolkit.createServiceURL(address.getIp(), port.getPort()),
                         address.getTargetRef().getName());
 
         Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
@@ -353,9 +345,7 @@ class KubeApiPlatformClientTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
-                        connectionToolkit,
-                        address.getIp(),
-                        port.getPort(),
+                        connectionToolkit.createServiceURL(address.getIp(), port.getPort()),
                         address.getTargetRef().getName());
 
         Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
@@ -420,9 +410,7 @@ class KubeApiPlatformClientTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
-                        connectionToolkit,
-                        address.getIp(),
-                        port.getPort(),
+                        connectionToolkit.createServiceURL(address.getIp(), port.getPort()),
                         address.getTargetRef().getName());
 
         Mockito.verify(notificationFactory, Mockito.times(2)).createBuilder();

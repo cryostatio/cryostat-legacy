@@ -107,7 +107,7 @@ class TargetsGetHandlerTest {
                                         String.format("/jndi/rmi://%s:%s/jmxrmi", host, port));
                             }
                         });
-        ServiceRef target = new ServiceRef(connectionToolkit, "foo", 1, "foo");
+        ServiceRef target = new ServiceRef(connectionToolkit.createServiceURL("foo", 1), "foo");
 
         List<ServiceRef> targets = Collections.singletonList(target);
         Mockito.when(platformClient.listDiscoverableServices()).thenReturn(targets);

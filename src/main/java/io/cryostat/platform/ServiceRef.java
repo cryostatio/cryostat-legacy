@@ -42,8 +42,6 @@ import java.util.Optional;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.core.net.JFRConnectionToolkit;
-
 import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -61,11 +59,6 @@ public class ServiceRef {
 
     public ServiceRef(JMXServiceURL jmxServiceUrl) throws MalformedURLException {
         this(jmxServiceUrl, null);
-    }
-
-    public ServiceRef(JFRConnectionToolkit toolkit, String host, int port, String alias)
-            throws MalformedURLException {
-        this(toolkit.createServiceURL(host, port), alias);
     }
 
     public JMXServiceURL getJMXServiceUrl() {

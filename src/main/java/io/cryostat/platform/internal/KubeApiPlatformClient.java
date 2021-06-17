@@ -174,9 +174,9 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                         addr -> {
                             try {
                                 return new ServiceRef(
-                                        connectionToolkit.get(),
-                                        addr.getIp(),
-                                        port.getPort(),
+                                        connectionToolkit
+                                                .get()
+                                                .createServiceURL(addr.getIp(), port.getPort()),
                                         addr.getTargetRef().getName());
                             } catch (Exception e) {
                                 logger.warn(e);
