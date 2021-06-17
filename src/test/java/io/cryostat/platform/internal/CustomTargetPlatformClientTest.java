@@ -259,7 +259,7 @@ class CustomTargetPlatformClientTest {
         Mockito.when(fs.readFile(saveFile)).thenReturn(reader);
 
         client.start();
-        Assertions.assertTrue(client.removeTarget(SERVICE_REF.getJMXServiceUrl()));
+        Assertions.assertTrue(client.removeTarget(SERVICE_REF.getServiceUri()));
 
         Mockito.verify(fs)
                 .writeString(
@@ -284,7 +284,7 @@ class CustomTargetPlatformClientTest {
 
     @Test
     void testRemoveNonexistentTargetByUrl() throws IOException {
-        Assertions.assertFalse(client.removeTarget(SERVICE_REF.getJMXServiceUrl()));
+        Assertions.assertFalse(client.removeTarget(SERVICE_REF.getServiceUri()));
 
         Mockito.verify(fs, Mockito.never())
                 .writeString(

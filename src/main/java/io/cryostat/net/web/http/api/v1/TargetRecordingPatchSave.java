@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.Map;
@@ -58,6 +59,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.util.URIUtil;
 
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -140,10 +142,12 @@ class TargetRecordingPatchSave {
                                 serviceRef -> {
                                     try {
                                         return serviceRef
-                                                        .getJMXServiceUrl()
-                                                        .equals(connection.getJMXURL())
+                                                        .getServiceUri()
+                                                        .equals(
+                                                                URIUtil.convert(
+                                                                        connection.getJMXURL()))
                                                 && serviceRef.getAlias().isPresent();
-                                    } catch (IOException ioe) {
+                                    } catch (URISyntaxException | IOException ioe) {
                                         return false;
                                     }
                                 })

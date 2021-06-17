@@ -69,7 +69,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -154,10 +153,10 @@ class WebServerTest {
     void shouldProvideDownloadUrl(String recordingName) throws URISyntaxException, IOException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
-        when(mockJmxUrl.toString())
-                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
-        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
+        JMXServiceURL jmxUrl =
+                new JMXServiceURL(
+                        "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(jmxUrl);
 
         MatcherAssert.assertThat(
                 exporter.getDownloadURL(connection, recordingName),
@@ -174,10 +173,10 @@ class WebServerTest {
         when(httpServer.isSsl()).thenReturn(true);
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
-        when(mockJmxUrl.toString())
-                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
-        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
+        JMXServiceURL jmxUrl =
+                new JMXServiceURL(
+                        "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(jmxUrl);
 
         MatcherAssert.assertThat(
                 exporter.getDownloadURL(connection, recordingName),
@@ -192,10 +191,10 @@ class WebServerTest {
     void shouldProvideReportUrl(String recordingName) throws URISyntaxException, IOException {
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
-        when(mockJmxUrl.toString())
-                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
-        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
+        JMXServiceURL jmxUrl =
+                new JMXServiceURL(
+                        "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(jmxUrl);
 
         MatcherAssert.assertThat(
                 exporter.getReportURL(connection, recordingName),
@@ -226,10 +225,10 @@ class WebServerTest {
         when(httpServer.isSsl()).thenReturn(true);
         when(netConf.getWebServerHost()).thenReturn("example.com");
         when(netConf.getExternalWebServerPort()).thenReturn(8181);
-        JMXServiceURL mockJmxUrl = Mockito.mock(JMXServiceURL.class);
-        when(mockJmxUrl.toString())
-                .thenReturn("service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
-        when(connection.getJMXURL()).thenReturn(mockJmxUrl);
+        JMXServiceURL jmxUrl =
+                new JMXServiceURL(
+                        "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi");
+        when(connection.getJMXURL()).thenReturn(jmxUrl);
 
         MatcherAssert.assertThat(
                 exporter.getReportURL(connection, recordingName),

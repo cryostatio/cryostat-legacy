@@ -87,7 +87,8 @@ class AbstractPlatformClientTest {
     void shouldEmitNotification() throws Exception {
         Mockito.verifyNoInteractions(notificationFactory);
 
-        JMXServiceURL serviceUrl = Mockito.mock(JMXServiceURL.class);
+        JMXServiceURL serviceUrl =
+                new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         String alias = "com.example.Foo";
         ServiceRef serviceRef = new ServiceRef(serviceUrl, alias);
         EventKind kind = EventKind.FOUND;

@@ -97,7 +97,8 @@ class DefaultPlatformClientTest {
     @Test
     void testDiscoverableServiceMapping() throws Exception {
         DiscoveredJvmDescriptor desc1 = mock(DiscoveredJvmDescriptor.class);
-        JMXServiceURL url1 = mock(JMXServiceURL.class);
+        JMXServiceURL url1 =
+                new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         when(desc1.getMainClass()).thenReturn("com.example.Main");
         when(desc1.getJmxServiceUrl()).thenReturn(url1);
 
@@ -105,9 +106,10 @@ class DefaultPlatformClientTest {
         when(desc2.getJmxServiceUrl()).thenThrow(MalformedURLException.class);
 
         DiscoveredJvmDescriptor desc3 = mock(DiscoveredJvmDescriptor.class);
-        JMXServiceURL url3 = mock(JMXServiceURL.class);
+        JMXServiceURL url2 =
+                new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi");
         when(desc3.getMainClass()).thenReturn("io.cryostat.Cryostat");
-        when(desc3.getJmxServiceUrl()).thenReturn(url3);
+        when(desc3.getJmxServiceUrl()).thenReturn(url2);
 
         when(discoveryClient.getDiscoveredJvmDescriptors())
                 .thenReturn(List.of(desc1, desc2, desc3));
@@ -122,7 +124,7 @@ class DefaultPlatformClientTest {
 
     @Test
     void testAcceptDiscoveryEvent() throws Exception {
-        JMXServiceURL url = mock(JMXServiceURL.class);
+        JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
         String mainClass = "com.example.Main";
         DiscoveredJvmDescriptor desc = mock(DiscoveredJvmDescriptor.class);
         when(desc.getMainClass()).thenReturn(mainClass);
@@ -147,11 +149,7 @@ class DefaultPlatformClientTest {
 
         verifyNoInteractions(notificationFactory);
 
-        try {
-            client.accept(evt);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        client.accept(evt);
 
         verifyNoInteractions(discoveryClient);
 

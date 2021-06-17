@@ -38,15 +38,16 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import javax.inject.Inject;
-import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
@@ -105,13 +106,13 @@ class TargetDeleteHandler extends AbstractV2RequestHandler<Void> {
             if (StringUtils.isBlank(targetId)) {
                 throw new ApiException(400, "Invalid targetId");
             }
-            JMXServiceURL serviceUrl = new JMXServiceURL(targetId);
-            if (!customTargetPlatformClient.removeTarget(serviceUrl)) {
+            URI uri = URIUtil.createAbsolute(targetId);
+            if (!customTargetPlatformClient.removeTarget(uri)) {
                 throw new ApiException(404);
             }
             return new IntermediateResponse<Void>().body(null);
-        } catch (MalformedURLException mue) {
-            throw new ApiException(400, "Invalid targetId", mue);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, "Invalid targetId", use);
         } catch (IOException ioe) {
             throw new ApiException(500, "Internal Error", ioe);
         }

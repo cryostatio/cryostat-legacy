@@ -39,6 +39,7 @@ package io.cryostat.platform.internal;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -77,7 +78,7 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
                             evt.getJvmDescriptor().getJmxServiceUrl(),
                             evt.getJvmDescriptor().getMainClass());
             notifyAsyncTargetDiscovery(evt.getEventKind(), serviceRef);
-        } catch (MalformedURLException e) {
+        } catch (MalformedURLException | URISyntaxException e) {
             logger.warn(e);
         }
     }
@@ -89,7 +90,7 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
                         u -> {
                             try {
                                 return new ServiceRef(u.getJmxServiceUrl(), u.getMainClass());
-                            } catch (MalformedURLException e) {
+                            } catch (MalformedURLException | URISyntaxException e) {
                                 logger.warn(e);
                                 return null;
                             }

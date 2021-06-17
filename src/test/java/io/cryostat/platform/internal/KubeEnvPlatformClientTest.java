@@ -41,6 +41,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -95,7 +96,7 @@ class KubeEnvPlatformClientTest {
         }
 
         @Test
-        void shouldDiscoverServicesByEnv() throws MalformedURLException {
+        void shouldDiscoverServicesByEnv() throws MalformedURLException, URISyntaxException {
             when(env.getEnv())
                     .thenReturn(
                             Map.of(

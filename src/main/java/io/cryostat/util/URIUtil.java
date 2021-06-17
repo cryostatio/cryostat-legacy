@@ -35,69 +35,25 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform.internal;
+package io.cryostat.util;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
 
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.ServiceRef;
+public class URIUtil {
+    private URIUtil() {}
 
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-@ExtendWith(MockitoExtension.class)
-class MergingPlatformClientTest {
-
-    @Mock PlatformClient clientA;
-    @Mock PlatformClient clientB;
-    MergingPlatformClient mergingClient;
-
-    @BeforeEach
-    void setup() {
-        this.mergingClient = new MergingPlatformClient(clientA, clientB);
+    public static URI createAbsolute(String uri) throws URISyntaxException, RelativeURIException {
+        URI u = new URI(uri);
+        if (!u.isAbsolute()) {
+            throw new RelativeURIException(u);
+        }
+        return u;
     }
 
-    @Test
-    void testStart() throws IOException {
-        Mockito.verifyNoInteractions(clientA);
-        Mockito.verifyNoInteractions(clientB);
-
-        mergingClient.start();
-
-        Mockito.verify(clientA).start();
-        Mockito.verify(clientB).start();
-    }
-
-    @Test
-    void testMergedDiscoverableServices() throws MalformedURLException, URISyntaxException {
-        ServiceRef serviceA =
-                new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9098/jmxrmi"),
-                        "ServiceA");
-        ServiceRef serviceB =
-                new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi"),
-                        "ServiceB");
-
-        Mockito.when(clientA.listDiscoverableServices()).thenReturn(List.of(serviceA));
-        Mockito.when(clientB.listDiscoverableServices()).thenReturn(List.of(serviceB));
-
-        MatcherAssert.assertThat(
-                mergingClient.listDiscoverableServices(),
-                Matchers.equalTo(List.of(serviceA, serviceB)));
-
-        Mockito.verify(clientA).listDiscoverableServices();
-        Mockito.verify(clientB).listDiscoverableServices();
+    public static URI convert(JMXServiceURL serviceUrl) throws URISyntaxException {
+        return new URI(serviceUrl.toString());
     }
 }
