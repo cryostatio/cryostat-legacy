@@ -60,6 +60,7 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -116,8 +117,10 @@ class DefaultPlatformClientTest {
 
         List<ServiceRef> results = client.listDiscoverableServices();
 
-        ServiceRef exp1 = new ServiceRef(desc1.getJmxServiceUrl(), desc1.getMainClass());
-        ServiceRef exp2 = new ServiceRef(desc3.getJmxServiceUrl(), desc3.getMainClass());
+        ServiceRef exp1 =
+                new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+        ServiceRef exp2 =
+                new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
 
         assertThat(results, equalTo(List.of(exp1, exp2)));
     }
@@ -163,7 +166,7 @@ class DefaultPlatformClientTest {
                                         "kind",
                                         EventKind.FOUND,
                                         "serviceRef",
-                                        new ServiceRef(url, mainClass))));
+                                        new ServiceRef(URIUtil.convert(url), mainClass))));
         verify(builder).build();
         verify(notification).send();
     }

@@ -61,6 +61,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -175,15 +176,21 @@ class TargetRecordingPatchSaveTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         "some.Alias.2");
         ServiceRef serviceRef3 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
                         "some.Alias.3");
 
         Mockito.when(platformClient.listDiscoverableServices())
@@ -246,15 +253,21 @@ class TargetRecordingPatchSaveTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         null);
         ServiceRef serviceRef3 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
                         "some.Alias.3");
 
         Mockito.when(platformClient.listDiscoverableServices())
@@ -305,11 +318,15 @@ class TargetRecordingPatchSaveTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef3 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
                         "some.Alias.3");
 
         Mockito.when(platformClient.listDiscoverableServices())
@@ -362,15 +379,21 @@ class TargetRecordingPatchSaveTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         "some.Alias.2");
         ServiceRef serviceRef3 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
                         "some.Alias.3");
 
         Mockito.when(platformClient.listDiscoverableServices())
@@ -420,15 +443,21 @@ class TargetRecordingPatchSaveTest {
 
         ServiceRef serviceRef1 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
                         "some.Alias.1");
         ServiceRef serviceRef2 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
                         "some.Alias.2");
         ServiceRef serviceRef3 =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
                         "some.Alias.3");
 
         Mockito.when(platformClient.listDiscoverableServices())

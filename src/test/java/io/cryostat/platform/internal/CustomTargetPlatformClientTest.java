@@ -56,6 +56,7 @@ import io.cryostat.messaging.notifications.Notification.MetaType;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
@@ -88,7 +89,9 @@ class CustomTargetPlatformClientTest {
         try {
             SERVICE_REF =
                     new ServiceRef(
-                            new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi"),
+                            URIUtil.convert(
+                                    new JMXServiceURL(
+                                            "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi")),
                             "TestTarget");
         } catch (Exception e) {
             throw new RuntimeException(e);

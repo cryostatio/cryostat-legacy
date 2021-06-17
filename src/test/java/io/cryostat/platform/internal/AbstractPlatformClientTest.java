@@ -38,6 +38,7 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -49,6 +50,7 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -87,8 +89,9 @@ class AbstractPlatformClientTest {
     void shouldEmitNotification() throws Exception {
         Mockito.verifyNoInteractions(notificationFactory);
 
-        JMXServiceURL serviceUrl =
-                new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
+        URI serviceUrl =
+                URIUtil.convert(
+                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi"));
         String alias = "com.example.Foo";
         ServiceRef serviceRef = new ServiceRef(serviceUrl, alias);
         EventKind kind = EventKind.FOUND;

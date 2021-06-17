@@ -49,6 +49,7 @@ import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<JvmDiscoveryEvent> {
 
@@ -75,7 +76,7 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
         try {
             ServiceRef serviceRef =
                     new ServiceRef(
-                            evt.getJvmDescriptor().getJmxServiceUrl(),
+                            URIUtil.convert(evt.getJvmDescriptor().getJmxServiceUrl()),
                             evt.getJvmDescriptor().getMainClass());
             notifyAsyncTargetDiscovery(evt.getEventKind(), serviceRef);
         } catch (MalformedURLException | URISyntaxException e) {
@@ -89,7 +90,8 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
                 .map(
                         u -> {
                             try {
-                                return new ServiceRef(u.getJmxServiceUrl(), u.getMainClass());
+                                return new ServiceRef(
+                                        URIUtil.convert(u.getJmxServiceUrl()), u.getMainClass());
                             } catch (MalformedURLException | URISyntaxException e) {
                                 logger.warn(e);
                                 return null;

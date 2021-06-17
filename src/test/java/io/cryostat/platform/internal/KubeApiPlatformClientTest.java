@@ -51,6 +51,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import io.fabric8.kubernetes.api.model.EndpointAddress;
 import io.fabric8.kubernetes.api.model.EndpointPort;
@@ -193,15 +194,21 @@ class KubeApiPlatformClientTest {
         List<ServiceRef> result = platformClient.listDiscoverableServices();
         ServiceRef serv1 =
                 new ServiceRef(
-                        connectionToolkit.createServiceURL(address2.getIp(), port2.getPort()),
+                        URIUtil.convert(
+                                connectionToolkit.createServiceURL(
+                                        address2.getIp(), port2.getPort())),
                         address2.getTargetRef().getName());
         ServiceRef serv2 =
                 new ServiceRef(
-                        connectionToolkit.createServiceURL(address3.getIp(), port2.getPort()),
+                        URIUtil.convert(
+                                connectionToolkit.createServiceURL(
+                                        address3.getIp(), port2.getPort())),
                         address3.getTargetRef().getName());
         ServiceRef serv3 =
                 new ServiceRef(
-                        connectionToolkit.createServiceURL(address4.getIp(), port3.getPort()),
+                        URIUtil.convert(
+                                connectionToolkit.createServiceURL(
+                                        address4.getIp(), port3.getPort())),
                         address4.getTargetRef().getName());
 
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
@@ -279,7 +286,9 @@ class KubeApiPlatformClientTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
-                        connectionToolkit.createServiceURL(address.getIp(), port.getPort()),
+                        URIUtil.convert(
+                                connectionToolkit.createServiceURL(
+                                        address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
 
         Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
@@ -345,7 +354,9 @@ class KubeApiPlatformClientTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
-                        connectionToolkit.createServiceURL(address.getIp(), port.getPort()),
+                        URIUtil.convert(
+                                connectionToolkit.createServiceURL(
+                                        address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
 
         Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
@@ -410,7 +421,9 @@ class KubeApiPlatformClientTest {
 
         ServiceRef serviceRef =
                 new ServiceRef(
-                        connectionToolkit.createServiceURL(address.getIp(), port.getPort()),
+                        URIUtil.convert(
+                                connectionToolkit.createServiceURL(
+                                        address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
 
         Mockito.verify(notificationFactory, Mockito.times(2)).createBuilder();

@@ -52,6 +52,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -121,9 +122,13 @@ class KubeEnvPlatformClientTest {
                             });
 
             ServiceRef serv1 =
-                    new ServiceRef(connectionToolkit.createServiceURL("127.0.0.1", 1234), "foo");
+                    new ServiceRef(
+                            URIUtil.convert(connectionToolkit.createServiceURL("127.0.0.1", 1234)),
+                            "foo");
             ServiceRef serv2 =
-                    new ServiceRef(connectionToolkit.createServiceURL("1.2.3.4", 9999), "bar");
+                    new ServiceRef(
+                            URIUtil.convert(connectionToolkit.createServiceURL("1.2.3.4", 9999)),
+                            "bar");
 
             List<ServiceRef> services = client.listDiscoverableServices();
 

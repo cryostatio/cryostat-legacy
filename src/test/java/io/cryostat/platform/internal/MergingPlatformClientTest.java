@@ -46,6 +46,7 @@ import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -83,11 +84,15 @@ class MergingPlatformClientTest {
     void testMergedDiscoverableServices() throws MalformedURLException, URISyntaxException {
         ServiceRef serviceA =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9098/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9098/jmxrmi")),
                         "ServiceA");
         ServiceRef serviceB =
                 new ServiceRef(
-                        new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi"),
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi")),
                         "ServiceB");
 
         Mockito.when(clientA.listDiscoverableServices()).thenReturn(List.of(serviceA));

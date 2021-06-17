@@ -49,6 +49,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
 import io.fabric8.kubernetes.api.model.EndpointPort;
@@ -174,9 +175,11 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
                         addr -> {
                             try {
                                 return new ServiceRef(
-                                        connectionToolkit
-                                                .get()
-                                                .createServiceURL(addr.getIp(), port.getPort()),
+                                        URIUtil.convert(
+                                                connectionToolkit
+                                                        .get()
+                                                        .createServiceURL(
+                                                                addr.getIp(), port.getPort())),
                                         addr.getTargetRef().getName());
                             } catch (Exception e) {
                                 logger.warn(e);

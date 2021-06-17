@@ -38,12 +38,7 @@
 package io.cryostat.platform;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Optional;
-
-import javax.management.remote.JMXServiceURL;
-
-import io.cryostat.util.URIUtil;
 
 import com.google.gson.annotations.SerializedName;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -58,10 +53,6 @@ public class ServiceRef {
     public ServiceRef(URI uri, String alias) {
         this.serviceUri = uri;
         this.alias = alias;
-    }
-
-    public ServiceRef(JMXServiceURL jmxServiceUrl, String alias) throws URISyntaxException {
-        this(URIUtil.convert(jmxServiceUrl), alias);
     }
 
     public URI getServiceUri() {
