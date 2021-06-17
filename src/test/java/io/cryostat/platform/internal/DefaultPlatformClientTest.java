@@ -117,12 +117,12 @@ class DefaultPlatformClientTest {
 
         ServiceRef exp1 =
                 new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
-        exp1.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, desc1.getMainClass());
+        exp1.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, desc1.getMainClass());
         exp1.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
         exp1.addCryostatAnnotation(AnnotationKey.PORT, "9091");
         ServiceRef exp2 =
                 new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
-        exp2.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, desc3.getMainClass());
+        exp2.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, desc3.getMainClass());
         exp2.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
         exp2.addCryostatAnnotation(AnnotationKey.PORT, "9092");
 
@@ -132,9 +132,9 @@ class DefaultPlatformClientTest {
     @Test
     void testAcceptDiscoveryEvent() throws Exception {
         JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
-        String mainClass = "com.example.Main";
+        String javaMain = "com.example.Main";
         DiscoveredJvmDescriptor desc = mock(DiscoveredJvmDescriptor.class);
-        when(desc.getMainClass()).thenReturn(mainClass);
+        when(desc.getMainClass()).thenReturn(javaMain);
         when(desc.getJmxServiceUrl()).thenReturn(url);
         JvmDiscoveryEvent evt = mock(JvmDiscoveryEvent.class);
         when(evt.getEventKind()).thenReturn(EventKind.FOUND);
@@ -151,6 +151,6 @@ class DefaultPlatformClientTest {
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
         MatcherAssert.assertThat(
                 event.getServiceRef(),
-                Matchers.equalTo(new ServiceRef(URIUtil.convert(url), mainClass)));
+                Matchers.equalTo(new ServiceRef(URIUtil.convert(url), javaMain)));
     }
 }

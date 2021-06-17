@@ -140,7 +140,7 @@ public class ServiceRef {
     public enum AnnotationKey {
         HOST("host"),
         PORT("port"),
-        MAIN_CLASS("mainClass"),
+        JAVA_MAIN("javaMain"),
         PID("pid"),
         START_TIME("startTime"),
         NAMESPACE("namespace"),

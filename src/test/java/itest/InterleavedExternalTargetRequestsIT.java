@@ -109,7 +109,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
     @Test
     @Order(1)
     void testOtherContainersFound() throws Exception {
-        //FIXME don't use ServiceRefs or Gson (de)serialization in these tests. This should be
+        // FIXME don't use ServiceRefs or Gson (de)serialization in these tests. This should be
         // as independent as possible from Cryostat internal implementation details.
         CompletableFuture<Set<ServiceRef>> resp = new CompletableFuture<>();
         webClient
@@ -135,7 +135,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                         "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
                                         Podman.POD_NAME)),
                         "io.cryostat.Cryostat");
-        cryostat.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, "io.cryostat.Cryostat");
+        cryostat.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, "io.cryostat.Cryostat");
         cryostat.addCryostatAnnotation(AnnotationKey.HOST, Podman.POD_NAME);
         cryostat.addCryostatAnnotation(AnnotationKey.PORT, "9091");
         expected.add(cryostat);
@@ -147,7 +147,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                             "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
                                             Podman.POD_NAME, 9093 + i)),
                             "es.andrewazor.demo.Main");
-            ext.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, "es.andrewazor.demo.Main");
+            ext.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, "es.andrewazor.demo.Main");
             ext.addCryostatAnnotation(AnnotationKey.HOST, Podman.POD_NAME);
             ext.addCryostatAnnotation(AnnotationKey.PORT, Integer.toString(9093 + i));
             expected.add(ext);

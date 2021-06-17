@@ -100,7 +100,7 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
             throws MalformedURLException, URISyntaxException {
         JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
         ServiceRef serviceRef = new ServiceRef(URIUtil.convert(serviceUrl), desc.getMainClass());
-        serviceRef.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, desc.getMainClass());
+        serviceRef.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, desc.getMainClass());
 
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
         serviceRef.addCryostatAnnotation(AnnotationKey.HOST, rmiTarget.getHost());
