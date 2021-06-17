@@ -38,6 +38,9 @@
 package io.cryostat.platform;
 
 import java.net.URI;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 
 import com.google.gson.annotations.SerializedName;
@@ -47,8 +50,12 @@ import org.apache.commons.lang3.builder.ToStringBuilder;
 
 public class ServiceRef {
 
+    public static final String ANNOTATION_PREFIX = "target.cryostat.io";
+
     private final @SerializedName("connectUrl") URI serviceUri;
     private final String alias;
+    private final Map<String, String> labels = new HashMap<>();
+    private final Map<String, String> annotations = new HashMap<>();
 
     public ServiceRef(URI uri, String alias) {
         this.serviceUri = uri;
@@ -63,18 +70,93 @@ public class ServiceRef {
         return Optional.ofNullable(alias);
     }
 
+    public void setLabels(Map<String, String> labels) {
+        this.labels.clear();
+        this.labels.putAll(labels);
+    }
+
+    public void setAnnotations(Map<String, String> annotations) {
+        this.annotations.clear();
+        this.annotations.putAll(annotations);
+    }
+
+    public Map<String, String> getLabels() {
+        return Collections.unmodifiableMap(labels);
+    }
+
+    public Map<String, String> getAnnotations() {
+        return Collections.unmodifiableMap(annotations);
+    }
+
+    // FIXME "annotations" map should be used for ex. Kubernetes Annotations, and these Cryostat
+    // "annoations" should be stored separately
+    public String addCryostatAnnotation(AnnotationKey key, String value) {
+        return annotations.put(prefixKey(key), value);
+    }
+
+    public String getCryostatAnnotation(AnnotationKey key) {
+        return annotations.get(prefixKey(key));
+    }
+
+    private static final String prefixKey(AnnotationKey key) {
+        return String.format("%s/%s", ANNOTATION_PREFIX, key.getKey());
+    }
+
     @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+    public boolean equals(Object other) {
+        if (other == null) {
+            return false;
+        }
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof ServiceRef)) {
+            return false;
+        }
+        ServiceRef sr = (ServiceRef) other;
+        return new EqualsBuilder()
+                .append(serviceUri, sr.serviceUri)
+                .append(alias, sr.alias)
+                .append(labels, sr.labels)
+                .append(annotations, sr.annotations)
+                .build();
     }
 
     @Override
     public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
+        return new HashCodeBuilder()
+                .append(serviceUri)
+                .append(alias)
+                .append(labels)
+                .append(annotations)
+                .toHashCode();
     }
 
     @Override
     public String toString() {
         return ToStringBuilder.reflectionToString(this);
+    }
+
+    public enum AnnotationKey {
+        HOST("host"),
+        PORT("port"),
+        MAIN_CLASS("mainClass"),
+        PID("pid"),
+        START_TIME("startTime"),
+        NAMESPACE("namespace"),
+        SERVICE_NAME("serviceName"),
+        CONTAINER_NAME("containerName"),
+        POD_NAME("podName"),
+        ;
+
+        private final String key;
+
+        AnnotationKey(String key) {
+            this.key = key;
+        }
+
+        public String getKey() {
+            return key;
+        }
     }
 }

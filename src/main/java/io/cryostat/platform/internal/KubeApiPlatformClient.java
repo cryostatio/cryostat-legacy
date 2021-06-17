@@ -48,6 +48,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
@@ -171,13 +172,24 @@ class KubeApiPlatformClient extends AbstractPlatformClient {
                 .map(
                         addr -> {
                             try {
-                                return new ServiceRef(
-                                        URIUtil.convert(
-                                                connectionToolkit
-                                                        .get()
-                                                        .createServiceURL(
-                                                                addr.getIp(), port.getPort())),
-                                        addr.getTargetRef().getName());
+                                ServiceRef serviceRef =
+                                        new ServiceRef(
+                                                URIUtil.convert(
+                                                        connectionToolkit
+                                                                .get()
+                                                                .createServiceURL(
+                                                                        addr.getIp(),
+                                                                        port.getPort())),
+                                                addr.getTargetRef().getName());
+                                serviceRef.addCryostatAnnotation(AnnotationKey.HOST, addr.getIp());
+                                serviceRef.addCryostatAnnotation(
+                                        AnnotationKey.PORT, Integer.toString(port.getPort()));
+                                serviceRef.addCryostatAnnotation(
+                                        AnnotationKey.NAMESPACE,
+                                        addr.getTargetRef().getNamespace());
+                                serviceRef.addCryostatAnnotation(
+                                        AnnotationKey.SERVICE_NAME, addr.getTargetRef().getName());
+                                return serviceRef;
                             } catch (Exception e) {
                                 logger.warn(e);
                                 return null;

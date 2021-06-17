@@ -39,15 +39,20 @@ package io.cryostat.platform.internal;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import javax.management.remote.JMXServiceURL;
+
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.util.URIUtil;
 
 class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<JvmDiscoveryEvent> {
@@ -69,11 +74,7 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
     @Override
     public void accept(JvmDiscoveryEvent evt) {
         try {
-            ServiceRef serviceRef =
-                    new ServiceRef(
-                            URIUtil.convert(evt.getJvmDescriptor().getJmxServiceUrl()),
-                            evt.getJvmDescriptor().getMainClass());
-            notifyAsyncTargetDiscovery(evt.getEventKind(), serviceRef);
+            notifyAsyncTargetDiscovery(evt.getEventKind(), convert(evt.getJvmDescriptor()));
         } catch (MalformedURLException | URISyntaxException e) {
             logger.warn(e);
         }
@@ -83,10 +84,9 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
     public List<ServiceRef> listDiscoverableServices() {
         return discoveryClient.getDiscoveredJvmDescriptors().stream()
                 .map(
-                        u -> {
+                        desc -> {
                             try {
-                                return new ServiceRef(
-                                        URIUtil.convert(u.getJmxServiceUrl()), u.getMainClass());
+                                return convert(desc);
                             } catch (MalformedURLException | URISyntaxException e) {
                                 logger.warn(e);
                                 return null;
@@ -94,5 +94,17 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
                         })
                 .filter(s -> s != null)
                 .collect(Collectors.toList());
+    }
+
+    private static ServiceRef convert(DiscoveredJvmDescriptor desc)
+            throws MalformedURLException, URISyntaxException {
+        JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
+        ServiceRef serviceRef = new ServiceRef(URIUtil.convert(serviceUrl), desc.getMainClass());
+        serviceRef.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, desc.getMainClass());
+
+        URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
+        serviceRef.addCryostatAnnotation(AnnotationKey.HOST, rmiTarget.getHost());
+        serviceRef.addCryostatAnnotation(AnnotationKey.PORT, Integer.toString(rmiTarget.getPort()));
+        return serviceRef;
     }
 }

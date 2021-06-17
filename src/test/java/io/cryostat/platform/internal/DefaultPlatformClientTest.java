@@ -57,6 +57,7 @@ import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.util.URIUtil;
 
 import org.hamcrest.MatcherAssert;
@@ -116,8 +117,14 @@ class DefaultPlatformClientTest {
 
         ServiceRef exp1 =
                 new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+        exp1.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, desc1.getMainClass());
+        exp1.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
+        exp1.addCryostatAnnotation(AnnotationKey.PORT, "9091");
         ServiceRef exp2 =
                 new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+        exp2.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, desc3.getMainClass());
+        exp2.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
+        exp2.addCryostatAnnotation(AnnotationKey.PORT, "9092");
 
         assertThat(results, equalTo(List.of(exp1, exp2)));
     }
@@ -139,6 +146,7 @@ class DefaultPlatformClientTest {
         client.accept(evt);
 
         verifyNoInteractions(discoveryClient);
+
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
         MatcherAssert.assertThat(

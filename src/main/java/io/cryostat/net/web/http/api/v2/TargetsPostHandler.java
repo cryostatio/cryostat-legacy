@@ -128,6 +128,7 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
             }
+            // TODO form should allow client to populate various ServiceRef.AnnotationKey properties
             ServiceRef serviceRef = new ServiceRef(uri, alias);
             boolean v = customTargetPlatformClient.addTarget(serviceRef);
             if (!v) {

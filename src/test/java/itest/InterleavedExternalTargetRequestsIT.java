@@ -37,6 +37,7 @@
  */
 package itest;
 
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashSet;
@@ -47,11 +48,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import itest.bases.ExternalTargetsTest;
-import itest.util.Podman;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -61,8 +60,20 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
+import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import itest.bases.ExternalTargetsTest;
+import itest.util.Podman;
+
 @TestMethodOrder(OrderAnnotation.class)
 class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
+
+    private static final Gson gson = MainModule.provideGson(Logger.INSTANCE);
 
     static final int NUM_EXT_CONTAINERS = 8;
     static final List<String> CONTAINERS = new ArrayList<>();
@@ -98,27 +109,48 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
     @Test
     @Order(1)
     void testOtherContainersFound() throws Exception {
-        JsonArray listResp = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        Set<Map<String, String>> actual = new HashSet<>(listResp.getList());
+        //FIXME don't use ServiceRefs or Gson (de)serialization in these tests. This should be
+        // as independent as possible from Cryostat internal implementation details.
+        CompletableFuture<Set<ServiceRef>> resp = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/targets")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(
+                                        gson.fromJson(
+                                                ar.result().bodyAsString(),
+                                                new TypeToken<Set<ServiceRef>>() {}.getType()));
+                            }
+                        });
+        Set<ServiceRef> actual = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         // ordering may not be guaranteed so use a Set, but there should be no duplicates and so
         // size should not change
-        Set<Map<String, String>> expected = new HashSet<>();
-        expected.add(
-                Map.of(
-                        "connectUrl",
-                        String.format(
-                                "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME),
-                        "alias",
-                        "io.cryostat.Cryostat"));
+        MatcherAssert.assertThat(actual.size(), Matchers.equalTo(NUM_EXT_CONTAINERS + 1));
+        Set<ServiceRef> expected = new HashSet<>();
+        ServiceRef cryostat =
+                new ServiceRef(
+                        new URI(
+                                String.format(
+                                        "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
+                                        Podman.POD_NAME)),
+                        "io.cryostat.Cryostat");
+        cryostat.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, "io.cryostat.Cryostat");
+        cryostat.addCryostatAnnotation(AnnotationKey.HOST, Podman.POD_NAME);
+        cryostat.addCryostatAnnotation(AnnotationKey.PORT, "9091");
+        expected.add(cryostat);
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
-            expected.add(
-                    Map.of(
-                            "connectUrl",
-                            String.format(
-                                    "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
-                                    Podman.POD_NAME, 9093 + i),
-                            "alias",
-                            "es.andrewazor.demo.Main"));
+            ServiceRef ext =
+                    new ServiceRef(
+                            new URI(
+                                    String.format(
+                                            "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
+                                            Podman.POD_NAME, 9093 + i)),
+                            "es.andrewazor.demo.Main");
+            ext.addCryostatAnnotation(AnnotationKey.MAIN_CLASS, "es.andrewazor.demo.Main");
+            ext.addCryostatAnnotation(AnnotationKey.HOST, Podman.POD_NAME);
+            ext.addCryostatAnnotation(AnnotationKey.PORT, Integer.toString(9093 + i));
+            expected.add(ext);
         }
         MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
     }
