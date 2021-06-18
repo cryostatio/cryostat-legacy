@@ -53,7 +53,6 @@ import java.util.function.Function;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
-import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
@@ -127,20 +126,23 @@ public class RuleProcessor
                 deactivate(event.getPayload(), null);
                 break;
             default:
-                throw new IllegalArgumentException(event.getEventType().toString());
+                throw new UnsupportedOperationException(event.getEventType().toString());
         }
     }
 
     @Override
     public synchronized void accept(TargetDiscoveryEvent tde) {
-        if (EventKind.LOST.equals(tde.getEventKind())) {
-            deactivate(null, tde.getServiceRef());
-            return;
+        switch (tde.getEventKind()) {
+            case FOUND:
+                registry.getRules(tde.getServiceRef())
+                        .forEach(rule -> activate(rule, tde.getServiceRef()));
+                break;
+            case LOST:
+                deactivate(null, tde.getServiceRef());
+                break;
+            default:
+                throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
-        if (!EventKind.FOUND.equals(tde.getEventKind())) {
-            throw new UnsupportedOperationException(tde.getEventKind().toString());
-        }
-        registry.getRules(tde.getServiceRef()).forEach(rule -> activate(rule, tde.getServiceRef()));
     }
 
     private void activate(Rule rule, ServiceRef serviceRef) {
