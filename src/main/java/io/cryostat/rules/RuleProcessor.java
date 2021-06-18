@@ -161,50 +161,44 @@ public class RuleProcessor
             throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
         registry.getRules(tde.getServiceRef())
-                .forEach(
-                        rule -> {
-                            this.logger.trace(
-                                    "Activating rule {} for target {}",
-                                    rule.getName(),
-                                    tde.getServiceRef().getServiceUri());
+                .forEach(rule -> activateRule(rule, tde.getServiceRef()));
+    }
 
-                            Credentials credentials =
-                                    credentialsManager.getCredentials(
-                                            tde.getServiceRef().getServiceUri().toString());
-                            try {
-                                Future<Boolean> success =
-                                        startRuleRecording(
-                                                tde.getServiceRef().getServiceUri(),
-                                                rule.getRecordingName(),
-                                                rule.getEventSpecifier(),
-                                                rule.getMaxSizeBytes(),
-                                                rule.getMaxAgeSeconds(),
-                                                credentials);
-                                if (!success.get()) {
-                                    logger.trace("Rule activation failed");
-                                    return;
-                                }
-                            } catch (InterruptedException | ExecutionException e) {
-                                logger.error(e);
-                            }
+    private void activateRule(Rule rule, ServiceRef serviceRef) {
+        this.logger.trace(
+                "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
 
-                            logger.trace("Rule activation successful");
-                            if (rule.getPreservedArchives() <= 0
-                                    || rule.getArchivalPeriodSeconds() <= 0) {
-                                return;
-                            }
-                            tasks.put(
-                                    Pair.of(tde.getServiceRef(), rule),
-                                    scheduler.scheduleAtFixedRate(
-                                            periodicArchiverFactory.create(
-                                                    tde.getServiceRef(),
-                                                    credentialsManager,
-                                                    rule,
-                                                    this::archivalFailureHandler),
-                                            rule.getArchivalPeriodSeconds(),
-                                            rule.getArchivalPeriodSeconds(),
-                                            TimeUnit.SECONDS));
-                        });
+        Credentials credentials =
+                credentialsManager.getCredentials(serviceRef.getServiceUri().toString());
+        try {
+            Future<Boolean> success =
+                    startRuleRecording(
+                            serviceRef.getServiceUri(),
+                            rule.getRecordingName(),
+                            rule.getEventSpecifier(),
+                            rule.getMaxSizeBytes(),
+                            rule.getMaxAgeSeconds(),
+                            credentials);
+            if (!success.get()) {
+                logger.trace("Rule activation failed");
+                return;
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error(e);
+        }
+
+        logger.trace("Rule activation successful");
+        if (rule.getPreservedArchives() <= 0 || rule.getArchivalPeriodSeconds() <= 0) {
+            return;
+        }
+        tasks.put(
+                Pair.of(serviceRef, rule),
+                scheduler.scheduleAtFixedRate(
+                        periodicArchiverFactory.create(
+                                serviceRef, credentialsManager, rule, this::archivalFailureHandler),
+                        rule.getArchivalPeriodSeconds(),
+                        rule.getArchivalPeriodSeconds(),
+                        TimeUnit.SECONDS));
     }
 
     private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
