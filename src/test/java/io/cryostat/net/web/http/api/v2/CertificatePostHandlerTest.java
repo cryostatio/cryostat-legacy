@@ -106,7 +106,7 @@ class CertificatePostHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new CertificatePostHandler(auth, env, fs, gson, (file) -> outStream, certValidator);
+                new CertificatePostHandler(auth, env, fs, gson, outputStreamFunction, certValidator);
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -205,6 +205,8 @@ class CertificatePostHandlerTest {
 
         InputStream instream = new ByteArrayInputStream("certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
+
+        Mockito.when(outputStreamFunction.apply(Mockito.any())).thenReturn(outStream);
         Mockito.when(certValidator.parseCertificates(Mockito.any())).thenReturn(certificates);
         Mockito.when(certificates.iterator()).thenReturn(iterator);
         Mockito.when(iterator.hasNext()).thenReturn(true).thenReturn(false);
@@ -223,5 +225,6 @@ class CertificatePostHandlerTest {
         ApiResponse expected = new ApiResponse(meta, data);
 
         Mockito.verify(resp).end(gson.toJson(expected));
+
     }
 }
