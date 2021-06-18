@@ -37,48 +37,71 @@
  */
 package io.cryostat.rules;
 
-import java.net.URI;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
+import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
-import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.openjdk.jmc.common.unit.IConstrainedMap;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+
+import io.cryostat.commands.internal.EventOptionsBuilder;
+import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.Template;
+import io.cryostat.core.templates.TemplateType;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
-import io.cryostat.util.HttpStatusCodeIdentifier;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.multipart.MultipartForm;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.client.utils.URLEncodedUtils;
 
 public class RuleProcessor
         implements Consumer<TargetDiscoveryEvent>, EventListener<RuleRegistry.RuleEvent, Rule> {
+
+    // TODO extract this somewhere more appropriate
+    public static final Template ALL_EVENTS_TEMPLATE =
+            new Template(
+                    "ALL",
+                    "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing Cryostat's own capabilities.",
+                    "Cryostat",
+                    TemplateType.TARGET);
+    private static final Pattern TEMPLATE_PATTERN =
+            Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
+    private static final Pattern EVENTS_PATTERN =
+            Pattern.compile("([\\w\\.\\$]+):([\\w]+)=([\\w\\d\\.]+)");
+
+    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
 
     private final PlatformClient platformClient;
     private final RuleRegistry registry;
     private final ScheduledExecutorService scheduler;
     private final CredentialsManager credentialsManager;
-    private final WebClient webClient;
+    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
+    private final TargetConnectionManager targetConnectionManager;
     private final PeriodicArchiverFactory periodicArchiverFactory;
-    private final Function<Credentials, MultiMap> headersFactory;
+    private final NotificationFactory notificationFactory;
     private final Logger logger;
 
     private final Map<Pair<ServiceRef, Rule>, Future<?>> tasks;
@@ -88,17 +111,21 @@ public class RuleProcessor
             RuleRegistry registry,
             ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
-            WebClient webClient,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            TargetConnectionManager targetConnectionManager,
             PeriodicArchiverFactory periodicArchiverFactory,
-            Function<Credentials, MultiMap> headersFactory,
+            NotificationFactory notificationFactory,
             Logger logger) {
         this.platformClient = platformClient;
         this.registry = registry;
         this.scheduler = scheduler;
         this.credentialsManager = credentialsManager;
-        this.webClient = webClient;
+        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
+        this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
+        this.targetConnectionManager = targetConnectionManager;
         this.periodicArchiverFactory = periodicArchiverFactory;
-        this.headersFactory = headersFactory;
+        this.notificationFactory = notificationFactory;
         this.logger = logger;
         this.tasks = new HashMap<>();
 
@@ -152,19 +179,8 @@ public class RuleProcessor
         Credentials credentials =
                 credentialsManager.getCredentials(serviceRef.getServiceUri().toString());
         try {
-            Future<Boolean> success =
-                    startRuleRecording(
-                            serviceRef.getServiceUri(),
-                            rule.getRecordingName(),
-                            rule.getEventSpecifier(),
-                            rule.getMaxSizeBytes(),
-                            rule.getMaxAgeSeconds(),
-                            credentials);
-            if (!success.get()) {
-                logger.trace("Rule activation failed");
-                return;
-            }
-        } catch (InterruptedException | ExecutionException e) {
+            startRuleRecording(new ConnectionDescriptor(serviceRef, credentials), rule);
+        } catch (Exception e) {
             logger.error(e);
         }
 
@@ -215,60 +231,131 @@ public class RuleProcessor
         return null;
     }
 
-    private Future<Boolean> startRuleRecording(
-            URI serviceUri,
-            String recordingName,
-            String eventSpecifier,
-            int maxSizeBytes,
-            int maxAgeSeconds,
-            Credentials credentials) {
-        // FIXME using an HTTP request to localhost here works well enough, but is needlessly
-        // complex. The API handler targeted here should be refactored to extract the logic that
-        // creates the recording from the logic that simply figures out the recording parameters
-        // from the POST form, path param, and headers. Then the handler should consume the API
-        // exposed by this refactored chunk, and this refactored chunk can also be consumed here
-        // rather than firing HTTP requests to ourselves
-        MultipartForm form = MultipartForm.create();
-        form.attribute("recordingName", recordingName);
-        form.attribute("events", eventSpecifier);
-        if (maxAgeSeconds > 0) {
-            form.attribute("maxAge", String.valueOf(maxAgeSeconds));
-        }
-        if (maxSizeBytes > 0) {
-            form.attribute("maxSize", String.valueOf(maxSizeBytes));
-        }
-        String path =
-                URI.create(
+    private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule)
+            throws Exception {
+
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    if (getDescriptorByName(connection, rule.getRecordingName()).isPresent()) {
+                        throw new IllegalArgumentException(
                                 String.format(
-                                        "/api/v1/targets/%s/recordings",
-                                        URLEncodedUtils.formatSegments(serviceUri.toString())))
-                        .normalize()
-                        .toString();
+                                        "Recording with name \"%s\" already exists",
+                                        rule.getRecordingName()));
+                    }
 
-        this.logger.trace("POST {}", path);
+                    RecordingOptionsBuilder builder =
+                            recordingOptionsBuilderFactory
+                                    .create(connection.getService())
+                                    .name(rule.getRecordingName())
+                                    .toDisk(true);
+                    if (rule.getMaxAgeSeconds() > 0) {
+                        builder = builder.maxAge(rule.getMaxAgeSeconds());
+                    }
+                    if (rule.getMaxSizeBytes() > 0) {
+                        builder = builder.maxSize(rule.getMaxSizeBytes());
+                    }
+                    IConstrainedMap<String> recordingOptions = builder.build();
+                    connection
+                            .getService()
+                            .start(
+                                    recordingOptions,
+                                    enableEvents(connection, rule.getEventSpecifier()));
+                    notificationFactory
+                            .createBuilder()
+                            .metaCategory(NOTIFICATION_CATEGORY)
+                            .metaType(HttpMimeType.JSON)
+                            .message(
+                                    Map.of(
+                                            "recording",
+                                            rule.getRecordingName(),
+                                            "target",
+                                            connectionDescriptor.getTargetId()))
+                            .build()
+                            .send();
+                    return null;
+                });
+    }
 
-        CompletableFuture<Boolean> result = new CompletableFuture<>();
-        this.webClient
-                .post(path)
-                .putHeaders(headersFactory.apply(credentials))
-                .sendMultipartForm(
-                        form,
-                        ar -> {
-                            if (ar.failed()) {
-                                this.logger.error(
-                                        new RuntimeException(
-                                                "Activation of automatic rule failed", ar.cause()));
-                                result.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> resp = ar.result();
-                            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
-                                this.logger.error(resp.bodyAsString());
-                                result.complete(false);
-                                return;
-                            }
-                            result.complete(true);
-                        });
-        return result;
+    protected Optional<IRecordingDescriptor> getDescriptorByName(
+            JFRConnection connection, String recordingName) throws Exception {
+        return connection.getService().getAvailableRecordings().stream()
+                .filter(recording -> recording.getName().equals(recordingName))
+                .findFirst();
+    }
+
+    protected IConstrainedMap<EventOptionID> enableEvents(JFRConnection connection, String events)
+            throws Exception {
+        if (TEMPLATE_PATTERN.matcher(events).matches()) {
+            Matcher m = TEMPLATE_PATTERN.matcher(events);
+            m.find();
+            String templateName = m.group(1);
+            String typeName = m.group(2);
+            if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
+                return enableAllEvents(connection);
+            }
+            if (typeName != null) {
+                return connection
+                        .getTemplateService()
+                        .getEvents(templateName, TemplateType.valueOf(typeName))
+                        .orElseThrow(
+                                () ->
+                                        new IllegalArgumentException(
+                                                String.format(
+                                                        "No template \"%s\" found with type %s",
+                                                        templateName, typeName)));
+            }
+            // if template type not specified, try to find a Custom template by that name. If none,
+            // fall back on finding a Target built-in template by the name. If not, throw an
+            // exception and bail out.
+            return connection
+                    .getTemplateService()
+                    .getEvents(templateName, TemplateType.CUSTOM)
+                    .or(
+                            () -> {
+                                try {
+                                    return connection
+                                            .getTemplateService()
+                                            .getEvents(templateName, TemplateType.TARGET);
+                                } catch (Exception e) {
+                                    return Optional.empty();
+                                }
+                            })
+                    .orElseThrow(
+                            () ->
+                                    new IllegalArgumentException(
+                                            String.format(
+                                                    "Invalid/unknown event template %s",
+                                                    templateName)));
+        }
+
+        return enableSelectedEvents(connection, events);
+    }
+
+    protected IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
+            throws Exception {
+        EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
+
+        for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
+            builder.addEvent(eventTypeInfo.getEventTypeID().getFullKey(), "enabled", "true");
+        }
+
+        return builder.build();
+    }
+
+    protected IConstrainedMap<EventOptionID> enableSelectedEvents(
+            JFRConnection connection, String events) throws Exception {
+        EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
+
+        Matcher matcher = EVENTS_PATTERN.matcher(events);
+        while (matcher.find()) {
+            String eventTypeId = matcher.group(1);
+            String option = matcher.group(2);
+            String value = matcher.group(3);
+
+            builder.addEvent(eventTypeId, option, value);
+        }
+
+        return builder.build();
     }
 }

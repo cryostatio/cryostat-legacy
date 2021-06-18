@@ -47,13 +47,17 @@ import java.util.function.Function;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.commands.internal.EventOptionsBuilder;
+import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
 
@@ -96,18 +100,22 @@ public abstract class RulesModule {
             PlatformClient platformClient,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
-            @Named(RULES_WEB_CLIENT) WebClient webClient,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            TargetConnectionManager targetConnectionManager,
             PeriodicArchiverFactory periodicArchiverFactory,
-            @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
+            NotificationFactory notificationFactory,
             Logger logger) {
         return new RuleProcessor(
                 platformClient,
                 registry,
                 Executors.newScheduledThreadPool(1),
                 credentialsManager,
-                webClient,
+                recordingOptionsBuilderFactory,
+                eventOptionsBuilderFactory,
+                targetConnectionManager,
                 periodicArchiverFactory,
-                headersFactory,
+                notificationFactory,
                 logger);
     }
 
