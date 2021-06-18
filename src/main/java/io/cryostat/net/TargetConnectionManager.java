@@ -104,7 +104,8 @@ public class TargetConnectionManager {
                                         logger.info(
                                                 "Removing cached connection for {}",
                                                 descriptor.getTargetId());
-                                        JMXConnectionClosed evt = new JMXConnectionClosed(descriptor.getTargetId());
+                                        JMXConnectionClosed evt =
+                                                new JMXConnectionClosed(descriptor.getTargetId());
                                         evt.begin();
                                         connection.close();
                                         evt.end();
@@ -182,13 +183,14 @@ public class TargetConnectionManager {
         evtOpened.begin();
         evtFailed.begin();
         try {
-            JFRConnection connection = 
+            JFRConnection connection =
                     jfrConnectionToolkit
                             .get()
                             .connect(
                                     url,
                                     credentials.orElse(null),
-                                    Collections.singletonList(() -> this.connections.invalidate(cacheKey)));
+                                    Collections.singletonList(
+                                            () -> this.connections.invalidate(cacheKey)));
             evtOpened.end();
             evtFailed.end();
             if (evtOpened.shouldCommit()) {
@@ -235,7 +237,6 @@ public class TargetConnectionManager {
         JMXConnectionClosed(String JMXServiceURL) {
             this.JMXServiceURL = JMXServiceURL;
         }
-
     }
 
     @Name("io.cryostat.net.TargetConnectionManager.JMXConnectionFailed")
