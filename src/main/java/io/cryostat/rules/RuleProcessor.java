@@ -181,6 +181,15 @@ public class RuleProcessor
     }
 
     private void deactivate(Rule rule, ServiceRef serviceRef) {
+        if (rule == null && serviceRef == null) {
+            throw new IllegalArgumentException("Both parameters cannot be null");
+        }
+        if (rule != null) {
+            logger.trace("Deactivating rule {}", rule.getName());
+        }
+        if (serviceRef != null) {
+            logger.trace("Deactivating rules for {}", serviceRef.getServiceUri());
+        }
         Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it = tasks.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
