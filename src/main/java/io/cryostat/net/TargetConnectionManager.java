@@ -176,12 +176,10 @@ public class TargetConnectionManager {
     private JFRConnection connect(
             ConnectionDescriptor cacheKey, JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
-        JMXConnectionOpened evtOpened = new JMXConnectionOpened(url.toString());
-        JMXConnectionFailed evtFailed = new JMXConnectionFailed(url.toString());
+        JMXConnectionOpened evt = new JMXConnectionOpened(url.toString());
 
         logger.info("Creating connection for {}", url.toString());
-        evtOpened.begin();
-        evtFailed.begin();
+        evt.begin();
         try {
             JFRConnection connection =
                     jfrConnectionToolkit
@@ -191,19 +189,15 @@ public class TargetConnectionManager {
                                     credentials.orElse(null),
                                     Collections.singletonList(
                                             () -> this.connections.invalidate(cacheKey)));
-            evtOpened.end();
-            evtFailed.end();
-            if (evtOpened.shouldCommit()) {
-                evtOpened.commit();
-            }
             return connection;
         } catch (Exception e) {
-            evtOpened.end();
-            evtFailed.end();
-            if (evtFailed.shouldCommit()) {
-                evtFailed.commit();
-            }
+            evt.setExceptionThrown(true);
             throw e;
+        } finally {
+            evt.end();
+            if (evt.shouldCommit()) {
+                evt.commit();
+            }
         }
     }
 
@@ -218,10 +212,16 @@ public class TargetConnectionManager {
             value = "URF_UNREAD_FIELD",
             justification = "The event fields are recorded with JFR instead of accessed directly")
     public static class JMXConnectionOpened extends Event {
-        String JMXServiceURL;
+        String serviceUri;
+        boolean exceptionThrown;
 
-        JMXConnectionOpened(String JMXServiceURL) {
-            this.JMXServiceURL = JMXServiceURL;
+        JMXConnectionOpened(String serviceUri) {
+            this.serviceUri = serviceUri;
+            this.exceptionThrown = false;
+        }
+
+        void setExceptionThrown(boolean exceptionThrown) {
+            this.exceptionThrown = exceptionThrown;
         }
     }
 
@@ -232,24 +232,10 @@ public class TargetConnectionManager {
             value = "URF_UNREAD_FIELD",
             justification = "The event fields are recorded with JFR instead of accessed directly")
     public static class JMXConnectionClosed extends Event {
-        String JMXServiceURL;
+        String serviceUri;
 
-        JMXConnectionClosed(String JMXServiceURL) {
-            this.JMXServiceURL = JMXServiceURL;
-        }
-    }
-
-    @Name("io.cryostat.net.TargetConnectionManager.JMXConnectionFailed")
-    @Label("JMX Connection Status")
-    @Category("Cryostat")
-    @SuppressFBWarnings(
-            value = "URF_UNREAD_FIELD",
-            justification = "The event fields are recorded with JFR instead of accessed directly")
-    public static class JMXConnectionFailed extends Event {
-        String JMXServiceURL;
-
-        JMXConnectionFailed(String JMXServiceURL) {
-            this.JMXServiceURL = JMXServiceURL;
+        JMXConnectionClosed(String serviceUri) {
+            this.serviceUri = serviceUri;
         }
     }
 }
