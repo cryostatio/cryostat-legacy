@@ -106,7 +106,8 @@ class CertificatePostHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new CertificatePostHandler(auth, env, fs, gson, outputStreamFunction, certValidator);
+                new CertificatePostHandler(
+                        auth, env, fs, gson, outputStreamFunction, certValidator);
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -225,6 +226,5 @@ class CertificatePostHandlerTest {
         ApiResponse expected = new ApiResponse(meta, data);
 
         Mockito.verify(resp).end(gson.toJson(expected));
-
     }
 }
