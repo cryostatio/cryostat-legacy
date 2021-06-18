@@ -124,19 +124,7 @@ public class RuleProcessor
                 // already appeared
                 break;
             case REMOVED:
-                Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it =
-                        tasks.entrySet().iterator();
-                while (it.hasNext()) {
-                    Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
-                    if (!Objects.equals(entry.getKey().getRight(), event.getPayload())) {
-                        continue;
-                    }
-                    Future<?> task = entry.getValue();
-                    if (task != null) {
-                        task.cancel(true);
-                    }
-                    it.remove();
-                }
+                deactivate(event.getPayload(), null);
                 break;
             default:
                 throw new IllegalArgumentException(event.getEventType().toString());
@@ -146,25 +134,16 @@ public class RuleProcessor
     @Override
     public synchronized void accept(TargetDiscoveryEvent tde) {
         if (EventKind.LOST.equals(tde.getEventKind())) {
-            registry.getRules(tde.getServiceRef())
-                    .forEach(
-                            rule -> {
-                                Pair<ServiceRef, Rule> key = Pair.of(tde.getServiceRef(), rule);
-                                Future<?> task = tasks.remove(key);
-                                if (task != null) {
-                                    task.cancel(true);
-                                }
-                            });
+            deactivate(null, tde.getServiceRef());
             return;
         }
         if (!EventKind.FOUND.equals(tde.getEventKind())) {
             throw new UnsupportedOperationException(tde.getEventKind().toString());
         }
-        registry.getRules(tde.getServiceRef())
-                .forEach(rule -> activateRule(rule, tde.getServiceRef()));
+        registry.getRules(tde.getServiceRef()).forEach(rule -> activate(rule, tde.getServiceRef()));
     }
 
-    private void activateRule(Rule rule, ServiceRef serviceRef) {
+    private void activate(Rule rule, ServiceRef serviceRef) {
         this.logger.trace(
                 "Activating rule {} for target {}", rule.getName(), serviceRef.getServiceUri());
 
@@ -199,6 +178,22 @@ public class RuleProcessor
                         rule.getArchivalPeriodSeconds(),
                         rule.getArchivalPeriodSeconds(),
                         TimeUnit.SECONDS));
+    }
+
+    private void deactivate(Rule rule, ServiceRef serviceRef) {
+        Iterator<Map.Entry<Pair<ServiceRef, Rule>, Future<?>>> it = tasks.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<Pair<ServiceRef, Rule>, Future<?>> entry = it.next();
+            boolean sameRule = Objects.equals(entry.getKey().getRight(), rule);
+            boolean sameTarget = Objects.equals(entry.getKey().getLeft(), serviceRef);
+            if (sameRule || sameTarget) {
+                Future<?> task = entry.getValue();
+                if (task != null) {
+                    task.cancel(true);
+                }
+                it.remove();
+            }
+        }
     }
 
     private Void archivalFailureHandler(Pair<ServiceRef, Rule> id) {
