@@ -190,7 +190,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 fn = builder::maxSizeBytes;
                 break;
             default:
-                throw new IllegalArgumentException("Unknown key " + key);
+                throw new IllegalArgumentException("Unknown key \"" + key + "\"");
         }
         int value;
         try {
