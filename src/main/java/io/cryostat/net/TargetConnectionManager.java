@@ -90,7 +90,8 @@ public class TargetConnectionManager {
                                     public void onRemoval(
                                             ConnectionDescriptor descriptor,
                                             JFRConnection connection,
-                                            RemovalCause cause) {
+                                            RemovalCause cause)
+                                            throws RuntimeException {
                                         if (descriptor == null) {
                                             logger.warn(
                                                     "Connection eviction triggered with null descriptor");
@@ -109,8 +110,9 @@ public class TargetConnectionManager {
                                         evt.begin();
                                         try {
                                             connection.close();
-                                        } catch (Exception e) {
+                                        } catch (RuntimeException e) {
                                             evt.setExceptionThrown(true);
+                                            throw e;
                                         } finally {
                                             evt.end();
                                             if (evt.shouldCommit()) {
