@@ -70,7 +70,7 @@ public class CredentialsManager {
 
     public void load() throws IOException {
         this.fs.listDirectoryChildren(credentialsDir).stream()
-                .peek(n -> logger.trace("Credentials file: " + n))
+                .peek(n -> logger.trace("Credentials file: {}", n))
                 .map(credentialsDir::resolve)
                 .map(
                         path -> {

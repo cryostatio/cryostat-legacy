@@ -73,7 +73,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     public void loadRules() throws IOException {
         this.fs.listDirectoryChildren(rulesDir).stream()
-                .peek(n -> logger.trace("Rules file: " + n))
+                .peek(n -> logger.trace("Rules file: {}", n))
                 .map(rulesDir::resolve)
                 .map(
                         path -> {
