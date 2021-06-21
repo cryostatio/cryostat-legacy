@@ -575,6 +575,20 @@
     <properties>
       <cryostat.imageVersion>${project.version}-minimal</cryostat.imageVersion>
     </properties>
+    <build>
+      <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>${org.apache.maven.plugins.failsafe.version}</version>
+          <configuration>
+            <excludes>
+              <exclude>ClientAssetsIT.java</exclude>
+            </excludes>
+          </configuration>
+        </plugin>
+      </plugins>
+    </build>
   </profile>
   <profile>
     <id>non-minimal</id>
