@@ -44,17 +44,16 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
+import io.cryostat.recordings.RecordingCreationHelper;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,10 +74,9 @@ class RuleProcessorTest {
     @Mock ScheduledExecutorService scheduler;
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock RecordingCreationHelper recordingCreationHelper;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
-    @Mock NotificationFactory notificationFactory;
     @Mock Logger logger;
 
     @BeforeEach
@@ -90,10 +88,9 @@ class RuleProcessorTest {
                         scheduler,
                         credentialsManager,
                         recordingOptionsBuilderFactory,
-                        eventOptionsBuilderFactory,
                         targetConnectionManager,
+                        recordingCreationHelper,
                         periodicArchiverFactory,
-                        notificationFactory,
                         logger);
     }
 

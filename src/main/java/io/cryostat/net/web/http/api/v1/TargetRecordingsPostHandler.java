@@ -79,7 +79,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
-    // TODO extract this somewhere more appropriate
+    // TODO refactor this to use the RecordingCreationHelper after PR #486 is merged
     public static final Template ALL_EVENTS_TEMPLATE =
             new Template(
                     "ALL",

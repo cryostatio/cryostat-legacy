@@ -47,19 +47,18 @@ import java.util.function.Function;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.RecordingCreationHelper;
 
 import com.google.gson.Gson;
 import dagger.Module;
@@ -101,10 +100,9 @@ public abstract class RulesModule {
             RuleRegistry registry,
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             TargetConnectionManager targetConnectionManager,
+            RecordingCreationHelper recordingCreationHelper,
             PeriodicArchiverFactory periodicArchiverFactory,
-            NotificationFactory notificationFactory,
             Logger logger) {
         return new RuleProcessor(
                 platformClient,
@@ -112,10 +110,9 @@ public abstract class RulesModule {
                 Executors.newScheduledThreadPool(1),
                 credentialsManager,
                 recordingOptionsBuilderFactory,
-                eventOptionsBuilderFactory,
                 targetConnectionManager,
+                recordingCreationHelper,
                 periodicArchiverFactory,
-                notificationFactory,
                 logger);
     }
 

@@ -55,6 +55,7 @@ import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
+import io.cryostat.recordings.RecordingsModule;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
 import io.cryostat.sys.SystemModule;
@@ -80,6 +81,7 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
             CommandsModule.class,
             TemplatesModule.class,
             RulesModule.class,
+            RecordingsModule.class,
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
