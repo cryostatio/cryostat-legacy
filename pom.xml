@@ -582,9 +582,9 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>${org.apache.maven.plugins.failsafe.version}</version>
           <configuration>
-            <excludes>
-              <exclude>ClientAssetsIT.java</exclude>
-            </excludes>
+            <systemPropertyVariables>
+              <isMinimalBuild>true</isMinimalBuild>
+            </systemPropertyVariables>
           </configuration>
         </plugin>
       </plugins>
@@ -631,6 +631,9 @@
                 </includes>
               </fileset>
             </filesets>
+            <systemPropertyVariables>
+              <isMinimalBuild>false</isMinimalBuild>
+            </systemPropertyVariables>
           </configuration>
         </plugin>
         <plugin>
