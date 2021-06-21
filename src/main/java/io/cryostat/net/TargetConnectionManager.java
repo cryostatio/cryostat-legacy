@@ -57,6 +57,11 @@ import com.github.benmanes.caffeine.cache.RemovalCause;
 import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 
 public class TargetConnectionManager {
 
@@ -96,10 +101,23 @@ public class TargetConnectionManager {
                                                     "Connection eviction triggered with null connection");
                                             return;
                                         }
+                                        JMXConnectionClosed evt =
+                                                new JMXConnectionClosed(descriptor.getTargetId());
                                         logger.info(
                                                 "Removing cached connection for {}",
                                                 descriptor.getTargetId());
-                                        connection.close();
+                                        evt.begin();
+                                        try {
+                                            connection.close();
+                                        } catch (RuntimeException e) {
+                                            evt.setExceptionThrown(true);
+                                            throw e;
+                                        } finally {
+                                            evt.end();
+                                            if (evt.shouldCommit()) {
+                                                evt.commit();
+                                            }
+                                        }
                                     }
                                 })
                         .build(this::connect);
@@ -164,16 +182,71 @@ public class TargetConnectionManager {
     private JFRConnection connect(
             ConnectionDescriptor cacheKey, JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
+        JMXConnectionOpened evt = new JMXConnectionOpened(url.toString());
         logger.info("Creating connection for {}", url.toString());
-        return jfrConnectionToolkit
-                .get()
-                .connect(
-                        url,
-                        credentials.orElse(null),
-                        Collections.singletonList(() -> this.connections.invalidate(cacheKey)));
+        evt.begin();
+        try {
+            JFRConnection connection =
+                    jfrConnectionToolkit
+                            .get()
+                            .connect(
+                                    url,
+                                    credentials.orElse(null),
+                                    Collections.singletonList(
+                                            () -> this.connections.invalidate(cacheKey)));
+            return connection;
+        } catch (Exception e) {
+            evt.setExceptionThrown(true);
+            throw e;
+        } finally {
+            evt.end();
+            if (evt.shouldCommit()) {
+                evt.commit();
+            }
+        }
     }
 
     public interface ConnectedTask<T> {
         T execute(JFRConnection connection) throws Exception;
+    }
+
+    @Name("io.cryostat.net.TargetConnectionManager.JMXConnectionOpened")
+    @Label("JMX Connection Status")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "The event fields are recorded with JFR instead of accessed directly")
+    public static class JMXConnectionOpened extends Event {
+        String serviceUri;
+        boolean exceptionThrown;
+
+        JMXConnectionOpened(String serviceUri) {
+            this.serviceUri = serviceUri;
+            this.exceptionThrown = false;
+        }
+
+        void setExceptionThrown(boolean exceptionThrown) {
+            this.exceptionThrown = exceptionThrown;
+        }
+    }
+
+    @Name("io.cryostat.net.TargetConnectionManager.JMXConnectionClosed")
+    @Label("JMX Connection Status")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "The event fields are recorded with JFR instead of accessed directly")
+    public static class JMXConnectionClosed extends Event {
+        String serviceUri;
+        boolean exceptionThrown;
+
+        JMXConnectionClosed(String serviceUri) {
+            this.serviceUri = serviceUri;
+            this.exceptionThrown = false;
+        }
+
+        void setExceptionThrown(boolean exceptionThrown) {
+            this.exceptionThrown = exceptionThrown;
+        }
     }
 }
