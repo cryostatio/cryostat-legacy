@@ -19,14 +19,6 @@
    0 ms
   </setting>
  </event>
- <event name="io.cryostat.net.TargetConnectionManager.JMXConnectionFailed">
-  <setting name="enabled">
-   true
-  </setting>
-  <setting name="threshold">
-   0 ms
-  </setting>
- </event>
  <event name="io.cyostat.net.web.WebServer.WebServerRequestEvent">
   <setting name="enabled">
    true

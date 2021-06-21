@@ -101,16 +101,21 @@ public class TargetConnectionManager {
                                                     "Connection eviction triggered with null connection");
                                             return;
                                         }
+                                        JMXConnectionClosed evt =
+                                                new JMXConnectionClosed(descriptor.getTargetId());
                                         logger.info(
                                                 "Removing cached connection for {}",
                                                 descriptor.getTargetId());
-                                        JMXConnectionClosed evt =
-                                                new JMXConnectionClosed(descriptor.getTargetId());
                                         evt.begin();
-                                        connection.close();
-                                        evt.end();
-                                        if (evt.shouldCommit()) {
-                                            evt.commit();
+                                        try {
+                                            connection.close();
+                                        } catch (Exception e) {
+                                            evt.setExceptionThrown(true);
+                                        } finally {
+                                            evt.end();
+                                            if (evt.shouldCommit()) {
+                                                evt.commit();
+                                            }
                                         }
                                     }
                                 })
@@ -177,7 +182,6 @@ public class TargetConnectionManager {
             ConnectionDescriptor cacheKey, JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
         JMXConnectionOpened evt = new JMXConnectionOpened(url.toString());
-
         logger.info("Creating connection for {}", url.toString());
         evt.begin();
         try {
@@ -233,9 +237,15 @@ public class TargetConnectionManager {
             justification = "The event fields are recorded with JFR instead of accessed directly")
     public static class JMXConnectionClosed extends Event {
         String serviceUri;
+        boolean exceptionThrown;
 
         JMXConnectionClosed(String serviceUri) {
             this.serviceUri = serviceUri;
+            this.exceptionThrown = false;
+        }
+
+        void setExceptionThrown(boolean exceptionThrown) {
+            this.exceptionThrown = exceptionThrown;
         }
     }
 }
