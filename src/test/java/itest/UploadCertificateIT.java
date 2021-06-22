@@ -56,7 +56,7 @@ public class UploadCertificateIT extends TestBase {
     static final String MEDIA_TYPE = "application/pkix-cert";
 
     @Test
-    public void shouldNotAddMalformedCertToTrustStore() throws Exception {
+    public void shouldNotAddEmptyCertToTrustStore() throws Exception {
 
         CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
