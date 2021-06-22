@@ -108,11 +108,17 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                 }
                 Thread.sleep(5_000);
             } else {
+                if (attempts > 6) {
+                    throw new Exception(
+                            String.format(
+                                    "%d targets found on attempt %d - too many!",
+                                    numTargets, attempts + 1));
+                }
                 System.err.println(
                         String.format(
-                                "%d targets found on attempt %d - too many!",
+                                "%d targets found on attempt %d - too many! Waiting to see if JDP settles...",
                                 numTargets, attempts + 1));
-                throw new Exception("setup failed");
+                Thread.sleep(5_000);
             }
             attempts++;
         }
