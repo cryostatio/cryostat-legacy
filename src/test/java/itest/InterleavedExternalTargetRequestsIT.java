@@ -214,8 +214,6 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                         ar -> {
                             if (assertRequestStatus(ar, resp)) {
                                 resp.complete(ar.result().bodyAsJsonArray());
-                            } else {
-                                resp.completeExceptionally(ar.cause());
                             }
                         });
         return resp;
