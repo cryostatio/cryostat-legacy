@@ -110,4 +110,38 @@ public abstract class HttpApiV2Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindCertificatePostBodyHandler(CertificatePostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetCredentialsPostHandler(TargetCredentialsPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetCredentialsPostBodyHandler(
+            TargetCredentialsPostBodyHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetCredentialsDeleteHandler(
+            TargetCredentialsDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRulesGetHandler(RulesGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRuleGetHandler(RuleGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRuleDeleteHandler(RuleDeleteHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRulesPostHandler(RulesPostHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRulesPostBodyHandler(RulesPostBodyHandler handler);
 }

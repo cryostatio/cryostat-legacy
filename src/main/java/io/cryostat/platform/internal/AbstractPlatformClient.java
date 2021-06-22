@@ -37,29 +37,34 @@
  */
 package io.cryostat.platform.internal;
 
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.function.Consumer;
 
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.TargetDiscoveryEvent;
 
-public abstract class AbstractPlatformClient implements PlatformClient {
+abstract class AbstractPlatformClient implements PlatformClient {
 
-    public static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
+    protected final Set<Consumer<TargetDiscoveryEvent>> discoveryListeners;
 
-    protected final NotificationFactory notificationFactory;
+    protected AbstractPlatformClient() {
+        this.discoveryListeners = new HashSet<>();
+    }
 
-    protected AbstractPlatformClient(NotificationFactory notificationFactory) {
-        this.notificationFactory = notificationFactory;
+    @Override
+    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.discoveryListeners.add(listener);
+    }
+
+    @Override
+    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.discoveryListeners.remove(listener);
     }
 
     protected void notifyAsyncTargetDiscovery(EventKind eventKind, ServiceRef serviceRef) {
-        notificationFactory
-                .createBuilder()
-                .metaCategory(NOTIFICATION_CATEGORY)
-                .message(Map.of("event", Map.of("kind", eventKind, "serviceRef", serviceRef)))
-                .build()
-                .send();
+        discoveryListeners.forEach(c -> c.accept(new TargetDiscoveryEvent(eventKind, serviceRef)));
     }
 }

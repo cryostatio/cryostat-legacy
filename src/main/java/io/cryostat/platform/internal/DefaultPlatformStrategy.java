@@ -39,7 +39,6 @@ package io.cryostat.platform.internal;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.NoopAuthManager;
 
@@ -48,17 +47,12 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     private final Logger logger;
     private final NoopAuthManager authMgr;
     private final JvmDiscoveryClient discoveryClient;
-    private final NotificationFactory notificationFactory;
 
     DefaultPlatformStrategy(
-            Logger logger,
-            NoopAuthManager authMgr,
-            JvmDiscoveryClient discoveryClient,
-            NotificationFactory notificationFactory) {
+            Logger logger, NoopAuthManager authMgr, JvmDiscoveryClient discoveryClient) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.discoveryClient = discoveryClient;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -74,7 +68,7 @@ class DefaultPlatformStrategy implements PlatformDetectionStrategy<DefaultPlatfo
     @Override
     public DefaultPlatformClient getPlatformClient() {
         logger.info("Selected Default Platform Strategy");
-        return new DefaultPlatformClient(logger, discoveryClient, notificationFactory);
+        return new DefaultPlatformClient(logger, discoveryClient);
     }
 
     @Override

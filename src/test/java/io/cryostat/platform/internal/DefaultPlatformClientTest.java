@@ -39,15 +39,14 @@ package io.cryostat.platform.internal;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -56,12 +55,12 @@ import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.URIUtil;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -75,18 +74,16 @@ class DefaultPlatformClientTest {
 
     @Mock Logger logger;
     @Mock JvmDiscoveryClient discoveryClient;
-    @Mock NotificationFactory notificationFactory;
     DefaultPlatformClient client;
 
     @BeforeEach
     void setup() {
-        this.client = new DefaultPlatformClient(logger, discoveryClient, notificationFactory);
+        this.client = new DefaultPlatformClient(logger, discoveryClient);
     }
 
     @Test
     void testShouldAddListenerAndStartDiscovery() throws Exception {
         verifyNoInteractions(discoveryClient);
-        verifyNoInteractions(notificationFactory);
 
         client.start();
 
@@ -136,38 +133,16 @@ class DefaultPlatformClientTest {
         when(evt.getEventKind()).thenReturn(EventKind.FOUND);
         when(evt.getJvmDescriptor()).thenReturn(desc);
 
-        Notification notification = mock(Notification.class);
-
-        Notification.Builder builder = mock(Notification.Builder.class);
-        lenient().when(builder.meta(Mockito.any())).thenReturn(builder);
-        lenient().when(builder.metaCategory(Mockito.any())).thenReturn(builder);
-        lenient()
-                .when(builder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(builder);
-        lenient().when(builder.metaType(Mockito.any(HttpMimeType.class))).thenReturn(builder);
-        lenient().when(builder.message(Mockito.any())).thenReturn(builder);
-        lenient().when(builder.build()).thenReturn(notification);
-
-        when(notificationFactory.createBuilder()).thenReturn(builder);
-
-        verifyNoInteractions(notificationFactory);
+        CompletableFuture<TargetDiscoveryEvent> future = new CompletableFuture<>();
+        client.addTargetDiscoveryListener(future::complete);
 
         client.accept(evt);
 
         verifyNoInteractions(discoveryClient);
-
-        verify(notificationFactory).createBuilder();
-        verify(builder).metaCategory("TargetJvmDiscovery");
-        verify(builder)
-                .message(
-                        Map.of(
-                                "event",
-                                Map.of(
-                                        "kind",
-                                        EventKind.FOUND,
-                                        "serviceRef",
-                                        new ServiceRef(URIUtil.convert(url), mainClass))));
-        verify(builder).build();
-        verify(notification).send();
+        TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
+        MatcherAssert.assertThat(
+                event.getServiceRef(),
+                Matchers.equalTo(new ServiceRef(URIUtil.convert(url), mainClass)));
     }
 }

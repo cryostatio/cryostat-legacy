@@ -43,7 +43,6 @@ import java.nio.file.Paths;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.OpenShiftAuthManager;
 
@@ -53,21 +52,19 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 
-public class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
+class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     private final Logger logger;
     private final AuthManager authMgr;
     private final FileSystem fs;
     private OpenShiftClient osClient;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final NotificationFactory notificationFactory;
 
-    public OpenShiftPlatformStrategy(
+    OpenShiftPlatformStrategy(
             Logger logger,
             OpenShiftAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            FileSystem fs,
-            NotificationFactory notificationFactory) {
+            FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
         this.fs = fs;
@@ -78,7 +75,6 @@ public class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<Kube
             this.osClient = null;
         }
         this.connectionToolkit = connectionToolkit;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -109,8 +105,7 @@ public class OpenShiftPlatformStrategy implements PlatformDetectionStrategy<Kube
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected OpenShift Platform Strategy");
-        return new KubeApiPlatformClient(
-                getNamespace(), osClient, connectionToolkit, notificationFactory, logger);
+        return new KubeApiPlatformClient(getNamespace(), osClient, connectionToolkit, logger);
     }
 
     @Override

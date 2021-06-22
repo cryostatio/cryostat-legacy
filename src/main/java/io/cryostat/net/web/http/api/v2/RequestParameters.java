@@ -53,13 +53,15 @@ class RequestParameters {
     private final MultiMap headers;
     private final MultiMap formAttributes;
     private final Set<FileUpload> fileUploads;
+    private final String body;
 
     RequestParameters(
             Map<String, String> pathParams,
             MultiMap queryParams,
             MultiMap headers,
             MultiMap formAttributes,
-            Set<FileUpload> fileUploads) {
+            Set<FileUpload> fileUploads,
+            String body) {
         this.pathParams = new HashMap<>(pathParams);
         this.queryParams = MultiMap.caseInsensitiveMultiMap();
         this.queryParams.addAll(queryParams);
@@ -68,6 +70,7 @@ class RequestParameters {
         this.formAttributes = MultiMap.caseInsensitiveMultiMap();
         this.formAttributes.addAll(formAttributes);
         this.fileUploads = new HashSet<>(fileUploads);
+        this.body = body;
     }
 
     static RequestParameters from(RoutingContext ctx) {
@@ -96,7 +99,13 @@ class RequestParameters {
             fileUploads.addAll(ctx.fileUploads());
         }
 
-        return new RequestParameters(pathParams, queryParams, headers, formAttributes, fileUploads);
+        String body = null;
+        if (ctx != null) {
+            body = ctx.getBodyAsString();
+        }
+
+        return new RequestParameters(
+                pathParams, queryParams, headers, formAttributes, fileUploads, body);
     }
 
     Map<String, String> getPathParams() {
@@ -117,5 +126,9 @@ class RequestParameters {
 
     Set<FileUpload> getFileUploads() {
         return this.fileUploads;
+    }
+
+    String getBody() {
+        return this.body;
     }
 }

@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
 
@@ -56,11 +55,7 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
     private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
 
-    DefaultPlatformClient(
-            Logger logger,
-            JvmDiscoveryClient discoveryClient,
-            NotificationFactory notificationFactory) {
-        super(notificationFactory);
+    DefaultPlatformClient(Logger logger, JvmDiscoveryClient discoveryClient) {
         this.logger = logger;
         this.discoveryClient = discoveryClient;
     }

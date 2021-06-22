@@ -40,12 +40,16 @@ package io.cryostat;
 import javax.inject.Singleton;
 
 import io.cryostat.commands.CommandExecutor;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.MessagingServer;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.rules.RuleProcessor;
+import io.cryostat.rules.RuleRegistry;
 
 import dagger.Component;
 
@@ -63,9 +67,13 @@ class Cryostat {
 
         Client client = DaggerCryostat_Client.builder().build();
 
+        client.credentialsManager().load();
+        client.ruleRegistry().loadRules();
+        client.ruleProcessor().enable();
         client.httpServer().start();
         client.webServer().start();
         client.messagingServer().start();
+        client.platformClient().start();
 
         client.commandExecutor().run();
     }
@@ -73,13 +81,21 @@ class Cryostat {
     @Singleton
     @Component(modules = {MainModule.class})
     interface Client {
-        CommandExecutor commandExecutor();
+        CredentialsManager credentialsManager();
+
+        RuleRegistry ruleRegistry();
+
+        RuleProcessor ruleProcessor();
 
         HttpServer httpServer();
 
         WebServer webServer();
 
         MessagingServer messagingServer();
+
+        PlatformClient platformClient();
+
+        CommandExecutor commandExecutor();
 
         @Component.Builder
         interface Builder {

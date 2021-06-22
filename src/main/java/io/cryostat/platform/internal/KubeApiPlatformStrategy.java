@@ -43,7 +43,6 @@ import java.nio.file.Paths;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.NoopAuthManager;
 
@@ -53,47 +52,29 @@ import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.DefaultKubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClient;
 
-public class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
+class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatformClient> {
 
     private final Logger logger;
     private final AuthManager authMgr;
     private final FileSystem fs;
     private final Lazy<JFRConnectionToolkit> connectionToolkit;
-    private final NotificationFactory notificationFactory;
     private KubernetesClient k8sClient;
 
-    protected KubeApiPlatformStrategy(
+    KubeApiPlatformStrategy(
             Logger logger,
             NoopAuthManager authMgr,
             Lazy<JFRConnectionToolkit> connectionToolkit,
-            FileSystem fs,
-            NotificationFactory notificationFactory) {
+            FileSystem fs) {
         this.logger = logger;
         this.authMgr = authMgr;
+        this.connectionToolkit = connectionToolkit;
+        this.fs = fs;
         try {
             this.k8sClient = new DefaultKubernetesClient();
         } catch (Exception e) {
             logger.info(e);
             this.k8sClient = null;
         }
-        this.connectionToolkit = connectionToolkit;
-        this.fs = fs;
-        this.notificationFactory = notificationFactory;
-    }
-
-    protected KubeApiPlatformStrategy(
-            Logger logger,
-            NoopAuthManager authMgr,
-            KubernetesClient k8sClient,
-            Lazy<JFRConnectionToolkit> connectionToolkit,
-            FileSystem fs,
-            NotificationFactory notificationFactory) {
-        this.logger = logger;
-        this.authMgr = authMgr;
-        this.k8sClient = k8sClient;
-        this.connectionToolkit = connectionToolkit;
-        this.fs = fs;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -124,8 +105,7 @@ public class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeAp
     @Override
     public KubeApiPlatformClient getPlatformClient() {
         logger.info("Selected KubeApi Platform Strategy");
-        return new KubeApiPlatformClient(
-                getNamespace(), k8sClient, connectionToolkit, notificationFactory, logger);
+        return new KubeApiPlatformClient(getNamespace(), k8sClient, connectionToolkit, logger);
     }
 
     @Override

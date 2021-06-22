@@ -38,7 +38,6 @@
 package io.cryostat.util;
 
 import java.io.IOException;
-import java.util.Objects;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -50,13 +49,7 @@ public class HttpMimeTypeAdapter extends TypeAdapter<HttpMimeType> {
 
     @Override
     public HttpMimeType read(JsonReader reader) throws IOException {
-        String token = reader.nextString();
-        for (HttpMimeType mime : HttpMimeType.values()) {
-            if (Objects.equals(mime.mime(), token)) {
-                return mime;
-            }
-        }
-        return null;
+        return HttpMimeType.fromString(reader.nextString());
     }
 
     @Override

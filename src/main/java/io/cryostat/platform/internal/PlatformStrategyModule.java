@@ -44,7 +44,6 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.NetworkResolver;
 import io.cryostat.net.NoopAuthManager;
 import io.cryostat.net.OpenShiftAuthManager;
@@ -67,15 +66,11 @@ public abstract class PlatformStrategyModule {
             NetworkResolver resolver,
             Environment env,
             FileSystem fs,
-            JvmDiscoveryClient discoveryClient,
-            NotificationFactory notificationFactory) {
+            JvmDiscoveryClient discoveryClient) {
         return Set.of(
-                new OpenShiftPlatformStrategy(
-                        logger, openShiftAuthManager, connectionToolkit, fs, notificationFactory),
-                new KubeApiPlatformStrategy(
-                        logger, noopAuthManager, connectionToolkit, fs, notificationFactory),
+                new OpenShiftPlatformStrategy(logger, openShiftAuthManager, connectionToolkit, fs),
+                new KubeApiPlatformStrategy(logger, noopAuthManager, connectionToolkit, fs),
                 new KubeEnvPlatformStrategy(logger, noopAuthManager, connectionToolkit, env),
-                new DefaultPlatformStrategy(
-                        logger, noopAuthManager, discoveryClient, notificationFactory));
+                new DefaultPlatformStrategy(logger, noopAuthManager, discoveryClient));
     }
 }

@@ -39,9 +39,14 @@ package io.cryostat.platform;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.function.Consumer;
 
 public interface PlatformClient {
     void start() throws IOException;
 
     List<ServiceRef> listDiscoverableServices();
+
+    void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+
+    void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
 }

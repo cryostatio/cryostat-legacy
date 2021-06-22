@@ -38,24 +38,52 @@
 package io.cryostat.platform.internal;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.TargetDiscoveryEvent;
 
-public class MergingPlatformClient implements PlatformClient {
+public class MergingPlatformClient implements PlatformClient, Consumer<TargetDiscoveryEvent> {
+
+    static final String NOTIFICATION_CATEGORY = "TargetJvmDiscovery";
 
     private final List<PlatformClient> clients;
+    private final Set<Consumer<TargetDiscoveryEvent>> listeners;
 
-    public MergingPlatformClient(List<PlatformClient> clients) {
-        this.clients = new ArrayList<>(clients);
+    public MergingPlatformClient(
+            NotificationFactory notificationFactory, List<PlatformClient> clients) {
+        this.clients = clients;
+        this.listeners = new HashSet<>();
+        this.clients.forEach(pc -> pc.addTargetDiscoveryListener(this));
+
+        addTargetDiscoveryListener(
+                tde ->
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .message(
+                                        Map.of(
+                                                "event",
+                                                Map.of(
+                                                        "kind",
+                                                        tde.getEventKind(),
+                                                        "serviceRef",
+                                                        tde.getServiceRef())))
+                                .build()
+                                .send());
     }
 
-    public MergingPlatformClient(PlatformClient... clients) {
-        this(Arrays.asList(clients));
+    public MergingPlatformClient(
+            NotificationFactory notificationFactory, PlatformClient... clients) {
+        this(notificationFactory, Arrays.asList(clients));
     }
 
     @Override
@@ -71,5 +99,20 @@ public class MergingPlatformClient implements PlatformClient {
                 .parallelStream()
                 .flatMap(client -> client.listDiscoverableServices().stream())
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.listeners.add(listener);
+    }
+
+    @Override
+    public void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener) {
+        this.listeners.remove(listener);
+    }
+
+    @Override
+    public void accept(TargetDiscoveryEvent event) {
+        this.listeners.forEach(l -> l.accept(event));
     }
 }

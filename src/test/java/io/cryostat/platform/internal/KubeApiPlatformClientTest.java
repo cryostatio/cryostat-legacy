@@ -40,7 +40,9 @@ package io.cryostat.platform.internal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -48,9 +50,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.URIUtil;
 
 import io.fabric8.kubernetes.api.model.EndpointAddress;
@@ -86,14 +87,12 @@ class KubeApiPlatformClientTest {
     @Mock KubernetesClient k8sClient;
     @Mock JFRConnectionToolkit connectionToolkit;
     @Mock Environment env;
-    @Mock NotificationFactory notificationFactory;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() throws Exception {
         this.platformClient =
-                new KubeApiPlatformClient(
-                        NAMESPACE, k8sClient, () -> connectionToolkit, notificationFactory, logger);
+                new KubeApiPlatformClient(NAMESPACE, k8sClient, () -> connectionToolkit, logger);
     }
 
     @Test
@@ -268,12 +267,8 @@ class KubeApiPlatformClientTest {
         Endpoints endpoints = Mockito.mock(Endpoints.class);
         Mockito.when(endpoints.getSubsets()).thenReturn(Arrays.asList(subset));
 
-        Notification notification = Mockito.mock(Notification.class);
-        Notification.Builder builder = Mockito.mock(Notification.Builder.class);
-        Mockito.when(builder.metaCategory(Mockito.any())).thenReturn(builder);
-        Mockito.when(builder.message(Mockito.any())).thenReturn(builder);
-        Mockito.when(builder.build()).thenReturn(notification);
-        Mockito.when(notificationFactory.createBuilder()).thenReturn(builder);
+        CompletableFuture<TargetDiscoveryEvent> future = new CompletableFuture<>();
+        platformClient.addTargetDiscoveryListener(future::complete);
 
         platformClient.start();
 
@@ -290,14 +285,9 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
-
-        Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
-        Mockito.verify(builder).metaCategory("TargetJvmDiscovery");
-        Mockito.verify(builder)
-                .message(
-                        Map.of("event", Map.of("kind", EventKind.FOUND, "serviceRef", serviceRef)));
-        Mockito.verify(builder).build();
-        Mockito.verify(notification, Mockito.times(1)).send();
+        TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
+        MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
     }
 
     @Test
@@ -336,12 +326,8 @@ class KubeApiPlatformClientTest {
         Endpoints endpoints = Mockito.mock(Endpoints.class);
         Mockito.when(endpoints.getSubsets()).thenReturn(Arrays.asList(subset));
 
-        Notification notification = Mockito.mock(Notification.class);
-        Notification.Builder builder = Mockito.mock(Notification.Builder.class);
-        Mockito.when(builder.metaCategory(Mockito.any())).thenReturn(builder);
-        Mockito.when(builder.message(Mockito.any())).thenReturn(builder);
-        Mockito.when(builder.build()).thenReturn(notification);
-        Mockito.when(notificationFactory.createBuilder()).thenReturn(builder);
+        CompletableFuture<TargetDiscoveryEvent> future = new CompletableFuture<>();
+        platformClient.addTargetDiscoveryListener(future::complete);
 
         platformClient.start();
 
@@ -358,13 +344,9 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
-
-        Mockito.verify(notificationFactory, Mockito.times(1)).createBuilder();
-        Mockito.verify(builder).metaCategory("TargetJvmDiscovery");
-        Mockito.verify(builder)
-                .message(Map.of("event", Map.of("kind", EventKind.LOST, "serviceRef", serviceRef)));
-        Mockito.verify(builder).build();
-        Mockito.verify(notification, Mockito.times(1)).send();
+        TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.LOST));
+        MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
     }
 
     @Test
@@ -403,12 +385,8 @@ class KubeApiPlatformClientTest {
         Endpoints endpoints = Mockito.mock(Endpoints.class);
         Mockito.when(endpoints.getSubsets()).thenReturn(Arrays.asList(subset));
 
-        Notification notification = Mockito.mock(Notification.class);
-        Notification.Builder builder = Mockito.mock(Notification.Builder.class);
-        Mockito.when(builder.metaCategory(Mockito.any())).thenReturn(builder);
-        Mockito.when(builder.message(Mockito.any())).thenReturn(builder);
-        Mockito.when(builder.build()).thenReturn(notification);
-        Mockito.when(notificationFactory.createBuilder()).thenReturn(builder);
+        Consumer listener = Mockito.mock(Consumer.class);
+        platformClient.addTargetDiscoveryListener(listener::accept);
 
         platformClient.start();
 
@@ -426,18 +404,15 @@ class KubeApiPlatformClientTest {
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
 
-        Mockito.verify(notificationFactory, Mockito.times(2)).createBuilder();
-        Mockito.verify(builder, Mockito.times(2)).metaCategory("TargetJvmDiscovery");
+        ArgumentCaptor<TargetDiscoveryEvent> eventCaptor =
+                ArgumentCaptor.forClass(TargetDiscoveryEvent.class);
+        Mockito.verify(listener, Mockito.times(2)).accept(eventCaptor.capture());
 
-        InOrder messageOrder = Mockito.inOrder(builder);
-        messageOrder
-                .verify(builder)
-                .message(Map.of("event", Map.of("kind", EventKind.LOST, "serviceRef", serviceRef)));
-        messageOrder
-                .verify(builder)
-                .message(
-                        Map.of("event", Map.of("kind", EventKind.FOUND, "serviceRef", serviceRef)));
-        Mockito.verify(builder, Mockito.times(2)).build();
-        Mockito.verify(notification, Mockito.times(2)).send();
+        TargetDiscoveryEvent event1 = eventCaptor.getAllValues().get(0);
+        TargetDiscoveryEvent event2 = eventCaptor.getAllValues().get(1);
+        MatcherAssert.assertThat(event1.getEventKind(), Matchers.equalTo(EventKind.LOST));
+        MatcherAssert.assertThat(event1.getServiceRef(), Matchers.equalTo(serviceRef));
+        MatcherAssert.assertThat(event2.getEventKind(), Matchers.equalTo(EventKind.FOUND));
+        MatcherAssert.assertThat(event2.getServiceRef(), Matchers.equalTo(serviceRef));
     }
 }

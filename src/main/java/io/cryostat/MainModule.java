@@ -47,6 +47,7 @@ import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.commands.CommandsModule;
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
@@ -54,6 +55,7 @@ import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
+import io.cryostat.rules.RulesModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
@@ -68,12 +70,14 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 @Module(
         includes = {
+            ConfigurationModule.class,
             PlatformModule.class,
             SystemModule.class,
             NetworkModule.class,
             MessagingModule.class,
             CommandsModule.class,
             TemplatesModule.class,
+            RulesModule.class,
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
