@@ -51,21 +51,22 @@ import org.junit.jupiter.api.Test;
 public class UploadCertificateIT extends TestBase {
 
     static final String CERT_NAME = "cert";
-    static final String FILE_NAME = "cert.cer";
-    static final String UPLOAD_PATH = "/home/jalaw/Downloads/";
-    static final String TRUSTSTORE_PATH = "/truststore/";
+    static final String FILE_NAME = "empty.cer";
+    static final String TRUSTSTORE_CERT = "truststore/" + FILE_NAME;
     static final String MEDIA_TYPE = "application/pkix-cert";
 
     @Test
     public void shouldNotAddMalformedCertToTrustStore() throws Exception {
 
         CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
-        File cert = new File(UPLOAD_PATH + FILE_NAME);
+        ClassLoader classLoader = getClass().getClassLoader();
+        File emptyCert = new File(classLoader.getResource(FILE_NAME).getFile());
+        String path = emptyCert.getAbsolutePath();
+
         MultipartForm form =
                 MultipartForm.create()
                         .attribute("name", CERT_NAME)
-                        .binaryFileUpload(
-                                CERT_NAME, FILE_NAME, UPLOAD_PATH + FILE_NAME, MEDIA_TYPE);
+                        .binaryFileUpload(CERT_NAME, FILE_NAME, path, MEDIA_TYPE);
 
         webClient
                 .post(String.format("/api/v2/certificates"))
@@ -81,8 +82,8 @@ public class UploadCertificateIT extends TestBase {
                         });
 
         int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
         MatcherAssert.assertThat(statusCode, Matchers.equalTo(500));
-        File truststoreCert = new File(TRUSTSTORE_PATH + FILE_NAME);
-        MatcherAssert.assertThat(truststoreCert.exists(), Matchers.equalTo(false));
+        MatcherAssert.assertThat(classLoader.getResource(TRUSTSTORE_CERT), Matchers.equalTo(null));
     }
 }
