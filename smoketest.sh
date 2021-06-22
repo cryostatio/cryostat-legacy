@@ -54,27 +54,7 @@ function runJfrDatasource() {
     podman run \
         --name jfr-datasource \
         --pod cryostat \
-        --rm -d quay.io/cryostat/jfr-datasource:1.0.0-BETA6
-}
-
-function configureGrafanaDatasource() {
-    while ! curl "http://0.0.0.0:3000/api/health"; do
-        sleep 5
-    done
-    local TEMP="$(mktemp -d)"
-    pushd "$TEMP"
-
-    echo "{" > datasource.json
-    echo '"name":"jfr-datasource",' >> datasource.json
-    echo '"type":"grafana-simple-json-datasource",' >> datasource.json
-    echo '"url":"http://0.0.0.0:8080",' >> datasource.json
-    echo '"access":"proxy",' >> datasource.json
-    echo '"basicAuth":false,' >> datasource.json
-    echo '"isDefault":true' >> datasource.json
-    echo "}" >> datasource.json
-
-    curl -X POST -H "Content-Type: application/json" "http://admin:admin@0.0.0.0:3000/api/datasources" -T - < datasource.json
-    popd
+        --rm -d quay.io/cryostat/jfr-datasource:1.0.0
 }
 
 function runGrafana() {
@@ -83,8 +63,8 @@ function runGrafana() {
         --pod cryostat \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
-        --rm -d quay.io/cryostat/cryostat-grafana-dashboard:1.0.0-BETA3
-    configureGrafanaDatasource
+        --env JFR_DATASOURCE_URL="http://0.0.0.0:8080" \
+        --rm -d quay.io/cryostat/cryostat-grafana-dashboard:1.0.0
 }
 
 function createPod() {
