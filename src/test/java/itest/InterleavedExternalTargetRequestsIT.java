@@ -62,8 +62,11 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
     static final int NUM_EXT_CONTAINERS = 8;
     static final List<String> CONTAINERS = new ArrayList<>();
 
-    static final int SETUP_TEARDOWN_MAX_MS = 45_000;
     static final int SETUP_TEARDOWN_POLL_PERIOD_MS = 7_500;
+    static final int STABILITY_COUNT = 3;
+    static final int SETUP_TEARDOWN_BASE_MS = 30_000;
+    static final int SETUP_TEARDOWN_MAX_MS =
+            SETUP_TEARDOWN_BASE_MS + (STABILITY_COUNT * SETUP_TEARDOWN_POLL_PERIOD_MS);
 
     @BeforeAll
     static void setup() throws Exception {
@@ -87,11 +90,19 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
         // Repeatedly query targets, waiting until we have discovered the expected number JDP
         // (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
         long startTime = System.currentTimeMillis();
+        int successes = 0;
         while (true) {
             int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets == NUM_EXT_CONTAINERS + 1) {
-                System.out.println("setup complete, continuing to tests");
-                break;
+                System.out.println(
+                        String.format(
+                                "expected target count observed, counting success %d/%d",
+                                ++successes, STABILITY_COUNT));
+                if (successes >= STABILITY_COUNT) {
+                    System.out.println("setup complete, continuing to tests");
+                    break;
+                }
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             } else if (numTargets < NUM_EXT_CONTAINERS + 1) {
                 System.err.println(
                         String.format(
@@ -99,6 +110,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                 if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
                     throw new Exception("setup failed - timed out");
                 }
+                successes = 0;
                 Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             } else {
                 if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
@@ -110,6 +122,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                         String.format(
                                 "%d targets found - too many! Waiting to see if JDP settles...",
                                 numTargets));
+                successes = 0;
                 Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             }
         }
