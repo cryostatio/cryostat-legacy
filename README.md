@@ -46,7 +46,9 @@ Once the `cryostat-core` local dependency is made available,
 `mvn compile` will build the project.
 
 Unit tests can be run with `mvn test`. Integration tests and additional quality
-tools can be run with `mvn verify`.
+tools can be run with `mvn verify`. `-DskipUTs=true` can be used to skip unit
+tests and `-DskipITs=true` can be used to skip integration tests;
+`-DskipTests=true` can be used to skip both.
 
 To re-run integration tests without a rebuild, do
 `mvn exec:exec@create-pod exec:exec@start-container exec:exec@wait-for-container
