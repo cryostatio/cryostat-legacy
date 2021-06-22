@@ -51,8 +51,11 @@ tests and `-DskipITs=true` can be used to skip integration tests;
 `-DskipTests=true` can be used to skip both.
 
 To re-run integration tests without a rebuild, do
-`mvn exec:exec@create-pod exec:exec@start-container exec:exec@wait-for-container
-failsafe:integration-test exec:exec@stop-container exec:exec@destroy-pod`.
+`mvn exec:exec@create-pod exec:exec@start-jfr-datasource
+exec:exec@start-grafana-dashboard exec:exec@start-container
+exec:exec@wait-for-container failsafe:integration-test
+exec:exec@stop-jfr-datasource exec:exec@stop-grafana exec:exec@stop-container
+exec:exec@destroy-pod`, or `bash repeated-integration-tests.sh 1`.
 
 An application OCI image can be built to your local `podman` image registry
 using `mvn package`. This will normally be a full-fledged image including built
