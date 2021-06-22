@@ -85,16 +85,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
         // number of targets via JDP (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
         int attempts = 0;
         while (true) {
-            CompletableFuture<Integer> resp = new CompletableFuture<>();
-            webClient
-                    .get("/api/v1/targets")
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, resp)) {
-                                    resp.complete(ar.result().bodyAsJsonArray().size());
-                                }
-                            });
-            int numTargets = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets == NUM_EXT_CONTAINERS + 1) {
                 System.out.println("setup complete, continuing to tests");
                 break;
@@ -137,16 +128,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
         // https://github.com/cryostatio/cryostat/issues/501#issuecomment-856264316
         int attempts = 0;
         while (true) {
-            CompletableFuture<Integer> resp = new CompletableFuture<>();
-            webClient
-                    .get("/api/v1/targets")
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, resp)) {
-                                    resp.complete(ar.result().bodyAsJsonArray().size());
-                                }
-                            });
-            int numTargets = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets > 1) {
                 System.err.println(
                         String.format(
@@ -167,16 +149,7 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
 
     @Test
     void testOtherContainersFound() throws Exception {
-        CompletableFuture<JsonArray> resp = new CompletableFuture<>();
-        webClient
-                .get("/api/v1/targets")
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, resp)) {
-                                resp.complete(ar.result().bodyAsJsonArray());
-                            }
-                        });
-        JsonArray listResp = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonArray listResp = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Set<Map<String, String>> actual = new HashSet<>(listResp.getList());
         // ordering may not be guaranteed so use a Set, but there should be no duplicates and so
         // size should not change
@@ -218,6 +191,21 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
         long elapsed = stop - start;
         System.out.println(
                 String.format("Elapsed time: %dms", TimeUnit.NANOSECONDS.toMillis(elapsed)));
+    }
+
+    static CompletableFuture<JsonArray> queryTargets() throws Exception {
+        CompletableFuture<JsonArray> resp = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/targets")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(ar.result().bodyAsJsonArray());
+                            } else {
+                                resp.completeExceptionally(ar.cause());
+                            }
+                        });
+        return resp;
     }
 
     private void createInMemoryRecordings() throws Exception {
