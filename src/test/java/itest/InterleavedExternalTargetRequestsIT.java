@@ -126,6 +126,8 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                 Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             }
         }
+        System.out.println(
+                String.format("setup completed in %dms", System.currentTimeMillis() - startTime));
     }
 
     @AfterAll
