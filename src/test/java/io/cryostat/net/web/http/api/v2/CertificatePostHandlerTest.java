@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.ByteArrayInputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -48,6 +49,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Function;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -92,6 +94,7 @@ class CertificatePostHandlerTest {
 
     @Mock RoutingContext ctx;
     @Mock FileOutputStream outStream;
+    @Mock Function<File, FileOutputStream> outputStreamFunction;
     @Mock FileUpload fu;
     @Mock Path truststorePath;
     @Mock Path fileUploadPath;
@@ -103,7 +106,8 @@ class CertificatePostHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new CertificatePostHandler(auth, env, fs, gson, (file) -> outStream, certValidator);
+                new CertificatePostHandler(
+                        auth, env, fs, gson, outputStreamFunction, certValidator);
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
@@ -182,6 +186,8 @@ class CertificatePostHandlerTest {
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("parsing error"));
+        Mockito.verify(outputStreamFunction, Mockito.never()).apply(Mockito.any());
+        Mockito.verify(outStream, Mockito.never()).write(Mockito.any());
     }
 
     @Test
@@ -200,6 +206,8 @@ class CertificatePostHandlerTest {
 
         InputStream instream = new ByteArrayInputStream("certificate".getBytes());
         Mockito.when(fs.newInputStream(fileUploadPath)).thenReturn(instream);
+
+        Mockito.when(outputStreamFunction.apply(Mockito.any())).thenReturn(outStream);
         Mockito.when(certValidator.parseCertificates(Mockito.any())).thenReturn(certificates);
         Mockito.when(certificates.iterator()).thenReturn(iterator);
         Mockito.when(iterator.hasNext()).thenReturn(true).thenReturn(false);

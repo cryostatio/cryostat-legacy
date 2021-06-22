@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.function.Function;
 
 import javax.inject.Inject;
@@ -151,16 +150,21 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
             throw new ApiException(409, filePath.toString() + " Certificate already exists");
         }
 
-        try (InputStream fis = fs.newInputStream(certPath);
-                FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
-
+        try (InputStream fis = fs.newInputStream(certPath)) {
             Collection<? extends Certificate> certificates = certValidator.parseCertificates(fis);
-            Iterator<? extends Certificate> it = certificates.iterator();
-            while (it.hasNext()) {
-                Certificate certificate = (Certificate) it.next();
-                byte[] buf = certificate.getEncoded();
-                out.write(buf);
+
+            if (certificates.isEmpty()) {
+                throw new ApiException(500, "No certificates found");
             }
+
+            try (FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
+
+                for (Certificate certificate : certificates) {
+                    byte[] buf = certificate.getEncoded();
+                    out.write(buf);
+                }
+            }
+
         } catch (IOException ioe) {
             throw new ApiException(500, ioe.getMessage(), ioe);
         } catch (CertificateEncodingException cee) {
