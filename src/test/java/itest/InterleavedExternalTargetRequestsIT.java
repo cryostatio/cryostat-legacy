@@ -153,7 +153,6 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
         Set<Map<String, String>> actual = new HashSet<>(listResp.getList());
         // ordering may not be guaranteed so use a Set, but there should be no duplicates and so
         // size should not change
-        MatcherAssert.assertThat(actual.size(), Matchers.equalTo(listResp.size()));
         Set<Map<String, String>> expected = new HashSet<>();
         expected.add(
                 Map.of(
