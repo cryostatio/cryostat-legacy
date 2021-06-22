@@ -22,6 +22,9 @@
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
+  <skipTests>false</skipTests>
+  <skipITs>${skipTests}</skipITs>
+  <skipUTs>${skipTests}</skipUTs>
   <cryostat.minimal>false</cryostat.minimal>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
@@ -30,9 +33,12 @@
   <cryostat.listenPort>9090</cryostat.listenPort>
   <cryostat.itest.webPort>8181</cryostat.itest.webPort>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
-  <skipTests>false</skipTests>
-  <skipITs>${skipTests}</skipITs>
-  <skipUTs>${skipTests}</skipUTs>
+  <cryostat.itest.grafana-dashboard.port>3000</cryostat.itest.grafana-dashboard.port>
+  <cryostat.itest.grafana-dashboard.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana-dashboard.imageStream>
+  <cryostat.itest.grafana-dashboard.version>1.0.0</cryostat.itest.grafana-dashboard.version>
+  <cryostat.itest.jfr-datasource.port>8080</cryostat.itest.jfr-datasource.port>
+  <cryostat.itest.jfr-datasource.imageStream>quay.io/cryostat/jfr-datasource</cryostat.itest.jfr-datasource.imageStream>
+  <cryostat.itest.jfr-datasource.version>1.0.0</cryostat.itest.jfr-datasource.version>
 
   <org.apache.maven.plugins.compiler.version>3.8.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>2.22.2</org.apache.maven.plugins.surefire.version>
@@ -265,6 +271,50 @@
               <argument>${cryostat.rjmxPort}:${cryostat.rjmxPort}</argument>
               <argument>--publish</argument>
               <argument>${cryostat.itest.webPort}:${cryostat.itest.webPort}</argument>
+              <argument>--publish</argument>
+              <argument>${cryostat.itest.jfr-datasource.port}:${cryostat.itest.jfr-datasource.port}</argument>
+              <argument>--publish</argument>
+              <argument>${cryostat.itest.grafana-dashboard.port}:${cryostat.itest.grafana-dashboard.port}</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
+          <id>start-jfr-datasource</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>run</argument>
+              <argument>--pod=${cryostat.itest.podName}</argument>
+              <argument>--name=jfr-datasource-itest</argument>
+              <argument>--detach</argument>
+              <argument>--rm</argument>
+              <argument>${cryostat.itest.jfr-datasource.imageStream}:${cryostat.itest.jfr-datasource.version}</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
+          <id>start-grafana-dashboard</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>run</argument>
+              <argument>--pod=${cryostat.itest.podName}</argument>
+              <argument>--name=grafana-itest</argument>
+              <argument>--env</argument>
+              <argument>GF_INSTALL_PLUGINS=grafana-simple-json-datasource</argument>
+              <argument>--env</argument>
+              <argument>GF_AUTH_ANONYMOUS_ENABLED=true</argument>
+              <argument>--detach</argument>
+              <argument>--rm</argument>
+              <argument>${cryostat.itest.grafana-dashboard.imageStream}:${cryostat.itest.grafana-dashboard.version}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -303,7 +353,9 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_TEMPLATE_PATH=/templates</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DATASOURCE_URL=http://abc</argument>
+              <argument>GRAFANA_DATASOURCE_URL=http://0.0.0.0:8080</argument>
+              <argument>--env</argument>
+              <argument>GRAFANA_DASHBOARD_URL=http://0.0.0.0:3000</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.imageStream}:${cryostat.imageVersion}</argument>
