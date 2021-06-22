@@ -62,6 +62,12 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
     static final int NUM_EXT_CONTAINERS = 8;
     static final List<String> CONTAINERS = new ArrayList<>();
 
+    static final int SETUP_TEARDOWN_POLL_PERIOD_MS = 7_500;
+    static final int STABILITY_COUNT = 3;
+    static final int SETUP_TEARDOWN_BASE_MS = 30_000;
+    static final int SETUP_TEARDOWN_MAX_MS =
+            SETUP_TEARDOWN_BASE_MS + (STABILITY_COUNT * SETUP_TEARDOWN_POLL_PERIOD_MS);
+
     @BeforeAll
     static void setup() throws Exception {
         Set<Podman.ImageSpec> specs = new HashSet<>();
@@ -81,41 +87,47 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                                 .toArray(new CompletableFuture[0]))
                 .join();
 
-        // Query every 5s for up to 6 queries, waiting until we have discovered the expected
-        // number of targets via JDP (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
-        int attempts = 0;
+        // Repeatedly query targets, waiting until we have discovered the expected number JDP
+        // (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
+        long startTime = System.currentTimeMillis();
+        int successes = 0;
         while (true) {
-            CompletableFuture<Integer> resp = new CompletableFuture<>();
-            webClient
-                    .get("/api/v1/targets")
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, resp)) {
-                                    resp.complete(ar.result().bodyAsJsonArray().size());
-                                }
-                            });
-            int numTargets = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets == NUM_EXT_CONTAINERS + 1) {
-                System.out.println("setup complete, continuing to tests");
-                break;
+                System.out.println(
+                        String.format(
+                                "expected target count observed, counting success %d/%d",
+                                ++successes, STABILITY_COUNT));
+                if (successes >= STABILITY_COUNT) {
+                    System.out.println("setup complete, continuing to tests");
+                    break;
+                }
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             } else if (numTargets < NUM_EXT_CONTAINERS + 1) {
                 System.err.println(
                         String.format(
-                                "%d targets found on attempt %d - waiting for setup to complete",
-                                numTargets, attempts + 1));
-                if (attempts > 6) {
-                    throw new Exception("setup failed");
+                                "%d targets found - waiting for setup to complete", numTargets));
+                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
+                    throw new Exception("setup failed - timed out");
                 }
-                Thread.sleep(5_000);
+                successes = 0;
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             } else {
+                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
+                    throw new Exception(
+                            String.format(
+                                    "%d targets found - too many after timeout!", numTargets));
+                }
                 System.err.println(
                         String.format(
-                                "%d targets found on attempt %d - too many!",
-                                numTargets, attempts + 1));
-                throw new Exception("setup failed");
+                                "%d targets found - too many! Waiting to see if JDP settles...",
+                                numTargets));
+                successes = 0;
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             }
-            attempts++;
         }
+        System.out.println(
+                String.format("setup completed in %dms", System.currentTimeMillis() - startTime));
     }
 
     @AfterAll
@@ -124,32 +136,22 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
             Podman.kill(id);
         }
 
-        // Query every 5s for up to 6 queries. If we still see additional targets other than
+        // Repeatedly query the number of targets. If we still see additional targets other than
         // the Cryostat instance itself, bail out - teardown failed. JDP discovery may take some
         // time to notice that targets have disappeared after the processes/containers are killed,
         // but this should be only a few seconds.
         // https://github.com/cryostatio/cryostat/issues/501#issuecomment-856264316
-        int attempts = 0;
+        long startTime = System.currentTimeMillis();
         while (true) {
-            CompletableFuture<Integer> resp = new CompletableFuture<>();
-            webClient
-                    .get("/api/v1/targets")
-                    .send(
-                            ar -> {
-                                if (assertRequestStatus(ar, resp)) {
-                                    resp.complete(ar.result().bodyAsJsonArray().size());
-                                }
-                            });
-            int numTargets = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets > 1) {
                 System.err.println(
                         String.format(
-                                "%d targets found on attempt %d - waiting for teardown to complete",
-                                numTargets, attempts + 1));
-                if (attempts++ > 6) {
-                    throw new Exception("teardown failed");
+                                "%d targets found - waiting for teardown to complete", numTargets));
+                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
+                    throw new Exception("teardown failed - timed out");
                 }
-                Thread.sleep(5_000);
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             } else if (numTargets == 0) {
                 throw new Exception("teardown failed - all containers gone, including Cryostat");
             } else {
@@ -161,20 +163,10 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
 
     @Test
     void testOtherContainersFound() throws Exception {
-        CompletableFuture<JsonArray> resp = new CompletableFuture<>();
-        webClient
-                .get("/api/v1/targets")
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, resp)) {
-                                resp.complete(ar.result().bodyAsJsonArray());
-                            }
-                        });
-        JsonArray listResp = resp.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        JsonArray listResp = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Set<Map<String, String>> actual = new HashSet<>(listResp.getList());
         // ordering may not be guaranteed so use a Set, but there should be no duplicates and so
         // size should not change
-        MatcherAssert.assertThat(actual.size(), Matchers.equalTo(listResp.size()));
         Set<Map<String, String>> expected = new HashSet<>();
         expected.add(
                 Map.of(
@@ -212,6 +204,19 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
         long elapsed = stop - start;
         System.out.println(
                 String.format("Elapsed time: %dms", TimeUnit.NANOSECONDS.toMillis(elapsed)));
+    }
+
+    static CompletableFuture<JsonArray> queryTargets() throws Exception {
+        CompletableFuture<JsonArray> resp = new CompletableFuture<>();
+        webClient
+                .get("/api/v1/targets")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, resp)) {
+                                resp.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        return resp;
     }
 
     private void createInMemoryRecordings() throws Exception {

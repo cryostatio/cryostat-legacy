@@ -33,9 +33,9 @@
   <cryostat.listenPort>9090</cryostat.listenPort>
   <cryostat.itest.webPort>8181</cryostat.itest.webPort>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
-  <cryostat.itest.grafana-dashboard.port>3000</cryostat.itest.grafana-dashboard.port>
-  <cryostat.itest.grafana-dashboard.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana-dashboard.imageStream>
-  <cryostat.itest.grafana-dashboard.version>1.0.0</cryostat.itest.grafana-dashboard.version>
+  <cryostat.itest.grafana.port>3000</cryostat.itest.grafana.port>
+  <cryostat.itest.grafana.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana.imageStream>
+  <cryostat.itest.grafana.version>1.0.0</cryostat.itest.grafana.version>
   <cryostat.itest.jfr-datasource.port>8080</cryostat.itest.jfr-datasource.port>
   <cryostat.itest.jfr-datasource.imageStream>quay.io/cryostat/jfr-datasource</cryostat.itest.jfr-datasource.imageStream>
   <cryostat.itest.jfr-datasource.version>1.0.0</cryostat.itest.jfr-datasource.version>
@@ -274,7 +274,7 @@
               <argument>--publish</argument>
               <argument>${cryostat.itest.jfr-datasource.port}:${cryostat.itest.jfr-datasource.port}</argument>
               <argument>--publish</argument>
-              <argument>${cryostat.itest.grafana-dashboard.port}:${cryostat.itest.grafana-dashboard.port}</argument>
+              <argument>${cryostat.itest.grafana.port}:${cryostat.itest.grafana.port}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -297,7 +297,7 @@
           </configuration>
         </execution>
         <execution>
-          <id>start-grafana-dashboard</id>
+          <id>start-grafana</id>
           <phase>pre-integration-test</phase>
           <goals>
             <goal>exec</goal>
@@ -314,7 +314,7 @@
               <argument>GF_AUTH_ANONYMOUS_ENABLED=true</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
-              <argument>${cryostat.itest.grafana-dashboard.imageStream}:${cryostat.itest.grafana-dashboard.version}</argument>
+              <argument>${cryostat.itest.grafana.imageStream}:${cryostat.itest.grafana.version}</argument>
             </arguments>
           </configuration>
         </execution>
@@ -379,6 +379,34 @@
               <argument>sh</argument>
               <argument>-c</argument>
               <argument>until curl -sSk http://0.0.0.0:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
+          <id>stop-jfr-datasource</id>
+          <phase>post-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>kill</argument>
+              <argument>jfr-datasource-itest</argument>
+            </arguments>
+          </configuration>
+        </execution>
+        <execution>
+          <id>stop-grafana</id>
+          <phase>post-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>kill</argument>
+              <argument>grafana-itest</argument>
             </arguments>
           </configuration>
         </execution>
