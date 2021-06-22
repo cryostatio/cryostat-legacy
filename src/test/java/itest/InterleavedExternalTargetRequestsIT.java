@@ -62,6 +62,9 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
     static final int NUM_EXT_CONTAINERS = 8;
     static final List<String> CONTAINERS = new ArrayList<>();
 
+    static final int SETUP_TEARDOWN_MAX_MS = 45_000;
+    static final int SETUP_TEARDOWN_POLL_PERIOD_MS = 7_500;
+
     @BeforeAll
     static void setup() throws Exception {
         Set<Podman.ImageSpec> specs = new HashSet<>();
@@ -81,9 +84,9 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
                                 .toArray(new CompletableFuture[0]))
                 .join();
 
-        // Query every 5s for up to 6 queries, waiting until we have discovered the expected
-        // number of targets via JDP (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
-        int attempts = 0;
+        // Repeatedly query targets, waiting until we have discovered the expected number JDP
+        // (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
+        long startTime = System.currentTimeMillis();
         while (true) {
             int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets == NUM_EXT_CONTAINERS + 1) {
@@ -92,26 +95,23 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
             } else if (numTargets < NUM_EXT_CONTAINERS + 1) {
                 System.err.println(
                         String.format(
-                                "%d targets found on attempt %d - waiting for setup to complete",
-                                numTargets, attempts + 1));
-                if (attempts > 6) {
-                    throw new Exception("setup failed");
+                                "%d targets found - waiting for setup to complete", numTargets));
+                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
+                    throw new Exception("setup failed - timed out");
                 }
-                Thread.sleep(5_000);
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             } else {
-                if (attempts > 6) {
+                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
                     throw new Exception(
                             String.format(
-                                    "%d targets found on attempt %d - too many!",
-                                    numTargets, attempts + 1));
+                                    "%d targets found - too many after timeout!", numTargets));
                 }
                 System.err.println(
                         String.format(
-                                "%d targets found on attempt %d - too many! Waiting to see if JDP settles...",
-                                numTargets, attempts + 1));
-                Thread.sleep(5_000);
+                                "%d targets found - too many! Waiting to see if JDP settles...",
+                                numTargets));
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             }
-            attempts++;
         }
     }
 
@@ -121,23 +121,22 @@ class InterleavedExternalTargetRequestsIT extends TestBase {
             Podman.kill(id);
         }
 
-        // Query every 5s for up to 6 queries. If we still see additional targets other than
+        // Repeatedly query the number of targets. If we still see additional targets other than
         // the Cryostat instance itself, bail out - teardown failed. JDP discovery may take some
         // time to notice that targets have disappeared after the processes/containers are killed,
         // but this should be only a few seconds.
         // https://github.com/cryostatio/cryostat/issues/501#issuecomment-856264316
-        int attempts = 0;
+        long startTime = System.currentTimeMillis();
         while (true) {
             int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
             if (numTargets > 1) {
                 System.err.println(
                         String.format(
-                                "%d targets found on attempt %d - waiting for teardown to complete",
-                                numTargets, attempts + 1));
-                if (attempts++ > 6) {
-                    throw new Exception("teardown failed");
+                                "%d targets found - waiting for teardown to complete", numTargets));
+                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
+                    throw new Exception("teardown failed - timed out");
                 }
-                Thread.sleep(5_000);
+                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
             } else if (numTargets == 0) {
                 throw new Exception("teardown failed - all containers gone, including Cryostat");
             } else {
