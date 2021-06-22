@@ -84,6 +84,5 @@ public class UploadCertificateIT extends TestBase {
         int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         MatcherAssert.assertThat(statusCode, Matchers.equalTo(500));
-        MatcherAssert.assertThat(classLoader.getResource(TRUSTSTORE_CERT), Matchers.equalTo(null));
     }
 }
