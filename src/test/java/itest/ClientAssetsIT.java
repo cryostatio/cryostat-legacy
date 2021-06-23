@@ -55,8 +55,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
+import itest.bases.StandardSelfTest;
+
 @DisabledIfSystemProperty(named = "isMinimalBuild", matches = "true")
-public class ClientAssetsIT extends TestBase {
+public class ClientAssetsIT extends StandardSelfTest {
 
     static File file;
     static Document doc;
