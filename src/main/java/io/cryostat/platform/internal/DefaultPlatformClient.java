@@ -42,6 +42,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -100,11 +101,12 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
             throws MalformedURLException, URISyntaxException {
         JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
         ServiceRef serviceRef = new ServiceRef(URIUtil.convert(serviceUrl), desc.getMainClass());
-        serviceRef.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, desc.getMainClass());
-
         URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
-        serviceRef.addCryostatAnnotation(AnnotationKey.HOST, rmiTarget.getHost());
-        serviceRef.addCryostatAnnotation(AnnotationKey.PORT, Integer.toString(rmiTarget.getPort()));
+        serviceRef.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, desc.getMainClass(),
+                        AnnotationKey.HOST, rmiTarget.getHost(),
+                        AnnotationKey.PORT, Integer.toString(rmiTarget.getPort())));
         return serviceRef;
     }
 }

@@ -45,6 +45,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -117,14 +118,18 @@ class DefaultPlatformClientTest {
 
         ServiceRef exp1 =
                 new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
-        exp1.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, desc1.getMainClass());
-        exp1.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
-        exp1.addCryostatAnnotation(AnnotationKey.PORT, "9091");
+        exp1.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, desc1.getMainClass(),
+                        AnnotationKey.HOST, "cryostat",
+                        AnnotationKey.PORT, "9091"));
         ServiceRef exp2 =
                 new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
-        exp2.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, desc3.getMainClass());
-        exp2.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
-        exp2.addCryostatAnnotation(AnnotationKey.PORT, "9092");
+        exp2.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, desc3.getMainClass(),
+                        AnnotationKey.HOST, "cryostat",
+                        AnnotationKey.PORT, "9092"));
 
         assertThat(results, equalTo(List.of(exp1, exp2)));
     }
@@ -150,9 +155,11 @@ class DefaultPlatformClientTest {
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
         ServiceRef serviceRef = new ServiceRef(URIUtil.convert(url), javaMain);
-        serviceRef.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, "com.example.Main");
-        serviceRef.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
-        serviceRef.addCryostatAnnotation(AnnotationKey.PORT, "9091");
+        serviceRef.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, "com.example.Main",
+                        AnnotationKey.HOST, "cryostat",
+                        AnnotationKey.PORT, "9091"));
         MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
     }
 }

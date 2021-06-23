@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -181,14 +182,15 @@ class KubeApiPlatformClient extends AbstractPlatformClient {
                                                                         addr.getIp(),
                                                                         port.getPort())),
                                                 addr.getTargetRef().getName());
-                                serviceRef.addCryostatAnnotation(AnnotationKey.HOST, addr.getIp());
-                                serviceRef.addCryostatAnnotation(
-                                        AnnotationKey.PORT, Integer.toString(port.getPort()));
-                                serviceRef.addCryostatAnnotation(
-                                        AnnotationKey.NAMESPACE,
-                                        addr.getTargetRef().getNamespace());
-                                serviceRef.addCryostatAnnotation(
-                                        AnnotationKey.SERVICE_NAME, addr.getTargetRef().getName());
+                                serviceRef.setCryostatAnnotations(
+                                        Map.of(
+                                                AnnotationKey.HOST, addr.getIp(),
+                                                AnnotationKey.PORT,
+                                                        Integer.toString(port.getPort()),
+                                                AnnotationKey.NAMESPACE,
+                                                        addr.getTargetRef().getNamespace(),
+                                                AnnotationKey.SERVICE_NAME,
+                                                        addr.getTargetRef().getName()));
                                 return serviceRef;
                             } catch (Exception e) {
                                 logger.warn(e);

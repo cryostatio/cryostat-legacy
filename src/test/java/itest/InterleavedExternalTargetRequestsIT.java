@@ -134,9 +134,11 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                         "service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi",
                                         Podman.POD_NAME)),
                         "io.cryostat.Cryostat");
-        cryostat.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, "io.cryostat.Cryostat");
-        cryostat.addCryostatAnnotation(AnnotationKey.HOST, Podman.POD_NAME);
-        cryostat.addCryostatAnnotation(AnnotationKey.PORT, "9091");
+        cryostat.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, "io.cryostat.Cryostat",
+                        AnnotationKey.HOST, Podman.POD_NAME,
+                        AnnotationKey.PORT, "9091"));
         expected.add(cryostat);
         for (int i = 0; i < NUM_EXT_CONTAINERS; i++) {
             ServiceRef ext =
@@ -146,9 +148,14 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
                                             "service:jmx:rmi:///jndi/rmi://%s:%d/jmxrmi",
                                             Podman.POD_NAME, 9093 + i)),
                             "es.andrewazor.demo.Main");
-            ext.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, "es.andrewazor.demo.Main");
-            ext.addCryostatAnnotation(AnnotationKey.HOST, Podman.POD_NAME);
-            ext.addCryostatAnnotation(AnnotationKey.PORT, Integer.toString(9093 + i));
+            ext.setCryostatAnnotations(
+                    Map.of(
+                            AnnotationKey.JAVA_MAIN,
+                            "es.andrewazor.demo.Main",
+                            AnnotationKey.HOST,
+                            Podman.POD_NAME,
+                            AnnotationKey.PORT,
+                            Integer.toString(9093 + i)));
             expected.add(ext);
         }
         MatcherAssert.assertThat(actual, Matchers.equalTo(expected));
