@@ -60,8 +60,8 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
             if (numTargets == expectedTargets + 1) {
                 System.out.println(
                         String.format(
-                                "expected target count observed, counting success %d/%d",
-                                ++successes, STABILITY_COUNT));
+                                "expected target count (%d) observed, counting success %d/%d",
+                                numTargets + 1, ++successes, STABILITY_COUNT));
                 if (successes >= STABILITY_COUNT) {
                     System.out.println("discovery complete");
                     break;
@@ -70,7 +70,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
             } else if (numTargets < expectedTargets + 1) {
                 System.err.println(
                         String.format(
-                                "%d targets found - waiting for discovery to complete", numTargets));
+                                "%d/%d targets found - waiting for discovery to complete", numTargets, expectedTargets + 1));
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
                     throw new Exception("discovery failed - timed out");
                 }
@@ -80,12 +80,12 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
                     throw new Exception(
                             String.format(
-                                    "%d targets found - too many after timeout!", numTargets));
+                                    "%d targets found - too many (expected %d) after timeout!", numTargets, expectedTargets + 1));
                 }
                 System.err.println(
                         String.format(
-                                "%d targets found - too many! Waiting to see if JDP settles...",
-                                numTargets));
+                                "%d targets found - too many (expected %d)! Waiting to see if JDP settles...",
+                                numTargets, expectedTargets + 1));
                 successes = 0;
                 Thread.sleep(DISCOVERY_POLL_PERIOD_MS);
             }
