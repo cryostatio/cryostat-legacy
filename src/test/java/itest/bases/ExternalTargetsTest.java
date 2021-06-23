@@ -70,7 +70,8 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
             } else if (numTargets < expectedTargets + 1) {
                 System.err.println(
                         String.format(
-                                "%d/%d targets found - waiting for discovery to complete", numTargets, expectedTargets + 1));
+                                "%d/%d targets found - waiting for discovery to complete",
+                                numTargets, expectedTargets + 1));
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
                     throw new Exception("discovery failed - timed out");
                 }
@@ -80,7 +81,8 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                 if (System.currentTimeMillis() > startTime + DISCOVERY_TIMEOUT_MS) {
                     throw new Exception(
                             String.format(
-                                    "%d targets found - too many (expected %d) after timeout!", numTargets, expectedTargets + 1));
+                                    "%d targets found - too many (expected %d) after timeout!",
+                                    numTargets, expectedTargets + 1));
                 }
                 System.err.println(
                         String.format(
@@ -91,7 +93,8 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
             }
         }
         System.out.println(
-                String.format("discovery completed in %dms", System.currentTimeMillis() - startTime));
+                String.format(
+                        "discovery completed in %dms", System.currentTimeMillis() - startTime));
     }
 
     public static CompletableFuture<JsonArray> queryTargets() throws Exception {
@@ -106,5 +109,4 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                         });
         return resp;
     }
-
 }
