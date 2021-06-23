@@ -68,7 +68,7 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
                 System.out.println(
                         String.format(
                                 "expected target count (%d) observed, counting success %d/%d",
-                                numTargets + 1, ++successes, STABILITY_COUNT));
+                                expectedTargets + 1, ++successes, STABILITY_COUNT));
                 if (successes >= STABILITY_COUNT) {
                     System.out.println("discovery complete");
                     break;
