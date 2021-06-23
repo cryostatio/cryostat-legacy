@@ -82,13 +82,17 @@ public class ServiceRef {
         this.annotations.platform.putAll(annotations);
     }
 
+    public Map<String, String> getPlatformAnnotations() {
+        return new HashMap<>(annotations.platform);
+    }
+
     public void setCryostatAnnotations(Map<AnnotationKey, String> annotations) {
         this.annotations.cryostat.clear();
         this.annotations.cryostat.putAll(annotations);
     }
 
-    public Annotations getAnnotations() {
-        return annotations;
+    public Map<AnnotationKey, String> getCryostatAnnotations() {
+        return new HashMap<>(annotations.cryostat);
     }
 
     @Override
