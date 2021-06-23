@@ -1,6 +1,9 @@
-/*
- * Copyright The Cryostat Authors
- *
+/*-
+ * #%L
+ * Cryostat
+ * %%
+ * Copyright (C) 2020 - 2021 The Cryostat Authors
+ * %%
  * The Universal Permissive License (UPL), Version 1.0
  *
  * Subject to the condition set forth below, permission is hereby granted to any
@@ -34,14 +37,15 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
+ * #L%
  */
 package itest.bases;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import io.vertx.core.json.JsonArray;
 import org.junit.jupiter.api.AfterAll;
+import io.vertx.core.json.JsonArray;
 
 public abstract class ExternalTargetsTest extends StandardSelfTest {
 
