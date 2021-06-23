@@ -43,14 +43,16 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import itest.bases.TestBase;
+import itest.util.Utils;
 
 // Disabled - broken by WebSocket Notification channel noise, but the CommandChannel is deprecated
 // in favour of the HTTP API anyway. The WebSocket connection will only be used for the Notification

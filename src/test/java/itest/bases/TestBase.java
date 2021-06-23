@@ -35,7 +35,7 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package itest;
+package itest.bases;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -64,10 +64,10 @@ import org.hamcrest.Matchers;
 
 public abstract class TestBase {
 
-    static final int REQUEST_TIMEOUT_SECONDS = 30;
-    static final WebClient webClient = Utils.getWebClient();
+    public static final int REQUEST_TIMEOUT_SECONDS = 30;
+    public static final WebClient webClient = Utils.getWebClient();
 
-    static CompletableFuture<JsonObject> sendMessage(String command, String... args)
+    public static CompletableFuture<JsonObject> sendMessage(String command, String... args)
             throws InterruptedException, ExecutionException, TimeoutException {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
 
@@ -111,15 +111,15 @@ public abstract class TestBase {
         return future;
     }
 
-    static void assertResponseStatus(JsonObject response) {
+    public static void assertResponseStatus(JsonObject response) {
         assertResponseStatus(response, 0);
     }
 
-    static void assertResponseStatus(JsonObject response, int status) {
+    public static void assertResponseStatus(JsonObject response, int status) {
         MatcherAssert.assertThat(response.getInteger("status"), Matchers.equalTo(status));
     }
 
-    static boolean assertRequestStatus(
+    public static boolean assertRequestStatus(
             AsyncResult<HttpResponse<Buffer>> result, CompletableFuture<?> future) {
         if (result.failed()) {
             result.cause().printStackTrace();
@@ -151,11 +151,11 @@ public abstract class TestBase {
         return future;
     }
 
-    static CompletableFuture<Path> downloadFile(String url, String name, String suffix) {
+    public static CompletableFuture<Path> downloadFile(String url, String name, String suffix) {
         return fireDownloadRequest(webClient.get(url), name, suffix);
     }
 
-    static CompletableFuture<Path> downloadFileAbs(String url, String name, String suffix) {
+    public static CompletableFuture<Path> downloadFileAbs(String url, String name, String suffix) {
         return fireDownloadRequest(webClient.getAbs(url), name, suffix);
     }
 

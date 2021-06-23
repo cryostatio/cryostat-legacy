@@ -41,12 +41,14 @@ import java.io.File;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.multipart.MultipartForm;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.multipart.MultipartForm;
+import itest.bases.TestBase;
 
 public class UploadCertificateIT extends TestBase {
 

@@ -51,6 +51,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
+import itest.bases.TestBase;
+
 @DisabledIfSystemProperty(named = "isMinimalBuild", matches = "true")
 public class ClientAssetsIT extends TestBase {
 

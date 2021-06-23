@@ -40,11 +40,13 @@ package itest;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpRequest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
+
+import io.vertx.core.buffer.Buffer;
+import io.vertx.ext.web.client.HttpRequest;
+import itest.bases.TestBase;
 
 public class GrafanaSetupIT extends TestBase {
 
