@@ -56,8 +56,12 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 
+@TestMethodOrder(OrderAnnotation.class)
 class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     static final int NUM_EXT_CONTAINERS = 8;
@@ -92,6 +96,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
     }
 
     @Test
+    @Order(1)
     void testOtherContainersFound() throws Exception {
         JsonArray listResp = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         Set<Map<String, String>> actual = new HashSet<>(listResp.getList());
@@ -119,6 +124,7 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
     }
 
     @Test
+    @Order(2)
     public void testInterleavedRequests() throws Exception {
         long start = System.nanoTime();
 
