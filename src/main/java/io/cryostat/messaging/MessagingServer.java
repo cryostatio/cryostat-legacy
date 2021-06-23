@@ -95,7 +95,7 @@ public class MessagingServer implements AutoCloseable {
 
         server.websocketHandler(
                 (sws) -> {
-                    if (!"/api/v1/command".equals(sws.path())) {
+                    if (!"/api/v1/notifications".equals(sws.path())) {
                         sws.reject(404);
                         return;
                     }

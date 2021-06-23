@@ -96,7 +96,7 @@ class ClientUrlGetHandler implements RequestHandler {
             // construction
             String clientUrl =
                     String.format(
-                            "%s://%s:%d/api/v1/command",
+                            "%s://%s:%d/api/v1/notifications",
                             isSsl ? "wss" : "ws",
                             netConf.getWebServerHost(),
                             netConf.getExternalWebServerPort());
