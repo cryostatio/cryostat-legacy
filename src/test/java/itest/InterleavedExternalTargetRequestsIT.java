@@ -47,27 +47,22 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import itest.bases.StandardSelfTest;
-import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class InterleavedExternalTargetRequestsIT extends StandardSelfTest {
+import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import itest.bases.ExternalTargetsTest;
+import itest.util.Podman;
+
+class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
 
     static final int NUM_EXT_CONTAINERS = 8;
     static final List<String> CONTAINERS = new ArrayList<>();
-
-    static final int SETUP_TEARDOWN_POLL_PERIOD_MS = 7_500;
-    static final int STABILITY_COUNT = 3;
-    static final int SETUP_TEARDOWN_BASE_MS = 30_000;
-    static final int SETUP_TEARDOWN_MAX_MS =
-            SETUP_TEARDOWN_BASE_MS + (STABILITY_COUNT * SETUP_TEARDOWN_POLL_PERIOD_MS);
 
     @BeforeAll
     static void setup() throws Exception {
@@ -87,48 +82,7 @@ class InterleavedExternalTargetRequestsIT extends StandardSelfTest {
                                 .collect(Collectors.toList())
                                 .toArray(new CompletableFuture[0]))
                 .join();
-
-        // Repeatedly query targets, waiting until we have discovered the expected number JDP
-        // (NUM_EXT_CONTAINERS, + 1 for Cryostat itself).
-        long startTime = System.currentTimeMillis();
-        int successes = 0;
-        while (true) {
-            int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
-            if (numTargets == NUM_EXT_CONTAINERS + 1) {
-                System.out.println(
-                        String.format(
-                                "expected target count observed, counting success %d/%d",
-                                ++successes, STABILITY_COUNT));
-                if (successes >= STABILITY_COUNT) {
-                    System.out.println("setup complete, continuing to tests");
-                    break;
-                }
-                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
-            } else if (numTargets < NUM_EXT_CONTAINERS + 1) {
-                System.err.println(
-                        String.format(
-                                "%d targets found - waiting for setup to complete", numTargets));
-                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
-                    throw new Exception("setup failed - timed out");
-                }
-                successes = 0;
-                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
-            } else {
-                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
-                    throw new Exception(
-                            String.format(
-                                    "%d targets found - too many after timeout!", numTargets));
-                }
-                System.err.println(
-                        String.format(
-                                "%d targets found - too many! Waiting to see if JDP settles...",
-                                numTargets));
-                successes = 0;
-                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
-            }
-        }
-        System.out.println(
-                String.format("setup completed in %dms", System.currentTimeMillis() - startTime));
+        waitForDiscovery(NUM_EXT_CONTAINERS);
     }
 
     @AfterAll
@@ -136,30 +90,7 @@ class InterleavedExternalTargetRequestsIT extends StandardSelfTest {
         for (String id : CONTAINERS) {
             Podman.kill(id);
         }
-
-        // Repeatedly query the number of targets. If we still see additional targets other than
-        // the Cryostat instance itself, bail out - teardown failed. JDP discovery may take some
-        // time to notice that targets have disappeared after the processes/containers are killed,
-        // but this should be only a few seconds.
-        // https://github.com/cryostatio/cryostat/issues/501#issuecomment-856264316
-        long startTime = System.currentTimeMillis();
-        while (true) {
-            int numTargets = queryTargets().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS).size();
-            if (numTargets > 1) {
-                System.err.println(
-                        String.format(
-                                "%d targets found - waiting for teardown to complete", numTargets));
-                if (System.currentTimeMillis() > startTime + SETUP_TEARDOWN_MAX_MS) {
-                    throw new Exception("teardown failed - timed out");
-                }
-                Thread.sleep(SETUP_TEARDOWN_POLL_PERIOD_MS);
-            } else if (numTargets == 0) {
-                throw new Exception("teardown failed - all containers gone, including Cryostat");
-            } else {
-                System.out.println("teardown complete");
-                break;
-            }
-        }
+        waitForDiscovery(0);
     }
 
     @Test
@@ -205,19 +136,6 @@ class InterleavedExternalTargetRequestsIT extends StandardSelfTest {
         long elapsed = stop - start;
         System.out.println(
                 String.format("Elapsed time: %dms", TimeUnit.NANOSECONDS.toMillis(elapsed)));
-    }
-
-    static CompletableFuture<JsonArray> queryTargets() throws Exception {
-        CompletableFuture<JsonArray> resp = new CompletableFuture<>();
-        webClient
-                .get("/api/v1/targets")
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, resp)) {
-                                resp.complete(ar.result().bodyAsJsonArray());
-                            }
-                        });
-        return resp;
     }
 
     private void createInMemoryRecordings() throws Exception {
