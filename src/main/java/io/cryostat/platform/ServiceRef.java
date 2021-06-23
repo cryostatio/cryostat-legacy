@@ -73,16 +73,18 @@ public class ServiceRef {
         this.labels.putAll(labels);
     }
 
+    public Map<String, String> getLabels() {
+        return Collections.unmodifiableMap(labels);
+    }
+
     public void setPlatformAnnotations(Map<String, String> annotations) {
-        this.annotations.setPlatformAnnotations(annotations);
+        this.annotations.platform.clear();
+        this.annotations.platform.putAll(annotations);
     }
 
     public void setCryostatAnnotations(Map<AnnotationKey, String> annotations) {
-        this.annotations.setCryostatAnnotations(annotations);
-    }
-
-    public Map<String, String> getLabels() {
-        return Collections.unmodifiableMap(labels);
+        this.annotations.cryostat.clear();
+        this.annotations.cryostat.putAll(annotations);
     }
 
     public Annotations getAnnotations() {
@@ -124,29 +126,9 @@ public class ServiceRef {
         return ToStringBuilder.reflectionToString(this);
     }
 
-    public static class Annotations {
-        private final @SerializedName("platform") Map<String, String> platformAnnotations =
-                new HashMap<>();
-        private final @SerializedName("cryostat") Map<AnnotationKey, String> cryostatAnnotations =
-                new HashMap<>();
-
-        public Map<String, String> getPlatformAnnotations() {
-            return new HashMap<>(platformAnnotations);
-        }
-
-        public void setPlatformAnnotations(Map<String, String> platformAnnotations) {
-            this.platformAnnotations.clear();
-            this.platformAnnotations.putAll(platformAnnotations);
-        }
-
-        public Map<AnnotationKey, String> getCryostatAnnotations() {
-            return new HashMap<>(cryostatAnnotations);
-        }
-
-        public void setCryostatAnnotations(Map<AnnotationKey, String> cryostatAnnotations) {
-            this.cryostatAnnotations.clear();
-            this.cryostatAnnotations.putAll(cryostatAnnotations);
-        }
+    private static class Annotations {
+        private final Map<String, String> platform = new HashMap<>();
+        private final Map<AnnotationKey, String> cryostat = new HashMap<>();
 
         @Override
         public boolean equals(Object other) {
@@ -161,17 +143,14 @@ public class ServiceRef {
             }
             Annotations o = (Annotations) other;
             return new EqualsBuilder()
-                    .append(platformAnnotations, o.platformAnnotations)
-                    .append(cryostatAnnotations, o.cryostatAnnotations)
+                    .append(platform, o.platform)
+                    .append(cryostat, o.cryostat)
                     .build();
         }
 
         @Override
         public int hashCode() {
-            return new HashCodeBuilder()
-                    .append(platformAnnotations)
-                    .append(cryostatAnnotations)
-                    .toHashCode();
+            return new HashCodeBuilder().append(platform).append(cryostat).toHashCode();
         }
 
         @Override
