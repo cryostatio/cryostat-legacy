@@ -41,7 +41,6 @@ import java.net.URI;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 
 import com.google.gson.annotations.SerializedName;
@@ -182,36 +181,15 @@ public class ServiceRef {
     }
 
     public enum AnnotationKey {
-        HOST("host"),
-        PORT("port"),
-        JAVA_MAIN("javaMain"),
-        PID("pid"),
-        START_TIME("startTime"),
-        NAMESPACE("namespace"),
-        SERVICE_NAME("serviceName"),
-        CONTAINER_NAME("containerName"),
-        POD_NAME("podName"),
+        HOST,
+        PORT,
+        JAVA_MAIN,
+        PID,
+        START_TIME,
+        NAMESPACE,
+        SERVICE_NAME,
+        CONTAINER_NAME,
+        POD_NAME,
         ;
-
-        public static final String PREFIX = "target.cryostat.io";
-
-        private final String key;
-
-        AnnotationKey(String key) {
-            this.key = String.format("%s/%s", PREFIX, key);
-        }
-
-        public String getKey() {
-            return key;
-        }
-
-        public AnnotationKey fromString(String s) {
-            for (AnnotationKey ak : values()) {
-                if (Objects.equals(ak.getKey(), s)) {
-                    return ak;
-                }
-            }
-            return null;
-        }
     }
 }
