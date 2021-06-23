@@ -89,7 +89,6 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
         for (String id : CONTAINERS) {
             Podman.kill(id);
         }
-        waitForDiscovery(0);
     }
 
     @Test

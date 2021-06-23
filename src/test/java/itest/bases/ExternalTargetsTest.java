@@ -41,6 +41,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.json.JsonArray;
+import org.junit.jupiter.api.AfterAll;
 
 public abstract class ExternalTargetsTest extends StandardSelfTest {
 
@@ -49,6 +50,12 @@ public abstract class ExternalTargetsTest extends StandardSelfTest {
     static final int DISCOVERY_BASE_MS = 30_000;
     static final int DISCOVERY_TIMEOUT_MS =
             DISCOVERY_BASE_MS + (STABILITY_COUNT * DISCOVERY_POLL_PERIOD_MS);
+
+    @AfterAll
+    static void waitForExternalTargetsRemoval() throws Exception {
+        // if the subclass doesn't clean itself up then this will time out and fail
+        waitForDiscovery(0);
+    }
 
     public static void waitForDiscovery(int expectedTargets) throws Exception {
         // Repeatedly query targets, waiting until we have discovered the expected number JDP
