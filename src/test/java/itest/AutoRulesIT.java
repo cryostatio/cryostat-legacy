@@ -45,6 +45,13 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
+import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import itest.bases.StandardSelfTest;
+import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -53,15 +60,8 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
-import io.cryostat.net.web.http.HttpMimeType;
-import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
-import itest.bases.TestBase;
-import itest.util.Podman;
-
 @TestMethodOrder(OrderAnnotation.class)
-class AutoRulesIT extends TestBase {
+class AutoRulesIT extends StandardSelfTest {
 
     static final List<String> CONTAINERS = new ArrayList<>();
     static final Map<String, String> NULL_RESULT = new HashMap<>();

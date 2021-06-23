@@ -40,6 +40,7 @@ package itest;
 import java.io.File;
 import java.util.concurrent.TimeUnit;
 
+import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
@@ -51,10 +52,8 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.DisabledIfSystemProperty;
 
-import itest.bases.TestBase;
-
 @DisabledIfSystemProperty(named = "isMinimalBuild", matches = "true")
-public class ClientAssetsIT extends TestBase {
+public class ClientAssetsIT extends StandardSelfTest {
 
     static File file;
     static Document doc;
