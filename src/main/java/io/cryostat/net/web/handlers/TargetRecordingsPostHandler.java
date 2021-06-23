@@ -170,7 +170,7 @@ class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                 if (attrs.contains("toDisk")) {
                                     Pattern bool = Pattern.compile("true|false");
                                     Matcher m = bool.matcher(attrs.get("toDisk"));
-                                    if (!m.find())
+                                    if (!m.matches())
                                         throw new HttpStatusException(400, "Invalid options");
                                     builder = builder.toDisk(Boolean.valueOf(attrs.get("toDisk")));
                                 }

@@ -300,6 +300,15 @@ class TargetRecordingsPostHandlerTest {
                                                 arg0.getArgument(1))
                                         .execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getAvailableRecordings())
+                .thenReturn(Collections.emptyList())
+                .thenReturn(Arrays.asList(existingRecording));
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+        Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.name(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
@@ -317,16 +326,13 @@ class TargetRecordingsPostHandlerTest {
 
     private static Stream<Map<String, String>> getRequestMaps() {
         return Stream.of(
-                Map.of("duration", null),
                 Map.of("duration", ""),
                 Map.of("duration", "t"),
                 Map.of("duration", "90s"),
-                Map.of("toDisk", null),
                 Map.of("toDisk", ""),
                 Map.of("toDisk", "5"),
                 Map.of("toDisk", "T"),
                 Map.of("toDisk", "false1"),
-                Map.of("maxAge", null),
                 Map.of("maxAge", ""),
                 Map.of("maxAge", "true"),
                 Map.of("maxAge", "1e3"),
