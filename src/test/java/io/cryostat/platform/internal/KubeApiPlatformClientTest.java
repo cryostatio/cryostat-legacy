@@ -51,8 +51,8 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
+import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.URIUtil;
 
 import io.fabric8.kubernetes.api.model.EndpointAddress;
@@ -305,6 +305,10 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
+        serviceRef.addCryostatAnnotation(AnnotationKey.NAMESPACE, "myproject");
+        serviceRef.addCryostatAnnotation(AnnotationKey.SERVICE_NAME, "targetA");
+        serviceRef.addCryostatAnnotation(AnnotationKey.PORT, "9999");
+        serviceRef.addCryostatAnnotation(AnnotationKey.HOST, "127.0.0.1");
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
         MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
@@ -365,6 +369,10 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
+        serviceRef.addCryostatAnnotation(AnnotationKey.NAMESPACE, "myproject");
+        serviceRef.addCryostatAnnotation(AnnotationKey.SERVICE_NAME, "targetA");
+        serviceRef.addCryostatAnnotation(AnnotationKey.PORT, "9999");
+        serviceRef.addCryostatAnnotation(AnnotationKey.HOST, "127.0.0.1");
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.LOST));
         MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));

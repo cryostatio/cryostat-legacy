@@ -56,8 +56,8 @@ import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.platform.ServiceRef.AnnotationKey;
+import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.URIUtil;
 
 import org.hamcrest.MatcherAssert;
@@ -149,8 +149,10 @@ class DefaultPlatformClientTest {
 
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
-        MatcherAssert.assertThat(
-                event.getServiceRef(),
-                Matchers.equalTo(new ServiceRef(URIUtil.convert(url), javaMain)));
+        ServiceRef serviceRef = new ServiceRef(URIUtil.convert(url), javaMain);
+        serviceRef.addCryostatAnnotation(AnnotationKey.JAVA_MAIN, "com.example.Main");
+        serviceRef.addCryostatAnnotation(AnnotationKey.HOST, "cryostat");
+        serviceRef.addCryostatAnnotation(AnnotationKey.PORT, "9091");
+        MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
     }
 }
