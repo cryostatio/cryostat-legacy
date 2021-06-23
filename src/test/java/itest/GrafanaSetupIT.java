@@ -46,26 +46,15 @@ import java.util.concurrent.TimeUnit;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
 
-public class GrafanaDatasourceIT extends TestBase {
+public class GrafanaSetupIT extends TestBase {
 
-    HttpRequest<Buffer> req;
-
-    @BeforeEach
-    void createRequest() {
-        req = webClient.get("/api/v1/grafana_datasource_url");
-    }
-
-    // Disabled for now due to conflict with UploadRecordingIT;
-    // See https://github.com/cryostatio/cryostat/pull/229
-    @Disabled
     @Test
-    public void shouldFail() throws Exception {
+    public void shouldHaveConfiguredDatasource() throws Exception {
+        HttpRequest<Buffer> req = webClient.get("/api/v1/grafana_datasource_url");
         CompletableFuture<Integer> future = new CompletableFuture<>();
         req.send(
                 ar -> {
@@ -76,6 +65,22 @@ public class GrafanaDatasourceIT extends TestBase {
                     }
                 });
         MatcherAssert.assertThat(
-                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(500));
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(200));
+    }
+
+    @Test
+    public void shouldHaveConfiguredDashboard() throws Exception {
+        HttpRequest<Buffer> req = webClient.get("/api/v1/grafana_dashboard_url");
+        CompletableFuture<Integer> future = new CompletableFuture<>();
+        req.send(
+                ar -> {
+                    if (ar.succeeded()) {
+                        future.complete(ar.result().statusCode());
+                    } else {
+                        future.completeExceptionally(ar.cause());
+                    }
+                });
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(200));
     }
 }
