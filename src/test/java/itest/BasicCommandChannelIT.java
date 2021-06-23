@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
+import itest.bases.StandardSelfTest;
 import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -56,7 +57,7 @@ import org.junit.jupiter.api.Test;
 // in favour of the HTTP API anyway. The WebSocket connection will only be used for the Notification
 // channel going forward. FIXME add Notification channel tests.
 @Disabled
-public class BasicCommandChannelIT extends TestBase {
+public class BasicCommandChannelIT extends StandardSelfTest {
 
     @Test
     public void shouldGetPingResponse() throws Exception {

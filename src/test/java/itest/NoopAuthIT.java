@@ -42,12 +42,13 @@ import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
+import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class NoopAuthIT extends TestBase {
+public class NoopAuthIT extends StandardSelfTest {
 
     HttpRequest<Buffer> req;
 

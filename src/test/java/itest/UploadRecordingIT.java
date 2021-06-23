@@ -44,6 +44,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpResponse;
+import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -51,7 +52,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
-public class UploadRecordingIT extends TestBase {
+public class UploadRecordingIT extends StandardSelfTest {
 
     static final String TARGET_ID = "localhost";
     static final String RECORDING_NAME = "upload_recording_it_rec";

@@ -42,11 +42,12 @@ import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.ext.web.client.HttpRequest;
+import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-public class GrafanaSetupIT extends TestBase {
+public class GrafanaSetupIT extends StandardSelfTest {
 
     @Test
     public void shouldHaveConfiguredDatasource() throws Exception {
