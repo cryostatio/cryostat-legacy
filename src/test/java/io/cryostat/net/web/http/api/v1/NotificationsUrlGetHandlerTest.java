@@ -111,7 +111,8 @@ class NotificationsUrlGetHandlerTest {
 
             InOrder inOrder = inOrder(rep);
             inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            inOrder.verify(rep).end("{\"notificationsUrl\":\"ws://hostname:1/api/v1/notifications\"}");
+            inOrder.verify(rep)
+                    .end("{\"notificationsUrl\":\"ws://hostname:1/api/v1/notifications\"}");
         }
 
         @Test
@@ -141,7 +142,8 @@ class NotificationsUrlGetHandlerTest {
         }
 
         @Test
-        void shouldHandleNotificationsUrlRequestWithWss() throws SocketException, UnknownHostException {
+        void shouldHandleNotificationsUrlRequestWithWss()
+                throws SocketException, UnknownHostException {
             RoutingContext ctx = mock(RoutingContext.class);
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
@@ -152,7 +154,8 @@ class NotificationsUrlGetHandlerTest {
 
             InOrder inOrder = inOrder(rep);
             inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            inOrder.verify(rep).end("{\"notificationsUrl\":\"wss://hostname:1/api/v1/notifications\"}");
+            inOrder.verify(rep)
+                    .end("{\"notificationsUrl\":\"wss://hostname:1/api/v1/notifications\"}");
         }
     }
 }
