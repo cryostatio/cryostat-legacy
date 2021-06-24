@@ -37,13 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.lenient;
-
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -51,24 +45,21 @@ import java.util.stream.Stream;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateService;
 import io.cryostat.core.templates.TemplateType;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingCreationHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -97,13 +88,10 @@ class TargetRecordingsPostHandlerTest {
     TargetRecordingsPostHandler handler;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock RecordingCreationHelper recordingCreationHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock WebServer webServer;
     @Mock Logger logger;
-    @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
     Gson gson = MainModule.provideGson(logger);
 
     @Mock JFRConnection connection;
@@ -119,23 +107,10 @@ class TargetRecordingsPostHandlerTest {
                 new TargetRecordingsPostHandler(
                         auth,
                         targetConnectionManager,
+                        recordingCreationHelper,
                         recordingOptionsBuilderFactory,
-                        eventOptionsBuilderFactory,
                         () -> webServer,
-                        gson,
-                        notificationFactory);
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
+                        gson);
     }
 
     @Test
@@ -176,7 +151,6 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(recordingOptionsBuilder.maxSize(Mockito.anyLong()))
                 .thenReturn(recordingOptionsBuilder);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
-        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
 
         Mockito.when(
                         webServer.getDownloadURL(
@@ -185,29 +159,64 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(webServer.getReportURL(Mockito.any(JFRConnection.class), Mockito.anyString()))
                 .thenReturn("example-report-url");
 
-        IRecordingDescriptor descriptor = createDescriptor("someRecording");
-        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(descriptor);
-        Mockito.when(service.getAvailableRecordings())
-                .thenReturn(Collections.emptyList())
-                .thenReturn(List.of(descriptor));
-
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(req.formAttributes()).thenReturn(attrs);
         attrs.add("recordingName", "someRecording");
-        attrs.add("events", "template=Foo");
+        attrs.add("events", "template=Foo,type=CUSTOM");
         attrs.add("duration", "10");
         attrs.add("toDisk", "true");
         attrs.add("maxAge", "50");
         attrs.add("maxSize", "64");
-        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
-        Mockito.when(templateService.getEvents("Foo", TemplateType.CUSTOM))
-                .thenReturn(Optional.of(events));
         Mockito.when(ctx.response()).thenReturn(resp);
 
+        IRecordingDescriptor descriptor = createDescriptor("someRecording");
+        Mockito.when(
+                        recordingCreationHelper.startRecording(
+                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenReturn(descriptor);
+
         handler.handle(ctx);
+
+        Mockito.verify(recordingOptionsBuilder).name("someRecording");
+        Mockito.verify(recordingOptionsBuilder).duration(TimeUnit.SECONDS.toMillis(10));
+        Mockito.verify(recordingOptionsBuilder).toDisk(true);
+        Mockito.verify(recordingOptionsBuilder).maxAge(50L);
+        Mockito.verify(recordingOptionsBuilder).maxSize(64L);
+
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
+
+        ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
+                ArgumentCaptor.forClass(IConstrainedMap.class);
+
+        ArgumentCaptor<String> templateNameCaptor = ArgumentCaptor.forClass(String.class);
+
+        ArgumentCaptor<TemplateType> templateTypeCaptor =
+                ArgumentCaptor.forClass(TemplateType.class);
+
+        Mockito.verify(recordingCreationHelper)
+                .startRecording(
+                        connectionDescriptorCaptor.capture(),
+                        recordingOptionsCaptor.capture(),
+                        templateNameCaptor.capture(),
+                        templateTypeCaptor.capture());
+
+        ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
+        MatcherAssert.assertThat(
+                connectionDescriptor.getTargetId(), Matchers.equalTo("fooHost:9091"));
+        MatcherAssert.assertThat(
+                connectionDescriptor.getCredentials().isEmpty(), Matchers.is(true));
+
+        IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
+        MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
+
+        MatcherAssert.assertThat(templateNameCaptor.getValue(), Matchers.equalTo("Foo"));
+
+        MatcherAssert.assertThat(
+                templateTypeCaptor.getValue(), Matchers.equalTo(TemplateType.CUSTOM));
 
         Mockito.verify(resp).setStatusCode(201);
         Mockito.verify(resp).putHeader(HttpHeaders.LOCATION, "/someRecording");
@@ -215,42 +224,12 @@ class TargetRecordingsPostHandlerTest {
         Mockito.verify(resp)
                 .end(
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
-
-        ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
-                ArgumentCaptor.forClass(IConstrainedMap.class);
-        ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
-                ArgumentCaptor.forClass(IConstrainedMap.class);
-        Mockito.verify(recordingOptionsBuilder).name("someRecording");
-        Mockito.verify(recordingOptionsBuilder).duration(TimeUnit.SECONDS.toMillis(10));
-        Mockito.verify(recordingOptionsBuilder).toDisk(true);
-        Mockito.verify(recordingOptionsBuilder).maxAge(50L);
-        Mockito.verify(recordingOptionsBuilder).maxSize(64L);
-        Mockito.verify(service, Mockito.atLeastOnce()).getAvailableRecordings();
-        Mockito.verify(service).start(recordingOptionsCaptor.capture(), eventsCaptor.capture());
-
-        IConstrainedMap<String> actualRecordingOptions = recordingOptionsCaptor.getValue();
-        IConstrainedMap<EventOptionID> actualEvents = eventsCaptor.getValue();
-
-        MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
-        MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
-
-        Mockito.verify(connection).getTemplateService();
-        Mockito.verify(templateService).getEvents("Foo", TemplateType.CUSTOM);
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingCreated");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", "someRecording", "target", "fooHost:9091"));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
     }
 
     @Test
     void shouldHandleNameCollision() throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
-        IRecordingDescriptor existingRecording = createDescriptor("someRecording");
 
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -258,8 +237,19 @@ class TargetRecordingsPostHandlerTest {
                                 ((TargetConnectionManager.ConnectedTask<Object>)
                                                 arg0.getArgument(1))
                                         .execute(connection));
-        Mockito.when(connection.getService()).thenReturn(service);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(Arrays.asList(existingRecording));
+
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+        Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.name(Mockito.any()))
+                .thenReturn(recordingOptionsBuilder);
+        Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
+        Mockito.when(
+                        recordingCreationHelper.startRecording(
+                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                .thenThrow(IllegalArgumentException.class);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:9091");
         MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
@@ -272,8 +262,6 @@ class TargetRecordingsPostHandlerTest {
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-
-        Mockito.verify(service).getAvailableRecordings();
     }
 
     @Test
@@ -315,9 +303,6 @@ class TargetRecordingsPostHandlerTest {
                                                 arg0.getArgument(1))
                                         .execute(connection));
         Mockito.when(connection.getService()).thenReturn(service);
-        Mockito.when(service.getAvailableRecordings())
-                .thenReturn(Collections.emptyList())
-                .thenReturn(Arrays.asList(existingRecording));
         RecordingOptionsBuilder recordingOptionsBuilder =
                 Mockito.mock(RecordingOptionsBuilder.class);
         Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any()))

@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -48,26 +47,22 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Provider;
 
-import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.core.net.JFRConnection;
-import io.cryostat.core.templates.Template;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingCreationHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -76,45 +71,31 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
-    // TODO refactor this to use the RecordingCreationHelper after PR #486 is merged
-    public static final Template ALL_EVENTS_TEMPLATE =
-            new Template(
-                    "ALL",
-                    "Enable all available events in the target JVM, with default option values. This will be very expensive and is intended primarily for testing Cryostat's own capabilities.",
-                    "Cryostat",
-                    TemplateType.TARGET);
-
-    private static final Pattern TEMPLATE_PATTERN =
-            Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
-
     static final String PATH = "targets/:targetId/recordings";
     private final TargetConnectionManager targetConnectionManager;
+    private final RecordingCreationHelper recordingCreationHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
-    private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final Provider<WebServer> webServerProvider;
     private final Gson gson;
-    private final NotificationFactory notificationFactory;
-    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
 
     @Inject
     TargetRecordingsPostHandler(
             AuthManager auth,
             TargetConnectionManager targetConnectionManager,
+            RecordingCreationHelper recordingCreationHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             Provider<WebServer> webServerProvider,
-            Gson gson,
-            NotificationFactory notificationFactory) {
+            Gson gson) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
+        this.recordingCreationHelper = recordingCreationHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
-        this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.webServerProvider = webServerProvider;
         this.gson = gson;
-        this.notificationFactory = notificationFactory;
     }
 
     @Override
@@ -150,18 +131,11 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
         }
 
         try {
-            Optional<HyperlinkedSerializableRecordingDescriptor> descriptor =
+            ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
+            HyperlinkedSerializableRecordingDescriptor linkedDescriptor =
                     targetConnectionManager.executeConnectedTask(
-                            getConnectionDescriptorFromContext(ctx),
+                            connectionDescriptor,
                             connection -> {
-                                if (getDescriptorByName(connection, recordingName).isPresent()) {
-                                    throw new HttpStatusException(
-                                            400,
-                                            String.format(
-                                                    "Recording with name \"%s\" already exists",
-                                                    recordingName));
-                                }
-
                                 RecordingOptionsBuilder builder =
                                         recordingOptionsBuilderFactory
                                                 .create(connection.getService())
@@ -185,57 +159,34 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                 if (attrs.contains("maxSize")) {
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
-                                IConstrainedMap<String> recordingOptions = builder.build();
-                                connection
-                                        .getService()
-                                        .start(
-                                                recordingOptions,
-                                                enableEvents(connection, eventSpecifier));
-                                notificationFactory
-                                        .createBuilder()
-                                        .metaCategory(NOTIFICATION_CATEGORY)
-                                        .metaType(HttpMimeType.JSON)
-                                        .message(
-                                                Map.of(
-                                                        "recording",
-                                                        recordingName,
-                                                        "target",
-                                                        getConnectionDescriptorFromContext(ctx)
-                                                                .getTargetId()))
-                                        .build()
-                                        .send();
-                                return getDescriptorByName(connection, recordingName)
-                                        .map(
-                                                d -> {
-                                                    try {
-                                                        WebServer webServer =
-                                                                webServerProvider.get();
-                                                        return new HyperlinkedSerializableRecordingDescriptor(
-                                                                d,
-                                                                webServer.getDownloadURL(
-                                                                        connection, d.getName()),
-                                                                webServer.getReportURL(
-                                                                        connection, d.getName()));
-                                                    } catch (QuantityConversionException
-                                                            | URISyntaxException
-                                                            | IOException e) {
-                                                        throw new HttpStatusException(500, e);
-                                                    }
-                                                });
+                                Pair<String, TemplateType> template =
+                                        RecordingCreationHelper.parseEventSpecifierToTemplate(
+                                                eventSpecifier);
+                                IRecordingDescriptor descriptor =
+                                        recordingCreationHelper.startRecording(
+                                                connectionDescriptor,
+                                                builder.build(),
+                                                template.getLeft(),
+                                                template.getRight());
+                                try {
+                                    WebServer webServer = webServerProvider.get();
+                                    return new HyperlinkedSerializableRecordingDescriptor(
+                                            descriptor,
+                                            webServer.getDownloadURL(
+                                                    connection, descriptor.getName()),
+                                            webServer.getReportURL(
+                                                    connection, descriptor.getName()));
+                                } catch (QuantityConversionException
+                                        | URISyntaxException
+                                        | IOException e) {
+                                    throw new HttpStatusException(500, e);
+                                }
                             });
 
-            descriptor.ifPresentOrElse(
-                    linkedDescriptor -> {
-                        ctx.response().setStatusCode(201);
-                        ctx.response().putHeader(HttpHeaders.LOCATION, "/" + recordingName);
-                        ctx.response()
-                                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-                        ctx.response().end(gson.toJson(linkedDescriptor));
-                    },
-                    () -> {
-                        throw new HttpStatusException(
-                                500, "Unexpected failure to create recording");
-                    });
+            ctx.response().setStatusCode(201);
+            ctx.response().putHeader(HttpHeaders.LOCATION, "/" + recordingName);
+            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+            ctx.response().end(gson.toJson(linkedDescriptor));
         } catch (NumberFormatException nfe) {
             throw new HttpStatusException(
                     400, String.format("Invalid argument: %s", nfe.getMessage()), nfe);
@@ -249,60 +200,5 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
         return connection.getService().getAvailableRecordings().stream()
                 .filter(recording -> recording.getName().equals(recordingName))
                 .findFirst();
-    }
-
-    protected IConstrainedMap<EventOptionID> enableEvents(JFRConnection connection, String events)
-            throws Exception {
-        Matcher m = TEMPLATE_PATTERN.matcher(events);
-        m.find();
-        String templateName = m.group(1);
-        String typeName = m.group(2);
-        if (ALL_EVENTS_TEMPLATE.getName().equals(templateName)) {
-            return enableAllEvents(connection);
-        }
-        if (typeName != null) {
-            return connection
-                    .getTemplateService()
-                    .getEvents(templateName, TemplateType.valueOf(typeName))
-                    .orElseThrow(
-                            () ->
-                                    new IllegalArgumentException(
-                                            String.format(
-                                                    "No template \"%s\" found with type %s",
-                                                    templateName, typeName)));
-        }
-        // if template type not specified, try to find a Custom template by that name. If none,
-        // fall back on finding a Target built-in template by the name. If not, throw an
-        // exception and bail out.
-        return connection
-                .getTemplateService()
-                .getEvents(templateName, TemplateType.CUSTOM)
-                .or(
-                        () -> {
-                            try {
-                                return connection
-                                        .getTemplateService()
-                                        .getEvents(templateName, TemplateType.TARGET);
-                            } catch (Exception e) {
-                                return Optional.empty();
-                            }
-                        })
-                .orElseThrow(
-                        () ->
-                                new IllegalArgumentException(
-                                        String.format(
-                                                "Invalid/unknown event template %s",
-                                                templateName)));
-    }
-
-    protected IConstrainedMap<EventOptionID> enableAllEvents(JFRConnection connection)
-            throws Exception {
-        EventOptionsBuilder builder = eventOptionsBuilderFactory.create(connection);
-
-        for (IEventTypeInfo eventTypeInfo : connection.getService().getAvailableEventTypes()) {
-            builder.addEvent(eventTypeInfo.getEventTypeID().getFullKey(), "enabled", "true");
-        }
-
-        return builder.build();
     }
 }

@@ -56,6 +56,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingCreationHelper {
@@ -123,7 +124,11 @@ public class RecordingCreationHelper {
             m.find();
             String templateName = m.group(1);
             String typeName = m.group(2);
-            return Pair.of(templateName, TemplateType.valueOf(typeName.toUpperCase()));
+            TemplateType templateType = null;
+            if (StringUtils.isNotBlank(typeName)) {
+                templateType = TemplateType.valueOf(typeName.toUpperCase());
+            }
+            return Pair.of(templateName, templateType);
         }
         throw new IllegalArgumentException(eventSpecifier);
     }
