@@ -121,8 +121,6 @@ public class RuleProcessor
                 platformClient.listDiscoverableServices().stream()
                         .filter(serviceRef -> registry.applies(event.getPayload(), serviceRef))
                         .forEach(serviceRef -> activate(event.getPayload(), serviceRef));
-                // FIXME the processor should also be able to apply new rules to targets that have
-                // already appeared
                 break;
             case REMOVED:
                 deactivate(event.getPayload(), null);
