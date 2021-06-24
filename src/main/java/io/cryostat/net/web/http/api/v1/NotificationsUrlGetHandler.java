@@ -96,7 +96,7 @@ class NotificationsUrlGetHandler implements RequestHandler {
             // construction
             String notificationsUrl =
                     String.format(
-                            "%s://%s:%d/api/v1/notfications",
+                            "%s://%s:%d/api/v1/notifications",
                             isSsl ? "wss" : "ws",
                             netConf.getWebServerHost(),
                             netConf.getExternalWebServerPort());
