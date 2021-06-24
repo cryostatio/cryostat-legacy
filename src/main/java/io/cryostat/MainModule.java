@@ -55,10 +55,12 @@ import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
+import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
+import io.cryostat.util.GsonRuleAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 
@@ -115,6 +117,7 @@ public abstract class MainModule {
                 .serializeNulls()
                 .disableHtmlEscaping()
                 .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
+                .registerTypeAdapter(Rule.class, new GsonRuleAdapter(logger))
                 .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                 .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                 .create();

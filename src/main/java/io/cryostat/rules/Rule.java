@@ -56,18 +56,16 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        this.name = sanitizeRuleName(builder.name);
         this.description = builder.description == null ? "" : builder.description;
-        this.targetAlias = requireNonBlank(builder.targetAlias, Attribute.TARGET_ALIAS);
-        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, Attribute.EVENT_SPECIFIER);
-        this.archivalPeriodSeconds =
-                requireNonNegative(
-                        builder.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
-        this.preservedArchives =
-                requireNonNegative(builder.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        this.targetAlias = builder.targetAlias;
+        this.eventSpecifier = builder.eventSpecifier;
+        this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
+        this.preservedArchives = builder.preservedArchives;
         this.maxAgeSeconds =
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
+        this.validate();
     }
 
     public String getName() {
@@ -109,7 +107,7 @@ public class Rule {
 
     static String sanitizeRuleName(String name) {
         // FIXME this is not robust
-        return name.replaceAll("\\s", "_");
+        return requireNonBlank(name, Attribute.NAME).replaceAll("\\s", "_");
     }
 
     private static String requireNonBlank(String s, Attribute attr) {
@@ -126,6 +124,15 @@ public class Rule {
                     String.format("\"%s\" cannot be negative, was \"%d\"", attr, i));
         }
         return i;
+    }
+
+    public void validate() throws IllegalArgumentException {
+
+        requireNonBlank(this.name, Attribute.NAME);
+        requireNonBlank(this.targetAlias, Attribute.TARGET_ALIAS);
+        requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
+        requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+        requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
     }
 
     @Override

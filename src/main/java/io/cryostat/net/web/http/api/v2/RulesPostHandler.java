@@ -147,7 +147,11 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 }
                 break;
             case JSON:
-                rule = gson.fromJson(params.getBody(), Rule.class);
+                try {
+                    rule = gson.fromJson(params.getBody(), Rule.class);
+                } catch (IllegalArgumentException iae) {
+                    throw new ApiException(400, iae);
+                }
                 break;
             default:
                 throw new ApiException(415, "Bad content type: " + rawMime);
