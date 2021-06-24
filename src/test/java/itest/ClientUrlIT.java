@@ -119,7 +119,7 @@ public class ClientUrlIT extends StandardSelfTest {
                 future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 Matchers.equalTo(
                         String.format(
-                                "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/notifications\"}",
+                                "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
                                 Utils.WEB_PORT)));
     }
 }

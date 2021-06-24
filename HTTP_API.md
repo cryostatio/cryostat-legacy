@@ -100,7 +100,7 @@
     ###### example
     ```
     $ curl localhost:8181/api/v1/clienturl
-    {"clientUrl":"ws://0.0.0.0:8181/api/v1/notifications"}
+    {"clientUrl":"ws://0.0.0.0:8181/api/v1/command"}
     ```
 
 

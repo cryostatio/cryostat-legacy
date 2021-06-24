@@ -111,7 +111,7 @@ class ClientUrlGetHandlerTest {
 
             InOrder inOrder = inOrder(rep);
             inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            inOrder.verify(rep).end("{\"clientUrl\":\"ws://hostname:1/api/v1/notifications\"}");
+            inOrder.verify(rep).end("{\"clientUrl\":\"ws://hostname:1/api/v1/command\"}");
         }
 
         @Test
@@ -152,7 +152,7 @@ class ClientUrlGetHandlerTest {
 
             InOrder inOrder = inOrder(rep);
             inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            inOrder.verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/notifications\"}");
+            inOrder.verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/command\"}");
         }
     }
 }
