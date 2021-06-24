@@ -63,7 +63,7 @@ public abstract class HttpApiV1Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+    abstract RequestHandler bindNotificationsUrlGetHandler(NotificationsUrlGetHandler handler);
 
     @Binds
     @IntoSet
