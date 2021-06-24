@@ -56,7 +56,7 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) {
-        this.name = sanitizeRuleName(builder.name);
+        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
         this.description = builder.description == null ? "" : builder.description;
         this.targetAlias = builder.targetAlias;
         this.eventSpecifier = builder.eventSpecifier;
@@ -107,7 +107,7 @@ public class Rule {
 
     static String sanitizeRuleName(String name) {
         // FIXME this is not robust
-        return requireNonBlank(name, Attribute.NAME).replaceAll("\\s", "_");
+        return name.replaceAll("\\s", "_");
     }
 
     private static String requireNonBlank(String s, Attribute attr) {
