@@ -100,44 +100,22 @@ class AbstractRecordingCommandTest extends TestBase {
                 "jdk:bar:baz",
                 "jdk.Event",
                 "Event",
+                "template=",
             })
-    void shouldNotValidateInvalidEventString(String events) {
+    void shouldNotValidateInvalidEventTemplate(String events) {
         assertFalse(command.validateEvents(events));
     }
 
     @ParameterizedTest
     @ValueSource(
             strings = {
-                "foo.Event:prop=val",
-                "foo.Event:prop=val,bar.Event:thing=1",
-                "foo.class$Inner:prop=val",
                 "template=ALL",
                 "template=Foo",
                 "template=Continuous,type=TARGET",
                 "template=Foo,type=CUSTOM",
             })
-    void shouldValidateValidEventString(String events) {
+    void shouldValidateValidEventTemplate(String events) {
         assertTrue(command.validateEvents(events));
-    }
-
-    @Test
-    void shouldBuildSelectedEventMap() throws Exception {
-        verifyNoInteractions(eventOptionsBuilderFactory);
-
-        EventOptionsBuilder builder = mock(EventOptionsBuilder.class);
-        when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
-
-        command.enableEvents(
-                connection,
-                "foo.Bar$Inner:prop=some,bar.Baz$Inner2:key=val,jdk.CPULoad:enabled=true");
-
-        verify(builder).addEvent("foo.Bar$Inner", "prop", "some");
-        verify(builder).addEvent("bar.Baz$Inner2", "key", "val");
-        verify(builder).addEvent("jdk.CPULoad", "enabled", "true");
-        verify(builder).build();
-
-        verifyNoMoreInteractions(builder);
-        verifyNoMoreInteractions(eventOptionsBuilderFactory);
     }
 
     @Test

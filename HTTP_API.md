@@ -851,10 +851,8 @@
     `recordingName` - The name of the recording to create.
     Should use percent-encoding.
 
-    `events` - The events configuration for the recording.
-    This can be a comma-seperated list of events, with each event having the
-    form `$EVENT_ID:$OPTION=$VALUE`; or it can be a template, using the form
-    `template=$TEMPLATE`.
+    `events` - The events configuration for the recording, as an
+    event template using the form `template=$TEMPLATE`.
 
     **The request may include the following fields:**
 
@@ -1250,7 +1248,6 @@ The handler-specific descriptions below describe how each handler populates the
     ###### synopsis
     Returns a list of event types that can be produced by a target JVM,
     where the event name, category, label, etc. matches the given query.
-    This is useful for preparing event options strings.
 
     ###### request
     `GET /api/v2/targets/:targetId/eventsSearch/:query`

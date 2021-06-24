@@ -43,6 +43,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -60,6 +61,8 @@ import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.TemplateService;
+import io.cryostat.core.templates.TemplateType;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
@@ -105,6 +108,7 @@ class TargetRecordingsPostHandlerTest {
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    @Mock TemplateService templateService;
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;
     @Mock HttpServerResponse resp;
@@ -172,10 +176,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(recordingOptionsBuilder.maxSize(Mockito.anyLong()))
                 .thenReturn(recordingOptionsBuilder);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
-        EventOptionsBuilder builder = Mockito.mock(EventOptionsBuilder.class);
-        Mockito.when(eventOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
         IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(builder.build()).thenReturn(events);
 
         Mockito.when(
                         webServer.getDownloadURL(
@@ -196,11 +197,14 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(req.formAttributes()).thenReturn(attrs);
         attrs.add("recordingName", "someRecording");
-        attrs.add("events", "foo.Bar:enabled=true");
+        attrs.add("events", "template=Foo");
         attrs.add("duration", "10");
         attrs.add("toDisk", "true");
         attrs.add("maxAge", "50");
         attrs.add("maxSize", "64");
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents("Foo", TemplateType.CUSTOM))
+                .thenReturn(Optional.of(events));
         Mockito.when(ctx.response()).thenReturn(resp);
 
         handler.handle(ctx);
@@ -212,11 +216,6 @@ class TargetRecordingsPostHandlerTest {
                 .end(
                         "{\"downloadUrl\":\"example-download-url\",\"reportUrl\":\"example-report-url\",\"id\":1,\"name\":\"someRecording\",\"state\":\"STOPPED\",\"startTime\":0,\"duration\":0,\"continuous\":false,\"toDisk\":false,\"maxSize\":0,\"maxAge\":0}");
 
-        ArgumentCaptor<String> nameCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<Long> durationCaptor = ArgumentCaptor.forClass(Long.class);
-        ArgumentCaptor<Boolean> toDiskCaptor = ArgumentCaptor.forClass(Boolean.class);
-        ArgumentCaptor<Long> maxAgeCaptor = ArgumentCaptor.forClass(Long.class);
-        ArgumentCaptor<Long> maxSizeCaptor = ArgumentCaptor.forClass(Long.class);
         ArgumentCaptor<IConstrainedMap<String>> recordingOptionsCaptor =
                 ArgumentCaptor.forClass(IConstrainedMap.class);
         ArgumentCaptor<IConstrainedMap<EventOptionID>> eventsCaptor =
@@ -234,16 +233,9 @@ class TargetRecordingsPostHandlerTest {
 
         MatcherAssert.assertThat(actualEvents, Matchers.sameInstance(events));
         MatcherAssert.assertThat(actualRecordingOptions, Matchers.sameInstance(recordingOptions));
-        ArgumentCaptor<String> eventCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> optionCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> valueCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(builder)
-                .addEvent(eventCaptor.capture(), optionCaptor.capture(), valueCaptor.capture());
-        Mockito.verify(builder).build();
 
-        MatcherAssert.assertThat(eventCaptor.getValue(), Matchers.equalTo("foo.Bar"));
-        MatcherAssert.assertThat(optionCaptor.getValue(), Matchers.equalTo("enabled"));
-        MatcherAssert.assertThat(valueCaptor.getValue(), Matchers.equalTo("true"));
+        Mockito.verify(connection).getTemplateService();
+        Mockito.verify(templateService).getEvents("Foo", TemplateType.CUSTOM);
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingCreated");
@@ -275,7 +267,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(req.formAttributes()).thenReturn(attrs);
         attrs.add("recordingName", "someRecording");
-        attrs.add("events", "foo.Bar:enabled=true");
+        attrs.add("events", "template=Foo");
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -339,7 +331,7 @@ class TargetRecordingsPostHandlerTest {
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         attrs.addAll(requestValues);
         attrs.add("recordingName", "someRecording");
-        attrs.add("events", "foo.Bar:enabled=true");
+        attrs.add("events", "template=Foo");
         Mockito.when(req.formAttributes()).thenReturn(attrs);
 
         HttpStatusException ex =
