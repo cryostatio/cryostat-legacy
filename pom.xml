@@ -19,6 +19,7 @@
   <imageBuilder>/usr/bin/podman</imageBuilder>
   <baseImage>quay.io/cryostat/cryostat-base</baseImage>
   <baseImageTag>@sha256:233cb0897086bdb4ac74bd1d736c719ebebf660e2e7a6b5f25fc0b7e972d0a77</baseImageTag><!-- 0.2.0 -->
+  <baseImageJdkVersion>java-11-openjdk-11.0.11.0.9-0.el8_3.x86_64</baseImageJdkVersion>
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
@@ -513,7 +514,17 @@
               ${project.build.directory}/assets
             </path>
             <path>
-              src/main/extras
+              <from>src/main/extras</from>
+              <into>/</into>
+              <excludes>
+                <exclude>cryostat.jfc</exclude>
+              </excludes>
+            </path>
+            <!-- FIXME remove this if/when Jib supports copying into symlinks -->
+            <path>
+              <from>src/main/extras</from>
+              <into>/usr/lib/jvm/${baseImageJdkVersion}/lib/jfr</into>
+              <includes>cryostat.jfc</includes>
             </path>
           </paths>
           <permissions>
