@@ -57,6 +57,10 @@ import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
+import jdk.jfr.Category;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
 import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
@@ -81,6 +85,9 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
         return CompletableFuture.supplyAsync(
                         () -> {
+                            AuthRequest evt = new AuthRequest();
+                            evt.begin();
+
                             try (OpenShiftClient authClient =
                                     new DefaultOpenShiftClient(
                                             new OpenShiftConfigBuilder()
@@ -90,15 +97,42 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                 // in the namespace
                                 // TODO find a better way to authenticate tokens
                                 authClient.routes().inNamespace(getNamespace()).list();
+
+                                evt.setRequestSuccessful(true);
                                 return true;
                             } catch (KubernetesClientException e) {
                                 logger.info(e);
                             } catch (Exception e) {
                                 logger.error(e);
+                            } finally {
+                                if (evt.shouldCommit()) {
+                                    evt.end();
+                                    evt.commit();
+                                }
                             }
+
                             return false;
                         })
                 .orTimeout(15, TimeUnit.SECONDS);
+    }
+
+    @Name("io.cryostat.net.OpenShiftAuthManager.AuthRequest")
+    @Label("AuthRequest")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "Event fields are recorded with JFR instead of accessed directly")
+    public static class AuthRequest extends Event {
+
+        boolean requestSuccessful;
+
+        public AuthRequest() {
+            this.requestSuccessful = false;
+        }
+
+        public void setRequestSuccessful(boolean requestSuccessful) {
+            this.requestSuccessful = requestSuccessful;
+        }
     }
 
     @Override

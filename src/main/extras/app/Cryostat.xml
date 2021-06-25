@@ -3,12 +3,23 @@
      see Window -> Flight Recorder Template Manager.
 -->
 <configuration version="2.0" label="Cryostat" description="Continuous self-profiling for Cryostat" provider="Cryostat">
- <event name="io.cryostat.net.TargetConnectionManager.JMXConnectionOpened">
+ <event name="io.cryostat.net.OpenShiftAuthManager.AuthRequest">
   <setting name="enabled">
    true
   </setting>
   <setting name="threshold">
    0 ms
+  </setting>
+  <setting name="stackTrace">
+    true
+  </setting>
+ </event>
+ <event name="io.cryostat.net.TargetConnectionManager.JMXConnectionOpened">
+  <setting name="enabled">
+  true
+  </setting>
+  <setting name="threshold">
+  0 ms
   </setting>
  </event>
  <event name="io.cryostat.net.TargetConnectionManager.JMXConnectionClosed">
