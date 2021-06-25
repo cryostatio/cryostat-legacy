@@ -78,7 +78,7 @@ public abstract class StandardSelfTest {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
 
         Utils.HTTP_CLIENT.webSocket(
-                getClientUrl().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                getNotificationsUrl().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 ar -> {
                     if (ar.failed()) {
                         future.completeExceptionally(ar.cause());
@@ -141,15 +141,17 @@ public abstract class StandardSelfTest {
         return true;
     }
 
-    private static Future<String> getClientUrl() {
+    private static Future<String> getNotificationsUrl() {
         CompletableFuture<String> future = new CompletableFuture<>();
         webClient
-                .get("/api/v1/clienturl")
+                .get("/api/v1/notifications_url")
                 .send(
                         ar -> {
                             if (ar.succeeded()) {
                                 future.complete(
-                                        ar.result().bodyAsJsonObject().getString("clientUrl"));
+                                        ar.result()
+                                                .bodyAsJsonObject()
+                                                .getString("notificationsUrl"));
                             } else {
                                 future.completeExceptionally(ar.cause());
                             }
