@@ -7,7 +7,7 @@
 | What you want to do                                                       | Which handler you should use                                                |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Miscellaneous**                                                         |                                                                             |
-| Get a URL you can use to access Cryostat's WebSocket command channel      | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                               |
+| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                               |
 | Scan for and get a list of target JVMs visible to Cryostat                | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
 | Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
 | Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
@@ -86,7 +86,7 @@
 
     ###### synopsis
     Returns a URL that a client can connect to, to access Cryostat's
-    WebSocket command channel (see [COMMANDS.md](COMMANDS.md)).
+    WebSocket notification channel.
 
     ###### request
     `GET /api/v1/notifications_url`
