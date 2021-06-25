@@ -221,6 +221,22 @@ class RulesPostHandlerTest {
         }
 
         @Test
+        void throwsIfOptionalJsonIntegerAttributesNegative() {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+
+            String invalidRule =
+                    "{\"name\":\"Invalid_Rule\",\"description\":\"AutoRulesIT automated rule\",\"eventSpecifier\":\"template=Continuous,type=TARGET\",\"targetAlias\":\"es.andrewazor.demo.Main\",\"archivalPeriodSeconds\":-60,\"preservedArchives\":10,\"maxAgeSeconds\":0}";
+            Mockito.when(params.getBody()).thenReturn(invalidRule);
+
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("negative"));
+        }
+
+        @Test
         void addsRuleAndReturnsResponse() {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);

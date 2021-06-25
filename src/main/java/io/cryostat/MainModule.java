@@ -117,7 +117,7 @@ public abstract class MainModule {
                 .serializeNulls()
                 .disableHtmlEscaping()
                 .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
-                .registerTypeAdapter(Rule.class, new GsonRuleAdapter(logger))
+                .registerTypeAdapter(Rule.class, new GsonRuleAdapter())
                 .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                 .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                 .create();

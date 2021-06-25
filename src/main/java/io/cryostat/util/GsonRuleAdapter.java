@@ -39,7 +39,6 @@ package io.cryostat.util;
 
 import java.lang.reflect.Type;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.rules.Rule;
 
 import com.google.gson.Gson;
@@ -50,26 +49,14 @@ import com.google.gson.JsonObject;
 
 public class GsonRuleAdapter implements JsonDeserializer<Rule> {
 
-    private final Logger logger;
-
-    public GsonRuleAdapter(Logger logger) {
-        this.logger = logger;
-    }
-
     @Override
     public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)
             throws IllegalArgumentException {
 
-        try {
-            JsonObject jsonObject = json.getAsJsonObject();
-            Rule rule = new Gson().fromJson(jsonObject, Rule.class);
+        JsonObject jsonObject = json.getAsJsonObject();
+        Rule rule = new Gson().fromJson(jsonObject, Rule.class);
 
-            rule.validate();
-            return rule;
-
-        } catch (IllegalArgumentException iae) {
-            logger.warn(iae);
-            throw iae;
-        }
+        rule.validate();
+        return rule;
     }
 }
