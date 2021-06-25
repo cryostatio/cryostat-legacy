@@ -227,7 +227,11 @@ class RulesPostHandlerTest {
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
 
             String invalidRule =
-                    "{\"name\":\"Invalid_Rule\",\"description\":\"AutoRulesIT automated rule\",\"eventSpecifier\":\"template=Continuous,type=TARGET\",\"targetAlias\":\"es.andrewazor.demo.Main\",\"archivalPeriodSeconds\":-60,\"preservedArchives\":10,\"maxAgeSeconds\":0}";
+                    "{\"name\":\"Invalid_Rule\","
+                            + "\"description\":\"AutoRulesIT automated rule\","
+                            + "\"eventSpecifier\":\"template=Continuous,type=TARGET\","
+                            + "\"targetAlias\":\"es.andrewazor.demo.Main\","
+                            + "\"archivalPeriodSeconds\":-60}";
             Mockito.when(params.getBody()).thenReturn(invalidRule);
 
             ApiException ex =
