@@ -47,7 +47,7 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
-public class GsonRuleAdapter implements JsonDeserializer<Rule> {
+public class RuleDeserializer implements JsonDeserializer<Rule> {
 
     @Override
     public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)

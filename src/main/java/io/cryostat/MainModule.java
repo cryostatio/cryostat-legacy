@@ -60,9 +60,9 @@ import io.cryostat.rules.RulesModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
-import io.cryostat.util.GsonRuleAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
+import io.cryostat.util.RuleDeserializer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -117,9 +117,9 @@ public abstract class MainModule {
                 .serializeNulls()
                 .disableHtmlEscaping()
                 .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
-                .registerTypeAdapter(Rule.class, new GsonRuleAdapter())
                 .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                 .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
+                .registerTypeAdapter(Rule.class, new RuleDeserializer())
                 .create();
     }
 

@@ -241,7 +241,7 @@ class RulesPostHandlerTest {
         }
 
         @Test
-        void addsRuleAndReturnsResponse() {
+        void addsRuleWithFormAndReturnsResponse() {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
@@ -255,6 +255,30 @@ class RulesPostHandlerTest {
             form.set(Rule.Attribute.PRESERVED_ARCHIVES.getSerialKey(), "5");
             form.set(Rule.Attribute.MAX_AGE_SECONDS.getSerialKey(), "60");
             form.set(Rule.Attribute.MAX_SIZE_BYTES.getSerialKey(), "8192");
+
+            IntermediateResponse<String> response = handler.handle(params);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
+            MatcherAssert.assertThat(
+                    response.getHeaders().get(HttpHeaders.LOCATION),
+                    Matchers.equalTo("/api/v2/rules/fooRule"));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("fooRule"));
+        }
+
+        @Test
+        void addsRuleWithJsonAndReturnsResponse() {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+            String json =
+                    "{\"name\":\"fooRule\","
+                            + "\"description\":\"AutoRulesIT automated rule\","
+                            + "\"eventSpecifier\":\"template=Continuous,type=TARGET\","
+                            + "\"targetAlias\":\"es.andrewazor.demo.Main\","
+                            + "\"archivalPeriodSeconds\":60,"
+                            + "\"preservedArchives\":5,"
+                            + "\"maxAgeSeconds\":60,"
+                            + "\"maxSizeBytes\":8192}";
+            Mockito.when(params.getBody()).thenReturn(json);
 
             IntermediateResponse<String> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
