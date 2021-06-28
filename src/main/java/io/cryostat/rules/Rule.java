@@ -105,7 +105,7 @@ public class Rule {
         return this.maxSizeBytes;
     }
 
-    static String sanitizeRuleName(String name) {
+    public static String sanitizeRuleName(String name) {
         // FIXME this is not robust
         return name.replaceAll("\\s", "_");
     }

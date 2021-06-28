@@ -46,6 +46,7 @@ import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 public class RuleDeserializer implements JsonDeserializer<Rule> {
 
@@ -54,6 +55,12 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
             throws IllegalArgumentException {
 
         JsonObject jsonObject = json.getAsJsonObject();
+
+        String name = Rule.Attribute.NAME.getSerialKey();
+        String dirty = jsonObject.get(name).getAsString();
+        JsonElement sanitized = JsonParser.parseString(Rule.sanitizeRuleName(dirty));
+        jsonObject.add(name, sanitized); // replaces field with sanitized name
+
         Rule rule = new Gson().fromJson(jsonObject, Rule.class);
 
         rule.validate();
