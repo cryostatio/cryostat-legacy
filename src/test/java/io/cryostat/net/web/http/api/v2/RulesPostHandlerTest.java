@@ -270,7 +270,7 @@ class RulesPostHandlerTest {
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             String json =
-                    "{\"name\":\"fooRule\","
+                    "{\"name\":\"foo Rule\","
                             + "\"description\":\"AutoRulesIT automated rule\","
                             + "\"eventSpecifier\":\"template=Continuous,type=TARGET\","
                             + "\"targetAlias\":\"es.andrewazor.demo.Main\","
@@ -284,8 +284,8 @@ class RulesPostHandlerTest {
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
             MatcherAssert.assertThat(
                     response.getHeaders().get(HttpHeaders.LOCATION),
-                    Matchers.equalTo("/api/v2/rules/fooRule"));
-            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("fooRule"));
+                    Matchers.equalTo("/api/v2/rules/foo_Rule"));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("foo_Rule"));
         }
     }
 }

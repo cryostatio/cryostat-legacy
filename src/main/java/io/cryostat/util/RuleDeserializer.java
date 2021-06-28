@@ -38,10 +38,10 @@
 package io.cryostat.util;
 
 import java.lang.reflect.Type;
+import java.util.function.Function;
 
 import io.cryostat.rules.Rule;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -61,9 +61,57 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
         JsonElement sanitized = JsonParser.parseString(Rule.sanitizeRuleName(dirty));
         jsonObject.add(name, sanitized); // replaces field with sanitized name
 
-        Rule rule = new Gson().fromJson(jsonObject, Rule.class);
+        Rule.Builder builder =
+                new Rule.Builder()
+                        .name(jsonObject.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
+                        .targetAlias(
+                                jsonObject
+                                        .get(Rule.Attribute.TARGET_ALIAS.getSerialKey())
+                                        .getAsString())
+                        .description(
+                                jsonObject
+                                        .get(Rule.Attribute.DESCRIPTION.getSerialKey())
+                                        .getAsString())
+                        .eventSpecifier(
+                                jsonObject
+                                        .get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
+                                        .getAsString());
 
-        rule.validate();
-        return rule;
+        builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObject);
+        builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, jsonObject);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, jsonObject);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, jsonObject);
+
+        return builder.build();
+    }
+
+    private static Rule.Builder setOptionalInt(
+            Rule.Builder builder, Rule.Attribute key, JsonObject jsonObject)
+            throws ClassCastException, IllegalStateException {
+
+        if (jsonObject.get(key.getSerialKey()) == null) {
+            return builder;
+        }
+
+        Function<Integer, Rule.Builder> fn;
+        switch (key) {
+            case ARCHIVAL_PERIOD_SECONDS:
+                fn = builder::archivalPeriodSeconds;
+                break;
+            case PRESERVED_ARCHIVES:
+                fn = builder::preservedArchives;
+                break;
+            case MAX_AGE_SECONDS:
+                fn = builder::maxAgeSeconds;
+                break;
+            case MAX_SIZE_BYTES:
+                fn = builder::maxSizeBytes;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown key \"" + key + "\"");
+        }
+        int value = jsonObject.get(key.getSerialKey()).getAsInt();
+
+        return fn.apply(value);
     }
 }
