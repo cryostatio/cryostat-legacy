@@ -123,14 +123,14 @@ class RulesGetHandlerTest {
                     new Rule.Builder()
                             .name("Rule A")
                             .eventSpecifier("template=Profiling")
-                            .targetAlias("fooTarget")
+                            .matchExpression("fooTarget")
                             .build();
 
             Rule ruleB =
                     new Rule.Builder()
                             .name("Rule B")
                             .eventSpecifier("template=Continuous")
-                            .targetAlias("barTarget")
+                            .matchExpression("barTarget")
                             .build();
 
             testRules = Set.of(ruleA, ruleB);

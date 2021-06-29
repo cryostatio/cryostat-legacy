@@ -184,14 +184,14 @@ class RulesPostHandlerTest {
                     "fooRule,fooTarget,",
                 })
         void throwsIfRequiredFormAttributesBlank(
-                String name, String targetAlias, String eventSpecifier) {
+                String name, String matchExpression, String eventSpecifier) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);
             form.set(Rule.Attribute.NAME.getSerialKey(), name);
-            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), targetAlias);
+            form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), matchExpression);
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), eventSpecifier);
 
             ApiException ex =
@@ -211,7 +211,7 @@ class RulesPostHandlerTest {
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);
             form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
-            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), "someTarget");
+            form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), "someTarget");
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
             form.set(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS.getSerialKey(), val);
 
@@ -266,7 +266,7 @@ class RulesPostHandlerTest {
             Mockito.when(params.getFormAttributes()).thenReturn(form);
             form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
             form.set(Rule.Attribute.DESCRIPTION.getSerialKey(), "rule description");
-            form.set(Rule.Attribute.TARGET_ALIAS.getSerialKey(), "someTarget");
+            form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), "someTarget");
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
             form.set(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS.getSerialKey(), "60");
             form.set(Rule.Attribute.PRESERVED_ARCHIVES.getSerialKey(), "5");

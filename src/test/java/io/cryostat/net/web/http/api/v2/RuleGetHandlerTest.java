@@ -119,7 +119,7 @@ class RuleGetHandlerTest {
         final Rule testRule =
                 new Rule.Builder()
                         .name("Test Rule")
-                        .targetAlias("localhost:0")
+                        .matchExpression("localhost:0")
                         .eventSpecifier("template=Profiling")
                         .build();
 

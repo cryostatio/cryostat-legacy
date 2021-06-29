@@ -58,13 +58,15 @@ import com.google.gson.Gson;
 public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     private final Path rulesDir;
+    private final RuleMatcher ruleMatcher;
     private final FileSystem fs;
     private final Set<Rule> rules;
     private final Gson gson;
     private final Logger logger;
 
-    RuleRegistry(Path rulesDir, FileSystem fs, Gson gson, Logger logger) {
+    RuleRegistry(Path rulesDir, RuleMatcher ruleMatcher, FileSystem fs, Gson gson, Logger logger) {
         this.rulesDir = rulesDir;
+        this.ruleMatcher = ruleMatcher;
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
@@ -117,7 +119,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
     }
 
     public boolean applies(Rule rule, ServiceRef serviceRef) {
-        return Objects.equals(rule.getTargetAlias(), serviceRef.getAlias().get());
+        return ruleMatcher.applies(rule, serviceRef);
     }
 
     public Set<Rule> getRules(ServiceRef serviceRef) {
