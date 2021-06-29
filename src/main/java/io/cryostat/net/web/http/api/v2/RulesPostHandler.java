@@ -50,12 +50,13 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
-class RulesPostHandler extends AbstractV2RequestHandler<String> {
+public class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
     static final String PATH = "rules";
 
@@ -119,30 +120,8 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         switch (mime) {
             case MULTIPART_FORM:
             case URLENCODED_FORM:
-                Rule.Builder builder =
-                        new Rule.Builder()
-                                .name(
-                                        params.getFormAttributes()
-                                                .get(Rule.Attribute.NAME.getSerialKey()))
-                                .targetAlias(
-                                        params.getFormAttributes()
-                                                .get(Rule.Attribute.TARGET_ALIAS.getSerialKey()))
-                                .description(
-                                        params.getFormAttributes()
-                                                .get(Rule.Attribute.DESCRIPTION.getSerialKey()))
-                                .eventSpecifier(
-                                        params.getFormAttributes()
-                                                .get(
-                                                        Rule.Attribute.EVENT_SPECIFIER
-                                                                .getSerialKey()));
-
-                builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, params);
-                builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, params);
-                builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, params);
-                builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, params);
-
                 try {
-                    rule = builder.build();
+                    rule = buildRule(params);
                 } catch (IllegalArgumentException iae) {
                     throw new ApiException(400, iae);
                 }
@@ -173,14 +152,116 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 .body(rule.getName());
     }
 
-    private Rule.Builder setOptionalInt(
+    private static Rule buildRule(RequestParameters params) {
+        Rule.Builder builder =
+                new Rule.Builder()
+                        .name(params.getFormAttributes().get(Rule.Attribute.NAME.getSerialKey()))
+                        .targetAlias(
+                                params.getFormAttributes()
+                                        .get(Rule.Attribute.TARGET_ALIAS.getSerialKey()))
+                        .description(
+                                params.getFormAttributes()
+                                        .get(Rule.Attribute.DESCRIPTION.getSerialKey()))
+                        .eventSpecifier(
+                                params.getFormAttributes()
+                                        .get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
+
+        builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, params);
+        builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, params);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, params);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, params);
+
+        return builder.build();
+    }
+
+    public static Rule buildRule(JsonObject jsonObject) throws IllegalArgumentException {
+
+        Rule.Builder builder =
+                new Rule.Builder()
+                        .name(jsonObject.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
+                        .targetAlias(
+                                jsonObject
+                                        .get(Rule.Attribute.TARGET_ALIAS.getSerialKey())
+                                        .getAsString())
+                        .description(
+                                jsonObject
+                                        .get(Rule.Attribute.DESCRIPTION.getSerialKey())
+                                        .getAsString())
+                        .eventSpecifier(
+                                jsonObject
+                                        .get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
+                                        .getAsString());
+        builder =
+                RulesPostHandler.setOptionalInt(
+                        builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObject);
+        builder =
+                RulesPostHandler.setOptionalInt(
+                        builder, Rule.Attribute.PRESERVED_ARCHIVES, jsonObject);
+        builder =
+                RulesPostHandler.setOptionalInt(
+                        builder, Rule.Attribute.MAX_AGE_SECONDS, jsonObject);
+        builder =
+                RulesPostHandler.setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, jsonObject);
+
+        return builder.build();
+    }
+
+    private static Rule.Builder setOptionalInt(
             Rule.Builder builder, Rule.Attribute key, RequestParameters params)
             throws IllegalArgumentException {
+
         MultiMap attrs = params.getFormAttributes();
         if (!attrs.contains(key.getSerialKey())) {
             return builder;
         }
+
+        Function<Integer, Rule.Builder> fn = selectAttribute(builder, key);
+
+        int value;
+        try {
+            value = Integer.parseInt(attrs.get(key.getSerialKey()));
+        } catch (NumberFormatException nfe) {
+            throw new ApiException(
+                    400,
+                    String.format(
+                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                            attrs.get(key.getSerialKey()), key),
+                    nfe);
+        }
+        return fn.apply(value);
+    }
+
+    public static Rule.Builder setOptionalInt(
+            Rule.Builder builder, Rule.Attribute key, JsonObject jsonObject)
+            throws IllegalArgumentException {
+
+        if (jsonObject.get(key.getSerialKey()) == null) {
+            return builder;
+        }
+
+        Function<Integer, Rule.Builder> fn = selectAttribute(builder, key);
+
+        int value;
+        String attr = key.getSerialKey();
+
+        try {
+            value = jsonObject.get(attr).getAsInt();
+        } catch (ClassCastException | IllegalStateException e) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                            jsonObject.get(attr), attr),
+                    e);
+        }
+
+        return fn.apply(value);
+    }
+
+    private static Function<Integer, Rule.Builder> selectAttribute(
+            Rule.Builder builder, Rule.Attribute key) throws IllegalArgumentException {
+
         Function<Integer, Rule.Builder> fn;
+
         switch (key) {
             case ARCHIVAL_PERIOD_SECONDS:
                 fn = builder::archivalPeriodSeconds;
@@ -197,17 +278,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             default:
                 throw new IllegalArgumentException("Unknown key \"" + key + "\"");
         }
-        int value;
-        try {
-            value = Integer.parseInt(attrs.get(key.getSerialKey()));
-        } catch (NumberFormatException nfe) {
-            throw new ApiException(
-                    400,
-                    String.format(
-                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
-                            attrs.get(key.getSerialKey()), key),
-                    nfe);
-        }
-        return fn.apply(value);
+
+        return fn;
     }
 }

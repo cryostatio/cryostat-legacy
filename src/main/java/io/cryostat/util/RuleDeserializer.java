@@ -38,8 +38,8 @@
 package io.cryostat.util;
 
 import java.lang.reflect.Type;
-import java.util.function.Function;
 
+import io.cryostat.net.web.http.api.v2.RulesPostHandler;
 import io.cryostat.rules.Rule;
 
 import com.google.gson.JsonDeserializationContext;
@@ -62,72 +62,6 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
         JsonElement sanitized = JsonParser.parseString(Rule.sanitizeRuleName(dirty));
         jsonObject.add(name, sanitized); // replaces field with sanitized name
 
-        Rule.Builder builder =
-                new Rule.Builder()
-                        .name(jsonObject.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
-                        .targetAlias(
-                                jsonObject
-                                        .get(Rule.Attribute.TARGET_ALIAS.getSerialKey())
-                                        .getAsString())
-                        .description(
-                                jsonObject
-                                        .get(Rule.Attribute.DESCRIPTION.getSerialKey())
-                                        .getAsString())
-                        .eventSpecifier(
-                                jsonObject
-                                        .get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
-                                        .getAsString());
-        try {
-            builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObject);
-            builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, jsonObject);
-            builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, jsonObject);
-            builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, jsonObject);
-        } catch (IllegalArgumentException iae) {
-            throw iae;
-        }
-
-        return builder.build();
-    }
-
-    private static Rule.Builder setOptionalInt(
-            Rule.Builder builder, Rule.Attribute key, JsonObject jsonObject)
-            throws IllegalArgumentException {
-
-        if (jsonObject.get(key.getSerialKey()) == null) {
-            return builder;
-        }
-
-        Function<Integer, Rule.Builder> fn;
-        switch (key) {
-            case ARCHIVAL_PERIOD_SECONDS:
-                fn = builder::archivalPeriodSeconds;
-                break;
-            case PRESERVED_ARCHIVES:
-                fn = builder::preservedArchives;
-                break;
-            case MAX_AGE_SECONDS:
-                fn = builder::maxAgeSeconds;
-                break;
-            case MAX_SIZE_BYTES:
-                fn = builder::maxSizeBytes;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown key \"" + key + "\"");
-        }
-
-        int value;
-        String attr = key.getSerialKey();
-
-        try {
-            value = jsonObject.get(attr).getAsInt();
-        } catch (ClassCastException | IllegalStateException e) {
-            throw new IllegalArgumentException(
-                    String.format(
-                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
-                            jsonObject.get(attr), attr),
-                    e);
-        }
-
-        return fn.apply(value);
+        return RulesPostHandler.buildRule(jsonObject);
     }
 }
