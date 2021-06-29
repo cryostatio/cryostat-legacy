@@ -102,7 +102,7 @@ public class MessagingServerIT extends StandardSelfTest {
     }
 
     @Test
-    public void shouldRejectDeprecatedCommandPathWith410StatusCode() throws Exception {
+    public void shouldRejectDeprecatedCommandPathWith410StatusCode() {
         try {
             sendMessage("ping").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (Exception e) {
