@@ -74,6 +74,17 @@ class PeriodicArchiverTest {
     void setup() throws Exception {
         this.serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
         this.failureCounter = new AtomicInteger();
+        this.rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .matchExpression("target.alias=='com.example.App'")
+                        .eventSpecifier("template=Continuous")
+                        .maxAgeSeconds(30)
+                        .maxSizeBytes(1234)
+                        .preservedArchives(2)
+                        .archivalPeriodSeconds(67)
+                        .build();
         this.archiver =
                 new PeriodicArchiver(
                         serviceRef,
@@ -85,17 +96,6 @@ class PeriodicArchiverTest {
                             return null;
                         },
                         logger);
-        this.rule =
-                new Rule.Builder()
-                        .name("Test Rule")
-                        .description("Automated unit test rule")
-                        .matchExpression("target.alias == 'com.example.App'")
-                        .eventSpecifier("template=Continuous")
-                        .maxAgeSeconds(30)
-                        .maxSizeBytes(1234)
-                        .preservedArchives(2)
-                        .archivalPeriodSeconds(67)
-                        .build();
     }
 
     @Test

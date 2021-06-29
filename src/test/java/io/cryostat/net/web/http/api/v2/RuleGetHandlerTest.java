@@ -123,7 +123,8 @@ class RuleGetHandlerTest {
             testRule =
                     new Rule.Builder()
                             .name("Test Rule")
-                            .matchExpression("localhost:0")
+                            .matchExpression(
+                                    "target.annotations.cryostat.HOST=='localhost' && target.annotations.cryostat.PORT==0")
                             .eventSpecifier("template=Profiling")
                             .build();
         }
