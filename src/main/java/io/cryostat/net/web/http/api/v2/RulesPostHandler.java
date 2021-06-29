@@ -50,6 +50,7 @@ import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -149,8 +150,8 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             case JSON:
                 try {
                     rule = gson.fromJson(params.getBody(), Rule.class);
-                } catch (IllegalArgumentException iae) {
-                    throw new ApiException(400, iae);
+                } catch (IllegalArgumentException | JsonSyntaxException e) {
+                    throw new ApiException(400, e);
                 }
                 break;
             default:

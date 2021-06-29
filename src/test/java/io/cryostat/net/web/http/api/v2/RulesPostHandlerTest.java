@@ -220,8 +220,9 @@ class RulesPostHandlerTest {
             MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString(val));
         }
 
-        @Test
-        void throwsIfOptionalJsonIntegerAttributesNegative() {
+        @ParameterizedTest
+        @ValueSource(strings = {"-10", "", "one", "|", "[]"})
+        void throwsIfOptionalJsonAttributesNegativeOrNonInteger(String val) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
@@ -231,13 +232,15 @@ class RulesPostHandlerTest {
                             + "\"description\":\"AutoRulesIT automated rule\","
                             + "\"eventSpecifier\":\"template=Continuous,type=TARGET\","
                             + "\"targetAlias\":\"es.andrewazor.demo.Main\","
-                            + "\"archivalPeriodSeconds\":-60}";
+                            + "\"archivalPeriodSeconds\":"
+                            + val
+                            + "}";
             Mockito.when(params.getBody()).thenReturn(invalidRule);
 
             ApiException ex =
                     Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
-            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString("negative"));
+            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString(val));
         }
 
         @Test

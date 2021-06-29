@@ -47,12 +47,13 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 
 public class RuleDeserializer implements JsonDeserializer<Rule> {
 
     @Override
     public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)
-            throws IllegalArgumentException {
+            throws IllegalArgumentException, JsonSyntaxException {
 
         JsonObject jsonObject = json.getAsJsonObject();
 
@@ -76,18 +77,21 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
                                 jsonObject
                                         .get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
                                         .getAsString());
-
-        builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObject);
-        builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, jsonObject);
-        builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, jsonObject);
-        builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, jsonObject);
+        try {
+            builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObject);
+            builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, jsonObject);
+            builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, jsonObject);
+            builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, jsonObject);
+        } catch (IllegalArgumentException iae) {
+            throw iae;
+        }
 
         return builder.build();
     }
 
     private static Rule.Builder setOptionalInt(
             Rule.Builder builder, Rule.Attribute key, JsonObject jsonObject)
-            throws ClassCastException, IllegalStateException {
+            throws IllegalArgumentException {
 
         if (jsonObject.get(key.getSerialKey()) == null) {
             return builder;
@@ -110,7 +114,19 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
             default:
                 throw new IllegalArgumentException("Unknown key \"" + key + "\"");
         }
-        int value = jsonObject.get(key.getSerialKey()).getAsInt();
+
+        int value;
+        String attr = key.getSerialKey();
+
+        try {
+            value = jsonObject.get(attr).getAsInt();
+        } catch (ClassCastException | IllegalStateException e) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                            jsonObject.get(attr), attr),
+                    e);
+        }
 
         return fn.apply(value);
     }
