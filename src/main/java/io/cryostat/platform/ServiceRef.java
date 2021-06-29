@@ -39,6 +39,7 @@ package io.cryostat.platform;
 
 import java.net.URI;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -132,7 +133,7 @@ public class ServiceRef {
 
     private static class Annotations {
         private final Map<String, String> platform = new HashMap<>();
-        private final Map<AnnotationKey, String> cryostat = new HashMap<>();
+        private final Map<AnnotationKey, String> cryostat = new EnumMap<>(AnnotationKey.class);
 
         @Override
         public boolean equals(Object other) {
