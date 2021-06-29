@@ -46,6 +46,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.script.ScriptException;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
@@ -119,7 +121,17 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
     }
 
     public boolean applies(Rule rule, ServiceRef serviceRef) {
-        return ruleMatcher.applies(rule, serviceRef);
+        try {
+            return ruleMatcher.applies(rule, serviceRef);
+        } catch (ScriptException se) {
+            logger.error(se);
+            try {
+                deleteRule(rule);
+            } catch (IOException ioe) {
+                logger.error(ioe);
+            }
+            return false;
+        }
     }
 
     public Set<Rule> getRules(ServiceRef serviceRef) {

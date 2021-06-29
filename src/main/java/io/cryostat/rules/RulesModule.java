@@ -52,6 +52,7 @@ import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
@@ -97,8 +98,8 @@ public abstract class RulesModule {
 
     @Provides
     @Singleton
-    static RuleMatcher provideRuleMatcher() {
-        return new RuleMatcher();
+    static RuleMatcher provideRuleMatcher(Environment env, Gson gson) {
+        return new RuleMatcher(env, gson);
     }
 
     @Provides
