@@ -45,10 +45,8 @@ import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
 
-import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
 
-import com.google.gson.Gson;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
@@ -58,13 +56,6 @@ import jdk.jfr.Name;
 class RuleMatcher {
 
     private final ScriptEngine scriptEngine = new ScriptEngineManager().getEngineByName("nashorn");
-    private final Environment env;
-    private final Gson gson;
-
-    RuleMatcher(Environment env, Gson gson) {
-        this.env = env;
-        this.gson = gson;
-    }
 
     public boolean applies(Rule rule, ServiceRef serviceRef) throws ScriptException {
         RuleAppliesEvent evt = new RuleAppliesEvent(rule.getName());
@@ -89,41 +80,30 @@ class RuleMatcher {
     }
 
     Bindings createBindings(ServiceRef serviceRef) {
-        BindingsCreationEvent evt = new BindingsCreationEvent();
-        try {
-            Bindings bindings = this.scriptEngine.createBindings();
-            Object target;
-            if (env.hasEnv("RULE_DISABLE_GSON")) {
-                // TODO investigate performance - preliminary testing shows Gson is as fast or slighly
-                // faster, surprisingly
-                Map<String, String> cryostatAnnotations =
-                        new HashMap<>(serviceRef.getCryostatAnnotations().size());
-                for (Map.Entry<ServiceRef.AnnotationKey, String> entry :
-                        serviceRef.getCryostatAnnotations().entrySet()) {
-                    cryostatAnnotations.put(entry.getKey().name(), entry.getValue());
-                }
-                target =
-                        Map.of(
-                                "connectUrl", serviceRef.getServiceUri(),
-                                "alias", serviceRef.getAlias(),
-                                "labels", serviceRef.getLabels(),
-                                "annotations",
-                                        Map.of(
-                                                "platform",
-                                                serviceRef.getPlatformAnnotations(),
-                                                "cryostat",
-                                                cryostatAnnotations));
-            } else {
-                target = gson.fromJson(gson.toJson(serviceRef), Map.class);
-            }
-            bindings.put("target", target);
-            return bindings;
-        } finally {
-            evt.end();
-            if (evt.shouldCommit()) {
-                evt.commit();
-            }
+        Bindings bindings = this.scriptEngine.createBindings();
+        Object target;
+        Map<String, String> cryostatAnnotations =
+                new HashMap<>(serviceRef.getCryostatAnnotations().size());
+        for (Map.Entry<ServiceRef.AnnotationKey, String> entry :
+                serviceRef.getCryostatAnnotations().entrySet()) {
+            cryostatAnnotations.put(entry.getKey().name(), entry.getValue());
         }
+        target =
+                Map.of(
+                        "connectUrl",
+                        serviceRef.getServiceUri(),
+                        "alias",
+                        serviceRef.getAlias(),
+                        "labels",
+                        serviceRef.getLabels(),
+                        "annotations",
+                        Map.of(
+                                "platform",
+                                serviceRef.getPlatformAnnotations(),
+                                "cryostat",
+                                cryostatAnnotations));
+        bindings.put("target", target);
+        return bindings;
     }
 
     @Name("io.cryostat.rules.RuleMatcher.RuleAppliesEvent")
@@ -140,12 +120,4 @@ class RuleMatcher {
             this.ruleName = ruleName;
         }
     }
-
-    @Name("io.cryostat.rules.RuleMatcher.BindingsCreationEvent")
-    @Label("Rule Expression Bindings Creation")
-    @Category("Cryostat")
-    @SuppressFBWarnings(
-            value = "URF_UNREAD_FIELD",
-            justification = "The event fields are recorded with JFR instead of accessed directly")
-    public static class BindingsCreationEvent extends Event { }
 }
