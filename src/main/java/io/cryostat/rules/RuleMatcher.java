@@ -80,30 +80,38 @@ class RuleMatcher {
     }
 
     Bindings createBindings(ServiceRef serviceRef) {
-        Bindings bindings = this.scriptEngine.createBindings();
-        Object target;
-        Map<String, String> cryostatAnnotations =
-                new HashMap<>(serviceRef.getCryostatAnnotations().size());
-        for (Map.Entry<ServiceRef.AnnotationKey, String> entry :
-                serviceRef.getCryostatAnnotations().entrySet()) {
-            cryostatAnnotations.put(entry.getKey().name(), entry.getValue());
+        BindingsCreationEvent evt = new BindingsCreationEvent();
+        try {
+            evt.begin();
+            Bindings bindings = this.scriptEngine.createBindings();
+            Map<String, String> cryostatAnnotations =
+                    new HashMap<>(serviceRef.getCryostatAnnotations().size());
+            for (Map.Entry<ServiceRef.AnnotationKey, String> entry :
+                    serviceRef.getCryostatAnnotations().entrySet()) {
+                cryostatAnnotations.put(entry.getKey().name(), entry.getValue());
+            }
+            bindings.put(
+                    "target",
+                    Map.of(
+                            "connectUrl",
+                            serviceRef.getServiceUri(),
+                            "alias",
+                            serviceRef.getAlias(),
+                            "labels",
+                            serviceRef.getLabels(),
+                            "annotations",
+                            Map.of(
+                                    "platform",
+                                    serviceRef.getPlatformAnnotations(),
+                                    "cryostat",
+                                    cryostatAnnotations)));
+            return bindings;
+        } finally {
+            evt.end();
+            if (evt.shouldCommit()) {
+                evt.commit();
+            }
         }
-        target =
-                Map.of(
-                        "connectUrl",
-                        serviceRef.getServiceUri(),
-                        "alias",
-                        serviceRef.getAlias(),
-                        "labels",
-                        serviceRef.getLabels(),
-                        "annotations",
-                        Map.of(
-                                "platform",
-                                serviceRef.getPlatformAnnotations(),
-                                "cryostat",
-                                cryostatAnnotations));
-        bindings.put("target", target);
-        return bindings;
     }
 
     @Name("io.cryostat.rules.RuleMatcher.RuleAppliesEvent")
@@ -120,4 +128,12 @@ class RuleMatcher {
             this.ruleName = ruleName;
         }
     }
+
+    @Name("io.cryostat.rules.RuleMatcher.BindingsCreationEvent")
+    @Label("Rule Binding Creation")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "The event fields are recorded with JFR instead of accessed directly")
+    public static class BindingsCreationEvent extends Event {}
 }
