@@ -38,53 +38,18 @@
 package io.cryostat.rules;
 
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.function.Function;
-
-import io.cryostat.core.log.Logger;
 
 import com.google.gson.JsonObject;
 import io.vertx.core.MultiMap;
-import jdk.nashorn.api.tree.BreakTree;
-import jdk.nashorn.api.tree.CaseTree;
-import jdk.nashorn.api.tree.CatchTree;
-import jdk.nashorn.api.tree.ClassDeclarationTree;
-import jdk.nashorn.api.tree.ClassExpressionTree;
-import jdk.nashorn.api.tree.CompilationUnitTree;
-import jdk.nashorn.api.tree.ContinueTree;
-import jdk.nashorn.api.tree.DebuggerTree;
-import jdk.nashorn.api.tree.DoWhileLoopTree;
-import jdk.nashorn.api.tree.ErroneousTree;
-import jdk.nashorn.api.tree.ExportEntryTree;
-import jdk.nashorn.api.tree.ForInLoopTree;
-import jdk.nashorn.api.tree.ForLoopTree;
-import jdk.nashorn.api.tree.ForOfLoopTree;
-import jdk.nashorn.api.tree.FunctionCallTree;
-import jdk.nashorn.api.tree.FunctionDeclarationTree;
-import jdk.nashorn.api.tree.FunctionExpressionTree;
-import jdk.nashorn.api.tree.ImportEntryTree;
-import jdk.nashorn.api.tree.InstanceOfTree;
-import jdk.nashorn.api.tree.LabeledStatementTree;
-import jdk.nashorn.api.tree.ModuleTree;
-import jdk.nashorn.api.tree.NewTree;
-import jdk.nashorn.api.tree.Parser;
-import jdk.nashorn.api.tree.RegExpLiteralTree;
-import jdk.nashorn.api.tree.ReturnTree;
-import jdk.nashorn.api.tree.SimpleTreeVisitorES5_1;
-import jdk.nashorn.api.tree.SpreadTree;
-import jdk.nashorn.api.tree.ThrowTree;
-import jdk.nashorn.api.tree.Tree;
-import jdk.nashorn.api.tree.TreeVisitor;
-import jdk.nashorn.api.tree.TryTree;
-import jdk.nashorn.api.tree.UnaryTree;
-import jdk.nashorn.api.tree.WhileLoopTree;
-import jdk.nashorn.api.tree.WithTree;
-import jdk.nashorn.api.tree.YieldTree;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class Rule {
+
+    private static final MatchExpressionValidator MATCH_EXPRESSION_VALIDATOR =
+            new MatchExpressionValidator();
 
     private final String name;
     private final String description;
@@ -150,179 +115,8 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
-    static String validateMatchExpression(String name, String matchExpression)
-            throws IOException, RuleMatchExpressionParseException {
-        Parser parser = Parser.create();
-        TreeVisitor<Void, Void> visitor =
-                new SimpleTreeVisitorES5_1<Void, Void>() {
-                    Void fail(Tree node, Void data) {
-                        Logger.INSTANCE.error("Failed parsing on a {}", node.getKind());
-                        throw new RuleMatchExpressionParseException(node, matchExpression);
-                    }
-
-                    @Override
-                    public Void visitBreak(BreakTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitCase(CaseTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitCatch(CatchTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitClassDeclaration(ClassDeclarationTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitClassExpression(ClassExpressionTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitDoWhileLoop(DoWhileLoopTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitErroneous(ErroneousTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitExportEntry(ExportEntryTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitForInLoop(ForInLoopTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitForLoop(ForLoopTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitForOfLoop(ForOfLoopTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitFunctionCall(FunctionCallTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitFunctionDeclaration(FunctionDeclarationTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitFunctionExpression(FunctionExpressionTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitImportEntry(ImportEntryTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitInstanceOf(InstanceOfTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitLabeledStatement(LabeledStatementTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitModule(ModuleTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitNew(NewTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitRegExpLiteral(RegExpLiteralTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitReturn(ReturnTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitSpread(SpreadTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitUnary(UnaryTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitUnknown(Tree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitWhileLoop(WhileLoopTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitWith(WithTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitYield(YieldTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitContinue(ContinueTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitDebugger(DebuggerTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitThrow(ThrowTree node, Void data) {
-                        return fail(node, data);
-                    }
-
-                    @Override
-                    public Void visitTry(TryTree node, Void data) {
-                        return fail(node, data);
-                    }
-                };
-        try (StringReader reader = new StringReader(matchExpression)) {
-            CompilationUnitTree cut = parser.parse("script.js", reader, null);
-            if (cut == null) {
-                throw new RuleMatchExpressionParseException();
-            }
-            cut.accept(visitor, null);
-        }
-        return matchExpression;
+    static String validateMatchExpression(String name, String matchExpression) throws IOException {
+        return MATCH_EXPRESSION_VALIDATOR.validate(name, matchExpression);
     }
 
     private static String requireNonBlank(String s, Attribute attr) {
@@ -562,24 +356,6 @@ public class Rule {
         @Override
         public String toString() {
             return getSerialKey();
-        }
-    }
-
-    @SuppressWarnings("serial")
-    public static class RuleMatchExpressionParseException extends RuntimeException {
-        RuleMatchExpressionParseException() {
-            super("matchExpression parsing failed");
-        }
-
-        RuleMatchExpressionParseException(Tree node, String matchExpression) {
-            super(
-                    String.format(
-                            "matchExpression rejected, illegal %s at [%d, %d]: %s",
-                            node.getKind(),
-                            node.getStartPosition(),
-                            node.getEndPosition(),
-                            matchExpression.substring(
-                                    (int) node.getStartPosition(), (int) node.getEndPosition())));
         }
     }
 }

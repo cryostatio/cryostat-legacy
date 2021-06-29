@@ -45,8 +45,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.ParseException;
 import io.cryostat.rules.Rule;
-import io.cryostat.rules.Rule.RuleMatchExpressionParseException;
 import io.cryostat.rules.RuleException;
 import io.cryostat.rules.RuleRegistry;
 
@@ -122,9 +122,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 try {
                     Rule.Builder builder = Rule.Builder.from(params.getFormAttributes());
                     rule = builder.build();
-                } catch (IOException
-                        | RuleMatchExpressionParseException
-                        | IllegalArgumentException iae) {
+                } catch (IOException | ParseException | IllegalArgumentException iae) {
                     throw new ApiException(400, iae);
                 }
                 break;

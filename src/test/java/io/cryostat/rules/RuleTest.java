@@ -37,8 +37,6 @@
  */
 package io.cryostat.rules;
 
-import io.cryostat.rules.Rule.RuleMatchExpressionParseException;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -107,9 +105,9 @@ class RuleTest {
                 "java.lang.System.exit(1)"
             })
     void shouldThrowOnInvalidMatchExpression(String s) {
-        RuleMatchExpressionParseException ex =
+        ParseException ex =
                 Assertions.assertThrows(
-                        RuleMatchExpressionParseException.class,
+                        ParseException.class,
                         () -> {
                             builder.name(NAME)
                                     .matchExpression(s)
