@@ -37,37 +37,24 @@
  */
 package itest;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpRequest;
-import itest.bases.StandardSelfTest;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.cryostat.util.HttpStatusCodeIdentifier;
-
-import io.vertx.core.AsyncResult;
-import io.vertx.core.file.FileSystem;
 import io.vertx.core.http.WebSocket;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
+import itest.bases.StandardSelfTest;
 import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
 
-public class MessagingServerIT extends StandardSelfTest{
-    
+public class MessagingServerIT extends StandardSelfTest {
+
     public static final String DEPRECATED_COMMAND_PATH = "/api/v1/command";
 
     public static CompletableFuture<JsonObject> sendMessage(String command, String... args)
@@ -115,9 +102,12 @@ public class MessagingServerIT extends StandardSelfTest{
     }
 
     @Test
-    public void shouldRejectWebSocketConnectionWith410StatusCode() throws Exception{
-        JsonObject resp = sendMessage("ping").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        assertResponseStatus(resp, 410);
+    public void shouldRejectDeprecatedCommandPathWith410StatusCode() throws Exception {
+        try {
+            sendMessage("ping").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            String errorMessage = "Websocket connection attempt returned HTTP status code 410";
+            MatcherAssert.assertThat(e.getCause().getMessage(), Matchers.equalTo(errorMessage));
+        }
     }
-
 }
