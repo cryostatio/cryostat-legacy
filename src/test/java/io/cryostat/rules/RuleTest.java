@@ -148,7 +148,7 @@ class RuleTest {
     }
 
     @Test
-    void shouldDefaultToEmptyDescriptionIfLeftNull() {
+    void shouldDefaultToEmptyDescriptionIfLeftNull() throws Exception {
         Rule rule =
                 builder.name(NAME)
                         .matchExpression(MATCH_EXPRESSION)
@@ -158,7 +158,7 @@ class RuleTest {
     }
 
     @Test
-    void shouldSanitizeName() {
+    void shouldSanitizeName() throws Exception {
         Rule rule =
                 builder.name("Some Rule")
                         .matchExpression(MATCH_EXPRESSION)
@@ -168,7 +168,7 @@ class RuleTest {
     }
 
     @Test
-    void shouldSanitizeRecordingNameAndMarkAsAutomatic() {
+    void shouldSanitizeRecordingNameAndMarkAsAutomatic() throws Exception {
         Rule rule =
                 builder.name("Some Rule")
                         .matchExpression(MATCH_EXPRESSION)

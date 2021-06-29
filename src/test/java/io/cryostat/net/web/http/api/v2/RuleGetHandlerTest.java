@@ -116,12 +116,17 @@ class RuleGetHandlerTest {
     @Nested
     class Requests {
         @Mock RequestParameters params;
-        final Rule testRule =
-                new Rule.Builder()
-                        .name("Test Rule")
-                        .matchExpression("localhost:0")
-                        .eventSpecifier("template=Profiling")
-                        .build();
+        Rule testRule;
+
+        @BeforeEach
+        void setup() throws Exception {
+            testRule =
+                    new Rule.Builder()
+                            .name("Test Rule")
+                            .matchExpression("localhost:0")
+                            .eventSpecifier("template=Profiling")
+                            .build();
+        }
 
         @Test
         void shouldRespondWithRuleDefinition() throws Exception {

@@ -118,7 +118,7 @@ class RulesGetHandlerTest {
         Set<Rule> testRules;
 
         @BeforeEach
-        void setup() {
+        void setup() throws Exception {
             Rule ruleA =
                     new Rule.Builder()
                             .name("Rule A")

@@ -43,9 +43,9 @@ import javax.script.Bindings;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 
-import com.google.gson.Gson;
-
 import io.cryostat.platform.ServiceRef;
+
+import com.google.gson.Gson;
 
 class RuleMatcher {
 
