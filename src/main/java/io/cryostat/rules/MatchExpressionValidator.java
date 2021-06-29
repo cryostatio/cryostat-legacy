@@ -83,7 +83,7 @@ public class MatchExpressionValidator {
     private final TreeVisitor<Void, String> treeVisitor =
             new SimpleTreeVisitorES5_1<Void, String>() {
                 Void fail(Tree node, String matchExpression) {
-                    throw new ParseException(node, matchExpression);
+                    throw new IllegalMatchExpressionException(node, matchExpression);
                 }
 
                 @Override
@@ -250,7 +250,7 @@ public class MatchExpressionValidator {
         try (StringReader reader = new StringReader(matchExpression)) {
             CompilationUnitTree cut = parser.parse(name, reader, null);
             if (cut == null) {
-                throw new ParseException();
+                throw new IllegalMatchExpressionException();
             }
             cut.accept(treeVisitor, matchExpression);
         }

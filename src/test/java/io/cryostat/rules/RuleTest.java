@@ -105,9 +105,9 @@ class RuleTest {
                 "java.lang.System.exit(1)"
             })
     void shouldThrowOnInvalidMatchExpression(String s) {
-        ParseException ex =
+        IllegalMatchExpressionException ex =
                 Assertions.assertThrows(
-                        ParseException.class,
+                        IllegalMatchExpressionException.class,
                         () -> {
                             builder.name(NAME)
                                     .matchExpression(s)

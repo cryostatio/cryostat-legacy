@@ -40,12 +40,12 @@ package io.cryostat.rules;
 import jdk.nashorn.api.tree.Tree;
 
 @SuppressWarnings("serial")
-public class ParseException extends RuntimeException {
-    ParseException() {
+public class IllegalMatchExpressionException extends RuntimeException {
+    IllegalMatchExpressionException() {
         super("matchExpression parsing failed");
     }
 
-    ParseException(Tree node, String matchExpression) {
+    IllegalMatchExpressionException(Tree node, String matchExpression) {
         super(
                 String.format(
                         "matchExpression rejected, illegal %s at [%d, %d]: %s",
