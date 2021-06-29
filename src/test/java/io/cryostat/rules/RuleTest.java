@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import io.cryostat.rules.Rule.RuleMatchExpressionParseException;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -45,6 +47,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -93,6 +96,28 @@ class RuleTest {
         MatcherAssert.assertThat(
                 ex.getMessage(),
                 Matchers.containsString("\"matchExpression\" cannot be blank, was \"" + s + "\""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "while (true) continue; false",
+                "function foo() { return false; }; foo();",
+                "System.exit(1)",
+                "java.lang.System.exit(1)"
+            })
+    void shouldThrowOnInvalidMatchExpression(String s) {
+        RuleMatchExpressionParseException ex =
+                Assertions.assertThrows(
+                        RuleMatchExpressionParseException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .matchExpression(s)
+                                    .eventSpecifier(EVENT_SPECIFIER)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(), Matchers.startsWith("matchExpression rejected, illegal"));
     }
 
     @ParameterizedTest
