@@ -39,7 +39,6 @@ package io.cryostat.util;
 
 import java.lang.reflect.Type;
 
-import io.cryostat.net.web.http.api.v2.RulesPostHandler;
 import io.cryostat.rules.Rule;
 
 import com.google.gson.JsonDeserializationContext;
@@ -62,6 +61,6 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
         JsonElement sanitized = JsonParser.parseString(Rule.sanitizeRuleName(dirty));
         jsonObject.add(name, sanitized); // replaces field with sanitized name
 
-        return RulesPostHandler.buildRule(jsonObject);
+        return Rule.buildRule(jsonObject);
     }
 }

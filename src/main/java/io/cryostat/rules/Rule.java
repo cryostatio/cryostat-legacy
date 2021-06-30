@@ -37,6 +37,10 @@
  */
 package io.cryostat.rules;
 
+import java.util.function.Function;
+
+import com.google.gson.JsonObject;
+import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -225,5 +229,118 @@ public class Rule {
         public String toString() {
             return getSerialKey();
         }
+    }
+
+    public static Rule buildRule(MultiMap formAttributes) {
+        Rule.Builder builder =
+                new Rule.Builder()
+                        .name(formAttributes.get(Rule.Attribute.NAME.getSerialKey()))
+                        .targetAlias(formAttributes.get(Rule.Attribute.TARGET_ALIAS.getSerialKey()))
+                        .description(formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
+                        .eventSpecifier(
+                                formAttributes.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
+
+        builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);
+        builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, formAttributes);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, formAttributes);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, formAttributes);
+
+        return builder.build();
+    }
+
+    public static Rule buildRule(JsonObject jsonObj) throws IllegalArgumentException {
+
+        Rule.Builder builder =
+                new Rule.Builder()
+                        .name(jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
+                        .targetAlias(
+                                jsonObj.get(Rule.Attribute.TARGET_ALIAS.getSerialKey())
+                                        .getAsString())
+                        .description(
+                                jsonObj.get(Rule.Attribute.DESCRIPTION.getSerialKey())
+                                        .getAsString())
+                        .eventSpecifier(
+                                jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
+                                        .getAsString());
+        builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObj);
+        builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, jsonObj);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, jsonObj);
+        builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
+
+        return builder.build();
+    }
+
+    public static Rule.Builder setOptionalInt(
+            Rule.Builder builder, Rule.Attribute key, MultiMap formAttributes)
+            throws IllegalArgumentException {
+
+        if (!formAttributes.contains(key.getSerialKey())) {
+            return builder;
+        }
+
+        Function<Integer, Rule.Builder> fn = selectAttribute(builder, key);
+
+        int value;
+        try {
+            value = Integer.parseInt(formAttributes.get(key.getSerialKey()));
+        } catch (NumberFormatException nfe) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                            formAttributes.get(key.getSerialKey()), key),
+                    nfe);
+        }
+        return fn.apply(value);
+    }
+
+    public static Rule.Builder setOptionalInt(
+            Rule.Builder builder, Rule.Attribute key, JsonObject jsonObj)
+            throws IllegalArgumentException {
+
+        if (jsonObj.get(key.getSerialKey()) == null) {
+            return builder;
+        }
+
+        Function<Integer, Rule.Builder> fn = selectAttribute(builder, key);
+
+        int value;
+        String attr = key.getSerialKey();
+
+        try {
+            value = jsonObj.get(attr).getAsInt();
+        } catch (ClassCastException | IllegalStateException e) {
+            throw new IllegalArgumentException(
+                    String.format(
+                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                            jsonObj.get(attr), attr),
+                    e);
+        }
+
+        return fn.apply(value);
+    }
+
+    private static Function<Integer, Rule.Builder> selectAttribute(
+            Rule.Builder builder, Rule.Attribute key) throws IllegalArgumentException {
+
+        Function<Integer, Rule.Builder> fn;
+
+        switch (key) {
+            case ARCHIVAL_PERIOD_SECONDS:
+                fn = builder::archivalPeriodSeconds;
+                break;
+            case PRESERVED_ARCHIVES:
+                fn = builder::preservedArchives;
+                break;
+            case MAX_AGE_SECONDS:
+                fn = builder::maxAgeSeconds;
+                break;
+            case MAX_SIZE_BYTES:
+                fn = builder::maxSizeBytes;
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown key \"" + key + "\"");
+        }
+
+        return fn;
     }
 }
