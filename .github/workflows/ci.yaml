@@ -45,6 +45,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: [get-pom-properties, build-deps]
+    env:
+      CRYOSTAT_IMG: quay.io/cryostat/cryostat
     steps:
     - uses: actions/checkout@v2
       with:
@@ -65,9 +67,9 @@ jobs:
     - run: mvn -B -U clean verify
     - run: >
         podman tag
-        quay.io/cryostat/cryostat:${{ needs.get-pom-properties.outputs.image-version }}
-        quay.io/cryostat/cryostat:${{ github.sha }}
-        quay.io/cryostat/cryostat:latest
+        ${{ env.CRYOSTAT_IMG }}:${{ needs.get-pom-properties.outputs.image-version }}
+        ${{ env.CRYOSTAT_IMG }}:${{ github.sha }}
+        ${{ env.CRYOSTAT_IMG }}:latest
       if: ${{ github.event_name == 'push' && github.repository_owner == 'cryostatio' }}
     - uses: skjolber/maven-cache-github-action@v1
       with:
@@ -76,7 +78,7 @@ jobs:
       id: push-to-quay
       uses: redhat-actions/push-to-registry@v2
       with:
-        image: quay.io/cryostat/cryostat
+        image: ${{ env.CRYOSTAT_IMG }}
         tags: >
           ${{ needs.get-pom-properties.outputs.image-version }}
           ${{ github.sha }}
