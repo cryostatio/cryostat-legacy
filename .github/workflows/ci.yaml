@@ -36,7 +36,7 @@ jobs:
     - run: mvn -B -U -DskipTests=true clean install
     - uses: actions/upload-artifact@v2
       with:
-        name: container-jfr-core
+        name: cryostat-core
         path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
     - uses: skjolber/maven-cache-github-action@v1
       with:
@@ -60,7 +60,7 @@ jobs:
         step: restore
     - uses: actions/download-artifact@v2
       with:
-        name: container-jfr-core
+        name: cryostat-core
         path: /home/runner/.m2/repository/io/cryostat/cryostat-core/
     - run: git submodule init
     - run: git submodule update
