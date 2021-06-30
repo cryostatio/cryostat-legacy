@@ -62,7 +62,8 @@ public class MessagingServerIT extends StandardSelfTest {
                 ar -> {
                     if (ar.failed()) {
                         future.completeExceptionally(ar.cause());
-                        return;
+                    } else {
+                        future.complete(null);
                     }
                 });
 
