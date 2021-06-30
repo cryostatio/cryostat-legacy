@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.util.Map;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -220,8 +221,31 @@ class RulesPostHandlerTest {
             MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString(val));
         }
 
+        @ParameterizedTest
+        @ValueSource(strings = {"-10", "", "one", "|", "[1, 2, 3]"})
+        void throwsIfOptionalJsonAttributesNegativeOrNonInteger(String val) {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+
+            String invalidRule =
+                    gson.toJson(
+                            Map.of(
+                                    "name", "Auto Rule ",
+                                    "description", "AutoRulesIT automated rule",
+                                    "eventSpecifier", "template=Continuous,type=TARGET",
+                                    "targetAlias", "es.andrewazor.demo.Main",
+                                    "archivalPeriodSeconds", val));
+            Mockito.when(params.getBody()).thenReturn(invalidRule);
+
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+            MatcherAssert.assertThat(ex.getFailureReason(), Matchers.containsString(val));
+        }
+
         @Test
-        void addsRuleAndReturnsResponse() {
+        void addsRuleWithFormAndReturnsResponse() {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.MULTIPART_FORM.mime());
@@ -242,6 +266,40 @@ class RulesPostHandlerTest {
                     response.getHeaders().get(HttpHeaders.LOCATION),
                     Matchers.equalTo("/api/v2/rules/fooRule"));
             MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("fooRule"));
+        }
+
+        @Test
+        void addsRuleWithJsonAndReturnsResponse() {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+            String json =
+                    gson.toJson(
+                            Map.of(
+                                    "name",
+                                    "Auto Rule",
+                                    "description",
+                                    "AutoRulesIT automated rule",
+                                    "eventSpecifier",
+                                    "template=Continuous,type=TARGET",
+                                    "targetAlias",
+                                    "es.andrewazor.demo.Main",
+                                    "archivalPeriodSeconds",
+                                    60,
+                                    "preservedArchives",
+                                    5,
+                                    "maxAgeSeconds",
+                                    60,
+                                    "maxSizeBytes",
+                                    8192));
+            Mockito.when(params.getBody()).thenReturn(json);
+
+            IntermediateResponse<String> response = handler.handle(params);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
+            MatcherAssert.assertThat(
+                    response.getHeaders().get(HttpHeaders.LOCATION),
+                    Matchers.equalTo("/api/v2/rules/Auto_Rule"));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("Auto_Rule"));
         }
     }
 }

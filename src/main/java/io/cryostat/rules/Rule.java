@@ -37,6 +37,10 @@
  */
 package io.cryostat.rules;
 
+import java.util.function.Function;
+
+import com.google.gson.JsonObject;
+import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -58,16 +62,14 @@ public class Rule {
     Rule(Builder builder) {
         this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
         this.description = builder.description == null ? "" : builder.description;
-        this.targetAlias = requireNonBlank(builder.targetAlias, Attribute.TARGET_ALIAS);
-        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, Attribute.EVENT_SPECIFIER);
-        this.archivalPeriodSeconds =
-                requireNonNegative(
-                        builder.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
-        this.preservedArchives =
-                requireNonNegative(builder.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        this.targetAlias = builder.targetAlias;
+        this.eventSpecifier = builder.eventSpecifier;
+        this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
+        this.preservedArchives = builder.preservedArchives;
         this.maxAgeSeconds =
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
+        this.validate();
     }
 
     public String getName() {
@@ -107,7 +109,7 @@ public class Rule {
         return this.maxSizeBytes;
     }
 
-    static String sanitizeRuleName(String name) {
+    public static String sanitizeRuleName(String name) {
         // FIXME this is not robust
         return name.replaceAll("\\s", "_");
     }
@@ -126,6 +128,15 @@ public class Rule {
                     String.format("\"%s\" cannot be negative, was \"%d\"", attr, i));
         }
         return i;
+    }
+
+    public void validate() throws IllegalArgumentException {
+
+        requireNonBlank(this.name, Attribute.NAME);
+        requireNonBlank(this.targetAlias, Attribute.TARGET_ALIAS);
+        requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
+        requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+        requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
     }
 
     @Override
@@ -190,6 +201,119 @@ public class Rule {
 
         public Rule build() {
             return new Rule(this);
+        }
+
+        public static Builder from(MultiMap formAttributes) {
+            Rule.Builder builder =
+                    new Rule.Builder()
+                            .name(formAttributes.get(Rule.Attribute.NAME.getSerialKey()))
+                            .targetAlias(
+                                    formAttributes.get(Rule.Attribute.TARGET_ALIAS.getSerialKey()))
+                            .description(
+                                    formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
+                            .eventSpecifier(
+                                    formAttributes.get(
+                                            Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
+
+            builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);
+            builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, formAttributes);
+            builder.setOptionalInt(Rule.Attribute.MAX_AGE_SECONDS, formAttributes);
+            builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, formAttributes);
+
+            return builder;
+        }
+
+        public static Builder from(JsonObject jsonObj) throws IllegalArgumentException {
+
+            Rule.Builder builder =
+                    new Rule.Builder()
+                            .name(jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
+                            .targetAlias(
+                                    jsonObj.get(Rule.Attribute.TARGET_ALIAS.getSerialKey())
+                                            .getAsString())
+                            .description(
+                                    jsonObj.get(Rule.Attribute.DESCRIPTION.getSerialKey())
+                                            .getAsString())
+                            .eventSpecifier(
+                                    jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
+                                            .getAsString());
+            builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObj);
+            builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, jsonObj);
+            builder.setOptionalInt(Rule.Attribute.MAX_AGE_SECONDS, jsonObj);
+            builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
+
+            return builder;
+        }
+
+        private Builder setOptionalInt(Rule.Attribute key, MultiMap formAttributes)
+                throws IllegalArgumentException {
+
+            if (!formAttributes.contains(key.getSerialKey())) {
+                return this;
+            }
+
+            Function<Integer, Rule.Builder> fn = this.selectAttribute(key);
+
+            int value;
+            try {
+                value = Integer.parseInt(formAttributes.get(key.getSerialKey()));
+            } catch (NumberFormatException nfe) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                                formAttributes.get(key.getSerialKey()), key),
+                        nfe);
+            }
+            return fn.apply(value);
+        }
+
+        private Builder setOptionalInt(Rule.Attribute key, JsonObject jsonObj)
+                throws IllegalArgumentException {
+
+            if (jsonObj.get(key.getSerialKey()) == null) {
+                return this;
+            }
+
+            Function<Integer, Rule.Builder> fn = this.selectAttribute(key);
+
+            int value;
+            String attr = key.getSerialKey();
+
+            try {
+                value = jsonObj.get(attr).getAsInt();
+            } catch (ClassCastException | IllegalStateException e) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                                jsonObj.get(attr), attr),
+                        e);
+            }
+            return fn.apply(value);
+        }
+
+        private Function<Integer, Rule.Builder> selectAttribute(Rule.Attribute key)
+                throws IllegalArgumentException {
+
+            Function<Integer, Rule.Builder> fn;
+
+            switch (key) {
+                case ARCHIVAL_PERIOD_SECONDS:
+                    fn = this::archivalPeriodSeconds;
+                    break;
+                case PRESERVED_ARCHIVES:
+                    fn = this::preservedArchives;
+                    break;
+                case MAX_AGE_SECONDS:
+                    fn = this::maxAgeSeconds;
+                    break;
+                case MAX_SIZE_BYTES:
+                    fn = this::maxSizeBytes;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown key \"" + key + "\"");
+            }
+
+            return fn;
         }
     }
 
