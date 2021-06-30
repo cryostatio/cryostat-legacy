@@ -118,7 +118,8 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             case MULTIPART_FORM:
             case URLENCODED_FORM:
                 try {
-                    rule = Rule.buildRule(params.getFormAttributes());
+                    Rule.Builder builder = Rule.Builder.from(params.getFormAttributes());
+                    rule = builder.build();
                 } catch (IllegalArgumentException iae) {
                     throw new ApiException(400, iae);
                 }

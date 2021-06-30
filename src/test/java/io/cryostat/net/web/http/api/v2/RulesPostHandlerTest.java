@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.util.Map;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -221,20 +222,20 @@ class RulesPostHandlerTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"-10", "", "one", "|", "[]"})
+        @ValueSource(strings = {"-10", "", "one", "|", "[1, 2, 3]"})
         void throwsIfOptionalJsonAttributesNegativeOrNonInteger(String val) {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
 
             String invalidRule =
-                    "{\"name\":\"Invalid_Rule\","
-                            + "\"description\":\"AutoRulesIT automated rule\","
-                            + "\"eventSpecifier\":\"template=Continuous,type=TARGET\","
-                            + "\"targetAlias\":\"es.andrewazor.demo.Main\","
-                            + "\"archivalPeriodSeconds\":"
-                            + val
-                            + "}";
+                    gson.toJson(
+                            Map.of(
+                                    "name", "Auto Rule ",
+                                    "description", "AutoRulesIT automated rule",
+                                    "eventSpecifier", "template=Continuous,type=TARGET",
+                                    "targetAlias", "es.andrewazor.demo.Main",
+                                    "archivalPeriodSeconds", val));
             Mockito.when(params.getBody()).thenReturn(invalidRule);
 
             ApiException ex =
@@ -273,22 +274,32 @@ class RulesPostHandlerTest {
             Mockito.when(params.getHeaders()).thenReturn(headers);
             headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
             String json =
-                    "{\"name\":\"foo Rule\","
-                            + "\"description\":\"AutoRulesIT automated rule\","
-                            + "\"eventSpecifier\":\"template=Continuous,type=TARGET\","
-                            + "\"targetAlias\":\"es.andrewazor.demo.Main\","
-                            + "\"archivalPeriodSeconds\":60,"
-                            + "\"preservedArchives\":5,"
-                            + "\"maxAgeSeconds\":60,"
-                            + "\"maxSizeBytes\":8192}";
+                    gson.toJson(
+                            Map.of(
+                                    "name",
+                                    "Auto Rule",
+                                    "description",
+                                    "AutoRulesIT automated rule",
+                                    "eventSpecifier",
+                                    "template=Continuous,type=TARGET",
+                                    "targetAlias",
+                                    "es.andrewazor.demo.Main",
+                                    "archivalPeriodSeconds",
+                                    60,
+                                    "preservedArchives",
+                                    5,
+                                    "maxAgeSeconds",
+                                    60,
+                                    "maxSizeBytes",
+                                    8192));
             Mockito.when(params.getBody()).thenReturn(json);
 
             IntermediateResponse<String> response = handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(201));
             MatcherAssert.assertThat(
                     response.getHeaders().get(HttpHeaders.LOCATION),
-                    Matchers.equalTo("/api/v2/rules/foo_Rule"));
-            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("foo_Rule"));
+                    Matchers.equalTo("/api/v2/rules/Auto_Rule"));
+            MatcherAssert.assertThat(response.getBody(), Matchers.equalTo("Auto_Rule"));
         }
     }
 }
