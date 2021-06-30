@@ -39,9 +39,7 @@ package io.cryostat.rules;
 
 import java.util.function.Function;
 
-import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
@@ -226,12 +224,6 @@ public class Rule {
         }
 
         public static Builder from(JsonObject jsonObj) throws IllegalArgumentException {
-
-            // sanitize name
-            String name = Rule.Attribute.NAME.getSerialKey();
-            String dirty = jsonObj.get(name).getAsString();
-            JsonElement sanitized = JsonParser.parseString(Rule.sanitizeRuleName(dirty));
-            jsonObj.add(name, sanitized);
 
             Rule.Builder builder =
                     new Rule.Builder()
