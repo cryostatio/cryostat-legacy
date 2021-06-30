@@ -37,15 +37,11 @@
  */
 package itest;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
-import io.vertx.core.http.WebSocket;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
 import itest.util.Utils;
@@ -68,34 +64,6 @@ public class MessagingServerIT extends StandardSelfTest {
                         future.completeExceptionally(ar.cause());
                         return;
                     }
-                    WebSocket ws = ar.result();
-
-                    ws.handler(
-                            m -> {
-                                JsonObject resp = m.toJsonObject();
-                                String commandName = resp.getString("commandName");
-                                ws.end(
-                                        unused -> {
-                                            if (Objects.equals(command, commandName)) {
-                                                future.complete(resp);
-                                            } else {
-                                                future.completeExceptionally(
-                                                        new Exception(
-                                                                String.format(
-                                                                        "Unexpected command response %s for command %s",
-                                                                        commandName, command)));
-                                            }
-                                        });
-                            });
-
-                    ws.writeTextMessage(
-                            new JsonObject(Map.of("command", command, "args", Arrays.asList(args)))
-                                    .toString(),
-                            wsar -> {
-                                if (wsar.failed()) {
-                                    future.completeExceptionally(wsar.cause());
-                                }
-                            });
                 });
 
         return future;
