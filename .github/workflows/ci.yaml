@@ -12,6 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - id: query-pom
+      name: Get properties from POM
       # Query POM for core and image version and save as output parameter
       run: |
         CORE_VERSION="$(mvn help:evaluate -Dexpression=io.cryostat.core.version -q -DforceStdout)"
@@ -65,7 +66,8 @@ jobs:
     - run: git submodule init
     - run: git submodule update
     - run: mvn -B -U clean verify
-    - run: >
+    - name: Tag images
+      run: >
         podman tag
         ${{ env.CRYOSTAT_IMG }}:${{ needs.get-pom-properties.outputs.image-version }}
         ${{ env.CRYOSTAT_IMG }}:${{ github.sha }}
