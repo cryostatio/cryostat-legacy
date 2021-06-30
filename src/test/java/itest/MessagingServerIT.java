@@ -47,6 +47,7 @@ import itest.bases.StandardSelfTest;
 import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class MessagingServerIT extends StandardSelfTest {
@@ -71,12 +72,12 @@ public class MessagingServerIT extends StandardSelfTest {
     }
 
     @Test
-    public void shouldRejectDeprecatedCommandPathWith410StatusCode() {
-        try {
-            sendMessage("ping").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        } catch (Exception e) {
-            String errorMessage = "Websocket connection attempt returned HTTP status code 410";
-            MatcherAssert.assertThat(e.getCause().getMessage(), Matchers.equalTo(errorMessage));
-        }
+    public void shouldRejectDeprecatedCommandPathWith410StatusCode() throws Exception {
+        ExecutionException ex =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () -> sendMessage("ping").get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS));
+        String errorMessage = "Websocket connection attempt returned HTTP status code 410";
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo(errorMessage));
     }
 }
