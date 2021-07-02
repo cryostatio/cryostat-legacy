@@ -35,66 +35,27 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.recordings;
 
-import java.util.Optional;
+import javax.inject.Singleton;
 
-import io.cryostat.core.net.Credentials;
-import io.cryostat.platform.ServiceRef;
+import io.cryostat.commands.internal.EventOptionsBuilder;
+import io.cryostat.messaging.notifications.NotificationFactory;
+import io.cryostat.net.TargetConnectionManager;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import dagger.Module;
+import dagger.Provides;
 
-public class ConnectionDescriptor {
+@Module
+public abstract class RecordingsModule {
 
-    private final String targetId;
-    private final Optional<Credentials> credentials;
-
-    public ConnectionDescriptor(ServiceRef serviceRef) {
-        this(serviceRef.getServiceUri().toString());
-    }
-
-    public ConnectionDescriptor(String targetId) {
-        this(targetId, null);
-    }
-
-    public ConnectionDescriptor(ServiceRef serviceRef, Credentials credentials) {
-        this(serviceRef.getServiceUri().toString(), credentials);
-    }
-
-    public ConnectionDescriptor(String targetId, Credentials credentials) {
-        this.targetId = targetId;
-        this.credentials = Optional.ofNullable(credentials);
-    }
-
-    public String getTargetId() {
-        return targetId;
-    }
-
-    public Optional<Credentials> getCredentials() {
-        return credentials;
-    }
-
-    @Override
-    public boolean equals(Object other) {
-        if (other == null) {
-            return false;
-        }
-        if (other == this) {
-            return true;
-        }
-        if (!(other instanceof ConnectionDescriptor)) {
-            return false;
-        }
-        ConnectionDescriptor cd = (ConnectionDescriptor) other;
-        return new EqualsBuilder()
-                .append(targetId, cd.targetId)
-                .append(credentials, cd.credentials)
-                .isEquals();
-    }
-
-    @Override
-    public int hashCode() {
-        return new HashCodeBuilder().append(targetId).append(credentials).hashCode();
+    @Provides
+    @Singleton
+    static RecordingCreationHelper provideRecordingCreationHelper(
+            TargetConnectionManager targetConnectionManager,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            NotificationFactory notificationFactory) {
+        return new RecordingCreationHelper(
+                targetConnectionManager, eventOptionsBuilderFactory, notificationFactory);
     }
 }

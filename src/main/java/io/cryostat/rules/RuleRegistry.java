@@ -116,13 +116,15 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
         return this.rules.stream().filter(r -> Objects.equals(r.getName(), name)).findFirst();
     }
 
+    public boolean applies(Rule rule, ServiceRef serviceRef) {
+        return Objects.equals(rule.getTargetAlias(), serviceRef.getAlias().get());
+    }
+
     public Set<Rule> getRules(ServiceRef serviceRef) {
         if (!serviceRef.getAlias().isPresent()) {
             return Set.of();
         }
-        return rules.stream()
-                .filter(r -> r.getTargetAlias().equals(serviceRef.getAlias().get()))
-                .collect(Collectors.toSet());
+        return rules.stream().filter(r -> applies(r, serviceRef)).collect(Collectors.toSet());
     }
 
     public Set<Rule> getRules() {
