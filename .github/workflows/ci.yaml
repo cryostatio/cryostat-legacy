@@ -80,7 +80,7 @@ jobs:
       id: push-to-quay
       uses: redhat-actions/push-to-registry@v2
       with:
-        image: ${{ env.CRYOSTAT_IMG }}
+        image: cryostat
         tags: >
           ${{ needs.get-pom-properties.outputs.image-version }}
           ${{ github.sha }}
