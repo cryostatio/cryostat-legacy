@@ -49,13 +49,13 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class ClientUrlIT extends StandardSelfTest {
+public class NotificationsUrlIT extends StandardSelfTest {
 
     HttpRequest<Buffer> req;
 
     @BeforeEach
     void createRequest() {
-        req = webClient.get("/api/v1/clienturl");
+        req = webClient.get("/api/v1/notifications_url");
     }
 
     @Test
@@ -119,7 +119,7 @@ public class ClientUrlIT extends StandardSelfTest {
                 future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 Matchers.equalTo(
                         String.format(
-                                "{\"clientUrl\":\"ws://0.0.0.0:%d/api/v1/command\"}",
+                                "{\"notificationsUrl\":\"ws://0.0.0.0:%d/api/v1/notifications\"}",
                                 Utils.WEB_PORT)));
     }
 }

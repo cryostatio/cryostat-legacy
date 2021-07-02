@@ -7,7 +7,7 @@
 | What you want to do                                                       | Which handler you should use                                                |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Miscellaneous**                                                         |                                                                             |
-| Get a URL you can use to access Cryostat's WebSocket command channel      | [`ClientUrlGetHandler`](#ClientUrlGetHandler)                               |
+| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                               |
 | Scan for and get a list of target JVMs visible to Cryostat                | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
 | Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
 | Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
@@ -82,25 +82,25 @@
     ```
 
 
-* #### `ClientUrlGetHandler`
+* #### `NotificationsUrlGetHandler`
 
     ###### synopsis
     Returns a URL that a client can connect to, to access Cryostat's
-    WebSocket command channel (see [COMMANDS.md](COMMANDS.md)).
+    WebSocket notification channel.
 
     ###### request
-    `GET /api/v1/clienturl`
+    `GET /api/v1/notifications_url`
 
     ###### response
-    `200` - The body is `{"clientUrl":"$URL"}`.
+    `200` - The body is `{"notificationsUrl":"$URL"}`.
 
     `500` - The URL could not be constructed due to an error with the socket
     or the host. Or there was an unexpected error. The body is an error message.
 
     ###### example
     ```
-    $ curl localhost:8181/api/v1/clienturl
-    {"clientUrl":"ws://0.0.0.0:8181/api/v1/command"}
+    $ curl localhost:8181/api/v1/notifications_url
+    {"notificationsUrl":"ws://0.0.0.0:8181/api/v1/notifications"}
     ```
 
 

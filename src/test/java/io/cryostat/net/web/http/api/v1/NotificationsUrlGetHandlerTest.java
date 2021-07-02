@@ -68,12 +68,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ClientUrlGetHandlerTest {
+class NotificationsUrlGetHandlerTest {
 
     @Nested
     class WithoutSsl {
 
-        ClientUrlGetHandler handler;
+        NotificationsUrlGetHandler handler;
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
         @Mock Logger logger;
@@ -81,7 +81,7 @@ class ClientUrlGetHandlerTest {
 
         @BeforeEach
         void setup() {
-            this.handler = new ClientUrlGetHandler(gson, httpServer, netConf);
+            this.handler = new NotificationsUrlGetHandler(gson, httpServer, netConf);
         }
 
         @Test
@@ -91,7 +91,7 @@ class ClientUrlGetHandlerTest {
 
         @Test
         void shouldHaveCorrectPath() {
-            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v1/clienturl"));
+            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v1/notifications_url"));
         }
 
         @Test
@@ -100,7 +100,7 @@ class ClientUrlGetHandlerTest {
         }
 
         @Test
-        void shouldHandleClientUrlRequest() throws SocketException, UnknownHostException {
+        void shouldHandleNotificationsUrlRequest() throws SocketException, UnknownHostException {
             RoutingContext ctx = mock(RoutingContext.class);
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
@@ -111,7 +111,8 @@ class ClientUrlGetHandlerTest {
 
             InOrder inOrder = inOrder(rep);
             inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            inOrder.verify(rep).end("{\"clientUrl\":\"ws://hostname:1/api/v1/command\"}");
+            inOrder.verify(rep)
+                    .end("{\"notificationsUrl\":\"ws://hostname:1/api/v1/notifications\"}");
         }
 
         @Test
@@ -128,7 +129,7 @@ class ClientUrlGetHandlerTest {
     @Nested
     class WithSsl {
 
-        ClientUrlGetHandler handler;
+        NotificationsUrlGetHandler handler;
         @Mock Logger logger;
         @Mock HttpServer httpServer;
         @Mock NetworkConfiguration netConf;
@@ -137,11 +138,12 @@ class ClientUrlGetHandlerTest {
         @BeforeEach
         void setup() {
             when(httpServer.isSsl()).thenReturn(true);
-            this.handler = new ClientUrlGetHandler(gson, httpServer, netConf);
+            this.handler = new NotificationsUrlGetHandler(gson, httpServer, netConf);
         }
 
         @Test
-        void shouldHandleClientUrlRequestWithWss() throws SocketException, UnknownHostException {
+        void shouldHandleNotificationsUrlRequestWithWss()
+                throws SocketException, UnknownHostException {
             RoutingContext ctx = mock(RoutingContext.class);
             HttpServerResponse rep = mock(HttpServerResponse.class);
             when(ctx.response()).thenReturn(rep);
@@ -152,7 +154,8 @@ class ClientUrlGetHandlerTest {
 
             InOrder inOrder = inOrder(rep);
             inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-            inOrder.verify(rep).end("{\"clientUrl\":\"wss://hostname:1/api/v1/command\"}");
+            inOrder.verify(rep)
+                    .end("{\"notificationsUrl\":\"wss://hostname:1/api/v1/notifications\"}");
         }
     }
 }

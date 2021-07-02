@@ -55,14 +55,14 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class ClientUrlGetHandler implements RequestHandler {
+class NotificationsUrlGetHandler implements RequestHandler {
 
     private final Gson gson;
     private final boolean isSsl;
     private final NetworkConfiguration netConf;
 
     @Inject
-    ClientUrlGetHandler(Gson gson, HttpServer server, NetworkConfiguration netConf) {
+    NotificationsUrlGetHandler(Gson gson, HttpServer server, NetworkConfiguration netConf) {
         this.gson = gson;
         this.isSsl = server.isSsl();
         this.netConf = netConf;
@@ -80,7 +80,7 @@ class ClientUrlGetHandler implements RequestHandler {
 
     @Override
     public String path() {
-        return basePath() + "clienturl";
+        return basePath() + "notifications_url";
     }
 
     @Override
@@ -94,13 +94,13 @@ class ClientUrlGetHandler implements RequestHandler {
         try {
             // TODO replace String.format with URIBuilder or something else than manual string
             // construction
-            String clientUrl =
+            String notificationsUrl =
                     String.format(
-                            "%s://%s:%d/api/v1/command",
+                            "%s://%s:%d/api/v1/notifications",
                             isSsl ? "wss" : "ws",
                             netConf.getWebServerHost(),
                             netConf.getExternalWebServerPort());
-            ctx.response().end(gson.toJson(Map.of("clientUrl", clientUrl)));
+            ctx.response().end(gson.toJson(Map.of("notificationsUrl", notificationsUrl)));
         } catch (SocketException | UnknownHostException e) {
             throw new HttpStatusException(500, e);
         }
