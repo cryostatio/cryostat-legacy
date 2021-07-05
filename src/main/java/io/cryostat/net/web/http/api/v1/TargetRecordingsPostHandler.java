@@ -62,7 +62,7 @@ import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingCreationHelper;
+import io.cryostat.recordings.RecordingHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -77,7 +77,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
 
     static final String PATH = "targets/:targetId/recordings";
     private final TargetConnectionManager targetConnectionManager;
-    private final RecordingCreationHelper recordingCreationHelper;
+    private final RecordingHelper recordingHelper;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final Provider<WebServer> webServerProvider;
     private final Gson gson;
@@ -86,13 +86,13 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     TargetRecordingsPostHandler(
             AuthManager auth,
             TargetConnectionManager targetConnectionManager,
-            RecordingCreationHelper recordingCreationHelper,
+            RecordingHelper recordingHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             Provider<WebServer> webServerProvider,
             Gson gson) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
-        this.recordingCreationHelper = recordingCreationHelper;
+        this.recordingHelper = recordingHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.webServerProvider = webServerProvider;
         this.gson = gson;
@@ -160,10 +160,10 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
                                     builder = builder.maxSize(Long.parseLong(attrs.get("maxSize")));
                                 }
                                 Pair<String, TemplateType> template =
-                                        RecordingCreationHelper.parseEventSpecifierToTemplate(
+                                        RecordingHelper.parseEventSpecifierToTemplate(
                                                 eventSpecifier);
                                 IRecordingDescriptor descriptor =
-                                        recordingCreationHelper.startRecording(
+                                        recordingHelper.startRecording(
                                                 connectionDescriptor,
                                                 builder.build(),
                                                 template.getLeft(),

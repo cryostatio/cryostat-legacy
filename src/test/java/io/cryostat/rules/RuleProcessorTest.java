@@ -60,7 +60,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
-import io.cryostat.recordings.RecordingCreationHelper;
+import io.cryostat.recordings.RecordingHelper;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
@@ -83,7 +83,7 @@ class RuleProcessorTest {
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock RecordingCreationHelper recordingCreationHelper;
+    @Mock RecordingHelper recordingHelper;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
     @Mock Logger logger;
 
@@ -100,7 +100,7 @@ class RuleProcessorTest {
                         credentialsManager,
                         recordingOptionsBuilderFactory,
                         targetConnectionManager,
-                        recordingCreationHelper,
+                        recordingHelper,
                         periodicArchiverFactory,
                         logger);
     }
@@ -193,7 +193,7 @@ class RuleProcessorTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        Mockito.verify(recordingCreationHelper)
+        Mockito.verify(recordingHelper)
                 .startRecording(
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),

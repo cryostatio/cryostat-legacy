@@ -58,7 +58,7 @@ import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.RecordingCreationHelper;
+import io.cryostat.recordings.RecordingHelper;
 
 import com.google.gson.Gson;
 import dagger.Module;
@@ -101,7 +101,7 @@ public abstract class RulesModule {
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             TargetConnectionManager targetConnectionManager,
-            RecordingCreationHelper recordingCreationHelper,
+            RecordingHelper recordingHelper,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
         return new RuleProcessor(
@@ -111,7 +111,7 @@ public abstract class RulesModule {
                 credentialsManager,
                 recordingOptionsBuilderFactory,
                 targetConnectionManager,
-                recordingCreationHelper,
+                recordingHelper,
                 periodicArchiverFactory,
                 logger);
     }

@@ -37,10 +37,17 @@
  */
 package io.cryostat.recordings;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URISyntaxException;
+import java.nio.file.Path;
+import java.time.temporal.ChronoUnit;
 import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.inject.Named;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
@@ -48,18 +55,24 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.MainModule;
 import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.util.URIUtil;
 
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class RecordingCreationHelper {
+public class RecordingHelper {
 
     private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
 
@@ -69,13 +82,25 @@ public class RecordingCreationHelper {
     private final TargetConnectionManager targetConnectionManager;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
+    private final FileSystem fs;
+    private final Path recordingsPath;
+    private final Clock clock;
+    private final PlatformClient platformClient;
 
-    RecordingCreationHelper(
+    RecordingHelper(
+            FileSystem fs,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            Clock clock,
+            PlatformClient platformClient,
             NotificationFactory notificationFactory) {
+        this.fs = fs;
+        this.recordingsPath = recordingsPath;
         this.targetConnectionManager = targetConnectionManager;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
+        this.clock = clock;
+        this.platformClient = platformClient;
         this.notificationFactory = notificationFactory;
     }
 
@@ -117,6 +142,30 @@ public class RecordingCreationHelper {
                 });
     }
 
+    public String saveRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
+            throws Exception {
+
+        String saveName =
+                targetConnectionManager.executeConnectedTask(
+                        connectionDescriptor,
+                        connection -> {
+                            Optional<IRecordingDescriptor> descriptor =
+                                    getDescriptorByName(connection, recordingName);
+
+                            if (descriptor.isPresent()) {
+                                return writeRecordingToDestination(connection, descriptor.get());
+                            } else {
+                                throw new HttpStatusException(
+                                        404,
+                                        String.format(
+                                                "Recording with name \"%s\" not found",
+                                                recordingName));
+                            }
+                        });
+
+        return saveName;
+    }
+
     public static Pair<String, TemplateType> parseEventSpecifierToTemplate(String eventSpecifier)
             throws IllegalArgumentException {
         if (TEMPLATE_PATTERN.matcher(eventSpecifier).matches()) {
@@ -133,7 +182,7 @@ public class RecordingCreationHelper {
         throw new IllegalArgumentException(eventSpecifier);
     }
 
-    private Optional<IRecordingDescriptor> getDescriptorByName(
+    public Optional<IRecordingDescriptor> getDescriptorByName(
             JFRConnection connection, String recordingName) throws Exception {
         return connection.getService().getAvailableRecordings().stream()
                 .filter(recording -> recording.getName().equals(recordingName))
@@ -190,5 +239,55 @@ public class RecordingCreationHelper {
         }
 
         return builder.build();
+    }
+
+    private String writeRecordingToDestination(
+            JFRConnection connection, IRecordingDescriptor descriptor) throws Exception {
+        String recordingName = descriptor.getName();
+        if (recordingName.endsWith(".jfr")) {
+            recordingName = recordingName.substring(0, recordingName.length() - 4);
+        }
+
+        // TODO: To avoid having to perform this lookup each time, we should implement
+        // something like a map from targetIds to corresponding ServiceRefs
+        String targetName =
+                platformClient.listDiscoverableServices().stream()
+                        .filter(
+                                serviceRef -> {
+                                    try {
+                                        return serviceRef
+                                                        .getServiceUri()
+                                                        .equals(
+                                                                URIUtil.convert(
+                                                                        connection.getJMXURL()))
+                                                && serviceRef.getAlias().isPresent();
+                                    } catch (URISyntaxException | IOException ioe) {
+                                        return false;
+                                    }
+                                })
+                        .map(s -> s.getAlias().get())
+                        .findFirst()
+                        .orElse(connection.getHost())
+                        .replaceAll("[\\._]+", "-");
+
+        String timestamp =
+                clock.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
+        // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings are also
+        // differentiated by second-resolution timestamp
+        byte count = 1;
+        while (fs.exists(recordingsPath.resolve(destination + ".jfr"))) {
+            destination =
+                    String.format("%s_%s_%s.%d", targetName, recordingName, timestamp, count++);
+            if (count == Byte.MAX_VALUE) {
+                throw new IOException(
+                        "Recording could not be savedFile already exists and rename attempts were exhausted.");
+            }
+        }
+        destination += ".jfr";
+        try (InputStream stream = connection.getService().openStream(descriptor, false)) {
+            fs.copy(stream, recordingsPath.resolve(destination));
+        }
+        return destination;
     }
 }

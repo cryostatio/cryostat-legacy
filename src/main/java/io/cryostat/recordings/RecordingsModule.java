@@ -37,11 +37,18 @@
  */
 package io.cryostat.recordings;
 
+import java.nio.file.Path;
+
+import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.MainModule;
 import io.cryostat.commands.internal.EventOptionsBuilder;
+import io.cryostat.core.sys.Clock;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.platform.PlatformClient;
 
 import dagger.Module;
 import dagger.Provides;
@@ -51,11 +58,21 @@ public abstract class RecordingsModule {
 
     @Provides
     @Singleton
-    static RecordingCreationHelper provideRecordingCreationHelper(
+    static RecordingHelper provideRecordingHelper(
+            FileSystem fs,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            Clock clock,
+            PlatformClient platformClient,
             NotificationFactory notificationFactory) {
-        return new RecordingCreationHelper(
-                targetConnectionManager, eventOptionsBuilderFactory, notificationFactory);
+        return new RecordingHelper(
+                fs,
+                recordingsPath,
+                targetConnectionManager,
+                eventOptionsBuilderFactory,
+                clock,
+                platformClient,
+                notificationFactory);
     }
 }

@@ -58,7 +58,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
-import io.cryostat.recordings.RecordingCreationHelper;
+import io.cryostat.recordings.RecordingHelper;
 import io.cryostat.rules.RuleRegistry.RuleEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
@@ -74,7 +74,7 @@ public class RuleProcessor
     private final CredentialsManager credentialsManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final TargetConnectionManager targetConnectionManager;
-    private final RecordingCreationHelper recordingCreationHelper;
+    private final RecordingHelper recordingHelper;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
 
@@ -87,7 +87,7 @@ public class RuleProcessor
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             TargetConnectionManager targetConnectionManager,
-            RecordingCreationHelper recordingCreationHelper,
+            RecordingHelper recordingHelper,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
         this.platformClient = platformClient;
@@ -96,7 +96,7 @@ public class RuleProcessor
         this.credentialsManager = credentialsManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.targetConnectionManager = targetConnectionManager;
-        this.recordingCreationHelper = recordingCreationHelper;
+        this.recordingHelper = recordingHelper;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
         this.tasks = new HashMap<>();
@@ -222,9 +222,8 @@ public class RuleProcessor
                         builder = builder.maxSize(rule.getMaxSizeBytes());
                     }
                     Pair<String, TemplateType> template =
-                            RecordingCreationHelper.parseEventSpecifierToTemplate(
-                                    rule.getEventSpecifier());
-                    recordingCreationHelper.startRecording(
+                            recordingHelper.parseEventSpecifierToTemplate(rule.getEventSpecifier());
+                    recordingHelper.startRecording(
                             connectionDescriptor,
                             builder.build(),
                             template.getLeft(),
