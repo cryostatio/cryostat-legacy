@@ -48,6 +48,7 @@ import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportService;
 import io.cryostat.platform.PlatformClient;
 
 import dagger.Module;
@@ -65,6 +66,7 @@ public abstract class RecordingsModule {
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             Clock clock,
             PlatformClient platformClient,
+            ReportService reportService,
             NotificationFactory notificationFactory) {
         return new RecordingHelper(
                 fs,
@@ -73,6 +75,7 @@ public abstract class RecordingsModule {
                 eventOptionsBuilderFactory,
                 clock,
                 platformClient,
+                reportService,
                 notificationFactory);
     }
 }

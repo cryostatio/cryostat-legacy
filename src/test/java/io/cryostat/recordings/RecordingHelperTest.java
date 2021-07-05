@@ -45,6 +45,8 @@ import java.util.List;
 
 import javax.management.remote.JMXServiceURL;
 
+import org.openjdk.jmc.common.unit.IQuantity;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -56,6 +58,7 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportService;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
@@ -74,20 +77,21 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
-class RecordingCreationHelperTest {
+class RecordingHelperTest {
 
-    RecordingHelper recordingCreationHelper;
+    RecordingHelper recordingHelper;
     @Mock FileSystem fs;
     @Mock Path recordingsPath;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
+    @Mock ReportService reportService;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
 
-    @Mock JFRConnection jfrConnection;
+    @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     String targetId = "fooTarget";
@@ -95,7 +99,7 @@ class RecordingCreationHelperTest {
 
     @BeforeEach
     void setup() {
-        this.recordingCreationHelper =
+        this.recordingHelper =
                 new RecordingHelper(
                         fs,
                         recordingsPath,
@@ -103,6 +107,7 @@ class RecordingCreationHelperTest {
                         eventOptionsBuilderFactory,
                         clock,
                         platformClient,
+                        reportService,
                         notificationFactory);
     }
 
@@ -119,17 +124,17 @@ class RecordingCreationHelperTest {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
-                                return task.execute(jfrConnection);
+                                return task.execute(connection);
                             }
                         });
-        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        Mockito.when(connection.getService()).thenReturn(service);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
         HttpStatusException ex =
                 Assertions.assertThrows(
                         HttpStatusException.class,
                         () ->
-                                recordingCreationHelper.saveRecording(
+                                recordingHelper.saveRecording(
                                         new ConnectionDescriptor(targetId), recordingName));
 
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
@@ -149,10 +154,10 @@ class RecordingCreationHelperTest {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
-                                return task.execute(jfrConnection);
+                                return task.execute(connection);
                             }
                         });
-        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -178,7 +183,7 @@ class RecordingCreationHelperTest {
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
-        Mockito.when(jfrConnection.getJMXURL())
+        Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
 
@@ -191,8 +196,7 @@ class RecordingCreationHelperTest {
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
         String saveName =
-                recordingCreationHelper.saveRecording(
-                        new ConnectionDescriptor(targetId), recordingName);
+                recordingHelper.saveRecording(new ConnectionDescriptor(targetId), recordingName);
 
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
@@ -213,10 +217,10 @@ class RecordingCreationHelperTest {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
-                                return task.execute(jfrConnection);
+                                return task.execute(connection);
                             }
                         });
-        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -242,10 +246,10 @@ class RecordingCreationHelperTest {
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
-        Mockito.when(jfrConnection.getJMXURL())
+        Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(jfrConnection.getHost()).thenReturn("some-hostname.local");
+        Mockito.when(connection.getHost()).thenReturn("some-hostname.local");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
@@ -256,8 +260,7 @@ class RecordingCreationHelperTest {
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
         String saveName =
-                recordingCreationHelper.saveRecording(
-                        new ConnectionDescriptor(targetId), recordingName);
+                recordingHelper.saveRecording(new ConnectionDescriptor(targetId), recordingName);
 
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
@@ -279,10 +282,10 @@ class RecordingCreationHelperTest {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
-                                return task.execute(jfrConnection);
+                                return task.execute(connection);
                             }
                         });
-        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -302,10 +305,10 @@ class RecordingCreationHelperTest {
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(serviceRef1, serviceRef3));
-        Mockito.when(jfrConnection.getJMXURL())
+        Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
-        Mockito.when(jfrConnection.getHost()).thenReturn("some-hostname.local");
+        Mockito.when(connection.getHost()).thenReturn("some-hostname.local");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
@@ -316,8 +319,7 @@ class RecordingCreationHelperTest {
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
         String saveName =
-                recordingCreationHelper.saveRecording(
-                        new ConnectionDescriptor(targetId), recordingName);
+                recordingHelper.saveRecording(new ConnectionDescriptor(targetId), recordingName);
 
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
@@ -340,10 +342,10 @@ class RecordingCreationHelperTest {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
-                                return task.execute(jfrConnection);
+                                return task.execute(connection);
                             }
                         });
-        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -369,7 +371,7 @@ class RecordingCreationHelperTest {
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
-        Mockito.when(jfrConnection.getJMXURL())
+        Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
 
@@ -382,8 +384,7 @@ class RecordingCreationHelperTest {
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
         String saveName =
-                recordingCreationHelper.saveRecording(
-                        new ConnectionDescriptor(targetId), recordingName);
+                recordingHelper.saveRecording(new ConnectionDescriptor(targetId), recordingName);
 
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
@@ -404,10 +405,10 @@ class RecordingCreationHelperTest {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
-                                return task.execute(jfrConnection);
+                                return task.execute(connection);
                             }
                         });
-        Mockito.when(jfrConnection.getService()).thenReturn(service);
+        Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.when(descriptor.getName()).thenReturn(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
@@ -433,7 +434,7 @@ class RecordingCreationHelperTest {
 
         Mockito.when(platformClient.listDiscoverableServices())
                 .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
-        Mockito.when(jfrConnection.getJMXURL())
+        Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
 
@@ -446,12 +447,87 @@ class RecordingCreationHelperTest {
         Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
         String saveName =
-                recordingCreationHelper.saveRecording(
-                        new ConnectionDescriptor(targetId), recordingName);
+                recordingHelper.saveRecording(new ConnectionDescriptor(targetId), recordingName);
 
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".1.jfr"));
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+    }
+
+    @Test
+    void shouldDeleteRecording() throws Exception {
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = createDescriptor("someRecording");
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        Mockito.when(descriptor.getName()).thenReturn(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        recordingHelper.deleteRecording(connectionDescriptor, recordingName);
+
+        Mockito.verify(service).close(descriptor);
+
+        Mockito.verify(reportService)
+                .delete(
+                        Mockito.argThat(
+                                arg ->
+                                        arg.getTargetId()
+                                                .equals(connectionDescriptor.getTargetId())),
+                        Mockito.eq("someRecording"));
+    }
+
+    @Test
+    void shouldHandleRecordingNotFound() throws Exception {
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
+
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class,
+                        () -> recordingHelper.deleteRecording(connectionDescriptor, recordingName));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+    }
+
+    private static IRecordingDescriptor createDescriptor(String name)
+            throws QuantityConversionException {
+        IQuantity zeroQuantity = Mockito.mock(IQuantity.class);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.lenient().when(descriptor.getId()).thenReturn(1L);
+        Mockito.lenient().when(descriptor.getName()).thenReturn(name);
+        Mockito.lenient()
+                .when(descriptor.getState())
+                .thenReturn(IRecordingDescriptor.RecordingState.STOPPED);
+        Mockito.lenient().when(descriptor.getStartTime()).thenReturn(zeroQuantity);
+        Mockito.lenient().when(descriptor.getDuration()).thenReturn(zeroQuantity);
+        Mockito.lenient().when(descriptor.isContinuous()).thenReturn(false);
+        Mockito.lenient().when(descriptor.getToDisk()).thenReturn(false);
+        Mockito.lenient().when(descriptor.getMaxSize()).thenReturn(zeroQuantity);
+        Mockito.lenient().when(descriptor.getMaxAge()).thenReturn(zeroQuantity);
+        return descriptor;
     }
 }

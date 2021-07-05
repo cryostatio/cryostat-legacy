@@ -64,6 +64,7 @@ import io.cryostat.core.templates.TemplateType;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.util.URIUtil;
@@ -86,6 +87,7 @@ public class RecordingHelper {
     private final Path recordingsPath;
     private final Clock clock;
     private final PlatformClient platformClient;
+    private final ReportService reportService;
 
     RecordingHelper(
             FileSystem fs,
@@ -94,6 +96,7 @@ public class RecordingHelper {
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             Clock clock,
             PlatformClient platformClient,
+            ReportService reportService,
             NotificationFactory notificationFactory) {
         this.fs = fs;
         this.recordingsPath = recordingsPath;
@@ -101,6 +104,7 @@ public class RecordingHelper {
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.clock = clock;
         this.platformClient = platformClient;
+        this.reportService = reportService;
         this.notificationFactory = notificationFactory;
     }
 
@@ -164,6 +168,28 @@ public class RecordingHelper {
                         });
 
         return saveName;
+    }
+
+    public void deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
+            throws Exception {
+
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            getDescriptorByName(connection, recordingName);
+
+                    if (descriptor.isPresent()) {
+                        connection.getService().close(descriptor.get());
+                        reportService.delete(connectionDescriptor, recordingName);
+                    } else {
+                        throw new HttpStatusException(
+                                404,
+                                String.format(
+                                        "No recording with name \"%s\" found", recordingName));
+                    }
+                    return null;
+                });
     }
 
     public static Pair<String, TemplateType> parseEventSpecifierToTemplate(String eventSpecifier)
