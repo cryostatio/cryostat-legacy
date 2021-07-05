@@ -54,6 +54,12 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import org.apache.commons.lang3.exception.ExceptionUtils;
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
@@ -84,6 +90,16 @@ class PeriodicArchiver implements Runnable {
         // FIXME this needs to be populated at startup by scanning the existing archived recordings,
         // in case we have been restarted and already previously processed archival for this rule
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
+
+        try {
+            JsonObject response = getArchivedRecordings();
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error(e);
+            failureNotifier.apply(Pair.of(serviceRef, rule));
+        }
+       
+        
+
     }
 
     @Override
@@ -145,5 +161,22 @@ class PeriodicArchiver implements Runnable {
             future.completeExceptionally(e);
         }
         return future;
+    }
+
+    JsonObject getArchivedRecordings() throws InterruptedException, ExecutionException {
+        HttpRequest<Buffer> req = this.webClient.get("api/v1/recordings");
+        CompletableFuture<JsonObject> future = new CompletableFuture<>();
+
+        req.send(
+                ar -> {
+                    if (ar.failed()) {
+                        future.completeExceptionally(ar.cause());
+                        return;
+                    }
+
+                    future.complete(ar.result().bodyAsJsonObject());
+                });
+
+        return future.get();
     }
 }
