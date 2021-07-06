@@ -96,24 +96,6 @@ class PeriodicArchiver implements Runnable {
         // FIXME this needs to be populated at startup by scanning the existing archived recordings,
         // in case we have been restarted and already previously processed archival for this rule
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
-
-        try {
-            JsonArray response = getArchivedRecordings();
-            Iterator<Object> it = response.iterator();
-            
-            while (it.hasNext()) {
-                JsonObject entry = (JsonObject) it.next();
-                if (entry.getString()) {
-
-                }
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error(e);
-            failureNotifier.apply(Pair.of(serviceRef, rule));
-        }
-       
-        
-
     }
 
     @Override
@@ -121,6 +103,16 @@ class PeriodicArchiver implements Runnable {
         logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
+            JsonArray response = getArchivedRecordings();
+            Iterator<Object> it = response.iterator();
+            
+            while (it.hasNext()) {
+                JsonObject entry = (JsonObject) it.next();
+                // TODO: iterate through the JsonArray, adding
+                // recording names to "this.previousRecordings"
+                // for any recording which is of the current rule
+            }
+
             while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
                 pruneArchive(this.previousRecordings.remove()).get();
             }
@@ -180,7 +172,6 @@ class PeriodicArchiver implements Runnable {
     JsonArray getArchivedRecordings() throws InterruptedException, ExecutionException {
         HttpRequest<Buffer> req = this.webClient.get("api/v1/recordings");
         CompletableFuture<JsonArray> future = new CompletableFuture<>();
-
         req.send(
                 ar -> {
                     if (ar.failed()) {
@@ -190,7 +181,6 @@ class PeriodicArchiver implements Runnable {
 
                     future.complete(ar.result().bodyAsJsonArray());
                 });
-
         return future.get();
     }
 }
