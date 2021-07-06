@@ -207,7 +207,7 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.HOST, address2.getIp(),
                         AnnotationKey.PORT, Integer.toString(port2.getPort()),
                         AnnotationKey.NAMESPACE, address2.getTargetRef().getNamespace(),
-                        AnnotationKey.SERVICE_NAME, address2.getTargetRef().getName()));
+                        AnnotationKey.POD_NAME, address2.getTargetRef().getName()));
         ServiceRef serv2 =
                 new ServiceRef(
                         URIUtil.convert(
@@ -219,7 +219,7 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.HOST, address3.getIp(),
                         AnnotationKey.PORT, Integer.toString(port2.getPort()),
                         AnnotationKey.NAMESPACE, address3.getTargetRef().getNamespace(),
-                        AnnotationKey.SERVICE_NAME, address3.getTargetRef().getName()));
+                        AnnotationKey.POD_NAME, address3.getTargetRef().getName()));
         ServiceRef serv3 =
                 new ServiceRef(
                         URIUtil.convert(
@@ -231,7 +231,7 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.HOST, address4.getIp(),
                         AnnotationKey.PORT, Integer.toString(port3.getPort()),
                         AnnotationKey.NAMESPACE, address4.getTargetRef().getNamespace(),
-                        AnnotationKey.SERVICE_NAME, address4.getTargetRef().getName()));
+                        AnnotationKey.POD_NAME, address4.getTargetRef().getName()));
 
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
     }
@@ -312,7 +312,7 @@ class KubeApiPlatformClientTest {
         serviceRef.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.NAMESPACE, "myproject",
-                        AnnotationKey.SERVICE_NAME, "targetA",
+                        AnnotationKey.POD_NAME, "targetA",
                         AnnotationKey.PORT, "9999",
                         AnnotationKey.HOST, "127.0.0.1"));
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
@@ -378,7 +378,7 @@ class KubeApiPlatformClientTest {
         serviceRef.setCryostatAnnotations(
                 Map.of(
                         AnnotationKey.NAMESPACE, "myproject",
-                        AnnotationKey.SERVICE_NAME, "targetA",
+                        AnnotationKey.POD_NAME, "targetA",
                         AnnotationKey.PORT, "9999",
                         AnnotationKey.HOST, "127.0.0.1"));
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
@@ -446,7 +446,7 @@ class KubeApiPlatformClientTest {
                         AnnotationKey.HOST, address.getIp(),
                         AnnotationKey.PORT, Integer.toString(port.getPort()),
                         AnnotationKey.NAMESPACE, address.getTargetRef().getNamespace(),
-                        AnnotationKey.SERVICE_NAME, address.getTargetRef().getName()));
+                        AnnotationKey.POD_NAME, address.getTargetRef().getName()));
 
         ArgumentCaptor<TargetDiscoveryEvent> eventCaptor =
                 ArgumentCaptor.forClass(TargetDiscoveryEvent.class);

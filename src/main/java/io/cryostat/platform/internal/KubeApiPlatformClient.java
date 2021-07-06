@@ -189,7 +189,7 @@ class KubeApiPlatformClient extends AbstractPlatformClient {
                                                         Integer.toString(port.getPort()),
                                                 AnnotationKey.NAMESPACE,
                                                         addr.getTargetRef().getNamespace(),
-                                                AnnotationKey.SERVICE_NAME,
+                                                AnnotationKey.POD_NAME,
                                                         addr.getTargetRef().getName()));
                                 return serviceRef;
                             } catch (Exception e) {
