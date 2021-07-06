@@ -45,6 +45,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.MalformedURLException;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -56,6 +57,7 @@ import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.URIUtil;
 
@@ -116,8 +118,18 @@ class DefaultPlatformClientTest {
 
         ServiceRef exp1 =
                 new ServiceRef(URIUtil.convert(desc1.getJmxServiceUrl()), desc1.getMainClass());
+        exp1.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, desc1.getMainClass(),
+                        AnnotationKey.HOST, "cryostat",
+                        AnnotationKey.PORT, "9091"));
         ServiceRef exp2 =
                 new ServiceRef(URIUtil.convert(desc3.getJmxServiceUrl()), desc3.getMainClass());
+        exp2.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, desc3.getMainClass(),
+                        AnnotationKey.HOST, "cryostat",
+                        AnnotationKey.PORT, "9092"));
 
         assertThat(results, equalTo(List.of(exp1, exp2)));
     }
@@ -125,9 +137,9 @@ class DefaultPlatformClientTest {
     @Test
     void testAcceptDiscoveryEvent() throws Exception {
         JMXServiceURL url = new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi");
-        String mainClass = "com.example.Main";
+        String javaMain = "com.example.Main";
         DiscoveredJvmDescriptor desc = mock(DiscoveredJvmDescriptor.class);
-        when(desc.getMainClass()).thenReturn(mainClass);
+        when(desc.getMainClass()).thenReturn(javaMain);
         when(desc.getJmxServiceUrl()).thenReturn(url);
         JvmDiscoveryEvent evt = mock(JvmDiscoveryEvent.class);
         when(evt.getEventKind()).thenReturn(EventKind.FOUND);
@@ -139,10 +151,15 @@ class DefaultPlatformClientTest {
         client.accept(evt);
 
         verifyNoInteractions(discoveryClient);
+
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
-        MatcherAssert.assertThat(
-                event.getServiceRef(),
-                Matchers.equalTo(new ServiceRef(URIUtil.convert(url), mainClass)));
+        ServiceRef serviceRef = new ServiceRef(URIUtil.convert(url), javaMain);
+        serviceRef.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, "com.example.Main",
+                        AnnotationKey.HOST, "cryostat",
+                        AnnotationKey.PORT, "9091"));
+        MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
     }
 }

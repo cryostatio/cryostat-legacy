@@ -38,31 +38,21 @@
 package io.cryostat.util;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import javax.management.remote.JMXServiceURL;
 
-public class URIUtil {
-    private URIUtil() {}
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
 
-    public static URI createAbsolute(String uri) throws URISyntaxException, RelativeURIException {
-        URI u = new URI(uri);
-        if (!u.isAbsolute()) {
-            throw new RelativeURIException(u);
-        }
-        return u;
-    }
+class URIUtilTest {
 
-    public static URI convert(JMXServiceURL serviceUrl) throws URISyntaxException {
-        return new URI(serviceUrl.toString());
-    }
-
-    public static URI getRmiTarget(JMXServiceURL serviceUrl) throws URISyntaxException {
-        String rmiPart = "/jndi/rmi://";
-        String pathPart = serviceUrl.getURLPath();
-        if (!pathPart.startsWith(rmiPart)) {
-            throw new IllegalArgumentException(serviceUrl.getURLPath());
-        }
-        return new URI(pathPart.substring("/jndi/".length(), pathPart.length()));
+    @Test
+    void testGetRmiTarget() throws Exception {
+        String serviceUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi";
+        URI converted = URIUtil.getRmiTarget(new JMXServiceURL(serviceUrl));
+        MatcherAssert.assertThat(converted.getHost(), Matchers.equalTo("cryostat"));
+        MatcherAssert.assertThat(converted.getPort(), Matchers.equalTo(9091));
+        MatcherAssert.assertThat(converted.getPath(), Matchers.equalTo("/jmxrmi"));
     }
 }

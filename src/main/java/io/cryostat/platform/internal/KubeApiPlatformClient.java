@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
@@ -48,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.util.URIUtil;
 
 import dagger.Lazy;
@@ -171,13 +173,25 @@ class KubeApiPlatformClient extends AbstractPlatformClient {
                 .map(
                         addr -> {
                             try {
-                                return new ServiceRef(
-                                        URIUtil.convert(
-                                                connectionToolkit
-                                                        .get()
-                                                        .createServiceURL(
-                                                                addr.getIp(), port.getPort())),
-                                        addr.getTargetRef().getName());
+                                ServiceRef serviceRef =
+                                        new ServiceRef(
+                                                URIUtil.convert(
+                                                        connectionToolkit
+                                                                .get()
+                                                                .createServiceURL(
+                                                                        addr.getIp(),
+                                                                        port.getPort())),
+                                                addr.getTargetRef().getName());
+                                serviceRef.setCryostatAnnotations(
+                                        Map.of(
+                                                AnnotationKey.HOST, addr.getIp(),
+                                                AnnotationKey.PORT,
+                                                        Integer.toString(port.getPort()),
+                                                AnnotationKey.NAMESPACE,
+                                                        addr.getTargetRef().getNamespace(),
+                                                AnnotationKey.POD_NAME,
+                                                        addr.getTargetRef().getName()));
+                                return serviceRef;
                             } catch (Exception e) {
                                 logger.warn(e);
                                 return null;

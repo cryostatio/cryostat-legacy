@@ -40,6 +40,7 @@ package io.cryostat.platform.internal;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
@@ -51,6 +52,7 @@ import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.TargetDiscoveryEvent;
 import io.cryostat.util.URIUtil;
 
@@ -131,10 +133,13 @@ class KubeApiPlatformClientTest {
         // Mockito.when(objRef1.getName()).thenReturn("targetA");
         ObjectReference objRef2 = Mockito.mock(ObjectReference.class);
         Mockito.when(objRef2.getName()).thenReturn("targetB");
+        Mockito.when(objRef2.getNamespace()).thenReturn("myproject");
         ObjectReference objRef3 = Mockito.mock(ObjectReference.class);
         Mockito.when(objRef3.getName()).thenReturn("targetC");
+        Mockito.when(objRef3.getNamespace()).thenReturn("myproject");
         ObjectReference objRef4 = Mockito.mock(ObjectReference.class);
         Mockito.when(objRef4.getName()).thenReturn("targetD");
+        Mockito.when(objRef4.getNamespace()).thenReturn("myproject");
 
         EndpointAddress address1 = Mockito.mock(EndpointAddress.class);
         // Mockito.when(address1.getIp()).thenReturn("127.0.0.1");
@@ -197,18 +202,36 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address2.getIp(), port2.getPort())),
                         address2.getTargetRef().getName());
+        serv1.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.HOST, address2.getIp(),
+                        AnnotationKey.PORT, Integer.toString(port2.getPort()),
+                        AnnotationKey.NAMESPACE, address2.getTargetRef().getNamespace(),
+                        AnnotationKey.POD_NAME, address2.getTargetRef().getName()));
         ServiceRef serv2 =
                 new ServiceRef(
                         URIUtil.convert(
                                 connectionToolkit.createServiceURL(
                                         address3.getIp(), port2.getPort())),
                         address3.getTargetRef().getName());
+        serv2.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.HOST, address3.getIp(),
+                        AnnotationKey.PORT, Integer.toString(port2.getPort()),
+                        AnnotationKey.NAMESPACE, address3.getTargetRef().getNamespace(),
+                        AnnotationKey.POD_NAME, address3.getTargetRef().getName()));
         ServiceRef serv3 =
                 new ServiceRef(
                         URIUtil.convert(
                                 connectionToolkit.createServiceURL(
                                         address4.getIp(), port3.getPort())),
                         address4.getTargetRef().getName());
+        serv3.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.HOST, address4.getIp(),
+                        AnnotationKey.PORT, Integer.toString(port3.getPort()),
+                        AnnotationKey.NAMESPACE, address4.getTargetRef().getNamespace(),
+                        AnnotationKey.POD_NAME, address4.getTargetRef().getName()));
 
         MatcherAssert.assertThat(result, Matchers.equalTo(Arrays.asList(serv1, serv2, serv3)));
     }
@@ -254,6 +277,7 @@ class KubeApiPlatformClientTest {
 
         ObjectReference objRef = Mockito.mock(ObjectReference.class);
         Mockito.when(objRef.getName()).thenReturn("targetA");
+        Mockito.when(objRef.getNamespace()).thenReturn("myproject");
         EndpointAddress address = Mockito.mock(EndpointAddress.class);
         Mockito.when(address.getIp()).thenReturn("127.0.0.1");
         Mockito.when(address.getTargetRef()).thenReturn(objRef);
@@ -285,6 +309,12 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
+        serviceRef.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.NAMESPACE, "myproject",
+                        AnnotationKey.POD_NAME, "targetA",
+                        AnnotationKey.PORT, "9999",
+                        AnnotationKey.HOST, "127.0.0.1"));
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.FOUND));
         MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
@@ -298,7 +328,7 @@ class KubeApiPlatformClientTest {
 
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
-                        new Answer<>() {
+                        new Answer<JMXServiceURL>() {
                             @Override
                             public JMXServiceURL answer(InvocationOnMock args) throws Throwable {
                                 String host = args.getArgument(0);
@@ -313,6 +343,7 @@ class KubeApiPlatformClientTest {
 
         ObjectReference objRef = Mockito.mock(ObjectReference.class);
         Mockito.when(objRef.getName()).thenReturn("targetA");
+        Mockito.when(objRef.getNamespace()).thenReturn("myproject");
         EndpointAddress address = Mockito.mock(EndpointAddress.class);
         Mockito.when(address.getIp()).thenReturn("127.0.0.1");
         Mockito.when(address.getTargetRef()).thenReturn(objRef);
@@ -344,6 +375,12 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
+        serviceRef.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.NAMESPACE, "myproject",
+                        AnnotationKey.POD_NAME, "targetA",
+                        AnnotationKey.PORT, "9999",
+                        AnnotationKey.HOST, "127.0.0.1"));
         TargetDiscoveryEvent event = future.get(1, TimeUnit.SECONDS);
         MatcherAssert.assertThat(event.getEventKind(), Matchers.equalTo(EventKind.LOST));
         MatcherAssert.assertThat(event.getServiceRef(), Matchers.equalTo(serviceRef));
@@ -372,6 +409,7 @@ class KubeApiPlatformClientTest {
 
         ObjectReference objRef = Mockito.mock(ObjectReference.class);
         Mockito.when(objRef.getName()).thenReturn("targetA");
+        Mockito.when(objRef.getNamespace()).thenReturn("myproject");
         EndpointAddress address = Mockito.mock(EndpointAddress.class);
         Mockito.when(address.getIp()).thenReturn("127.0.0.1");
         Mockito.when(address.getTargetRef()).thenReturn(objRef);
@@ -403,6 +441,12 @@ class KubeApiPlatformClientTest {
                                 connectionToolkit.createServiceURL(
                                         address.getIp(), port.getPort())),
                         address.getTargetRef().getName());
+        serviceRef.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.HOST, address.getIp(),
+                        AnnotationKey.PORT, Integer.toString(port.getPort()),
+                        AnnotationKey.NAMESPACE, address.getTargetRef().getNamespace(),
+                        AnnotationKey.POD_NAME, address.getTargetRef().getName()));
 
         ArgumentCaptor<TargetDiscoveryEvent> eventCaptor =
                 ArgumentCaptor.forClass(TargetDiscoveryEvent.class);
