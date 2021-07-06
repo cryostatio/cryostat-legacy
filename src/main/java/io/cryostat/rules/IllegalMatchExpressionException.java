@@ -42,7 +42,11 @@ import jdk.nashorn.api.tree.Tree;
 @SuppressWarnings("serial")
 public class IllegalMatchExpressionException extends RuntimeException {
     IllegalMatchExpressionException() {
-        super("matchExpression parsing failed");
+        this("matchExpression parsing failed");
+    }
+
+    IllegalMatchExpressionException(String reason) {
+        super(reason);
     }
 
     IllegalMatchExpressionException(Tree node, String matchExpression) {

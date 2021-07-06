@@ -135,13 +135,13 @@ public class Rule {
         return i;
     }
 
-    public void validate() throws IllegalArgumentException {
-
+    public void validate() throws IllegalArgumentException, IOException {
         requireNonBlank(this.name, Attribute.NAME);
         requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
         requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
         requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
         requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        validateMatchExpression(this.name, this.matchExpression);
     }
 
     @Override
@@ -208,17 +208,13 @@ public class Rule {
             return new Rule(this);
         }
 
-        public static Builder from(MultiMap formAttributes) throws IOException {
-            String name = formAttributes.get(Rule.Attribute.NAME.getSerialKey());
+        public static Builder from(MultiMap formAttributes) {
             Rule.Builder builder =
                     new Rule.Builder()
-                            .name(name)
+                            .name(formAttributes.get(Rule.Attribute.NAME.getSerialKey()))
                             .matchExpression(
-                                    validateMatchExpression(
-                                            name,
-                                            formAttributes.get(
-                                                    Rule.Attribute.MATCH_EXPRESSION
-                                                            .getSerialKey())))
+                                    formAttributes.get(
+                                            Rule.Attribute.MATCH_EXPRESSION.getSerialKey()))
                             .description(
                                     formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
                             .eventSpecifier(
@@ -233,19 +229,13 @@ public class Rule {
             return builder;
         }
 
-        public static Builder from(JsonObject jsonObj)
-                throws IllegalArgumentException, IOException {
-            String name = jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString();
+        public static Builder from(JsonObject jsonObj) throws IllegalArgumentException {
             Rule.Builder builder =
                     new Rule.Builder()
-                            .name(name)
+                            .name(jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
                             .matchExpression(
-                                    validateMatchExpression(
-                                            name,
-                                            jsonObj.get(
-                                                            Rule.Attribute.MATCH_EXPRESSION
-                                                                    .getSerialKey())
-                                                    .getAsString()))
+                                    jsonObj.get(Rule.Attribute.MATCH_EXPRESSION.getSerialKey())
+                                            .getAsString())
                             .description(
                                     jsonObj.get(Rule.Attribute.DESCRIPTION.getSerialKey())
                                             .getAsString())

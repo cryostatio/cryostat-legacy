@@ -40,13 +40,13 @@ package io.cryostat.util;
 import java.io.IOException;
 import java.lang.reflect.Type;
 
+import io.cryostat.rules.Rule;
+
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-
-import io.cryostat.rules.Rule;
 
 public class RuleDeserializer implements JsonDeserializer<Rule> {
 

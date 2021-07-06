@@ -75,6 +75,7 @@ import jdk.nashorn.api.tree.UnaryTree;
 import jdk.nashorn.api.tree.WhileLoopTree;
 import jdk.nashorn.api.tree.WithTree;
 import jdk.nashorn.api.tree.YieldTree;
+import org.apache.commons.lang3.StringUtils;
 
 public class MatchExpressionValidator {
 
@@ -247,6 +248,12 @@ public class MatchExpressionValidator {
             };
 
     String validate(String name, String matchExpression) throws IOException {
+        if (StringUtils.isBlank(name)) {
+            throw new IllegalMatchExpressionException("name was null/blank");
+        }
+        if (StringUtils.isBlank(matchExpression)) {
+            throw new IllegalMatchExpressionException("matchExpression was null/blank");
+        }
         try (StringReader reader = new StringReader(matchExpression)) {
             CompilationUnitTree cut = parser.parse(name, reader, null);
             if (cut == null) {

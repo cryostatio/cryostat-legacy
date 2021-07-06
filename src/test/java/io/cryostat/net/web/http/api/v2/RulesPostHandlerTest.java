@@ -179,9 +179,9 @@ class RulesPostHandlerTest {
         @ParameterizedTest
         @CsvSource(
                 value = {
-                    ",fooTarget,template=Continuous",
+                    ",target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main',template=Continuous",
                     "fooRule,,template=Continuous",
-                    "fooRule,fooTarget,",
+                    "fooRule,target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main',",
                 })
         void throwsIfRequiredFormAttributesBlank(
                 String name, String matchExpression, String eventSpecifier) {
@@ -234,7 +234,8 @@ class RulesPostHandlerTest {
                                     "name", "Auto Rule ",
                                     "description", "AutoRulesIT automated rule",
                                     "eventSpecifier", "template=Continuous,type=TARGET",
-                                    "targetAlias", "es.andrewazor.demo.Main",
+                                    "matchExpression",
+                                            "target.annotations.cryostat.JAVA_MAIN == 'es.andrewazor.demo.Main'",
                                     "archivalPeriodSeconds", val));
             Mockito.when(params.getBody()).thenReturn(invalidRule);
 
@@ -295,8 +296,8 @@ class RulesPostHandlerTest {
                                     "AutoRulesIT automated rule",
                                     "eventSpecifier",
                                     "template=Continuous,type=TARGET",
-                                    "targetAlias",
-                                    "es.andrewazor.demo.Main",
+                                    "matchExpression",
+                                    "target.annotations.cryostat.JAVA_MAIN == 'es.andrewazor.demo.Main'",
                                     "archivalPeriodSeconds",
                                     60,
                                     "preservedArchives",
