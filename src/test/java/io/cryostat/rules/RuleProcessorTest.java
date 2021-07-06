@@ -173,7 +173,11 @@ class RuleProcessorTest {
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
         Mockito.when(
                         periodicArchiverFactory.create(
-                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any()))
                 .thenReturn(periodicArchiver);
 
         processor.accept(tde);
@@ -244,7 +248,11 @@ class RuleProcessorTest {
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
         Mockito.when(
                         periodicArchiverFactory.create(
-                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any()))
                 .thenReturn(periodicArchiver);
 
         ScheduledFuture task = Mockito.mock(ScheduledFuture.class);
@@ -263,7 +271,12 @@ class RuleProcessorTest {
         ArgumentCaptor<Function<Pair<ServiceRef, Rule>, Void>> functionCaptor =
                 ArgumentCaptor.forClass(Function.class);
         Mockito.verify(periodicArchiverFactory)
-                .create(Mockito.any(), Mockito.any(), Mockito.any(), functionCaptor.capture());
+                .create(
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        functionCaptor.capture());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
         Mockito.verify(task, Mockito.never()).cancel(Mockito.anyBoolean());
 

@@ -37,7 +37,6 @@
  */
 package io.cryostat.rules;
 
-import java.io.IOException;
 import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Queue;
@@ -48,14 +47,11 @@ import java.util.function.Function;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.util.HttpStatusCodeIdentifier;
+import io.cryostat.recordings.RecordingHelper;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.http.client.utils.URLEncodedUtils;
 
@@ -64,8 +60,7 @@ class PeriodicArchiver implements Runnable {
     private final ServiceRef serviceRef;
     private final CredentialsManager credentialsManager;
     private final Rule rule;
-    private final WebClient webClient;
-    private final Function<Credentials, MultiMap> headersFactory;
+    private final RecordingHelper recordingHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
 
@@ -75,15 +70,13 @@ class PeriodicArchiver implements Runnable {
             ServiceRef serviceRef,
             CredentialsManager credentialsManager,
             Rule rule,
-            WebClient webClient,
-            Function<Credentials, MultiMap> headersFactory,
+            RecordingHelper recordingHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
             Logger logger) {
-        this.webClient = webClient;
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
+        this.recordingHelper = recordingHelper;
         this.rule = rule;
-        this.headersFactory = headersFactory;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
 
@@ -105,50 +98,30 @@ class PeriodicArchiver implements Runnable {
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
             failureNotifier.apply(Pair.of(serviceRef, rule));
+        } catch (Exception e) {
+            throw new HttpStatusException(500, e);
         }
     }
 
-    void performArchival() throws InterruptedException, ExecutionException {
-        // FIXME using an HTTP request to localhost here works well enough, but is needlessly
-        // complex. The API handler targeted here should be refactored to extract the logic that
-        // creates the recording from the logic that simply figures out the recording parameters
-        // from the POST form, path param, and headers. Then the handler should consume the API
-        // exposed by this refactored chunk, and this refactored chunk can also be consumed here
-        // rather than firing HTTP requests to ourselves
+    void performArchival() throws InterruptedException, ExecutionException, Exception {
 
+        String recordingName = rule.getRecordingName();
+        ConnectionDescriptor connectionDescriptor =
+                new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
         String path =
                 URI.create(
                                 String.format(
                                         "/api/v1/targets/%s/recordings/%s",
                                         URLEncodedUtils.formatSegments(
                                                 serviceRef.getServiceUri().toString()),
-                                        URLEncodedUtils.formatSegments(rule.getRecordingName())))
+                                        URLEncodedUtils.formatSegments()))
                         .normalize()
                         .toString();
+
         this.logger.trace("PATCH \"save\" {}", path);
 
-        CompletableFuture<String> future = new CompletableFuture<>();
-        this.webClient
-                .patch(path)
-                .putHeaders(headersFactory.apply(credentialsManager.getCredentials(serviceRef)))
-                .sendBuffer(
-                        Buffer.buffer("save"),
-                        ar -> {
-                            if (ar.failed()) {
-                                this.logger.error(
-                                        new IOException("Periodic archival failed", ar.cause()));
-                                future.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> resp = ar.result();
-                            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
-                                this.logger.error(resp.bodyAsString());
-                                future.completeExceptionally(new IOException(resp.bodyAsString()));
-                                return;
-                            }
-                            future.complete(resp.bodyAsString());
-                        });
-        this.previousRecordings.add(future.get());
+        String saveName = recordingHelper.saveRecording(connectionDescriptor, recordingName);
+        this.previousRecordings.add(saveName);
     }
 
     Future<Boolean> pruneArchive(String recordingName) {
@@ -161,27 +134,18 @@ class PeriodicArchiver implements Runnable {
                         .normalize()
                         .toString();
         this.logger.trace("DELETE {}", path);
+
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
-        this.webClient
-                .delete(path)
-                .putHeaders(headersFactory.apply(credentialsManager.getCredentials(serviceRef)))
-                .send(
-                        ar -> {
-                            if (ar.failed()) {
-                                this.logger.error(
-                                        new IOException("Archival prune failed", ar.cause()));
-                                future.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> resp = ar.result();
-                            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
-                                this.logger.error(resp.bodyAsString());
-                                future.completeExceptionally(new IOException(resp.bodyAsString()));
-                                return;
-                            }
-                            previousRecordings.remove(recordingName);
-                            future.complete(true);
-                        });
+
+        try {
+            recordingHelper.deleteRecording(connectionDescriptor, recordingName);
+            previousRecordings.remove(recordingName);
+            future.complete(true);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+            throw new HttpStatusException(500, e);
+        }
         return future;
     }
 }

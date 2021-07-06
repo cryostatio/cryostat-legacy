@@ -165,7 +165,11 @@ public class RuleProcessor
                 Pair.of(serviceRef, rule),
                 scheduler.scheduleAtFixedRate(
                         periodicArchiverFactory.create(
-                                serviceRef, credentialsManager, rule, this::archivalFailureHandler),
+                                serviceRef,
+                                credentialsManager,
+                                rule,
+                                recordingHelper,
+                                this::archivalFailureHandler),
                         rule.getArchivalPeriodSeconds(),
                         rule.getArchivalPeriodSeconds(),
                         TimeUnit.SECONDS));

@@ -119,10 +119,9 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     static PeriodicArchiverFactory providePeriodicArchivedFactory(
-            @Named(RULES_WEB_CLIENT) WebClient webClient,
             @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
-        return new PeriodicArchiverFactory(webClient, headersFactory, logger);
+        return new PeriodicArchiverFactory(logger);
     }
 
     @Provides
