@@ -38,13 +38,19 @@
 package io.cryostat.rules;
 
 import java.util.ArrayDeque;
+import java.util.Iterator;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
+<<<<<<< HEAD
 import javax.security.sasl.SaslException;
+=======
+import com.google.gson.JsonObject;
+>>>>>>> 1bd60c74 (Start parsing archived recordings JSON)
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -56,7 +62,7 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
-import io.vertx.core.json.JsonObject;
+import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
@@ -92,7 +98,15 @@ class PeriodicArchiver implements Runnable {
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
 
         try {
-            JsonObject response = getArchivedRecordings();
+            JsonArray response = getArchivedRecordings();
+            Iterator<Object> it = response.iterator();
+            
+            while (it.hasNext()) {
+                JsonObject entry = (JsonObject) it.next();
+                if (entry.getString()) {
+
+                }
+            }
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
             failureNotifier.apply(Pair.of(serviceRef, rule));
@@ -163,9 +177,9 @@ class PeriodicArchiver implements Runnable {
         return future;
     }
 
-    JsonObject getArchivedRecordings() throws InterruptedException, ExecutionException {
+    JsonArray getArchivedRecordings() throws InterruptedException, ExecutionException {
         HttpRequest<Buffer> req = this.webClient.get("api/v1/recordings");
-        CompletableFuture<JsonObject> future = new CompletableFuture<>();
+        CompletableFuture<JsonArray> future = new CompletableFuture<>();
 
         req.send(
                 ar -> {
@@ -174,7 +188,7 @@ class PeriodicArchiver implements Runnable {
                         return;
                     }
 
-                    future.complete(ar.result().bodyAsJsonObject());
+                    future.complete(ar.result().bodyAsJsonArray());
                 });
 
         return future.get();
