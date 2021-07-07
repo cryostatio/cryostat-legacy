@@ -37,7 +37,6 @@
  */
 package io.cryostat.rules;
 
-import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -53,7 +52,6 @@ import io.cryostat.recordings.RecordingHelper;
 
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.client.utils.URLEncodedUtils;
 
 class PeriodicArchiver implements Runnable {
 
@@ -108,32 +106,12 @@ class PeriodicArchiver implements Runnable {
         String recordingName = rule.getRecordingName();
         ConnectionDescriptor connectionDescriptor =
                 new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
-        String path =
-                URI.create(
-                                String.format(
-                                        "/api/v1/targets/%s/recordings/%s",
-                                        URLEncodedUtils.formatSegments(
-                                                serviceRef.getServiceUri().toString()),
-                                        URLEncodedUtils.formatSegments()))
-                        .normalize()
-                        .toString();
-
-        this.logger.trace("PATCH \"save\" {}", path);
 
         String saveName = recordingHelper.saveRecording(connectionDescriptor, recordingName);
         this.previousRecordings.add(saveName);
     }
 
     Future<Boolean> pruneArchive(String recordingName) {
-        logger.trace("Pruning {}", recordingName);
-        String path =
-                URI.create(
-                                String.format(
-                                        "/api/v1/recordings/%s",
-                                        URLEncodedUtils.formatSegments(recordingName)))
-                        .normalize()
-                        .toString();
-        this.logger.trace("DELETE {}", path);
 
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
