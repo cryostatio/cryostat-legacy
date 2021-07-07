@@ -247,20 +247,14 @@ public class MatchExpressionValidator {
                 }
             };
 
-    String validate(String name, String matchExpression) throws IOException {
-        if (StringUtils.isBlank(name)) {
-            throw new IllegalMatchExpressionException("name was null/blank");
-        }
-        if (StringUtils.isBlank(matchExpression)) {
-            throw new IllegalMatchExpressionException("matchExpression was null/blank");
-        }
-        try (StringReader reader = new StringReader(matchExpression)) {
-            CompilationUnitTree cut = parser.parse(name, reader, null);
+    String validate(Rule rule) throws IOException {
+        try (StringReader reader = new StringReader(rule.getMatchExpression())) {
+            CompilationUnitTree cut = parser.parse(rule.getName(), reader, null);
             if (cut == null) {
                 throw new IllegalMatchExpressionException();
             }
-            cut.accept(treeVisitor, matchExpression);
+            cut.accept(treeVisitor, rule.getMatchExpression());
         }
-        return matchExpression;
+        return rule.getMatchExpression();
     }
 }

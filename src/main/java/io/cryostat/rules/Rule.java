@@ -115,8 +115,8 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
-    static String validateMatchExpression(String name, String matchExpression) throws IOException {
-        return MATCH_EXPRESSION_VALIDATOR.validate(name, matchExpression);
+    static String validateMatchExpression(Rule rule) throws IOException {
+        return MATCH_EXPRESSION_VALIDATOR.validate(rule);
     }
 
     private static String requireNonBlank(String s, Attribute attr) {
@@ -141,7 +141,7 @@ public class Rule {
         requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
         requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
         requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
-        validateMatchExpression(this.name, this.matchExpression);
+        validateMatchExpression(this);
     }
 
     @Override
