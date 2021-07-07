@@ -49,11 +49,9 @@ import javax.inject.Named;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
@@ -63,8 +61,6 @@ import io.cryostat.util.URIUtil;
 public class RecordingArchiveHelper {
 
     private final TargetConnectionManager targetConnectionManager;
-    private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
-    private final NotificationFactory notificationFactory;
     private final FileSystem fs;
     private final Path recordingsPath;
     private final Clock clock;
@@ -75,19 +71,15 @@ public class RecordingArchiveHelper {
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
-            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             Clock clock,
             PlatformClient platformClient,
-            ReportService reportService,
-            NotificationFactory notificationFactory) {
+            ReportService reportService) {
         this.fs = fs;
         this.recordingsPath = recordingsPath;
         this.targetConnectionManager = targetConnectionManager;
-        this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.clock = clock;
         this.platformClient = platformClient;
         this.reportService = reportService;
-        this.notificationFactory = notificationFactory;
     }
 
     public String saveRecording(ConnectionDescriptor connectionDescriptor, String recordingName)

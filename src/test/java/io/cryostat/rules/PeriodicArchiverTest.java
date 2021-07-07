@@ -39,6 +39,7 @@ package io.cryostat.rules;
 
 import java.net.URI;
 import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.cryostat.configuration.CredentialsManager;
@@ -109,9 +110,22 @@ class PeriodicArchiverTest {
     }
 
     @Test
-    void testNotifyOnFailure() throws Exception {
+    void testNotifyOnExecutionFailure() throws Exception {
 
-        Mockito.doThrow(InterruptedException.class)
+        Mockito.doThrow(ExecutionException.class)
+                .when(recordingArchiveHelper)
+                .saveRecording(Mockito.any(), Mockito.any());
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
+
+        archiver.run();
+
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(1));
+    }
+
+    @Test
+    void testNotifyOnConnectionFailure() throws Exception {
+
+        Mockito.doThrow(SecurityException.class)
                 .when(recordingArchiveHelper)
                 .saveRecording(Mockito.any(), Mockito.any());
         MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));

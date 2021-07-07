@@ -50,12 +50,9 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
@@ -85,10 +82,6 @@ class RecordingArchiveHelperTest {
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
     @Mock ReportService reportService;
-    @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
-    @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -103,11 +96,9 @@ class RecordingArchiveHelperTest {
                         fs,
                         recordingsPath,
                         targetConnectionManager,
-                        eventOptionsBuilderFactory,
                         clock,
                         platformClient,
-                        reportService,
-                        notificationFactory);
+                        reportService);
     }
 
     @Test

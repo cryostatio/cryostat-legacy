@@ -73,19 +73,10 @@ public abstract class RecordingsModule {
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
-            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             Clock clock,
             PlatformClient platformClient,
-            ReportService reportService,
-            NotificationFactory notificationFactory) {
+            ReportService reportService) {
         return new RecordingArchiveHelper(
-                fs,
-                recordingsPath,
-                targetConnectionManager,
-                eventOptionsBuilderFactory,
-                clock,
-                platformClient,
-                reportService,
-                notificationFactory);
+                fs, recordingsPath, targetConnectionManager, clock, platformClient, reportService);
     }
 }
