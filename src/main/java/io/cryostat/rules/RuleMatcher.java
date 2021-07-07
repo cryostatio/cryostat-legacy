@@ -63,7 +63,7 @@ class RuleMatcher {
             evt.begin();
             Object result =
                     this.scriptEngine.eval(rule.getMatchExpression(), createBindings(serviceRef));
-            if (result != null && result instanceof Boolean) {
+            if (result instanceof Boolean) {
                 return (Boolean) result;
             } else {
                 throw new ScriptException(
