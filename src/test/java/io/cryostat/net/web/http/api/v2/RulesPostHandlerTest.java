@@ -211,7 +211,9 @@ class RulesPostHandlerTest {
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);
             form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
-            form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), "someTarget");
+            form.set(
+                    Rule.Attribute.MATCH_EXPRESSION.getSerialKey(),
+                    "target.annotations.cryostat.JAVA_MAIN == 'someTarget'");
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
             form.set(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS.getSerialKey(), val);
 
@@ -267,7 +269,9 @@ class RulesPostHandlerTest {
             Mockito.when(params.getFormAttributes()).thenReturn(form);
             form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
             form.set(Rule.Attribute.DESCRIPTION.getSerialKey(), "rule description");
-            form.set(Rule.Attribute.MATCH_EXPRESSION.getSerialKey(), "someTarget");
+            form.set(
+                    Rule.Attribute.MATCH_EXPRESSION.getSerialKey(),
+                    "target.annotations.cryostat.JAVA_MAIN == 'someTarget'");
             form.set(Rule.Attribute.EVENT_SPECIFIER.getSerialKey(), "template=Something");
             form.set(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS.getSerialKey(), "60");
             form.set(Rule.Attribute.PRESERVED_ARCHIVES.getSerialKey(), "5");

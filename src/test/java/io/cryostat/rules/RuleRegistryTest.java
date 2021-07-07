@@ -83,7 +83,7 @@ class RuleRegistryTest {
         this.testRule =
                 new Rule.Builder()
                         .name("test rule")
-                        .matchExpression("com.example.App")
+                        .matchExpression("target.alias == 'com.example.App'")
                         .description("a simple test rule")
                         .eventSpecifier("template=Continuous")
                         .preservedArchives(5)
