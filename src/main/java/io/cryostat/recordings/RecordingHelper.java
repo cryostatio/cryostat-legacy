@@ -69,7 +69,6 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.util.URIUtil;
 
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -159,11 +158,7 @@ public class RecordingHelper {
                             if (descriptor.isPresent()) {
                                 return writeRecordingToDestination(connection, descriptor.get());
                             } else {
-                                throw new HttpStatusException(
-                                        404,
-                                        String.format(
-                                                "Recording with name \"%s\" not found",
-                                                recordingName));
+                                throw new RecordingNotFoundException(recordingName);
                             }
                         });
 
@@ -183,10 +178,7 @@ public class RecordingHelper {
                         connection.getService().close(descriptor.get());
                         reportService.delete(connectionDescriptor, recordingName);
                     } else {
-                        throw new HttpStatusException(
-                                404,
-                                String.format(
-                                        "No recording with name \"%s\" found", recordingName));
+                        throw new RecordingNotFoundException(recordingName);
                     }
                     return null;
                 });

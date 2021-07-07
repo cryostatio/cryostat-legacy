@@ -45,8 +45,10 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingPatchSave {
 
@@ -64,18 +66,26 @@ class TargetRecordingPatchSave {
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
 
-        String saveName =
-                recordingCreationHelper.saveRecording(connectionDescriptor, recordingName);
+        try {
+            String saveName =
+                    recordingCreationHelper.saveRecording(connectionDescriptor, recordingName);
 
-        ctx.response().setStatusCode(200);
-        ctx.response().end(saveName);
-        notificationFactory
-                .createBuilder()
-                .metaCategory(NOTIFICATION_CATEGORY)
-                .metaType(HttpMimeType.JSON)
-                .message(
-                        Map.of("recording", saveName, "target", connectionDescriptor.getTargetId()))
-                .build()
-                .send();
+            ctx.response().setStatusCode(200);
+            ctx.response().end(saveName);
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(
+                            Map.of(
+                                    "recording",
+                                    saveName,
+                                    "target",
+                                    connectionDescriptor.getTargetId()))
+                    .build()
+                    .send();
+        } catch (RecordingNotFoundException e) {
+            throw new HttpStatusException(404, e);
+        }
     }
 }

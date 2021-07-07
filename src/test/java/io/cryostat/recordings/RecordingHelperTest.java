@@ -63,7 +63,7 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
 
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import io.vertx.ext.web.handler.impl.RecordingNotRecordingNotFoundException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -112,7 +112,7 @@ class RecordingHelperTest {
     }
 
     @Test
-    void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
+    void saveRecordingShouldThrowIfNoMatchingRecordingFound() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
@@ -130,14 +130,11 @@ class RecordingHelperTest {
         Mockito.when(connection.getService()).thenReturn(service);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
-        HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class,
-                        () ->
-                                recordingHelper.saveRecording(
-                                        new ConnectionDescriptor(targetId), recordingName));
-
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        Assertions.assertThrows(
+                RecordingNotFoundException.class,
+                () ->
+                        recordingHelper.saveRecording(
+                                new ConnectionDescriptor(targetId), recordingName));
     }
 
     @Test
@@ -489,7 +486,7 @@ class RecordingHelperTest {
     }
 
     @Test
-    void shouldHandleRecordingNotFound() throws Exception {
+    void deleteRecordingShouldHandleRecordingNotFound() throws Exception {
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
                         new Answer() {
@@ -506,11 +503,9 @@ class RecordingHelperTest {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
-        HttpStatusException ex =
-                Assertions.assertThrows(
-                        HttpStatusException.class,
+        Assertions.assertThrows(
+                    RecordingNotFoundException.class,
                         () -> recordingHelper.deleteRecording(connectionDescriptor, recordingName));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

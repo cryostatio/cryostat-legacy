@@ -49,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.tuple.Pair;
@@ -96,6 +97,8 @@ class PeriodicArchiver implements Runnable {
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
             failureNotifier.apply(Pair.of(serviceRef, rule));
+        } catch (RecordingNotFoundException e) {
+            throw new HttpStatusException(404, e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
@@ -122,7 +125,6 @@ class PeriodicArchiver implements Runnable {
             future.complete(true);
         } catch (Exception e) {
             future.completeExceptionally(e);
-            throw new HttpStatusException(500, e);
         }
         return future;
     }
