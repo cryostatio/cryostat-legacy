@@ -75,7 +75,6 @@ import jdk.nashorn.api.tree.UnaryTree;
 import jdk.nashorn.api.tree.WhileLoopTree;
 import jdk.nashorn.api.tree.WithTree;
 import jdk.nashorn.api.tree.YieldTree;
-import org.apache.commons.lang3.StringUtils;
 
 public class MatchExpressionValidator {
 
