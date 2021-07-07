@@ -44,6 +44,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
+import javax.security.sasl.SaslException;
+
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
@@ -51,7 +53,7 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
@@ -94,13 +96,18 @@ class PeriodicArchiver implements Runnable {
             }
 
             performArchival();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (InterruptedException | ExecutionException | RecordingNotFoundException e) {
+
             logger.error(e);
             failureNotifier.apply(Pair.of(serviceRef, rule));
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
         } catch (Exception e) {
-            throw new HttpStatusException(500, e);
+            logger.error(e);
+
+            if (ExceptionUtils.hasCause(e, SecurityException.class)
+                    || ExceptionUtils.hasCause(e, SaslException.class)) {
+
+                failureNotifier.apply(Pair.of(serviceRef, rule));
+            }
         }
     }
 
