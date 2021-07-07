@@ -96,7 +96,7 @@ class RuleMatcher {
                             "connectUrl",
                             serviceRef.getServiceUri(),
                             "alias",
-                            serviceRef.getAlias(),
+                            serviceRef.getAlias().orElse(null),
                             "labels",
                             serviceRef.getLabels(),
                             "annotations",
