@@ -40,7 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import dagger.Binds;
 import dagger.Module;
@@ -92,8 +92,9 @@ public abstract class HttpApiV1Module {
 
     @Provides
     static TargetRecordingPatchSave provideTargetRecordingPatchSave(
-            RecordingHelper recordingHelper, NotificationFactory notificationFactory) {
-        return new TargetRecordingPatchSave(recordingHelper, notificationFactory);
+            RecordingArchiveHelper recordingArchiveHelper,
+            NotificationFactory notificationFactory) {
+        return new TargetRecordingPatchSave(recordingArchiveHelper, notificationFactory);
     }
 
     @Provides

@@ -55,7 +55,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -79,7 +79,7 @@ class TargetRecordingPatchSaveTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    @Mock RecordingHelper recordingHelper;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
@@ -91,7 +91,7 @@ class TargetRecordingPatchSaveTest {
 
     @BeforeEach
     void setup() {
-        this.patchSave = new TargetRecordingPatchSave(recordingHelper, notificationFactory);
+        this.patchSave = new TargetRecordingPatchSave(recordingArchiveHelper, notificationFactory);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
@@ -114,7 +114,7 @@ class TargetRecordingPatchSaveTest {
         Instant now = Instant.now();
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
 
-        Mockito.when(recordingHelper.saveRecording(Mockito.any(), Mockito.any()))
+        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
                 .thenReturn("some-Alias-2_someRecording_" + timestamp + ".jfr");
 
         patchSave.handle(ctx, new ConnectionDescriptor(targetId));

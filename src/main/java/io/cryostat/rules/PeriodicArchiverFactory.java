@@ -42,7 +42,7 @@ import java.util.function.Function;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -58,9 +58,14 @@ class PeriodicArchiverFactory {
             ServiceRef serviceRef,
             CredentialsManager credentialsManager,
             Rule rule,
-            RecordingHelper recordingHelper,
+            RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier) {
         return new PeriodicArchiver(
-                serviceRef, credentialsManager, rule, recordingHelper, failureNotifier, logger);
+                serviceRef,
+                credentialsManager,
+                rule,
+                recordingArchiveHelper,
+                failureNotifier,
+                logger);
     }
 }

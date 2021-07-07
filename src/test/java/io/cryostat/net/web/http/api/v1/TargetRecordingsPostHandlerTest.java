@@ -59,7 +59,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -88,7 +88,7 @@ class TargetRecordingsPostHandlerTest {
     TargetRecordingsPostHandler handler;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock RecordingHelper recordingHelper;
+    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock WebServer webServer;
     @Mock Logger logger;
@@ -107,7 +107,7 @@ class TargetRecordingsPostHandlerTest {
                 new TargetRecordingsPostHandler(
                         auth,
                         targetConnectionManager,
-                        recordingHelper,
+                        recordingTargetHelper,
                         recordingOptionsBuilderFactory,
                         () -> webServer,
                         gson);
@@ -174,7 +174,7 @@ class TargetRecordingsPostHandlerTest {
 
         IRecordingDescriptor descriptor = createDescriptor("someRecording");
         Mockito.when(
-                        recordingHelper.startRecording(
+                        recordingTargetHelper.startRecording(
                                 Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenReturn(descriptor);
 
@@ -197,7 +197,7 @@ class TargetRecordingsPostHandlerTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        Mockito.verify(recordingHelper)
+        Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
@@ -247,7 +247,7 @@ class TargetRecordingsPostHandlerTest {
                 .thenReturn(recordingOptionsBuilder);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
         Mockito.when(
-                        recordingHelper.startRecording(
+                        recordingTargetHelper.startRecording(
                                 Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
                 .thenThrow(IllegalArgumentException.class);
 

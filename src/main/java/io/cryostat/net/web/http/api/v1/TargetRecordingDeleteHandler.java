@@ -47,7 +47,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -57,16 +57,16 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
     private final NotificationFactory notificationFactory;
     private static final String NOTIFICATION_CATEGORY = "RecordingDeleted";
-    private final RecordingHelper recordingHelper;
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
     TargetRecordingDeleteHandler(
             AuthManager auth,
             NotificationFactory notificationFactory,
-            RecordingHelper recordingHelper) {
+            RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
         this.notificationFactory = notificationFactory;
-        this.recordingHelper = recordingHelper;
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
@@ -95,7 +95,7 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
 
         try {
-            recordingHelper.deleteRecording(connectionDescriptor, recordingName);
+            recordingArchiveHelper.deleteRecording(connectionDescriptor, recordingName);
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }

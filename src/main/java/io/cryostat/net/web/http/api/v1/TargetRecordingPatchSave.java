@@ -44,7 +44,7 @@ import javax.inject.Inject;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.ext.web.RoutingContext;
@@ -53,13 +53,14 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TargetRecordingPatchSave {
 
     private final NotificationFactory notificationFactory;
-    private final RecordingHelper recordingCreationHelper;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private static final String NOTIFICATION_CATEGORY = "RecordingArchived";
 
     @Inject
     TargetRecordingPatchSave(
-            RecordingHelper recordingCreationHelper, NotificationFactory notificationFactory) {
-        this.recordingCreationHelper = recordingCreationHelper;
+            RecordingArchiveHelper recordingArchiveHelper,
+            NotificationFactory notificationFactory) {
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.notificationFactory = notificationFactory;
     }
 
@@ -68,7 +69,7 @@ class TargetRecordingPatchSave {
 
         try {
             String saveName =
-                    recordingCreationHelper.saveRecording(connectionDescriptor, recordingName);
+                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName);
 
             ctx.response().setStatusCode(200);
             ctx.response().end(saveName);

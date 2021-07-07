@@ -48,7 +48,7 @@ import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -59,7 +59,7 @@ class PeriodicArchiver implements Runnable {
     private final ServiceRef serviceRef;
     private final CredentialsManager credentialsManager;
     private final Rule rule;
-    private final RecordingHelper recordingHelper;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
 
@@ -69,12 +69,12 @@ class PeriodicArchiver implements Runnable {
             ServiceRef serviceRef,
             CredentialsManager credentialsManager,
             Rule rule,
-            RecordingHelper recordingHelper,
+            RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
             Logger logger) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
-        this.recordingHelper = recordingHelper;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
@@ -97,6 +97,8 @@ class PeriodicArchiver implements Runnable {
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
             failureNotifier.apply(Pair.of(serviceRef, rule));
+        } catch (RecordingNotFoundException e) {
+            throw new HttpStatusException(404, e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
@@ -113,7 +115,8 @@ class PeriodicArchiver implements Runnable {
                     new ConnectionDescriptor(
                             serviceRef, credentialsManager.getCredentials(serviceRef));
 
-            String saveName = recordingHelper.saveRecording(connectionDescriptor, recordingName);
+            String saveName =
+                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName);
             this.previousRecordings.add(saveName);
             future.complete(true);
         } catch (RecordingNotFoundException e) {
@@ -129,7 +132,7 @@ class PeriodicArchiver implements Runnable {
 
         try {
             ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
-            recordingHelper.deleteRecording(connectionDescriptor, recordingName);
+            recordingArchiveHelper.deleteRecording(connectionDescriptor, recordingName);
             previousRecordings.remove(recordingName);
             future.complete(true);
         } catch (RecordingNotFoundException e) {

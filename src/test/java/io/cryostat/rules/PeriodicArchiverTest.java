@@ -44,7 +44,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -74,7 +74,7 @@ class PeriodicArchiverTest {
                     .preservedArchives(2)
                     .archivalPeriodSeconds(67)
                     .build();
-    @Mock RecordingHelper recordingHelper;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
     AtomicInteger failureCounter;
     @Mock Logger logger;
     @Mock Queue<String> previousRecordings;
@@ -88,7 +88,7 @@ class PeriodicArchiverTest {
                         serviceRef,
                         credentialsManager,
                         rule,
-                        recordingHelper,
+                        recordingArchiveHelper,
                         p -> {
                             failureCounter.incrementAndGet();
                             return null;
@@ -99,20 +99,20 @@ class PeriodicArchiverTest {
     @Test
     void testPerformArchival() throws Exception {
 
-        Mockito.when(recordingHelper.saveRecording(Mockito.any(), Mockito.anyString()))
+        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
                 .thenReturn("someRecording.jfr");
 
         archiver.performArchival();
 
         Mockito.verify(credentialsManager).getCredentials(serviceRef);
-        Mockito.verify(recordingHelper).saveRecording(Mockito.any(), Mockito.anyString());
+        Mockito.verify(recordingArchiveHelper).saveRecording(Mockito.any(), Mockito.anyString());
     }
 
     @Test
     void testNotifyOnFailure() throws Exception {
 
         Mockito.doThrow(InterruptedException.class)
-                .when(recordingHelper)
+                .when(recordingArchiveHelper)
                 .saveRecording(Mockito.any(), Mockito.any());
         MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
 
@@ -129,6 +129,6 @@ class PeriodicArchiverTest {
         boolean result = archiver.pruneArchive(rule.getRecordingName() + "_1").get();
 
         Assertions.assertTrue(result);
-        Mockito.verify(recordingHelper).deleteRecording(Mockito.any(), Mockito.anyString());
+        Mockito.verify(recordingArchiveHelper).deleteRecording(Mockito.any(), Mockito.anyString());
     }
 }

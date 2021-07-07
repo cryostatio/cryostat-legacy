@@ -59,7 +59,17 @@ public abstract class RecordingsModule {
 
     @Provides
     @Singleton
-    static RecordingHelper provideRecordingHelper(
+    static RecordingTargetHelper provideRecordingTargetHelper(
+            TargetConnectionManager targetConnectionManager,
+            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
+            NotificationFactory notificationFactory) {
+        return new RecordingTargetHelper(
+                targetConnectionManager, eventOptionsBuilderFactory, notificationFactory);
+    }
+
+    @Provides
+    @Singleton
+    static RecordingArchiveHelper provideRecordingArchiveHelper(
             FileSystem fs,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
@@ -68,7 +78,7 @@ public abstract class RecordingsModule {
             PlatformClient platformClient,
             ReportService reportService,
             NotificationFactory notificationFactory) {
-        return new RecordingHelper(
+        return new RecordingArchiveHelper(
                 fs,
                 recordingsPath,
                 targetConnectionManager,
