@@ -39,29 +39,42 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.SocketException;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.commands.internal.EventOptionsBuilder;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.rules.ArchivePathException;
 import io.cryostat.util.URIUtil;
 
 public class RecordingArchiveHelper {
 
     private final TargetConnectionManager targetConnectionManager;
     private final FileSystem fs;
+    private final Provider<WebServer> webServerProvider;
+    private final Logger logger;
     private final Path recordingsPath;
     private final Clock clock;
     private final PlatformClient platformClient;
@@ -69,12 +82,16 @@ public class RecordingArchiveHelper {
 
     RecordingArchiveHelper(
             FileSystem fs,
+            Provider<WebServer> webServerProvider,
+            Logger logger,
             @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
             TargetConnectionManager targetConnectionManager,
             Clock clock,
             PlatformClient platformClient,
             ReportService reportService) {
         this.fs = fs;
+        this.webServerProvider = webServerProvider;
+        this.logger = logger;
         this.recordingsPath = recordingsPath;
         this.targetConnectionManager = targetConnectionManager;
         this.clock = clock;
@@ -119,6 +136,40 @@ public class RecordingArchiveHelper {
                     }
                     return null;
                 });
+    }
+
+    public List<Map<String, String>> getRecordings() throws Exception {
+        if (!fs.exists(recordingsPath)) {
+            throw new ArchivePathException(recordingsPath.toString(), "does not exist");
+        }
+        if (!fs.isReadable(recordingsPath)) {
+            throw new ArchivePathException(recordingsPath.toString(), "is not readable");
+        }
+        if (!fs.isDirectory(recordingsPath)) {
+            throw new ArchivePathException(recordingsPath.toString(), "is not a directory");
+        }
+        WebServer webServer = webServerProvider.get();
+        List<String> names = this.fs.listDirectoryChildren(recordingsPath);
+        return names.stream()
+                .map(
+                        name -> {
+                            try {
+                                return Map.of(
+                                        "name",
+                                        name,
+                                        "reportUrl",
+                                        webServer.getArchivedReportURL(name),
+                                        "downloadUrl",
+                                        webServer.getArchivedDownloadURL(name));
+                            } catch (SocketException
+                                    | UnknownHostException
+                                    | URISyntaxException e) {
+                                logger.warn(e);
+                                return null;
+                            }
+                        })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
     }
 
     private String writeRecordingToDestination(

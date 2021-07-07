@@ -37,8 +37,10 @@
  */
 package io.cryostat.rules;
 
+import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
@@ -49,6 +51,9 @@ import java.util.function.Function;
 import javax.security.sasl.SaslException;
 import com.google.gson.JsonObject;
 
+import javax.inject.Named;
+
+import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
@@ -63,6 +68,10 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import com.google.gson.Gson;
+import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
@@ -73,6 +82,7 @@ class PeriodicArchiver implements Runnable {
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
+    private final Gson gson;
 
     private final Queue<String> previousRecordings;
 
@@ -80,24 +90,28 @@ class PeriodicArchiver implements Runnable {
             ServiceRef serviceRef,
             CredentialsManager credentialsManager,
             Rule rule,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
-            Logger logger) {
+            Logger logger,
+            Gson gson) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
+        this.gson = gson;
 
         // FIXME this needs to be populated at startup by scanning the existing archived recordings,
         // in case we have been restarted and already previously processed archival for this rule
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
 
         try {
-            JsonArray response = getArchivedRecordings();
-            Iterator<Object> it = response.iterator();
-            
+            JsonArray archivedRecordings = getArchivedRecordings().get();
+
+            Iterator<Object> it = archivedRecordings.iterator();
+
             while (it.hasNext()) {
                 JsonObject entry = (JsonObject) it.next();
                 if (entry.getString()) {
@@ -174,20 +188,16 @@ class PeriodicArchiver implements Runnable {
         return future;
     }
 
-    JsonArray getArchivedRecordings() throws InterruptedException, ExecutionException {
-        HttpRequest<Buffer> req = this.webClient.get("api/v1/recordings");
+    public Future<JsonArray> getArchivedRecordings() throws Exception {
+
         CompletableFuture<JsonArray> future = new CompletableFuture<>();
 
-        req.send(
-                ar -> {
-                    if (ar.failed()) {
-                        future.completeExceptionally(ar.cause());
-                        return;
-                    }
-
-                    future.complete(ar.result().bodyAsJsonArray());
-                });
-
-        return future.get();
+        try {
+            List<Map<String, String>> archivedRecordings = recordingArchiveHelper.getRecordings();
+            future.complete(new JsonArray(archivedRecordings));
+        } catch (ArchivePathException e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 }
