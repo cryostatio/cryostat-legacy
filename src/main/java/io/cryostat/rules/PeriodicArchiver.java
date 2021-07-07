@@ -97,33 +97,42 @@ class PeriodicArchiver implements Runnable {
         } catch (InterruptedException | ExecutionException e) {
             logger.error(e);
             failureNotifier.apply(Pair.of(serviceRef, rule));
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
         }
     }
 
-    void performArchival() throws InterruptedException, ExecutionException, Exception {
+    public Future<Boolean> performArchival()
+            throws InterruptedException, ExecutionException, Exception {
 
-        String recordingName = rule.getRecordingName();
-        ConnectionDescriptor connectionDescriptor =
-                new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
-
-        String saveName = recordingHelper.saveRecording(connectionDescriptor, recordingName);
-        this.previousRecordings.add(saveName);
-    }
-
-    Future<Boolean> pruneArchive(String recordingName) {
-
-        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
         CompletableFuture<Boolean> future = new CompletableFuture<>();
 
         try {
+            String recordingName = rule.getRecordingName();
+            ConnectionDescriptor connectionDescriptor =
+                    new ConnectionDescriptor(
+                            serviceRef, credentialsManager.getCredentials(serviceRef));
+
+            String saveName = recordingHelper.saveRecording(connectionDescriptor, recordingName);
+            this.previousRecordings.add(saveName);
+            future.complete(true);
+        } catch (RecordingNotFoundException e) {
+            future.completeExceptionally(e);
+        }
+
+        return future;
+    }
+
+    public Future<Boolean> pruneArchive(String recordingName) throws Exception {
+
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        try {
+            ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
             recordingHelper.deleteRecording(connectionDescriptor, recordingName);
             previousRecordings.remove(recordingName);
             future.complete(true);
-        } catch (Exception e) {
+        } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);
         }
         return future;

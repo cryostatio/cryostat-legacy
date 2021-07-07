@@ -63,7 +63,6 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
 
-import io.vertx.ext.web.handler.impl.RecordingNotRecordingNotFoundException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -504,8 +503,8 @@ class RecordingHelperTest {
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
         Assertions.assertThrows(
-                    RecordingNotFoundException.class,
-                        () -> recordingHelper.deleteRecording(connectionDescriptor, recordingName));
+                RecordingNotFoundException.class,
+                () -> recordingHelper.deleteRecording(connectionDescriptor, recordingName));
     }
 
     private static IRecordingDescriptor createDescriptor(String name)
