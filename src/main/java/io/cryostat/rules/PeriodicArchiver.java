@@ -96,28 +96,7 @@ class PeriodicArchiver implements Runnable {
         this.failureNotifier = failureNotifier;
         this.logger = logger;
 
-        // FIXME this needs to be populated at startup by scanning the existing archived recordings,
-        // in case we have been restarted and already previously processed archival for this rule
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
-
-        try {
-            JsonArray archivedRecordings = getArchivedRecordings().get();
-
-            Iterator<Object> it = archivedRecordings.iterator();
-
-            while (it.hasNext()) {
-                JsonObject entry = (JsonObject) it.next();
-                if (entry.getString()) {
-
-                }
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error(e);
-            failureNotifier.apply(Pair.of(serviceRef, rule));
-        }
-       
-        
-
     }
 
     @Override
@@ -125,6 +104,13 @@ class PeriodicArchiver implements Runnable {
         logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
+            JsonArray archivedRecordings = getArchivedRecordings().get();
+            Iterator<Object> it = archivedRecordings.iterator();
+
+            while (it.hasNext()) {
+                JsonObject entry = (JsonObject) it.next();
+            }
+
             while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
                 pruneArchive(this.previousRecordings.remove()).get();
             }
