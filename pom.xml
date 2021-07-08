@@ -519,7 +519,6 @@
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
           <entrypoint>${cryostat.entrypoint}</entrypoint>
           <mainClass>${cryostat.mainClass}</mainClass>
-          <extraClasspath>${env.CLASSPATH}</extraClasspath>
           <ports>
             <port>${cryostat.webPort}</port>
             <port>${cryostat.listenPort}</port>

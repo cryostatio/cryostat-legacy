@@ -150,7 +150,7 @@ if [ -n "$CRYOSTAT_JUL_CONFIG" ]; then
     FLAGS+=("-Djava.util.logging.config.file=$CRYOSTAT_JUL_CONFIG")
 fi
 
-CLASSPATH="/app/resources:/app/classes:/app/libs/*"
+CLASSPATH="$( cat /app/jib-classpath-file )"
 if [ -n "CRYOSTAT_CLIENTLIB_PATH" ]; then
     CLASSPATH="$CLASSPATH:$CRYOSTAT_CLIENTLIB_PATH/*"
 fi
@@ -162,6 +162,6 @@ export SSL_TRUSTSTORE_DIR
 set -x
 exec java \
     "${FLAGS[@]}" \
-    -cp @/app/jib-classpath-file \
+    -cp "$CLASSPATH" \
     @/app/jib-main-class-file \
     "$@"
