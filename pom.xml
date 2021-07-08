@@ -384,6 +384,21 @@
           </configuration>
         </execution>
         <execution>
+          <id>capture-oci-logs</id>
+          <phase>post-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>logs</argument>
+              <argument>cryostat-itest</argument>
+            </arguments>
+            <outputFile>${project.build.directory}/cryostat-itest-${maven.build.timestamp}.log</outputFile>
+          </configuration>
+        </execution>
+        <execution>
           <id>stop-jfr-datasource</id>
           <phase>post-integration-test</phase>
           <goals>
