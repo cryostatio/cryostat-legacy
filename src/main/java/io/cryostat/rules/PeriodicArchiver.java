@@ -95,15 +95,14 @@ class PeriodicArchiver implements Runnable {
                 pruneArchive(this.previousRecordings.remove()).get();
             }
 
-            performArchival();
-        } catch (InterruptedException | ExecutionException | RecordingNotFoundException e) {
-
-            logger.error(e);
-            failureNotifier.apply(Pair.of(serviceRef, rule));
+            performArchival().get();
         } catch (Exception e) {
             logger.error(e);
 
-            if (ExceptionUtils.hasCause(e, SecurityException.class)
+            if (ExceptionUtils.hasCause(e, ExecutionException.class)
+                    || ExceptionUtils.hasCause(e, InterruptedException.class)
+                    || ExceptionUtils.hasCause(e, RecordingNotFoundException.class)
+                    || ExceptionUtils.hasCause(e, SecurityException.class)
                     || ExceptionUtils.hasCause(e, SaslException.class)) {
 
                 failureNotifier.apply(Pair.of(serviceRef, rule));
