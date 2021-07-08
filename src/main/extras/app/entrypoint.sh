@@ -162,6 +162,6 @@ export SSL_TRUSTSTORE_DIR
 set -x
 exec java \
     "${FLAGS[@]}" \
-    -cp "$CLASSPATH" \
-    io.cryostat.Cryostat \
+    -cp @/app/jib-classpath-file \
+    @/app/jib-main-class-file \
     "$@"
