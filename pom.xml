@@ -29,6 +29,7 @@
   <cryostat.minimal>false</cryostat.minimal>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
+  <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
   <cryostat.listenPort>9090</cryostat.listenPort>
@@ -249,7 +250,7 @@
       <artifactId>exec-maven-plugin</artifactId>
       <version>${org.codehaus.mojo.exec.plugin.version}</version>
       <configuration>
-        <mainClass>io.cryostat.Cryostat</mainClass>
+        <mainClass>${cryostat.mainClass}</mainClass>
         <additionalClasspathElements>
           <additionalClasspathElement>${project.build.directory}/assets/app/resources</additionalClasspathElement>
         </additionalClasspathElements>
@@ -517,7 +518,7 @@
           <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
           <entrypoint>${cryostat.entrypoint}</entrypoint>
-          <mainClass>io.cryostat.Cryostat</mainClass>
+          <mainClass>${cryostat.mainClass}</mainClass>
           <extraClasspath>${env.CLASSPATH}</extraClasspath>
           <ports>
             <port>${cryostat.webPort}</port>
