@@ -123,7 +123,8 @@ class PeriodicArchiver implements Runnable {
                     || ExceptionUtils.hasCause(e, InterruptedException.class)
                     || ExceptionUtils.hasCause(e, RecordingNotFoundException.class)
                     || ExceptionUtils.hasCause(e, SecurityException.class)
-                    || ExceptionUtils.hasCause(e, SaslException.class)) {
+                    || ExceptionUtils.hasCause(e, SaslException.class)
+                    || ExceptionUtils.hasCause(e, ArchivePathException.class)) {
 
                 failureNotifier.apply(Pair.of(serviceRef, rule));
             }
