@@ -41,23 +41,16 @@ import java.util.function.Function;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
-import io.vertx.core.MultiMap;
-import io.vertx.ext.web.client.WebClient;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiverFactory {
 
-    private final WebClient webClient;
-    private final Function<Credentials, MultiMap> headersFactory;
     private final Logger logger;
 
-    PeriodicArchiverFactory(
-            WebClient webClient, Function<Credentials, MultiMap> headersFactory, Logger logger) {
-        this.webClient = webClient;
-        this.headersFactory = headersFactory;
+    PeriodicArchiverFactory(Logger logger) {
         this.logger = logger;
     }
 
@@ -65,13 +58,13 @@ class PeriodicArchiverFactory {
             ServiceRef serviceRef,
             CredentialsManager credentialsManager,
             Rule rule,
+            RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier) {
         return new PeriodicArchiver(
                 serviceRef,
                 credentialsManager,
                 rule,
-                webClient,
-                headersFactory,
+                recordingArchiveHelper,
                 failureNotifier,
                 logger);
     }

@@ -58,7 +58,8 @@ import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.recordings.RecordingCreationHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import dagger.Module;
@@ -101,7 +102,8 @@ public abstract class RulesModule {
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             TargetConnectionManager targetConnectionManager,
-            RecordingCreationHelper recordingCreationHelper,
+            RecordingArchiveHelper recordingArchiveHelper,
+            RecordingTargetHelper recordingTargetHelper,
             PeriodicArchiverFactory periodicArchiverFactory,
             Logger logger) {
         return new RuleProcessor(
@@ -111,7 +113,8 @@ public abstract class RulesModule {
                 credentialsManager,
                 recordingOptionsBuilderFactory,
                 targetConnectionManager,
-                recordingCreationHelper,
+                recordingArchiveHelper,
+                recordingTargetHelper,
                 periodicArchiverFactory,
                 logger);
     }
@@ -119,10 +122,9 @@ public abstract class RulesModule {
     @Provides
     @Singleton
     static PeriodicArchiverFactory providePeriodicArchivedFactory(
-            @Named(RULES_WEB_CLIENT) WebClient webClient,
             @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
-        return new PeriodicArchiverFactory(webClient, headersFactory, logger);
+        return new PeriodicArchiverFactory(logger);
     }
 
     @Provides

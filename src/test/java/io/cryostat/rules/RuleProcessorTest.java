@@ -60,7 +60,8 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.TargetDiscoveryEvent;
-import io.cryostat.recordings.RecordingCreationHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
@@ -83,7 +84,8 @@ class RuleProcessorTest {
     @Mock CredentialsManager credentialsManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock RecordingCreationHelper recordingCreationHelper;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
+    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock PeriodicArchiverFactory periodicArchiverFactory;
     @Mock Logger logger;
 
@@ -100,7 +102,8 @@ class RuleProcessorTest {
                         credentialsManager,
                         recordingOptionsBuilderFactory,
                         targetConnectionManager,
-                        recordingCreationHelper,
+                        recordingArchiveHelper,
+                        recordingTargetHelper,
                         periodicArchiverFactory,
                         logger);
     }
@@ -173,7 +176,11 @@ class RuleProcessorTest {
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
         Mockito.when(
                         periodicArchiverFactory.create(
-                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any()))
                 .thenReturn(periodicArchiver);
 
         processor.accept(tde);
@@ -193,7 +200,7 @@ class RuleProcessorTest {
         ArgumentCaptor<TemplateType> templateTypeCaptor =
                 ArgumentCaptor.forClass(TemplateType.class);
 
-        Mockito.verify(recordingCreationHelper)
+        Mockito.verify(recordingTargetHelper)
                 .startRecording(
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
@@ -244,7 +251,11 @@ class RuleProcessorTest {
         PeriodicArchiver periodicArchiver = Mockito.mock(PeriodicArchiver.class);
         Mockito.when(
                         periodicArchiverFactory.create(
-                                Mockito.any(), Mockito.any(), Mockito.any(), Mockito.any()))
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any(),
+                                Mockito.any()))
                 .thenReturn(periodicArchiver);
 
         ScheduledFuture task = Mockito.mock(ScheduledFuture.class);
@@ -263,7 +274,12 @@ class RuleProcessorTest {
         ArgumentCaptor<Function<Pair<ServiceRef, Rule>, Void>> functionCaptor =
                 ArgumentCaptor.forClass(Function.class);
         Mockito.verify(periodicArchiverFactory)
-                .create(Mockito.any(), Mockito.any(), Mockito.any(), functionCaptor.capture());
+                .create(
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        Mockito.any(),
+                        functionCaptor.capture());
         Function<Pair<ServiceRef, Rule>, Void> failureFunction = functionCaptor.getValue();
         Mockito.verify(task, Mockito.never()).cancel(Mockito.anyBoolean());
 

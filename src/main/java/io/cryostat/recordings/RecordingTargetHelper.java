@@ -59,7 +59,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
-public class RecordingCreationHelper {
+public class RecordingTargetHelper {
 
     private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
 
@@ -70,7 +70,7 @@ public class RecordingCreationHelper {
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
 
-    RecordingCreationHelper(
+    RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory) {
@@ -133,7 +133,7 @@ public class RecordingCreationHelper {
         throw new IllegalArgumentException(eventSpecifier);
     }
 
-    private Optional<IRecordingDescriptor> getDescriptorByName(
+    public Optional<IRecordingDescriptor> getDescriptorByName(
             JFRConnection connection, String recordingName) throws Exception {
         return connection.getService().getAvailableRecordings().stream()
                 .filter(recording -> recording.getName().equals(recordingName))

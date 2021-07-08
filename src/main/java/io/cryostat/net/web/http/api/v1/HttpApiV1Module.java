@@ -37,17 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.nio.file.Path;
-
-import javax.inject.Named;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.sys.Clock;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import dagger.Binds;
 import dagger.Module;
@@ -99,19 +92,9 @@ public abstract class HttpApiV1Module {
 
     @Provides
     static TargetRecordingPatchSave provideTargetRecordingPatchSave(
-            FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            TargetConnectionManager targetConnectionManager,
-            Clock clock,
-            PlatformClient platformClient,
+            RecordingArchiveHelper recordingArchiveHelper,
             NotificationFactory notificationFactory) {
-        return new TargetRecordingPatchSave(
-                fs,
-                recordingsPath,
-                targetConnectionManager,
-                clock,
-                platformClient,
-                notificationFactory);
+        return new TargetRecordingPatchSave(recordingArchiveHelper, notificationFactory);
     }
 
     @Provides

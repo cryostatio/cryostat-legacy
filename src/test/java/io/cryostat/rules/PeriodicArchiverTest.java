@@ -38,31 +38,24 @@
 package io.cryostat.rules;
 
 import java.net.URI;
+import java.util.Queue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
-import io.vertx.core.AsyncResult;
-import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class PeriodicArchiverTest {
@@ -82,10 +75,10 @@ class PeriodicArchiverTest {
                     .preservedArchives(2)
                     .archivalPeriodSeconds(67)
                     .build();
-    @Mock WebClient webClient;
-    @Mock MultiMap headers;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
     AtomicInteger failureCounter;
     @Mock Logger logger;
+    @Mock Queue<String> previousRecordings;
 
     @BeforeEach
     void setup() throws Exception {
@@ -96,8 +89,7 @@ class PeriodicArchiverTest {
                         serviceRef,
                         credentialsManager,
                         rule,
-                        webClient,
-                        c -> headers,
+                        recordingArchiveHelper,
                         p -> {
                             failureCounter.incrementAndGet();
                             return null;
@@ -107,66 +99,35 @@ class PeriodicArchiverTest {
 
     @Test
     void testPerformArchival() throws Exception {
-        HttpRequest<Buffer> request = Mockito.mock(HttpRequest.class);
-        HttpResponse<Buffer> response = Mockito.mock(HttpResponse.class);
-        Mockito.when(response.statusCode()).thenReturn(200);
-        Mockito.when(response.bodyAsString()).thenReturn(rule.getRecordingName() + "_1");
 
-        Mockito.when(webClient.patch(Mockito.any())).thenReturn(request);
-        Mockito.when(request.putHeaders(Mockito.any())).thenReturn(request);
-        Mockito.doAnswer(
-                        new Answer<Void>() {
-                            @Override
-                            public Void answer(InvocationOnMock invocation) throws Throwable {
-                                AsyncResult res = Mockito.mock(AsyncResult.class);
-                                Mockito.when(res.failed()).thenReturn(false);
-                                Mockito.when(res.result()).thenReturn(response);
-                                ((Handler<AsyncResult>) invocation.getArgument(1)).handle(res);
-                                return null;
-                            }
-                        })
-                .when(request)
-                .sendBuffer(Mockito.any(), Mockito.any());
+        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
+                .thenReturn("someRecording.jfr");
 
         archiver.performArchival();
 
-        ArgumentCaptor<Buffer> patchActionCaptor = ArgumentCaptor.forClass(Buffer.class);
-        Mockito.verify(request).sendBuffer(patchActionCaptor.capture(), Mockito.any());
-        Buffer patchAction = patchActionCaptor.getValue();
-        MatcherAssert.assertThat(patchAction.toString(), Matchers.equalTo("save"));
-
-        ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
-        Mockito.verify(request).putHeaders(headersCaptor.capture());
-        MultiMap capturedHeaders = headersCaptor.getValue();
-        MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
-
         Mockito.verify(credentialsManager).getCredentials(serviceRef);
-
-        Mockito.verify(webClient)
-                .patch(
-                        "/api/v1/targets/service:jmx:rmi:%2F%2Flocalhost:9091%2Fjndi%2Frmi:%2F%2FfooHost:9091%2Fjmxrmi/recordings/auto_Test_Rule");
+        Mockito.verify(recordingArchiveHelper).saveRecording(Mockito.any(), Mockito.anyString());
     }
 
     @Test
-    void testNotifyOnFailure() throws Exception {
-        HttpRequest<Buffer> request = Mockito.mock(HttpRequest.class);
+    void testNotifyOnExecutionFailure() throws Exception {
 
-        Mockito.when(webClient.patch(Mockito.any())).thenReturn(request);
-        Mockito.when(request.putHeaders(Mockito.any())).thenReturn(request);
-        Mockito.doAnswer(
-                        new Answer<Void>() {
-                            @Override
-                            public Void answer(InvocationOnMock invocation) throws Throwable {
-                                AsyncResult res = Mockito.mock(AsyncResult.class);
-                                Mockito.when(res.failed()).thenReturn(true);
-                                Mockito.when(res.cause()).thenReturn(new Exception());
-                                ((Handler<AsyncResult>) invocation.getArgument(1)).handle(res);
-                                return null;
-                            }
-                        })
-                .when(request)
-                .sendBuffer(Mockito.any(), Mockito.any());
+        Mockito.doThrow(ExecutionException.class)
+                .when(recordingArchiveHelper)
+                .saveRecording(Mockito.any(), Mockito.any());
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
 
+        archiver.run();
+
+        MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(1));
+    }
+
+    @Test
+    void testNotifyOnConnectionFailure() throws Exception {
+
+        Mockito.doThrow(SecurityException.class)
+                .when(recordingArchiveHelper)
+                .saveRecording(Mockito.any(), Mockito.any());
         MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
 
         archiver.run();
@@ -179,34 +140,9 @@ class PeriodicArchiverTest {
         // get the archiver into a state where it is tracking a previously-archived recording
         testPerformArchival();
 
-        HttpRequest<Buffer> request = Mockito.mock(HttpRequest.class);
-        HttpResponse<Buffer> response = Mockito.mock(HttpResponse.class);
-        Mockito.when(response.statusCode()).thenReturn(200);
-
-        Mockito.when(webClient.delete(Mockito.any())).thenReturn(request);
-        Mockito.when(request.putHeaders(Mockito.any())).thenReturn(request);
-        Mockito.doAnswer(
-                        new Answer<Void>() {
-                            @Override
-                            public Void answer(InvocationOnMock invocation) throws Throwable {
-                                AsyncResult res = Mockito.mock(AsyncResult.class);
-                                Mockito.when(res.failed()).thenReturn(false);
-                                Mockito.when(res.result()).thenReturn(response);
-                                ((Handler<AsyncResult>) invocation.getArgument(0)).handle(res);
-                                return null;
-                            }
-                        })
-                .when(request)
-                .send(Mockito.any());
-
         boolean result = archiver.pruneArchive(rule.getRecordingName() + "_1").get();
+
         Assertions.assertTrue(result);
-
-        ArgumentCaptor<MultiMap> headersCaptor = ArgumentCaptor.forClass(MultiMap.class);
-        Mockito.verify(request).putHeaders(headersCaptor.capture());
-        MultiMap capturedHeaders = headersCaptor.getValue();
-        MatcherAssert.assertThat(capturedHeaders, Matchers.sameInstance(headers));
-
-        Mockito.verify(webClient).delete("/api/v1/recordings/auto_Test_Rule_1");
+        Mockito.verify(recordingArchiveHelper).deleteRecording(Mockito.any(), Mockito.anyString());
     }
 }

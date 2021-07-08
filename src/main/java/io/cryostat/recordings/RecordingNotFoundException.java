@@ -37,46 +37,10 @@
  */
 package io.cryostat.recordings;
 
-import java.nio.file.Path;
+import java.io.IOException;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import io.cryostat.MainModule;
-import io.cryostat.commands.internal.EventOptionsBuilder;
-import io.cryostat.core.sys.Clock;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService;
-import io.cryostat.platform.PlatformClient;
-
-import dagger.Module;
-import dagger.Provides;
-
-@Module
-public abstract class RecordingsModule {
-
-    @Provides
-    @Singleton
-    static RecordingTargetHelper provideRecordingTargetHelper(
-            TargetConnectionManager targetConnectionManager,
-            EventOptionsBuilder.Factory eventOptionsBuilderFactory,
-            NotificationFactory notificationFactory) {
-        return new RecordingTargetHelper(
-                targetConnectionManager, eventOptionsBuilderFactory, notificationFactory);
-    }
-
-    @Provides
-    @Singleton
-    static RecordingArchiveHelper provideRecordingArchiveHelper(
-            FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            TargetConnectionManager targetConnectionManager,
-            Clock clock,
-            PlatformClient platformClient,
-            ReportService reportService) {
-        return new RecordingArchiveHelper(
-                fs, recordingsPath, targetConnectionManager, clock, platformClient, reportService);
+public class RecordingNotFoundException extends IOException {
+    RecordingNotFoundException(String recordingName) {
+        super(String.format("No recording with name \"%s\" found", recordingName));
     }
 }
