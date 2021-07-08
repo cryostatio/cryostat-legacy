@@ -104,13 +104,18 @@ class PeriodicArchiver implements Runnable {
         logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
-            JsonArray archivedRecordings = getArchivedRecordings().get();
-            Iterator<Object> it = archivedRecordings.iterator();
+            // If no previous recordings, either this is the first this rule is being archived or 
+            // the Cryostat instance was restarted. For the latter case, populate the array with 
+            // the previously archived recordings for this rule.
+            if (previousRecordings.isEmpty()) {
+                JsonArray archivedRecordings = getArchivedRecordings().get();
+                Iterator<Object> it = archivedRecordings.iterator();
 
-            while (it.hasNext()) {
-                JsonObject entry = (JsonObject) it.next();
+                while (it.hasNext()) {
+                    JsonObject entry = (JsonObject) it.next();
+                }
             }
-
+            
             while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
                 pruneArchive(this.previousRecordings.remove()).get();
             }
