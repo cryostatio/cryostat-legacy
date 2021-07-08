@@ -56,7 +56,6 @@ import javax.inject.Provider;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;

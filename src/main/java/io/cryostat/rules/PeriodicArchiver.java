@@ -48,10 +48,8 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 
-import javax.security.sasl.SaslException;
-import com.google.gson.JsonObject;
-
 import javax.inject.Named;
+import javax.security.sasl.SaslException;
 
 import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
@@ -61,17 +59,15 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
+import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
-import com.google.gson.Gson;
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
@@ -82,7 +78,6 @@ class PeriodicArchiver implements Runnable {
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
-    private final Gson gson;
 
     private final Queue<String> previousRecordings;
 
@@ -93,15 +88,13 @@ class PeriodicArchiver implements Runnable {
             @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
-            Logger logger,
-            Gson gson) {
+            Logger logger) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
-        this.gson = gson;
 
         // FIXME this needs to be populated at startup by scanning the existing archived recordings,
         // in case we have been restarted and already previously processed archival for this rule

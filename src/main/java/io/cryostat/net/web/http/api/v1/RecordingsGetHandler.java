@@ -49,7 +49,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
@@ -68,7 +67,6 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Path savedRecordingsPath;
-    private final FileSystem fs;
     private final Gson gson;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
@@ -76,12 +74,10 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     RecordingsGetHandler(
             AuthManager auth,
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            FileSystem fs,
             Gson gson,
             RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
         this.savedRecordingsPath = savedRecordingsPath;
-        this.fs = fs;
         this.gson = gson;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
