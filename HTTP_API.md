@@ -1200,7 +1200,7 @@ metadata-wrapped and JSON-encoded response format with the following general
 form:
 
 ```
-{ "meta:" { "status:" "statusString", "type:" "mime/type"}, "data:" { "someKey:" someValue } }
+{ "meta": { "status": "statusString", "type": "mime/type"}, "data": { "someKey": someValue } }
 ```
 
 `statusString` will always be `OK` if the response status code is `200`. If the
