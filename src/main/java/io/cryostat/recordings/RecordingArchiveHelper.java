@@ -149,7 +149,8 @@ public class RecordingArchiveHelper {
             throw new ArchivePathException(recordingsPath.toString(), "is not a directory");
         }
         WebServer webServer = webServerProvider.get();
-        List<String> names = this.fs.listDirectoryChildren(recordingsPath);
+        List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
+        List<Map<String, String>> recordings
         return names.stream()
                 .map(
                         name -> {

@@ -38,7 +38,6 @@
 package io.cryostat.rules;
 
 import java.net.URI;
-import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
@@ -51,10 +50,8 @@ import java.util.function.Function;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import javax.inject.Named;
 import javax.security.sasl.SaslException;
 
-import io.cryostat.MainModule;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
@@ -82,7 +79,6 @@ class PeriodicArchiver implements Runnable {
             ServiceRef serviceRef,
             CredentialsManager credentialsManager,
             Rule rule,
-            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
             Logger logger) {
