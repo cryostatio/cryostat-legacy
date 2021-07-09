@@ -1437,6 +1437,10 @@ The handler-specific descriptions below describe how each handler populates the
     `400` - The rule definition could not be processed, either because the
     provided document was malformed or invalid.
 
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
     `409` - A rule with the same name already exists.
 
     `415` - The request's `Content-Type` was invalid or unrecognized.
@@ -1450,6 +1454,80 @@ The handler-specific descriptions below describe how each handler populates the
     < location: /api/v2/rules/Test_Rule
     < content-length: 79
     {"meta":{"type":"text/plain","status":"Created"},"data":{"result":"Test_Rule"}}
+    ```
+
+* #### `RuleDeleteHandler`
+
+    ##### synopsis
+    Deletes a rule definition.
+
+    ##### request
+    `DELETE /api/v2/rules/:name`
+
+    ##### response
+    `200` - The result is empty. The rule was successfully deleted.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - No rule with the given name exists.
+
+    `500`- An unexpected IOException occurred while deleting the rule
+    definition.
+
+    ##### example
+    ```
+    $ curl -X DELETE http://0.0.0.0:8181/api/v2/rules/Test_Rule
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
+    ```
+
+* #### `RuleGetHandler`
+
+    ##### synopsis
+    Get a JSON document describing a rule definition with the given name.
+
+    ##### request
+    `GET /api/v2/rules/:name`
+
+    ##### response
+    `200` - The result is a JSON string representing the rule defintion.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - No rule with the given name exists.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2/rules/Test_Rule
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"name":"Test_Rule","description":"This is a rule for testing","targetAlias":"io.cryostat.Cryostat","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}}}
+    ```
+
+* #### `RulesGetHandler`
+
+    ##### synopsis
+    Get a JSON array representing all rule definitions.
+
+    ##### request
+    `GET /api/v2/rules`
+
+    ##### response
+    `200` - The result is a JSON array representing all rule definitions.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2/rules
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Test_Rule","description":"This is a rule for testing","targetAlias":"io.cryostat.Cryostat","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}]}}
     ```
 
 ### Stored Target Credentials
