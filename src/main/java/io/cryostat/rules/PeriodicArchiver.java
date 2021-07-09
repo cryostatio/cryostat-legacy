@@ -37,6 +37,7 @@
  */
 package io.cryostat.rules;
 
+import java.net.URI;
 import java.nio.file.Path;
 import java.util.ArrayDeque;
 import java.util.Iterator;
@@ -47,6 +48,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.inject.Named;
 import javax.security.sasl.SaslException;
@@ -59,14 +62,8 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpRequest;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -104,18 +101,29 @@ class PeriodicArchiver implements Runnable {
         logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
-            // If no previous recordings, either this is the first this rule is being archived or 
-            // the Cryostat instance was restarted. For the latter case, populate the array with 
-            // the previously archived recordings for this rule.
+            // If there are no previous recordings, either this is the first time this rule is being archived
+            // or the Cryostat instance was restarted. Since it could be the latter, populate the array
+            // with any previously archived recordings for this rule.
             if (previousRecordings.isEmpty()) {
+                URI serviceUri = serviceRef.getServiceUri();
                 JsonArray archivedRecordings = getArchivedRecordings().get();
                 Iterator<Object> it = archivedRecordings.iterator();
+                Pattern recordingFilenamePattern =
+                        Pattern.compile(
+                                String.format(
+                                        "(%d)\\/([A-Za-z\\d-]*)_(%s)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?",
+                                        serviceUri.hashCode(), rule.getRecordingName()));
 
                 while (it.hasNext()) {
                     JsonObject entry = (JsonObject) it.next();
+                    String filename = entry.getString("name");
+                    Matcher m = recordingFilenamePattern.matcher(filename);
+                    if (m.matches()) {
+                        previousRecordings.add(filename);
+                    }
                 }
             }
-            
+
             while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
                 pruneArchive(this.previousRecordings.remove()).get();
             }
