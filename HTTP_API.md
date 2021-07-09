@@ -1437,6 +1437,8 @@ The handler-specific descriptions below describe how each handler populates the
     `400` - The rule definition could not be processed, either because the
     provided document was malformed or invalid.
 
+    `409` - A rule with the same name already exists.
+
     `415` - The request's `Content-Type` was invalid or unrecognized.
 
     `500` - There was an unexpected error.
