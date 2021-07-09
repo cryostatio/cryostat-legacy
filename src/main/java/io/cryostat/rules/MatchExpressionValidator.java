@@ -37,9 +37,6 @@
  */
 package io.cryostat.rules;
 
-import java.io.IOException;
-import java.io.StringReader;
-
 import jdk.nashorn.api.tree.BreakTree;
 import jdk.nashorn.api.tree.CaseTree;
 import jdk.nashorn.api.tree.CatchTree;
@@ -246,14 +243,12 @@ public class MatchExpressionValidator {
                 }
             };
 
-    String validate(Rule rule) throws IOException {
-        try (StringReader reader = new StringReader(rule.getMatchExpression())) {
-            CompilationUnitTree cut = parser.parse(rule.getName(), reader, null);
-            if (cut == null) {
-                throw new IllegalMatchExpressionException();
-            }
-            cut.accept(treeVisitor, rule.getMatchExpression());
+    String validate(Rule rule) {
+        CompilationUnitTree cut = parser.parse(rule.getName(), rule.getMatchExpression(), null);
+        if (cut == null) {
+            throw new IllegalMatchExpressionException();
         }
+        cut.accept(treeVisitor, rule.getMatchExpression());
         return rule.getMatchExpression();
     }
 }

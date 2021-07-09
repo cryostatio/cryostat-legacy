@@ -37,7 +37,6 @@
  */
 package io.cryostat.util;
 
-import java.io.IOException;
 import java.lang.reflect.Type;
 
 import io.cryostat.rules.Rule;
@@ -53,12 +52,7 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
     @Override
     public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)
             throws IllegalArgumentException, JsonSyntaxException {
-
         JsonObject jsonObject = json.getAsJsonObject();
-        try {
-            return Rule.Builder.from(jsonObject).build();
-        } catch (IOException ioe) {
-            throw new IllegalArgumentException(ioe);
-        }
+        return Rule.Builder.from(jsonObject).build();
     }
 }

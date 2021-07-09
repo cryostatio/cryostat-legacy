@@ -122,9 +122,7 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 try {
                     Rule.Builder builder = Rule.Builder.from(params.getFormAttributes());
                     rule = builder.build();
-                } catch (IOException
-                        | IllegalMatchExpressionException
-                        | IllegalArgumentException iae) {
+                } catch (IllegalMatchExpressionException | IllegalArgumentException iae) {
                     throw new ApiException(400, iae);
                 }
                 break;
