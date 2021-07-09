@@ -1234,14 +1234,22 @@ The handler-specific descriptions below describe how each handler populates the
 
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
-| **Recordings in target JVMs**                                             |                                                                                 |
+| **Recordings in Target JVMs**                                             |                                                                                 |
 | Search event types that can be produced by a target JVM                   | [`TargetEventsSearchGetHandler`](#TargetEventsSearchGetHandler)                 |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
 | Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler-1)                     |
+| **Automated Rules**                                                       |                                                                                 |
+| Create an automated rule definition                                       | [`RulesPostHandler`](#RulesPostHandler)                                         |
+| Delete an automated rule definition                                       | [`RuleDeleteHandler`](#RuleDeleteHandler)                                       |
+| Get an automated rule definition                                          | [`RuleGetHandler`](#RuleGetHandler)                                             |
+| Get all automated rule definitions                                        | [`RulesGetHandler`](#RulesGetHandler)                                           |
+| **Stored Target Credentials**                                             |                                                                                 |
+| Add stored credentials for a target                                       | [`TargetCredentialsPostHandler`](#TargetCredentialsPostHandler)                 |
+| Delete stored credentials for a target                                    | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)             |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
-### Flight Recorder
+### Recordings in Target JVMs
 
 * #### `TargetEventsSearchGetHandler`
 
