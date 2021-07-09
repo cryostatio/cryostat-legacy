@@ -1376,6 +1376,83 @@ The handler-specific descriptions below describe how each handler populates the
     {"meta":{"status":"Created","type":"application/json"},"data":{"result":{"downloadUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/recordings/snapshot-1","reportUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/reports/snapshot-1","id":1,"name":"snapshot-1","state":"STOPPED","startTime":1601998841300,"duration":0,"continuous":true,"toDisk":true,"maxSize":0,"maxAge":0}}}
     ```
 
+### Automated Rules
+
+* #### `RulesPostHandler`
+
+    ##### synopsis
+    Creates a new automated rule definition. Cryostat processes automated rules
+    to start recordings on matching targets as they appear, non-interactively.
+    Newly-POSTed rule definitions will also retroactively apply to already-known
+    targets, if any.
+
+    ##### request
+    `POST /api/v2/rules`
+
+    The request may be an HTTP form or a JSON document. In either case, the
+    attributes `"name"`, `"targetAlias"`, and `"eventSpecifier"` must be
+    provided.
+
+    `"name"`: the name of this rule definition. This must be unique. This name
+    will also be used to generate the name of the associated recordings.
+
+    `"targetAlias"`: targets with an exactly matching `alias` will match this
+    rule definition, activating this rule for the target and causing the defined
+    recording to be started on the target.
+
+    `"eventSpecifier"`: a string of the form `template=Foo,type=TYPE`. This
+    defines the event template that will be used for creating new recordings in
+    matching targets.
+
+    The following attributes are optional:
+
+    `"description"`: a textual description of the purpose or reason for this
+    rule definition. This is informational and for display only.
+
+    `"archivalPeriodSeconds"`: a positive integer value that defines how long
+    Cryostat should wait, in seconds, between archiving snapshots of the
+    recording. The default setting is 30.
+
+    `"preservedArchives"`: a positive integer value that defines how many
+    archived copies of the recording should be kept in storage. When the number
+    of archived copies exceeds this number the oldest copies are deleted from
+    storage. The default setting is 1.
+
+    `"maxAgeSeconds"`: a positive integer value that defines the maximum age of
+    data to be retained in the active, in-memory Flight Recording within the
+    Target JVM. This can be used in combination with `"archivalPeriodSeconds"`
+    to minimize or eliminate data overlap between the end of one archived
+    recording and the start of the subsequent archived recording. If not
+    specified, the default setting is equal to `"archivalPeriodSeconds"`.
+
+    `"maxSizeBytes"`: a positive integer value that defines the maximum size, in
+    bytes, of the active in-memory Flight Recording within the Target JVM. If
+    the recording exceeds this memory size then event data will be dropped from
+    the recording. The default setting is unlimited.
+
+    ##### response
+    `201` - The result is the name of the created rule. The `LOCATION` header
+    will be set and its value will be the relative path to the created resource.
+
+    `400` - The rule definition could not be processed, either because the
+    provided document was malformed or invalid.
+
+    `415` - The request's `Content-Type` was invalid or unrecognized.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl -X POST -F name="Test Rule" -F description="This is a rule for testing" -F targetAlias="io.cryostat.Cryostat" -F eventSpecifier="template=Continuous,type=TARGET" http://0.0.0.0:8181/api/v2/rules
+    < HTTP/1.1 201 Created
+    < location: /api/v2/rules/Test_Rule
+    < content-length: 79
+    {"meta":{"type":"text/plain","status":"Created"},"data":{"result":"Test_Rule"}}
+    ```
+
+### Stored Target Credentials
+
+
 ### Security
 
 * #### `CertificatePostHandler`
