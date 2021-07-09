@@ -1532,6 +1532,65 @@ The handler-specific descriptions below describe how each handler populates the
 
 ### Stored Target Credentials
 
+* #### `TargetCredentialsPostHandler`
+
+    ##### synopsis
+    Creates stored credentials for a given target. These are used for automated
+    rules processing - if a Target JVM requires JMX authentication, Cryostat
+    will use stored credentials when attempting to open JMX connections to the
+    target. These are retained in Cryostat's memory only and not persisted to
+    disk.
+
+    ##### request
+    `POST /api/v2/targets/:targetId/credentials`
+
+    The request should be an HTTP form with the attributes `"username"` and
+    `"password"`. Both are required.
+
+    ##### response
+    `200` - The result is null. The request was processed successfully and the
+    credentials were stored, potentially overriding previous credentials for the
+    same target.
+
+    `400` - `"username"` and/or `"password"` were not provided.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl -F username=user -F password=pass http://0.0.0.0:8181/api/v2/targets/localhost/credentials
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
+    ```
+
+* #### `TargetCredentialsDeleteHandler`
+
+    ##### synopsis
+    Deletes stored credentials for a given target.
+
+    ##### request
+    `DELETE /api/v2/targets/:targetId/credentials`
+
+    ##### response
+    `200` - The result is null. The request was processed successfully and the
+    credentials were deleted.
+
+    `404` - The target had no stored credentials.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl -X DELETE http://0.0.0.0:8181/api/v2/targets/localhost/credentials
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
+    ```
 
 ### Security
 
