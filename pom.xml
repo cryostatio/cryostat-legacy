@@ -29,6 +29,7 @@
   <cryostat.minimal>false</cryostat.minimal>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
+  <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
   <cryostat.listenPort>9090</cryostat.listenPort>
@@ -53,7 +54,7 @@
   <org.codehaus.mojo.exec.plugin.version>3.0.0</org.codehaus.mojo.exec.plugin.version>
   <com.mycila.license.maven.plugin.version>4.0</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>6.1.5</org.owasp.dependency.check.version>
-  <com.google.cloud.tools.jib.maven.plugin.version>3.0.0</com.google.cloud.tools.jib.maven.plugin.version>
+  <com.google.cloud.tools.jib.maven.plugin.version>3.1.1</com.google.cloud.tools.jib.maven.plugin.version>
 
   <com.google.dagger.version>2.34.1</com.google.dagger.version>
   <com.google.dagger.compiler.version>2.26</com.google.dagger.compiler.version>
@@ -249,7 +250,7 @@
       <artifactId>exec-maven-plugin</artifactId>
       <version>${org.codehaus.mojo.exec.plugin.version}</version>
       <configuration>
-        <mainClass>io.cryostat.Cryostat</mainClass>
+        <mainClass>${cryostat.mainClass}</mainClass>
         <additionalClasspathElements>
           <additionalClasspathElement>${project.build.directory}/assets/app/resources</additionalClasspathElement>
         </additionalClasspathElements>
@@ -517,6 +518,7 @@
           <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
           <entrypoint>${cryostat.entrypoint}</entrypoint>
+          <mainClass>${cryostat.mainClass}</mainClass>
           <ports>
             <port>${cryostat.webPort}</port>
             <port>${cryostat.listenPort}</port>
