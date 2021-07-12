@@ -1491,7 +1491,7 @@ The handler-specific descriptions below describe how each handler populates the
     `GET /api/v2/rules/:name`
 
     ##### response
-    `200` - The result is a JSON string representing the rule defintion.
+    `200` - The result is a JSON string representing the rule definition.
 
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
