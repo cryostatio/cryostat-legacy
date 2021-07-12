@@ -97,8 +97,10 @@ class PeriodicArchiver implements Runnable {
         logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
-            // If there are no previous recordings, either this is the first time this rule is being archived
-            // or the Cryostat instance was restarted. Since it could be the latter, populate the array
+            // If there are no previous recordings, either this is the first time this rule is being
+            // archived
+            // or the Cryostat instance was restarted. Since it could be the latter, populate the
+            // array
             // with any previously archived recordings for this rule.
             if (previousRecordings.isEmpty()) {
                 JsonArray archivedRecordings = getArchivedRecordings().get();
@@ -107,14 +109,17 @@ class PeriodicArchiver implements Runnable {
                 URI serviceUri = serviceRef.getServiceUri();
                 Pattern recordingFilenamePattern =
                         Pattern.compile(
-                                String.format("([A-Za-z\\d-]*)_(%s)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?", rule.getRecordingName()));
+                                String.format(
+                                        "([A-Za-z\\d-]*)_(%s)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?",
+                                        rule.getRecordingName()));
 
                 while (it.hasNext()) {
                     JsonObject entry = (JsonObject) it.next();
                     String serviceUriHash = entry.getString("serviceUriHash");
                     String filename = entry.getString("name");
                     Matcher m = recordingFilenamePattern.matcher(filename);
-                    if ((Integer.parseInt(serviceUriHash) == serviceUri.hashCode()) && m.matches()) {
+                    if ((Integer.parseInt(serviceUriHash) == serviceUri.hashCode())
+                            && m.matches()) {
                         previousRecordings.add(filename);
                     }
                 }

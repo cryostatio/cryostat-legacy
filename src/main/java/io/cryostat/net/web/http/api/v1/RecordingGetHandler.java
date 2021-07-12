@@ -47,6 +47,7 @@ import javax.inject.Named;
 import io.cryostat.MainModule;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -94,8 +95,10 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
+        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
+        Path specificSavedRecordingsPath = savedRecordingsPath.resolve(connectionDescriptor.getTargetId());
         String filePath =
-                savedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
+                specificSavedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
         ctx.vertx()
                 .fileSystem()
                 .exists(

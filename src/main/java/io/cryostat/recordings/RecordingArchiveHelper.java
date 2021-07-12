@@ -179,8 +179,9 @@ public class RecordingArchiveHelper {
     private String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor) throws Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
-        Path specificRecordingsPath = recordingsPath.resolve(String.format("%d", serviceUri.hashCode()));
-        
+        Path specificRecordingsPath =
+                recordingsPath.resolve(String.format("%d", serviceUri.hashCode()));
+
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);
@@ -206,17 +207,13 @@ public class RecordingArchiveHelper {
 
         String timestamp =
                 clock.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        String destination =
-                String.format(
-                        "%s_%s_%s", targetName, recordingName, timestamp);
+        String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings are also
         // differentiated by second-resolution timestamp
         byte count = 1;
         while (fs.exists(specificRecordingsPath.resolve(destination + ".jfr"))) {
             destination =
-                    String.format(
-                            "%s_%s_%s.%d",
-                            targetName, recordingName, timestamp, count++);
+                    String.format("%s_%s_%s.%d", targetName, recordingName, timestamp, count++);
             if (count == Byte.MAX_VALUE) {
                 throw new IOException(
                         "Recording could not be savedFile already exists and rename attempts were exhausted.");

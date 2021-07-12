@@ -111,6 +111,9 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
             List<Map<String, String>> result = recordingArchiveHelper.getRecordings();
+            for (Map<String, String> map : result) {
+                map.remove("serviceUriHash");
+            }
             ctx.response().end(gson.toJson(result));
         } catch (ArchivePathException e) {
             switch (e.getMessage()) {
