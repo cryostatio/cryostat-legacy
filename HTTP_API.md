@@ -1,5 +1,8 @@
 # HTTP API
 
+* [V1](#V1-API)
+* [V2](#V2-API)
+
 ## V1 API
 
 ### Quick Reference
