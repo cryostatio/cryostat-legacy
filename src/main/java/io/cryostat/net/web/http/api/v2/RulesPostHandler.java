@@ -46,6 +46,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.Rule;
+import io.cryostat.rules.RuleException;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
@@ -137,6 +138,8 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
         try {
             rule = this.ruleRegistry.addRule(rule);
+        } catch (RuleException e) {
+            throw new ApiException(409, e);
         } catch (IOException e) {
             throw new ApiException(
                     500,
