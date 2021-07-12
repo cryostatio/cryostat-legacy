@@ -1390,15 +1390,22 @@ The handler-specific descriptions below describe how each handler populates the
     `POST /api/v2/rules`
 
     The request may be an HTTP form or a JSON document. In either case, the
-    attributes `"name"`, `"targetAlias"`, and `"eventSpecifier"` must be
+    attributes `"name"`, `"matchExpression"`, and `"eventSpecifier"` must be
     provided.
 
     `"name"`: the name of this rule definition. This must be unique. This name
     will also be used to generate the name of the associated recordings.
 
-    `"targetAlias"`: targets with an exactly matching `alias` will match this
-    rule definition, activating this rule for the target and causing the defined
-    recording to be started on the target.
+    `"matchExpression"`: a string expression used to determine which target JVMs
+    this rule will apply to. The expression has a variable named `target` in
+    scope, which is of type
+    [`ServiceRef`](src/main/java/io/cryostat/platform/ServiceRef.java).
+    Properties can be accessed using `.` separators, and the operators `==`,
+    `!=`, `||`, and `&&` are accepted, with their usual meanings. An example of
+    such an expression is:
+    `(target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat') && target.annotations.cryostat.PORT != 9091`.
+    The simple expression `true` may also be used to create a rule which applies
+    to any and all discovered targets.
 
     `"eventSpecifier"`: a string of the form `template=Foo,type=TYPE`. This
     defines the event template that will be used for creating new recordings in
@@ -1449,7 +1456,7 @@ The handler-specific descriptions below describe how each handler populates the
 
     ##### example
     ```
-    $ curl -X POST -F name="Test Rule" -F description="This is a rule for testing" -F targetAlias="io.cryostat.Cryostat" -F eventSpecifier="template=Continuous,type=TARGET" http://0.0.0.0:8181/api/v2/rules
+    $ curl -X POST -F name="Test Rule" -F description="This is a rule for testing" -F matchExpression="target.alias == 'io.cryostat.Cryostat'" -F eventSpecifier="template=Continuous,type=TARGET" http://0.0.0.0:8181/api/v2/rules
     < HTTP/1.1 201 Created
     < location: /api/v2/rules/Test_Rule
     < content-length: 79
@@ -1504,7 +1511,7 @@ The handler-specific descriptions below describe how each handler populates the
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2/rules/Test_Rule
-    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"name":"Test_Rule","description":"This is a rule for testing","targetAlias":"io.cryostat.Cryostat","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}}}
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"name":"Test_Rule","description":"This is a rule for testing","matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}}}
     ```
 
 * #### `RulesGetHandler`
@@ -1527,8 +1534,7 @@ The handler-specific descriptions below describe how each handler populates the
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2/rules
-    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Test_Rule","description":"This is a rule for testing","targetAlias":"io.cryostat.Cryostat","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}]}}
-    ```
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Test_Rule","description":"This is a rule for testing","matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}]}}    ```
 
 ### Stored Target Credentials
 
