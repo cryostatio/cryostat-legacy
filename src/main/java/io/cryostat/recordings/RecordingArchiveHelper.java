@@ -149,19 +149,22 @@ public class RecordingArchiveHelper {
             throw new ArchivePathException(recordingsPath.toString(), "is not a directory");
         }
         WebServer webServer = webServerProvider.get();
-        List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
-        List<Map<String, String>> recordings
-        return names.stream()
+        List<String> files = this.fs.listDirectoryChildren(recordingsPath);
+        return files.stream()
                 .map(
-                        name -> {
+                        file -> {
+                            String serviceUriHash = file.split("/")[0];
+                            String recordingName = file.split("/")[1];
                             try {
                                 return Map.of(
+                                        "serviceUriHash",
+                                        serviceUriHash,
                                         "name",
-                                        name,
+                                        recordingName,
                                         "reportUrl",
-                                        webServer.getArchivedReportURL(name),
+                                        webServer.getArchivedReportURL(recordingName),
                                         "downloadUrl",
-                                        webServer.getArchivedDownloadURL(name));
+                                        webServer.getArchivedDownloadURL(recordingName));
                             } catch (SocketException
                                     | UnknownHostException
                                     | URISyntaxException e) {
@@ -175,6 +178,9 @@ public class RecordingArchiveHelper {
 
     private String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor) throws Exception {
+        URI serviceUri = URIUtil.convert(connection.getJMXURL());
+        Path specificRecordingsPath = recordingsPath.resolve(String.format("%d", serviceUri.hashCode()));
+        
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);
@@ -182,7 +188,6 @@ public class RecordingArchiveHelper {
 
         // TODO: To avoid having to perform this lookup each time, we should implement
         // something like a map from targetIds to corresponding ServiceRefs
-        URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String targetName =
                 platformClient.listDiscoverableServices().stream()
                         .filter(
@@ -203,15 +208,15 @@ public class RecordingArchiveHelper {
                 clock.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         String destination =
                 String.format(
-                        "%d/%s_%s_%s", serviceUri.hashCode(), targetName, recordingName, timestamp);
+                        "%s_%s_%s", targetName, recordingName, timestamp);
         // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings are also
         // differentiated by second-resolution timestamp
         byte count = 1;
-        while (fs.exists(recordingsPath.resolve(destination + ".jfr"))) {
+        while (fs.exists(specificRecordingsPath.resolve(destination + ".jfr"))) {
             destination =
                     String.format(
-                            "%d/%s_%s_%s.%d",
-                            serviceUri.hashCode(), targetName, recordingName, timestamp, count++);
+                            "%s_%s_%s.%d",
+                            targetName, recordingName, timestamp, count++);
             if (count == Byte.MAX_VALUE) {
                 throw new IOException(
                         "Recording could not be savedFile already exists and rename attempts were exhausted.");
@@ -219,7 +224,7 @@ public class RecordingArchiveHelper {
         }
         destination += ".jfr";
         try (InputStream stream = connection.getService().openStream(descriptor, false)) {
-            fs.copy(stream, recordingsPath.resolve(destination));
+            fs.copy(stream, specificRecordingsPath.resolve(destination));
         }
         return destination;
     }

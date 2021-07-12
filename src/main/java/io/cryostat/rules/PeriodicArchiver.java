@@ -101,20 +101,20 @@ class PeriodicArchiver implements Runnable {
             // or the Cryostat instance was restarted. Since it could be the latter, populate the array
             // with any previously archived recordings for this rule.
             if (previousRecordings.isEmpty()) {
-                URI serviceUri = serviceRef.getServiceUri();
                 JsonArray archivedRecordings = getArchivedRecordings().get();
                 Iterator<Object> it = archivedRecordings.iterator();
+
+                URI serviceUri = serviceRef.getServiceUri();
                 Pattern recordingFilenamePattern =
                         Pattern.compile(
-                                String.format(
-                                        "(%d)\\/([A-Za-z\\d-]*)_(%s)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?",
-                                        serviceUri.hashCode(), rule.getRecordingName()));
+                                String.format("([A-Za-z\\d-]*)_(%s)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?", rule.getRecordingName()));
 
                 while (it.hasNext()) {
                     JsonObject entry = (JsonObject) it.next();
+                    String serviceUriHash = entry.getString("serviceUriHash");
                     String filename = entry.getString("name");
                     Matcher m = recordingFilenamePattern.matcher(filename);
-                    if (m.matches()) {
+                    if ((Integer.parseInt(serviceUriHash) == serviceUri.hashCode()) && m.matches()) {
                         previousRecordings.add(filename);
                     }
                 }
