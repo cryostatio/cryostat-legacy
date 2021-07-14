@@ -140,7 +140,7 @@ class PeriodicArchiver implements Runnable {
         }
     }
 
-    private void performArchival() throws InterruptedException, ExecutionException, Exception {
+    public void performArchival() throws InterruptedException, ExecutionException, Exception {
         String recordingName = rule.getRecordingName();
         ConnectionDescriptor connectionDescriptor =
                 new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
@@ -149,7 +149,7 @@ class PeriodicArchiver implements Runnable {
         this.previousRecordings.add(saveName);
     }
 
-    private void pruneArchive(String recordingName) throws Exception {
+    public void pruneArchive(String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
         recordingArchiveHelper.deleteRecording(connectionDescriptor, recordingName);
         previousRecordings.remove(recordingName);

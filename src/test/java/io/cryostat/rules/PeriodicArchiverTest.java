@@ -140,10 +140,7 @@ class PeriodicArchiverTest {
     void testPruneArchive() throws Exception {
         // get the archiver into a state where it is tracking a previously-archived recording
         testPerformArchival();
-
-        boolean result = archiver.pruneArchive(rule.getRecordingName() + "_1").get();
-
-        Assertions.assertTrue(result);
+        archiver.pruneArchive(rule.getRecordingName() + "_1");
         Mockito.verify(recordingArchiveHelper).deleteRecording(Mockito.any(), Mockito.anyString());
     }
 }
