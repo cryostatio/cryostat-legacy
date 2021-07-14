@@ -245,6 +245,19 @@ class RulesPostHandlerTest {
         }
 
         @Test
+        void throwsIfJsonBodyNull() {
+            MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+            Mockito.when(params.getHeaders()).thenReturn(headers);
+            headers.set(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
+
+            Mockito.when(params.getBody()).thenReturn(null);
+
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        }
+
+        @Test
         void addsRuleWithFormAndReturnsResponse() {
             MultiMap headers = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getHeaders()).thenReturn(headers);
