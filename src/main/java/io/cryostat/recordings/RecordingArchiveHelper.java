@@ -46,7 +46,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -67,7 +66,10 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.rules.ArchivePathException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
+
+import org.apache.commons.codec.binary.Base32;
 
 public class RecordingArchiveHelper {
 
@@ -138,7 +140,7 @@ public class RecordingArchiveHelper {
                 });
     }
 
-    public List<Map<String, String>> getRecordings() throws Exception {
+    public List<ArchivedRecordingInfo> getRecordings() throws Exception {
         if (!fs.exists(recordingsPath)) {
             throw new ArchivePathException(recordingsPath.toString(), "does not exist");
         }
@@ -153,18 +155,14 @@ public class RecordingArchiveHelper {
         return files.stream()
                 .map(
                         file -> {
-                            String serviceUriHash = file.split("/")[0];
-                            String recordingName = file.split("/")[1];
+                            String encodedServiceUri = Path.of(file).getParent().toString();
+                            String name = Path.of(file).getFileName().toString();
                             try {
-                                return Map.of(
-                                        "serviceUriHash",
-                                        serviceUriHash,
-                                        "name",
-                                        recordingName,
-                                        "reportUrl",
-                                        webServer.getArchivedReportURL(recordingName),
-                                        "downloadUrl",
-                                        webServer.getArchivedDownloadURL(recordingName));
+                                return new ArchivedRecordingInfo(
+                                        encodedServiceUri,
+                                        name,
+                                        webServer.getArchivedReportURL(name),
+                                        webServer.getArchivedDownloadURL(name));
                             } catch (SocketException
                                     | UnknownHostException
                                     | URISyntaxException e) {
@@ -178,9 +176,11 @@ public class RecordingArchiveHelper {
 
     private String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor) throws Exception {
+        Base32 base32 = new Base32();
+
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
-        Path specificRecordingsPath =
-                recordingsPath.resolve(String.format("%d", serviceUri.hashCode()));
+        String encodedServiceUri = base32.encodeAsString(serviceUri.toString().getBytes());
+        Path specificRecordingsPath = recordingsPath.resolve(encodedServiceUri);
 
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {

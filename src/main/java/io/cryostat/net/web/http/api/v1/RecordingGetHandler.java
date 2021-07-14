@@ -96,9 +96,14 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Path specificSavedRecordingsPath = savedRecordingsPath.resolve(connectionDescriptor.getTargetId());
+        Path specificSavedRecordingsPath =
+                savedRecordingsPath.resolve(connectionDescriptor.getTargetId());
         String filePath =
-                specificSavedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
+                specificSavedRecordingsPath
+                        .resolve(recordingName)
+                        .normalize()
+                        .toAbsolutePath()
+                        .toString();
         ctx.vertx()
                 .fileSystem()
                 .exists(

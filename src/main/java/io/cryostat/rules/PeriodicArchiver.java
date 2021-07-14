@@ -37,11 +37,9 @@
  */
 package io.cryostat.rules;
 
-import java.net.URI;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -59,12 +57,14 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
-import io.vertx.core.json.JsonArray;
-import io.vertx.core.json.JsonObject;
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
+
+    private static final Pattern RECORDING_FILENAME_PATTERN =
+            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
 
     private final ServiceRef serviceRef;
     private final CredentialsManager credentialsManager;
@@ -98,29 +98,28 @@ class PeriodicArchiver implements Runnable {
 
         try {
             // If there are no previous recordings, either this is the first time this rule is being
-            // archived
-            // or the Cryostat instance was restarted. Since it could be the latter, populate the
-            // array
-            // with any previously archived recordings for this rule.
+            // archived or the Cryostat instance was restarted. Since it could be the latter,
+            // populate the
+            // array with any previously archived recordings for this rule.
             if (previousRecordings.isEmpty()) {
-                JsonArray archivedRecordings = getArchivedRecordings().get();
-                Iterator<Object> it = archivedRecordings.iterator();
+                Base32 base32 = new Base32();
+                String serviceUri = serviceRef.getServiceUri().toString();
 
-                URI serviceUri = serviceRef.getServiceUri();
-                Pattern recordingFilenamePattern =
-                        Pattern.compile(
-                                String.format(
-                                        "([A-Za-z\\d-]*)_(%s)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?",
-                                        rule.getRecordingName()));
+                List<ArchivedRecordingInfo> archivedRecordings =
+                        recordingArchiveHelper.getRecordings();
 
+                Iterator<ArchivedRecordingInfo> it = archivedRecordings.iterator();
                 while (it.hasNext()) {
-                    JsonObject entry = (JsonObject) it.next();
-                    String serviceUriHash = entry.getString("serviceUriHash");
-                    String filename = entry.getString("name");
-                    Matcher m = recordingFilenamePattern.matcher(filename);
-                    if ((Integer.parseInt(serviceUriHash) == serviceUri.hashCode())
-                            && m.matches()) {
-                        previousRecordings.add(filename);
+                    ArchivedRecordingInfo archivedRecordingInfo = it.next();
+                    String decodedServiceUri =
+                            new String(base32.decode(archivedRecordingInfo.getEncodedServiceUri()));
+                    String fileName = archivedRecordingInfo.getName();
+                    Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
+                    String recordingName = m.group(2);
+
+                    if (decodedServiceUri.equals(serviceUri)
+                            && recordingName.equals(rule.getRecordingName())) {
+                        previousRecordings.add(fileName);
                     }
                 }
             }
@@ -177,19 +176,6 @@ class PeriodicArchiver implements Runnable {
             previousRecordings.remove(recordingName);
             future.complete(true);
         } catch (RecordingNotFoundException e) {
-            future.completeExceptionally(e);
-        }
-        return future;
-    }
-
-    public Future<JsonArray> getArchivedRecordings() throws Exception {
-
-        CompletableFuture<JsonArray> future = new CompletableFuture<>();
-
-        try {
-            List<Map<String, String>> archivedRecordings = recordingArchiveHelper.getRecordings();
-            future.complete(new JsonArray(archivedRecordings));
-        } catch (ArchivePathException e) {
             future.completeExceptionally(e);
         }
         return future;
