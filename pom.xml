@@ -346,8 +346,6 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_WEB_HOST=${cryostat.itest.webHost}</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_LISTEN_HOST=${cryostat.itest.webHost}</argument>
-              <argument>--env</argument>
               <argument>CRYOSTAT_RJMX_PORT=9091</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_WEB_PORT=${cryostat.itest.webPort}</argument>
