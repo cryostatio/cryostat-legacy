@@ -52,6 +52,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
 import itest.util.Podman;
+import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -282,11 +283,19 @@ class AutoRulesIT extends ExternalTargetsTest {
         MatcherAssert.assertThat(
                 recording.getString("downloadUrl"),
                 Matchers.equalTo(
-                        "http://0.0.0.0:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_Auto_Rule"));
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_Auto_Rule"));
         MatcherAssert.assertThat(
                 recording.getString("reportUrl"),
                 Matchers.equalTo(
-                        "http://0.0.0.0:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
     }
 
     @Test

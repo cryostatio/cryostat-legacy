@@ -119,7 +119,7 @@ public class NotificationsUrlIT extends StandardSelfTest {
                 future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 Matchers.equalTo(
                         String.format(
-                                "{\"notificationsUrl\":\"ws://0.0.0.0:%d/api/v1/notifications\"}",
-                                Utils.WEB_PORT)));
+                                "{\"notificationsUrl\":\"ws://%s:%d/api/v1/notifications\"}",
+                                Utils.WEB_HOST, Utils.WEB_PORT)));
     }
 }

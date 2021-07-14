@@ -46,9 +46,11 @@ import io.vertx.ext.web.client.WebClient;
 public class Utils {
 
     public static final int WEB_PORT;
+    public static final String WEB_HOST;
 
     static {
         WEB_PORT = Integer.valueOf(System.getProperty("cryostatWebPort"));
+        WEB_HOST = System.getProperty("cryostatWebHost", "localhost");
     }
 
     public static final HttpClientOptions HTTP_CLIENT_OPTIONS;
@@ -59,7 +61,7 @@ public class Utils {
                         .setSsl(false)
                         .setTrustAll(true)
                         .setVerifyHost(false)
-                        .setDefaultHost("0.0.0.0")
+                        .setDefaultHost(WEB_HOST)
                         .setDefaultPort(WEB_PORT)
                         .setLogActivity(true);
     }
