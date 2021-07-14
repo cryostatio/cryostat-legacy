@@ -53,12 +53,8 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
-@TestMethodOrder(OrderAnnotation.class)
 class RulesPostJsonIT extends ExternalTargetsTest {
 
     static final List<String> CONTAINERS = new ArrayList<>();
@@ -78,11 +74,9 @@ class RulesPostJsonIT extends ExternalTargetsTest {
     static void setup() throws Exception {
         testRule = new JsonObject();
         testRule.put("name", "Test_Rule");
+        testRule.put("targetAlias", "es.andrewazor.demo.Main");
         testRule.put("description", "AutoRulesIT automated rule");
         testRule.put("eventSpecifier", "template=Continuous,type=TARGET");
-        testRule.put(
-                "matchExpression",
-                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
     }
 
     @AfterAll
@@ -93,9 +87,8 @@ class RulesPostJsonIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(1)
     void testAddRuleThrowsWhenJsonAttributesNull() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
         webClient
                 .post("/api/v2/rules")
@@ -103,7 +96,7 @@ class RulesPostJsonIT extends ExternalTargetsTest {
                 .sendJsonObject(
                         null,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(400));
                             }
@@ -111,27 +104,8 @@ class RulesPostJsonIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(2)
-    void testAddRuleThrowsWhenMimeNull() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
-
-        webClient
-                .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "")
-                .sendJsonObject(
-                        testRule,
-                        ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(415));
-                            }
-                        });
-    }
-
-    @Test
-    @Order(3)
     void testAddRuleThrowsWhenMimeUnsupported() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
         webClient
                 .post("/api/v2/rules")
@@ -139,7 +113,7 @@ class RulesPostJsonIT extends ExternalTargetsTest {
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(415));
                             }
@@ -147,9 +121,8 @@ class RulesPostJsonIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(4)
     void testAddRuleThrowsWhenMimeInvalid() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
         webClient
                 .post("/api/v2/rules")
@@ -157,7 +130,7 @@ class RulesPostJsonIT extends ExternalTargetsTest {
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(415));
                             }
@@ -165,9 +138,8 @@ class RulesPostJsonIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(5)
     void testAddRuleThrowsWhenRuleNameAlreadyExists() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
         webClient
                 .post("/api/v2/rules")
@@ -175,7 +147,7 @@ class RulesPostJsonIT extends ExternalTargetsTest {
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(201));
                             }
@@ -187,9 +159,18 @@ class RulesPostJsonIT extends ExternalTargetsTest {
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(409));
+                            }
+                        });
+        // clean up rule before running next test
+        webClient
+                .delete(String.format("/api/v2/rules/%s", "Auto_Rule"))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
                             }
                         });
     }

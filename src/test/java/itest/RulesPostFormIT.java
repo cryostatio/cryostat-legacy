@@ -54,12 +54,8 @@ import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
 
-@TestMethodOrder(OrderAnnotation.class)
 class RulesPostFormIT extends ExternalTargetsTest {
 
     static final List<String> CONTAINERS = new ArrayList<>();
@@ -73,18 +69,15 @@ class RulesPostFormIT extends ExternalTargetsTest {
         NULL_RESULT.put("result", null);
     }
 
-    static MultiMap testRule = MultiMap.caseInsensitiveMultiMap();
+    static MultiMap testRule;
 
     @BeforeAll
     static void setup() throws Exception {
+        testRule = MultiMap.caseInsensitiveMultiMap();
         testRule.add("name", "Auto Rule");
-        testRule.add(
-                "matchExpression",
-                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        testRule.add("targetAlias", "es.andrewazor.demo.Main");
         testRule.add("description", "AutoRulesIT automated rule");
         testRule.add("eventSpecifier", "template=Continuous,type=TARGET");
-        testRule.add("archivalPeriodSeconds", "60");
-        testRule.add("preservedArchives", "3");
     }
 
     @AfterAll
@@ -95,9 +88,8 @@ class RulesPostFormIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(1)
     void testAddRuleThrowsWhenFormAttributesNull() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
         webClient
                 .post("/api/v2/rules")
@@ -105,7 +97,7 @@ class RulesPostFormIT extends ExternalTargetsTest {
                 .sendForm(
                         null,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(400));
                             }
@@ -113,71 +105,15 @@ class RulesPostFormIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(2)
-    void testAddRuleThrowsWhenMimeNull() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
-
-        webClient
-                .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "")
-                .sendForm(
-                        testRule,
-                        ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(415));
-                            }
-                        });
-    }
-
-    @Test
-    @Order(3)
-    void testAddRuleThrowsWhenMimeUnsupported() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
-
-        webClient
-                .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "NOTAMIME;text/plain")
-                .sendForm(
-                        testRule,
-                        ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(415));
-                            }
-                        });
-    }
-
-    @Test
-    @Order(4)
-    void testAddRuleThrowsWhenMimeInvalid() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
-
-        webClient
-                .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), "NOTAMIME")
-                .sendForm(
-                        testRule,
-                        ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(415));
-                            }
-                        });
-    }
-
-    @Test
-    @Order(5)
     void testAddRuleThrowsWhenRuleNameAlreadyExists() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
         webClient
                 .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.MULTIPART_FORM.mime())
                 .sendForm(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(201));
                             }
@@ -185,13 +121,21 @@ class RulesPostFormIT extends ExternalTargetsTest {
 
         webClient
                 .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.MULTIPART_FORM.mime())
                 .sendForm(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
+                            if (assertRequestStatus(ar, response)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(409));
+                            }
+                        });
+        // clean up rule before running next test
+        webClient
+                .delete(String.format("/api/v2/rules/%s", "Auto_Rule"))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
                             }
                         });
     }
