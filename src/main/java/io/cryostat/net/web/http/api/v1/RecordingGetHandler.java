@@ -45,6 +45,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import io.cryostat.MainModule;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.ConnectionDescriptor;
@@ -55,16 +56,21 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Path savedRecordingsPath;
+    private final FileSystem fs;
 
     @Inject
     RecordingGetHandler(
-            AuthManager auth, @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
+            AuthManager auth,
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            FileSystem fs) {
         super(auth);
         this.savedRecordingsPath = savedRecordingsPath;
+        this.fs = fs;
     }
 
     @Override
@@ -95,35 +101,22 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Path specificSavedRecordingsPath =
-                savedRecordingsPath.resolve(connectionDescriptor.getTargetId());
-        String filePath =
-                specificSavedRecordingsPath
-                        .resolve(recordingName)
-                        .normalize()
-                        .toAbsolutePath()
-                        .toString();
-        ctx.vertx()
-                .fileSystem()
-                .exists(
-                        filePath,
-                        ar -> {
-                            if (ar.result()) {
-                                ctx.response()
-                                        .putHeader(
-                                                HttpHeaders.CONTENT_TYPE,
-                                                HttpMimeType.OCTET_STREAM.mime());
-                                ctx.response().sendFile(filePath);
-                            } else {
-                                ctx.response().setStatusCode(404);
-                                ctx.response()
-                                        .setStatusMessage(
-                                                String.format(
-                                                        "Recording \"%s\" not found",
-                                                        recordingName));
-                                ctx.response().end();
+        fs.listDirectoryChildren(savedRecordingsPath).stream()
+                .filter(file -> recordingName.equals(Path.of(file).getFileName().toString()))
+                .map(savedRecordingsPath::resolve)
+                .findFirst()
+                .ifPresentOrElse(
+                        filePath -> {
+                            if (!fs.exists(filePath)) {
+                                throw new HttpStatusException(404, recordingName);
                             }
+                            ctx.response()
+                                    .sendFile(filePath.normalize().toAbsolutePath().toString());
+                            ctx.response().setStatusCode(200);
+                            ctx.response().end();
+                        },
+                        () -> {
+                            throw new HttpStatusException(404, recordingName);
                         });
     }
 }
