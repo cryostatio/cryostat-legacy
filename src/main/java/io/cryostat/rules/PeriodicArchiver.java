@@ -104,11 +104,10 @@ class PeriodicArchiver implements Runnable {
             if (previousRecordings.isEmpty()) {
                 Base32 base32 = new Base32();
                 String serviceUri = serviceRef.getServiceUri().toString();
-
                 List<ArchivedRecordingInfo> archivedRecordings =
                         recordingArchiveHelper.getRecordings();
-
                 Iterator<ArchivedRecordingInfo> it = archivedRecordings.iterator();
+
                 while (it.hasNext()) {
                     ArchivedRecordingInfo archivedRecordingInfo = it.next();
                     String decodedServiceUri =

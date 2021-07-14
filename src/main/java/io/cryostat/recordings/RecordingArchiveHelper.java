@@ -193,12 +193,8 @@ public class RecordingArchiveHelper {
                 platformClient.listDiscoverableServices().stream()
                         .filter(
                                 serviceRef -> {
-                                    try {
-                                        return serviceRef.getServiceUri().equals(serviceUri)
-                                                && serviceRef.getAlias().isPresent();
-                                    } catch (URISyntaxException | IOException ioe) {
-                                        return false;
-                                    }
+                                    return serviceRef.getServiceUri().equals(serviceUri)
+                                            && serviceRef.getAlias().isPresent();
                                 })
                         .map(s -> s.getAlias().get())
                         .findFirst()
