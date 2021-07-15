@@ -43,6 +43,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
+import javax.inject.Provider;
 import javax.management.remote.JMXServiceURL;
 
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -50,12 +51,14 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
@@ -76,9 +79,11 @@ import org.mockito.stubbing.Answer;
 class RecordingArchiveHelperTest {
 
     RecordingArchiveHelper recordingArchiveHelper;
-    @Mock FileSystem fs;
-    @Mock Path recordingsPath;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock FileSystem fs;
+    @Mock Provider<WebServer> webServerProvider;
+    @Mock Logger logger;
+    @Mock Path recordingsPath;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
     @Mock ReportService reportService;
@@ -94,6 +99,8 @@ class RecordingArchiveHelperTest {
         this.recordingArchiveHelper =
                 new RecordingArchiveHelper(
                         fs,
+                        webServerProvider,
+                        logger,
                         recordingsPath,
                         targetConnectionManager,
                         clock,
