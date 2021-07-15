@@ -42,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -52,6 +53,7 @@ import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -139,38 +141,43 @@ class RulesPostJsonIT extends ExternalTargetsTest {
 
     @Test
     void testAddRuleThrowsWhenRuleNameAlreadyExists() throws Exception {
-        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> duplicatePostResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
 
         webClient
                 .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
+                            if (assertRequestStatus(ar, postResponse)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(201));
+                                postResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
+        postResponse.get();
 
         webClient
                 .post("/api/v2/rules")
-                .putHeader(HttpHeaders.CONTENT_TYPE.toString(), HttpMimeType.JSON.mime())
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
+                            if (assertRequestStatus(ar, duplicatePostResponse)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(409));
+                                duplicatePostResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
+        Assertions.assertThrows(ExecutionException.class, () -> duplicatePostResponse.get());
+
         // clean up rule before running next test
         webClient
                 .delete(String.format("/api/v2/rules/%s", "Auto_Rule"))
                 .send(
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonObject());
+                            if (assertRequestStatus(ar, deleteResponse)) {
+                                deleteResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
     }
