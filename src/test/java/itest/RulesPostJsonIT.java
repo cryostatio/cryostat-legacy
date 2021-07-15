@@ -154,6 +154,8 @@ class RulesPostJsonIT extends StandardSelfTest {
                         ar -> {
                             if (assertRequestStatus(ar, deleteResponse)) {
                                 deleteResponse.complete(ar.result().bodyAsJsonObject());
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                             }
                         });
         deleteResponse.get();
