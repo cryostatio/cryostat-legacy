@@ -193,30 +193,6 @@ class AutoRulesIT extends ExternalTargetsTest {
 
     @Test
     @Order(2)
-    void testAddRuleThrowsWhenJsonIntegerAttributesNegative() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
-        JsonObject invalidRule = new JsonObject();
-        invalidRule.put("name", "Invalid_Rule");
-        invalidRule.put("description", "AutoRulesIT automated rule");
-        invalidRule.put("eventSpecifier", "template=Continuous,type=TARGET");
-        invalidRule.put("targetAlias", "es.andrewazor.demo.Main");
-        invalidRule.put("archivalPeriodSeconds", -60);
-        invalidRule.put("preservedArchives", -3);
-
-        webClient
-                .post("/api/v2/rules")
-                .sendJsonObject(
-                        invalidRule,
-                        ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(400));
-                            }
-                        });
-    }
-
-    @Test
-    @Order(3)
     void testAddCredentials() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
@@ -242,7 +218,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(4)
+    @Order(3)
     void testNewContainerHasRuleApplied() throws Exception {
         CONTAINERS.add(
                 Podman.run(
@@ -299,7 +275,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(5)
+    @Order(4)
     void testRuleCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -321,7 +297,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(6)
+    @Order(5)
     void testCredentialsCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient

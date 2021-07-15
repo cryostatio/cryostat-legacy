@@ -174,4 +174,23 @@ class RulesPostJsonIT extends ExternalTargetsTest {
                             }
                         });
     }
+
+    @Test
+    void testAddRuleThrowsWhenIntegerAttributesNegative() throws Exception {
+        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+
+        testRule.put("archivalPeriodSeconds", -60);
+        testRule.put("preservedArchives", -3);
+
+        webClient
+                .post("/api/v2/rules")
+                .sendJsonObject(
+                        testRule,
+                        ar -> {
+                            if (assertRequestStatus(ar, postResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(400));
+                            }
+                        });
+    }
 }
