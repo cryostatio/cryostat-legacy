@@ -57,6 +57,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -72,6 +73,7 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.codec.binary.Base32;
 
 class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -182,12 +184,16 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         ? 0
                         : Integer.parseInt(m.group(4).substring(1));
 
+        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
+        Base32 base32 = new Base32();
+        final String encodedServiceUri = base32.encodeAsString(connectionDescriptor.getTargetId().getBytes());
         final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         final String uploadedFileName = upload.uploadedFileName();
         validateRecording(
                 upload.uploadedFileName(),
                 (res) ->
                         saveRecording(
+                                encodedServiceUri,
                                 basename,
                                 uploadedFileName,
                                 count,
@@ -247,7 +253,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     private void saveRecording(
-            String basename, String tmpFile, int counter, Handler<AsyncResult<String>> handler) {
+            String encodedServiceUri, String basename, String tmpFile, int counter, Handler<AsyncResult<String>> handler) {
         // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
         // are also differentiated by second-resolution timestamp
         if (counter >= Byte.MAX_VALUE) {
@@ -259,10 +265,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
+        Path specificRecordingsPath = savedRecordingsPath.resolve(encodedServiceUri);
 
         vertx.fileSystem()
                 .exists(
-                        savedRecordingsPath.resolve(filename).toString(),
+                        specificRecordingsPath.resolve(filename).toString(),
                         (res) -> {
                             if (res.failed()) {
                                 handler.handle(makeFailedAsyncResult(res.cause()));
@@ -270,7 +277,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                             }
 
                             if (res.result()) {
-                                saveRecording(basename, tmpFile, counter + 1, handler);
+                                saveRecording(encodedServiceUri, basename, tmpFile, counter + 1, handler);
                                 return;
                             }
 
@@ -278,7 +285,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                             vertx.fileSystem()
                                     .move(
                                             tmpFile,
-                                            savedRecordingsPath.resolve(filename).toString(),
+                                            specificRecordingsPath.resolve(filename).toString(),
                                             (res2) -> {
                                                 if (res2.failed()) {
                                                     handler.handle(
