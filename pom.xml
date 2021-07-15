@@ -34,6 +34,7 @@
   <cryostat.webPort>8181</cryostat.webPort>
   <cryostat.listenPort>9090</cryostat.listenPort>
   <cryostat.itest.webPort>8181</cryostat.itest.webPort>
+  <cryostat.itest.webHost>localhost</cryostat.itest.webHost>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
   <cryostat.itest.grafana.port>3000</cryostat.itest.grafana.port>
   <cryostat.itest.grafana.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana.imageStream>
@@ -343,9 +344,7 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_SSL=true</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_WEB_HOST=0.0.0.0</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_LISTEN_HOST=0.0.0.0</argument>
+              <argument>CRYOSTAT_WEB_HOST=${cryostat.itest.webHost}</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_RJMX_PORT=9091</argument>
               <argument>--env</argument>
@@ -359,9 +358,9 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DATASOURCE_URL=http://0.0.0.0:8080</argument>
+              <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:8080</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DASHBOARD_URL=http://0.0.0.0:3000</argument>
+              <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:3000</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.imageStream}:${cryostat.imageVersion}</argument>
@@ -380,7 +379,7 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk http://0.0.0.0:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+              <argument>until curl -sSk http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
             </arguments>
           </configuration>
         </execution>

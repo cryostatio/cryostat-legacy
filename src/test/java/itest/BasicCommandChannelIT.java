@@ -87,7 +87,8 @@ public class BasicCommandChannelIT extends StandardSelfTest {
         assertResponseStatus(resp);
         String url = resp.getString("payload");
         MatcherAssert.assertThat(
-                url, Matchers.equalTo(String.format("http://0.0.0.0:%d", Utils.WEB_PORT)));
+                url,
+                Matchers.equalTo(String.format("http://%s:%d", Utils.WEB_HOST, Utils.WEB_PORT)));
     }
 
     @Test
