@@ -37,10 +37,6 @@
  */
 package itest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -49,44 +45,24 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
-import itest.bases.ExternalTargetsTest;
-import itest.util.Podman;
+import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-class RulesPostFormIT extends ExternalTargetsTest {
-
-    static final List<String> CONTAINERS = new ArrayList<>();
-    static final Map<String, String> NULL_RESULT = new HashMap<>();
-
-    final String jmxServiceUrl =
-            String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
-    final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
-
-    static {
-        NULL_RESULT.put("result", null);
-    }
+class RulesPostFormIT extends StandardSelfTest {
 
     static MultiMap testRule;
 
     @BeforeAll
     static void setup() throws Exception {
         testRule = MultiMap.caseInsensitiveMultiMap();
-        testRule.add("name", "Auto Rule");
+        testRule.add("name", "Test Rule");
         testRule.add("targetAlias", "es.andrewazor.demo.Main");
         testRule.add("description", "AutoRulesIT automated rule");
         testRule.add("eventSpecifier", "template=Continuous,type=TARGET");
-    }
-
-    @AfterAll
-    static void cleanup() throws Exception {
-        for (String id : CONTAINERS) {
-            Podman.kill(id);
-        }
     }
 
     @Test
@@ -140,13 +116,14 @@ class RulesPostFormIT extends ExternalTargetsTest {
 
         // clean up rule before running next test
         webClient
-                .delete(String.format("/api/v2/rules/%s", "Auto_Rule"))
+                .delete(String.format("/api/v2/rules/%s", "Test_Rule"))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, deleteResponse)) {
                                 deleteResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
+        deleteResponse.get();
     }
 
     @Test
