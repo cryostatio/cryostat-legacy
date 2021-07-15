@@ -128,6 +128,10 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
             case JSON:
                 try {
                     rule = gson.fromJson(params.getBody(), Rule.class);
+
+                    if (rule == null) {
+                        throw new IllegalArgumentException("POST body was null");
+                    }
                 } catch (IllegalArgumentException | JsonSyntaxException e) {
                     throw new ApiException(400, e);
                 }
