@@ -58,6 +58,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -130,12 +131,14 @@ public abstract class StandardSelfTest {
         if (result.failed()) {
             result.cause().printStackTrace();
             future.completeExceptionally(result.cause());
+
             return false;
         }
         HttpResponse<Buffer> response = result.result();
         if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode())) {
             System.err.println("HTTP " + response.statusCode() + ": " + response.statusMessage());
-            future.completeExceptionally(new Exception(response.statusMessage()));
+            future.completeExceptionally(
+                    new HttpStatusException(response.statusCode(), response.statusMessage()));
             return false;
         }
         return true;
