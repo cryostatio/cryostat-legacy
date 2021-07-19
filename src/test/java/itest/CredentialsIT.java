@@ -56,12 +56,13 @@ public class CredentialsIT extends StandardSelfTest {
     final String jmxServiceUrl =
             String.format("service:jmx:rmi:///jndi/rmi://%s:9093/jmxrmi", Podman.POD_NAME);
     final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
+    final String requestUrl = String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded);
 
     @Test
     void testDeleteThrowsOnNonExistentCredentials() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
-                .delete(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
+                .delete(requestUrl)
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
@@ -77,7 +78,7 @@ public class CredentialsIT extends StandardSelfTest {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
 
         webClient
-                .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
+                .post(requestUrl)
                 .sendForm(
                         form,
                         ar -> {
@@ -94,7 +95,7 @@ public class CredentialsIT extends StandardSelfTest {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("password", "adminpass123");
         webClient
-                .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
+                .post(requestUrl)
                 .sendForm(
                         form,
                         ar -> {
@@ -113,7 +114,7 @@ public class CredentialsIT extends StandardSelfTest {
         form.add("username", username);
         form.add("password", "adminpass123");
         webClient
-                .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
+                .post(requestUrl)
                 .sendForm(
                         form,
                         ar -> {
@@ -130,7 +131,7 @@ public class CredentialsIT extends StandardSelfTest {
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("username", "admin");
         webClient
-                .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
+                .post(requestUrl)
                 .sendForm(
                         form,
                         ar -> {
@@ -149,7 +150,7 @@ public class CredentialsIT extends StandardSelfTest {
         form.add("username", "admin");
         form.add("password", password);
         webClient
-                .post(String.format("/api/v2/targets/%s/credentials", jmxServiceUrlEncoded))
+                .post(requestUrl)
                 .sendForm(
                         form,
                         ar -> {
