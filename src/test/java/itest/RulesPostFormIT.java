@@ -94,61 +94,65 @@ class RulesPostFormIT extends StandardSelfTest {
     void testAddRuleThrowsWhenRuleNameAlreadyExists() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
-        webClient
-                .post("/api/v2/rules")
-                .sendForm(
-                        testRule,
-                        ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonObject());
-                            }
-                        });
+        try {
+            webClient
+                    .post("/api/v2/rules")
+                    .sendForm(
+                            testRule,
+                            ar -> {
+                                if (assertRequestStatus(ar, response)) {
+                                    response.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
 
-        JsonObject expectedResponse =
-                new JsonObject(
-                        Map.of(
-                                "meta",
-                                        Map.of(
-                                                "type",
-                                                HttpMimeType.PLAINTEXT.mime(),
-                                                "status",
-                                                "Created"),
-                                "data", Map.of("result", "Test_Rule")));
-        MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
+            JsonObject expectedResponse =
+                    new JsonObject(
+                            Map.of(
+                                    "meta",
+                                            Map.of(
+                                                    "type",
+                                                    HttpMimeType.PLAINTEXT.mime(),
+                                                    "status",
+                                                    "Created"),
+                                    "data", Map.of("result", "Test_Rule")));
+            MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
 
-        CompletableFuture<JsonObject> duplicatePostResponse = new CompletableFuture<>();
-        webClient
-                .post("/api/v2/rules")
-                .sendForm(
-                        testRule,
-                        ar -> {
-                            assertRequestStatus(ar, duplicatePostResponse);
-                        });
+            CompletableFuture<JsonObject> duplicatePostResponse = new CompletableFuture<>();
+            webClient
+                    .post("/api/v2/rules")
+                    .sendForm(
+                            testRule,
+                            ar -> {
+                                assertRequestStatus(ar, duplicatePostResponse);
+                            });
 
-        ExecutionException ex =
-                Assertions.assertThrows(
-                        ExecutionException.class, () -> duplicatePostResponse.get());
-        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Conflict"));
+            ExecutionException ex =
+                    Assertions.assertThrows(
+                            ExecutionException.class, () -> duplicatePostResponse.get());
+            MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Conflict"));
 
-        // clean up rule before running next test
-        CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
-        webClient
-                .delete(String.format("/api/v2/rules/%s", "Test_Rule"))
-                .send(
-                        ar -> {
-                            if (assertRequestStatus(ar, deleteResponse)) {
-                                deleteResponse.complete(ar.result().bodyAsJsonObject());
-                            }
-                        });
+        } finally {
+            // clean up rule before running next test
+            CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
+            webClient
+                    .delete(String.format("/api/v2/rules/%s", "Test_Rule"))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteResponse)) {
+                                    deleteResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
 
-        JsonObject expectedDeleteResponse =
-                new JsonObject(
-                        Map.of(
-                                "meta",
-                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
-                                "data",
-                                NULL_RESULT));
-        MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));
+            JsonObject expectedDeleteResponse =
+                    new JsonObject(
+                            Map.of(
+                                    "meta",
+                                    Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                    "data",
+                                    NULL_RESULT));
+            MatcherAssert.assertThat(
+                    deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));
+        }
     }
 
     @Test
