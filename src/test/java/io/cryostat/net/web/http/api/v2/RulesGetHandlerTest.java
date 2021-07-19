@@ -118,19 +118,19 @@ class RulesGetHandlerTest {
         Set<Rule> testRules;
 
         @BeforeEach
-        void setup() {
+        void setup() throws Exception {
             Rule ruleA =
                     new Rule.Builder()
                             .name("Rule A")
                             .eventSpecifier("template=Profiling")
-                            .targetAlias("fooTarget")
+                            .matchExpression("target.annotations.cryostat.JAVA_MAIN == 'fooTarget'")
                             .build();
 
             Rule ruleB =
                     new Rule.Builder()
                             .name("Rule B")
                             .eventSpecifier("template=Continuous")
-                            .targetAlias("barTarget")
+                            .matchExpression("target.annotations.cryostat.JAVA_MAIN == 'barTarget'")
                             .build();
 
             testRules = Set.of(ruleA, ruleB);

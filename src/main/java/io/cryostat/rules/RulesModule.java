@@ -80,6 +80,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            RuleMatcher ruleMatcher,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -88,10 +89,16 @@ public abstract class RulesModule {
             if (!fs.isDirectory(rulesDir)) {
                 Files.createDirectory(rulesDir);
             }
-            return new RuleRegistry(rulesDir, fs, gson, logger);
+            return new RuleRegistry(rulesDir, ruleMatcher, fs, gson, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Provides
+    @Singleton
+    static RuleMatcher provideRuleMatcher() {
+        return new RuleMatcher();
     }
 
     @Provides

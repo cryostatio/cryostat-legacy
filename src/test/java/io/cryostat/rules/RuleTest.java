@@ -45,13 +45,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class RuleTest {
 
     static final String NAME = "fooRule";
-    static final String TARGET_ALIAS = "someAlias";
+    static final String MATCH_EXPRESSION = "target.alias=='someAlias'";
     static final String EVENT_SPECIFIER = "template=Something";
 
     Rule.Builder builder;
@@ -69,7 +70,7 @@ class RuleTest {
                         IllegalArgumentException.class,
                         () -> {
                             builder.name(s)
-                                    .targetAlias(TARGET_ALIAS)
+                                    .matchExpression(MATCH_EXPRESSION)
                                     .eventSpecifier(EVENT_SPECIFIER)
                                     .build();
                         });
@@ -80,19 +81,44 @@ class RuleTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void shouldThrowOnBlankTargetAlias(String s) {
+    void shouldThrowOnBlankMatchExpression(String s) {
         IllegalArgumentException ex =
                 Assertions.assertThrows(
                         IllegalArgumentException.class,
                         () -> {
                             builder.name(NAME)
-                                    .targetAlias(s)
+                                    .matchExpression(s)
                                     .eventSpecifier(EVENT_SPECIFIER)
                                     .build();
                         });
         MatcherAssert.assertThat(
                 ex.getMessage(),
-                Matchers.containsString("\"targetAlias\" cannot be blank, was \"" + s + "\""));
+                Matchers.containsString("\"matchExpression\" cannot be blank, was \"" + s + "\""));
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "while (true) continue; false",
+                "function foo() { return false; }; foo();",
+                "System.exit(1)",
+                "java.lang.System.exit(1)"
+            })
+    void shouldThrowOnInvalidMatchExpression(String s) {
+        MatchExpressionValidationException ex =
+                Assertions.assertThrows(
+                        MatchExpressionValidationException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .matchExpression(s)
+                                    .eventSpecifier(EVENT_SPECIFIER)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getCause(), Matchers.instanceOf(IllegalMatchExpressionException.class));
+        MatcherAssert.assertThat(
+                ex.getCause().getMessage(),
+                Matchers.startsWith("matchExpression rejected, illegal"));
     }
 
     @ParameterizedTest
@@ -102,7 +128,10 @@ class RuleTest {
                 Assertions.assertThrows(
                         IllegalArgumentException.class,
                         () -> {
-                            builder.name(NAME).targetAlias(TARGET_ALIAS).eventSpecifier(s).build();
+                            builder.name(NAME)
+                                    .matchExpression(MATCH_EXPRESSION)
+                                    .eventSpecifier(s)
+                                    .build();
                         });
         MatcherAssert.assertThat(
                 ex.getMessage(),
@@ -116,7 +145,7 @@ class RuleTest {
                         IllegalArgumentException.class,
                         () -> {
                             builder.name(NAME)
-                                    .targetAlias(TARGET_ALIAS)
+                                    .matchExpression(MATCH_EXPRESSION)
                                     .eventSpecifier(EVENT_SPECIFIER)
                                     .archivalPeriodSeconds(-1)
                                     .build();
@@ -134,7 +163,7 @@ class RuleTest {
                         IllegalArgumentException.class,
                         () -> {
                             builder.name(NAME)
-                                    .targetAlias(TARGET_ALIAS)
+                                    .matchExpression(MATCH_EXPRESSION)
                                     .eventSpecifier(EVENT_SPECIFIER)
                                     .preservedArchives(-1)
                                     .build();
@@ -145,30 +174,30 @@ class RuleTest {
     }
 
     @Test
-    void shouldDefaultToEmptyDescriptionIfLeftNull() {
+    void shouldDefaultToEmptyDescriptionIfLeftNull() throws Exception {
         Rule rule =
                 builder.name(NAME)
-                        .targetAlias(TARGET_ALIAS)
+                        .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier(EVENT_SPECIFIER)
                         .build();
         MatcherAssert.assertThat(rule.getDescription(), Matchers.is(Matchers.emptyString()));
     }
 
     @Test
-    void shouldSanitizeName() {
+    void shouldSanitizeName() throws Exception {
         Rule rule =
                 builder.name("Some Rule")
-                        .targetAlias(TARGET_ALIAS)
+                        .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier(EVENT_SPECIFIER)
                         .build();
         MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
     }
 
     @Test
-    void shouldSanitizeRecordingNameAndMarkAsAutomatic() {
+    void shouldSanitizeRecordingNameAndMarkAsAutomatic() throws Exception {
         Rule rule =
                 builder.name("Some Rule")
-                        .targetAlias(TARGET_ALIAS)
+                        .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier(EVENT_SPECIFIER)
                         .build();
         MatcherAssert.assertThat(rule.getRecordingName(), Matchers.equalTo("auto_Some_Rule"));

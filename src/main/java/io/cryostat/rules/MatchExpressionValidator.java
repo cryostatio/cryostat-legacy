@@ -35,29 +35,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.util;
+package io.cryostat.rules;
 
-import java.lang.reflect.Type;
+import jdk.nashorn.api.tree.CompilationUnitTree;
+import jdk.nashorn.api.tree.Parser;
+import jdk.nashorn.api.tree.TreeVisitor;
 
-import io.cryostat.rules.MatchExpressionValidationException;
-import io.cryostat.rules.Rule;
+public class MatchExpressionValidator {
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
+    private final Parser parser = Parser.create();
 
-public class RuleDeserializer implements JsonDeserializer<Rule> {
+    private final TreeVisitor<Void, String> treeVisitor = new MatchExpressionTreeVisitor();
 
-    @Override
-    public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)
-            throws IllegalArgumentException, JsonSyntaxException {
-        JsonObject jsonObject = json.getAsJsonObject();
+    String validate(Rule rule) throws MatchExpressionValidationException {
         try {
-            return Rule.Builder.from(jsonObject).build();
-        } catch (MatchExpressionValidationException meve) {
-            throw new IllegalArgumentException(meve);
+            CompilationUnitTree cut = parser.parse(rule.getName(), rule.getMatchExpression(), null);
+            if (cut == null) {
+                throw new IllegalMatchExpressionException();
+            }
+            cut.accept(treeVisitor, rule.getMatchExpression());
+        } catch (IllegalMatchExpressionException imee) {
+            throw new MatchExpressionValidationException(imee);
         }
+        return rule.getMatchExpression();
     }
 }

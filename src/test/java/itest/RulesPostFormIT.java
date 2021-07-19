@@ -69,7 +69,7 @@ class RulesPostFormIT extends StandardSelfTest {
     static void setup() throws Exception {
         testRule = MultiMap.caseInsensitiveMultiMap();
         testRule.add("name", "Test Rule");
-        testRule.add("targetAlias", "es.andrewazor.demo.Main");
+        testRule.add("matchExpression", "target.alias == 'es.andrewazor.demo.Main'");
         testRule.add("description", "AutoRulesIT automated rule");
         testRule.add("eventSpecifier", "template=Continuous,type=TARGET");
     }

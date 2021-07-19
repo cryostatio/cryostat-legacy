@@ -46,6 +46,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.script.ScriptException;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
@@ -58,13 +60,15 @@ import com.google.gson.Gson;
 public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     private final Path rulesDir;
+    private final RuleMatcher ruleMatcher;
     private final FileSystem fs;
     private final Set<Rule> rules;
     private final Gson gson;
     private final Logger logger;
 
-    RuleRegistry(Path rulesDir, FileSystem fs, Gson gson, Logger logger) {
+    RuleRegistry(Path rulesDir, RuleMatcher ruleMatcher, FileSystem fs, Gson gson, Logger logger) {
         this.rulesDir = rulesDir;
+        this.ruleMatcher = ruleMatcher;
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
@@ -117,7 +121,17 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
     }
 
     public boolean applies(Rule rule, ServiceRef serviceRef) {
-        return Objects.equals(rule.getTargetAlias(), serviceRef.getAlias().get());
+        try {
+            return ruleMatcher.applies(rule, serviceRef);
+        } catch (ScriptException se) {
+            logger.error(se);
+            try {
+                deleteRule(rule);
+            } catch (IOException ioe) {
+                logger.error(ioe);
+            }
+            return false;
+        }
     }
 
     public Set<Rule> getRules(ServiceRef serviceRef) {

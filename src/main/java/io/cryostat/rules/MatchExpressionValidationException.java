@@ -35,29 +35,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.util;
+package io.cryostat.rules;
 
-import java.lang.reflect.Type;
+@SuppressWarnings("serial")
+public class MatchExpressionValidationException extends Exception {
 
-import io.cryostat.rules.MatchExpressionValidationException;
-import io.cryostat.rules.Rule;
-
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
-
-public class RuleDeserializer implements JsonDeserializer<Rule> {
-
-    @Override
-    public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)
-            throws IllegalArgumentException, JsonSyntaxException {
-        JsonObject jsonObject = json.getAsJsonObject();
-        try {
-            return Rule.Builder.from(jsonObject).build();
-        } catch (MatchExpressionValidationException meve) {
-            throw new IllegalArgumentException(meve);
-        }
+    MatchExpressionValidationException(Throwable cause) {
+        super(cause);
     }
 }

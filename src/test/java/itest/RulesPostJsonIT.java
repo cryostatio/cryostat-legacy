@@ -68,7 +68,7 @@ class RulesPostJsonIT extends StandardSelfTest {
     static void setup() throws Exception {
         testRule = new JsonObject();
         testRule.put("name", "Test Rule");
-        testRule.put("targetAlias", "es.andrewazor.demo.Main");
+        testRule.put("matchExpression", "target.alias == 'es.andrewazor.demo.Main'");
         testRule.put("description", "AutoRulesIT automated rule");
         testRule.put("eventSpecifier", "template=Continuous,type=TARGET");
     }

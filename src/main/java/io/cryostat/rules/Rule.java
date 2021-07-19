@@ -47,22 +47,22 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class Rule {
 
+    private static final MatchExpressionValidator MATCH_EXPRESSION_VALIDATOR =
+            new MatchExpressionValidator();
+
     private final String name;
     private final String description;
-    // TODO for now, simply allow matching based on target's alias. This should be expanded to allow
-    // for different match parameters such as port number, port name, container/pod label, etc.,
-    //  and allow wildcards
-    private final String targetAlias;
+    private final String matchExpression;
     private final String eventSpecifier;
     private final int archivalPeriodSeconds;
     private final int preservedArchives;
     private final int maxAgeSeconds;
     private final int maxSizeBytes;
 
-    Rule(Builder builder) {
+    Rule(Builder builder) throws MatchExpressionValidationException {
         this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
         this.description = builder.description == null ? "" : builder.description;
-        this.targetAlias = builder.targetAlias;
+        this.matchExpression = builder.matchExpression;
         this.eventSpecifier = builder.eventSpecifier;
         this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
         this.preservedArchives = builder.preservedArchives;
@@ -85,8 +85,8 @@ public class Rule {
         return this.description;
     }
 
-    public String getTargetAlias() {
-        return this.targetAlias;
+    public String getMatchExpression() {
+        return this.matchExpression;
     }
 
     public String getEventSpecifier() {
@@ -114,6 +114,10 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
+    static String validateMatchExpression(Rule rule) throws MatchExpressionValidationException {
+        return MATCH_EXPRESSION_VALIDATOR.validate(rule);
+    }
+
     private static String requireNonBlank(String s, Attribute attr) {
         if (StringUtils.isBlank(s)) {
             throw new IllegalArgumentException(
@@ -130,13 +134,13 @@ public class Rule {
         return i;
     }
 
-    public void validate() throws IllegalArgumentException {
-
+    public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
         requireNonBlank(this.name, Attribute.NAME);
-        requireNonBlank(this.targetAlias, Attribute.TARGET_ALIAS);
+        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
         requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
         requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
         requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        validateMatchExpression(this);
     }
 
     @Override
@@ -152,7 +156,7 @@ public class Rule {
     public static class Builder {
         private String name;
         private String description;
-        private String targetAlias;
+        private String matchExpression;
         private String eventSpecifier;
         private int archivalPeriodSeconds = 30;
         private int preservedArchives = 1;
@@ -169,8 +173,8 @@ public class Rule {
             return this;
         }
 
-        public Builder targetAlias(String targetAlias) {
-            this.targetAlias = targetAlias;
+        public Builder matchExpression(String matchExpression) {
+            this.matchExpression = matchExpression;
             return this;
         }
 
@@ -199,7 +203,7 @@ public class Rule {
             return this;
         }
 
-        public Rule build() {
+        public Rule build() throws MatchExpressionValidationException {
             return new Rule(this);
         }
 
@@ -207,8 +211,9 @@ public class Rule {
             Rule.Builder builder =
                     new Rule.Builder()
                             .name(formAttributes.get(Rule.Attribute.NAME.getSerialKey()))
-                            .targetAlias(
-                                    formAttributes.get(Rule.Attribute.TARGET_ALIAS.getSerialKey()))
+                            .matchExpression(
+                                    formAttributes.get(
+                                            Rule.Attribute.MATCH_EXPRESSION.getSerialKey()))
                             .description(
                                     formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
                             .eventSpecifier(
@@ -224,12 +229,11 @@ public class Rule {
         }
 
         public static Builder from(JsonObject jsonObj) throws IllegalArgumentException {
-
             Rule.Builder builder =
                     new Rule.Builder()
                             .name(jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
-                            .targetAlias(
-                                    jsonObj.get(Rule.Attribute.TARGET_ALIAS.getSerialKey())
+                            .matchExpression(
+                                    jsonObj.get(Rule.Attribute.MATCH_EXPRESSION.getSerialKey())
                                             .getAsString())
                             .description(
                                     jsonObj.get(Rule.Attribute.DESCRIPTION.getSerialKey())
@@ -320,7 +324,7 @@ public class Rule {
     public enum Attribute {
         NAME("name"),
         DESCRIPTION("description"),
-        TARGET_ALIAS("targetAlias"),
+        MATCH_EXPRESSION("matchExpression"),
         EVENT_SPECIFIER("eventSpecifier"),
         ARCHIVAL_PERIOD_SECONDS("archivalPeriodSeconds"),
         PRESERVED_ARCHIVES("preservedArchives"),

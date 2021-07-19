@@ -64,17 +64,7 @@ class PeriodicArchiverTest {
     String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
     ServiceRef serviceRef;
     @Mock CredentialsManager credentialsManager;
-    Rule rule =
-            new Rule.Builder()
-                    .name("Test Rule")
-                    .description("Automated unit test rule")
-                    .targetAlias("com.example.App")
-                    .eventSpecifier("template=Continuous")
-                    .maxAgeSeconds(30)
-                    .maxSizeBytes(1234)
-                    .preservedArchives(2)
-                    .archivalPeriodSeconds(67)
-                    .build();
+    Rule rule;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     AtomicInteger failureCounter;
     @Mock Logger logger;
@@ -84,6 +74,17 @@ class PeriodicArchiverTest {
     void setup() throws Exception {
         this.serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
         this.failureCounter = new AtomicInteger();
+        this.rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .matchExpression("target.alias=='com.example.App'")
+                        .eventSpecifier("template=Continuous")
+                        .maxAgeSeconds(30)
+                        .maxSizeBytes(1234)
+                        .preservedArchives(2)
+                        .archivalPeriodSeconds(67)
+                        .build();
         this.archiver =
                 new PeriodicArchiver(
                         serviceRef,

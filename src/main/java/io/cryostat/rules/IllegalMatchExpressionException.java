@@ -35,29 +35,28 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.util;
+package io.cryostat.rules;
 
-import java.lang.reflect.Type;
+import jdk.nashorn.api.tree.Tree;
 
-import io.cryostat.rules.MatchExpressionValidationException;
-import io.cryostat.rules.Rule;
+@SuppressWarnings("serial")
+class IllegalMatchExpressionException extends RuntimeException {
+    IllegalMatchExpressionException() {
+        this("matchExpression parsing failed");
+    }
 
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonSyntaxException;
+    IllegalMatchExpressionException(String reason) {
+        super(reason);
+    }
 
-public class RuleDeserializer implements JsonDeserializer<Rule> {
-
-    @Override
-    public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)
-            throws IllegalArgumentException, JsonSyntaxException {
-        JsonObject jsonObject = json.getAsJsonObject();
-        try {
-            return Rule.Builder.from(jsonObject).build();
-        } catch (MatchExpressionValidationException meve) {
-            throw new IllegalArgumentException(meve);
-        }
+    IllegalMatchExpressionException(Tree node, String matchExpression) {
+        super(
+                String.format(
+                        "matchExpression rejected, illegal %s at [%d, %d]: %s",
+                        node.getKind(),
+                        node.getStartPosition(),
+                        node.getEndPosition(),
+                        matchExpression.substring(
+                                (int) node.getStartPosition(), (int) node.getEndPosition())));
     }
 }
