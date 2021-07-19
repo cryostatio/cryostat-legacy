@@ -347,7 +347,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(7)
+    @Order(6)
     void testGetNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -363,7 +363,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(8)
+    @Order(7)
     void testDeleteNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -377,5 +377,4 @@ class AutoRulesIT extends ExternalTargetsTest {
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
-
 }
