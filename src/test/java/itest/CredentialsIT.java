@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
 import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
