@@ -43,6 +43,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.stream.Collectors;
 
 import io.cryostat.net.web.http.HttpMimeType;
@@ -56,6 +57,7 @@ import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -343,4 +345,37 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 NULL_RESULT));
         MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
     }
+
+    @Test
+    @Order(7)
+    void testGetNonExistentRuleThrows() throws Exception {
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        webClient
+                .get("/api/v2/rules/Auto_Rule")
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
+
+    @Test
+    @Order(8)
+    void testDeleteNonExistentRuleThrows() throws Exception {
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        webClient
+                .delete("/api/v2/rules/Auto_Rule")
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
+
 }
