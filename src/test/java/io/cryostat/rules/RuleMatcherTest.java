@@ -136,7 +136,6 @@ class RuleMatcherTest {
 
         @Test
         void annotationsShouldHaveExpectedFields() {
-            Bindings bindings = ruleMatcher.createBindings(serviceRef);
             Set<String> keys =
                     ((Map<String, Object>)
                                     ((Map<String, Object>) bindings.get("target"))
