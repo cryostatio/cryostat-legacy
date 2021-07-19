@@ -41,6 +41,7 @@ public enum ApiVersion {
     GENERIC(""),
     V1("v1"),
     V2("v2"),
+    BETA("beta"),
     ;
 
     private final String version;

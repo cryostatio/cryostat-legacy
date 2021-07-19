@@ -35,20 +35,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http;
-
-import io.cryostat.net.web.http.api.beta.HttpApiBetaModule;
-import io.cryostat.net.web.http.api.v1.HttpApiV1Module;
-import io.cryostat.net.web.http.api.v2.HttpApiV2Module;
-import io.cryostat.net.web.http.generic.HttpGenericModule;
+package io.cryostat.net.web.http.api.beta;
 
 import dagger.Module;
 
-@Module(
-        includes = {
-            HttpGenericModule.class,
-            HttpApiBetaModule.class,
-            HttpApiV1Module.class,
-            HttpApiV2Module.class,
-        })
-public abstract class HttpModule {}
+@Module
+public abstract class HttpApiBetaModule {}
