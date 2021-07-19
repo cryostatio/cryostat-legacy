@@ -37,6 +37,8 @@
  */
 package itest;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -54,6 +56,12 @@ import org.junit.jupiter.api.Test;
 class RulesPostJsonIT extends StandardSelfTest {
 
     static JsonObject testRule;
+
+    static final Map<String, String> NULL_RESULT = new HashMap<>();
+
+    static {
+        NULL_RESULT.put("result", null);
+    }
 
     @BeforeAll
     static void setup() throws Exception {
@@ -74,11 +82,11 @@ class RulesPostJsonIT extends StandardSelfTest {
                 .sendJsonObject(
                         null,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(400));
-                            }
+                            assertRequestStatus(ar, response);
                         });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
     @Test
@@ -91,11 +99,12 @@ class RulesPostJsonIT extends StandardSelfTest {
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(415));
-                            }
+                            assertRequestStatus(ar, response);
                         });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ex.getCause().getMessage(), Matchers.equalTo("Unsupported Media Type"));
     }
 
     @Test
@@ -108,62 +117,78 @@ class RulesPostJsonIT extends StandardSelfTest {
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(415));
-                            }
+                            assertRequestStatus(ar, response);
                         });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ex.getCause().getMessage(), Matchers.equalTo("Unsupported Media Type"));
     }
 
     @Test
     void testAddRuleThrowsWhenRuleNameAlreadyExists() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .post("/api/v2/rules")
+                .sendJsonObject(
+                        testRule,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        JsonObject expectedresponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "type",
+                                                HttpMimeType.PLAINTEXT.mime(),
+                                                "status",
+                                                "Created"),
+                                "data", Map.of("result", "Test_Rule")));
+        MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedresponse));
+
         CompletableFuture<JsonObject> duplicatePostResponse = new CompletableFuture<>();
-        CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
-
         webClient
                 .post("/api/v2/rules")
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(201));
-                                postResponse.complete(ar.result().bodyAsJsonObject());
-                            }
+                            assertRequestStatus(ar, duplicatePostResponse);
                         });
-        postResponse.get();
 
-        webClient
-                .post("/api/v2/rules")
-                .sendJsonObject(
-                        testRule,
-                        ar -> {
-                            if (assertRequestStatus(ar, duplicatePostResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(409));
-                                duplicatePostResponse.complete(ar.result().bodyAsJsonObject());
-                            }
-                        });
-        Assertions.assertThrows(ExecutionException.class, () -> duplicatePostResponse.get());
+        ExecutionException ex =
+                Assertions.assertThrows(
+                        ExecutionException.class, () -> duplicatePostResponse.get());
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Conflict"));
 
         // clean up rule before running next test
+        CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
         webClient
                 .delete(String.format("/api/v2/rules/%s", "Test_Rule"))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, deleteResponse)) {
                                 deleteResponse.complete(ar.result().bodyAsJsonObject());
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(200));
                             }
                         });
-        deleteResponse.get();
+
+        JsonObject expectedDeleteResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
+                                "data",
+                                NULL_RESULT));
+        MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));
     }
 
     @Test
     void testAddRuleThrowsWhenIntegerAttributesNegative() throws Exception {
-        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
 
         testRule.put("archivalPeriodSeconds", -60);
         testRule.put("preservedArchives", -3);
@@ -173,10 +198,11 @@ class RulesPostJsonIT extends StandardSelfTest {
                 .sendJsonObject(
                         testRule,
                         ar -> {
-                            if (assertRequestStatus(ar, postResponse)) {
-                                MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(400));
-                            }
+                            assertRequestStatus(ar, response);
                         });
+
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 }
