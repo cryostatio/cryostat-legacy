@@ -39,6 +39,7 @@ package io.cryostat.util;
 
 import java.lang.reflect.Type;
 
+import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.Rule;
 
 import com.google.gson.JsonDeserializationContext;
@@ -53,6 +54,10 @@ public class RuleDeserializer implements JsonDeserializer<Rule> {
     public Rule deserialize(JsonElement json, Type typeOf, JsonDeserializationContext context)
             throws IllegalArgumentException, JsonSyntaxException {
         JsonObject jsonObject = json.getAsJsonObject();
-        return Rule.Builder.from(jsonObject).build();
+        try {
+            return Rule.Builder.from(jsonObject).build();
+        } catch (MatchExpressionValidationException meve) {
+            throw new IllegalArgumentException(meve);
+        }
     }
 }

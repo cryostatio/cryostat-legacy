@@ -47,12 +47,16 @@ public class MatchExpressionValidator {
 
     private final TreeVisitor<Void, String> treeVisitor = new MatchExpressionTreeVisitor();
 
-    String validate(Rule rule) {
-        CompilationUnitTree cut = parser.parse(rule.getName(), rule.getMatchExpression(), null);
-        if (cut == null) {
-            throw new IllegalMatchExpressionException();
+    String validate(Rule rule) throws MatchExpressionValidationException {
+        try {
+            CompilationUnitTree cut = parser.parse(rule.getName(), rule.getMatchExpression(), null);
+            if (cut == null) {
+                throw new IllegalMatchExpressionException();
+            }
+            cut.accept(treeVisitor, rule.getMatchExpression());
+        } catch (IllegalMatchExpressionException imee) {
+            throw new MatchExpressionValidationException(imee);
         }
-        cut.accept(treeVisitor, rule.getMatchExpression());
         return rule.getMatchExpression();
     }
 }

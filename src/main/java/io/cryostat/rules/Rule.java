@@ -59,7 +59,7 @@ public class Rule {
     private final int maxAgeSeconds;
     private final int maxSizeBytes;
 
-    Rule(Builder builder) {
+    Rule(Builder builder) throws MatchExpressionValidationException {
         this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
         this.description = builder.description == null ? "" : builder.description;
         this.matchExpression = builder.matchExpression;
@@ -114,7 +114,7 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
-    static String validateMatchExpression(Rule rule) {
+    static String validateMatchExpression(Rule rule) throws MatchExpressionValidationException {
         return MATCH_EXPRESSION_VALIDATOR.validate(rule);
     }
 
@@ -134,7 +134,7 @@ public class Rule {
         return i;
     }
 
-    public void validate() throws IllegalArgumentException {
+    public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
         requireNonBlank(this.name, Attribute.NAME);
         requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
         requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
@@ -203,7 +203,7 @@ public class Rule {
             return this;
         }
 
-        public Rule build() {
+        public Rule build() throws MatchExpressionValidationException {
             return new Rule(this);
         }
 

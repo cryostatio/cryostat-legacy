@@ -87,7 +87,7 @@ class MatchExpressionValidatorTest {
     void shouldThrowOnIllegalExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);
         Assertions.assertThrows(
-                IllegalMatchExpressionException.class, () -> validator.validate(rule));
+                MatchExpressionValidationException.class, () -> validator.validate(rule));
     }
 
     @ParameterizedTest

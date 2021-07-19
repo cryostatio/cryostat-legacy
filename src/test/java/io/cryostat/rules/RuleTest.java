@@ -105,9 +105,9 @@ class RuleTest {
                 "java.lang.System.exit(1)"
             })
     void shouldThrowOnInvalidMatchExpression(String s) {
-        IllegalMatchExpressionException ex =
+        MatchExpressionValidationException ex =
                 Assertions.assertThrows(
-                        IllegalMatchExpressionException.class,
+                        MatchExpressionValidationException.class,
                         () -> {
                             builder.name(NAME)
                                     .matchExpression(s)
@@ -115,7 +115,10 @@ class RuleTest {
                                     .build();
                         });
         MatcherAssert.assertThat(
-                ex.getMessage(), Matchers.startsWith("matchExpression rejected, illegal"));
+                ex.getCause(), Matchers.instanceOf(IllegalMatchExpressionException.class));
+        MatcherAssert.assertThat(
+                ex.getCause().getMessage(),
+                Matchers.startsWith("matchExpression rejected, illegal"));
     }
 
     @ParameterizedTest
