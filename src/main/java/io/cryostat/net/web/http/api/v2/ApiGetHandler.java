@@ -97,7 +97,7 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
     }
 
     @Override
-    HttpMimeType mimeType() {
+    public HttpMimeType mimeType() {
         return HttpMimeType.JSON;
     }
 
@@ -107,7 +107,8 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
     }
 
     @Override
-    IntermediateResponse<ApiResponse> handle(RequestParameters requestParams) throws Exception {
+    public IntermediateResponse<ApiResponse> handle(RequestParameters requestParams)
+            throws Exception {
         List<SerializedHandler> serializedHandlers =
                 handlers.get().stream()
                         .filter(RequestHandler::isAvailable)
