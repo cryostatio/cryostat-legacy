@@ -48,6 +48,7 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -218,8 +219,7 @@ class MessagingServerTest {
         MatcherAssert.assertThat(server.readMessage(), Matchers.equalTo(expectedText));
         verify(wsClient2, Mockito.atLeastOnce()).readMessage();
 
-        ResponseMessage<String> successResponseMessage =
-                new SuccessResponseMessage<>("msgId", "test", "message");
+        TestMessage successResponseMessage = new TestMessage("msgId", "test", "message");
         server.writeMessage(successResponseMessage);
         executor.tick();
 
@@ -238,8 +238,7 @@ class MessagingServerTest {
         verify(wsClient1, Mockito.atLeastOnce()).readMessage();
         verifyNoMoreInteractions(wsClient2);
 
-        ResponseMessage<String> failureResponseMessage =
-                new FailureResponseMessage("msgId", "test", "failure");
+        TestMessage failureResponseMessage = new TestMessage("msgId", "test", "failure");
         server.writeMessage(failureResponseMessage);
         executor.tick();
 
@@ -255,7 +254,7 @@ class MessagingServerTest {
         server.addConnection(wsClient1);
         server.addConnection(wsClient2);
         executor.tick();
-        ResponseMessage<String> message = new SuccessResponseMessage<>("msgId", "test", "message");
+        TestMessage message = new TestMessage("msgId", "test", "message");
         server.writeMessage(message);
         executor.tick();
         verify(wsClient1).writeMessage(gson.toJson(message));
@@ -390,6 +389,14 @@ class MessagingServerTest {
         @Override
         public boolean isDone() {
             return false;
+        }
+    }
+
+    static class TestMessage extends WsMessage {
+        List<String> msgs;
+
+        TestMessage(String... msgs) {
+            this.msgs = Arrays.asList(msgs);
         }
     }
 }

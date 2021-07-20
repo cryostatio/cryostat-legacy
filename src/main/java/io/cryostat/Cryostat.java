@@ -37,9 +37,10 @@
  */
 package io.cryostat;
 
+import java.util.concurrent.CompletableFuture;
+
 import javax.inject.Singleton;
 
-import io.cryostat.commands.CommandExecutor;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
@@ -67,6 +68,9 @@ class Cryostat {
 
         Client client = DaggerCryostat_Client.builder().build();
 
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        client.httpServer().addShutdownListener(() -> future.complete(null));
+
         client.credentialsManager().load();
         client.ruleRegistry().loadRules();
         client.ruleProcessor().enable();
@@ -75,7 +79,7 @@ class Cryostat {
         client.messagingServer().start();
         client.platformClient().start();
 
-        client.commandExecutor().run();
+        future.join();
     }
 
     @Singleton
@@ -94,8 +98,6 @@ class Cryostat {
         MessagingServer messagingServer();
 
         PlatformClient platformClient();
-
-        CommandExecutor commandExecutor();
 
         @Component.Builder
         interface Builder {

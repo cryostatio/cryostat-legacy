@@ -42,10 +42,13 @@ import java.nio.file.Path;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+
 import io.cryostat.MainModule;
-import io.cryostat.commands.internal.EventOptionsBuilder;
+import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
@@ -78,5 +81,22 @@ public abstract class RecordingsModule {
             ReportService reportService) {
         return new RecordingArchiveHelper(
                 fs, recordingsPath, targetConnectionManager, clock, platformClient, reportService);
+    }
+
+    @Provides
+    static EventOptionsBuilder.Factory provideEventOptionsBuilderFactory(ClientWriter cw) {
+        return new EventOptionsBuilder.Factory(cw);
+    }
+
+    @Provides
+    static RecordingOptionsBuilderFactory provideRecordingOptionsBuilderFactory(
+            RecordingOptionsCustomizer customizer) {
+        return service -> customizer.apply(new RecordingOptionsBuilder(service));
+    }
+
+    @Provides
+    @Singleton
+    static RecordingOptionsCustomizer provideRecordingOptionsCustomizer(ClientWriter cw) {
+        return new RecordingOptionsCustomizer(cw);
     }
 }

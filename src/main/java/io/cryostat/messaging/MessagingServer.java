@@ -150,6 +150,8 @@ public class MessagingServer implements AutoCloseable {
                                                         "Internal error: \"%s\"", e.getMessage()));
                                     }
                                 });
+                        // FIXME connection should only be added after client sends a message to
+                        // authenticate itself
                         addConnection(crw);
                         sendClientActivityNotification(remoteAddress, "connected");
                         sws.accept();
