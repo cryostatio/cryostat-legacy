@@ -46,7 +46,6 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.commands.CommandsModule;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -78,7 +77,6 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
             SystemModule.class,
             NetworkModule.class,
             MessagingModule.class,
-            CommandsModule.class,
             TemplatesModule.class,
             RulesModule.class,
             RecordingsModule.class,

@@ -39,7 +39,10 @@ package io.cryostat.net;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
 
@@ -53,6 +56,7 @@ public class HttpServer {
 
     private final NetworkConfiguration netConf;
     private final SslConfiguration sslConf;
+    private final Set<Runnable> shutdownListeners;
     private final Logger logger;
 
     private final Vertx vertx;
@@ -68,6 +72,7 @@ public class HttpServer {
         this.vertx = vertx;
         this.netConf = netConf;
         this.sslConf = sslConf;
+        this.shutdownListeners = new HashSet<>();
         this.logger = logger;
         this.server =
                 vertx.createHttpServer(
@@ -83,9 +88,17 @@ public class HttpServer {
         }
     }
 
-    public void start() throws SocketException, UnknownHostException {
+    public void addShutdownListener(Runnable runnable) {
+        this.shutdownListeners.add(runnable);
+    }
+
+    public void removeShutdownListener(Runnable runnable) {
+        this.shutdownListeners.remove(runnable);
+    }
+
+    public Future<Void> start() throws SocketException, UnknownHostException {
         if (isAlive()) {
-            return;
+            return CompletableFuture.failedFuture(new IllegalStateException("Already started"));
         }
 
         CompletableFuture<Void> future = new CompletableFuture<>();
@@ -110,6 +123,8 @@ public class HttpServer {
                 netConf.getWebServerHost(),
                 netConf.getExternalWebServerPort());
         this.isAlive = true;
+
+        return CompletableFuture.completedFuture(null);
     }
 
     public void stop() {
@@ -129,6 +144,8 @@ public class HttpServer {
                 });
         future.join(); // wait for vertx to be closed
         this.isAlive = false;
+
+        this.shutdownListeners.forEach(Runnable::run);
     }
 
     public boolean isSsl() {

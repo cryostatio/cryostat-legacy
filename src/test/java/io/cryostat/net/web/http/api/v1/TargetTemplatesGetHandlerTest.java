@@ -41,7 +41,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import io.cryostat.MainModule;
-import io.cryostat.commands.internal.AbstractRecordingCommand;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
@@ -154,6 +153,6 @@ class TargetTemplatesGetHandlerTest {
                         Arrays.asList(
                                 template1,
                                 template2,
-                                AbstractRecordingCommand.ALL_EVENTS_TEMPLATE)));
+                                TargetTemplatesGetHandler.ALL_EVENTS_TEMPLATE)));
     }
 }
