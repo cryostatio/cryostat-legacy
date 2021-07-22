@@ -83,9 +83,7 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
                 .sendForm(
                         null,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonObject());
-                            }
+                            assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
@@ -107,9 +105,7 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonObject());
-                            }
+                            assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
@@ -130,9 +126,7 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonObject());
-                            }
+                            assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
@@ -155,9 +149,7 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonObject());
-                            }
+                            assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
@@ -180,9 +172,7 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
-                            if (assertRequestStatus(ar, response)) {
-                                response.complete(ar.result().bodyAsJsonObject());
-                            }
+                            assertRequestStatus(ar, response);
                         });
         ExecutionException ex =
                 Assertions.assertThrows(ExecutionException.class, () -> response.get());
