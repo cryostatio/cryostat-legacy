@@ -52,7 +52,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class RecordingsPostIT extends StandardSelfTest {
+public class TargetRecordingsPostIT extends StandardSelfTest {
 
     static final String REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
