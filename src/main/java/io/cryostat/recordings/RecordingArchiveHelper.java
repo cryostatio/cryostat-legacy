@@ -130,29 +130,33 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
+    public Future<Void> deleteRecording(String recordingName)
             throws Exception {
 
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        try {
-            targetConnectionManager.executeConnectedTask(
-                    connectionDescriptor,
-                    connection -> {
-                        Optional<IRecordingDescriptor> descriptor =
-                                this.getDescriptorByName(connection, recordingName);
+        List<String> files = fs.listDirectoryChildren(recordingsPath);
+        Path archivedRecording = null;
+        for (String file : files) {
+            if (recordingName.equals(Path.of(file).getFileName().toString())) {
+                archivedRecording = recordingsPath.resolve(file);
+                break;
+            }
+        }
 
-                        if (descriptor.isPresent()) {
-                            connection.getService().close(descriptor.get());
-                            reportService.delete(connectionDescriptor, recordingName);
-                        } else {
-                            throw new RecordingNotFoundException(recordingName);
-                        }
-                        return null;
-                    });
-            future.complete(null);
+        try {
+            if (!fs.exists(archivedRecording)) {
+                throw new RecordingNotFoundException(recordingName);
+            }
+            fs.deleteIfExists(archivedRecording);
+        } catch (NullPointerException e) {
+            throw new RecordingNotFoundException(recordingName);
         } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);
+        } catch (IOException e) {
+            future.completeExceptionally(e);
+        } finally {
+            reportService.delete(recordingName);
         }
 
         return future;

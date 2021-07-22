@@ -42,17 +42,11 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 
-import javax.inject.Provider;
 import javax.management.remote.JMXServiceURL;
 
-import org.openjdk.jmc.common.unit.IQuantity;
-import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -476,6 +470,24 @@ class RecordingArchiveHelperTest {
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".1.jfr"));
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+    }
+
+    @Test
+    void shouldDeleteRecording() throws Exception {
+        List<String> files = List.of("encodedServiceUriA/recordingA", "encodedServiceUri123/123recording");
+        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(files);
+
+        Path archivedRecording = Mockito.mock(Path.class);
+        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(archivedRecording);
+        Mockito.when(fs.exists(archivedRecording)).thenReturn(true);
+
+        String recordingName = "recordingA";
+
+        recordingArchiveHelper.deleteRecording(recordingName);
+
+        Mockito.verify(recordingsPath).resolve(files.get(0));
+        Mockito.verify(fs).deleteIfExists(archivedRecording);
+        Mockito.verify(reportService).delete(recordingName);
     }
 
     @Test

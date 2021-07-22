@@ -153,8 +153,7 @@ class PeriodicArchiver implements Runnable {
     
 
     private void pruneArchive(String recordingName) throws Exception {
-        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
-        recordingArchiveHelper.deleteRecording(connectionDescriptor, recordingName).get();
+        recordingArchiveHelper.deleteRecording(recordingName).get();
         previousRecordings.remove(recordingName);
     }
 

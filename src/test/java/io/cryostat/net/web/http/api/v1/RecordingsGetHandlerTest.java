@@ -157,7 +157,7 @@ class RecordingsGetHandlerTest {
     }
 
     @Test
-    void testJsonSerialization() throws Exception {                
+    void testCustomJsonSerialization() throws Exception {                
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(
                             List.of(
