@@ -55,9 +55,10 @@ public class ArchivedRecordingInfoSerializer implements JsonSerializer<ArchivedR
             JsonSerializationContext context) {
 
         JsonObject jsonObject = new JsonObject();
+        jsonObject.addProperty("downloadUrl", archivedRecordingInfo.getDownloadUrl());
         jsonObject.addProperty("name", archivedRecordingInfo.getName());
         jsonObject.addProperty("reportUrl", archivedRecordingInfo.getReportUrl());
-        jsonObject.addProperty("downloadUrl", archivedRecordingInfo.getDownloadUrl());
+        
         return jsonObject;
     }
 }

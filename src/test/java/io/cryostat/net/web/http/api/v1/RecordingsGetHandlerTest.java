@@ -49,16 +49,24 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
+import java.util.List;
+import java.util.concurrent.CompletableFuture;
+
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivePathException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
+
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -146,5 +154,30 @@ class RecordingsGetHandlerTest {
         MatcherAssert.assertThat(
                 httpEx.getPayload(),
                 Matchers.equalTo("Archive path /flightrecordings is not a directory"));
+    }
+
+    @Test
+    void testJsonSerialization() throws Exception {                
+        CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
+        listFuture.complete(
+                            List.of(
+                                    new ArchivedRecordingInfo(
+                                                                "encodedServiceUriFoo",
+                                                                "recordingFoo",
+                                                                "/some/path/archive/recordingFoo",
+                                                                "/some/path/download/recordingFoo")));
+        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                    .thenReturn(CompletableFuture.completedFuture(true));
+
+        handler.handle(ctx);
+
+        Mockito.verify(resp).end("[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\"}]");
     }
 }
