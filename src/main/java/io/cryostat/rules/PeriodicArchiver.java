@@ -62,7 +62,7 @@ import org.apache.commons.lang3.tuple.Pair;
 class PeriodicArchiver implements Runnable {
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
-            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
+            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?(\\.jfr)?");
 
     private final ServiceRef serviceRef;
     private final CredentialsManager credentialsManager;
@@ -111,17 +111,19 @@ class PeriodicArchiver implements Runnable {
                             new String(base32.decode(archivedRecordingInfo.getEncodedServiceUri()));
                     String fileName = archivedRecordingInfo.getName();
                     Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
-                    String recordingName = m.group(2);
+                    if (m.matches()) {
+                        String recordingName = m.group(2);
 
-                    if (decodedServiceUri.equals(serviceUri)
-                            && recordingName.equals(rule.getRecordingName())) {
-                        previousRecordings.add(fileName);
+                        if (decodedServiceUri.equals(serviceUri)
+                                && recordingName.equals(rule.getRecordingName())) {
+                            previousRecordings.add(fileName);
+                        }
                     }
                 }
             }
 
-            while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
-                pruneArchive(this.previousRecordings.remove());
+            while (previousRecordings.size() > rule.getPreservedArchives() - 1) {
+                pruneArchive(previousRecordings.remove());
             }
 
             performArchival();
@@ -146,7 +148,7 @@ class PeriodicArchiver implements Runnable {
                 new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
 
         String saveName = recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
-        this.previousRecordings.add(saveName);
+        previousRecordings.add(saveName);
     }
     
 
@@ -154,5 +156,9 @@ class PeriodicArchiver implements Runnable {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
         recordingArchiveHelper.deleteRecording(connectionDescriptor, recordingName).get();
         previousRecordings.remove(recordingName);
+    }
+
+    public Queue<String> getPreviousRecordings() {
+        return previousRecordings;
     }
 }
