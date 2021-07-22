@@ -479,71 +479,6 @@ class RecordingArchiveHelperTest {
     }
 
     @Test
-    void shouldDeleteRecording() throws Exception {
-
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenAnswer(
-                        new Answer() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(connection);
-                            }
-                        });
-        Mockito.when(connection.getService()).thenReturn(service);
-        IRecordingDescriptor descriptor = createDescriptor(recordingName);
-        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        Mockito.when(descriptor.getName()).thenReturn(recordingName);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-
-        recordingArchiveHelper.deleteRecording(connectionDescriptor, recordingName);
-
-        Mockito.verify(service).close(descriptor);
-
-        Mockito.verify(reportService)
-                .delete(
-                        Mockito.argThat(
-                                arg ->
-                                        arg.getTargetId()
-                                                .equals(connectionDescriptor.getTargetId())),
-                        Mockito.eq(recordingName));
-    }
-
-    @Test
-    void deleteRecordingShouldHandleRecordingNotFound() throws Exception {
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-                .thenAnswer(
-                        new Answer() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(connection);
-                            }
-                        });
-
-        Mockito.when(connection.getService()).thenReturn(service);
-        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
-
-        Assertions.assertThrows(
-            ExecutionException.class,
-            () -> {
-                try {
-                    recordingArchiveHelper
-                        .deleteRecording(connectionDescriptor, recordingName)
-                        .get();
-                } catch (ExecutionException ee) {
-                    Assertions.assertTrue(ee.getCause() instanceof RecordingNotFoundException);
-                    throw ee;
-                }
-            });
-    }
-
-    @Test
     void shouldGetRecordings() throws Exception {
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
@@ -594,25 +529,5 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenThrow(IOException.class);
 
         Assertions.assertThrows(IOException.class, () -> recordingArchiveHelper.getRecordings());
-    }
-
-    private static IRecordingDescriptor createDescriptor(String name)
-            throws QuantityConversionException {
-        IQuantity zeroQuantity = Mockito.mock(IQuantity.class);
-        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
-        Mockito.lenient().when(descriptor.getId()).thenReturn(1L);
-        Mockito.lenient().when(descriptor.getName()).thenReturn(name);
-        Mockito.lenient()
-                .when(descriptor.getState())
-                .thenReturn(IRecordingDescriptor.RecordingState.STOPPED);
-        Mockito.lenient().when(descriptor.getStartTime()).thenReturn(zeroQuantity);
-        Mockito.lenient().when(descriptor.getDuration()).thenReturn(zeroQuantity);
-        Mockito.lenient().when(descriptor.isContinuous()).thenReturn(false);
-        Mockito.lenient().when(descriptor.getToDisk()).thenReturn(false);
-        Mockito.lenient().when(descriptor.getMaxSize()).thenReturn(zeroQuantity);
-        Mockito.lenient().when(descriptor.getMaxAge()).thenReturn(zeroQuantity);
-        return descriptor;
-    }
-
-        
+    }        
 }
