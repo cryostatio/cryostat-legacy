@@ -124,13 +124,38 @@ public class RecordingsPostIT extends StandardSelfTest {
     }
 
     @Test
-    public void testPostRecordingThrowsOnInvalidFormArugment() throws Exception {
+    public void testPostRecordingThrowsOnInvalidIntegerArugment() throws Exception {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("recordingName", TEST_RECORDING_NAME);
         form.add("events", "template=ALL");
         form.add("duration", "notAnInt");
+
+        webClient
+                .post(REQ_URL)
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPostRecordingThrowsOnInvalidDiskOption() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", TEST_RECORDING_NAME);
+        form.add("events", "template=ALL");
+        form.add("toDisk", "notABool");
 
         webClient
                 .post(REQ_URL)
