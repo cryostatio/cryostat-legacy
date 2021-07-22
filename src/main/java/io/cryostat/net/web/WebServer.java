@@ -131,7 +131,8 @@ public class WebServer {
                             .setStatusMessage(payload);
 
                     String accept = ctx.request().getHeader(HttpHeaders.ACCEPT);
-                    if (accept.contains(HttpMimeType.JSON.mime())
+                    if (accept != null
+                            && accept.contains(HttpMimeType.JSON.mime())
                             && accept.indexOf(HttpMimeType.JSON.mime())
                                     < accept.indexOf(HttpMimeType.PLAINTEXT.mime())) {
                         ctx.response()
