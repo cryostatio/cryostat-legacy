@@ -44,7 +44,6 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
-import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -57,13 +56,81 @@ public class RecordingsPostIT extends StandardSelfTest {
     static final String TEST_RECORDING_NAME = "workflow_itest";
 
     @Test
+    public void testPostRecordingThrowsOnNullForm() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .post(REQ_URL)
+                .sendForm(
+                        null,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
     public void testPostRecordingThrowsOnEmptyRecordingName() throws Exception {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("recordingName", "");
-        form.add("duration", "5");
         form.add("events", "template=ALL");
+
+        webClient
+                .post(REQ_URL)
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPostRecordingThrowsOnEmptyEvents() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", TEST_RECORDING_NAME);
+
+        webClient
+                .post(REQ_URL)
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPostRecordingThrowsOnInvalidFormArugment() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", TEST_RECORDING_NAME);
+        form.add("events", "template=ALL");
+        form.add("duration", "notAnInt");
 
         webClient
                 .post(REQ_URL)
