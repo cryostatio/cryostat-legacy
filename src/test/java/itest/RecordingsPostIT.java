@@ -39,23 +39,25 @@ package itest;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
-import itest.bases.StandardSelfTest;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-
+import itest.bases.StandardSelfTest;
+import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class RecordingsPostIT extends StandardSelfTest {
-    static final String TARGET_ID = "localhost";
+
+    static final String jmxServiceUrl =
+            String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
+    static final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
+    static final String requestUrl =
+            String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded);
     static final String TEST_RECORDING_NAME = "workflow_itest";
-    static final String REQ_URL = String.format("/api/v1/targets/%s/recordings", TARGET_ID);
 
     @Test
     public void testPostRecordingThrowsOnEmptyRecordingName() throws Exception {
@@ -67,11 +69,11 @@ public class RecordingsPostIT extends StandardSelfTest {
         form.add("events", "template=ALL");
 
         webClient
-                .post(REQ_URL)
+                .post(requestUrl)
                 .sendForm(
                         form,
                         ar -> {
-                            if(assertRequestStatus(ar, response)) {
+                            if (assertRequestStatus(ar, response)) {
                                 response.complete(ar.result().bodyAsJsonObject());
                             }
                         });
