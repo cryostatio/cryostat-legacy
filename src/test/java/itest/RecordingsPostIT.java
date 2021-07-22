@@ -52,11 +52,8 @@ import org.junit.jupiter.api.Test;
 
 public class RecordingsPostIT extends StandardSelfTest {
 
-    static final String jmxServiceUrl =
-            String.format("service:jmx:rmi:///jndi/rmi://%s:9091/jmxrmi", Podman.POD_NAME);
-    static final String jmxServiceUrlEncoded = jmxServiceUrl.replaceAll("/", "%2F");
-    static final String requestUrl =
-            String.format("/api/v1/targets/%s/recordings", jmxServiceUrlEncoded);
+    static final String REQ_URL =
+            String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
     static final String TEST_RECORDING_NAME = "workflow_itest";
 
     @Test
@@ -69,7 +66,7 @@ public class RecordingsPostIT extends StandardSelfTest {
         form.add("events", "template=ALL");
 
         webClient
-                .post(requestUrl)
+                .post(REQ_URL)
                 .sendForm(
                         form,
                         ar -> {
