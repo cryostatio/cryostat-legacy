@@ -71,14 +71,16 @@ jobs:
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat
     - name: Tag images
       id: tag-image
+      env:
+        IMAGE_VERSION: ${{ needs.get-pom-properties.outputs.image-version }}
       run: |
         if [ "$GITHUB_REF" == "refs/heads/main" ]; then
           podman tag \
-          ${{ env.CRYOSTAT_IMG }}:${{ needs.get-pom-properties.outputs.image-version }} \
+          ${{ env.CRYOSTAT_IMG }}:$IMAGE_VERSION \
           ${{ env.CRYOSTAT_IMG }}:latest
-          echo "::set-output name=tags::${{ needs.get-pom-properties.outputs.image-version }} latest"
+          echo "::set-output name=tags::$IMAGE_VERSION latest"
         else
-          echo "::set-output name=tags::${{ needs.get-pom-properties.outputs.image-version }}"}
+          echo "::set-output name=tags::$IMAGE_VERSION"}
         fi
       if: ${{ github.event_name == 'push' && github.repository_owner == 'cryostatio' }}
     - uses: skjolber/maven-cache-github-action@v1
