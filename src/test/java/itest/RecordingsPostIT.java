@@ -39,13 +39,16 @@ package itest;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -54,6 +57,21 @@ public class RecordingsPostIT extends StandardSelfTest {
     static final String REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
     static final String TEST_RECORDING_NAME = "workflow_itest";
+
+    @AfterAll
+    static void verifyNoRecordingsCreated() throws Exception {
+        CompletableFuture<JsonArray> listRespFuture1 = new CompletableFuture<>();
+        webClient
+                .get(REQ_URL)
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, listRespFuture1)) {
+                                listRespFuture1.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray listResp = listRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        Assertions.assertTrue(listResp.isEmpty());
+    }
 
     @Test
     public void testPostRecordingThrowsOnNullForm() throws Exception {
