@@ -70,10 +70,16 @@ jobs:
       if: ${{ failure() }}
       run: ls -1dt target/cryostat-itest-*.log | head -n1 | xargs cat
     - name: Tag images
-      run: >
-        podman tag
-        ${{ env.CRYOSTAT_IMG }}:${{ needs.get-pom-properties.outputs.image-version }}
-        ${{ env.CRYOSTAT_IMG }}:latest
+      id: tag-image
+      run: |
+        if [ "$GITHUB_REF" == "refs/heads/main" ]; then
+          podman tag \
+          ${{ env.CRYOSTAT_IMG }}:${{ needs.get-pom-properties.outputs.image-version }} \
+          ${{ env.CRYOSTAT_IMG }}:latest
+          echo "::set-output name=tags::${{ needs.get-pom-properties.outputs.image-version }} latest"
+        else
+          echo "::set-output name=tags::${{ needs.get-pom-properties.outputs.image-version }}"}
+        fi
       if: ${{ github.event_name == 'push' && github.repository_owner == 'cryostatio' }}
     - uses: skjolber/maven-cache-github-action@v1
       with:
@@ -83,9 +89,7 @@ jobs:
       uses: redhat-actions/push-to-registry@v2
       with:
         image: cryostat
-        tags: >
-          ${{ needs.get-pom-properties.outputs.image-version }}
-          latest
+        tags: ${{ steps.tag-image.outputs.tags }}
         registry: quay.io/cryostat
         username: cryostat+bot
         password: ${{ secrets.REGISTRY_PASSWORD }}
