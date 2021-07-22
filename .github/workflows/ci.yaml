@@ -80,7 +80,7 @@ jobs:
           ${{ env.CRYOSTAT_IMG }}:latest
           echo "::set-output name=tags::$IMAGE_VERSION latest"
         else
-          echo "::set-output name=tags::$IMAGE_VERSION"}
+          echo "::set-output name=tags::$IMAGE_VERSION"
         fi
       if: ${{ github.event_name == 'push' && github.repository_owner == 'cryostatio' }}
     - uses: skjolber/maven-cache-github-action@v1
