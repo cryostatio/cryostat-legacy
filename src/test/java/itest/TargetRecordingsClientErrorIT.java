@@ -359,4 +359,22 @@ public class TargetRecordingsClientErrorIT extends StandardSelfTest {
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
+
+    @Test
+    public void testUploadRecordingThrowsOnNonExistentRecording() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .post(String.format("%s/%s/upload", REQ_URL, TEST_RECORDING_NAME))
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
 }
