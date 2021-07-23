@@ -51,14 +51,17 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingArchiveHelper;
-
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -136,5 +139,19 @@ class TargetRecordingDeleteHandlerTest {
                 .message(Map.of("recording", "someRecording", "target", "fooTarget"));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+    }
+
+    @Test
+    void shouldThrowWhenDeletingNonExistentRecording() throws Exception {
+        Mockito.when(ctx.pathParam("targetId")).thenReturn("fooTarget");
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+        Mockito.doThrow(new RecordingNotFoundException("someRecording")).when(recordingArchiveHelper).deleteRecording(Mockito.any(), Mockito.anyString());
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
 }
