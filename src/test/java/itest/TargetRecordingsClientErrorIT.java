@@ -321,4 +321,42 @@ public class TargetRecordingsClientErrorIT extends StandardSelfTest {
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
+
+    @Test
+    public void testPatchRecordingThrowsOnInvalidRequestBody() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .patch(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .sendBuffer(
+                        Buffer.buffer("INVALID_BODY"),
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPatchRecordingThrowsOnNullRequestBody() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .patch(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .sendBuffer(
+                        null,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
 }
