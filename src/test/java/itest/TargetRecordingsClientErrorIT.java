@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -52,7 +53,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class TargetRecordingsPostIT extends StandardSelfTest {
+public class TargetRecordingsClientErrorIT extends StandardSelfTest {
 
     static final String REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
@@ -222,5 +223,158 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testDeleteRecordingThrowsOnNonExistentRecording() throws Exception {
+
+        CompletableFuture<Void> response = new CompletableFuture<>();
+        webClient
+                .delete(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
+
+    @Test
+    public void testGetRecordingThrowsOnNonExistentRecording() throws Exception {
+
+        CompletableFuture<Void> response = new CompletableFuture<>();
+        webClient
+                .get(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
+
+    @Test
+    public void testPatchRecordingOptionsThrowsOnInvalidIntegerArugment() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", TEST_RECORDING_NAME);
+        form.add("maxAge", "notAnInt");
+
+        webClient
+                .patch(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .sendForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPatchRecordingOptionsThrowsOnInvalidDiskOption() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", TEST_RECORDING_NAME);
+        form.add("toDisk", "notABool");
+
+        webClient
+                .patch(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .sendForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPatchRecordingThrowsOnRecordingNotFound() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .patch(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .sendBuffer(
+                        Buffer.buffer("SAVE"),
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
+
+    @Test
+    public void testPatchRecordingThrowsOnInvalidRequestBody() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .patch(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .sendBuffer(
+                        Buffer.buffer("INVALID_BODY"),
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPatchRecordingThrowsOnNullRequestBody() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .patch(String.format("%s/%s", REQ_URL, TEST_RECORDING_NAME))
+                .sendBuffer(
+                        null,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testUploadRecordingThrowsOnNonExistentRecording() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .post(String.format("%s/%s/upload", REQ_URL, TEST_RECORDING_NAME))
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
     }
 }
