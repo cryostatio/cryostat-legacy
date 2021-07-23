@@ -202,4 +202,28 @@ public class TargetPostDeleteIT extends StandardSelfTest {
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
+
+    @Test
+    public void testDeleteTargetThrowsWithNonExistentConnectUrl() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        final String nonExistentUrl =
+                URLEncodedUtils.formatSegments(
+                        String.format("service:jmx:rmi:///jndi/rmi://invalid:9091/jmxrmi"));
+        form.add("targetId", nonExistentUrl);
+
+        webClient
+                .post(REQ_URL)
+                .sendForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Not Found"));
+    }
 }
