@@ -93,6 +93,48 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
     }
 
     @Test
+    public void testPostRecordingThrowsWithoutRecordingNameAttribute() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("events", "template=ALL");
+
+        webClient
+                .post(REQ_URL)
+                .sendForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void testPostRecordingThrowsWithoutEventsAttribute() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("recordingName", TEST_RECORDING_NAME);
+
+        webClient
+                .post(REQ_URL)
+                .sendForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
     public void testPostRecordingThrowsOnEmptyRecordingName() throws Exception {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
@@ -120,6 +162,7 @@ public class TargetRecordingsPostIT extends StandardSelfTest {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("recordingName", TEST_RECORDING_NAME);
+        form.add("events", "");
 
         webClient
                 .post(REQ_URL)
