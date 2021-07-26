@@ -179,32 +179,23 @@ class TemplatesPostHandlerTest {
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
 
-        FileUpload upload1 = Mockito.mock(FileUpload.class);
-        Mockito.when(upload1.name()).thenReturn("template");
-        Mockito.when(upload1.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+        FileUpload upload = Mockito.mock(FileUpload.class);
+        Mockito.when(upload.name()).thenReturn("template");
+        Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
-        FileUpload upload2 = Mockito.mock(FileUpload.class);
-        Mockito.when(upload2.name()).thenReturn("unused");
-        Mockito.when(upload2.uploadedFileName()).thenReturn("/file-uploads/wxyz-9999");
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
 
-        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload1, upload2));
+        Path uploadPath = Mockito.mock(Path.class);
+        Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
 
-        Path uploadPath1 = Mockito.mock(Path.class);
-        Path uploadPath2 = Mockito.mock(Path.class);
-        Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath1);
-        Mockito.when(fs.pathOf("/file-uploads/wxyz-9999")).thenReturn(uploadPath2);
-
-        InputStream stream1 = Mockito.mock(InputStream.class);
-        InputStream stream2 = Mockito.mock(InputStream.class);
-        Mockito.when(fs.newInputStream(uploadPath1)).thenReturn(stream1);
-        Mockito.when(fs.newInputStream(uploadPath2)).thenReturn(stream2);
+        InputStream stream = Mockito.mock(InputStream.class);
+        Mockito.when(fs.newInputStream(uploadPath)).thenReturn(stream);
 
         handler.handleAuthenticated(ctx);
 
-        Mockito.verify(templateService).addTemplate(stream1);
+        Mockito.verify(templateService).addTemplate(stream);
         Mockito.verifyNoMoreInteractions(templateService);
-        Mockito.verify(fs).deleteIfExists(uploadPath1);
-        Mockito.verify(fs).deleteIfExists(uploadPath2);
+        Mockito.verify(fs).deleteIfExists(uploadPath);
         Mockito.verify(ctx).response();
         Mockito.verify(resp).end();
     }
@@ -216,25 +207,17 @@ class TemplatesPostHandlerTest {
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
 
-        FileUpload upload1 = Mockito.mock(FileUpload.class);
-        Mockito.when(upload1.name()).thenReturn("template");
-        Mockito.when(upload1.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+        FileUpload upload = Mockito.mock(FileUpload.class);
+        Mockito.when(upload.name()).thenReturn("template");
+        Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
-        FileUpload upload2 = Mockito.mock(FileUpload.class);
-        Mockito.when(upload2.name()).thenReturn("unused");
-        Mockito.when(upload2.uploadedFileName()).thenReturn("/file-uploads/wxyz-9999");
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
 
-        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload1, upload2));
+        Path uploadPath = Mockito.mock(Path.class);
+        Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
 
-        Path uploadPath1 = Mockito.mock(Path.class);
-        Path uploadPath2 = Mockito.mock(Path.class);
-        Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath1);
-        Mockito.when(fs.pathOf("/file-uploads/wxyz-9999")).thenReturn(uploadPath2);
-
-        InputStream stream1 = Mockito.mock(InputStream.class);
-        InputStream stream2 = Mockito.mock(InputStream.class);
-        Mockito.when(fs.newInputStream(uploadPath1)).thenReturn(stream1);
-        Mockito.when(fs.newInputStream(uploadPath2)).thenReturn(stream2);
+        InputStream stream = Mockito.mock(InputStream.class);
+        Mockito.when(fs.newInputStream(uploadPath)).thenReturn(stream);
 
         handler.handleAuthenticated(ctx);
 
