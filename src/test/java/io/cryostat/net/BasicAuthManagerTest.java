@@ -41,6 +41,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Path;
+import java.util.Set;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -153,7 +154,7 @@ class BasicAuthManagerTest {
     class TokenValidationTest {
         @Test
         void shouldFailAuthenticationWhenCredentialsMalformed() throws Exception {
-            Assertions.assertFalse(mgr.validateToken(() -> "user").get());
+            Assertions.assertFalse(mgr.validateToken(() -> "user", Set.of()).get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
             Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
@@ -164,7 +165,7 @@ class BasicAuthManagerTest {
 
         @Test
         void shouldFailAuthenticationWhenNoMatchFound() throws Exception {
-            Assertions.assertFalse(mgr.validateToken(() -> "user:pass").get());
+            Assertions.assertFalse(mgr.validateToken(() -> "user:pass", Set.of()).get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
             Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
@@ -189,7 +190,7 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
+            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", Set.of()).get());
             Mockito.verifyNoInteractions(logger);
         }
 
@@ -209,9 +210,9 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
-            Assertions.assertFalse(mgr.validateToken(() -> "user:sass").get());
-            Assertions.assertFalse(mgr.validateToken(() -> "user2:pass").get());
+            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", Set.of()).get());
+            Assertions.assertFalse(mgr.validateToken(() -> "user:sass", Set.of()).get());
+            Assertions.assertFalse(mgr.validateToken(() -> "user2:pass", Set.of()).get());
             Mockito.verifyNoInteractions(logger);
         }
 
@@ -236,9 +237,9 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     String.join(System.lineSeparator(), creds1, creds2, creds3)));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
-            Assertions.assertFalse(mgr.validateToken(() -> "foo:bar").get());
-            Assertions.assertTrue(mgr.validateToken(() -> "admin:admin").get());
+            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", Set.of()).get());
+            Assertions.assertFalse(mgr.validateToken(() -> "foo:bar", Set.of()).get());
+            Assertions.assertTrue(mgr.validateToken(() -> "admin:admin", Set.of()).get());
             Mockito.verifyNoInteractions(logger);
         }
     }

@@ -41,17 +41,24 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.ResourceType;
+import io.cryostat.net.security.ResourceVerb;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
@@ -64,6 +71,8 @@ import jdk.jfr.Name;
 import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
+
+    private static final String PERMISSION_NOT_REQUIRED = "PERMISSION_NOT_REQUIRED";
 
     private final FileSystem fs;
 
@@ -78,42 +87,100 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
+    public Future<Boolean> validateToken(
+            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         String token = tokenProvider.get();
         if (StringUtils.isBlank(token)) {
             return CompletableFuture.completedFuture(false);
         }
-        return CompletableFuture.supplyAsync(
-                        () -> {
-                            AuthRequest evt = new AuthRequest();
-                            evt.begin();
+        AuthRequest evt = new AuthRequest();
+        evt.begin();
 
-                            try (OpenShiftClient authClient =
-                                    new DefaultOpenShiftClient(
-                                            new OpenShiftConfigBuilder()
-                                                    .withOauthToken(token)
-                                                    .build())) {
-                                // only an authenticated user should be allowed to list routes
-                                // in the namespace
-                                // TODO find a better way to authenticate tokens
-                                authClient.routes().inNamespace(getNamespace()).list();
+        try (OpenShiftClient authClient =
+                new DefaultOpenShiftClient(
+                        new OpenShiftConfigBuilder().withOauthToken(token).build())) {
+            var results =
+                    resourceActions
+                            .parallelStream()
+                            .map(
+                                    resourceAction -> {
+                                        String group = "operator.cryostat.io";
+                                        String resource = map(resourceAction.getResource());
+                                        String verb = map(resourceAction.getVerb());
+                                        if (PERMISSION_NOT_REQUIRED.equals(resource)) {
+                                            return CompletableFuture.completedFuture(true);
+                                        }
+                                        String namespace;
+                                        try {
+                                            namespace = getNamespace();
+                                        } catch (IOException ioe) {
+                                            logger.error(ioe);
+                                            return CompletableFuture.<Boolean>failedFuture(ioe);
+                                        }
+                                        var accessReview =
+                                                new SelfSubjectAccessReviewBuilder()
+                                                        .withNewSpec()
+                                                        .withNewResourceAttributes()
+                                                        .withNamespace(namespace)
+                                                        .withGroup(group)
+                                                        .withResource(resource)
+                                                        .withVerb(verb)
+                                                        .endResourceAttributes()
+                                                        .endSpec()
+                                                        .build();
+                                        var response =
+                                                authClient
+                                                        .authorization()
+                                                        .v1()
+                                                        .selfSubjectAccessReview()
+                                                        .create(accessReview);
+                                        boolean allowed = response.getStatus().getAllowed();
+                                        if (allowed) {
+                                            return CompletableFuture.completedFuture(allowed);
+                                        } else {
+                                            return CompletableFuture.<Boolean>failedFuture(
+                                                    new PermissionDeniedException(
+                                                            namespace,
+                                                            group,
+                                                            resource,
+                                                            verb,
+                                                            response.getStatus().getReason()));
+                                        }
+                                    })
+                            .collect(Collectors.toList());
 
-                                evt.setRequestSuccessful(true);
-                                return true;
-                            } catch (KubernetesClientException e) {
-                                logger.info(e);
-                            } catch (Exception e) {
-                                logger.error(e);
-                            } finally {
-                                if (evt.shouldCommit()) {
-                                    evt.end();
-                                    evt.commit();
-                                }
-                            }
-
-                            return false;
-                        })
-                .orTimeout(15, TimeUnit.SECONDS);
+            CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
+                    .get(15, TimeUnit.SECONDS);
+            evt.setRequestSuccessful(true);
+            // if we get here then all requests were successful, otherwise an exception was thrown
+            // on get() above
+            boolean granted =
+                    results.stream()
+                            .map(
+                                    result -> {
+                                        try {
+                                            return result.get();
+                                        } catch (InterruptedException | ExecutionException e) {
+                                            logger.error(e);
+                                            return false;
+                                        }
+                                    })
+                            .reduce(Boolean::logicalAnd)
+                            // if the request set was empty, grant permission by default
+                            .orElse(true);
+            return CompletableFuture.completedFuture(granted);
+        } catch (KubernetesClientException e) {
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        } finally {
+            if (evt.shouldCommit()) {
+                evt.end();
+                evt.commit();
+            }
+        }
     }
 
     @Name("io.cryostat.net.OpenShiftAuthManager.AuthRequest")
@@ -136,7 +203,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
+    public Future<Boolean> validateHttpHeader(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         String authorization = headerProvider.get();
         if (StringUtils.isBlank(authorization)) {
             return CompletableFuture.completedFuture(false);
@@ -146,11 +214,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         if (!matcher.matches()) {
             return CompletableFuture.completedFuture(false);
         }
-        return validateToken(() -> matcher.group(1));
+        return validateToken(() -> matcher.group(1), resourceActions);
     }
 
     @Override
-    public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
+    public Future<Boolean> validateWebSocketSubProtocol(
+            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
         String subprotocol = subProtocolProvider.get();
         if (StringUtils.isBlank(subprotocol)) {
             return CompletableFuture.completedFuture(false);
@@ -167,7 +236,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         try {
             String decoded =
                     new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded);
+            return validateToken(() -> decoded, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }
@@ -182,5 +251,48 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 .filter(StringUtils::isNotBlank)
                 .findFirst()
                 .get();
+    }
+
+    static String map(ResourceType resource) {
+        switch (resource) {
+            case TARGET:
+                return "flightrecorders";
+            case RECORDING:
+                return "recordings";
+            case TEMPLATE:
+            case REPORT:
+            case CREDENTIALS:
+            case RULE:
+            case CERTIFICATE:
+            default:
+                return PERMISSION_NOT_REQUIRED;
+        }
+    }
+
+    static String map(ResourceVerb verb) {
+        switch (verb) {
+            case CREATE:
+                return "create";
+            case READ:
+                return "get";
+            case UPDATE:
+                return "patch";
+            case DELETE:
+                return "delete";
+            default:
+                throw new IllegalArgumentException(String.format("Unknown resource verb \"%s\"",
+                            verb));
+        }
+    }
+
+    @SuppressWarnings("serial")
+    public static class PermissionDeniedException extends Exception {
+        public PermissionDeniedException(
+                String namespace, String group, String resource, String verb, String reason) {
+            super(
+                    String.format(
+                            "Requesting client in namespace \"%s\" cannot %s %s.%s: %s",
+                            namespace, verb, resource, group, reason));
+        }
     }
 }

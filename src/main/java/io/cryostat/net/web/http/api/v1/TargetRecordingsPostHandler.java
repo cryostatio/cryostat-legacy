@@ -39,7 +39,9 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
+import java.util.EnumSet;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -57,6 +59,7 @@ import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -111,6 +114,15 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     @Override
     public String path() {
         return basePath() + PATH;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.READ_TEMPLATE);
     }
 
     @Override

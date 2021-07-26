@@ -35,42 +35,12 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.security;
 
-import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.function.Function;
-import java.util.function.Supplier;
-
-import io.cryostat.net.security.ResourceAction;
-
-public interface AuthManager {
-    AuthenticationScheme getScheme();
-
-    Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
-
-    // FIXME delete this
-    default Future<Boolean> validateToken(Supplier<String> headerProvider) {
-        return validateToken(headerProvider, Set.of());
-    }
-
-    Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions);
-
-    // FIXME delete this
-    default Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
-        return validateHttpHeader(headerProvider, Set.of());
-    }
-
-    Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
-
-    // FIXME delete this
-    default Future<Boolean> validateWebSocketSubProtocol(Supplier<String> headerProvider) {
-        return validateWebSocketSubProtocol(headerProvider, Set.of());
-    }
-
-    AuthenticatedAction doAuthenticated(
-            Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+public enum ResourceVerb {
+    CREATE,
+    READ,
+    UPDATE,
+    DELETE,
+    ;
 }

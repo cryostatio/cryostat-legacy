@@ -56,6 +56,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
@@ -147,7 +148,12 @@ public class MessagingServer implements AutoCloseable {
                                     authManager
                                             .doAuthenticated(
                                                     sws::subProtocol,
-                                                    authManager::validateWebSocketSubProtocol)
+                                                    p ->
+                                                            authManager
+                                                                    .validateWebSocketSubProtocol(
+                                                                            p,
+                                                                            ResourceAction
+                                                                                    .READ_ALL))
                                             .onSuccess(
                                                     () -> {
                                                         logger.info(

@@ -38,8 +38,10 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -48,6 +50,7 @@ import org.openjdk.jmc.common.unit.IOptionDescriptor;
 import io.cryostat.jmc.serialization.SerializableOptionDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -79,6 +82,11 @@ class TargetRecordingOptionsListGetHandler
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
     }
 
     @Override

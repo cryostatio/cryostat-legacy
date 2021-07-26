@@ -46,6 +46,8 @@ import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.inject.Inject;
@@ -55,6 +57,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.CertificateValidator;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -102,6 +105,11 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.CREATE_CERTIFICATE);
     }
 
     @Override

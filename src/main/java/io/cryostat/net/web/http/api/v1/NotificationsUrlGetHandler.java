@@ -40,11 +40,13 @@ package io.cryostat.net.web.http.api.v1;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -76,6 +78,11 @@ class NotificationsUrlGetHandler implements RequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override

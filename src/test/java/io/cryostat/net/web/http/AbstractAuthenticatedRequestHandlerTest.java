@@ -41,12 +41,14 @@ import static org.mockito.Mockito.when;
 
 import java.net.UnknownHostException;
 import java.rmi.ConnectIOException;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.MultiMap;
@@ -374,6 +376,11 @@ class AbstractAuthenticatedRequestHandlerTest {
         @Override
         public HttpMethod httpMethod() {
             return null;
+        }
+
+        @Override
+        public Set<ResourceAction> resourceActions() {
+            return ResourceAction.NONE;
         }
 
         @Override

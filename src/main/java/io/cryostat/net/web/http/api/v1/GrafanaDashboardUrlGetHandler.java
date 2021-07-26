@@ -38,10 +38,12 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -78,6 +80,11 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     // This handler is not async, but it's simple enough that it doesn't need

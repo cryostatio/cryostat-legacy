@@ -37,9 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -77,6 +81,14 @@ public class TargetRecordingPatchHandler extends AbstractAuthenticatedRequestHan
     @Override
     public String path() {
         return basePath() + PATH;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.UPDATE_RECORDING);
     }
 
     @Override

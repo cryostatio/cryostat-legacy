@@ -40,10 +40,13 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.EnumSet;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
@@ -77,6 +80,11 @@ class TargetDeleteHandler extends AbstractV2RequestHandler<Void> {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.DELETE;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.DELETE_TARGET);
     }
 
     @Override

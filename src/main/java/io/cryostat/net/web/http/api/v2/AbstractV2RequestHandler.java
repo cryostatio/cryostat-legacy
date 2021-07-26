@@ -41,6 +41,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -87,11 +88,21 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     public final void handle(RoutingContext ctx) {
         RequestParameters requestParams = RequestParameters.from(ctx);
         try {
-            if (requiresAuthentication()
-                    && !validateRequestAuthorization(
-                                    requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
-                            .get()) {
-                throw new ApiException(401, "HTTP Authorization Failure");
+            if (requiresAuthentication()) {
+                try {
+                    boolean permissionGranted =
+                            validateRequestAuthorization(
+                                            requestParams
+                                                    .getHeaders()
+                                                    .get(HttpHeaders.AUTHORIZATION))
+                                    .get();
+                    if (!permissionGranted) {
+                        // expected to go into catch clause below
+                        throw new ApiException(401, "HTTP Authorization Failure");
+                    }
+                } catch (ExecutionException ee) {
+                    throw new ApiException(401, "HTTP Authorization Failure", ee);
+                }
             }
             writeResponse(ctx, handle(requestParams));
         } catch (ApiException e) {
@@ -117,7 +128,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     }
 
     protected Future<Boolean> validateRequestAuthorization(String authHeader) throws Exception {
-        return auth.validateHttpHeader(() -> authHeader);
+        return auth.validateHttpHeader(() -> authHeader, resourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {

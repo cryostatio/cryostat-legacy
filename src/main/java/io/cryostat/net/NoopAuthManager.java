@@ -37,11 +37,13 @@
  */
 package io.cryostat.net;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.security.ResourceAction;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
@@ -56,17 +58,20 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
+    public Future<Boolean> validateToken(
+            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
     }
 
     @Override
-    public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
+    public Future<Boolean> validateHttpHeader(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
     }
 
     @Override
-    public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
+    public Future<Boolean> validateWebSocketSubProtocol(
+            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
     }
 }

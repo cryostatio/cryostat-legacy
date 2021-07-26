@@ -37,9 +37,12 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.http.HttpMethod;
@@ -64,6 +67,11 @@ class CorsOptionsHandler extends CorsEnablingHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.OPTIONS;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override
