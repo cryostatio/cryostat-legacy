@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
@@ -54,6 +55,7 @@ import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 
@@ -99,8 +101,16 @@ class TargetSnapshotPostHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                snapshot.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(ResourceAction.READ_TARGET, ResourceAction.UPDATE_RECORDING)));
+    }
+
+    @Test
     void shouldCreateSnapshot() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);

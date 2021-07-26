@@ -41,6 +41,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Set;
+
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -84,6 +86,11 @@ class GrafanaDatasourceUrlGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/grafana_datasource_url"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(Set.of()));
     }
 
     @Test

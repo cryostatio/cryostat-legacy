@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import org.openjdk.jmc.flightrecorder.configuration.events.IEventTypeID;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
@@ -53,6 +54,7 @@ import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -95,6 +97,12 @@ class TargetEventsGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/targets/:targetId/events"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
     }
 
     @Test

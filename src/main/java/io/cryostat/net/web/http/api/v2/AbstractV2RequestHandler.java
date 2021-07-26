@@ -51,6 +51,7 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiMeta;
@@ -58,6 +59,7 @@ import io.cryostat.net.web.http.api.ApiResponse;
 import io.cryostat.net.web.http.api.ApiResultData;
 
 import com.google.gson.Gson;
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -101,7 +103,12 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                         throw new ApiException(401, "HTTP Authorization Failure");
                     }
                 } catch (ExecutionException ee) {
-                    throw new ApiException(401, "HTTP Authorization Failure", ee);
+                    Throwable cause = ee.getCause();
+                    if (cause instanceof PermissionDeniedException
+                            || cause instanceof KubernetesClientException) {
+                        throw new ApiException(401, "HTTP Authorization Failure", ee);
+                    }
+                    throw new ApiException(500, ee);
                 }
             }
             writeResponse(ctx, handle(requestParams));

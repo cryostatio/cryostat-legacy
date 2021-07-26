@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -93,65 +94,26 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         if (StringUtils.isBlank(token)) {
             return CompletableFuture.completedFuture(false);
         }
-        AuthRequest evt = new AuthRequest();
-        evt.begin();
 
         try (OpenShiftClient authClient =
                 new DefaultOpenShiftClient(
                         new OpenShiftConfigBuilder().withOauthToken(token).build())) {
-            var results =
+            List<CompletableFuture<Boolean>> results =
                     resourceActions
                             .parallelStream()
                             .map(
                                     resourceAction -> {
-                                        String group = "operator.cryostat.io";
-                                        String resource = map(resourceAction.getResource());
-                                        String verb = map(resourceAction.getVerb());
-                                        if (PERMISSION_NOT_REQUIRED.equals(resource)) {
-                                            return CompletableFuture.completedFuture(true);
-                                        }
-                                        String namespace;
                                         try {
-                                            namespace = getNamespace();
-                                        } catch (IOException ioe) {
-                                            logger.error(ioe);
-                                            return CompletableFuture.<Boolean>failedFuture(ioe);
-                                        }
-                                        var accessReview =
-                                                new SelfSubjectAccessReviewBuilder()
-                                                        .withNewSpec()
-                                                        .withNewResourceAttributes()
-                                                        .withNamespace(namespace)
-                                                        .withGroup(group)
-                                                        .withResource(resource)
-                                                        .withVerb(verb)
-                                                        .endResourceAttributes()
-                                                        .endSpec()
-                                                        .build();
-                                        var response =
-                                                authClient
-                                                        .authorization()
-                                                        .v1()
-                                                        .selfSubjectAccessReview()
-                                                        .create(accessReview);
-                                        boolean allowed = response.getStatus().getAllowed();
-                                        if (allowed) {
-                                            return CompletableFuture.completedFuture(allowed);
-                                        } else {
-                                            return CompletableFuture.<Boolean>failedFuture(
-                                                    new PermissionDeniedException(
-                                                            namespace,
-                                                            group,
-                                                            resource,
-                                                            verb,
-                                                            response.getStatus().getReason()));
+                                            return CompletableFuture.<Boolean>completedFuture(
+                                                    validateToken(authClient, resourceAction));
+                                        } catch (IOException | PermissionDeniedException e) {
+                                            return CompletableFuture.<Boolean>failedFuture(e);
                                         }
                                     })
                             .collect(Collectors.toList());
 
             CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
                     .get(15, TimeUnit.SECONDS);
-            evt.setRequestSuccessful(true);
             // if we get here then all requests were successful, otherwise an exception was thrown
             // on get() above
             boolean granted =
@@ -175,6 +137,43 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         } catch (Exception e) {
             logger.error(e);
             return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private boolean validateToken(OpenShiftClient authClient, ResourceAction resourceAction)
+            throws IOException, PermissionDeniedException {
+        AuthRequest evt = new AuthRequest();
+        evt.begin();
+
+        try {
+            String group = "operator.cryostat.io";
+            String resource = map(resourceAction.getResource());
+            String verb = map(resourceAction.getVerb());
+            if (PERMISSION_NOT_REQUIRED.equals(resource)) {
+                return true;
+            }
+            String namespace = getNamespace();
+            var accessReview =
+                    new SelfSubjectAccessReviewBuilder()
+                            .withNewSpec()
+                            .withNewResourceAttributes()
+                            .withNamespace(namespace)
+                            .withGroup(group)
+                            .withResource(resource)
+                            .withVerb(verb)
+                            .endResourceAttributes()
+                            .endSpec()
+                            .build();
+            var response =
+                    authClient.authorization().v1().selfSubjectAccessReview().create(accessReview);
+            boolean allowed = response.getStatus().getAllowed();
+            evt.setRequestSuccessful(true);
+            if (allowed) {
+                return true;
+            } else {
+                throw new PermissionDeniedException(
+                        namespace, group, resource, verb, response.getStatus().getReason());
+            }
         } finally {
             if (evt.shouldCommit()) {
                 evt.end();
@@ -280,8 +279,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             case DELETE:
                 return "delete";
             default:
-                throw new IllegalArgumentException(String.format("Unknown resource verb \"%s\"",
-                            verb));
+                throw new IllegalArgumentException(
+                        String.format("Unknown resource verb \"%s\"", verb));
         }
     }
 

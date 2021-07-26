@@ -57,6 +57,7 @@ import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
@@ -95,6 +96,12 @@ class TargetEventsGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/events"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
     }
 
     @Test

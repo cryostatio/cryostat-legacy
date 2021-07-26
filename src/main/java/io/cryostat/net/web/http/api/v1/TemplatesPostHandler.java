@@ -98,7 +98,7 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.CREATE_TEMPLATE, ResourceAction.READ_TEMPLATE);
+        return EnumSet.of(ResourceAction.CREATE_TEMPLATE);
     }
 
     @Override

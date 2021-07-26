@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -49,6 +50,7 @@ import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 
 import com.google.gson.Gson;
@@ -100,6 +102,12 @@ class TargetRecordingOptionsGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/targets/:targetId/recordingOptions"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
     }
 
     @Test

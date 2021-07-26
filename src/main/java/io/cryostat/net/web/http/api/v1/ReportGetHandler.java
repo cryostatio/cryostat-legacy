@@ -81,7 +81,10 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_RECORDING, ResourceAction.CREATE_RECORDING);
+        return EnumSet.of(
+                ResourceAction.READ_RECORDING,
+                ResourceAction.CREATE_REPORT,
+                ResourceAction.READ_REPORT);
     }
 
     @Override

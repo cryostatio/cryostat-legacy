@@ -94,7 +94,7 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.DELETE_RECORDING, ResourceAction.READ_RECORDING);
+        return EnumSet.of(ResourceAction.DELETE_RECORDING);
     }
 
     @Override

@@ -53,7 +53,9 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
@@ -87,7 +89,12 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());
             handleAuthenticated(ctx);
         } catch (ExecutionException ee) {
-            throw new HttpStatusException(401, "HTTP Authorization Failure", ee);
+            Throwable cause = ee.getCause();
+            if (cause instanceof PermissionDeniedException
+                    || cause instanceof KubernetesClientException) {
+                throw new HttpStatusException(401, "HTTP Authorization Failure", ee);
+            }
+            throw new HttpStatusException(500, ee.getMessage(), ee);
         } catch (HttpStatusException e) {
             throw e;
         } catch (ConnectionException e) {

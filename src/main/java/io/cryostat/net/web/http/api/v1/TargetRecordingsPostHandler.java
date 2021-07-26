@@ -120,6 +120,7 @@ public class TargetRecordingsPostHandler extends AbstractAuthenticatedRequestHan
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(
                 ResourceAction.READ_TARGET,
+                ResourceAction.UPDATE_TARGET,
                 ResourceAction.CREATE_RECORDING,
                 ResourceAction.READ_RECORDING,
                 ResourceAction.READ_TEMPLATE);

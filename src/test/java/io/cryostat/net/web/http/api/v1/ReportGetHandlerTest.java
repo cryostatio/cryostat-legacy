@@ -42,11 +42,13 @@ import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -89,6 +91,17 @@ class ReportGetHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(
+                                ResourceAction.READ_REPORT,
+                                ResourceAction.CREATE_REPORT,
+                                ResourceAction.READ_RECORDING)));
+    }
+
+    @Test
     void shouldNotBeAsync() {
         Assertions.assertFalse(handler.isAsync());
     }
@@ -100,7 +113,7 @@ class ReportGetHandlerTest {
 
     @Test
     void shouldRespondBySendingFile() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -126,7 +139,7 @@ class ReportGetHandlerTest {
 
     @Test
     void shouldRespond404IfRecordingNameNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);

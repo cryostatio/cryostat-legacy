@@ -42,6 +42,7 @@ import java.util.Set;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.Rule;
@@ -94,6 +95,12 @@ class RulesGetHandlerTest {
         @Test
         void shouldHaveExpectedApiPath() {
             MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2/rules"));
+        }
+
+        @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(
+                    handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RULE)));
         }
 
         @Test

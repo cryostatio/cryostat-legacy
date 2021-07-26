@@ -50,26 +50,11 @@ public interface AuthManager {
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
 
-    // FIXME delete this
-    default Future<Boolean> validateToken(Supplier<String> headerProvider) {
-        return validateToken(headerProvider, Set.of());
-    }
-
     Future<Boolean> validateHttpHeader(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions);
 
-    // FIXME delete this
-    default Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
-        return validateHttpHeader(headerProvider, Set.of());
-    }
-
     Future<Boolean> validateWebSocketSubProtocol(
             Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
-
-    // FIXME delete this
-    default Future<Boolean> validateWebSocketSubProtocol(Supplier<String> headerProvider) {
-        return validateWebSocketSubProtocol(headerProvider, Set.of());
-    }
 
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);

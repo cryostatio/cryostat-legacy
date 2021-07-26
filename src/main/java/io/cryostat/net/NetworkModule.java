@@ -37,6 +37,7 @@
  */
 package io.cryostat.net;
 
+import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 

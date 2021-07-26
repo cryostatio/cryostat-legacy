@@ -98,6 +98,11 @@ class ApiGetHandlerTest {
         }
 
         @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(Set.of()));
+        }
+
+        @Test
         void shouldReturnJsonMimeType() {
             MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }

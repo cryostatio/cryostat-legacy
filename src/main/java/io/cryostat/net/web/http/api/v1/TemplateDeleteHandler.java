@@ -89,7 +89,7 @@ class TemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_TEMPLATE, ResourceAction.DELETE_TEMPLATE);
+        return EnumSet.of(ResourceAction.DELETE_TEMPLATE);
     }
 
     @Override

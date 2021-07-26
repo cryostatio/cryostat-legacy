@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -46,6 +47,7 @@ import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
@@ -91,6 +93,12 @@ class TargetsGetHandlerTest {
     @Test
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v1/targets"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
     }
 
     @Test

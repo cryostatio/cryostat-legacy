@@ -57,6 +57,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.CertificateValidator;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiData;
 import io.cryostat.net.web.http.api.ApiMeta;
@@ -116,7 +117,7 @@ class CertificatePostHandlerTest {
         Mockito.lenient().when(ctx.request()).thenReturn(req);
 
         Mockito.lenient()
-                .when(auth.validateHttpHeader(Mockito.any()))
+                .when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
     }
 
@@ -128,6 +129,13 @@ class CertificatePostHandlerTest {
     @Test
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v2/certificates"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.CREATE_CERTIFICATE)));
     }
 
     @Test
