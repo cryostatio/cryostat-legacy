@@ -56,7 +56,7 @@ public class TemplatePostIT extends StandardSelfTest {
     static final String REQ_URL = "/api/v1/templates";
 
     @Test
-    public void shouldThrowWhenPostingInvalidFormAttribute() throws Exception {
+    public void shouldThrowIfTemplateUploadNameInvalid() throws Exception {
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
