@@ -50,80 +50,80 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class TemplatePostDeleteIT extends StandardSelfTest {
-   static final String FILE_NAME = "invalidTemplate.xml";
-   static final String TEMPLATE_NAME = "invalidTemplate";
-   static final String MEDIA_TYPE = "application/xml";
-   static final String REQ_URL = "/api/v1/templates";
+    static final String FILE_NAME = "invalidTemplate.xml";
+    static final String TEMPLATE_NAME = "invalidTemplate";
+    static final String MEDIA_TYPE = "application/xml";
+    static final String REQ_URL = "/api/v1/templates";
 
-   @Test
-   public void shouldThrowWhenPostingInvalidFormAttribute() throws Exception {
+    @Test
+    public void shouldThrowWhenPostingInvalidFormAttribute() throws Exception {
 
-       CompletableFuture<Integer> response = new CompletableFuture<>();
-       ClassLoader classLoader = getClass().getClassLoader();
-       File emptyTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
-       String path = emptyTemplate.getAbsolutePath();
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        ClassLoader classLoader = getClass().getClassLoader();
+        File emptyTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
+        String path = emptyTemplate.getAbsolutePath();
 
-       MultipartForm form =
-               MultipartForm.create()
-                       .attribute("invalidTemplateAttribute", FILE_NAME)
-                       .binaryFileUpload(TEMPLATE_NAME, FILE_NAME, path, MEDIA_TYPE);
+        MultipartForm form =
+                MultipartForm.create()
+                        .attribute("invalidTemplateAttribute", FILE_NAME)
+                        .binaryFileUpload(TEMPLATE_NAME, FILE_NAME, path, MEDIA_TYPE);
 
-       webClient
-               .post(REQ_URL)
-               .sendMultipartForm(
-                       form,
-                       ar -> {
-                           assertRequestStatus(ar, response);
-                       });
-       ExecutionException ex =
-               Assertions.assertThrows(ExecutionException.class, () -> response.get());
-       MatcherAssert.assertThat(
-               ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
-       MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
-   }
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
 
-   @Test
-   public void shouldThrowWhenPostingInvalidTemplate() throws Exception {
+    @Test
+    public void shouldThrowWhenPostingInvalidTemplate() throws Exception {
 
-       CompletableFuture<Integer> response = new CompletableFuture<>();
-       ClassLoader classLoader = getClass().getClassLoader();
-       File emptyTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
-       String path = emptyTemplate.getAbsolutePath();
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+        ClassLoader classLoader = getClass().getClassLoader();
+        File emptyTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
+        String path = emptyTemplate.getAbsolutePath();
 
-       MultipartForm form =
-               MultipartForm.create()
-                       .attribute("template", FILE_NAME)
-                       .binaryFileUpload(TEMPLATE_NAME, FILE_NAME, path, MEDIA_TYPE);
+        MultipartForm form =
+                MultipartForm.create()
+                        .attribute("template", FILE_NAME)
+                        .binaryFileUpload(TEMPLATE_NAME, FILE_NAME, path, MEDIA_TYPE);
 
-       webClient
-               .post(REQ_URL)
-               .sendMultipartForm(
-                       form,
-                       ar -> {
-                           assertRequestStatus(ar, response);
-                       });
-       ExecutionException ex =
-               Assertions.assertThrows(ExecutionException.class, () -> response.get());
-       MatcherAssert.assertThat(
-               ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
-       MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
-   }
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
 
-   @Test
-   public void testDeleteRecordingThrowsOnNonExistentRecording() throws Exception {
+    @Test
+    public void testDeleteRecordingThrowsOnNonExistentRecording() throws Exception {
 
-       CompletableFuture<Void> response = new CompletableFuture<>();
+        CompletableFuture<Void> response = new CompletableFuture<>();
 
-       webClient
-               .delete(String.format("%s/%s", REQ_URL, FILE_NAME))
-               .send(
-                       ar -> {
-                           assertRequestStatus(ar, response);
-                       });
-       ExecutionException ex =
-               Assertions.assertThrows(ExecutionException.class, () -> response.get());
-       MatcherAssert.assertThat(
-               ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
-       MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
-   }
+        webClient
+                .delete(String.format("%s/%s", REQ_URL, FILE_NAME))
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
 }
