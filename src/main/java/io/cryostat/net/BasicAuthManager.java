@@ -96,21 +96,12 @@ class BasicAuthManager extends AbstractAuthManager {
         boolean granted = Objects.equals(users.getProperty(user), passHashHex);
         // FIXME actually implement this
         resourceActions.forEach(
-                action -> {
-                    if (granted) {
+                action ->
                         logger.trace(
                                 "user {} granted {} {}",
                                 user,
                                 action.getVerb(),
-                                action.getResource());
-                    } else {
-                        logger.trace(
-                                "user {} granted {} {}",
-                                user,
-                                action.getVerb(),
-                                action.getResource());
-                    }
-                });
+                                action.getResource()));
         return CompletableFuture.completedFuture(granted);
     }
 

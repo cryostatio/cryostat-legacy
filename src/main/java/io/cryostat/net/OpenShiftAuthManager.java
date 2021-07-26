@@ -52,13 +52,15 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
@@ -69,7 +71,6 @@ import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
-import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
@@ -105,7 +106,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                     resourceAction -> {
                                         try {
                                             return CompletableFuture.<Boolean>completedFuture(
-                                                    validateToken(authClient, resourceAction));
+                                                    validateAction(authClient, resourceAction));
                                         } catch (IOException | PermissionDeniedException e) {
                                             return CompletableFuture.<Boolean>failedFuture(e);
                                         }
@@ -123,6 +124,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                         try {
                                             return result.get();
                                         } catch (InterruptedException | ExecutionException e) {
+                                            // should never actually end up in here due to the allOf
                                             logger.error(e);
                                             return false;
                                         }
@@ -140,7 +142,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private boolean validateToken(OpenShiftClient authClient, ResourceAction resourceAction)
+    private boolean validateAction(OpenShiftClient authClient, ResourceAction resourceAction)
             throws IOException, PermissionDeniedException {
         AuthRequest evt = new AuthRequest();
         evt.begin();
@@ -153,7 +155,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 return true;
             }
             String namespace = getNamespace();
-            var accessReview =
+            SelfSubjectAccessReview accessReview =
                     new SelfSubjectAccessReviewBuilder()
                             .withNewSpec()
                             .withNewResourceAttributes()
@@ -164,15 +166,15 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                             .endResourceAttributes()
                             .endSpec()
                             .build();
-            var response =
+            accessReview =
                     authClient.authorization().v1().selfSubjectAccessReview().create(accessReview);
-            boolean allowed = response.getStatus().getAllowed();
+            boolean allowed = accessReview.getStatus().getAllowed();
             evt.setRequestSuccessful(true);
             if (allowed) {
                 return true;
             } else {
                 throw new PermissionDeniedException(
-                        namespace, group, resource, verb, response.getStatus().getReason());
+                        namespace, group, resource, verb, accessReview.getStatus().getReason());
             }
         } finally {
             if (evt.shouldCommit()) {
