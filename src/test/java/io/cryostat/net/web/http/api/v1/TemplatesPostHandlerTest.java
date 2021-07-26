@@ -150,6 +150,29 @@ class TemplatesPostHandlerTest {
     }
 
     @Test
+    void shouldThrowIfTemplateUploadNameInvalid() throws Exception {
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+
+        FileUpload upload = Mockito.mock(FileUpload.class);
+        Mockito.when(upload.name()).thenReturn("invalidUploadName");
+        Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
+
+        Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
+
+        Path uploadPath = Mockito.mock(Path.class);
+        Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
+
+        InputStream stream = Mockito.mock(InputStream.class);
+        Mockito.when(fs.newInputStream(Mockito.any())).thenReturn(stream);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(
+                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        Mockito.verify(fs).deleteIfExists(uploadPath);
+    }
+
+    @Test
     void shouldProcessGoodRequest() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
 
