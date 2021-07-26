@@ -38,18 +38,13 @@
 package itest;
 
 import java.io.File;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import itest.bases.StandardSelfTest;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -66,7 +61,7 @@ public class UploadCertificateIT extends StandardSelfTest {
     @Test
     public void shouldNotAddEmptyCertToTrustStore() throws Exception {
 
-        CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
+        CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
         File emptyCert = new File(classLoader.getResource(FILE_NAME).getFile());
         String path = emptyCert.getAbsolutePath();
@@ -81,17 +76,13 @@ public class UploadCertificateIT extends StandardSelfTest {
                 .sendMultipartForm(
                         form,
                         ar -> {
-                            if (ar.failed()) {
-                                uploadRespFuture.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> result = ar.result();
-                            uploadRespFuture.complete(result.statusCode());
+                            assertRequestStatus(ar, response);
                         });
-
-        int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-        MatcherAssert.assertThat(statusCode, Matchers.equalTo(500));
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 
     @Test
