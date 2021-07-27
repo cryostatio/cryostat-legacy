@@ -145,6 +145,8 @@ public class UploadCertificateIT extends StandardSelfTest {
                         form,
                         ar -> {
                             if (assertRequestStatus(ar, response)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                                 response.complete(ar.result().bodyAsJsonObject());
                             }
                         });
