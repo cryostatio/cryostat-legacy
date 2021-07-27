@@ -47,40 +47,42 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringUtils;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
-import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private static final String PERMISSION_NOT_REQUIRED = "PERMISSION_NOT_REQUIRED";
 
     private final FileSystem fs;
+    private final Function<String, OpenShiftClient> clientProvider;
 
-    public OpenShiftAuthManager(Logger logger, FileSystem fs) {
+    OpenShiftAuthManager(
+            Logger logger, FileSystem fs, Function<String, OpenShiftClient> clientProvider) {
         super(logger);
         this.fs = fs;
+        this.clientProvider = clientProvider;
     }
 
     @Override
@@ -96,9 +98,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return CompletableFuture.completedFuture(false);
         }
 
-        try (OpenShiftClient authClient =
-                new DefaultOpenShiftClient(
-                        new OpenShiftConfigBuilder().withOauthToken(token).build())) {
+        try (OpenShiftClient client = clientProvider.apply(token)) {
             List<CompletableFuture<Boolean>> results =
                     resourceActions
                             .parallelStream()
@@ -106,7 +106,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                     resourceAction -> {
                                         try {
                                             return CompletableFuture.<Boolean>completedFuture(
-                                                    validateAction(authClient, resourceAction));
+                                                    validateAction(client, resourceAction));
                                         } catch (IOException | PermissionDeniedException e) {
                                             return CompletableFuture.<Boolean>failedFuture(e);
                                         }
@@ -142,7 +142,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private boolean validateAction(OpenShiftClient authClient, ResourceAction resourceAction)
+    private boolean validateAction(OpenShiftClient client, ResourceAction resourceAction)
             throws IOException, PermissionDeniedException {
         AuthRequest evt = new AuthRequest();
         evt.begin();
@@ -167,7 +167,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                             .endSpec()
                             .build();
             accessReview =
-                    authClient.authorization().v1().selfSubjectAccessReview().create(accessReview);
+                    client.authorization().v1().selfSubjectAccessReview().create(accessReview);
             boolean allowed = accessReview.getStatus().getAllowed();
             evt.setRequestSuccessful(true);
             if (allowed) {
@@ -181,25 +181,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 evt.end();
                 evt.commit();
             }
-        }
-    }
-
-    @Name("io.cryostat.net.OpenShiftAuthManager.AuthRequest")
-    @Label("AuthRequest")
-    @Category("Cryostat")
-    @SuppressFBWarnings(
-            value = "URF_UNREAD_FIELD",
-            justification = "Event fields are recorded with JFR instead of accessed directly")
-    public static class AuthRequest extends Event {
-
-        boolean requestSuccessful;
-
-        public AuthRequest() {
-            this.requestSuccessful = false;
-        }
-
-        public void setRequestSuccessful(boolean requestSuccessful) {
-            this.requestSuccessful = requestSuccessful;
         }
     }
 
@@ -254,7 +235,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 .get();
     }
 
-    static String map(ResourceType resource) {
+    private static String map(ResourceType resource) {
         switch (resource) {
             case TARGET:
                 return "flightrecorders";
@@ -270,7 +251,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    static String map(ResourceVerb verb) {
+    private static String map(ResourceVerb verb) {
         switch (verb) {
             case CREATE:
                 return "create";
@@ -288,12 +269,50 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @SuppressWarnings("serial")
     public static class PermissionDeniedException extends Exception {
+        private final String namespace;
+        private final String resource;
+        private final String verb;
+
         public PermissionDeniedException(
                 String namespace, String group, String resource, String verb, String reason) {
             super(
                     String.format(
                             "Requesting client in namespace \"%s\" cannot %s %s.%s: %s",
                             namespace, verb, resource, group, reason));
+            this.namespace = namespace;
+            this.resource = resource;
+            this.verb = verb;
+        }
+
+        public String getNamespace() {
+            return namespace;
+        }
+
+        public String getResourceType() {
+            return resource;
+        }
+
+        public String getVerb() {
+            return verb;
+        }
+    }
+
+    @Name("io.cryostat.net.OpenShiftAuthManager.AuthRequest")
+    @Label("AuthRequest")
+    @Category("Cryostat")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification = "Event fields are recorded with JFR instead of accessed directly")
+    public static class AuthRequest extends Event {
+
+        boolean requestSuccessful;
+
+        public AuthRequest() {
+            this.requestSuccessful = false;
+        }
+
+        public void setRequestSuccessful(boolean requestSuccessful) {
+            this.requestSuccessful = requestSuccessful;
         }
     }
 }

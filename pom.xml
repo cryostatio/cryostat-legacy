@@ -201,6 +201,18 @@
     <version>${com.github.spotbugs.version}</version>
     <scope>provided</scope>
   </dependency>
+  <dependency>
+    <groupId>io.fabric8</groupId>
+    <artifactId>kubernetes-server-mock</artifactId>
+    <version>${io.fabric8.client.version}</version>
+    <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>io.fabric8</groupId>
+    <artifactId>openshift-server-mock</artifactId>
+    <version>${io.fabric8.client.version}</version>
+    <scope>test</scope>
+  </dependency>
 </dependencies>
 
 <build>
