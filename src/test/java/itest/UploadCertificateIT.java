@@ -59,6 +59,25 @@ public class UploadCertificateIT extends StandardSelfTest {
     static final String REQ_URL = String.format("/api/v2/certificates");
 
     @Test
+    public void shouldThrowOnNullCertificateUpload() throws Exception {
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        null,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
     public void shouldNotAddEmptyCertToTrustStore() throws Exception {
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
