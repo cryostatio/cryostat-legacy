@@ -339,6 +339,8 @@
               <argument>type=tmpfs,target=/opt/cryostat.d/templates.d</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/recordings.d</argument>
+              <argument>--mount</argument>
+              <argument>type=tmpfs,target=/opt/cryostat.d/truststore.d</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -357,6 +359,8 @@
               <argument>CRYOSTAT_ARCHIVE_PATH=/opt/cryostat.d/recordings.d</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
+              <argument>--env</argument>
+              <argument>SSL_TRUSTSTORE_DIR=/opt/cryostat.d/truststore.d</argument>
               <argument>--env</argument>
               <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:8080</argument>
               <argument>--env</argument>

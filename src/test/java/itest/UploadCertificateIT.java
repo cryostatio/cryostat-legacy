@@ -38,8 +38,11 @@
 package itest;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+
+import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -53,9 +56,10 @@ import org.junit.jupiter.api.Test;
 public class UploadCertificateIT extends StandardSelfTest {
 
     static final String CERT_NAME = "cert";
-    static final String FILE_NAME = "empty.cer";
-    static final String TRUSTSTORE_CERT = "truststore/" + FILE_NAME;
+    static final String EMPTY_FILE_NAME = "empty.cer";
+    static final String VALID_FILE_NAME = "valid.cert";
     static final String MEDIA_TYPE = "application/pkix-cert";
+    static final String TRUSTSTORE_DIR = "/opt/cryostat.d/truststore.d";
     static final String REQ_URL = String.format("/api/v2/certificates");
 
     @Test
@@ -82,13 +86,13 @@ public class UploadCertificateIT extends StandardSelfTest {
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
-        File emptyCert = new File(classLoader.getResource(FILE_NAME).getFile());
+        File emptyCert = new File(classLoader.getResource(EMPTY_FILE_NAME).getFile());
         String path = emptyCert.getAbsolutePath();
 
         MultipartForm form =
                 MultipartForm.create()
                         .attribute("name", CERT_NAME)
-                        .binaryFileUpload(CERT_NAME, FILE_NAME, path, MEDIA_TYPE);
+                        .binaryFileUpload(CERT_NAME, EMPTY_FILE_NAME, path, MEDIA_TYPE);
 
         webClient
                 .post(REQ_URL)
@@ -120,5 +124,60 @@ public class UploadCertificateIT extends StandardSelfTest {
         MatcherAssert.assertThat(
                 ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
         MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void shouldThrowOnDuplicateCert() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        ClassLoader classLoader = getClass().getClassLoader();
+        File validCert = new File(classLoader.getResource(VALID_FILE_NAME).getFile());
+        String path = validCert.getAbsolutePath();
+
+        MultipartForm form =
+                MultipartForm.create()
+                        .attribute("name", CERT_NAME)
+                        .binaryFileUpload(CERT_NAME, VALID_FILE_NAME, path, MEDIA_TYPE);
+
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        JsonObject expectedResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "type",
+                                                HttpMimeType.PLAINTEXT.mime(),
+                                                "status",
+                                                "OK"),
+                                "data",
+                                        Map.of(
+                                                "result",
+                                                String.format(
+                                                        "%s/%s",
+                                                        TRUSTSTORE_DIR, VALID_FILE_NAME))));
+        MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
+
+        CompletableFuture<JsonObject> duplicateResponse = new CompletableFuture<>();
+
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, duplicateResponse);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> duplicateResponse.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(409));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Conflict"));
     }
 }
