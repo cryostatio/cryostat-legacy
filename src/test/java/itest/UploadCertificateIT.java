@@ -39,14 +39,15 @@ package itest;
 
 import java.io.File;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutionException;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class UploadCertificateIT extends StandardSelfTest {
@@ -55,11 +56,12 @@ public class UploadCertificateIT extends StandardSelfTest {
     static final String FILE_NAME = "empty.cer";
     static final String TRUSTSTORE_CERT = "truststore/" + FILE_NAME;
     static final String MEDIA_TYPE = "application/pkix-cert";
+    static final String REQ_URL = String.format("/api/v2/certificates");
 
     @Test
     public void shouldNotAddEmptyCertToTrustStore() throws Exception {
 
-        CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
+        CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
         File emptyCert = new File(classLoader.getResource(FILE_NAME).getFile());
         String path = emptyCert.getAbsolutePath();
@@ -70,20 +72,34 @@ public class UploadCertificateIT extends StandardSelfTest {
                         .binaryFileUpload(CERT_NAME, FILE_NAME, path, MEDIA_TYPE);
 
         webClient
-                .post(String.format("/api/v2/certificates"))
+                .post(REQ_URL)
                 .sendMultipartForm(
                         form,
                         ar -> {
-                            if (ar.failed()) {
-                                uploadRespFuture.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> result = ar.result();
-                            uploadRespFuture.complete(result.statusCode());
+                            assertRequestStatus(ar, response);
                         });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
 
-        int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    @Test
+    public void shouldThrowWhenPostingWithoutCert() throws Exception {
 
-        MatcherAssert.assertThat(statusCode, Matchers.equalTo(500));
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .post(REQ_URL)
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
     }
 }

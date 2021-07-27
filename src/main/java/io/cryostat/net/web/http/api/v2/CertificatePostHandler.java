@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -154,7 +155,7 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
             Collection<? extends Certificate> certificates = certValidator.parseCertificates(fis);
 
             if (certificates.isEmpty()) {
-                throw new ApiException(500, "No certificates found");
+                throw new FileNotFoundException("No certificates found");
             }
 
             try (FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
@@ -165,6 +166,8 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
                 }
             }
 
+        } catch (FileNotFoundException e) {
+            throw new ApiException(400, e.getMessage(), e);
         } catch (IOException ioe) {
             throw new ApiException(500, ioe.getMessage(), ioe);
         } catch (CertificateEncodingException cee) {
