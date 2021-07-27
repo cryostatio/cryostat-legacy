@@ -103,6 +103,14 @@ class WsClient implements AutoCloseable {
         return sws.remoteAddress();
     }
 
+    @Override
+    public void close() {
+        if (!sws.isClosed()) {
+            sws.textMessageHandler(null);
+            sws.close();
+        }
+    }
+
     @Name("io.cryostat.messaging.WsClient.WsMessageEmitted")
     @Label("WebSocket Message Emitted")
     @Category("Cryostat")
@@ -126,13 +134,6 @@ class WsClient implements AutoCloseable {
 
         public void setExceptionThrown(boolean exceptionThrown) {
             this.exceptionThrown = exceptionThrown;
-        }
-    }
-
-    @Override
-    public void close() {
-        if (!sws.isClosed()) {
-            sws.close();
         }
     }
 }
