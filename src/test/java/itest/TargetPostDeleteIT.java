@@ -186,13 +186,10 @@ public class TargetPostDeleteIT extends StandardSelfTest {
     public void testDeleteTargetThrowsWithInvalidConnectUrl() throws Exception {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
-        MultiMap form = MultiMap.caseInsensitiveMultiMap();
-        form.add("targetId", "invalidConnectUrl");
 
         webClient
-                .post(REQ_URL)
-                .sendForm(
-                        form,
+                .delete(String.format("%s/%s", REQ_URL, "invalidTargetId"))
+                .send(
                         ar -> {
                             assertRequestStatus(ar, response);
                         });
@@ -208,15 +205,13 @@ public class TargetPostDeleteIT extends StandardSelfTest {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
-        final String nonExistentUrl =
+        final String nonExistentTargetId =
                 URLEncodedUtils.formatSegments(
                         String.format("service:jmx:rmi:///jndi/rmi://invalid:9091/jmxrmi"));
-        form.add("targetId", nonExistentUrl);
 
         webClient
-                .post(REQ_URL)
-                .sendForm(
-                        form,
+                .delete(String.format("%s/%s", REQ_URL, nonExistentTargetId))
+                .send(
                         ar -> {
                             assertRequestStatus(ar, response);
                         });
