@@ -69,7 +69,8 @@ class TargetRecordingPatchSave {
 
         try {
             String saveName =
-                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();;
+                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
+            ;
 
             ctx.response().setStatusCode(200);
             ctx.response().end(saveName);

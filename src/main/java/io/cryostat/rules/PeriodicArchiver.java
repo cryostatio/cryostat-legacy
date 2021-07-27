@@ -62,7 +62,8 @@ import org.apache.commons.lang3.tuple.Pair;
 class PeriodicArchiver implements Runnable {
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
-            Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?(\\.jfr)?");
+            Pattern.compile(
+                    "([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?(\\.jfr)?");
 
     private final ServiceRef serviceRef;
     private final CredentialsManager credentialsManager;
@@ -147,10 +148,10 @@ class PeriodicArchiver implements Runnable {
         ConnectionDescriptor connectionDescriptor =
                 new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
 
-        String saveName = recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
+        String saveName =
+                recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
         previousRecordings.add(saveName);
     }
-    
 
     private void pruneArchive(String recordingName) throws Exception {
         recordingArchiveHelper.deleteRecording(recordingName).get();

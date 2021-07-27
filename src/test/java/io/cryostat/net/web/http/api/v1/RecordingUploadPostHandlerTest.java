@@ -167,8 +167,12 @@ class RecordingUploadPostHandlerTest {
 
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(Mockito.mock(Path.class));
-        
-        List<String> files = List.of("encodedServiceUriA/recordingA", "encodedServiceUri123/123recording", "encodedServiceUriFoo/foo");
+
+        List<String> files =
+                List.of(
+                        "encodedServiceUriA/recordingA",
+                        "encodedServiceUri123/123recording",
+                        "encodedServiceUriFoo/foo");
         Mockito.when(fs.listDirectoryChildren(savedRecordingsPath)).thenReturn(files);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
@@ -205,7 +209,7 @@ class RecordingUploadPostHandlerTest {
         handler.handle(ctx);
 
         Mockito.verify(savedRecordingsPath).resolve("encodedServiceUriFoo/foo");
-        
+
         Mockito.verify(resp).setStatusCode(200);
         Mockito.verify(resp).setStatusMessage("OK");
         Mockito.verify(resp).end("HELLO");
@@ -226,8 +230,12 @@ class RecordingUploadPostHandlerTest {
 
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(Mockito.mock(Path.class));
-        
-        List<String> files = List.of("encodedServiceUriA/recordingA", "encodedServiceUri123/123recording", "encodedServiceUriFoo/foo");
+
+        List<String> files =
+                List.of(
+                        "encodedServiceUriA/recordingA",
+                        "encodedServiceUri123/123recording",
+                        "encodedServiceUriFoo/foo");
         Mockito.when(fs.listDirectoryChildren(savedRecordingsPath)).thenReturn(files);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
@@ -292,8 +300,12 @@ class RecordingUploadPostHandlerTest {
 
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(Mockito.mock(Path.class));
-        
-        List<String> files = List.of("encodedServiceUriA/recordingA", "encodedServiceUri123/123recording", "encodedServiceUriFoo/foo");
+
+        List<String> files =
+                List.of(
+                        "encodedServiceUriA/recordingA",
+                        "encodedServiceUri123/123recording",
+                        "encodedServiceUriFoo/foo");
         Mockito.when(fs.listDirectoryChildren(savedRecordingsPath)).thenReturn(files);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
@@ -351,8 +363,12 @@ class RecordingUploadPostHandlerTest {
 
         Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(Mockito.mock(Path.class));
-        
-        List<String> files = List.of("encodedServiceUriA/recordingA", "encodedServiceUri123/123recording", "encodedServiceUriFoo/foo");
+
+        List<String> files =
+                List.of(
+                        "encodedServiceUriA/recordingA",
+                        "encodedServiceUri123/123recording",
+                        "encodedServiceUriFoo/foo");
         Mockito.when(fs.listDirectoryChildren(savedRecordingsPath)).thenReturn(files);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);

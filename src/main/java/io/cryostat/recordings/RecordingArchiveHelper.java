@@ -103,35 +103,35 @@ public class RecordingArchiveHelper {
         this.reportService = reportService;
     }
 
-    public Future<String> saveRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
-            throws Exception {
+    public Future<String> saveRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
 
         CompletableFuture<String> future = new CompletableFuture<>();
 
         try {
             String saveName =
-                targetConnectionManager.executeConnectedTask(
-                        connectionDescriptor,
-                        connection -> {
-                            Optional<IRecordingDescriptor> descriptor =
-                                    this.getDescriptorByName(connection, recordingName);
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                Optional<IRecordingDescriptor> descriptor =
+                                        this.getDescriptorByName(connection, recordingName);
 
-                            if (descriptor.isPresent()) {
-                                return writeRecordingToDestination(connection, descriptor.get());
-                            } else {
-                                throw new RecordingNotFoundException(recordingName);
-                            }
-                        });
+                                if (descriptor.isPresent()) {
+                                    return writeRecordingToDestination(
+                                            connection, descriptor.get());
+                                } else {
+                                    throw new RecordingNotFoundException(recordingName);
+                                }
+                            });
             future.complete(saveName);
         } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);
         }
-        
+
         return future;
     }
 
-    public Future<Void> deleteRecording(String recordingName)
-            throws Exception {
+    public Future<Void> deleteRecording(String recordingName) throws Exception {
 
         CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -179,33 +179,34 @@ public class RecordingArchiveHelper {
             WebServer webServer = webServerProvider.get();
             List<String> files = this.fs.listDirectoryChildren(recordingsPath);
 
-            List<ArchivedRecordingInfo> archivedRecordings = 
-                                                files.stream()
-                                                        .map(
-                                                                file -> {
-                                                                    String encodedServiceUri = Path.of(file).getParent().toString();
-                                                                    String name = Path.of(file).getFileName().toString();
-                                                                    try {
-                                                                        return new ArchivedRecordingInfo(
-                                                                                encodedServiceUri,
-                                                                                name,
-                                                                                webServer.getArchivedReportURL(name),
-                                                                                webServer.getArchivedDownloadURL(name));
-                                                                    } catch (SocketException
-                                                                            | UnknownHostException
-                                                                            | URISyntaxException e) {
-                                                                        logger.warn(e);
-                                                                        return null;
-                                                                    }
-                                                                })
-                                                        .filter(Objects::nonNull)
-                                                        .collect(Collectors.toList());
+            List<ArchivedRecordingInfo> archivedRecordings =
+                    files.stream()
+                            .map(
+                                    file -> {
+                                        String encodedServiceUri =
+                                                Path.of(file).getParent().toString();
+                                        String name = Path.of(file).getFileName().toString();
+                                        try {
+                                            return new ArchivedRecordingInfo(
+                                                    encodedServiceUri,
+                                                    name,
+                                                    webServer.getArchivedReportURL(name),
+                                                    webServer.getArchivedDownloadURL(name));
+                                        } catch (SocketException
+                                                | UnknownHostException
+                                                | URISyntaxException e) {
+                                            logger.warn(e);
+                                            return null;
+                                        }
+                                    })
+                            .filter(Objects::nonNull)
+                            .collect(Collectors.toList());
             future.complete(archivedRecordings);
         } catch (ArchivePathException e) {
             future.completeExceptionally(e);
         }
 
-        return future;     
+        return future;
     }
 
     private String writeRecordingToDestination(

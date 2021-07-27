@@ -38,7 +38,6 @@
 package io.cryostat.rules;
 
 import java.net.URI;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -166,51 +165,55 @@ class PeriodicArchiverTest {
         CompletableFuture<Void> voidFuture = new CompletableFuture<>();
         voidFuture.complete(null);
         Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.anyString()))
-                 .thenReturn(voidFuture);
+                .thenReturn(voidFuture);
 
         // get the archiver into a state where it has reached its limit of preserved recordings
         for (int i = 0; i < rule.getPreservedArchives(); i++) {
             archiver.run();
         }
-        
+
         archiver.run();
 
         Mockito.verify(credentialsManager, Mockito.times(3)).getCredentials(serviceRef);
-        Mockito.verify(recordingArchiveHelper, Mockito.times(3)).saveRecording(Mockito.any(), Mockito.anyString());
-        Mockito.verify(recordingArchiveHelper, Mockito.times(1)).deleteRecording(Mockito.anyString());
+        Mockito.verify(recordingArchiveHelper, Mockito.times(3))
+                .saveRecording(Mockito.any(), Mockito.anyString());
+        Mockito.verify(recordingArchiveHelper, Mockito.times(1))
+                .deleteRecording(Mockito.anyString());
     }
 
     @Test
     void testArchiveScanning() throws Exception {
-        // populate the archive with various recordings, two of which are for  the current target 
-        // (based on the encoded serviceUri), with only one of those two having a recording name 
+        // populate the archive with various recordings, two of which are for  the current target
+        // (based on the encoded serviceUri), with only one of those two having a recording name
         // that matches the Rule in question
         Base32 base32 = new Base32();
-        String encodedServiceUri = base32.encodeAsString(serviceRef.getServiceUri().toString().getBytes());
-        String matchingFileName = String.format("targetFoo_%s_20200903T202547Z.jfr", rule.getRecordingName());
+        String encodedServiceUri =
+                base32.encodeAsString(serviceRef.getServiceUri().toString().getBytes());
+        String matchingFileName =
+                String.format("targetFoo_%s_20200903T202547Z.jfr", rule.getRecordingName());
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(
-                            List.of(
-                                    new ArchivedRecordingInfo(
-                                                            encodedServiceUri,
-                                                            "targetFoo_recordingFoo_20210101T202547Z.jfr",
-                                                            "/some/path/archive/recordingFoo",
-                                                            "/some/path/download/recordingFoo"), 
-                                    new ArchivedRecordingInfo(
-                                                            "encodedServiceUriA",
-                                                            "targetA_recordingA_20190801T202547Z.jfr",
-                                                            "/some/path/archive/recordingA",
-                                                            "/some/path/download/recordingA"),
-                                    new ArchivedRecordingInfo(
-                                                            "encodedServiceUri123",
-                                                            "target123_123recording_20211107T202547Z.jfr",
-                                                            "/some/path/archive/123recording",
-                                                            "/some/path/download/123recording"),
-                                    new ArchivedRecordingInfo(
-                                                            encodedServiceUri,
-                                                            matchingFileName,
-                                                            String.format("/some/path/archive/%s", rule.getRecordingName()),
-                                                            String.format("/some/path/download/%s", rule.getRecordingName()))));
+                List.of(
+                        new ArchivedRecordingInfo(
+                                encodedServiceUri,
+                                "targetFoo_recordingFoo_20210101T202547Z.jfr",
+                                "/some/path/archive/recordingFoo",
+                                "/some/path/download/recordingFoo"),
+                        new ArchivedRecordingInfo(
+                                "encodedServiceUriA",
+                                "targetA_recordingA_20190801T202547Z.jfr",
+                                "/some/path/archive/recordingA",
+                                "/some/path/download/recordingA"),
+                        new ArchivedRecordingInfo(
+                                "encodedServiceUri123",
+                                "target123_123recording_20211107T202547Z.jfr",
+                                "/some/path/archive/123recording",
+                                "/some/path/download/123recording"),
+                        new ArchivedRecordingInfo(
+                                encodedServiceUri,
+                                matchingFileName,
+                                String.format("/some/path/archive/%s", rule.getRecordingName()),
+                                String.format("/some/path/download/%s", rule.getRecordingName()))));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
         CompletableFuture<String> stringFuture = new CompletableFuture<>();
@@ -218,10 +221,11 @@ class PeriodicArchiverTest {
         stringFuture.complete(newlySavedRecording);
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
                 .thenReturn(stringFuture);
-        
+
         archiver.run();
 
-        // if the archived recordings were scanned properly the first entry should be the matching file name above,
+        // if the archived recordings were scanned properly the first entry should be the matching
+        // file name above,
         // followed by the newly saved "someRecording.jfr"
         Queue<String> previousRecordings = archiver.getPreviousRecordings();
         Assertions.assertEquals(matchingFileName, previousRecordings.remove());

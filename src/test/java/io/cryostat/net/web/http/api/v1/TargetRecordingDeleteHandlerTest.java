@@ -141,16 +141,16 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
-        .thenAnswer(
-                new Answer() {
-                    @Override
-                    public Object answer(InvocationOnMock invocation) throws Throwable {
-                        TargetConnectionManager.ConnectedTask task =
-                                (TargetConnectionManager.ConnectedTask)
-                                        invocation.getArgument(1);
-                        return task.execute(connection);
-                    }
-                });
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
 
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor("someRecording");

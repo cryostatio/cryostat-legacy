@@ -60,13 +60,11 @@ import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
-
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -157,15 +155,15 @@ class RecordingsGetHandlerTest {
     }
 
     @Test
-    void testCustomJsonSerialization() throws Exception {                
+    void testCustomJsonSerialization() throws Exception {
         CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
         listFuture.complete(
-                            List.of(
-                                    new ArchivedRecordingInfo(
-                                                                "encodedServiceUriFoo",
-                                                                "recordingFoo",
-                                                                "/some/path/archive/recordingFoo",
-                                                                "/some/path/download/recordingFoo")));
+                List.of(
+                        new ArchivedRecordingInfo(
+                                "encodedServiceUriFoo",
+                                "recordingFoo",
+                                "/some/path/archive/recordingFoo",
+                                "/some/path/download/recordingFoo")));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
@@ -174,10 +172,12 @@ class RecordingsGetHandlerTest {
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
-                    .thenReturn(CompletableFuture.completedFuture(true));
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         handler.handle(ctx);
 
-        Mockito.verify(resp).end("[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\"}]");
+        Mockito.verify(resp)
+                .end(
+                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\"}]");
     }
 }
