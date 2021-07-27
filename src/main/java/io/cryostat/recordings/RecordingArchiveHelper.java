@@ -43,6 +43,7 @@ import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -216,6 +217,10 @@ public class RecordingArchiveHelper {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri = base32.encodeAsString(serviceUri.toString().getBytes());
         Path specificRecordingsPath = recordingsPath.resolve(encodedServiceUri);
+
+        if (!fs.exists(specificRecordingsPath)) {
+            Files.createDirectory(specificRecordingsPath);
+        }
 
         String recordingName = descriptor.getName();
         if (recordingName.endsWith(".jfr")) {
