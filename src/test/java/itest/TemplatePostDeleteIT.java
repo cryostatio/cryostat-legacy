@@ -56,12 +56,12 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
     static final String REQ_URL = "/api/v1/templates";
 
     @Test
-    public void shouldThrowWhenPostingInvalidFormAttribute() throws Exception {
+    public void shouldThrowIfTemplateUploadNameInvalid() throws Exception {
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
-        File emptyTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
-        String path = emptyTemplate.getAbsolutePath();
+        File invalidTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
+        String path = invalidTemplate.getAbsolutePath();
 
         MultipartForm form =
                 MultipartForm.create()
@@ -87,8 +87,8 @@ public class TemplatePostDeleteIT extends StandardSelfTest {
 
         CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
-        File emptyTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
-        String path = emptyTemplate.getAbsolutePath();
+        File invalidTemplate = new File(classLoader.getResource(FILE_NAME).getFile());
+        String path = invalidTemplate.getAbsolutePath();
 
         MultipartForm form =
                 MultipartForm.create()
