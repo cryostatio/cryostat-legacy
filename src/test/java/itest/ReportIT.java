@@ -84,7 +84,7 @@ public class ReportIT extends StandardSelfTest {
                                 if (assertRequestStatus(ar, postResponse)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(201));
-                                    postResponse.complete(ar.result().bodyAsJsonObject());
+                                    postResponse.complete(null);
                                 }
                             });
 
@@ -101,6 +101,10 @@ public class ReportIT extends StandardSelfTest {
                                 if (assertRequestStatus(ar, saveResponse)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(200));
+                                    MatcherAssert.assertThat(
+                                            ar.result()
+                                                    .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                            Matchers.equalTo(HttpMimeType.PLAINTEXT.mime()));
                                     saveResponse.complete(null);
                                 }
                             });
