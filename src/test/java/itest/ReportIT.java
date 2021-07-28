@@ -39,7 +39,6 @@ package itest;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -57,14 +56,14 @@ import org.junit.jupiter.api.Test;
 public class ReportIT extends StandardSelfTest {
 
     static final String TEST_RECORDING_NAME = "someRecording";
-    static final String REPORT_REQ_URL =
-            String.format(
-                    "/api/v1/reports/%s", TEST_RECORDING_NAME);
+    static final String REPORT_REQ_URL = "/api/v1/reports/";
     static final String RECORDING_REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
 
     @Test
     void testGetReportShouldSendFile() throws Exception {
+
+        CompletableFuture<String> savedRecordingName = new CompletableFuture<>();
 
         try {
             // Create a recording
@@ -86,33 +85,31 @@ public class ReportIT extends StandardSelfTest {
                                 }
                             });
 
-            postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            postResponse.get();
 
             // Save the recording to archive
-            CompletableFuture<JsonObject> saveResponse = new CompletableFuture<>();
-
             webClient
                     .patch(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
-                                if (assertRequestStatus(ar, saveResponse)) {
+                                if (assertRequestStatus(ar, savedRecordingName)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(200));
                                     MatcherAssert.assertThat(
                                             ar.result()
                                                     .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
                                             Matchers.equalTo(HttpMimeType.PLAINTEXT.mime()));
-                                    saveResponse.complete(null);
+                                    savedRecordingName.complete(ar.result().bodyAsString());
                                 }
                             });
 
-            saveResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            savedRecordingName.get();
 
             // Get a report for the above recording
             CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
             webClient
-                    .get(REPORT_REQ_URL)
+                    .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName.get()))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, getResponse)) {
@@ -126,13 +123,13 @@ public class ReportIT extends StandardSelfTest {
                                 }
                             });
 
-            getResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            getResponse.get();
 
         } finally {
             // Clean up recording
             CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
             webClient
-                    .delete(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
+                    .delete(String.format("/api/v1/recordings/%s", savedRecordingName.get()))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteResponse)) {
@@ -149,7 +146,7 @@ public class ReportIT extends StandardSelfTest {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
-                .get(REPORT_REQ_URL)
+                .get(String.format("%s/%s", REPORT_REQ_URL, TEST_RECORDING_NAME))
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
