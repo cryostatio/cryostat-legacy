@@ -175,4 +175,34 @@ class TargetReportGetHandlerTest {
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
     }
+
+    @Test
+    void shouldRespond404IfRecordingNotFound() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
+
+        String targetId = "fooHost:0";
+        String recordingName = "foo";
+        Future<String> content =
+                CompletableFuture.failedFuture(
+                        new ExecutionException(
+                                new SubprocessReportGenerator.ReportGenerationException(
+                                        SubprocessReportGenerator.ExitStatus
+                                                .NO_SUCH_RECORDING)));
+        when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
+
+        Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+    }
 }
