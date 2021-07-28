@@ -15,5 +15,5 @@ jobs:
       - uses: yashhy/pr-label-check-and-comment-action@v1.0.1
         with:
           # This list is duplicated from release-drafter.yml
-          required_labels: 'chore,ci,cleanup,perf,refactor,style,test'
+          required_labels: 'chore,ci,cleanup,docs,feat,fix,perf,refactor,style,test'
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
