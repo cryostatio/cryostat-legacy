@@ -194,8 +194,7 @@ class TargetReportGetHandlerTest {
                 CompletableFuture.failedFuture(
                         new ExecutionException(
                                 new SubprocessReportGenerator.ReportGenerationException(
-                                        SubprocessReportGenerator.ExitStatus
-                                                .NO_SUCH_RECORDING)));
+                                        SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING)));
         when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
 
         Mockito.when(ctx.pathParam("targetId")).thenReturn(targetId);
