@@ -39,7 +39,17 @@ package itest;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+<<<<<<< HEAD
 
+=======
+import java.util.concurrent.TimeUnit;
+
+import io.cryostat.net.web.http.HttpMimeType;
+
+import io.vertx.core.MultiMap;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
+>>>>>>> 8bf08e10 (Add ReportGet itest)
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
@@ -54,6 +64,68 @@ public class TargetReportIT extends StandardSelfTest {
     static final String REPORT_REQ_URL =
             String.format(
                     "/api/v1/targets/%s/reports/%s", SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME);
+    static final String RECORDING_REQ_URL =
+            String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
+
+    @Test
+    void testGetReportShouldSendFile() throws Exception {
+
+        try {
+            // Create a recording
+            CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.add("recordingName", TEST_RECORDING_NAME);
+            form.add("duration", "1");
+            form.add("events", "template=ALL");
+
+            webClient
+                    .post(RECORDING_REQ_URL)
+                    .sendForm(
+                            form,
+                            ar -> {
+                                if (assertRequestStatus(ar, postResponse)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(201));
+                                    postResponse.complete(null);
+                                }
+                            });
+
+            postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            // Get a report for the above recording
+            CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
+            webClient
+                    .get(REPORT_REQ_URL)
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, getResponse)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(200));
+                                    MatcherAssert.assertThat(
+                                            ar.result()
+                                                    .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                            Matchers.equalTo(HttpMimeType.HTML.mime()));
+                                    getResponse.complete(ar.result().bodyAsBuffer());
+                                }
+                            });
+
+            getResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+        } finally {
+            // Clean up recording
+            CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
+            webClient
+                    .delete(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteResponse)) {
+                                    deleteResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(null));
+        }
+    }
 
     @Test
     void testGetReportThrowsWithNonExistentRecordingName() throws Exception {

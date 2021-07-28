@@ -59,11 +59,9 @@ public class ReportIT extends StandardSelfTest {
     static final String TEST_RECORDING_NAME = "someRecording";
     static final String REPORT_REQ_URL =
             String.format(
-                    "/api/v1/targets/%s/reports/%s", SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME);
+                    "/api/v1/reports/%s", TEST_RECORDING_NAME);
     static final String RECORDING_REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
-    static final String REPORT_URL_BASE =
-            String.format("/api/v1/targets/%s/reports", SELF_REFERENCE_TARGET_ID);
 
     @Test
     void testGetReportShouldSendFile() throws Exception {
