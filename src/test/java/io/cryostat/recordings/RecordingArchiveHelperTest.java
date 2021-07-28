@@ -190,7 +190,7 @@ class RecordingArchiveHelperTest {
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
@@ -259,7 +259,7 @@ class RecordingArchiveHelperTest {
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
@@ -323,7 +323,7 @@ class RecordingArchiveHelperTest {
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
@@ -393,7 +393,7 @@ class RecordingArchiveHelperTest {
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
@@ -461,7 +461,7 @@ class RecordingArchiveHelperTest {
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(true).thenReturn(false);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
