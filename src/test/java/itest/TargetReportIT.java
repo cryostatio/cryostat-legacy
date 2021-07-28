@@ -39,17 +39,11 @@ package itest;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-<<<<<<< HEAD
-
-=======
-import java.util.concurrent.TimeUnit;
-
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
->>>>>>> 8bf08e10 (Add ReportGet itest)
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
@@ -90,7 +84,7 @@ public class TargetReportIT extends StandardSelfTest {
                                 }
                             });
 
-            postResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            postResponse.get();
 
             // Get a report for the above recording
             CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
@@ -109,7 +103,7 @@ public class TargetReportIT extends StandardSelfTest {
                                 }
                             });
 
-            getResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            getResponse.get();
 
         } finally {
             // Clean up recording
