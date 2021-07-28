@@ -52,6 +52,7 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -73,7 +74,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
-    private static final String PERMISSION_NOT_REQUIRED = "PERMISSION_NOT_REQUIRED";
+    private static final Set<String> PERMISSION_NOT_REQUIRED = Set.of("PERMISSION_NOT_REQUIRED");
 
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
@@ -97,43 +98,26 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         if (StringUtils.isBlank(token)) {
             return CompletableFuture.completedFuture(false);
         }
+        if (resourceActions.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
+        }
 
         try (OpenShiftClient client = clientProvider.apply(token)) {
-            List<CompletableFuture<Boolean>> results =
+            String namespace = getNamespace();
+            List<CompletableFuture<Void>> results =
                     resourceActions
                             .parallelStream()
-                            .map(
-                                    resourceAction -> {
-                                        try {
-                                            return CompletableFuture.<Boolean>completedFuture(
-                                                    validateAction(client, resourceAction));
-                                        } catch (IOException | PermissionDeniedException e) {
-                                            return CompletableFuture.<Boolean>failedFuture(e);
-                                        }
-                                    })
+                            .flatMap(
+                                    resourceAction ->
+                                            validateAction(client, namespace, resourceAction))
                             .collect(Collectors.toList());
 
             CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
                     .get(15, TimeUnit.SECONDS);
-            // if we get here then all requests were successful, otherwise an exception was thrown
-            // on get() above
-            boolean granted =
-                    results.stream()
-                            .map(
-                                    result -> {
-                                        try {
-                                            return result.get();
-                                        } catch (InterruptedException | ExecutionException e) {
-                                            // should never actually end up in here due to the allOf
-                                            logger.error(e);
-                                            return false;
-                                        }
-                                    })
-                            .reduce(Boolean::logicalAnd)
-                            // if the request set was empty, grant permission by default
-                            .orElse(true);
-            return CompletableFuture.completedFuture(granted);
-        } catch (KubernetesClientException e) {
+            // if we get here then all requests were successful and granted, otherwise an exception
+            // was thrown on allOf().get() above
+            return CompletableFuture.completedFuture(true);
+        } catch (KubernetesClientException | ExecutionException e) {
             logger.info(e);
             return CompletableFuture.failedFuture(e);
         } catch (Exception e) {
@@ -142,46 +126,58 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private boolean validateAction(OpenShiftClient client, ResourceAction resourceAction)
-            throws IOException, PermissionDeniedException {
-        AuthRequest evt = new AuthRequest();
-        evt.begin();
-
-        try {
-            String group = "operator.cryostat.io";
-            String resource = map(resourceAction.getResource());
-            String verb = map(resourceAction.getVerb());
-            if (PERMISSION_NOT_REQUIRED.equals(resource)) {
-                return true;
-            }
-            String namespace = getNamespace();
-            SelfSubjectAccessReview accessReview =
-                    new SelfSubjectAccessReviewBuilder()
-                            .withNewSpec()
-                            .withNewResourceAttributes()
-                            .withNamespace(namespace)
-                            .withGroup(group)
-                            .withResource(resource)
-                            .withVerb(verb)
-                            .endResourceAttributes()
-                            .endSpec()
-                            .build();
-            accessReview =
-                    client.authorization().v1().selfSubjectAccessReview().create(accessReview);
-            boolean allowed = accessReview.getStatus().getAllowed();
-            evt.setRequestSuccessful(true);
-            if (allowed) {
-                return true;
-            } else {
-                throw new PermissionDeniedException(
-                        namespace, group, resource, verb, accessReview.getStatus().getReason());
-            }
-        } finally {
-            if (evt.shouldCommit()) {
-                evt.end();
-                evt.commit();
-            }
+    private Stream<CompletableFuture<Void>> validateAction(
+            OpenShiftClient client, String namespace, ResourceAction resourceAction) {
+        Set<String> resources = map(resourceAction.getResource());
+        if (PERMISSION_NOT_REQUIRED.equals(resources) || resources.isEmpty()) {
+            return Stream.of(CompletableFuture.completedFuture(null));
         }
+        String group = "operator.cryostat.io";
+        String verb = map(resourceAction.getVerb());
+        return resources
+                .parallelStream()
+                .map(
+                        resource -> {
+                            AuthRequest evt = new AuthRequest();
+                            evt.begin();
+                            try {
+                                SelfSubjectAccessReview accessReview =
+                                        new SelfSubjectAccessReviewBuilder()
+                                                .withNewSpec()
+                                                .withNewResourceAttributes()
+                                                .withNamespace(namespace)
+                                                .withGroup(group)
+                                                .withResource(resource)
+                                                .withVerb(verb)
+                                                .endResourceAttributes()
+                                                .endSpec()
+                                                .build();
+                                accessReview =
+                                        client.authorization()
+                                                .v1()
+                                                .selfSubjectAccessReview()
+                                                .create(accessReview);
+                                evt.setRequestSuccessful(true);
+                                if (!accessReview.getStatus().getAllowed()) {
+                                    return CompletableFuture.failedFuture(
+                                            new PermissionDeniedException(
+                                                    namespace,
+                                                    group,
+                                                    resource,
+                                                    verb,
+                                                    accessReview.getStatus().getReason()));
+                                } else {
+                                    return CompletableFuture.completedFuture(null);
+                                }
+                            } catch (Exception e) {
+                                return CompletableFuture.failedFuture(e);
+                            } finally {
+                                if (evt.shouldCommit()) {
+                                    evt.end();
+                                    evt.commit();
+                                }
+                            }
+                        });
     }
 
     @Override
@@ -235,17 +231,19 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 .get();
     }
 
-    private static String map(ResourceType resource) {
+    private static Set<String> map(ResourceType resource) {
         switch (resource) {
             case TARGET:
-                return "flightrecorders";
+                return Set.of("flightrecorders");
             case RECORDING:
-                return "recordings";
+                return Set.of("recordings");
+            case CERTIFICATE:
+                return Set.of("deployments", "cryostats");
+            case CREDENTIALS:
+                return Set.of("cryostats");
             case TEMPLATE:
             case REPORT:
-            case CREDENTIALS:
             case RULE:
-            case CERTIFICATE:
             default:
                 return PERMISSION_NOT_REQUIRED;
         }
