@@ -137,22 +137,31 @@ public class RecordingArchiveHelper {
 
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        List<String> files = fs.listDirectoryChildren(recordingsPath);
         Path archivedRecording = null;
-        for (String file : files) {
-            if (recordingName.equals(Path.of(file).getFileName().toString())) {
-                archivedRecording = recordingsPath.resolve(file);
+        Boolean recordingFound = false;
+        List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
+        for (String subdirectory : subdirectories) {
+            List<String> files =
+                    this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
+                    
+            for (String file : files) {
+                if (recordingName.equals(file)) {
+                    archivedRecording = recordingsPath.resolve(subdirectory + "/" + file);
+                    recordingFound = true;
+                    break;
+                }
+            }
+
+            if (recordingFound) {
                 break;
             }
         }
-
+        
         try {
-            if (!fs.exists(archivedRecording)) {
+            if (!recordingFound || !fs.exists(archivedRecording)) {
                 throw new RecordingNotFoundException(recordingName);
             }
             fs.deleteIfExists(archivedRecording);
-        } catch (NullPointerException e) {
-            throw new RecordingNotFoundException(recordingName);
         } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);
         } catch (IOException e) {
