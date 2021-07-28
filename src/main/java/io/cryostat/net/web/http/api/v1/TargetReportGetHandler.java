@@ -112,8 +112,13 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
             if (rootCause instanceof ReportService.RecordingNotFoundException) {
                 throw new HttpStatusException(404, ee);
             } else if (rootCause instanceof SubprocessReportGenerator.ReportGenerationException
-                    && ((SubprocessReportGenerator.ReportGenerationException) rootCause).getStatus()
-                            == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE) {
+                            && (((SubprocessReportGenerator.ReportGenerationException) rootCause)
+                                            .getStatus()
+                                    == SubprocessReportGenerator.ExitStatus
+                                            .TARGET_CONNECTION_FAILURE)
+                    || (((SubprocessReportGenerator.ReportGenerationException) rootCause)
+                                    .getStatus()
+                            == SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING)) {
                 throw new HttpStatusException(404, ee);
             }
             throw ee;
