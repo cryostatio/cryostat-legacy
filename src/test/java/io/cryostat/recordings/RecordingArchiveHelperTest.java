@@ -505,9 +505,19 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
-        List<String> names =
-                List.of("encodedServiceUriA/recordingA", "encodedServiceUri123/123recording");
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(names);
+        List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
+
+        Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
+        Mockito.when(recordingsPath.resolve(subdirectories.get(0)))
+                .thenReturn(Path.of(subdirectories.get(0)));
+        Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(0))))
+                .thenReturn(List.of("recordingA"));
+
+        Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
+        Mockito.when(recordingsPath.resolve(subdirectories.get(1)))
+                .thenReturn(Path.of(subdirectories.get(1)));
+        Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
+                .thenReturn(List.of("123recording"));
 
         Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
                 .thenAnswer(

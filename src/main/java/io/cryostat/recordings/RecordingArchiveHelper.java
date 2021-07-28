@@ -46,6 +46,7 @@ import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -178,30 +179,32 @@ public class RecordingArchiveHelper {
                 throw new ArchivePathException(recordingsPath.toString(), "is not a directory");
             }
             WebServer webServer = webServerProvider.get();
-            List<String> files = this.fs.listDirectoryChildren(recordingsPath);
-
-            List<ArchivedRecordingInfo> archivedRecordings =
-                    files.stream()
-                            .map(
-                                    file -> {
-                                        String encodedServiceUri =
-                                                Path.of(file).getParent().toString();
-                                        String name = Path.of(file).getFileName().toString();
-                                        try {
-                                            return new ArchivedRecordingInfo(
-                                                    encodedServiceUri,
-                                                    name,
-                                                    webServer.getArchivedReportURL(name),
-                                                    webServer.getArchivedDownloadURL(name));
-                                        } catch (SocketException
-                                                | UnknownHostException
-                                                | URISyntaxException e) {
-                                            logger.warn(e);
-                                            return null;
-                                        }
-                                    })
-                            .filter(Objects::nonNull)
-                            .collect(Collectors.toList());
+            List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
+            List<ArchivedRecordingInfo> archivedRecordings = new ArrayList<>();
+            for (String subdirectory : subdirectories) {
+                List<String> files =
+                        this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
+                List<ArchivedRecordingInfo> temp =
+                        files.stream()
+                                .map(
+                                        file -> {
+                                            try {
+                                                return new ArchivedRecordingInfo(
+                                                        subdirectory,
+                                                        file,
+                                                        webServer.getArchivedReportURL(file),
+                                                        webServer.getArchivedDownloadURL(file));
+                                            } catch (SocketException
+                                                    | UnknownHostException
+                                                    | URISyntaxException e) {
+                                                logger.warn(e);
+                                                return null;
+                                            }
+                                        })
+                                .filter(Objects::nonNull)
+                                .collect(Collectors.toList());
+                archivedRecordings.addAll(temp);
+            }
             future.complete(archivedRecordings);
         } catch (ArchivePathException e) {
             future.completeExceptionally(e);
