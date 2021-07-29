@@ -267,9 +267,9 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                     .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
                     .send(
                             ar -> {
-                            if (assertRequestStatus(ar, listRespFuture6)) {
+                                if (assertRequestStatus(ar, listRespFuture6)) {
                                     listRespFuture6.complete(ar.result().bodyAsJsonArray());
-                            }
+                                }
                             });
             listResp = listRespFuture6.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
             Assertions.assertTrue(listResp.isEmpty());

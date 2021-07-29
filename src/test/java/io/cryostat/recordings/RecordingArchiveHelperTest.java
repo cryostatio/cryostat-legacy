@@ -485,7 +485,7 @@ class RecordingArchiveHelperTest {
     void shouldDeleteRecording() throws Exception {
         List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
         Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
-        
+
         Mockito.when(recordingsPath.resolve(subdirectories.get(0)))
                 .thenReturn(Path.of(subdirectories.get(0)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(0))))
@@ -497,7 +497,8 @@ class RecordingArchiveHelperTest {
                 .thenReturn(List.of("123recording"));
 
         Path archivedRecording = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(subdirectories.get(1) + "/" + "123recording")).thenReturn(archivedRecording);
+        Mockito.when(recordingsPath.resolve(subdirectories.get(1) + "/" + "123recording"))
+                .thenReturn(archivedRecording);
         Mockito.when(fs.exists(archivedRecording)).thenReturn(true);
 
         String recordingName = "123recording";
@@ -516,7 +517,7 @@ class RecordingArchiveHelperTest {
 
         List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
         Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
-        
+
         Mockito.when(recordingsPath.resolve(subdirectories.get(0)))
                 .thenReturn(Path.of(subdirectories.get(0)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(0))))

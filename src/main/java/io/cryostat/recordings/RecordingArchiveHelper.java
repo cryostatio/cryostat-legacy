@@ -208,7 +208,7 @@ public class RecordingArchiveHelper {
         for (String subdirectory : subdirectories) {
             List<String> files =
                     this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
-                    
+
             for (String file : files) {
                 if (recordingName.equals(file)) {
                     archivedRecording = recordingsPath.resolve(subdirectory + "/" + file);

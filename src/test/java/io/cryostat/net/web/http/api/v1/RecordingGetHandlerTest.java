@@ -44,6 +44,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 
 import io.cryostat.recordings.RecordingArchiveHelper;
+
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -63,7 +64,8 @@ class RecordingGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingGetHandler(authManager, savedRecordingsPath, recordingArchiveHelper);
+        this.handler =
+                new RecordingGetHandler(authManager, savedRecordingsPath, recordingArchiveHelper);
     }
 
     @Test
