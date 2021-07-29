@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
@@ -187,7 +188,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         Base32 base32 = new Base32();
         final String encodedServiceUri =
-                base32.encodeAsString(connectionDescriptor.getTargetId().getBytes());
+                base32.encodeAsString(
+                        connectionDescriptor.getTargetId().getBytes(StandardCharsets.UTF_8));
         final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         final String uploadedFileName = upload.uploadedFileName();
         validateRecording(

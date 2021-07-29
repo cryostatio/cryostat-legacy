@@ -43,6 +43,7 @@ import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
@@ -232,7 +233,8 @@ public class RecordingArchiveHelper {
         Base32 base32 = new Base32();
 
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
-        String encodedServiceUri = base32.encodeAsString(serviceUri.toString().getBytes());
+        String encodedServiceUri =
+                base32.encodeAsString(serviceUri.toString().getBytes(StandardCharsets.UTF_8));
         Path specificRecordingsPath = recordingsPath.resolve(encodedServiceUri);
 
         if (!fs.exists(specificRecordingsPath)) {

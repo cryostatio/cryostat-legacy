@@ -37,6 +37,7 @@
  */
 package io.cryostat.rules;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.List;
@@ -109,7 +110,9 @@ class PeriodicArchiver implements Runnable {
                 while (it.hasNext()) {
                     ArchivedRecordingInfo archivedRecordingInfo = it.next();
                     String decodedServiceUri =
-                            new String(base32.decode(archivedRecordingInfo.getEncodedServiceUri()));
+                            new String(
+                                    base32.decode(archivedRecordingInfo.getEncodedServiceUri()),
+                                    StandardCharsets.UTF_8);
                     String fileName = archivedRecordingInfo.getName();
                     Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
                     if (m.matches()) {
