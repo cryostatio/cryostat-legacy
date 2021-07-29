@@ -47,6 +47,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -137,28 +138,28 @@ public class RecordingArchiveHelper {
 
         CompletableFuture<Void> future = new CompletableFuture<>();
 
-        Path archivedRecording = null;
-        Boolean recordingFound = false;
-        List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
-        for (String subdirectory : subdirectories) {
-            List<String> files =
-                    this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
-                    
-            for (String file : files) {
-                if (recordingName.equals(file)) {
-                    archivedRecording = recordingsPath.resolve(subdirectory + "/" + file);
-                    recordingFound = true;
+        try {
+            Path archivedRecording = null;
+            Boolean recordingFound = false;
+            List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
+            for (String subdirectory : subdirectories) {
+                List<String> files =
+                        this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
+                        
+                for (String file : files) {
+                    if (recordingName.equals(file)) {
+                        archivedRecording = recordingsPath.resolve(subdirectory + "/" + file);
+                        recordingFound = true;
+                        break;
+                    }
+                }
+
+                if (recordingFound) {
                     break;
                 }
             }
 
-            if (recordingFound) {
-                break;
-            }
-        }
-        
-        try {
-            if (!recordingFound || !fs.exists(archivedRecording)) {
+            if (!fs.exists(archivedRecording)) {
                 throw new RecordingNotFoundException(recordingName);
             }
             fs.deleteIfExists(archivedRecording);

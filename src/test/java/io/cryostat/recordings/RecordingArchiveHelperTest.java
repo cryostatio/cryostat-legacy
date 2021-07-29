@@ -42,6 +42,7 @@ import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -483,19 +484,27 @@ class RecordingArchiveHelperTest {
 
     @Test
     void shouldDeleteRecording() throws Exception {
-        List<String> files =
-                List.of("encodedServiceUriA/recordingA", "encodedServiceUri123/123recording");
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(files);
+        List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
+        Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
+        
+        Mockito.when(recordingsPath.resolve(subdirectories.get(0)))
+                .thenReturn(Path.of(subdirectories.get(0)));
+        Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(0))))
+                .thenReturn(List.of("recordingA"));
+
+        Mockito.when(recordingsPath.resolve(subdirectories.get(1)))
+                .thenReturn(Path.of(subdirectories.get(1)));
+        Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
+                .thenReturn(List.of("123recording"));
 
         Path archivedRecording = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(archivedRecording);
+        Mockito.when(recordingsPath.resolve(subdirectories.get(1) + "/" + "123recording")).thenReturn(archivedRecording);
         Mockito.when(fs.exists(archivedRecording)).thenReturn(true);
 
-        String recordingName = "recordingA";
+        String recordingName = "123recording";
 
         recordingArchiveHelper.deleteRecording(recordingName);
 
-        Mockito.verify(recordingsPath).resolve(files.get(0));
         Mockito.verify(fs).deleteIfExists(archivedRecording);
         Mockito.verify(reportService).delete(recordingName);
     }
@@ -505,15 +514,15 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
-        List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
 
+        List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
         Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
+        
         Mockito.when(recordingsPath.resolve(subdirectories.get(0)))
                 .thenReturn(Path.of(subdirectories.get(0)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(0))))
                 .thenReturn(List.of("recordingA"));
 
-        Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
         Mockito.when(recordingsPath.resolve(subdirectories.get(1)))
                 .thenReturn(Path.of(subdirectories.get(1)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
