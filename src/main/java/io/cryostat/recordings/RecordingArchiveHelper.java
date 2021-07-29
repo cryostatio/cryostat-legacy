@@ -47,7 +47,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -141,6 +140,7 @@ public class RecordingArchiveHelper {
         try {
             Path archivedRecording = getRecording(recordingName);
             fs.deleteIfExists(archivedRecording);
+            future.complete(null);
         } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);
         } catch (IOException e) {

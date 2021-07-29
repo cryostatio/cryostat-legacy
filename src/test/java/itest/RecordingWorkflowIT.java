@@ -245,6 +245,8 @@ public class RecordingWorkflowIT extends StandardSelfTest {
 
         } finally {
             // Clean up what we created
+
+            // delete target recordings
             CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
             webClient
                     .delete(
@@ -259,6 +261,20 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                             });
             deleteRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
+            // verify target recordings deleted
+            CompletableFuture<JsonArray> listRespFuture6 = new CompletableFuture<>();
+            webClient
+                    .get(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                    .send(
+                            ar -> {
+                            if (assertRequestStatus(ar, listRespFuture6)) {
+                                    listRespFuture6.complete(ar.result().bodyAsJsonArray());
+                            }
+                            });
+            listResp = listRespFuture6.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            Assertions.assertTrue(listResp.isEmpty());
+
+            // delete saved recordings
             CompletableFuture<JsonArray> savedRecordingsFuture = new CompletableFuture<>();
             webClient
                     .get("/api/v1/recordings")
@@ -293,6 +309,19 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                                                     }
                                                 });
                             });
+
+            // verify saved recordings deleted
+            CompletableFuture<JsonArray> listRespFuture7 = new CompletableFuture<>();
+            webClient
+                    .get("/api/v1/recordings")
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture7)) {
+                                    listRespFuture7.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            listResp = listRespFuture7.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            Assertions.assertTrue(listResp.isEmpty());
         }
     }
 }
