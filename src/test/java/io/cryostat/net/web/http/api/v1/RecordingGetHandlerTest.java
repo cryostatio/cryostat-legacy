@@ -59,13 +59,11 @@ class RecordingGetHandlerTest {
 
     RecordingGetHandler handler;
     @Mock AuthManager authManager;
-    @Mock Path savedRecordingsPath;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new RecordingGetHandler(authManager, savedRecordingsPath, recordingArchiveHelper);
+        this.handler = new RecordingGetHandler(authManager, recordingArchiveHelper);
     }
 
     @Test

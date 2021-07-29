@@ -43,9 +43,7 @@ import java.util.EnumSet;
 import java.util.Set;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
-import io.cryostat.MainModule;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.ConnectionDescriptor;
@@ -61,16 +59,11 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final Path savedRecordingsPath;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    RecordingGetHandler(
-            AuthManager auth,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            RecordingArchiveHelper recordingArchiveHelper) {
+    RecordingGetHandler(AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
-        this.savedRecordingsPath = savedRecordingsPath;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
