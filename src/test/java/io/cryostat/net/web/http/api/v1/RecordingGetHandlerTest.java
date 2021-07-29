@@ -40,10 +40,10 @@ package io.cryostat.net.web.http.api.v1;
 import java.nio.file.Path;
 import java.util.Set;
 
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -59,11 +59,11 @@ class RecordingGetHandlerTest {
     RecordingGetHandler handler;
     @Mock AuthManager authManager;
     @Mock Path savedRecordingsPath;
-    @Mock FileSystem fs;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingGetHandler(authManager, savedRecordingsPath, fs);
+        this.handler = new RecordingGetHandler(authManager, savedRecordingsPath, recordingArchiveHelper);
     }
 
     @Test
