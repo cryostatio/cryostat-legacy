@@ -50,6 +50,8 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.jsoup.Jsoup;
+import org.jsoup.parser.Parser;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -107,7 +109,7 @@ public class ReportIT extends StandardSelfTest {
             savedRecordingName.get();
 
             // Get a report for the above recording
-            CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
+            CompletableFuture<String> getResponse = new CompletableFuture<>();
             webClient
                     .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName.get()))
                     .send(
@@ -119,11 +121,15 @@ public class ReportIT extends StandardSelfTest {
                                             ar.result()
                                                     .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
                                             Matchers.equalTo(HttpMimeType.HTML.mime()));
-                                    getResponse.complete(ar.result().bodyAsBuffer());
+                                    getResponse.complete(ar.result().bodyAsString());
                                 }
                             });
 
-            getResponse.get();
+            int MAX_ERRORS_TRACKED = 100;
+            Parser parser = Parser.htmlParser().setTrackErrors(MAX_ERRORS_TRACKED);
+            Jsoup.parse(getResponse.get(), "", parser);
+            System.out.println(parser.getErrors());
+            MatcherAssert.assertThat(parser.getErrors().isEmpty(), Matchers.equalTo(true));
 
         } finally {
             // Clean up recording
