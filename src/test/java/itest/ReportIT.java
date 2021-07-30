@@ -127,17 +127,29 @@ public class ReportIT extends StandardSelfTest {
 
         } finally {
             // Clean up recording
-            CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
+            CompletableFuture<JsonObject> deleteRecResponse = new CompletableFuture<>();
+            webClient
+                    .delete(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteRecResponse)) {
+                                    deleteRecResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            MatcherAssert.assertThat(deleteRecResponse.get(), Matchers.equalTo(null));
+
+            CompletableFuture<JsonObject> deleteArchivedRecResp = new CompletableFuture<>();
             webClient
                     .delete(String.format("/api/v1/recordings/%s", savedRecordingName.get()))
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, deleteResponse)) {
-                                    deleteResponse.complete(ar.result().bodyAsJsonObject());
+                                if (assertRequestStatus(ar, deleteArchivedRecResp)) {
+                                    deleteArchivedRecResp.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
 
-            MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(null));
+            MatcherAssert.assertThat(deleteArchivedRecResp.get(), Matchers.equalTo(null));
         }
     }
 
