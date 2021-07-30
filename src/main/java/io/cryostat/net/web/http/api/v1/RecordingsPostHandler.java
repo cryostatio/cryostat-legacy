@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
@@ -273,6 +274,16 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
         Path specificRecordingsPath = savedRecordingsPath.resolve(encodedServiceUri);
+        
+        if (!fs.exists(specificRecordingsPath)) {
+            try {
+                Files.createDirectory(specificRecordingsPath);
+            } catch (IOException e) {
+                handler.handle(
+                    makeFailedAsyncResult(e));
+                return;
+            }
+        }
 
         vertx.fileSystem()
                 .exists(
