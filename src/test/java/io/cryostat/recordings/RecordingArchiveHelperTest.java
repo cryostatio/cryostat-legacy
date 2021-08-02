@@ -500,6 +500,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(recordingsPath.resolve(subdirectories.get(1) + "/" + "123recording"))
                 .thenReturn(archivedRecording);
         Mockito.when(fs.exists(archivedRecording)).thenReturn(true);
+        Mockito.when(fs.isRegularFile(archivedRecording)).thenReturn(true);
+        Mockito.when(fs.isReadable(archivedRecording)).thenReturn(true);
 
         String recordingName = "123recording";
 
