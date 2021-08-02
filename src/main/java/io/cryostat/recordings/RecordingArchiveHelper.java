@@ -212,7 +212,7 @@ public class RecordingArchiveHelper {
             for (String subdirectory : subdirectories) {
                 List<String> files =
                         this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
-    
+
                 for (String file : files) {
                     if (recordingName.equals(file)) {
                         archivedRecording = recordingsPath.resolve(subdirectory + "/" + file);
@@ -220,12 +220,14 @@ public class RecordingArchiveHelper {
                         break;
                     }
                 }
-    
+
                 if (recordingFound) {
                     break;
                 }
             }
-            if (!(fs.exists(archivedRecording) && fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording))) {
+            if (!(fs.exists(archivedRecording)
+                    && fs.isRegularFile(archivedRecording)
+                    && fs.isReadable(archivedRecording))) {
                 throw new RecordingNotFoundException(recordingName);
             }
             future.complete(archivedRecording);
@@ -235,7 +237,7 @@ public class RecordingArchiveHelper {
             future.completeExceptionally(e);
         }
 
-        return future;       
+        return future;
     }
 
     private String writeRecordingToDestination(

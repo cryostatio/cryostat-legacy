@@ -274,13 +274,12 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
         Path specificRecordingsPath = savedRecordingsPath.resolve(encodedServiceUri);
-        
+
         if (!fs.exists(specificRecordingsPath)) {
             try {
                 Files.createDirectory(specificRecordingsPath);
             } catch (IOException e) {
-                handler.handle(
-                    makeFailedAsyncResult(e));
+                handler.handle(makeFailedAsyncResult(e));
                 return;
             }
         }

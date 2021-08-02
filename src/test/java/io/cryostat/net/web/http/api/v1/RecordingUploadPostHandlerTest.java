@@ -38,22 +38,16 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
-<<<<<<< HEAD
 import java.util.Set;
 import java.util.List;
-=======
->>>>>>> 120b79d5 (Update archived recordings UPLOAD POST handler implementation and testing to reflect proper directory hierarchy)
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
-<<<<<<< HEAD
 import io.cryostat.net.security.ResourceAction;
 
-=======
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
->>>>>>> 120b79d5 (Update archived recordings UPLOAD POST handler implementation and testing to reflect proper directory hierarchy)
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;

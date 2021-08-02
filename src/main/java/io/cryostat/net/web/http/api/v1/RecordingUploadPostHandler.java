@@ -66,7 +66,6 @@ import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import io.vertx.ext.web.multipart.MultipartForm;
-
 import org.apache.commons.validator.routines.UrlValidator;
 
 class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
@@ -151,7 +150,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
         } catch (RecordingNotFoundException e) {
             throw new HttpStatusException(404, e.getMessage(), e);
-        }  catch (IOException e) {
+        } catch (IOException e) {
             throw new HttpStatusException(500, e.getMessage(), e);
         }
 
