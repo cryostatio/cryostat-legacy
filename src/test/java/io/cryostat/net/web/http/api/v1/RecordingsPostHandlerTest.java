@@ -74,6 +74,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -196,6 +197,8 @@ class RecordingsPostHandlerTest {
                         })
                 .when(vertx)
                 .executeBlocking(any(Handler.class), any(Handler.class));
+        
+        when(cryoFs.exists(specificRecordingsPath)).thenReturn(true);
 
         when(vertxFs.exists(Mockito.eq(savePath + filename), any(Handler.class)))
                 .thenAnswer(
