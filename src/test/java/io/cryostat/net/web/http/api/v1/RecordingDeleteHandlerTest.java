@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.v1;
 
 import static org.mockito.Mockito.lenient;
 
-import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -133,19 +132,6 @@ class RecordingDeleteHandlerTest {
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-    }
-
-    @Test
-    void shouldThrow500IfDeletionFails() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any()))
-                .thenThrow(new IOException());
-
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
     }
 
     @Test

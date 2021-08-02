@@ -117,8 +117,6 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
             ctx.response().end();
         } catch (RecordingNotFoundException e) {
             throw new HttpStatusException(404, recordingName);
-        } catch (IOException e) {
-            throw new HttpStatusException(500, e.getMessage(), e);
         }
     }
 }

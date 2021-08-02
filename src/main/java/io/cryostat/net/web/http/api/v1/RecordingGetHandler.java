@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Set;
@@ -102,8 +101,6 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().end();
         } catch (RecordingNotFoundException e) {
             throw new HttpStatusException(404, recordingName);
-        } catch (IOException e) {
-            throw new HttpStatusException(500, e.getMessage(), e);
         }
     }
 }

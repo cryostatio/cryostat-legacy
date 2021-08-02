@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.file.Path;
@@ -150,8 +149,6 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
             recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
         } catch (RecordingNotFoundException e) {
             throw new HttpStatusException(404, e.getMessage(), e);
-        } catch (IOException e) {
-            throw new HttpStatusException(500, e.getMessage(), e);
         }
 
         MultipartForm form =
