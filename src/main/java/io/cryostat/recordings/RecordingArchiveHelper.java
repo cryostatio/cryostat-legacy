@@ -144,8 +144,6 @@ public class RecordingArchiveHelper {
             future.complete(null);
         } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);
-        } catch (IOException e) {
-            future.completeExceptionally(e);
         } finally {
             reportService.delete(recordingName);
         }
@@ -232,8 +230,6 @@ public class RecordingArchiveHelper {
             }
             future.complete(archivedRecording);
         } catch (RecordingNotFoundException e) {
-            future.completeExceptionally(e);
-        } catch (IOException e) {
             future.completeExceptionally(e);
         }
 
