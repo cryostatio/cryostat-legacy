@@ -104,6 +104,7 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         try {
             List<ArchivedRecordingInfo> result = recordingArchiveHelper.getRecordings().get();
+            ctx.response().setStatusCode(200);
             ctx.response().end(gson.toJson(result));
         } catch (ArchivePathException e) {
             throw new HttpStatusException(501, e.getMessage());

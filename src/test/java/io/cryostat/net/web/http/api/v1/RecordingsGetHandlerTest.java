@@ -122,7 +122,7 @@ class RecordingsGetHandlerTest {
     }
 
     @Test
-    void shouldResponseWith501IfDirectoryNotReadable() throws Exception {
+    void shouldRespondWith501IfDirectoryNotReadable() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         ArchivePathException e = new ArchivePathException("/flightrecordings", "is not readable");
 
@@ -176,6 +176,7 @@ class RecordingsGetHandlerTest {
 
         handler.handle(ctx);
 
+        Mockito.verify(resp).setStatusCode(200);
         Mockito.verify(resp)
                 .end(
                         "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\"}]");
