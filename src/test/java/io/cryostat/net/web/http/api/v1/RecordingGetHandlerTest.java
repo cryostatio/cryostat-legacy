@@ -39,19 +39,26 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -60,6 +67,9 @@ class RecordingGetHandlerTest {
     RecordingGetHandler handler;
     @Mock AuthManager authManager;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
+
+    @Mock RoutingContext ctx;
+    @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
@@ -81,5 +91,45 @@ class RecordingGetHandlerTest {
     void shouldHaveExpectedRequiredPermissions() {
         MatcherAssert.assertThat(
                 handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
+    }
+
+    @Test
+    void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
+        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        String recordingName = "foo";
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName))
+                .thenThrow(new RecordingNotFoundException(recordingName));
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+    }
+
+    @Test
+    void shouldHandleSuccessfulGETRequest() throws Exception {
+        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        String recordingName = "foo";
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenReturn(future);
+
+        Path archivedRecording = Mockito.mock(Path.class);
+        Mockito.when(future.get()).thenReturn(archivedRecording);
+        Mockito.when(archivedRecording.normalize()).thenReturn(archivedRecording);
+        Mockito.when(archivedRecording.toAbsolutePath()).thenReturn(archivedRecording);
+        Mockito.when(archivedRecording.toString()).thenReturn("some/path/foo");
+
+        handler.handle(ctx);
+
+        Mockito.verify(resp).sendFile(Mockito.anyString());
+        Mockito.verify(resp).setStatusCode(200);
+        Mockito.verify(resp).end();
     }
 }

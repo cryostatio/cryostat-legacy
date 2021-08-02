@@ -98,7 +98,7 @@ class RecordingDeleteHandlerTest {
     }
 
     @Test
-    void shouldHandleDELETE() {
+    void shouldHandleDELETERequest() {
         MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
     }
 
@@ -135,7 +135,7 @@ class RecordingDeleteHandlerTest {
     }
 
     @Test
-    void shouldHandleSuccessfulDeletion() throws Exception {
+    void shouldHandleSuccessfulDELETERequest() throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
