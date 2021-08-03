@@ -42,6 +42,7 @@ import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -115,8 +116,13 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
                     .send();
             ctx.response().setStatusCode(200);
             ctx.response().end();
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, recordingName);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, cause.getMessage(), cause);
+            } else {
+                throw e;
+            }
         }
     }
 }

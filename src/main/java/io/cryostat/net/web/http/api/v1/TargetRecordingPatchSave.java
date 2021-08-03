@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -85,8 +86,13 @@ class TargetRecordingPatchSave {
                                     connectionDescriptor.getTargetId()))
                     .build()
                     .send();
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, cause.getMessage(), cause);
+            } else {
+                throw e;
+            }
         }
     }
 }

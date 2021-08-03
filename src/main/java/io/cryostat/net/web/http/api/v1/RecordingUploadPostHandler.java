@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -147,8 +148,13 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
         Path recordingPath = null;
         try {
             recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e.getMessage(), e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, cause.getMessage(), cause);
+            } else {
+                throw e;
+            }
         }
 
         MultipartForm form =
