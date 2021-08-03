@@ -72,6 +72,7 @@ class PeriodicArchiverTest {
     @Mock RecordingArchiveHelper recordingArchiveHelper;
     AtomicInteger failureCounter;
     @Mock Logger logger;
+    Base32 base32 = new Base32();
     @Mock Queue<String> previousRecordings;
 
     @BeforeEach
@@ -99,7 +100,8 @@ class PeriodicArchiverTest {
                             failureCounter.incrementAndGet();
                             return null;
                         },
-                        logger);
+                        logger,
+                        base32);
     }
 
     @Test
@@ -186,7 +188,6 @@ class PeriodicArchiverTest {
         // populate the archive with various recordings, two of which are for  the current target
         // (based on the encoded serviceUri), with only one of those two having a recording name
         // that matches the Rule in question
-        Base32 base32 = new Base32();
         String encodedServiceUri =
                 base32.encodeAsString(serviceRef.getServiceUri().toString().getBytes());
         String matchingFileName =

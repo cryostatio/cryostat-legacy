@@ -90,6 +90,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Gson gson;
     private final Logger logger;
     private final NotificationFactory notificationFactory;
+    private final Base32 base32;
+
     private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
 
     @Inject
@@ -100,7 +102,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
             Logger logger,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            Base32 base32) {
         super(auth);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
@@ -108,6 +111,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         this.gson = gson;
         this.logger = logger;
         this.notificationFactory = notificationFactory;
+        this.base32 = base32;
     }
 
     @Override
@@ -187,7 +191,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         : Integer.parseInt(m.group(4).substring(1));
 
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Base32 base32 = new Base32();
         final String encodedServiceUri =
                 base32.encodeAsString(
                         connectionDescriptor.getTargetId().getBytes(StandardCharsets.UTF_8));

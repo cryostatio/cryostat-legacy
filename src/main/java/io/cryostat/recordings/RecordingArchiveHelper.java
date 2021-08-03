@@ -90,6 +90,7 @@ public class RecordingArchiveHelper {
     private final PlatformClient platformClient;
     private final ReportService reportService;
     private final NotificationFactory notificationFactory;
+    private final Base32 base32;
 
     private static final String SAVE_NOTIFICATION_CATEGORY = "RecordingArchived";
     private static final String DELETE_NOTIFICATION_CATEGORY = "RecordingDeleted";
@@ -103,7 +104,8 @@ public class RecordingArchiveHelper {
             Clock clock,
             PlatformClient platformClient,
             ReportService reportService,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            Base32 base32) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
         this.logger = logger;
@@ -113,6 +115,7 @@ public class RecordingArchiveHelper {
         this.platformClient = platformClient;
         this.reportService = reportService;
         this.notificationFactory = notificationFactory;
+        this.base32 = base32;
     }
 
     public Future<String> saveRecording(
@@ -266,8 +269,6 @@ public class RecordingArchiveHelper {
 
     private String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor) throws Exception {
-        Base32 base32 = new Base32();
-
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri =
                 base32.encodeAsString(serviceUri.toString().getBytes(StandardCharsets.UTF_8));

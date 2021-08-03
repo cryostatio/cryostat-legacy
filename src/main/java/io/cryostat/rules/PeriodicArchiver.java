@@ -72,6 +72,7 @@ class PeriodicArchiver implements Runnable {
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
+    private final Base32 base32;
 
     private final Queue<String> previousRecordings;
 
@@ -81,13 +82,15 @@ class PeriodicArchiver implements Runnable {
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
-            Logger logger) {
+            Logger logger,
+            Base32 base32) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
+        this.base32 = base32;
 
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
@@ -101,7 +104,6 @@ class PeriodicArchiver implements Runnable {
             // archived or the Cryostat instance was restarted. Since it could be the latter,
             // populate the array with any previously archived recordings for this rule.
             if (previousRecordings.isEmpty()) {
-                Base32 base32 = new Base32();
                 String serviceUri = serviceRef.getServiceUri().toString();
                 List<ArchivedRecordingInfo> archivedRecordings =
                         recordingArchiveHelper.getRecordings().get();

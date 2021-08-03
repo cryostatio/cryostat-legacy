@@ -59,6 +59,7 @@ import io.cryostat.platform.PlatformClient;
 
 import dagger.Module;
 import dagger.Provides;
+import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class RecordingsModule {
@@ -84,7 +85,8 @@ public abstract class RecordingsModule {
             Clock clock,
             PlatformClient platformClient,
             ReportService reportService,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            Base32 base32) {
         return new RecordingArchiveHelper(
                 fs,
                 webServerProvider,
@@ -94,7 +96,8 @@ public abstract class RecordingsModule {
                 clock,
                 platformClient,
                 reportService,
-                notificationFactory);
+                notificationFactory,
+                base32);
     }
 
     @Provides
