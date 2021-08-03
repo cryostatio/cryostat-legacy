@@ -62,9 +62,10 @@ import org.junit.jupiter.api.Test;
 public class ReportIT extends StandardSelfTest {
 
     static final String TEST_RECORDING_NAME = "someRecording";
-    static final String REPORT_REQ_URL = "/api/v1/reports/";
+    static final String REPORT_REQ_URL = "/api/v1/reports";
     static final String RECORDING_REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
+    static final String ARCHIVE_REQ_URL = "/api/v1/recordings";
     static final String TEMP_REPORT = "src/test/resources/reportTest.html";
     static File file;
     static Document doc;
@@ -179,7 +180,7 @@ public class ReportIT extends StandardSelfTest {
 
             CompletableFuture<JsonObject> deleteArchivedRecResp = new CompletableFuture<>();
             webClient
-                    .delete(String.format("/api/v1/recordings/%s", savedRecordingName.get()))
+                    .delete(String.format("%s/%s", ARCHIVE_REQ_URL, savedRecordingName.get()))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteArchivedRecResp)) {
