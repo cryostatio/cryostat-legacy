@@ -113,6 +113,8 @@ public class TargetReportIT extends StandardSelfTest {
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteResponse)) {
+                                    MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                                     deleteResponse.complete(ar.result().bodyAsJsonObject());
                                 }
                             });

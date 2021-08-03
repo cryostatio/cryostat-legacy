@@ -133,17 +133,19 @@ public class ReportIT extends StandardSelfTest {
 
         } finally {
             // Clean up recording
-            CompletableFuture<JsonObject> deleteRecResponse = new CompletableFuture<>();
+            CompletableFuture<JsonObject> deleteActiveRecResponse = new CompletableFuture<>();
             webClient
                     .delete(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, deleteRecResponse)) {
-                                    deleteRecResponse.complete(ar.result().bodyAsJsonObject());
+                                if (assertRequestStatus(ar, deleteActiveRecResponse)) {
+                                    MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                    deleteActiveRecResponse.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
 
-            MatcherAssert.assertThat(deleteRecResponse.get(), Matchers.equalTo(null));
+            MatcherAssert.assertThat(deleteActiveRecResponse.get(), Matchers.equalTo(null));
 
             CompletableFuture<JsonObject> deleteArchivedRecResp = new CompletableFuture<>();
             webClient
@@ -151,6 +153,8 @@ public class ReportIT extends StandardSelfTest {
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteArchivedRecResp)) {
+                                    MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                                     deleteArchivedRecResp.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
