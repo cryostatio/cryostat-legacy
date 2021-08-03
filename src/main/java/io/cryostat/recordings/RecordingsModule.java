@@ -47,7 +47,6 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 
 import io.cryostat.MainModule;
 import io.cryostat.core.RecordingOptionsCustomizer;
-import io.cryostat.commands.internal.EventOptionsBuilder;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
