@@ -37,7 +37,6 @@
  */
 package itest;
 
-import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -250,19 +249,6 @@ public class SnapshotIT extends StandardSelfTest {
                             "http://localhost:8181%s/reports/%s",
                             TARGET_REQ_URL, snapshotName.get());
 
-            LinkedHashMap<String, Object> expectedResult = new LinkedHashMap<String, Object>();
-            expectedResult.put("downloadUrl", expectedDownloadUrl);
-            expectedResult.put("reportUrl", expectedReportUrl);
-            expectedResult.put("id", snapshotId);
-            expectedResult.put("name", snapshotName.get());
-            expectedResult.put("state", "STOPPED");
-            expectedResult.put("startTime", startTime);
-            expectedResult.put("duration", 0);
-            expectedResult.put("continuous", true);
-            expectedResult.put("toDisk", true);
-            expectedResult.put("maxSize", 0);
-            expectedResult.put("maxAge", 0);
-
             JsonObject expectedCreateResponse =
                     new JsonObject(
                             Map.of(
@@ -272,7 +258,29 @@ public class SnapshotIT extends StandardSelfTest {
                                                     HttpMimeType.PLAINTEXT.mime(),
                                                     "status",
                                                     "Created"),
-                                    "data", Map.of("result", expectedResult)));
+                                    "data",
+                                            Map.ofEntries(
+                                                    Map.entry(
+                                                            "result",
+                                                            Map.ofEntries(
+                                                                    Map.entry(
+                                                                            "downloadUrl",
+                                                                            expectedDownloadUrl),
+                                                                    Map.entry(
+                                                                            "reportUrl",
+                                                                            expectedReportUrl),
+                                                                    Map.entry("id", snapshotId),
+                                                                    Map.entry(
+                                                                            "name",
+                                                                            snapshotName.get()),
+                                                                    Map.entry("state", "STOPPED"),
+                                                                    Map.entry(
+                                                                            "startTime", startTime),
+                                                                    Map.entry("duration", 0),
+                                                                    Map.entry("continuous", true),
+                                                                    Map.entry("toDisk", true),
+                                                                    Map.entry("maxSize", 0),
+                                                                    Map.entry("maxAge", 0))))));
 
             MatcherAssert.assertThat(
                     createResponse.get(), Matchers.equalToObject(expectedCreateResponse));
