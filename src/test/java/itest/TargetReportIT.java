@@ -37,6 +37,9 @@
  */
 package itest;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -49,6 +52,9 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -60,6 +66,9 @@ public class TargetReportIT extends StandardSelfTest {
                     "/api/v1/targets/%s/reports/%s", SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME);
     static final String RECORDING_REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
+    static final String TEMP_REPORT = "src/test/resources/reportTest.html";
+    static File file;
+    static Document doc;
 
     @Test
     void testGetReportShouldSendFile() throws Exception {
@@ -103,9 +112,35 @@ public class TargetReportIT extends StandardSelfTest {
                                 }
                             });
 
-            getResponse.get();
+            file = new File(TEMP_REPORT);
+
+            try (FileOutputStream fos = new FileOutputStream(file);
+                    BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+
+                byte[] bytes = getResponse.get().getBytes();
+                bos.write(bytes);
+            }
+
+            doc = Jsoup.parse(file, "UTF-8");
+
+            MatcherAssert.assertThat(file.length(), Matchers.greaterThan(0L));
+
+            Elements head = doc.getElementsByTag("head");
+            Elements titles = head.first().getElementsByTag("title");
+            Elements body = doc.getElementsByTag("body");
+            Elements script = head.first().getElementsByTag("script");
+
+            MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(titles.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(
+                    "Expected at least one <script>",
+                    script.size(),
+                    Matchers.greaterThanOrEqualTo(1));
 
         } finally {
+            file.delete();
+
             // Clean up recording
             CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
             webClient
@@ -114,7 +149,7 @@ public class TargetReportIT extends StandardSelfTest {
                             ar -> {
                                 if (assertRequestStatus(ar, deleteResponse)) {
                                     MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                            ar.result().statusCode(), Matchers.equalTo(200));
                                     deleteResponse.complete(ar.result().bodyAsJsonObject());
                                 }
                             });

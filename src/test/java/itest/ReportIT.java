@@ -37,6 +37,9 @@
  */
 package itest;
 
+import java.io.BufferedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -51,7 +54,8 @@ import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
-import org.jsoup.parser.Parser;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -61,6 +65,9 @@ public class ReportIT extends StandardSelfTest {
     static final String REPORT_REQ_URL = "/api/v1/reports/";
     static final String RECORDING_REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
+    static final String TEMP_REPORT = "src/test/resources/reportTest.html";
+    static File file;
+    static Document doc;
 
     @Test
     void testGetReportShouldSendFile() throws Exception {
@@ -109,7 +116,7 @@ public class ReportIT extends StandardSelfTest {
             savedRecordingName.get();
 
             // Get a report for the above recording
-            CompletableFuture<String> getResponse = new CompletableFuture<>();
+            CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
             webClient
                     .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName.get()))
                     .send(
@@ -121,17 +128,39 @@ public class ReportIT extends StandardSelfTest {
                                             ar.result()
                                                     .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
                                             Matchers.equalTo(HttpMimeType.HTML.mime()));
-                                    getResponse.complete(ar.result().bodyAsString());
+                                    getResponse.complete(ar.result().bodyAsBuffer());
                                 }
                             });
 
-            int MAX_ERRORS_TRACKED = 100;
-            Parser parser = Parser.htmlParser().setTrackErrors(MAX_ERRORS_TRACKED);
-            Jsoup.parse(getResponse.get(), "", parser);
-            System.out.println(parser.getErrors());
-            MatcherAssert.assertThat(parser.getErrors().isEmpty(), Matchers.equalTo(true));
+            file = new File(TEMP_REPORT);
+
+            try (FileOutputStream fos = new FileOutputStream(file);
+                    BufferedOutputStream bos = new BufferedOutputStream(fos)) {
+
+                byte[] bytes = getResponse.get().getBytes();
+                bos.write(bytes);
+            }
+
+            doc = Jsoup.parse(file, "UTF-8");
+
+            MatcherAssert.assertThat(file.length(), Matchers.greaterThan(0L));
+
+            Elements head = doc.getElementsByTag("head");
+            Elements titles = head.first().getElementsByTag("title");
+            Elements body = doc.getElementsByTag("body");
+            Elements script = head.first().getElementsByTag("script");
+
+            MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(titles.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(
+                    "Expected at least one <script>",
+                    script.size(),
+                    Matchers.greaterThanOrEqualTo(1));
 
         } finally {
+            file.delete();
+
             // Clean up recording
             CompletableFuture<JsonObject> deleteActiveRecResponse = new CompletableFuture<>();
             webClient
@@ -140,8 +169,9 @@ public class ReportIT extends StandardSelfTest {
                             ar -> {
                                 if (assertRequestStatus(ar, deleteActiveRecResponse)) {
                                     MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(200));
-                                    deleteActiveRecResponse.complete(ar.result().bodyAsJsonObject());
+                                            ar.result().statusCode(), Matchers.equalTo(200));
+                                    deleteActiveRecResponse.complete(
+                                            ar.result().bodyAsJsonObject());
                                 }
                             });
 
@@ -154,7 +184,7 @@ public class ReportIT extends StandardSelfTest {
                             ar -> {
                                 if (assertRequestStatus(ar, deleteArchivedRecResp)) {
                                     MatcherAssert.assertThat(
-                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                            ar.result().statusCode(), Matchers.equalTo(200));
                                     deleteArchivedRecResp.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
