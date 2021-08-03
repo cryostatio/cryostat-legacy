@@ -118,7 +118,7 @@ class KubeApiPlatformStrategy implements PlatformDetectionStrategy<KubeApiPlatfo
         try {
             return fs.readString(Paths.get(Config.KUBERNETES_NAMESPACE_PATH));
         } catch (IOException e) {
-            logger.info(e);
+            logger.trace(e);
             return null;
         }
     }
