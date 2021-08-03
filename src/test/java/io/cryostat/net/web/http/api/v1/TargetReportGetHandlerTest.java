@@ -192,7 +192,7 @@ class TargetReportGetHandlerTest {
 
     @Test
     void shouldRespond404IfRecordingNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
