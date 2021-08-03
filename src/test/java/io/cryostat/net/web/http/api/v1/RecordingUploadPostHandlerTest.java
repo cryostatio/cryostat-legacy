@@ -141,9 +141,14 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
-        String recordingName = "foo";
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(auth.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+        
+        String recordingName = "foo";
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
         Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenThrow(new RecordingNotFoundException(recordingName));
