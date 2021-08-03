@@ -98,7 +98,9 @@ class RecordingGetHandlerTest {
         Mockito.when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
         String recordingName = "foo";
@@ -116,8 +118,10 @@ class RecordingGetHandlerTest {
         Mockito.when(authManager.validateHttpHeader(Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
-        Mockito.when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
-        .thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         String recordingName = "foo";
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
