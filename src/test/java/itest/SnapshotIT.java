@@ -37,9 +37,12 @@
  */
 package itest;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import io.cryostat.net.web.http.HttpMimeType;
@@ -181,23 +184,6 @@ public class SnapshotIT extends StandardSelfTest {
         try {
             // Create a recording
             CompletableFuture<JsonObject> recordResponse = new CompletableFuture<>();
-            // final String expectedMetaResponse =
-            //         "{\"meta\":{\"type\":\"text/plain\",\"status\":\"Created\"}";
-            final String downloadUrl =
-                    String.format(
-                            "http://localhost:8181%s/recordings/%s", TARGET_REQ_URL, "snapshot-4");
-            // final String expectedDownloadUrl = String.format("\"downloadUrl\":\"%s\"",
-            // downloadUrl);
-            // final String expectedReportUrl =
-            //         String.format(
-            //                 "\"reportUrl\":\"http://localhost:8181%s/reports/%s\"",
-            //                 TARGET_REQ_URL, "snapshot-4");
-            // final String expectedRecordingId =
-            //         String.format("\"id\":4,\"name\":\"%s\"", "snapshot-4");
-            // final String expectedRecordingState = "\"state\":\"STOPPED\"";
-            // final String expectedRecordingOptions =
-            //
-            // "\"duration\":0,\"continuous\":true,\"toDisk\":true,\"maxSize\":0,\"maxAge\":0";
 
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             form.add("recordingName", TEST_RECORDING_NAME);
@@ -231,9 +217,6 @@ public class SnapshotIT extends StandardSelfTest {
                                             ar.result()
                                                     .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
                                             Matchers.equalTo(HttpMimeType.PLAINTEXT.mime()));
-                                    MatcherAssert.assertThat(
-                                            ar.result().getHeader("Location"),
-                                            Matchers.equalTo(downloadUrl));
                                     createResponse.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
@@ -244,19 +227,55 @@ public class SnapshotIT extends StandardSelfTest {
                             .getJsonObject("data")
                             .getJsonObject("result")
                             .getString("name"));
-            // MatcherAssert.assertThat(
-            //     createResponse.get(), Matchers.containsString(expectedMetaResponse));
-            // MatcherAssert.assertThat(
-            //     createResponse.get(), Matchers.containsString(expectedDownloadUrl));
-            // MatcherAssert.assertThat(
-            //     createResponse.get(), Matchers.containsString(expectedReportUrl));
-            // MatcherAssert.assertThat(
-            //     createResponse.get(), Matchers.containsString(expectedRecordingId));
-            // MatcherAssert.assertThat(
-            //     createResponse.get(), Matchers.containsString(expectedRecordingState));
-            // MatcherAssert.assertThat(createResponse.get(), Matchers.containsString("startTime"));
-            // MatcherAssert.assertThat(
-            //     createResponse.get(), Matchers.containsString(expectedRecordingOptions));
+
+            final Long startTime =
+                    createResponse
+                            .get()
+                            .getJsonObject("data")
+                            .getJsonObject("result")
+                            .getLong("startTime");
+
+            // Extract id from snapshot name for validation
+            Pattern idPattern = Pattern.compile("[0-9]+");
+            Matcher idMatcher = idPattern.matcher(snapshotName.get());
+            idMatcher.find();
+            final Integer snapshotId = Integer.parseInt(idMatcher.group());
+
+            final String expectedDownloadUrl =
+                    String.format(
+                            "http://localhost:8181%s/recordings/%s",
+                            TARGET_REQ_URL, snapshotName.get());
+            final String expectedReportUrl =
+                    String.format(
+                            "http://localhost:8181%s/reports/%s",
+                            TARGET_REQ_URL, snapshotName.get());
+
+            LinkedHashMap<String, Object> expectedResult = new LinkedHashMap<String, Object>();
+            expectedResult.put("downloadUrl", expectedDownloadUrl);
+            expectedResult.put("reportUrl", expectedReportUrl);
+            expectedResult.put("id", snapshotId);
+            expectedResult.put("name", snapshotName.get());
+            expectedResult.put("state", "STOPPED");
+            expectedResult.put("startTime", startTime);
+            expectedResult.put("duration", 0);
+            expectedResult.put("continuous", true);
+            expectedResult.put("toDisk", true);
+            expectedResult.put("maxSize", 0);
+            expectedResult.put("maxAge", 0);
+
+            JsonObject expectedCreateResponse =
+                    new JsonObject(
+                            Map.of(
+                                    "meta",
+                                            Map.of(
+                                                    "type",
+                                                    HttpMimeType.PLAINTEXT.mime(),
+                                                    "status",
+                                                    "Created"),
+                                    "data", Map.of("result", expectedResult)));
+
+            MatcherAssert.assertThat(
+                    createResponse.get(), Matchers.equalToObject(expectedCreateResponse));
 
         } finally {
             // Clean up recording and snapshot
