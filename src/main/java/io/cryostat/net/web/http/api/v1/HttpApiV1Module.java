@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
@@ -92,9 +91,8 @@ public abstract class HttpApiV1Module {
 
     @Provides
     static TargetRecordingPatchSave provideTargetRecordingPatchSave(
-            RecordingArchiveHelper recordingArchiveHelper,
-            NotificationFactory notificationFactory) {
-        return new TargetRecordingPatchSave(recordingArchiveHelper, notificationFactory);
+            RecordingArchiveHelper recordingArchiveHelper) {
+        return new TargetRecordingPatchSave(recordingArchiveHelper);
     }
 
     @Provides

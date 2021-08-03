@@ -44,8 +44,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
@@ -72,9 +70,6 @@ class RecordingDeleteHandlerTest {
 
     RecordingDeleteHandler handler;
     @Mock AuthManager auth;
-    @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @Mock RoutingContext ctx;
@@ -82,20 +77,7 @@ class RecordingDeleteHandlerTest {
 
     @BeforeEach
     void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
-        this.handler =
-                new RecordingDeleteHandler(auth, notificationFactory, recordingArchiveHelper);
+        this.handler = new RecordingDeleteHandler(auth, recordingArchiveHelper);
     }
 
     @Test
@@ -151,14 +133,6 @@ class RecordingDeleteHandlerTest {
 
         handler.handle(ctx);
 
-        Mockito.verify(resp).setStatusCode(200);
         Mockito.verify(resp).end();
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
     }
 }

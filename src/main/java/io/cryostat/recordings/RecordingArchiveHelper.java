@@ -49,6 +49,7 @@ import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -65,10 +66,12 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -86,6 +89,10 @@ public class RecordingArchiveHelper {
     private final Clock clock;
     private final PlatformClient platformClient;
     private final ReportService reportService;
+    private final NotificationFactory notificationFactory;
+
+    private static final String SAVE_NOTIFICATION_CATEGORY = "RecordingArchived";
+    private static final String DELETE_NOTIFICATION_CATEGORY = "RecordingDeleted";
 
     RecordingArchiveHelper(
             FileSystem fs,
@@ -95,7 +102,8 @@ public class RecordingArchiveHelper {
             TargetConnectionManager targetConnectionManager,
             Clock clock,
             PlatformClient platformClient,
-            ReportService reportService) {
+            ReportService reportService,
+            NotificationFactory notificationFactory) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
         this.logger = logger;
@@ -104,6 +112,7 @@ public class RecordingArchiveHelper {
         this.clock = clock;
         this.platformClient = platformClient;
         this.reportService = reportService;
+        this.notificationFactory = notificationFactory;
     }
 
     public Future<String> saveRecording(
@@ -127,6 +136,18 @@ public class RecordingArchiveHelper {
                                 }
                             });
             future.complete(saveName);
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(SAVE_NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(
+                            Map.of(
+                                    "recording",
+                                    saveName,
+                                    "target",
+                                    connectionDescriptor.getTargetId()))
+                    .build()
+                    .send();
         } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);
         }
@@ -141,6 +162,13 @@ public class RecordingArchiveHelper {
         try {
             Path archivedRecording = getRecordingPath(recordingName).get();
             fs.deleteIfExists(archivedRecording);
+            notificationFactory
+                    .createBuilder()
+                    .metaCategory(DELETE_NOTIFICATION_CATEGORY)
+                    .metaType(HttpMimeType.JSON)
+                    .message(Map.of("recording", recordingName))
+                    .build()
+                    .send();
             future.complete(null);
         } catch (RecordingNotFoundException e) {
             future.completeExceptionally(e);

@@ -46,12 +46,10 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -62,18 +60,11 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final NotificationFactory notificationFactory;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingDeleted";
-
     @Inject
-    RecordingDeleteHandler(
-            AuthManager auth,
-            NotificationFactory notificationFactory,
-            RecordingArchiveHelper recordingArchiveHelper) {
+    RecordingDeleteHandler(AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
-        this.notificationFactory = notificationFactory;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
@@ -107,14 +98,6 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
         String recordingName = ctx.pathParam("recordingName");
         try {
             recordingArchiveHelper.deleteRecording(recordingName).get();
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", recordingName))
-                    .build()
-                    .send();
-            ctx.response().setStatusCode(200);
             ctx.response().end();
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();

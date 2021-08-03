@@ -37,12 +37,15 @@
  */
 package io.cryostat.recordings;
 
+import static org.mockito.Mockito.lenient;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.management.remote.JMXServiceURL;
@@ -54,10 +57,13 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -87,6 +93,9 @@ class RecordingArchiveHelperTest {
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
     @Mock ReportService reportService;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -96,6 +105,18 @@ class RecordingArchiveHelperTest {
 
     @BeforeEach
     void setup() {
+        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
+        lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.recordingArchiveHelper =
                 new RecordingArchiveHelper(
                         fs,
@@ -105,7 +126,8 @@ class RecordingArchiveHelperTest {
                         targetConnectionManager,
                         clock,
                         platformClient,
-                        reportService);
+                        reportService,
+                        notificationFactory);
     }
 
     @Test
@@ -208,6 +230,18 @@ class RecordingArchiveHelperTest {
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".jfr"));
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "recording",
+                                "some-Alias-2_someRecording_" + timestamp + ".jfr",
+                                "target",
+                                targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -278,6 +312,18 @@ class RecordingArchiveHelperTest {
                 saveName,
                 Matchers.equalTo("some-hostname-local_someRecording_" + timestamp + ".jfr"));
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "recording",
+                                "some-hostname-local_someRecording_" + timestamp + ".jfr",
+                                "target",
+                                targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -342,6 +388,18 @@ class RecordingArchiveHelperTest {
                 saveName,
                 Matchers.equalTo("some-hostname-local_someRecording_" + timestamp + ".jfr"));
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "recording",
+                                "some-hostname-local_someRecording_" + timestamp + ".jfr",
+                                "target",
+                                targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -411,6 +469,18 @@ class RecordingArchiveHelperTest {
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".jfr"));
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "recording",
+                                "some-Alias-2_someRecording_" + timestamp + ".jfr",
+                                "target",
+                                targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -479,6 +549,18 @@ class RecordingArchiveHelperTest {
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".1.jfr"));
         Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "recording",
+                                "some-Alias-2_someRecording_" + timestamp + ".1.jfr",
+                                "target",
+                                targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test
@@ -509,6 +591,12 @@ class RecordingArchiveHelperTest {
 
         Mockito.verify(fs).deleteIfExists(archivedRecording);
         Mockito.verify(reportService).delete(recordingName);
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     @Test

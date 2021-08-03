@@ -83,7 +83,8 @@ public abstract class RecordingsModule {
             TargetConnectionManager targetConnectionManager,
             Clock clock,
             PlatformClient platformClient,
-            ReportService reportService) {
+            ReportService reportService,
+            NotificationFactory notificationFactory) {
         return new RecordingArchiveHelper(
                 fs,
                 webServerProvider,
@@ -92,7 +93,8 @@ public abstract class RecordingsModule {
                 targetConnectionManager,
                 clock,
                 platformClient,
-                reportService);
+                reportService,
+                notificationFactory);
     }
 
     @Provides

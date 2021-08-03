@@ -176,7 +176,6 @@ class RecordingsGetHandlerTest {
 
         handler.handle(ctx);
 
-        Mockito.verify(resp).setStatusCode(200);
         Mockito.verify(resp)
                 .end(
                         "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\"}]");

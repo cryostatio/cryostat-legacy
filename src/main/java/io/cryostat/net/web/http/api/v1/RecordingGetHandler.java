@@ -97,7 +97,6 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         try {
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             ctx.response().sendFile(archivedRecording.normalize().toAbsolutePath().toString());
-            ctx.response().setStatusCode(200);
             ctx.response().end();
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();

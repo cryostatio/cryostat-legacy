@@ -37,14 +37,11 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -53,16 +50,11 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingPatchSave {
 
-    private final NotificationFactory notificationFactory;
     private final RecordingArchiveHelper recordingArchiveHelper;
-    private static final String NOTIFICATION_CATEGORY = "RecordingArchived";
 
     @Inject
-    TargetRecordingPatchSave(
-            RecordingArchiveHelper recordingArchiveHelper,
-            NotificationFactory notificationFactory) {
+    TargetRecordingPatchSave(RecordingArchiveHelper recordingArchiveHelper) {
         this.recordingArchiveHelper = recordingArchiveHelper;
-        this.notificationFactory = notificationFactory;
     }
 
     void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
@@ -71,21 +63,7 @@ class TargetRecordingPatchSave {
         try {
             String saveName =
                     recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
-
-            ctx.response().setStatusCode(200);
             ctx.response().end(saveName);
-            notificationFactory
-                    .createBuilder()
-                    .metaCategory(NOTIFICATION_CATEGORY)
-                    .metaType(HttpMimeType.JSON)
-                    .message(
-                            Map.of(
-                                    "recording",
-                                    saveName,
-                                    "target",
-                                    connectionDescriptor.getTargetId()))
-                    .build()
-                    .send();
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof RecordingNotFoundException) {
