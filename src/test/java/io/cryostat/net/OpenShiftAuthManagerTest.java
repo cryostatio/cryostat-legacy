@@ -42,8 +42,10 @@ import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import io.cryostat.MainModule;
@@ -185,35 +187,13 @@ class OpenShiftAuthManagerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(mode = EnumSource.Mode.MATCH_ANY, names = "^([a-zA-Z]+_(RECORDING|TARGET))$")
+    @EnumSource(
+            mode = EnumSource.Mode.MATCH_ANY,
+            names = "^([a-zA-Z]+_(RECORDING|TARGET|CERTIFICATE|CREDENTIALS))$")
     void shouldValidateExpectedPermissionsPerSecuredResource(ResourceAction resourceAction)
             throws Exception {
         Mockito.when(fs.readFile(Mockito.any()))
                 .thenReturn(new BufferedReader(new StringReader("mynamespace")));
-
-        SelfSubjectAccessReview accessReview =
-                new SelfSubjectAccessReviewBuilder()
-                        .withNewStatus()
-                        .withAllowed(true)
-                        .endStatus()
-                        .build();
-        server.expect()
-                .post()
-                .withPath(SUBJECT_REVIEW_API_PATH)
-                .andReturn(HttpURLConnection.HTTP_CREATED, accessReview)
-                .once();
-
-        String token = "abcd1234";
-        MatcherAssert.assertThat(
-                mgr.validateToken(() -> token, Set.of(resourceAction)).get(), Matchers.is(true));
-
-        RecordedRequest req = server.getLastRequest();
-        MatcherAssert.assertThat(req.getPath(), Matchers.equalTo(SUBJECT_REVIEW_API_PATH));
-        MatcherAssert.assertThat(tokenProvider.token, Matchers.equalTo(token));
-        MatcherAssert.assertThat(req.getMethod(), Matchers.equalTo("POST"));
-
-        SelfSubjectAccessReview body =
-                gson.fromJson(req.getBody().readUtf8(), SelfSubjectAccessReview.class);
 
         String expectedVerb;
         if (resourceAction.getVerb() == ResourceVerb.CREATE) {
@@ -227,28 +207,98 @@ class OpenShiftAuthManagerTest {
         } else {
             throw new IllegalArgumentException(resourceAction.getVerb().toString());
         }
-        MatcherAssert.assertThat(
-                body.getSpec().getResourceAttributes().getVerb(), Matchers.equalTo(expectedVerb));
 
-        String expectedResource;
+        Set<String> expectedResources;
         if (resourceAction.getResource() == ResourceType.TARGET) {
-            expectedResource = "flightrecorders";
+            expectedResources = Set.of("flightrecorders");
         } else if (resourceAction.getResource() == ResourceType.RECORDING) {
-            expectedResource = "recordings";
+            expectedResources = Set.of("recordings");
+        } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
+            expectedResources = Set.of("deployments", "pods", "cryostats");
+        } else if (resourceAction.getResource() == ResourceType.CREDENTIALS) {
+            expectedResources = Set.of("cryostats");
         } else {
             throw new IllegalArgumentException(resourceAction.getResource().toString());
         }
+
+        SelfSubjectAccessReview accessReview =
+                new SelfSubjectAccessReviewBuilder()
+                        .withNewStatus()
+                        .withAllowed(true)
+                        .endStatus()
+                        .build();
+        server.expect()
+                .post()
+                .withPath(SUBJECT_REVIEW_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_CREATED, accessReview)
+                .times(expectedResources.size());
+
+        String token = "abcd1234";
         MatcherAssert.assertThat(
-                body.getSpec().getResourceAttributes().getResource(),
-                Matchers.equalTo(expectedResource));
+                mgr.validateToken(() -> token, Set.of(resourceAction)).get(), Matchers.is(true));
+
+        // server.takeRequest() returns each request fired in order, so do that repeatedly and drop
+        // any initial requests that are made by the OpenShiftClient that aren't directly
+        // SelfSubjectAccessReview requests made by the OpenShiftAuthManager
+        int maxDroppedRequests = 2;
+        int requestCount = 0;
+        RecordedRequest req = server.takeRequest();
+        while (true) {
+            if (++requestCount > maxDroppedRequests) {
+                throw new IllegalStateException();
+            }
+            String path = req.getPath();
+            if (SUBJECT_REVIEW_API_PATH.equals(path)) {
+                break;
+            }
+            req = server.takeRequest();
+        }
+        MatcherAssert.assertThat(req.getPath(), Matchers.equalTo(SUBJECT_REVIEW_API_PATH));
+        MatcherAssert.assertThat(tokenProvider.token, Matchers.equalTo(token));
+        MatcherAssert.assertThat(req.getMethod(), Matchers.equalTo("POST"));
+
+        SelfSubjectAccessReview body =
+                gson.fromJson(req.getBody().readUtf8(), SelfSubjectAccessReview.class);
+        MatcherAssert.assertThat(
+                body.getSpec().getResourceAttributes().getVerb(), Matchers.equalTo(expectedVerb));
+
+        Set<String> actualResources = new HashSet<>();
+        actualResources.add(body.getSpec().getResourceAttributes().getResource());
+        // start at 1 because we've already checked the first request above
+        for (int i = 1; i < expectedResources.size(); i++) {
+            // request should already have been made, so there should be no time waiting for a
+            // request to come in
+            req = server.takeRequest(1, TimeUnit.SECONDS);
+            if (req == null) {
+                throw new IllegalStateException("Expected request not received in time");
+            }
+            body = gson.fromJson(req.getBody().readUtf8(), SelfSubjectAccessReview.class);
+
+            MatcherAssert.assertThat(req.getPath(), Matchers.equalTo(SUBJECT_REVIEW_API_PATH));
+            MatcherAssert.assertThat(tokenProvider.token, Matchers.equalTo(token));
+            MatcherAssert.assertThat(req.getMethod(), Matchers.equalTo("POST"));
+            MatcherAssert.assertThat(
+                    body.getSpec().getResourceAttributes().getVerb(),
+                    Matchers.equalTo(expectedVerb));
+            actualResources.add(body.getSpec().getResourceAttributes().getResource());
+        }
+
+        MatcherAssert.assertThat(actualResources, Matchers.equalTo(expectedResources));
     }
 
     @ParameterizedTest
     @EnumSource(
             mode = EnumSource.Mode.MATCH_ALL,
-            names = {"^[a-zA-Z]+_(?!TARGET).*$", "^[a-zA-Z]+_(?!RECORDING).*$"})
+            names = {
+                "^[a-zA-Z]+_(?!TARGET).*$",
+                "^[a-zA-Z]+_(?!RECORDING).*$",
+                "^[a-zA-Z]+_(?!CERTIFICATE).*$",
+                "^[a-zA-Z]+_(?!CREDENTIALS).*$"
+            })
     void shouldValidateExpectedPermissionsForUnsecuredResources(ResourceAction resourceAction)
             throws Exception {
+        Mockito.when(fs.readFile(Mockito.any()))
+                .thenReturn(new BufferedReader(new StringReader("mynamespace")));
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "token", Set.of(resourceAction)).get(), Matchers.is(true));
     }
