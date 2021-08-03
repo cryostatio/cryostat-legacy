@@ -235,25 +235,8 @@ public class RecordingArchiveHelper {
         CompletableFuture<Path> future = new CompletableFuture<>();
 
         try {
-            Path archivedRecording = null;
-            Boolean recordingFound = false;
             List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
-            for (String subdirectory : subdirectories) {
-                List<String> files =
-                        this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
-
-                for (String file : files) {
-                    if (recordingName.equals(file)) {
-                        archivedRecording = recordingsPath.resolve(subdirectory + "/" + file);
-                        recordingFound = true;
-                        break;
-                    }
-                }
-
-                if (recordingFound) {
-                    break;
-                }
-            }
+            Path archivedRecording = searchSubdirectories(subdirectories, recordingsPath, recordingName);
             if (!(fs.exists(archivedRecording)
                     && fs.isRegularFile(archivedRecording)
                     && fs.isReadable(archivedRecording))) {
@@ -265,6 +248,22 @@ public class RecordingArchiveHelper {
         }
 
         return future;
+    }
+
+    private Path searchSubdirectories(List<String> subdirectories, Path parent, String recordingName) throws Exception {
+        Path archivedRecording = null;
+        for (String subdirectory : subdirectories) {
+            List<String> files =
+                    this.fs.listDirectoryChildren(parent.resolve(subdirectory));
+
+            for (String file : files) {
+                if (recordingName.equals(file)) {
+                    archivedRecording = parent.resolve(subdirectory).resolve(file).normalize().toAbsolutePath();
+                    return archivedRecording;
+                }
+            }
+        }
+        return archivedRecording;
     }
 
     private String writeRecordingToDestination(
