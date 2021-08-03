@@ -42,6 +42,7 @@ import static org.mockito.Mockito.lenient;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -120,8 +121,9 @@ class RecordingDeleteHandlerTest {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any()))
-                .thenThrow(new RecordingNotFoundException("someRecording"));
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenThrow(e);
+        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException("someRecording"));
 
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(

@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -105,8 +106,10 @@ class RecordingGetHandlerTest {
 
         String recordingName = "foo";
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName))
-                .thenThrow(new RecordingNotFoundException(recordingName));
+
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenThrow(e);
+        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException(recordingName));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

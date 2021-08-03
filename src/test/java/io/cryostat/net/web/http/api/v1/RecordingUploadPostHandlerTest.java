@@ -41,6 +41,7 @@ import java.nio.file.Path;
 import java.util.Set;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
@@ -153,8 +154,11 @@ class RecordingUploadPostHandlerTest {
         String recordingName = "foo";
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenThrow(new RecordingNotFoundException(recordingName));
-        
+
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenThrow(e);
+        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException("someRecording"));
+
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
