@@ -55,12 +55,10 @@ import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
 import io.cryostat.recordings.RecordingsModule;
-import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
-import io.cryostat.util.ArchivedRecordingInfoSerializer;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
@@ -122,8 +120,6 @@ public abstract class MainModule {
                 .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
                 .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
                 .registerTypeAdapter(Rule.class, new RuleDeserializer())
-                .registerTypeAdapter(
-                        ArchivedRecordingInfo.class, new ArchivedRecordingInfoSerializer())
                 .create();
     }
 

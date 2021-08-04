@@ -161,9 +161,9 @@ class RecordingsGetHandlerTest {
                 List.of(
                         new ArchivedRecordingInfo(
                                 "encodedServiceUriFoo",
+                                "/some/path/download/recordingFoo",
                                 "recordingFoo",
-                                "/some/path/archive/recordingFoo",
-                                "/some/path/download/recordingFoo")));
+                                "/some/path/archive/recordingFoo")));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
