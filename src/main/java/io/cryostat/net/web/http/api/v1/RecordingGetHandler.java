@@ -101,7 +101,7 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         } catch (ExecutionException e) {
             Throwable cause = e.getCause();
             if (cause instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, cause.getMessage(), cause);
+                throw new HttpStatusException(404, e.getMessage(), e);
             } else {
                 throw e;
             }
