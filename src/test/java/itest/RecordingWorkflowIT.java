@@ -39,6 +39,7 @@ package itest;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -47,6 +48,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -213,16 +215,12 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(
                     inMemoryDownloadPath.toFile().length(), Matchers.greaterThan(0L));
             MatcherAssert.assertThat(savedDownloadPath.toFile().length(), Matchers.greaterThan(0L));
+
+            List<RecordedEvent> inMemoryEvents = RecordingFile.readAllEvents(inMemoryDownloadPath);
+            List<RecordedEvent> savedEvents = RecordingFile.readAllEvents(savedDownloadPath);
+
             MatcherAssert.assertThat(
-                    inMemoryDownloadPath.toFile().length(),
-                    Matchers.greaterThan(savedDownloadPath.toFile().length()));
-
-            try (RecordingFile inMemoryJfrFile = new RecordingFile(inMemoryDownloadPath);
-                    RecordingFile savedJfrFile = new RecordingFile(savedDownloadPath)) {
-
-                MatcherAssert.assertThat(inMemoryJfrFile.hasMoreEvents(), Matchers.equalTo(true));
-                MatcherAssert.assertThat(savedJfrFile.hasMoreEvents(), Matchers.equalTo(true));
-            }
+                    inMemoryEvents.size(), Matchers.greaterThan(savedEvents.size()));
 
             String reportUrl = recordingInfo.getString("reportUrl");
             Path reportPath =
