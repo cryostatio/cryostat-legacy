@@ -47,6 +47,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import jdk.jfr.consumer.RecordingFile;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
@@ -200,7 +201,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(recordingInfo.getInteger("duration"), Matchers.equalTo(5_000));
 
             // verify in-memory and saved recordings can be downloaded successfully and yield
-            // non-empty recording binaries (TODO: better verification of file content), and that
+            // non-empty recording binaries containing events, and that
             // the fully completed in-memory recording is larger than the saved partial copy
             String inMemoryDownloadUrl = recordingInfo.getString("downloadUrl");
             Path inMemoryDownloadPath =
@@ -215,6 +216,13 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(
                     inMemoryDownloadPath.toFile().length(),
                     Matchers.greaterThan(savedDownloadPath.toFile().length()));
+
+            try (RecordingFile inMemoryJfrFile = new RecordingFile(inMemoryDownloadPath);
+                    RecordingFile savedJfrFile = new RecordingFile(savedDownloadPath)) {
+
+                MatcherAssert.assertThat(inMemoryJfrFile.hasMoreEvents(), Matchers.equalTo(true));
+                MatcherAssert.assertThat(savedJfrFile.hasMoreEvents(), Matchers.equalTo(true));
+            }
 
             String reportUrl = recordingInfo.getString("reportUrl");
             Path reportPath =
