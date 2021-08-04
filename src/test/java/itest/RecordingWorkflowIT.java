@@ -37,7 +37,9 @@
  */
 package itest;
 
+import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -46,8 +48,13 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordingFile;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -196,7 +203,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(recordingInfo.getInteger("duration"), Matchers.equalTo(5_000));
 
             // verify in-memory and saved recordings can be downloaded successfully and yield
-            // non-empty recording binaries (TODO: better verification of file content), and that
+            // non-empty recording binaries containing events, and that
             // the fully completed in-memory recording is larger than the saved partial copy
             String inMemoryDownloadUrl = recordingInfo.getString("downloadUrl");
             Path inMemoryDownloadPath =
@@ -208,17 +215,34 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(
                     inMemoryDownloadPath.toFile().length(), Matchers.greaterThan(0L));
             MatcherAssert.assertThat(savedDownloadPath.toFile().length(), Matchers.greaterThan(0L));
-            MatcherAssert.assertThat(
-                    inMemoryDownloadPath.toFile().length(),
-                    Matchers.greaterThan(savedDownloadPath.toFile().length()));
 
-            // verify that reports can be downloaded successfully and yield non-empty HTML documents
-            // (TODO: verify response body is a valid HTML document)
+            List<RecordedEvent> inMemoryEvents = RecordingFile.readAllEvents(inMemoryDownloadPath);
+            List<RecordedEvent> savedEvents = RecordingFile.readAllEvents(savedDownloadPath);
+
+            MatcherAssert.assertThat(
+                    inMemoryEvents.size(), Matchers.greaterThan(savedEvents.size()));
+
             String reportUrl = recordingInfo.getString("reportUrl");
             Path reportPath =
                     downloadFileAbs(reportUrl, TEST_RECORDING_NAME + "_report", ".html")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            MatcherAssert.assertThat(reportPath.toFile().length(), Matchers.greaterThan(0L));
+            File reportFile = reportPath.toFile();
+            MatcherAssert.assertThat(reportFile.length(), Matchers.greaterThan(0L));
+            Document doc = Jsoup.parse(reportFile, "UTF-8");
+
+            Elements head = doc.getElementsByTag("head");
+            Elements titles = head.first().getElementsByTag("title");
+            Elements body = doc.getElementsByTag("body");
+            Elements script = head.first().getElementsByTag("script");
+
+            MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(titles.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(
+                    "Expected at least one <script>",
+                    script.size(),
+                    Matchers.greaterThanOrEqualTo(1));
+
         } finally {
             // Clean up what we created
             CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
