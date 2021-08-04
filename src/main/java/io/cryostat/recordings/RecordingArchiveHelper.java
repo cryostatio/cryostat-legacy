@@ -165,9 +165,9 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public Future<Void> deleteRecording(String recordingName) {
+    public Future<Path> deleteRecording(String recordingName) {
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        CompletableFuture<Path> future = new CompletableFuture<>();
 
         try {
             Path archivedRecording = getRecordingPath(recordingName).get();
@@ -179,7 +179,7 @@ public class RecordingArchiveHelper {
                     .message(Map.of("recording", recordingName))
                     .build()
                     .send();
-            future.complete(null);
+            future.complete(archivedRecording);
         } catch (IOException | InterruptedException | ExecutionException e) {
             future.completeExceptionally(e);
         } finally {

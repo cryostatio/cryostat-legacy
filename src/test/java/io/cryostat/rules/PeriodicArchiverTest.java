@@ -38,6 +38,7 @@
 package io.cryostat.rules;
 
 import java.net.URI;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Queue;
@@ -167,10 +168,10 @@ class PeriodicArchiverTest {
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
                 .thenReturn(stringFuture);
 
-        CompletableFuture<Void> voidFuture = new CompletableFuture<>();
-        voidFuture.complete(null);
+        CompletableFuture<Path> pathFuture = new CompletableFuture<>();
+        pathFuture.complete(Path.of("/some/path"));
         Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.anyString()))
-                .thenReturn(voidFuture);
+                .thenReturn(pathFuture);
 
         // get the archiver into a state where it has reached its limit of preserved recordings
         for (int i = 0; i < rule.getPreservedArchives(); i++) {

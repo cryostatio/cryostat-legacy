@@ -41,6 +41,7 @@ import static org.mockito.Mockito.lenient;
 
 import java.util.Map;
 import java.util.Set;
+import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -103,11 +104,13 @@ class RecordingDeleteHandlerTest {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
         Mockito.when(future.get()).thenThrow(e);
-        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException("someRecording"));
+        Mockito.when(e.getCause())
+                .thenReturn(e)
+                .thenReturn(new RecordingNotFoundException("someRecording"));
 
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
@@ -129,8 +132,7 @@ class RecordingDeleteHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        CompletableFuture<Void> future = new CompletableFuture<>();
-        future.complete(null);
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.deleteRecording(recordingName)).thenReturn(future);
 
         handler.handle(ctx);
