@@ -55,14 +55,14 @@ import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.StringUtils;
 
-class TargetEventsSearchGetHandler
-        extends AbstractV2RequestHandler<List<SerializableEventTypeInfo>> {
+class TargetEventsGetHandler extends AbstractV2RequestHandler<List<SerializableEventTypeInfo>> {
 
     private final TargetConnectionManager targetConnectionManager;
 
     @Inject
-    TargetEventsSearchGetHandler(
+    TargetEventsGetHandler(
             AuthManager auth, TargetConnectionManager targetConnectionManager, Gson gson) {
         super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
@@ -85,7 +85,7 @@ class TargetEventsSearchGetHandler
 
     @Override
     public String path() {
-        return basePath() + "targets/:targetId/eventsSearch/:query";
+        return basePath() + "targets/:targetId/events";
     }
 
     @Override
@@ -104,13 +104,14 @@ class TargetEventsSearchGetHandler
         return targetConnectionManager.executeConnectedTask(
                 getConnectionDescriptorFromParams(params),
                 connection -> {
-                    String query = params.getPathParams().get("query");
+                    String q = params.getQueryParams().get("q");
                     List<SerializableEventTypeInfo> matchingEvents =
                             connection.getService().getAvailableEventTypes().stream()
                                     .filter(
                                             event ->
-                                                    eventMatchesSearchTerm(
-                                                            event, query.toLowerCase()))
+                                                    StringUtils.isBlank(q)
+                                                            || eventMatchesSearchTerm(
+                                                                    event, q.toLowerCase()))
                                     .map(SerializableEventTypeInfo::new)
                                     .collect(Collectors.toList());
                     return new IntermediateResponse<List<SerializableEventTypeInfo>>()

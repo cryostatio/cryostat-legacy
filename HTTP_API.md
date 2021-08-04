@@ -1238,7 +1238,7 @@ The handler-specific descriptions below describe how each handler populates the
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Recordings in Target JVMs**                                             |                                                                                 |
-| Search event types that can be produced by a target JVM                   | [`TargetEventsSearchGetHandler`](#TargetEventsSearchGetHandler)                 |
+| List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
 | Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler-1)                     |
 | **Automated Rules**                                                       |                                                                                 |
@@ -1254,20 +1254,22 @@ The handler-specific descriptions below describe how each handler populates the
 
 ### Recordings in Target JVMs
 
-* #### `TargetEventsSearchGetHandler`
+* #### `TargetEventsGetHandler`
 
     ###### synopsis
     Returns a list of event types that can be produced by a target JVM,
     where the event name, category, label, etc. matches the given query.
 
     ###### request
-    `GET /api/v2/targets/:targetId/eventsSearch/:query`
+    `GET /api/v2/targets/:targetId/events[?q=searchQuery]`
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
     Should use percent-encoding.
 
-    `query` - The search query.
+    `q` - The search query. Event names, IDs, categories, and descriptions will
+    be searched for case-insensitive substring matches of the supplied query. If
+    this parameter is omitted or blank then all events will be returned.
 
     ###### response
     `200` - The result is a JSON array of event objects.
@@ -1293,7 +1295,7 @@ The handler-specific descriptions below describe how each handler populates the
 
     ###### example
     ```
-    $ curl localhost:8181/api/v2/targets/localhost/eventsSearch/javaerrorthrow
+    $ curl localhost:8181/api/v2/targets/localhost/events?q=javaerrorthrow
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Java Error","typeId":"jdk.JavaErrorThrow","description":"An object derived from java.lang.Error has been created. OutOfMemoryErrors are ignored","category":["Java Application"],"options":{"enabled":{"name":"Enabled","description":"Record event","defaultValue":"false"},"threshold":{"name":"Threshold","description":"Record event with duration above or equal to threshold","defaultValue":"0ns[ns]"},"stackTrace":{"name":"Stack Trace","description":"Record stack traces","defaultValue":"false"}}}]}}
     ```
 
