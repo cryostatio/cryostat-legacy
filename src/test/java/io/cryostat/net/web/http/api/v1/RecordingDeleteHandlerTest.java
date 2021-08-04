@@ -103,8 +103,10 @@ class RecordingDeleteHandlerTest {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
+        CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
-        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenThrow(e);
+        Mockito.when(future.get()).thenThrow(e);
         Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException("someRecording"));
 
         Mockito.when(ctx.response()).thenReturn(resp);

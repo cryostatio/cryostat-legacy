@@ -44,6 +44,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -104,8 +105,13 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
         try {
             List<ArchivedRecordingInfo> result = recordingArchiveHelper.getRecordings().get();
             ctx.response().end(gson.toJson(result));
-        } catch (ArchivePathException e) {
-            throw new HttpStatusException(501, e.getMessage(), e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof ArchivePathException) {
+                throw new HttpStatusException(501, e.getMessage(), e);
+            } else {
+                throw e;
+            }
         }
     }
 }

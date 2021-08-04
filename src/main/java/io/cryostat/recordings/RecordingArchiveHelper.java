@@ -53,6 +53,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.stream.Collectors;
 
@@ -62,6 +63,7 @@ import javax.inject.Provider;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
+import io.cryostat.core.FlightRecorderException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
@@ -119,7 +121,7 @@ public class RecordingArchiveHelper {
     }
 
     public Future<String> saveRecording(
-            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
 
         CompletableFuture<String> future = new CompletableFuture<>();
 
@@ -151,14 +153,19 @@ public class RecordingArchiveHelper {
                                     connectionDescriptor.getTargetId()))
                     .build()
                     .send();
-        } catch (RecordingNotFoundException e) {
+        } catch (RecordingNotFoundException
+                | IOException
+                | URISyntaxException
+                | FlightRecorderException e) {
+            future.completeExceptionally(e);
+        } catch (Exception e) {
             future.completeExceptionally(e);
         }
 
         return future;
     }
 
-    public Future<Void> deleteRecording(String recordingName) throws Exception {
+    public Future<Void> deleteRecording(String recordingName) {
 
         CompletableFuture<Void> future = new CompletableFuture<>();
 
@@ -173,7 +180,7 @@ public class RecordingArchiveHelper {
                     .build()
                     .send();
             future.complete(null);
-        } catch (RecordingNotFoundException e) {
+        } catch (IOException | InterruptedException | ExecutionException e) {
             future.completeExceptionally(e);
         } finally {
             reportService.delete(recordingName);
@@ -182,7 +189,7 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public Future<List<ArchivedRecordingInfo>> getRecordings() throws Exception {
+    public Future<List<ArchivedRecordingInfo>> getRecordings() {
 
         CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();
 
@@ -224,14 +231,14 @@ public class RecordingArchiveHelper {
                 archivedRecordings.addAll(temp);
             }
             future.complete(archivedRecordings);
-        } catch (ArchivePathException e) {
+        } catch (ArchivePathException | IOException e) {
             future.completeExceptionally(e);
         }
 
         return future;
     }
 
-    public Future<Path> getRecordingPath(String recordingName) throws Exception {
+    public Future<Path> getRecordingPath(String recordingName) {
         CompletableFuture<Path> future = new CompletableFuture<>();
 
         try {
@@ -245,7 +252,7 @@ public class RecordingArchiveHelper {
                 throw new RecordingNotFoundException(recordingName);
             }
             future.complete(archivedRecording);
-        } catch (RecordingNotFoundException e) {
+        } catch (RecordingNotFoundException | IOException e) {
             future.completeExceptionally(e);
         }
 
@@ -253,7 +260,7 @@ public class RecordingArchiveHelper {
     }
 
     private Path searchSubdirectories(
-            List<String> subdirectories, Path parent, String recordingName) throws Exception {
+            List<String> subdirectories, Path parent, String recordingName) throws IOException {
         for (String subdirectory : subdirectories) {
             List<String> files = this.fs.listDirectoryChildren(parent.resolve(subdirectory));
 
@@ -267,7 +274,8 @@ public class RecordingArchiveHelper {
     }
 
     private String writeRecordingToDestination(
-            JFRConnection connection, IRecordingDescriptor descriptor) throws Exception {
+            JFRConnection connection, IRecordingDescriptor descriptor)
+            throws IOException, URISyntaxException, FlightRecorderException, Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri =
                 base32.encodeAsString(serviceUri.toString().getBytes(StandardCharsets.UTF_8));
@@ -318,7 +326,8 @@ public class RecordingArchiveHelper {
     }
 
     private Optional<IRecordingDescriptor> getDescriptorByName(
-            JFRConnection connection, String recordingName) throws Exception {
+            JFRConnection connection, String recordingName)
+            throws FlightRecorderException, Exception {
         return connection.getService().getAvailableRecordings().stream()
                 .filter(recording -> recording.getName().equals(recordingName))
                 .findFirst();

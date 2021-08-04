@@ -659,12 +659,21 @@ class RecordingArchiveHelperTest {
     }
 
     @Test
-    void getRecordingsShouldHandleIOException() throws IOException {
+    void getRecordingsShouldHandleIOException() throws Exception {
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenThrow(IOException.class);
 
-        Assertions.assertThrows(IOException.class, () -> recordingArchiveHelper.getRecordings());
+        Assertions.assertThrows(
+                ExecutionException.class,
+                () -> {
+                    try {
+                        recordingArchiveHelper.getRecordings().get();
+                    } catch (ExecutionException ee) {
+                        Assertions.assertTrue(ee.getCause() instanceof IOException);
+                        throw ee;
+                    }
+                });
     }
 }

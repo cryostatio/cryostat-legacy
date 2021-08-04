@@ -107,8 +107,10 @@ class RecordingGetHandlerTest {
         String recordingName = "foo";
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenThrow(e);
+        Mockito.when(future.get()).thenThrow(e);
         Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException(recordingName));
 
         HttpStatusException ex =

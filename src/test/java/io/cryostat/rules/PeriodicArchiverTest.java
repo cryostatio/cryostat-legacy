@@ -127,9 +127,12 @@ class PeriodicArchiverTest {
         listFuture.complete(new ArrayList<>());
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
-        Mockito.doThrow(ExecutionException.class)
-                .when(recordingArchiveHelper)
-                .saveRecording(Mockito.any(), Mockito.any());
+        CompletableFuture<String> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(future);
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(future.get()).thenThrow(e);
+
         MatcherAssert.assertThat(failureCounter.intValue(), Matchers.equalTo(0));
 
         archiver.run();

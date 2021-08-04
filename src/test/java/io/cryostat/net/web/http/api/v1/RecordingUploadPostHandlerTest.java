@@ -155,9 +155,11 @@ class RecordingUploadPostHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenThrow(e);
-        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException("someRecording"));
+        Mockito.when(future.get()).thenThrow(e);
+        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException(recordingName));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

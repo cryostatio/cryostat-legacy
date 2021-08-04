@@ -37,9 +37,7 @@
  */
 package io.cryostat.recordings;
 
-import java.io.IOException;
-
-public class RecordingNotFoundException extends IOException {
+public class RecordingNotFoundException extends Exception {
     public RecordingNotFoundException(String recordingName) {
         super(String.format("No recording with name \"%s\" found", recordingName));
     }

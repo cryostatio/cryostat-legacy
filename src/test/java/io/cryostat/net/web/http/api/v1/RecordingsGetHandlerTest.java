@@ -51,6 +51,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -84,6 +85,9 @@ class RecordingsGetHandlerTest {
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
+    @Mock RoutingContext ctx;
+    @Mock HttpServerResponse resp;
+
     @BeforeEach
     void setup() {
         this.handler = new RecordingsGetHandler(auth, recordingArchiveHelper, gson);
@@ -106,52 +110,28 @@ class RecordingsGetHandlerTest {
     }
 
     @Test
-    void shouldRespondWith501IfDirectoryDoesNotExist() throws Exception {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        ArchivePathException e = new ArchivePathException("/flightrecordings", "does not exist");
+    void shouldRespondWith501IfArchivePathException() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenThrow(e);
-
-        HttpStatusException httpEx =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
-        MatcherAssert.assertThat(
-                httpEx.getPayload(),
-                Matchers.equalTo("Archive path /flightrecordings does not exist"));
-    }
-
-    @Test
-    void shouldRespondWith501IfDirectoryNotReadable() throws Exception {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        ArchivePathException e = new ArchivePathException("/flightrecordings", "is not readable");
-
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenThrow(e);
+        CompletableFuture<List<ArchivedRecordingInfo>> future =
+                Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(future);
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(future.get()).thenThrow(e);
+        Mockito.when(e.getCause()).thenReturn(new ArchivePathException("/some/path", "test"));
 
         HttpStatusException httpEx =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
         MatcherAssert.assertThat(
-                httpEx.getPayload(),
-                Matchers.equalTo("Archive path /flightrecordings is not readable"));
-    }
-
-    @Test
-    void shouldRespondWith501IfPathNotDirectory() throws Exception {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        ArchivePathException e =
-                new ArchivePathException("/flightrecordings", "is not a directory");
-
-        Mockito.when(recordingArchiveHelper.getRecordings()).thenThrow(e);
-
-        HttpStatusException httpEx =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
-        MatcherAssert.assertThat(
-                httpEx.getPayload(),
-                Matchers.equalTo("Archive path /flightrecordings is not a directory"));
+                httpEx.getCause().getCause().getMessage(),
+                Matchers.equalTo("Archive path /some/path test"));
     }
 
     @Test
