@@ -134,9 +134,6 @@ class RecordingGetHandlerTest {
 
         Path archivedRecording = Mockito.mock(Path.class);
         Mockito.when(future.get()).thenReturn(archivedRecording);
-        Mockito.when(archivedRecording.normalize()).thenReturn(archivedRecording);
-        Mockito.when(archivedRecording.toAbsolutePath()).thenReturn(archivedRecording);
-        Mockito.when(archivedRecording.toString()).thenReturn("some/path/foo");
 
         handler.handle(ctx);
 

@@ -573,6 +573,8 @@ class RecordingArchiveHelperTest {
 
     @Test
     void shouldDeleteRecording() throws Exception {
+        String recordingName = "123recording";
+
         List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
         Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
 
@@ -584,20 +586,15 @@ class RecordingArchiveHelperTest {
         Mockito.when(recordingsPath.resolve(subdirectories.get(1)))
                 .thenReturn(Path.of(subdirectories.get(1)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
-                .thenReturn(List.of("123recording"));
+                .thenReturn(List.of(recordingName));
 
-        Path archivedRecording = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(subdirectories.get(1) + "/" + "123recording"))
-                .thenReturn(archivedRecording);
-        Mockito.when(fs.exists(archivedRecording)).thenReturn(true);
-        Mockito.when(fs.isRegularFile(archivedRecording)).thenReturn(true);
-        Mockito.when(fs.isReadable(archivedRecording)).thenReturn(true);
-
-        String recordingName = "123recording";
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
+        Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
+        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
 
         recordingArchiveHelper.deleteRecording(recordingName);
 
-        Mockito.verify(fs).deleteIfExists(archivedRecording);
+        Mockito.verify(fs).deleteIfExists(Mockito.any());
         Mockito.verify(reportService).delete(recordingName);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
