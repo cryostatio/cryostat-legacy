@@ -39,7 +39,6 @@ package io.cryostat.rules;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ExecutionException;
@@ -107,10 +106,8 @@ class PeriodicArchiver implements Runnable {
                 String serviceUri = serviceRef.getServiceUri().toString();
                 List<ArchivedRecordingInfo> archivedRecordings =
                         recordingArchiveHelper.getRecordings().get();
-                Iterator<ArchivedRecordingInfo> it = archivedRecordings.iterator();
 
-                while (it.hasNext()) {
-                    ArchivedRecordingInfo archivedRecordingInfo = it.next();
+                for (ArchivedRecordingInfo archivedRecordingInfo : archivedRecordings) {
                     String decodedServiceUri =
                             new String(
                                     base32.decode(archivedRecordingInfo.getEncodedServiceUri()),
