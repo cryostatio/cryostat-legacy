@@ -149,8 +149,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
         try {
             recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
         } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof RecordingNotFoundException) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e.getMessage(), e);
             } else {
                 throw e;
