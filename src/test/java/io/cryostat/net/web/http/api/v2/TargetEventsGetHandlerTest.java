@@ -71,9 +71,9 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class TargetEventsSearchGetHandlerTest {
+class TargetEventsGetHandlerTest {
 
-    TargetEventsSearchGetHandler handler;
+    TargetEventsGetHandler handler;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
@@ -83,7 +83,7 @@ class TargetEventsSearchGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetEventsSearchGetHandler(auth, targetConnectionManager, gson);
+        this.handler = new TargetEventsGetHandler(auth, targetConnectionManager, gson);
     }
 
     @Test
@@ -94,7 +94,7 @@ class TargetEventsSearchGetHandlerTest {
     @Test
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
-                handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/eventsSearch/:query"));
+                handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/events"));
     }
 
     @Test
@@ -111,8 +111,8 @@ class TargetEventsSearchGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
-                        Map.of("targetId", "foo:9091", "query", "foo"),
-                        MultiMap.caseInsensitiveMultiMap(),
+                        Map.of("targetId", "foo:9091"),
+                        MultiMap.caseInsensitiveMultiMap().set("q", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
                         Set.of(),
@@ -179,8 +179,8 @@ class TargetEventsSearchGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
-                        Map.of("targetId", "foo:9091", "query", "foo"),
-                        MultiMap.caseInsensitiveMultiMap(),
+                        Map.of("targetId", "foo:9091"),
+                        MultiMap.caseInsensitiveMultiMap().set("q", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
                         MultiMap.caseInsensitiveMultiMap(),
                         Set.of(),

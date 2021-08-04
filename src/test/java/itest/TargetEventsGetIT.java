@@ -57,7 +57,7 @@ public class TargetEventsGetIT extends StandardSelfTest {
     static final String EVENT_REQ_URL =
             String.format("/api/v1/targets/%s/events", SELF_REFERENCE_TARGET_ID);
     static final String SEARCH_REQ_URL =
-            String.format("/api/v2/targets/%s/eventsSearch", SELF_REFERENCE_TARGET_ID);
+            String.format("/api/v2/targets/%s/events", SELF_REFERENCE_TARGET_ID);
 
     @Test
     public void testGetTargetEventsReturnsListOfEvents() throws Exception {
@@ -80,10 +80,33 @@ public class TargetEventsGetIT extends StandardSelfTest {
     }
 
     @Test
-    public void testGetTargetEventsSearchReturnsRequestedEvents() throws Exception {
+    public void testGetTargetEventsV2WithNoQueryReturnsListOfEvents() throws Exception {
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient
-                .get(String.format("%s/WebServerRequest", SEARCH_REQ_URL))
+                .get(SEARCH_REQ_URL)
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, getResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                getResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        MatcherAssert.assertThat(getResponse.get().size(), Matchers.greaterThan(0));
+        MatcherAssert.assertThat(
+                getResponse.get().getJsonObject("data").getJsonArray("result").size(),
+                Matchers.greaterThan(0));
+    }
+
+    @Test
+    public void testGetTargetEventsV2WithQueryReturnsRequestedEvents() throws Exception {
+        CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
+        webClient
+                .get(String.format("%s?q=WebServerRequest", SEARCH_REQ_URL))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, getResponse)) {
@@ -140,10 +163,10 @@ public class TargetEventsGetIT extends StandardSelfTest {
     }
 
     @Test
-    public void testGetTargetEventsSearchReturnsEmptyListWhenNoEventsMatch() throws Exception {
+    public void testGetTargetEventsV2WithQueryReturnsEmptyListWhenNoEventsMatch() throws Exception {
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient
-                .get(String.format("%s/thisEventDoesNotExist", SEARCH_REQ_URL))
+                .get(String.format("%s?q=thisEventDoesNotExist", SEARCH_REQ_URL))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, getResponse)) {
