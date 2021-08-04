@@ -43,16 +43,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
-import io.vertx.ext.web.client.HttpResponse;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 public class UploadRecordingIT extends StandardSelfTest {
@@ -100,13 +97,9 @@ public class UploadRecordingIT extends StandardSelfTest {
         }
     }
 
-    @Disabled(
-            "TODO, this test needs to be updated to actually trigger a file to be uploaded to"
-                    + " jfr-datasource/grafana-dashboard now that the integration tests have these"
-                    + " additional containers configured")
     @Test
-    public void shouldHandleBadDatasourceUrl() throws Exception {
-        CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
+    public void shouldUploadRecordingToGrafana() throws Exception {
+        CompletableFuture<String> uploadRespFuture = new CompletableFuture<>();
         webClient
                 .post(
                         String.format(
@@ -114,14 +107,16 @@ public class UploadRecordingIT extends StandardSelfTest {
                                 TARGET_ID, RECORDING_NAME))
                 .send(
                         ar -> {
-                            if (ar.failed()) {
-                                uploadRespFuture.completeExceptionally(ar.cause());
-                                return;
+                            if (assertRequestStatus(ar, uploadRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                             }
-                            HttpResponse<Buffer> result = ar.result();
-                            uploadRespFuture.complete(result.statusCode());
+                            uploadRespFuture.complete(ar.result().bodyAsString());
                         });
-        int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-        MatcherAssert.assertThat(statusCode, Matchers.equalTo(200));
+
+        final String expectedUploadResponse =
+                String.format("Uploaded: %s\nSet: %s\n", RECORDING_NAME, RECORDING_NAME);
+
+        MatcherAssert.assertThat(uploadRespFuture.get(), Matchers.equalTo(expectedUploadResponse));
     }
 }
