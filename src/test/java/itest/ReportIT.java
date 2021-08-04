@@ -59,20 +59,21 @@ import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-public class TargetReportIT extends StandardSelfTest {
+public class ReportIT extends StandardSelfTest {
 
     static final String TEST_RECORDING_NAME = "someRecording";
-    static final String REPORT_REQ_URL =
-            String.format(
-                    "/api/v1/targets/%s/reports/%s", SELF_REFERENCE_TARGET_ID, TEST_RECORDING_NAME);
+    static final String REPORT_REQ_URL = "/api/v1/reports";
     static final String RECORDING_REQ_URL =
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
+    static final String ARCHIVE_REQ_URL = "/api/v1/recordings";
     static final String TEMP_REPORT = "src/test/resources/reportTest.html";
     static File file;
     static Document doc;
 
     @Test
     void testGetReportShouldSendFile() throws Exception {
+
+        CompletableFuture<String> savedRecordingName = new CompletableFuture<>();
 
         try {
             // Create a recording
@@ -96,10 +97,29 @@ public class TargetReportIT extends StandardSelfTest {
 
             postResponse.get();
 
+            // Save the recording to archive
+            webClient
+                    .patch(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
+                    .sendBuffer(
+                            Buffer.buffer("SAVE"),
+                            ar -> {
+                                if (assertRequestStatus(ar, savedRecordingName)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(200));
+                                    MatcherAssert.assertThat(
+                                            ar.result()
+                                                    .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                            Matchers.equalTo(HttpMimeType.PLAINTEXT.mime()));
+                                    savedRecordingName.complete(ar.result().bodyAsString());
+                                }
+                            });
+
+            savedRecordingName.get();
+
             // Get a report for the above recording
             CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
             webClient
-                    .get(REPORT_REQ_URL)
+                    .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName.get()))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, getResponse)) {
@@ -143,19 +163,34 @@ public class TargetReportIT extends StandardSelfTest {
             file.delete();
 
             // Clean up recording
-            CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
+            CompletableFuture<JsonObject> deleteActiveRecResponse = new CompletableFuture<>();
             webClient
                     .delete(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, deleteResponse)) {
+                                if (assertRequestStatus(ar, deleteActiveRecResponse)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(200));
-                                    deleteResponse.complete(ar.result().bodyAsJsonObject());
+                                    deleteActiveRecResponse.complete(
+                                            ar.result().bodyAsJsonObject());
                                 }
                             });
 
-            MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(null));
+            MatcherAssert.assertThat(deleteActiveRecResponse.get(), Matchers.equalTo(null));
+
+            CompletableFuture<JsonObject> deleteArchivedRecResp = new CompletableFuture<>();
+            webClient
+                    .delete(String.format("%s/%s", ARCHIVE_REQ_URL, savedRecordingName.get()))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteArchivedRecResp)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(200));
+                                    deleteArchivedRecResp.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            MatcherAssert.assertThat(deleteArchivedRecResp.get(), Matchers.equalTo(null));
         }
     }
 
@@ -164,7 +199,7 @@ public class TargetReportIT extends StandardSelfTest {
 
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
-                .get(REPORT_REQ_URL)
+                .get(String.format("%s/%s", REPORT_REQ_URL, TEST_RECORDING_NAME))
                 .send(
                         ar -> {
                             assertRequestStatus(ar, response);
