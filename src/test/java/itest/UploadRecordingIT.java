@@ -159,8 +159,10 @@ public class UploadRecordingIT extends StandardSelfTest {
         JsonObject query =
                 new JsonObject(
                         Map.of(
+                                "timezone",
+                                "browser",
                                 "panelId",
-                                1,
+                                2,
                                 "range",
                                 Map.of(
                                         "from",
@@ -168,22 +170,22 @@ public class UploadRecordingIT extends StandardSelfTest {
                                         "to",
                                         END,
                                         "raw",
-                                        Map.of("now-1m", "now")),
+                                        Map.of("from", START, "to", END)),
                                 "rangeRaw",
-                                Map.of("from", "now-1m", "to", "now"),
+                                Map.of("from", START, "to", END),
                                 "targets",
                                 List.of(
                                         Map.of(
                                                 "target",
-                                                "jdk.CPULoad.machineTotal",
+                                                "upper_50",
                                                 "refId",
                                                 "A",
                                                 "type",
-                                                "timeseries")),
+                                                "timeserie")),
                                 "format",
                                 "json",
                                 "maxDataPoints",
-                                550));
+                                500));
         webClient
                 .post(8080, "localhost", "/query")
                 .sendJsonObject(
@@ -200,6 +202,7 @@ public class UploadRecordingIT extends StandardSelfTest {
                         });
         // FIXME the /query response shouldn't be empty
         JsonArray expectedQueryResponse = new JsonArray();
+        expectedQueryResponse.add(Map.of());
 
         MatcherAssert.assertThat(queryRespFuture.get(), Matchers.equalTo(expectedQueryResponse));
     }
