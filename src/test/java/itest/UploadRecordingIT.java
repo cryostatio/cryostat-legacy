@@ -150,11 +150,11 @@ public class UploadRecordingIT extends StandardSelfTest {
 
         CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
 
-        Calendar yesterday = Calendar.getInstance();
-        yesterday.add(Calendar.DATE, -1);
+        Calendar lastMinute = Calendar.getInstance();
+        lastMinute.add(Calendar.MINUTE, -1);
         final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-        final String NOW = dateFormat.format(Calendar.getInstance().getTime());
-        final String YESTERDAY = dateFormat.format(yesterday.getTime());
+        final String END = dateFormat.format(Calendar.getInstance().getTime());
+        final String START = dateFormat.format(lastMinute.getTime());
 
         JsonObject query =
                 new JsonObject(
@@ -164,24 +164,20 @@ public class UploadRecordingIT extends StandardSelfTest {
                                 "range",
                                 Map.of(
                                         "from",
-                                        YESTERDAY,
+                                        START,
                                         "to",
-                                        NOW,
+                                        END,
                                         "raw",
-                                        Map.of("now-24hr", "now")),
+                                        Map.of("now-1m", "now")),
                                 "rangeRaw",
-                                Map.of("from", "now-24hr", "to", "now"),
-                                "interval",
-                                "30s",
-                                "intervalMs",
-                                "30000",
+                                Map.of("from", "now-1m", "to", "now"),
                                 "targets",
                                 List.of(
                                         Map.of(
                                                 "target",
-                                                "upper_50?",
+                                                "jdk.CPULoad.machineTotal",
                                                 "refId",
-                                                "cryostat?",
+                                                "A",
                                                 "type",
                                                 "timeseries")),
                                 "format",
@@ -204,7 +200,6 @@ public class UploadRecordingIT extends StandardSelfTest {
                         });
         // FIXME the /query response shouldn't be empty
         JsonArray expectedQueryResponse = new JsonArray();
-        expectedQueryResponse.add(Map.of());
 
         MatcherAssert.assertThat(queryRespFuture.get(), Matchers.equalTo(expectedQueryResponse));
     }
