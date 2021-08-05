@@ -189,4 +189,28 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
 
         MatcherAssert.assertThat(getResponse.get(), Matchers.equalTo(expectedGetResponse));
     }
+
+    @Test
+    @Order(4)
+    public void testGetTargetRecordingOptionsReturnsUpdatedOptions() throws Exception {
+        CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
+        webClient
+                .get(OPTIONS_REQ_URL)
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, getResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                getResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        JsonObject expectedGetResponse =
+                new JsonObject(Map.of("maxAge", 60, "toDisk", true, "maxSize", 1000));
+
+        MatcherAssert.assertThat(getResponse.get(), Matchers.equalTo(expectedGetResponse));
+    }
 }
