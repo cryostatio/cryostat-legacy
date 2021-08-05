@@ -137,7 +137,7 @@ public class RecordingArchiveHelper {
                                     return writeRecordingToDestination(
                                             connection, descriptor.get());
                                 } else {
-                                    throw new RecordingNotFoundException(recordingName);
+                                    throw new RecordingNotFoundException("active recordings", recordingName);
                                 }
                             });
             future.complete(saveName);
@@ -249,7 +249,7 @@ public class RecordingArchiveHelper {
                     && fs.exists(archivedRecording)
                     && fs.isRegularFile(archivedRecording)
                     && fs.isReadable(archivedRecording))) {
-                throw new RecordingNotFoundException(recordingName);
+                throw new RecordingNotFoundException("archives", recordingName);
             }
             future.complete(archivedRecording);
         } catch (RecordingNotFoundException | IOException e) {

@@ -71,7 +71,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;

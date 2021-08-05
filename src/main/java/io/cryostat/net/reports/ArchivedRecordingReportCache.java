@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -50,9 +51,10 @@ import javax.inject.Provider;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.reports.ReportService.RecordingNotFoundException;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 class ArchivedRecordingReportCache {
 
@@ -62,6 +64,7 @@ class ArchivedRecordingReportCache {
     protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
     protected final ReentrantLock generationLock;
     protected final Logger logger;
+    protected final RecordingArchiveHelper recordingArchiveHelper;
 
     ArchivedRecordingReportCache(
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
@@ -69,13 +72,15 @@ class ArchivedRecordingReportCache {
             FileSystem fs,
             Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
-            Logger logger) {
+            Logger logger,
+            RecordingArchiveHelper recordingArchiveHelper) {
         this.savedRecordingsPath = savedRecordingsPath;
         this.archivedRecordingsReportPath = webServerTempPath;
         this.fs = fs;
         this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
         this.generationLock = generationLock;
         this.logger = logger;
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     Future<Path> get(String recordingName) {
@@ -85,6 +90,7 @@ class ArchivedRecordingReportCache {
             f.complete(dest);
             return f;
         }
+
         try {
             generationLock.lock();
             // check again in case the previous lock holder already created the cached file
@@ -92,42 +98,33 @@ class ArchivedRecordingReportCache {
                 f.complete(dest);
                 return f;
             }
-
-            fs.listDirectoryChildren(savedRecordingsPath).stream()
-                    .filter(name -> name.equals(recordingName))
-                    .map(savedRecordingsPath::resolve)
-                    .findFirst()
-                    .ifPresentOrElse(
-                            recording -> {
-                                logger.trace("Archived report cache miss for {}", recordingName);
-                                try {
-                                    Path saveFile =
-                                            subprocessReportGeneratorProvider
-                                                    .get()
-                                                    .exec(
-                                                            recording,
-                                                            dest,
-                                                            Duration.ofMillis(
-                                                                    TimeoutHandler.TIMEOUT_MS))
-                                                    .get();
-                                    f.complete(saveFile);
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    f.completeExceptionally(e);
-                                    try {
-                                        fs.deleteIfExists(dest);
-                                    } catch (IOException ioe) {
-                                        logger.warn(ioe);
-                                    }
-                                }
-                            },
-                            () ->
-                                    f.completeExceptionally(
-                                            new RecordingNotFoundException(
-                                                    "archives", recordingName)));
-        } catch (IOException ioe) {
-            logger.warn(ioe);
-            f.completeExceptionally(ioe);
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            logger.trace("Archived report cache miss for {}", recordingName);
+            Path saveFile =
+                    subprocessReportGeneratorProvider
+                            .get()
+                            .exec(
+                                    archivedRecording,
+                                    dest,
+                                    Duration.ofMillis(
+                                            TimeoutHandler.TIMEOUT_MS))
+                            .get();
+            f.complete(saveFile);
+        } catch (ExecutionException | InterruptedException | IOException e) {
+            if (e instanceof ExecutionException && e.getCause() instanceof RecordingNotFoundException) {
+                logger.warn(new RecordingNotFoundException("archives", recordingName));
+            } else {
+                logger.warn(e);
+            }
+            f.completeExceptionally(e);
+        } catch (Exception e) {
+            logger.error(e);
+            f.completeExceptionally(e);
+            try {
+                fs.deleteIfExists(dest);
+            } catch (IOException ioe) {
+                logger.warn(ioe);
+            }
         } finally {
             generationLock.unlock();
         }

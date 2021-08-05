@@ -111,7 +111,7 @@ class RecordingGetHandlerTest {
         Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
         Mockito.when(future.get()).thenThrow(e);
-        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException(recordingName));
+        Mockito.when(e.getCause()).thenReturn(new RecordingNotFoundException("archives", recordingName));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

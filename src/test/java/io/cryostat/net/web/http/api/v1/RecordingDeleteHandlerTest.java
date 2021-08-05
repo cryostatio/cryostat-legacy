@@ -110,7 +110,7 @@ class RecordingDeleteHandlerTest {
         Mockito.when(future.get()).thenThrow(e);
         Mockito.when(e.getCause())
                 .thenReturn(e)
-                .thenReturn(new RecordingNotFoundException("someRecording"));
+                .thenReturn(new RecordingNotFoundException("archives", "someRecording"));
 
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
