@@ -61,6 +61,7 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
             String.format("/api/v1/targets/%s/recordingOptions", SELF_REFERENCE_TARGET_ID);
     static final String OPTIONS_LIST_REQ_URL =
             String.format("/api/v2/targets/%s/recordingOptionsList", SELF_REFERENCE_TARGET_ID);
+    static final String RECORDING_NAME = "test_recording";
 
     @Test
     @Order(1)
@@ -161,6 +162,55 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
 
     @Test
     @Order(3)
+    public void testPostRecordingSetsDiskOptionToTrue() throws Exception {
+        try {
+            CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+            CompletableFuture<Integer> maxAge = new CompletableFuture<>();
+            CompletableFuture<Boolean> toDisk = new CompletableFuture<>();
+            CompletableFuture<Integer> maxSize = new CompletableFuture<>();
+
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.add("recordingName", RECORDING_NAME);
+            form.add("duration", "5");
+            form.add("events", "template=ALL");
+            webClient
+                    .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
+                    .sendForm(
+                            form,
+                            ar -> {
+                                if (assertRequestStatus(ar, postResponse)) {
+                                    postResponse.complete(ar.result().bodyAsJsonObject());
+                                }
+                            });
+
+            maxAge.complete(postResponse.get().getInteger("maxAge"));
+            toDisk.complete(postResponse.get().getBoolean("toDisk"));
+            maxSize.complete(postResponse.get().getInteger("maxSize"));
+
+            MatcherAssert.assertThat(maxAge.get(), Matchers.equalTo(0));
+            MatcherAssert.assertThat(toDisk.get(), Matchers.equalTo(true));
+            MatcherAssert.assertThat(maxSize.get(), Matchers.equalTo(0));
+
+        } finally {
+            // Delete the recording
+            CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
+            webClient
+                    .delete(
+                            String.format(
+                                    "/api/v1/targets/%s/recordings/%s",
+                                    SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, deleteRespFuture)) {
+                                    deleteRespFuture.complete(null);
+                                }
+                            });
+            deleteRespFuture.get();
+        }
+    }
+
+    @Test
+    @Order(4)
     public void testPatchTargetRecordingOptionsUpdatesOptions() throws Exception {
 
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
@@ -191,7 +241,7 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     public void testGetTargetRecordingOptionsReturnsUpdatedOptions() throws Exception {
         CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
         webClient
