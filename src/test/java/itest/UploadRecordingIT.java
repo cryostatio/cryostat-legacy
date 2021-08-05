@@ -124,9 +124,10 @@ public class UploadRecordingIT extends StandardSelfTest {
                         });
 
         final String expectedUploadResponse =
-                String.format("Uploaded: %s\nSet: %s\n", RECORDING_NAME, RECORDING_NAME);
+                String.format("Uploaded: %s\nSet: %s", RECORDING_NAME, RECORDING_NAME);
 
-        MatcherAssert.assertThat(uploadRespFuture.get(), Matchers.equalTo(expectedUploadResponse));
+        MatcherAssert.assertThat(
+                uploadRespFuture.get().trim(), Matchers.equalTo(expectedUploadResponse));
 
         // Confirm recording appears in Grafana
         CompletableFuture<String> getRespFuture = new CompletableFuture<>();
@@ -145,7 +146,7 @@ public class UploadRecordingIT extends StandardSelfTest {
                         });
 
         MatcherAssert.assertThat(
-                getRespFuture.get(), Matchers.equalTo(String.format("%s\n", RECORDING_NAME)));
+                getRespFuture.get().trim(), Matchers.equalTo(String.format("%s", RECORDING_NAME)));
 
         CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
 
@@ -201,7 +202,7 @@ public class UploadRecordingIT extends StandardSelfTest {
                                 queryRespFuture.complete(ar.result().bodyAsJsonArray());
                             }
                         });
-        //FIXME the /query response shouldn't be empty
+        // FIXME the /query response shouldn't be empty
         JsonArray expectedQueryResponse = new JsonArray();
         expectedQueryResponse.add(Map.of());
 
