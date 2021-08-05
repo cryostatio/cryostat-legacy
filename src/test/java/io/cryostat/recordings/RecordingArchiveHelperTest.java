@@ -61,7 +61,6 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
@@ -76,6 +75,8 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -90,10 +91,11 @@ class RecordingArchiveHelperTest {
     @Mock FileSystem fs;
     @Mock WebServer webServer;
     @Mock Logger logger;
-    @Mock Path recordingsPath;
+    @Mock Path destinationFile;
+    @Mock Path archivedRecordingsPath;
+    @Mock Path archivedRecordingsReportPath;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
-    @Mock ReportService reportService;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
@@ -124,11 +126,11 @@ class RecordingArchiveHelperTest {
                         fs,
                         () -> webServer,
                         logger,
-                        recordingsPath,
+                        archivedRecordingsPath,
+                        archivedRecordingsReportPath,
                         targetConnectionManager,
                         clock,
                         platformClient,
-                        reportService,
                         notificationFactory,
                         base32);
     }
@@ -220,7 +222,7 @@ class RecordingArchiveHelperTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString()))
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
@@ -302,7 +304,7 @@ class RecordingArchiveHelperTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString()))
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
@@ -379,7 +381,7 @@ class RecordingArchiveHelperTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString()))
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
@@ -462,7 +464,7 @@ class RecordingArchiveHelperTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString()))
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
@@ -543,7 +545,7 @@ class RecordingArchiveHelperTest {
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString()))
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
                 .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
@@ -576,14 +578,14 @@ class RecordingArchiveHelperTest {
         String recordingName = "123recording";
 
         List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
-        Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
+        Mockito.when(fs.listDirectoryChildren(archivedRecordingsPath)).thenReturn(subdirectories);
 
-        Mockito.when(recordingsPath.resolve(subdirectories.get(0)))
+        Mockito.when(archivedRecordingsPath.resolve(subdirectories.get(0)))
                 .thenReturn(Path.of(subdirectories.get(0)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(0))))
                 .thenReturn(List.of("recordingA"));
 
-        Mockito.when(recordingsPath.resolve(subdirectories.get(1)))
+        Mockito.when(archivedRecordingsPath.resolve(subdirectories.get(1)))
                 .thenReturn(Path.of(subdirectories.get(1)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
                 .thenReturn(List.of(recordingName));
@@ -592,16 +594,49 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
         Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
 
+        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
+                .thenReturn(archivedRecordingsReportPath);
+        Mockito.when(archivedRecordingsReportPath.toAbsolutePath())
+                .thenReturn(archivedRecordingsReportPath);
+
         recordingArchiveHelper.deleteRecording(recordingName);
 
-        Mockito.verify(fs).deleteIfExists(Mockito.any());
-        Mockito.verify(reportService).delete(recordingName);
+        Mockito.verify(fs, Mockito.times(2)).deleteIfExists(Mockito.any());
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {true, false})
+    void deleteReportShouldDelegateToFileSystem(boolean deleted) throws IOException {
+        Mockito.when(fs.deleteIfExists(Mockito.any())).thenReturn(deleted);
+        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
+                .thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
+
+        MatcherAssert.assertThat(
+                recordingArchiveHelper.deleteReport("foo"), Matchers.equalTo(deleted));
+
+        Mockito.verify(fs).deleteIfExists(destinationFile);
+        Mockito.verify(archivedRecordingsReportPath).resolve("foo.report.html");
+    }
+
+    @Test
+    void deleteReportShouldReturnFalseIfFileSystemThrows() throws IOException {
+        Mockito.when(fs.deleteIfExists(Mockito.any())).thenThrow(IOException.class);
+        Mockito.when(archivedRecordingsReportPath.resolve(Mockito.anyString()))
+                .thenReturn(destinationFile);
+        Mockito.when(destinationFile.toAbsolutePath()).thenReturn(destinationFile);
+
+        MatcherAssert.assertThat(
+                recordingArchiveHelper.deleteReport("foo"), Matchers.equalTo(false));
+
+        Mockito.verify(fs).deleteIfExists(destinationFile);
+        Mockito.verify(archivedRecordingsReportPath).resolve("foo.report.html");
     }
 
     @Test
@@ -611,14 +646,14 @@ class RecordingArchiveHelperTest {
         Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
 
         List<String> subdirectories = List.of("encodedServiceUriA", "encodedServiceUri123");
-        Mockito.when(fs.listDirectoryChildren(recordingsPath)).thenReturn(subdirectories);
+        Mockito.when(fs.listDirectoryChildren(archivedRecordingsPath)).thenReturn(subdirectories);
 
-        Mockito.when(recordingsPath.resolve(subdirectories.get(0)))
+        Mockito.when(archivedRecordingsPath.resolve(subdirectories.get(0)))
                 .thenReturn(Path.of(subdirectories.get(0)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(0))))
                 .thenReturn(List.of("recordingA"));
 
-        Mockito.when(recordingsPath.resolve(subdirectories.get(1)))
+        Mockito.when(archivedRecordingsPath.resolve(subdirectories.get(1)))
                 .thenReturn(Path.of(subdirectories.get(1)));
         Mockito.when(fs.listDirectoryChildren(Path.of(subdirectories.get(1))))
                 .thenReturn(List.of("123recording"));

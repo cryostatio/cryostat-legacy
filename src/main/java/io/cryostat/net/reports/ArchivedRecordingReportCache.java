@@ -48,18 +48,14 @@ import java.util.concurrent.locks.ReentrantLock;
 import javax.inject.Named;
 import javax.inject.Provider;
 
-import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.recordings.RecordingNotFoundException;
-import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 class ArchivedRecordingReportCache {
 
-    protected final Path savedRecordingsPath;
-    protected final Path archivedRecordingsReportPath;
     protected final FileSystem fs;
     protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
     protected final ReentrantLock generationLock;
@@ -67,15 +63,11 @@ class ArchivedRecordingReportCache {
     protected final RecordingArchiveHelper recordingArchiveHelper;
 
     ArchivedRecordingReportCache(
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempPath,
             FileSystem fs,
             Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger,
             RecordingArchiveHelper recordingArchiveHelper) {
-        this.savedRecordingsPath = savedRecordingsPath;
-        this.archivedRecordingsReportPath = webServerTempPath;
         this.fs = fs;
         this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
         this.generationLock = generationLock;
@@ -85,7 +77,7 @@ class ArchivedRecordingReportCache {
 
     Future<Path> get(String recordingName) {
         CompletableFuture<Path> f = new CompletableFuture<>();
-        Path dest = getCachedReportPath(recordingName);
+        Path dest = recordingArchiveHelper.getCachedReportPath(recordingName);
         if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
             f.complete(dest);
             return f;
@@ -98,23 +90,24 @@ class ArchivedRecordingReportCache {
                 f.complete(dest);
                 return f;
             }
-            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             logger.trace("Archived report cache miss for {}", recordingName);
+
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             Path saveFile =
                     subprocessReportGeneratorProvider
                             .get()
                             .exec(
                                     archivedRecording,
                                     dest,
-                                    Duration.ofMillis(
-                                            TimeoutHandler.TIMEOUT_MS))
+                                    Duration.ofMillis(TimeoutHandler.TIMEOUT_MS))
                             .get();
             f.complete(saveFile);
-        } catch (ExecutionException | InterruptedException | IOException e) {
-            if (e instanceof ExecutionException && e.getCause() instanceof RecordingNotFoundException) {
+        } catch (ExecutionException | InterruptedException e) {
+            logger.warn(e);
+            // log specific warning if recording not found
+            if (e instanceof ExecutionException
+                    && e.getCause() instanceof RecordingNotFoundException) {
                 logger.warn(new RecordingNotFoundException("archives", recordingName));
-            } else {
-                logger.warn(e);
             }
             f.completeExceptionally(e);
         } catch (Exception e) {
@@ -132,17 +125,6 @@ class ArchivedRecordingReportCache {
     }
 
     boolean delete(String recordingName) {
-        try {
-            logger.trace("Invalidating archived report cache for {}", recordingName);
-            return fs.deleteIfExists(getCachedReportPath(recordingName));
-        } catch (IOException ioe) {
-            logger.warn(ioe);
-            return false;
-        }
-    }
-
-    protected Path getCachedReportPath(String recordingName) {
-        String fileName = recordingName + ".report.html";
-        return archivedRecordingsReportPath.resolve(fileName).toAbsolutePath();
+        return recordingArchiveHelper.deleteReport(recordingName);
     }
 }

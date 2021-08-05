@@ -53,7 +53,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 
@@ -80,22 +80,22 @@ public abstract class RecordingsModule {
             FileSystem fs,
             Provider<WebServer> webServerProvider,
             Logger logger,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path archivedRecordingsReportPath,
             TargetConnectionManager targetConnectionManager,
             Clock clock,
             PlatformClient platformClient,
-            ReportService reportService,
             NotificationFactory notificationFactory,
             Base32 base32) {
         return new RecordingArchiveHelper(
                 fs,
                 webServerProvider,
                 logger,
-                recordingsPath,
+                archivedRecordingsPath,
+                archivedRecordingsReportPath,
                 targetConnectionManager,
                 clock,
                 platformClient,
-                reportService,
                 notificationFactory,
                 base32);
     }

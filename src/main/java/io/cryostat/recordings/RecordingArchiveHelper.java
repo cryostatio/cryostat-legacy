@@ -71,7 +71,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
@@ -87,10 +87,10 @@ public class RecordingArchiveHelper {
     private final FileSystem fs;
     private final Provider<WebServer> webServerProvider;
     private final Logger logger;
-    private final Path recordingsPath;
+    private final Path archivedRecordingsPath;
+    private final Path archivedRecordingsReportPath;
     private final Clock clock;
     private final PlatformClient platformClient;
-    private final ReportService reportService;
     private final NotificationFactory notificationFactory;
     private final Base32 base32;
 
@@ -101,21 +101,21 @@ public class RecordingArchiveHelper {
             FileSystem fs,
             Provider<WebServer> webServerProvider,
             Logger logger,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempPath,
             TargetConnectionManager targetConnectionManager,
             Clock clock,
             PlatformClient platformClient,
-            ReportService reportService,
             NotificationFactory notificationFactory,
             Base32 base32) {
         this.fs = fs;
         this.webServerProvider = webServerProvider;
         this.logger = logger;
-        this.recordingsPath = recordingsPath;
+        this.archivedRecordingsPath = archivedRecordingsPath;
+        this.archivedRecordingsReportPath = webServerTempPath;
         this.targetConnectionManager = targetConnectionManager;
         this.clock = clock;
         this.platformClient = platformClient;
-        this.reportService = reportService;
         this.notificationFactory = notificationFactory;
         this.base32 = base32;
     }
@@ -137,7 +137,8 @@ public class RecordingArchiveHelper {
                                     return writeRecordingToDestination(
                                             connection, descriptor.get());
                                 } else {
-                                    throw new RecordingNotFoundException("active recordings", recordingName);
+                                    throw new RecordingNotFoundException(
+                                            "active recordings", recordingName);
                                 }
                             });
             future.complete(saveName);
@@ -183,10 +184,25 @@ public class RecordingArchiveHelper {
         } catch (IOException | InterruptedException | ExecutionException e) {
             future.completeExceptionally(e);
         } finally {
-            reportService.delete(recordingName);
+            deleteReport(recordingName);
         }
 
         return future;
+    }
+
+    public boolean deleteReport(String recordingName) {
+        try {
+            logger.trace("Invalidating archived report cache for {}", recordingName);
+            return fs.deleteIfExists(getCachedReportPath(recordingName));
+        } catch (IOException ioe) {
+            logger.warn(ioe);
+            return false;
+        }
+    }
+
+    public Path getCachedReportPath(String recordingName) {
+        String fileName = recordingName + ".report.html";
+        return archivedRecordingsReportPath.resolve(fileName).toAbsolutePath();
     }
 
     public Future<List<ArchivedRecordingInfo>> getRecordings() {
@@ -194,21 +210,23 @@ public class RecordingArchiveHelper {
         CompletableFuture<List<ArchivedRecordingInfo>> future = new CompletableFuture<>();
 
         try {
-            if (!fs.exists(recordingsPath)) {
-                throw new ArchivePathException(recordingsPath.toString(), "does not exist");
+            if (!fs.exists(archivedRecordingsPath)) {
+                throw new ArchivePathException(archivedRecordingsPath.toString(), "does not exist");
             }
-            if (!fs.isReadable(recordingsPath)) {
-                throw new ArchivePathException(recordingsPath.toString(), "is not readable");
+            if (!fs.isReadable(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not readable");
             }
-            if (!fs.isDirectory(recordingsPath)) {
-                throw new ArchivePathException(recordingsPath.toString(), "is not a directory");
+            if (!fs.isDirectory(archivedRecordingsPath)) {
+                throw new ArchivePathException(
+                        archivedRecordingsPath.toString(), "is not a directory");
             }
             WebServer webServer = webServerProvider.get();
-            List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
+            List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             List<ArchivedRecordingInfo> archivedRecordings = new ArrayList<>();
             for (String subdirectory : subdirectories) {
                 List<String> files =
-                        this.fs.listDirectoryChildren(recordingsPath.resolve(subdirectory));
+                        this.fs.listDirectoryChildren(archivedRecordingsPath.resolve(subdirectory));
                 List<ArchivedRecordingInfo> temp =
                         files.stream()
                                 .map(
@@ -242,9 +260,9 @@ public class RecordingArchiveHelper {
         CompletableFuture<Path> future = new CompletableFuture<>();
 
         try {
-            List<String> subdirectories = this.fs.listDirectoryChildren(recordingsPath);
+            List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             Path archivedRecording =
-                    searchSubdirectories(subdirectories, recordingsPath, recordingName);
+                    searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
             if (!(archivedRecording != null
                     && fs.exists(archivedRecording)
                     && fs.isRegularFile(archivedRecording)
@@ -279,7 +297,7 @@ public class RecordingArchiveHelper {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri =
                 base32.encodeAsString(serviceUri.toString().getBytes(StandardCharsets.UTF_8));
-        Path specificRecordingsPath = recordingsPath.resolve(encodedServiceUri);
+        Path specificRecordingsPath = archivedRecordingsPath.resolve(encodedServiceUri);
 
         if (!fs.exists(specificRecordingsPath)) {
             Files.createDirectory(specificRecordingsPath);

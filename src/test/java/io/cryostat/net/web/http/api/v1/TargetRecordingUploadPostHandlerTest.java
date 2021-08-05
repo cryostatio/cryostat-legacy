@@ -54,6 +54,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -188,7 +189,7 @@ class TargetRecordingUploadPostHandlerTest {
                         });
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(
-                ex.getCause(), Matchers.instanceOf(ReportService.RecordingNotFoundException.class));
+                ex.getCause(), Matchers.instanceOf(RecordingNotFoundException.class));
     }
 
     @Test
