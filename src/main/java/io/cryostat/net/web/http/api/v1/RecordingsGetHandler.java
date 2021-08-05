@@ -108,9 +108,8 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ArchivePathException) {
                 throw new HttpStatusException(501, e.getMessage(), e);
-            } else {
-                throw e;
             }
+            throw e;
         }
     }
 }

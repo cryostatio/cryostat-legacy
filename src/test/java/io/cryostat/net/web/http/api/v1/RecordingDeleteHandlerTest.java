@@ -109,7 +109,6 @@ class RecordingDeleteHandlerTest {
         ExecutionException e = Mockito.mock(ExecutionException.class);
         Mockito.when(future.get()).thenThrow(e);
         Mockito.when(e.getCause())
-                .thenReturn(e)
                 .thenReturn(new RecordingNotFoundException("archives", "someRecording"));
 
         Mockito.when(ctx.response()).thenReturn(resp);

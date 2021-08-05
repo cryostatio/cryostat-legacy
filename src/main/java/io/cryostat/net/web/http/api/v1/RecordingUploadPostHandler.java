@@ -151,9 +151,8 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e.getMessage(), e);
-            } else {
-                throw e;
             }
+            throw e;
         }
 
         MultipartForm form =

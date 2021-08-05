@@ -52,7 +52,6 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 
 class ArchivedRecordingReportCache {
 
@@ -104,11 +103,6 @@ class ArchivedRecordingReportCache {
             f.complete(saveFile);
         } catch (ExecutionException | InterruptedException e) {
             logger.warn(e);
-            // log specific warning if recording not found
-            if (e instanceof ExecutionException
-                    && e.getCause() instanceof RecordingNotFoundException) {
-                logger.warn(new RecordingNotFoundException("archives", recordingName));
-            }
             f.completeExceptionally(e);
         } catch (Exception e) {
             logger.error(e);
