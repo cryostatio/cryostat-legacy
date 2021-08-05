@@ -37,12 +37,21 @@
  */
 package itest;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import io.cryostat.net.web.http.HttpMimeType;
+
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
@@ -54,7 +63,6 @@ import org.junit.jupiter.api.Test;
 
 public class UploadRecordingIT extends StandardSelfTest {
 
-    static final String TARGET_ID = "localhost";
     static final String RECORDING_NAME = "upload_recording_it_rec";
 
     @BeforeAll
@@ -65,7 +73,7 @@ public class UploadRecordingIT extends StandardSelfTest {
         form.add("duration", "5");
         form.add("events", "template=ALL");
         webClient
-                .post(String.format("/api/v1/targets/%s/recordings", TARGET_ID))
+                .post(String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID))
                 .sendForm(
                         form,
                         ar -> {
@@ -82,7 +90,8 @@ public class UploadRecordingIT extends StandardSelfTest {
         webClient
                 .delete(
                         String.format(
-                                "/api/v1/targets/%s/recordings/%s", TARGET_ID, RECORDING_NAME))
+                                "/api/v1/targets/%s/recordings/%s",
+                                SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, deleteRespFuture)) {
@@ -104,7 +113,7 @@ public class UploadRecordingIT extends StandardSelfTest {
                 .post(
                         String.format(
                                 "/api/v1/targets/%s/recordings/%s/upload",
-                                TARGET_ID, RECORDING_NAME))
+                                SELF_REFERENCE_TARGET_ID, RECORDING_NAME))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, uploadRespFuture)) {
@@ -118,5 +127,84 @@ public class UploadRecordingIT extends StandardSelfTest {
                 String.format("Uploaded: %s\nSet: %s\n", RECORDING_NAME, RECORDING_NAME);
 
         MatcherAssert.assertThat(uploadRespFuture.get(), Matchers.equalTo(expectedUploadResponse));
+
+        // Confirm recording appears in Grafana
+        CompletableFuture<String> getRespFuture = new CompletableFuture<>();
+        webClient
+                .get(8080, "localhost", "/list")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, getRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                getRespFuture.complete(ar.result().bodyAsString());
+                            }
+                        });
+
+        MatcherAssert.assertThat(
+                getRespFuture.get(), Matchers.equalTo(String.format("%s\n", RECORDING_NAME)));
+
+        CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
+
+        Calendar yesterday = Calendar.getInstance();
+        yesterday.add(Calendar.DATE, -1);
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
+        final String NOW = dateFormat.format(Calendar.getInstance().getTime());
+        final String YESTERDAY = dateFormat.format(yesterday.getTime());
+
+        JsonObject query =
+                new JsonObject(
+                        Map.of(
+                                "panelId",
+                                1,
+                                "range",
+                                Map.of(
+                                        "from",
+                                        YESTERDAY,
+                                        "to",
+                                        NOW,
+                                        "raw",
+                                        Map.of("now-24hr", "now")),
+                                "rangeRaw",
+                                Map.of("from", "now-24hr", "to", "now"),
+                                "interval",
+                                "30s",
+                                "intervalMs",
+                                "30000",
+                                "targets",
+                                List.of(
+                                        Map.of(
+                                                "target",
+                                                "upper_50?",
+                                                "refId",
+                                                "cryostat?",
+                                                "type",
+                                                "timeseries")),
+                                "format",
+                                "json",
+                                "maxDataPoints",
+                                550));
+        webClient
+                .post(8080, "localhost", "/query")
+                .sendJsonObject(
+                        query,
+                        ar -> {
+                            if (assertRequestStatus(ar, queryRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                queryRespFuture.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        //FIXME the /query response shouldn't be empty
+        JsonArray expectedQueryResponse = new JsonArray();
+        expectedQueryResponse.add(Map.of());
+
+        MatcherAssert.assertThat(queryRespFuture.get(), Matchers.equalTo(expectedQueryResponse));
     }
 }
