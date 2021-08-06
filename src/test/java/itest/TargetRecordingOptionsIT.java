@@ -40,6 +40,7 @@ package itest;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -49,8 +50,8 @@ import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -66,7 +67,7 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
 
     @AfterAll
     static void resetDefaultRecordingOptions() throws Exception {
-        CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
+        CompletableFuture<JsonObject> dumpResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("maxAge", "0");
         form.add("toDisk", "false");
@@ -77,20 +78,14 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
-                            if (assertRequestStatus(ar, getResponse)) {
+                            if (assertRequestStatus(ar, dumpResponse)) {
                                 MatcherAssert.assertThat(
                                         ar.result().statusCode(), Matchers.equalTo(200));
-                                MatcherAssert.assertThat(
-                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
-                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
-                                getResponse.complete(ar.result().bodyAsJsonObject());
+                                dumpResponse.complete(null);
                             }
                         });
 
-        JsonObject expectedGetResponse =
-                new JsonObject(Map.of("maxAge", 0, "toDisk", false, "maxSize", 0));
-
-        MatcherAssert.assertThat(getResponse.get(), Matchers.equalTo(expectedGetResponse));
+        dumpResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @Test
