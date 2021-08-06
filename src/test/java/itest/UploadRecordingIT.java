@@ -97,6 +97,8 @@ public class UploadRecordingIT extends StandardSelfTest {
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, deleteRespFuture)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
                                 deleteRespFuture.complete(null);
                             }
                         });
@@ -150,10 +152,6 @@ public class UploadRecordingIT extends StandardSelfTest {
         MatcherAssert.assertThat(
                 getRespFuture.get().trim(), Matchers.equalTo(String.format("%s", RECORDING_NAME)));
 
-        // Wait for recording to finish to gather more data?
-        // Grafana still gives me no datapoints
-        Thread.sleep(5000);
-
         // Query Grafana for recording metrics
         CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
 
@@ -163,11 +161,12 @@ public class UploadRecordingIT extends StandardSelfTest {
         final String FROM = dateFormat.format(lastFiveSecs.getTime());
         final String TO = dateFormat.format(Calendar.getInstance().getTime());
         final String TARGET_METRIC = "jdk.CPULoad.machineTotal";
+        final int PANEL_ID = 4; // from inspecting dashboard html
 
         JsonObject query =
                 new JsonObject(
                         Map.ofEntries(
-                                Map.entry("panelId", 1),
+                                Map.entry("panelId", PANEL_ID),
                                 Map.entry(
                                         "range",
                                         Map.of(
