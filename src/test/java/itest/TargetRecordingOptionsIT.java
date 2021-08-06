@@ -154,6 +154,9 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
                             }
                         });
 
+        // FIXME the default disk option returned is different than the actual value used in
+        // recordings
+        // https://github.com/cryostatio/cryostat/issues/263
         JsonObject expectedGetResponse =
                 new JsonObject(Map.of("maxAge", 0, "toDisk", false, "maxSize", 0));
 
