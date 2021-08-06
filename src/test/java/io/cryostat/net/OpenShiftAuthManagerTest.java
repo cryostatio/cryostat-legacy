@@ -57,6 +57,8 @@ import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 
 import com.google.gson.Gson;
+import io.fabric8.kubernetes.api.model.authentication.TokenReview;
+import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -87,8 +89,7 @@ class OpenShiftAuthManagerTest {
 
     static final String SUBJECT_REVIEW_API_PATH =
             "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews";
-    static final String NAMESPACE_FS_PATH =
-            "/var/run/secrets/kubernetes.io/serviceaccount/namespace";
+    static final String TOKEN_REVIEW_API_PATH = "/apis/authentication.k8s.io/v1/tokenreviews";
 
     OpenShiftAuthManager mgr;
     @Mock FileSystem fs;
@@ -102,6 +103,7 @@ class OpenShiftAuthManagerTest {
     static void disableKubeConfig() {
         // FIXME Disable reading ~/.kube/config. Remove once updated to 5.5.0 or newer.
         System.setProperty(Config.KUBERNETES_AUTH_TRYKUBECONFIG_SYSTEM_PROPERTY, "false");
+        System.setProperty(Config.KUBERNETES_AUTH_TRYSERVICEACCOUNT_SYSTEM_PROPERTY, "false");
     }
 
     @BeforeEach
@@ -124,9 +126,46 @@ class OpenShiftAuthManagerTest {
     }
 
     @Test
-    void shouldValidateTokenWithNoPermissions() throws Exception {
+    void shouldValidateTokenWithNoRequiredPermissions() throws Exception {
+        TokenReview tokenReview =
+                new TokenReviewBuilder()
+                        .withNewStatus()
+                        .withAuthenticated(true)
+                        .endStatus()
+                        .build();
+        server.expect()
+                .post()
+                .withPath(TOKEN_REVIEW_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .once();
+
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
+
         MatcherAssert.assertThat(
-                mgr.validateToken(() -> "token", ResourceAction.NONE).get(), Matchers.is(true));
+                mgr.validateToken(() -> "userToken", ResourceAction.NONE).get(), Matchers.is(true));
+    }
+
+    @Test
+    void shouldNotValidateTokenWithNoRequiredPermissionsButNoTokenAccess() throws Exception {
+        TokenReview tokenReview =
+                new TokenReviewBuilder()
+                        .withNewStatus()
+                        .withAuthenticated(false)
+                        .endStatus()
+                        .build();
+        server.expect()
+                .post()
+                .withPath(TOKEN_REVIEW_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .once();
+
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
+
+        MatcherAssert.assertThat(
+                mgr.validateToken(() -> "userToken", ResourceAction.NONE).get(),
+                Matchers.is(false));
     }
 
     @Test
@@ -143,7 +182,7 @@ class OpenShiftAuthManagerTest {
                 .andReturn(HttpURLConnection.HTTP_CREATED, accessReview)
                 .once();
 
-        Mockito.when(fs.readFile(Mockito.any()))
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("mynamespace")));
 
         MatcherAssert.assertThat(
@@ -153,7 +192,8 @@ class OpenShiftAuthManagerTest {
         ArgumentCaptor<Path> nsPathCaptor = ArgumentCaptor.forClass(Path.class);
         Mockito.verify(fs).readFile(nsPathCaptor.capture());
         MatcherAssert.assertThat(
-                nsPathCaptor.getValue(), Matchers.equalTo(Paths.get(NAMESPACE_FS_PATH)));
+                nsPathCaptor.getValue(),
+                Matchers.equalTo(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)));
     }
 
     @Test
@@ -171,7 +211,7 @@ class OpenShiftAuthManagerTest {
                 .once();
 
         String namespace = "mynamespace";
-        Mockito.when(fs.readFile(Mockito.any()))
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(new BufferedReader(new StringReader(namespace)));
 
         ExecutionException ee =
@@ -191,7 +231,8 @@ class OpenShiftAuthManagerTest {
         ArgumentCaptor<Path> nsPathCaptor = ArgumentCaptor.forClass(Path.class);
         Mockito.verify(fs).readFile(nsPathCaptor.capture());
         MatcherAssert.assertThat(
-                nsPathCaptor.getValue(), Matchers.equalTo(Paths.get(NAMESPACE_FS_PATH)));
+                nsPathCaptor.getValue(),
+                Matchers.equalTo(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)));
     }
 
     @ParameterizedTest
@@ -200,7 +241,7 @@ class OpenShiftAuthManagerTest {
             names = "^([a-zA-Z]+_(RECORDING|TARGET|CERTIFICATE|CREDENTIALS))$")
     void shouldValidateExpectedPermissionsPerSecuredResource(ResourceAction resourceAction)
             throws Exception {
-        Mockito.when(fs.readFile(Mockito.any()))
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("mynamespace")));
 
         String expectedVerb;
@@ -305,7 +346,7 @@ class OpenShiftAuthManagerTest {
             })
     void shouldValidateExpectedPermissionsForUnsecuredResources(ResourceAction resourceAction)
             throws Exception {
-        Mockito.when(fs.readFile(Mockito.any()))
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("mynamespace")));
         MatcherAssert.assertThat(
                 mgr.validateToken(() -> "token", Set.of(resourceAction)).get(), Matchers.is(true));

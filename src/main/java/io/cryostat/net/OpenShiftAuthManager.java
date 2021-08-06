@@ -61,6 +61,8 @@ import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.api.model.authentication.TokenReview;
+import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -99,7 +101,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return CompletableFuture.completedFuture(false);
         }
         if (resourceActions.isEmpty()) {
-            return CompletableFuture.completedFuture(true);
+            return reviewToken(token);
         }
 
         try (OpenShiftClient client = clientProvider.apply(token)) {
@@ -118,6 +120,22 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             // was thrown on allOf().get() above
             return CompletableFuture.completedFuture(true);
         } catch (KubernetesClientException | ExecutionException e) {
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    Future<Boolean> reviewToken(String token) {
+        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+            TokenReview review =
+                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
+            review = client.tokenReviews().create(review);
+            Boolean authenticated = review.getStatus().getAuthenticated();
+            return CompletableFuture.completedFuture(authenticated != null && authenticated);
+        } catch (KubernetesClientException e) {
             logger.info(e);
             return CompletableFuture.failedFuture(e);
         } catch (Exception e) {
@@ -225,6 +243,17 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             justification = "Kubernetes namespace file path is well-known and absolute")
     private String getNamespace() throws IOException {
         return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
+                .lines()
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .get();
+    }
+
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification = "Kubernetes serviceaccount file path is well-known and absolute")
+    private String getServiceAccountToken() throws IOException {
+        return fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH))
                 .lines()
                 .filter(StringUtils::isNotBlank)
                 .findFirst()
