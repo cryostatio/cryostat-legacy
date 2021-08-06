@@ -50,6 +50,7 @@ import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -62,6 +63,35 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
     static final String OPTIONS_LIST_REQ_URL =
             String.format("/api/v2/targets/%s/recordingOptionsList", SELF_REFERENCE_TARGET_ID);
     static final String RECORDING_NAME = "test_recording";
+
+    @AfterAll
+    static void resetDefaultRecordingOptions() throws Exception {
+        CompletableFuture<JsonObject> getResponse = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("maxAge", "0");
+        form.add("toDisk", "false");
+        form.add("maxSize", "0");
+
+        webClient
+                .patch(OPTIONS_REQ_URL)
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, getResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                        Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                getResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+        JsonObject expectedGetResponse =
+                new JsonObject(Map.of("maxAge", 0, "toDisk", false, "maxSize", 0));
+
+        MatcherAssert.assertThat(getResponse.get(), Matchers.equalTo(expectedGetResponse));
+    }
 
     @Test
     @Order(1)
