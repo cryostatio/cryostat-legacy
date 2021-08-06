@@ -67,13 +67,12 @@ public class ReportIT extends StandardSelfTest {
             String.format("/api/v1/targets/%s/recordings", SELF_REFERENCE_TARGET_ID);
     static final String ARCHIVE_REQ_URL = "/api/v1/recordings";
     static final String TEMP_REPORT = "src/test/resources/reportTest.html";
-    static File file;
-    static Document doc;
 
     @Test
     void testGetReportShouldSendFile() throws Exception {
 
         CompletableFuture<String> savedRecordingName = new CompletableFuture<>();
+        File file = new File(TEMP_REPORT);
 
         try {
             // Create a recording
@@ -133,8 +132,6 @@ public class ReportIT extends StandardSelfTest {
                                 }
                             });
 
-            file = new File(TEMP_REPORT);
-
             try (FileOutputStream fos = new FileOutputStream(file);
                     BufferedOutputStream bos = new BufferedOutputStream(fos)) {
 
@@ -142,7 +139,7 @@ public class ReportIT extends StandardSelfTest {
                 bos.write(bytes);
             }
 
-            doc = Jsoup.parse(file, "UTF-8");
+            Document doc = Jsoup.parse(file, "UTF-8");
 
             MatcherAssert.assertThat(file.length(), Matchers.greaterThan(0L));
 
