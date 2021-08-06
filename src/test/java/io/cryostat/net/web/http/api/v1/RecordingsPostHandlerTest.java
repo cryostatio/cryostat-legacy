@@ -62,14 +62,12 @@ import io.cryostat.net.web.http.RequestHandler;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
-import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.codec.binary.Base32;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -93,7 +91,6 @@ class RecordingsPostHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
-    @Mock Base32 base32;
 
     @BeforeEach
     void setup() {
@@ -118,8 +115,7 @@ class RecordingsPostHandlerTest {
                         recordingsPath,
                         MainModule.provideGson(logger),
                         logger,
-                        notificationFactory,
-                        base32);
+                        notificationFactory);
     }
 
     @Test
@@ -147,8 +143,6 @@ class RecordingsPostHandlerTest {
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
-        when(ctx.pathParam("targetId")).thenReturn("foo:9091");
-        when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
         when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
 
@@ -159,7 +153,6 @@ class RecordingsPostHandlerTest {
         when(upload.name()).thenReturn("recording");
         when(upload.fileName()).thenReturn(filename);
         when(upload.uploadedFileName()).thenReturn("foo");
-        when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
 
         Path filePath = mock(Path.class);
         when(filePath.toString()).thenReturn(savePath + filename);

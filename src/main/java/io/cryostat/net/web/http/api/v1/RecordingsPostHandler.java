@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
@@ -59,7 +58,6 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -75,7 +73,6 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.codec.binary.Base32;
 
 class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -90,7 +87,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Gson gson;
     private final Logger logger;
     private final NotificationFactory notificationFactory;
-    private final Base32 base32;
 
     private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
 
@@ -102,8 +98,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
             Logger logger,
-            NotificationFactory notificationFactory,
-            Base32 base32) {
+            NotificationFactory notificationFactory) {
         super(auth);
         this.vertx = httpServer.getVertx();
         this.fs = fs;
@@ -111,7 +106,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         this.gson = gson;
         this.logger = logger;
         this.notificationFactory = notificationFactory;
-        this.base32 = base32;
     }
 
     @Override
@@ -190,17 +184,14 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         ? 0
                         : Integer.parseInt(m.group(4).substring(1));
 
-        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        final String encodedServiceUri =
-                base32.encodeAsString(
-                        connectionDescriptor.getTargetId().getBytes(StandardCharsets.UTF_8));
+        final String subdirectoryName = "unlabelled";
         final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         final String uploadedFileName = upload.uploadedFileName();
         validateRecording(
                 upload.uploadedFileName(),
                 (res) ->
                         saveRecording(
-                                encodedServiceUri,
+                                subdirectoryName,
                                 basename,
                                 uploadedFileName,
                                 count,
@@ -260,7 +251,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     private void saveRecording(
-            String encodedServiceUri,
+            String subdirectoryName,
             String basename,
             String tmpFile,
             int counter,
@@ -276,7 +267,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
-        Path specificRecordingsPath = savedRecordingsPath.resolve(encodedServiceUri);
+        Path specificRecordingsPath = savedRecordingsPath.resolve(subdirectoryName);
 
         if (!fs.exists(specificRecordingsPath)) {
             try {
@@ -298,7 +289,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
                             if (res.result()) {
                                 saveRecording(
-                                        encodedServiceUri, basename, tmpFile, counter + 1, handler);
+                                        subdirectoryName, basename, tmpFile, counter + 1, handler);
                                 return;
                             }
 
