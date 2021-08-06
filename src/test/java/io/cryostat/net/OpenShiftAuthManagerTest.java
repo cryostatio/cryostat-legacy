@@ -157,7 +157,7 @@ class OpenShiftAuthManagerTest {
     }
 
     @Test
-    void shouldNotValidateTokenWithSufficientPermissions() throws Exception {
+    void shouldNotValidateTokenWithInsufficientPermissions() throws Exception {
         SelfSubjectAccessReview accessReview =
                 new SelfSubjectAccessReviewBuilder()
                         .withNewStatus()
