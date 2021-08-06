@@ -67,7 +67,7 @@ public class UploadRecordingIT extends StandardSelfTest {
 
     @BeforeAll
     public static void createRecording() throws Exception {
-        CompletableFuture<JsonObject> dumpRespFuture = new CompletableFuture<>();
+        CompletableFuture<JsonObject> dumpPostResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("recordingName", RECORDING_NAME);
         form.add("duration", "5");
@@ -77,11 +77,13 @@ public class UploadRecordingIT extends StandardSelfTest {
                 .sendForm(
                         form,
                         ar -> {
-                            if (assertRequestStatus(ar, dumpRespFuture)) {
-                                dumpRespFuture.complete(ar.result().bodyAsJsonObject());
+                            if (assertRequestStatus(ar, dumpPostResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(201));
+                                dumpPostResponse.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        dumpRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        dumpPostResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
     }
 
     @AfterAll
@@ -148,44 +150,48 @@ public class UploadRecordingIT extends StandardSelfTest {
         MatcherAssert.assertThat(
                 getRespFuture.get().trim(), Matchers.equalTo(String.format("%s", RECORDING_NAME)));
 
+        // Wait for recording to finish to gather more data?
+        // Grafana still gives me no datapoints
+        Thread.sleep(5000);
+
+        // Query Grafana for recording metrics
         CompletableFuture<JsonArray> queryRespFuture = new CompletableFuture<>();
 
-        Calendar lastMinute = Calendar.getInstance();
-        lastMinute.add(Calendar.MINUTE, -1);
-        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
-        final String END = dateFormat.format(Calendar.getInstance().getTime());
-        final String START = dateFormat.format(lastMinute.getTime());
+        Calendar lastFiveSecs = Calendar.getInstance();
+        lastFiveSecs.add(Calendar.SECOND, -5);
+        final DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        final String FROM = dateFormat.format(lastFiveSecs.getTime());
+        final String TO = dateFormat.format(Calendar.getInstance().getTime());
+        final String TARGET_METRIC = "jdk.CPULoad.machineTotal";
 
         JsonObject query =
                 new JsonObject(
-                        Map.of(
-                                "timezone",
-                                "browser",
-                                "panelId",
-                                2,
-                                "range",
-                                Map.of(
-                                        "from",
-                                        START,
-                                        "to",
-                                        END,
-                                        "raw",
-                                        Map.of("from", START, "to", END)),
-                                "rangeRaw",
-                                Map.of("from", START, "to", END),
-                                "targets",
-                                List.of(
+                        Map.ofEntries(
+                                Map.entry("panelId", 1),
+                                Map.entry(
+                                        "range",
                                         Map.of(
-                                                "target",
-                                                "upper_50",
-                                                "refId",
-                                                "A",
-                                                "type",
-                                                "timeserie")),
-                                "format",
-                                "json",
-                                "maxDataPoints",
-                                500));
+                                                "from",
+                                                FROM,
+                                                "to",
+                                                TO,
+                                                "raw",
+                                                Map.of("from", FROM, "to", TO))),
+                                Map.entry("interval", "10ms"),
+                                Map.entry("intervalMs", "10"),
+                                Map.entry(
+                                        "targets",
+                                        List.of(
+                                                Map.of(
+                                                        "target",
+                                                        TARGET_METRIC,
+                                                        "refId",
+                                                        "A",
+                                                        "type",
+                                                        "timeserie"))),
+                                Map.entry("format", "json"),
+                                Map.entry("maxDataPoints", 1000)));
+
         webClient
                 .post(8080, "localhost", "/query")
                 .sendJsonObject(
@@ -200,9 +206,9 @@ public class UploadRecordingIT extends StandardSelfTest {
                                 queryRespFuture.complete(ar.result().bodyAsJsonArray());
                             }
                         });
-        // FIXME the /query response shouldn't be empty
+        // FIXME the datapoints array shouldn't be empty
         JsonArray expectedQueryResponse = new JsonArray();
-        expectedQueryResponse.add(Map.of());
+        expectedQueryResponse.add(Map.of("target", TARGET_METRIC, "datapoints", List.of()));
 
         MatcherAssert.assertThat(queryRespFuture.get(), Matchers.equalTo(expectedQueryResponse));
     }
