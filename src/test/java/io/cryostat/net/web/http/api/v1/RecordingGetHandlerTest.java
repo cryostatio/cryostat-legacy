@@ -141,6 +141,5 @@ class RecordingGetHandlerTest {
         handler.handle(ctx);
 
         Mockito.verify(resp).sendFile(Mockito.anyString());
-        Mockito.verify(resp).end();
     }
 }
