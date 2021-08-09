@@ -38,11 +38,14 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
+import java.util.EnumSet;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.MatchExpressionValidationException;
@@ -87,6 +90,16 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public String path() {
         return basePath() + PATH;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.CREATE_RULE,
+                ResourceAction.READ_TARGET,
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.READ_TEMPLATE);
     }
 
     @Override

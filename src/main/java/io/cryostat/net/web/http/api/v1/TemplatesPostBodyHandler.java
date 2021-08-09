@@ -37,9 +37,12 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -74,6 +77,11 @@ class TemplatesPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public String path() {
         return basePath() + TemplatesPostHandler.PATH;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override

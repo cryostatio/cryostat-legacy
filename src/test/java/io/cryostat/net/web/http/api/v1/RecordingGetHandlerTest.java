@@ -38,8 +38,10 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
+import java.util.Set;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
@@ -71,5 +73,11 @@ class RecordingGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/recordings/:recordingName"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
     }
 }

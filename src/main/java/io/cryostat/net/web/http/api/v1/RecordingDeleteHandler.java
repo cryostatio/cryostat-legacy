@@ -39,7 +39,9 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -49,6 +51,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -87,6 +90,11 @@ public class RecordingDeleteHandler extends AbstractAuthenticatedRequestHandler 
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.DELETE;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.DELETE_RECORDING);
     }
 
     @Override

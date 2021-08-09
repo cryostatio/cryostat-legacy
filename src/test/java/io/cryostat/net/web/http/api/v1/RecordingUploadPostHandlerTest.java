@@ -38,11 +38,13 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -101,6 +103,12 @@ class RecordingUploadPostHandlerTest {
                 handler.path(), Matchers.equalTo("/api/v1/recordings/:recordingName/upload"));
     }
 
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
+    }
+
     @ParameterizedTest
     @ValueSource(
             strings = {
@@ -121,7 +129,7 @@ class RecordingUploadPostHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(rawUrl);
 
@@ -138,7 +146,7 @@ class RecordingUploadPostHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
         Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(false);
@@ -150,7 +158,7 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldDoUpload() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
@@ -204,7 +212,7 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleInvalidResponseStatusCode() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
@@ -267,7 +275,7 @@ class RecordingUploadPostHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
@@ -323,7 +331,7 @@ class RecordingUploadPostHandlerTest {
                         resp.putHeader(
                                 Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 

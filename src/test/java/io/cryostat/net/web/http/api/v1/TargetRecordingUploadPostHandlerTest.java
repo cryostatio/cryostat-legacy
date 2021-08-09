@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -52,6 +53,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -117,6 +119,14 @@ class TargetRecordingUploadPostHandlerTest {
                 Matchers.equalTo("/api/v1/targets/:targetId/recordings/:recordingName/upload"));
     }
 
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(ResourceAction.READ_TARGET, ResourceAction.READ_RECORDING)));
+    }
+
     @ParameterizedTest
     @ValueSource(
             strings = {
@@ -131,7 +141,7 @@ class TargetRecordingUploadPostHandlerTest {
             })
     @NullAndEmptySource
     void shouldThrow501IfDatasourceUrlMalformed(String rawUrl) {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(rawUrl);
         Mockito.when(ctx.response()).thenReturn(resp);
@@ -155,7 +165,7 @@ class TargetRecordingUploadPostHandlerTest {
                 .thenReturn(resp);
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -183,7 +193,7 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldDoUpload() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -249,7 +259,7 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleInvalidResponseStatusCode() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -318,7 +328,7 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleNullStatusMessage() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
@@ -387,7 +397,7 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleNullResponseBody() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(

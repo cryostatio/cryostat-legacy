@@ -37,6 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -44,6 +47,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
@@ -74,6 +78,11 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.UPDATE_RECORDING);
     }
 
     @Override

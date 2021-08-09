@@ -41,6 +41,7 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.rmi.ConnectIOException;
 import java.util.Base64;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -52,7 +53,9 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
@@ -77,12 +80,21 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
     @Override
     public void handle(RoutingContext ctx) {
         try {
-            if (!validateRequestAuthorization(ctx.request()).get()) {
-                throw new HttpStatusException(401);
+            boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
+            if (!permissionGranted) {
+                // expected to go into catch clause below
+                throw new HttpStatusException(401, "HTTP Authorization Failure");
             }
             // set Content-Type: text/plain by default. Handler implementations may replace this.
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());
             handleAuthenticated(ctx);
+        } catch (ExecutionException ee) {
+            Throwable cause = ee.getCause();
+            if (cause instanceof PermissionDeniedException
+                    || cause instanceof KubernetesClientException) {
+                throw new HttpStatusException(401, "HTTP Authorization Failure", ee);
+            }
+            throw new HttpStatusException(500, ee.getMessage(), ee);
         } catch (HttpStatusException e) {
             throw e;
         } catch (ConnectionException e) {
@@ -105,7 +117,8 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
     }
 
     protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
-        return auth.validateHttpHeader(() -> req.getHeader(HttpHeaders.AUTHORIZATION));
+        return auth.validateHttpHeader(
+                () -> req.getHeader(HttpHeaders.AUTHORIZATION), resourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {

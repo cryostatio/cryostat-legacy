@@ -37,9 +37,12 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
@@ -91,6 +94,11 @@ class CorsEnablingHandler implements RequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.OTHER; // unused for ALL_PATHS handlers
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override

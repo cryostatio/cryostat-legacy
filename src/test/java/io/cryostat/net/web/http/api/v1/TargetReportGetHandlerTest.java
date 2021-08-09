@@ -41,6 +41,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -50,6 +51,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
@@ -95,8 +97,20 @@ class TargetReportGetHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(
+                                ResourceAction.READ_TARGET,
+                                ResourceAction.READ_RECORDING,
+                                ResourceAction.CREATE_REPORT,
+                                ResourceAction.READ_REPORT)));
+    }
+
+    @Test
     void shouldHandleRecordingDownloadRequest() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -122,7 +136,7 @@ class TargetReportGetHandlerTest {
 
     @Test
     void shouldRespond404IfRecordingNameNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -148,7 +162,7 @@ class TargetReportGetHandlerTest {
 
     @Test
     void shouldRespond404IfTargetNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -178,7 +192,7 @@ class TargetReportGetHandlerTest {
 
     @Test
     void shouldRespond404IfRecordingNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);

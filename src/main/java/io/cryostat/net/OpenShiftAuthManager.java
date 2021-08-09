@@ -41,22 +41,33 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Base64;
+import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.ResourceType;
+import io.cryostat.net.security.ResourceVerb;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.fabric8.kubernetes.api.model.authentication.TokenReview;
+import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
+import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
+import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
-import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
@@ -65,11 +76,16 @@ import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
-    private final FileSystem fs;
+    private static final Set<String> PERMISSION_NOT_REQUIRED = Set.of("PERMISSION_NOT_REQUIRED");
 
-    public OpenShiftAuthManager(Logger logger, FileSystem fs) {
+    private final FileSystem fs;
+    private final Function<String, OpenShiftClient> clientProvider;
+
+    OpenShiftAuthManager(
+            Logger logger, FileSystem fs, Function<String, OpenShiftClient> clientProvider) {
         super(logger);
         this.fs = fs;
+        this.clientProvider = clientProvider;
     }
 
     @Override
@@ -78,42 +94,234 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
+    public Future<Boolean> validateToken(
+            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         String token = tokenProvider.get();
         if (StringUtils.isBlank(token)) {
             return CompletableFuture.completedFuture(false);
         }
-        return CompletableFuture.supplyAsync(
-                        () -> {
+        if (resourceActions.isEmpty()) {
+            return reviewToken(token);
+        }
+
+        try (OpenShiftClient client = clientProvider.apply(token)) {
+            String namespace = getNamespace();
+            List<CompletableFuture<Void>> results =
+                    resourceActions
+                            .parallelStream()
+                            .flatMap(
+                                    resourceAction ->
+                                            validateAction(client, namespace, resourceAction))
+                            .collect(Collectors.toList());
+
+            CompletableFuture.allOf(results.toArray(new CompletableFuture[0]))
+                    .get(15, TimeUnit.SECONDS);
+            // if we get here then all requests were successful and granted, otherwise an exception
+            // was thrown on allOf().get() above
+            return CompletableFuture.completedFuture(true);
+        } catch (KubernetesClientException | ExecutionException e) {
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    Future<Boolean> reviewToken(String token) {
+        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+            TokenReview review =
+                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
+            review = client.tokenReviews().create(review);
+            Boolean authenticated = review.getStatus().getAuthenticated();
+            return CompletableFuture.completedFuture(authenticated != null && authenticated);
+        } catch (KubernetesClientException e) {
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    private Stream<CompletableFuture<Void>> validateAction(
+            OpenShiftClient client, String namespace, ResourceAction resourceAction) {
+        Set<String> resources = map(resourceAction.getResource());
+        if (PERMISSION_NOT_REQUIRED.equals(resources) || resources.isEmpty()) {
+            return Stream.of(CompletableFuture.completedFuture(null));
+        }
+        String group = "operator.cryostat.io";
+        String verb = map(resourceAction.getVerb());
+        return resources
+                .parallelStream()
+                .map(
+                        resource -> {
                             AuthRequest evt = new AuthRequest();
                             evt.begin();
-
-                            try (OpenShiftClient authClient =
-                                    new DefaultOpenShiftClient(
-                                            new OpenShiftConfigBuilder()
-                                                    .withOauthToken(token)
-                                                    .build())) {
-                                // only an authenticated user should be allowed to list routes
-                                // in the namespace
-                                // TODO find a better way to authenticate tokens
-                                authClient.routes().inNamespace(getNamespace()).list();
-
+                            try {
+                                SelfSubjectAccessReview accessReview =
+                                        new SelfSubjectAccessReviewBuilder()
+                                                .withNewSpec()
+                                                .withNewResourceAttributes()
+                                                .withNamespace(namespace)
+                                                .withGroup(group)
+                                                .withResource(resource)
+                                                .withVerb(verb)
+                                                .endResourceAttributes()
+                                                .endSpec()
+                                                .build();
+                                accessReview =
+                                        client.authorization()
+                                                .v1()
+                                                .selfSubjectAccessReview()
+                                                .create(accessReview);
                                 evt.setRequestSuccessful(true);
-                                return true;
-                            } catch (KubernetesClientException e) {
-                                logger.info(e);
+                                if (!accessReview.getStatus().getAllowed()) {
+                                    return CompletableFuture.failedFuture(
+                                            new PermissionDeniedException(
+                                                    namespace,
+                                                    group,
+                                                    resource,
+                                                    verb,
+                                                    accessReview.getStatus().getReason()));
+                                } else {
+                                    return CompletableFuture.completedFuture(null);
+                                }
                             } catch (Exception e) {
-                                logger.error(e);
+                                return CompletableFuture.failedFuture(e);
                             } finally {
                                 if (evt.shouldCommit()) {
                                     evt.end();
                                     evt.commit();
                                 }
                             }
+                        });
+    }
 
-                            return false;
-                        })
-                .orTimeout(15, TimeUnit.SECONDS);
+    @Override
+    public Future<Boolean> validateHttpHeader(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+        String authorization = headerProvider.get();
+        if (StringUtils.isBlank(authorization)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
+        Matcher matcher = bearerPattern.matcher(authorization);
+        if (!matcher.matches()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return validateToken(() -> matcher.group(1), resourceActions);
+    }
+
+    @Override
+    public Future<Boolean> validateWebSocketSubProtocol(
+            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
+        String subprotocol = subProtocolProvider.get();
+        if (StringUtils.isBlank(subprotocol)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        Pattern pattern =
+                Pattern.compile(
+                        "base64url\\.bearer\\.authorization\\.cryostat\\.([\\S]+)",
+                        Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(subprotocol);
+        if (!matcher.matches()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        String b64 = matcher.group(1);
+        try {
+            String decoded =
+                    new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
+            return validateToken(() -> decoded, resourceActions);
+        } catch (IllegalArgumentException e) {
+            return CompletableFuture.completedFuture(false);
+        }
+    }
+
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification = "Kubernetes namespace file path is well-known and absolute")
+    private String getNamespace() throws IOException {
+        return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
+                .lines()
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .get();
+    }
+
+    @SuppressFBWarnings(
+            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
+            justification = "Kubernetes serviceaccount file path is well-known and absolute")
+    private String getServiceAccountToken() throws IOException {
+        return fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH))
+                .lines()
+                .filter(StringUtils::isNotBlank)
+                .findFirst()
+                .get();
+    }
+
+    private static Set<String> map(ResourceType resource) {
+        switch (resource) {
+            case TARGET:
+                return Set.of("flightrecorders");
+            case RECORDING:
+                return Set.of("recordings");
+            case CERTIFICATE:
+                return Set.of("deployments", "pods", "cryostats");
+            case CREDENTIALS:
+                return Set.of("cryostats");
+            case TEMPLATE:
+            case REPORT:
+            case RULE:
+            default:
+                return PERMISSION_NOT_REQUIRED;
+        }
+    }
+
+    private static String map(ResourceVerb verb) {
+        switch (verb) {
+            case CREATE:
+                return "create";
+            case READ:
+                return "get";
+            case UPDATE:
+                return "patch";
+            case DELETE:
+                return "delete";
+            default:
+                throw new IllegalArgumentException(
+                        String.format("Unknown resource verb \"%s\"", verb));
+        }
+    }
+
+    @SuppressWarnings("serial")
+    public static class PermissionDeniedException extends Exception {
+        private final String namespace;
+        private final String resource;
+        private final String verb;
+
+        public PermissionDeniedException(
+                String namespace, String group, String resource, String verb, String reason) {
+            super(
+                    String.format(
+                            "Requesting client in namespace \"%s\" cannot %s %s.%s: %s",
+                            namespace, verb, resource, group, reason));
+            this.namespace = namespace;
+            this.resource = resource;
+            this.verb = verb;
+        }
+
+        public String getNamespace() {
+            return namespace;
+        }
+
+        public String getResourceType() {
+            return resource;
+        }
+
+        public String getVerb() {
+            return verb;
+        }
     }
 
     @Name("io.cryostat.net.OpenShiftAuthManager.AuthRequest")
@@ -133,54 +341,5 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         public void setRequestSuccessful(boolean requestSuccessful) {
             this.requestSuccessful = requestSuccessful;
         }
-    }
-
-    @Override
-    public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
-        String authorization = headerProvider.get();
-        if (StringUtils.isBlank(authorization)) {
-            return CompletableFuture.completedFuture(false);
-        }
-        Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
-        Matcher matcher = bearerPattern.matcher(authorization);
-        if (!matcher.matches()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        return validateToken(() -> matcher.group(1));
-    }
-
-    @Override
-    public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
-        String subprotocol = subProtocolProvider.get();
-        if (StringUtils.isBlank(subprotocol)) {
-            return CompletableFuture.completedFuture(false);
-        }
-        Pattern pattern =
-                Pattern.compile(
-                        "base64url\\.bearer\\.authorization\\.cryostat\\.([\\S]+)",
-                        Pattern.CASE_INSENSITIVE);
-        Matcher matcher = pattern.matcher(subprotocol);
-        if (!matcher.matches()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        String b64 = matcher.group(1);
-        try {
-            String decoded =
-                    new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded);
-        } catch (IllegalArgumentException e) {
-            return CompletableFuture.completedFuture(false);
-        }
-    }
-
-    @SuppressFBWarnings(
-            value = "DMI_HARDCODED_ABSOLUTE_FILENAME",
-            justification = "Kubernetes namespace file path is well-known and absolute")
-    private String getNamespace() throws IOException {
-        return fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH))
-                .lines()
-                .filter(StringUtils::isNotBlank)
-                .findFirst()
-                .get();
     }
 }

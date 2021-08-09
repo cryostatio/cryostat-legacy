@@ -43,6 +43,7 @@ import static org.mockito.Mockito.when;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -92,6 +93,11 @@ class NotificationsUrlGetHandlerTest {
         @Test
         void shouldHaveCorrectPath() {
             MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v1/notifications_url"));
+        }
+
+        @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(Set.of()));
         }
 
         @Test

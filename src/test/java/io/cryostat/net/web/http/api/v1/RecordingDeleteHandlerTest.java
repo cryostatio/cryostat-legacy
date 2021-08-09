@@ -43,6 +43,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.core.sys.FileSystem;
@@ -50,6 +51,7 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.http.HttpMethod;
@@ -112,8 +114,15 @@ class RecordingDeleteHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.DELETE_RECORDING)));
+    }
+
+    @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of());
@@ -131,7 +140,7 @@ class RecordingDeleteHandlerTest {
 
     @Test
     void shouldDeleteIfRecordingFound() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         String recordingName = "someRecording";
@@ -161,7 +170,7 @@ class RecordingDeleteHandlerTest {
 
     @Test
     void shouldThrowExceptionIfDeletionFails() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         String recordingName = "someRecording";

@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import static org.mockito.Mockito.lenient;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
@@ -49,6 +50,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -116,6 +118,14 @@ class TargetRecordingDeleteHandlerTest {
         MatcherAssert.assertThat(
                 handler.path(),
                 Matchers.equalTo("/api/v1/targets/:targetId/recordings/:recordingName"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(ResourceAction.READ_TARGET, ResourceAction.DELETE_RECORDING)));
     }
 
     @Test

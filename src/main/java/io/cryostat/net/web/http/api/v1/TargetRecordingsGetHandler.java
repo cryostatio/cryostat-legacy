@@ -38,7 +38,9 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.inject.Inject;
 import javax.inject.Provider;
@@ -48,6 +50,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -89,6 +92,11 @@ class TargetRecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public String path() {
         return basePath() + "targets/:targetId/recordings";
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.READ_RECORDING);
     }
 
     @Override

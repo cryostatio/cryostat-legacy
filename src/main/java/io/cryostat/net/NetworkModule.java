@@ -55,6 +55,8 @@ import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -159,7 +161,12 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(Logger logger, FileSystem fs) {
-        return new OpenShiftAuthManager(logger, fs);
+        return new OpenShiftAuthManager(
+                logger,
+                fs,
+                token ->
+                        new DefaultOpenShiftClient(
+                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
     }
 
     @Binds

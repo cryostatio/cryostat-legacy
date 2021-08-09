@@ -41,9 +41,11 @@ import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.inject.Inject;
@@ -54,6 +56,7 @@ import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -97,6 +100,11 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     @Override

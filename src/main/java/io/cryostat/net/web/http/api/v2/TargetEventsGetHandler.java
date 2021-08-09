@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -50,6 +51,7 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -81,6 +83,11 @@ class TargetEventsGetHandler extends AbstractV2RequestHandler<List<SerializableE
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
     }
 
     @Override

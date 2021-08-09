@@ -37,8 +37,11 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -68,6 +71,11 @@ public class TimeoutHandler implements RequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.OTHER;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override

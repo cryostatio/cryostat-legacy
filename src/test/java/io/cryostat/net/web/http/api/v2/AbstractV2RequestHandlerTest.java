@@ -43,6 +43,7 @@ import java.net.UnknownHostException;
 import java.rmi.ConnectIOException;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
@@ -51,6 +52,7 @@ import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -105,8 +107,13 @@ class AbstractV2RequestHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(Set.of()));
+    }
+
+    @Test
     void shouldThrow401IfAuthFails() {
-        when(auth.validateHttpHeader(Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -115,7 +122,7 @@ class AbstractV2RequestHandlerTest {
 
     @Test
     void shouldThrow500IfAuthThrows() {
-        when(auth.validateHttpHeader(Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
@@ -127,7 +134,7 @@ class AbstractV2RequestHandlerTest {
 
         @BeforeEach
         void setup2() {
-            when(auth.validateHttpHeader(Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -210,7 +217,7 @@ class AbstractV2RequestHandlerTest {
         @BeforeEach
         void setup3() {
             handler = new ConnectionDescriptorHandler(auth, gson);
-            when(auth.validateHttpHeader(Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -349,6 +356,11 @@ class AbstractV2RequestHandlerTest {
         @Override
         public HttpMethod httpMethod() {
             return null;
+        }
+
+        @Override
+        public Set<ResourceAction> resourceActions() {
+            return Set.of();
         }
 
         @Override

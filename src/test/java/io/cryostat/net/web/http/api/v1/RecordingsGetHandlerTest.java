@@ -41,11 +41,13 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 
 import com.google.gson.Gson;
@@ -92,6 +94,12 @@ class RecordingsGetHandlerTest {
     @Test
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v1/recordings"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
     }
 
     @Test

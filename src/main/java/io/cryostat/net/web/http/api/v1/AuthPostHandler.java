@@ -37,9 +37,12 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -66,6 +69,11 @@ class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public String path() {
         return basePath() + "auth";
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     // This handler is not async, but it's simple enough that it doesn't need

@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -83,6 +86,15 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public String path() {
         return basePath() + "targets/:targetId/reports/:recordingName";
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.CREATE_REPORT,
+                ResourceAction.READ_REPORT);
     }
 
     @Override

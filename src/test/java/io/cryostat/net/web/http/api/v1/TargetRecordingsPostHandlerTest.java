@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
@@ -57,6 +58,7 @@ import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -125,8 +127,21 @@ class TargetRecordingsPostHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(
+                                ResourceAction.READ_TARGET,
+                                ResourceAction.READ_TEMPLATE,
+                                ResourceAction.CREATE_RECORDING,
+                                ResourceAction.READ_RECORDING,
+                                ResourceAction.UPDATE_TARGET)));
+    }
+
+    @Test
     void shouldStartRecording() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -232,7 +247,7 @@ class TargetRecordingsPostHandlerTest {
 
     @Test
     void shouldHandleNameCollision() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -301,7 +316,7 @@ class TargetRecordingsPostHandlerTest {
     @ParameterizedTest
     @MethodSource("getRequestMaps")
     void shouldThrowInvalidOptionException(Map<String, String> requestValues) throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         IRecordingDescriptor existingRecording = createDescriptor("someRecording");
 

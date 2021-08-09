@@ -52,6 +52,7 @@ import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.http.HttpMethod;
@@ -107,6 +108,13 @@ class TemplatesPostHandlerTest {
     @Test
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/v1/templates"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.CREATE_TEMPLATE)));
     }
 
     @Test
