@@ -97,7 +97,6 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         try {
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             ctx.response().sendFile(archivedRecording.toString());
-            ctx.response().end();
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e.getMessage(), e);
