@@ -260,12 +260,13 @@ public class RecordingArchiveHelper {
                     searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
             if (archivedRecording == null) {
                 throw new RecordingNotFoundException("archives", recordingName);
-            } 
+            }
             if (!fs.exists(archivedRecording)) {
                 throw new ArchivePathException(archivedRecording.toString(), "does not exist");
             }
             if (!fs.isRegularFile(archivedRecording)) {
-                throw new ArchivePathException(archivedRecording.toString(), "is not a regular file");
+                throw new ArchivePathException(
+                        archivedRecording.toString(), "is not a regular file");
             }
             if (!fs.isReadable(archivedRecording)) {
                 throw new ArchivePathException(archivedRecording.toString(), "is not readable");
