@@ -41,6 +41,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -65,7 +67,7 @@ class TargetRecordingPatchSave {
                     recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
             ctx.response().end(saveName);
         } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
+            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e.getMessage(), e);
             }
             throw e;

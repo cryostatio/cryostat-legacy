@@ -101,9 +101,6 @@ class ArchivedRecordingReportCache {
                                     Duration.ofMillis(TimeoutHandler.TIMEOUT_MS))
                             .get();
             f.complete(saveFile);
-        } catch (ExecutionException | InterruptedException e) {
-            logger.warn(e);
-            f.completeExceptionally(e);
         } catch (Exception e) {
             logger.error(e);
             f.completeExceptionally(e);

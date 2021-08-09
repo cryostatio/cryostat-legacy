@@ -154,11 +154,6 @@ public class RecordingArchiveHelper {
                                     connectionDescriptor.getTargetId()))
                     .build()
                     .send();
-        } catch (RecordingNotFoundException
-                | IOException
-                | URISyntaxException
-                | FlightRecorderException e) {
-            future.completeExceptionally(e);
         } catch (Exception e) {
             future.completeExceptionally(e);
         }
@@ -263,14 +258,20 @@ public class RecordingArchiveHelper {
             List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
             Path archivedRecording =
                     searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
-            if (!(archivedRecording != null
-                    && fs.exists(archivedRecording)
-                    && fs.isRegularFile(archivedRecording)
-                    && fs.isReadable(archivedRecording))) {
+            if (archivedRecording == null) {
                 throw new RecordingNotFoundException("archives", recordingName);
+            } 
+            if (!fs.exists(archivedRecording)) {
+                throw new ArchivePathException(archivedRecording.toString(), "does not exist");
+            }
+            if (!fs.isRegularFile(archivedRecording)) {
+                throw new ArchivePathException(archivedRecording.toString(), "is not a regular file");
+            }
+            if (!fs.isReadable(archivedRecording)) {
+                throw new ArchivePathException(archivedRecording.toString(), "is not readable");
             }
             future.complete(archivedRecording);
-        } catch (RecordingNotFoundException | IOException e) {
+        } catch (RecordingNotFoundException | IOException | ArchivePathException e) {
             future.completeExceptionally(e);
         }
 
