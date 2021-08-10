@@ -76,14 +76,22 @@ public class TargetConnectionManager {
     private final LoadingCache<ConnectionDescriptor, JFRConnection> connections;
 
     TargetConnectionManager(
-            Lazy<JFRConnectionToolkit> jfrConnectionToolkit, Duration ttl, Logger logger) {
+            Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
+            Duration ttl,
+            int maxTargetConnections,
+            Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
         this.logger = logger;
 
+        var cacheBuilder =
+                Caffeine.newBuilder().scheduler(Scheduler.systemScheduler()).expireAfterAccess(ttl);
+
+        if (maxTargetConnections >= 0) {
+            cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
+        }
+
         this.connections =
-                Caffeine.newBuilder()
-                        .scheduler(Scheduler.systemScheduler())
-                        .expireAfterAccess(ttl)
+                cacheBuilder
                         .removalListener(
                                 new RemovalListener<ConnectionDescriptor, JFRConnection>() {
                                     @Override

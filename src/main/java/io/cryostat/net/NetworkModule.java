@@ -40,6 +40,7 @@ package io.cryostat.net;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
@@ -68,6 +69,8 @@ import io.vertx.ext.web.client.WebClientOptions;
         })
 public abstract class NetworkModule {
 
+    static final String MAX_TARGET_CONNECTIONS = "CRYOSTAT_MAX_TARGET_CONNECTIONS";
+
     @Provides
     @Singleton
     static HttpServer provideHttpServer(
@@ -89,11 +92,22 @@ public abstract class NetworkModule {
     }
 
     @Provides
+    @Named(MAX_TARGET_CONNECTIONS)
+    static int provideMaxTargetConnections(Environment env) {
+        return Integer.parseInt(env.getEnv(MAX_TARGET_CONNECTIONS, "-1"));
+    }
+
+    @Provides
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
-            Logger logger, Lazy<JFRConnectionToolkit> connectionToolkit) {
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            @Named(MAX_TARGET_CONNECTIONS) int maxTargetConnections,
+            Logger logger) {
         return new TargetConnectionManager(
-                connectionToolkit, TargetConnectionManager.DEFAULT_TTL, logger);
+                connectionToolkit,
+                TargetConnectionManager.DEFAULT_TTL,
+                maxTargetConnections,
+                logger);
     }
 
     @Provides
