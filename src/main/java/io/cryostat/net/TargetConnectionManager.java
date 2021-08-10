@@ -68,8 +68,6 @@ public class TargetConnectionManager {
     public static final Pattern HOST_PORT_PAIR_PATTERN =
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
-    static final Duration DEFAULT_TTL = Duration.ofSeconds(90);
-
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
     private final Logger logger;
 
