@@ -37,9 +37,13 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
@@ -79,6 +83,11 @@ class DiscoveryGetHandler extends AbstractV2RequestHandler<EnvironmentNode> {
     @Override
     public String path() {
         return basePath() + "discovery";
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
     }
 
     @Override
