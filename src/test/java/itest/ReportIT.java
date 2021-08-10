@@ -98,6 +98,8 @@ public class ReportIT extends StandardSelfTest {
 
             postResponse.get();
 
+            Thread.sleep(2_000L); // wait to generate some recording data
+
             // Save the recording to archive
             webClient
                     .patch(String.format("%s/%s", RECORDING_REQ_URL, TEST_RECORDING_NAME))

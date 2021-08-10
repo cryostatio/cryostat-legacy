@@ -37,6 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import static org.mockito.Mockito.lenient;
+
+import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -50,6 +53,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.EmptyRecordingException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
 import io.vertx.core.http.HttpServerResponse;
@@ -103,5 +107,22 @@ class TargetRecordingPatchSaveTest {
 
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".jfr");
+    }
+
+    @Test
+    void shouldNotSaveEmptyRecording() throws Exception {
+        Mockito.when(ctx.response()).thenReturn(resp);
+
+        Instant now = Instant.now();
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+
+        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
+                .thenThrow(new EmptyRecordingException(new IOException()));
+
+        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
+
+        InOrder inOrder = Mockito.inOrder(resp);
+        inOrder.verify(resp).setStatusCode(204);
+        inOrder.verify(resp).end();
     }
 }

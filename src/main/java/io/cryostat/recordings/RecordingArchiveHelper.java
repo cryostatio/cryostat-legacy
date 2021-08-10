@@ -341,6 +341,8 @@ public class RecordingArchiveHelper {
         destination += ".jfr";
         try (InputStream stream = connection.getService().openStream(descriptor, false)) {
             fs.copy(stream, specificRecordingsPath.resolve(destination));
+        } catch (IOException ioe) {
+            throw new EmptyRecordingException(ioe);
         }
         return destination;
     }
