@@ -40,6 +40,7 @@ package io.cryostat.net;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.time.Duration;
+import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -52,6 +53,7 @@ import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.WebModule;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
@@ -113,7 +115,12 @@ public abstract class NetworkModule {
             @Named(TARGET_CACHE_SIZE) int maxTargetConnections,
             Logger logger) {
         return new TargetConnectionManager(
-                connectionToolkit, maxTargetTtl, maxTargetConnections, logger);
+                connectionToolkit,
+                ForkJoinPool.commonPool(),
+                Scheduler.systemScheduler(),
+                maxTargetTtl,
+                maxTargetConnections,
+                logger);
     }
 
     @Provides

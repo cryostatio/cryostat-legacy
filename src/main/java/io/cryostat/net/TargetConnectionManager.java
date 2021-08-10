@@ -41,6 +41,7 @@ import java.net.MalformedURLException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,6 +76,8 @@ public class TargetConnectionManager {
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
+            Executor executor,
+            Scheduler scheduler,
             Duration ttl,
             int maxTargetConnections,
             Logger logger) {
@@ -83,7 +86,8 @@ public class TargetConnectionManager {
 
         Caffeine<ConnectionDescriptor, JFRConnection> cacheBuilder =
                 Caffeine.newBuilder()
-                        .scheduler(Scheduler.systemScheduler())
+                        .executor(executor)
+                        .scheduler(scheduler)
                         .expireAfterAccess(ttl)
                         .removalListener(
                                 new RemovalListener<ConnectionDescriptor, JFRConnection>() {
