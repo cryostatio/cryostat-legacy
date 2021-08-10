@@ -115,16 +115,16 @@ class TargetRecordingOptionsPatchHandlerTest {
 
     @Test
     void shouldSetRecordingOptions() throws Exception {
-        Map<String, String> defaultValues =
+        Map<String, String> originalValues =
                 Map.of("toDisk", "true", "maxAge", "50", "maxSize", "32");
         Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
         Mockito.when(builder.build()).thenReturn(recordingOptions);
-        Mockito.when(recordingOptions.get("toDisk")).thenReturn(defaultValues.get("toDisk"));
-        Mockito.when(recordingOptions.get("maxAge")).thenReturn(defaultValues.get("maxAge"));
-        Mockito.when(recordingOptions.get("maxSize")).thenReturn(defaultValues.get("maxSize"));
+        Mockito.when(recordingOptions.get("toDisk")).thenReturn(originalValues.get("toDisk"));
+        Mockito.when(recordingOptions.get("maxAge")).thenReturn(originalValues.get("maxAge"));
+        Mockito.when(recordingOptions.get("maxSize")).thenReturn(originalValues.get("maxSize"));
 
         MultiMap requestAttrs = MultiMap.caseInsensitiveMultiMap();
-        requestAttrs.addAll(defaultValues);
+        requestAttrs.addAll(originalValues);
 
         Mockito.when(
                         connectionManager.executeConnectedTask(
@@ -161,13 +161,13 @@ class TargetRecordingOptionsPatchHandlerTest {
 
     @Test
     void shouldUnsetRecordingOptions() throws Exception {
-        Map<String, String> defaultValues =
+        Map<String, String> originalValues =
                 Map.of("toDisk", "true", "maxAge", "50", "maxSize", "32");
         Mockito.when(recordingOptionsBuilderFactory.create(Mockito.any())).thenReturn(builder);
         Mockito.when(builder.build()).thenReturn(recordingOptions);
-        Mockito.when(recordingOptions.get("toDisk")).thenReturn(defaultValues.get("toDisk"));
-        Mockito.when(recordingOptions.get("maxAge")).thenReturn(defaultValues.get("maxAge"));
-        Mockito.when(recordingOptions.get("maxSize")).thenReturn(defaultValues.get("maxSize"));
+        Mockito.when(recordingOptions.get("toDisk")).thenReturn(originalValues.get("toDisk"));
+        Mockito.when(recordingOptions.get("maxAge")).thenReturn(originalValues.get("maxAge"));
+        Mockito.when(recordingOptions.get("maxSize")).thenReturn(originalValues.get("maxSize"));
 
         MultiMap requestAttrs = MultiMap.caseInsensitiveMultiMap();
         requestAttrs.addAll(Map.of("toDisk", "unset", "maxAge", "unset", "maxSize", "unset"));
@@ -207,9 +207,9 @@ class TargetRecordingOptionsPatchHandlerTest {
 
     @ParameterizedTest
     @MethodSource("getRequestMaps")
-    void shouldThrowInvalidOptionException(Map<String, String> defaultValues) throws Exception {
+    void shouldThrowInvalidOptionException(Map<String, String> values) throws Exception {
         MultiMap requestAttrs = MultiMap.caseInsensitiveMultiMap();
-        requestAttrs.addAll(defaultValues);
+        requestAttrs.addAll(values);
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
