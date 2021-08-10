@@ -503,6 +503,7 @@
         <skipTests>${skipTests}</skipTests>
         <skipITs>${skipITs}</skipITs>
         <runOrder>random</runOrder>
+        <skipAfterFailureCount>1</skipAfterFailureCount>
         <systemPropertyVariables>
           <cryostatWebPort>${cryostat.itest.webPort}</cryostatWebPort>
           <cryostatPodName>${cryostat.itest.podName}</cryostatPodName>
