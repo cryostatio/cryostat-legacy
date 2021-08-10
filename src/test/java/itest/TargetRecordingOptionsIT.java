@@ -69,9 +69,9 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
     static void resetDefaultRecordingOptions() throws Exception {
         CompletableFuture<JsonObject> dumpResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
-        form.add("maxAge", "0");
-        form.add("toDisk", "false");
-        form.add("maxSize", "0");
+        form.add("maxAge", "unset");
+        form.add("toDisk", "unset");
+        form.add("maxSize", "unset");
 
         webClient
                 .patch(OPTIONS_REQ_URL)

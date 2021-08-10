@@ -68,6 +68,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = TargetRecordingOptionsGetHandler.PATH;
+    private static final String UNSET_KEYWORD = "unset";
     private final RecordingOptionsCustomizer customizer;
     private final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -114,7 +115,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        Pattern bool = Pattern.compile("true|false");
+        Pattern bool = Pattern.compile("true|false|" + UNSET_KEYWORD);
         MultiMap attrs = ctx.request().formAttributes();
         if (attrs.contains("toDisk")) {
             Matcher m = bool.matcher(attrs.get("toDisk"));
@@ -125,8 +126,12 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
                         key -> {
                             if (attrs.contains(key)) {
                                 try {
-                                    Long.parseLong(attrs.get(key));
-                                } catch (Exception e) {
+                                    String v = attrs.get(key);
+                                    if (UNSET_KEYWORD.equals(v)) {
+                                        return;
+                                    }
+                                    Long.parseLong(v);
+                                } catch (NumberFormatException e) {
                                     throw new HttpStatusException(400, "Invalid options");
                                 }
                             }
@@ -139,13 +144,14 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
                                     .forEach(
                                             key -> {
                                                 if (attrs.contains(key)) {
-                                                    OptionKey.fromOptionName(key)
-                                                            .ifPresent(
-                                                                    optionKey ->
-                                                                            customizer.set(
-                                                                                    optionKey,
-                                                                                    attrs.get(
-                                                                                            key)));
+                                                    String v = attrs.get(key);
+                                                    OptionKey optionKey =
+                                                            OptionKey.fromOptionName(key).get();
+                                                    if (UNSET_KEYWORD.equals(v)) {
+                                                        customizer.unset(optionKey);
+                                                    } else {
+                                                        customizer.set(optionKey, v);
+                                                    }
                                                 }
                                             });
 
