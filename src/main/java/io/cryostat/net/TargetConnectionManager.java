@@ -83,15 +83,10 @@ public class TargetConnectionManager {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
         this.logger = logger;
 
-        var cacheBuilder =
-                Caffeine.newBuilder().scheduler(Scheduler.systemScheduler()).expireAfterAccess(ttl);
-
-        if (maxTargetConnections >= 0) {
-            cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
-        }
-
-        this.connections =
-                cacheBuilder
+        Caffeine<ConnectionDescriptor, JFRConnection> cacheBuilder =
+                Caffeine.newBuilder()
+                        .scheduler(Scheduler.systemScheduler())
+                        .expireAfterAccess(ttl)
                         .removalListener(
                                 new RemovalListener<ConnectionDescriptor, JFRConnection>() {
                                     @Override
@@ -127,8 +122,11 @@ public class TargetConnectionManager {
                                             }
                                         }
                                     }
-                                })
-                        .build(this::connect);
+                                });
+        if (maxTargetConnections >= 0) {
+            cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
+        }
+        this.connections = cacheBuilder.build(this::connect);
     }
 
     public <T> T executeConnectedTask(
@@ -194,15 +192,12 @@ public class TargetConnectionManager {
         logger.info("Creating connection for {}", url.toString());
         evt.begin();
         try {
-            JFRConnection connection =
-                    jfrConnectionToolkit
-                            .get()
-                            .connect(
-                                    url,
-                                    credentials.orElse(null),
-                                    Collections.singletonList(
-                                            () -> this.connections.invalidate(cacheKey)));
-            return connection;
+            return jfrConnectionToolkit
+                    .get()
+                    .connect(
+                            url,
+                            credentials.orElse(null),
+                            Collections.singletonList(() -> this.connections.invalidate(cacheKey)));
         } catch (Exception e) {
             evt.setExceptionThrown(true);
             throw e;

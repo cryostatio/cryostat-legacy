@@ -39,6 +39,7 @@ package io.cryostat.net;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.time.Duration;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
@@ -70,6 +71,7 @@ import io.vertx.ext.web.client.WebClientOptions;
 public abstract class NetworkModule {
 
     static final String MAX_TARGET_CONNECTIONS = "CRYOSTAT_MAX_TARGET_CONNECTIONS";
+    static final String MAX_TARGET_TTL = "CRYOSTAT_MAX_TARGET_TTL";
 
     @Provides
     @Singleton
@@ -98,16 +100,20 @@ public abstract class NetworkModule {
     }
 
     @Provides
+    @Named(MAX_TARGET_TTL)
+    static Duration provideMaxTargetTTL(Environment env) {
+        return Duration.ofSeconds(Integer.parseInt(env.getEnv(MAX_TARGET_TTL, "10")));
+    }
+
+    @Provides
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
             Lazy<JFRConnectionToolkit> connectionToolkit,
+            @Named(MAX_TARGET_TTL) Duration maxTargetTtl,
             @Named(MAX_TARGET_CONNECTIONS) int maxTargetConnections,
             Logger logger) {
         return new TargetConnectionManager(
-                connectionToolkit,
-                TargetConnectionManager.DEFAULT_TTL,
-                maxTargetConnections,
-                logger);
+                connectionToolkit, maxTargetTtl, maxTargetConnections, logger);
     }
 
     @Provides
