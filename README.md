@@ -137,6 +137,13 @@ size may lead to the subprocess being forcibly killed and the parent process
 failing to detect the reason for the failure, leading to inaccurate failure
 error messages and API responses.
 
+The environment variables `CRYOSTAT_MAX_TARGET_CONNECTIONS` and
+`CRYOSTAT_MAX_TARGET_TTL` are used to control the target JMX connection cache
+behaviour. `CRYOSTAT_MAX_TARGET_CONNECTIONS` specifies how many connections may
+be held open at once. `-1` may be used to leave the cache size unlimited.
+`CRYOSTAT_MAX_TARGET_TTL` specifies how long (in seconds) these connections will
+be cached before they are closed due to inactivity.
+
 For logging, Cryostat uses SLF4J with the java.util.logging binding.
 The default configuration can be overridden by mounting the desired
 configuration file in the container, and setting the environment variable

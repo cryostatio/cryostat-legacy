@@ -134,8 +134,8 @@ public class TargetConnectionManager {
 
     /**
      * Mark a connection as still in use by the consumer. Connections expire from cache and are
-     * automatically closed after {@link TargetConnectionManager.DEFAULT_TTL}. For long-running
-     * operations which may hold the connection open and active for longer than the default TTL,
+     * automatically closed after {@link NetworkModule.MAX_TARGET_TTL}. For long-running
+     * operations which may hold the connection open and active for longer than the configured TTL,
      * this method provides a way for the consumer to inform the {@link TargetConnectionManager} and
      * its internal cache that the connection is in fact still active and should not be
      * expired/closed. This will extend the lifetime of the cache entry by another TTL into the
