@@ -686,15 +686,15 @@
     **The request must include the following fields:**
 
     `toDisk` - Whether a recording is stored to disk;
-    either `true` or `false`.
+    either `true` or `false`, or `unset` to restore the JVM default.
 
     **The request may include the following fields:**
 
-    `maxAge` - The maximum event age of a recording, in seconds.
-    A value of zero means there is no maximum event age.
+    `maxAge` - The maximum event age of a recording, in seconds as a positive
+    integer, or `unset` to restore the JVM default.
 
-    `maxSize` - The maximum size of a recording, in bytes.
-    A value of zero means there is no maximum recording size.
+    `maxSize` - The maximum size of a recording, in bytes as a positive integer,
+    or `unset` to restore the JVM default.
 
     ###### response
     `200` - The body is the updated default recording options of the
@@ -721,8 +721,8 @@
 
     ###### example
     ```
-    $ curl -X PATCH --data "toDisk=true&maxAge=0" localhost:8181/api/v1/targets/localhost/recordingOptions
-    {"maxAge":0,"toDisk":true,"maxSize":0}
+    $ curl -X PATCH --data "toDisk=unset&maxAge=60&maxSize=1024" localhost:8181/api/v1/targets/localhost/recordingOptions
+    {"maxAge":60,"toDisk":"unset","maxSize":1024}
     ```
 
 
