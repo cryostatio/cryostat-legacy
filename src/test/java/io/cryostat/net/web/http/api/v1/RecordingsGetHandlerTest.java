@@ -37,25 +37,15 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;

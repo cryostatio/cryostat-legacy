@@ -37,18 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.lenient;
-
-import java.util.Map;
-import java.util.Set;
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 

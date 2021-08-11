@@ -37,17 +37,13 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.EnumSet;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;

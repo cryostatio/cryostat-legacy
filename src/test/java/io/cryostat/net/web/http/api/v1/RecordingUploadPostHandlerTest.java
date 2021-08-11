@@ -39,16 +39,15 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
+
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.buffer.Buffer;
@@ -90,8 +89,7 @@ class RecordingUploadPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new RecordingUploadPostHandler(auth, env, webClient, recordingArchiveHelper);
+        this.handler = new RecordingUploadPostHandler(auth, env, webClient, recordingArchiveHelper);
     }
 
     @Test
@@ -176,7 +174,8 @@ class RecordingUploadPostHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString())).thenReturn(future);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
         Path recordingPath = Mockito.mock(Path.class);
         Mockito.when(future.get()).thenReturn(recordingPath);
         Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");
@@ -231,7 +230,8 @@ class RecordingUploadPostHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString())).thenReturn(future);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
         Path recordingPath = Mockito.mock(Path.class);
         Mockito.when(future.get()).thenReturn(recordingPath);
         Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");
@@ -295,7 +295,8 @@ class RecordingUploadPostHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString())).thenReturn(future);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
         Path recordingPath = Mockito.mock(Path.class);
         Mockito.when(future.get()).thenReturn(recordingPath);
         Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");
@@ -352,7 +353,8 @@ class RecordingUploadPostHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
         CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString())).thenReturn(future);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
         Path recordingPath = Mockito.mock(Path.class);
         Mockito.when(future.get()).thenReturn(recordingPath);
         Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");

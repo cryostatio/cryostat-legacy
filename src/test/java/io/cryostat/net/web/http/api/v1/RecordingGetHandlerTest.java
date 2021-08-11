@@ -44,7 +44,6 @@ import java.util.concurrent.ExecutionException;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
