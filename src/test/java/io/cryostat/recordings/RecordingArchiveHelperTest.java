@@ -493,6 +493,55 @@ class RecordingArchiveHelperTest {
     }
 
     @Test
+    void shouldNotSaveEmptyRecording() throws Exception {
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn(recordingName);
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
+                        "some.Alias.1");
+        ServiceRef serviceRef2 =
+                new ServiceRef(
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")),
+                        "some.Alias.2");
+        ServiceRef serviceRef3 =
+                new ServiceRef(
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi")),
+                        "some.Alias.3");
+
+        Mockito.when(platformClient.listDiscoverableServices())
+                .thenReturn(List.of(serviceRef1, serviceRef2, serviceRef3));
+        Mockito.when(connection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
+
+        Instant now = Instant.now();
+        Mockito.when(clock.now()).thenReturn(now);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        InputStream stream = Mockito.mock(InputStream.class);
+        Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
+        Path destination = Mockito.mock(Path.class);
+        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+
+        Mockito.when(fs.copy(Mockito.any(), Mockito.any())).thenThrow(new IOException());
+
+        Assertions.assertThrows(
+                EmptyRecordingException.class,
+                () -> recordingArchiveHelper.writeRecordingToDestination(connection, descriptor));
+
+        Mockito.verify(fs).deleteIfExists(Mockito.any());
+    }
+
+    @Test
     void shouldSaveRecordingNumberedCopy() throws Exception {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(

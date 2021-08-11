@@ -42,9 +42,12 @@ import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
+<<<<<<< HEAD
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+=======
+>>>>>>> 66c8b560 (Fix delete  file, update unit tests)
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -342,7 +345,7 @@ public class RecordingArchiveHelper {
         try (InputStream stream = connection.getService().openStream(descriptor, false)) {
             fs.copy(stream, specificRecordingsPath.resolve(destination));
         } catch (IOException ioe) {
-            Files.delete(recordingsPath.resolve(destination));
+            fs.deleteIfExists(specificRecordingsPath.resolve(destination));
             throw new EmptyRecordingException(ioe);
         }
         return destination;

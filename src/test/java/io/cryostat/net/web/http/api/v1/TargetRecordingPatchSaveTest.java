@@ -113,9 +113,6 @@ class TargetRecordingPatchSaveTest {
     void shouldNotSaveEmptyRecording() throws Exception {
         Mockito.when(ctx.response()).thenReturn(resp);
 
-        Instant now = Instant.now();
-        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
                 .thenThrow(new EmptyRecordingException(new IOException()));
 
