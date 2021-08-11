@@ -37,8 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.lenient;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;

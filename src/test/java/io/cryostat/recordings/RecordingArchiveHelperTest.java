@@ -523,16 +523,20 @@ class RecordingArchiveHelperTest {
         Mockito.when(connection.getJMXURL())
                 .thenReturn(
                         (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9092/jmxrmi")));
+        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
 
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
         InputStream stream = Mockito.mock(InputStream.class);
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
+        Path specificRecordingsPath = Mockito.mock(Path.class);
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
+                .thenReturn(specificRecordingsPath);
         Path destination = Mockito.mock(Path.class);
-        Mockito.when(recordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+        Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
-        Mockito.when(fs.copy(Mockito.any(), Mockito.any())).thenThrow(new IOException());
+        Mockito.when(fs.copy(stream, specificRecordingsPath)).thenThrow(new IOException());
 
         Assertions.assertThrows(
                 EmptyRecordingException.class,

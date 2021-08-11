@@ -42,11 +42,7 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.net.ConnectionDescriptor;
-<<<<<<< HEAD
-=======
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.EmptyRecordingException;
->>>>>>> f5bcc4d7 (Send 204 instead of saving empty recording)
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
@@ -70,14 +66,15 @@ class TargetRecordingPatchSave {
             String saveName =
                     recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
             ctx.response().end(saveName);
-        } catch (ExecutionException e) {
+        }
+        catch (ExecutionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e.getMessage(), e);
+            } else if (ExceptionUtils.hasCause(e, EmptyRecordingException.class)) {
+                ctx.response().setStatusCode(204);
+                ctx.response().end();
             }
             throw e;
-        } catch (EmptyRecordingException e) {
-            ctx.response().setStatusCode(204);
-            ctx.response().end();
         }
     }
 }

@@ -42,12 +42,9 @@ import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
-<<<<<<< HEAD
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-=======
->>>>>>> 66c8b560 (Fix delete  file, update unit tests)
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -296,9 +293,9 @@ public class RecordingArchiveHelper {
         return null;
     }
 
-    private String writeRecordingToDestination(
+    public String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor)
-            throws IOException, URISyntaxException, FlightRecorderException, Exception {
+            throws IOException, URISyntaxException, FlightRecorderException, EmptyRecordingException, Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri =
                 base32.encodeAsString(serviceUri.toString().getBytes(StandardCharsets.UTF_8));
