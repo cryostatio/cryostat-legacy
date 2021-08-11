@@ -48,6 +48,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
@@ -96,6 +97,25 @@ public class TargetReportIT extends StandardSelfTest {
                             });
 
             postResponse.get();
+
+            // Make a webserver request to generate some recording data
+            CompletableFuture<JsonArray> dumpGetResponse = new CompletableFuture<>();
+            webClient
+                    .get("/api/v1/targets")
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, dumpGetResponse)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(200));
+                                    MatcherAssert.assertThat(
+                                            ar.result()
+                                                    .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
+                                            Matchers.equalTo(HttpMimeType.JSON.mime()));
+                                    dumpGetResponse.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+
+            dumpGetResponse.get();
 
             // Get a report for the above recording
             CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
