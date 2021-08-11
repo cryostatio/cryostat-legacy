@@ -111,7 +111,7 @@ class RecordingsGetHandlerTest {
 
     @Test
     void shouldRespondWith501IfArchivePathException() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
@@ -151,7 +151,7 @@ class RecordingsGetHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         handler.handle(ctx);

@@ -39,11 +39,8 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
 import java.util.Map;
-<<<<<<< HEAD
 import java.util.Set;
-=======
 import java.util.Optional;
->>>>>>> 35b3279d (Decouple target recording deletion from the RecordingArchiveHelper)
 
 import javax.inject.Inject;
 
@@ -52,12 +49,9 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-<<<<<<< HEAD
 import io.cryostat.net.security.ResourceAction;
-=======
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
->>>>>>> 35b3279d (Decouple target recording deletion from the RecordingArchiveHelper)
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;

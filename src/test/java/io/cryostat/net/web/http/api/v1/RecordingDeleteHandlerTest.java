@@ -124,7 +124,7 @@ class RecordingDeleteHandlerTest {
 
     @Test
     void shouldHandleSuccessfulDELETERequest() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         String recordingName = "someRecording";

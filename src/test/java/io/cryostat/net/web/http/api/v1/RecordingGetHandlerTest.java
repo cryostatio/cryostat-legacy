@@ -96,7 +96,7 @@ class RecordingGetHandlerTest {
 
     @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
@@ -121,7 +121,7 @@ class RecordingGetHandlerTest {
 
     @Test
     void shouldHandleSuccessfulGETRequest() throws Exception {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(

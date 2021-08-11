@@ -143,7 +143,7 @@ class RecordingUploadPostHandlerTest {
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(
