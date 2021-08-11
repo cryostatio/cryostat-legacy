@@ -536,7 +536,7 @@ class RecordingArchiveHelperTest {
         Path destination = Mockito.mock(Path.class);
         Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
 
-        Mockito.when(fs.copy(stream, specificRecordingsPath)).thenThrow(new IOException());
+        Mockito.when(fs.copy(stream, destination)).thenThrow(new IOException());
 
         Assertions.assertThrows(
                 EmptyRecordingException.class,

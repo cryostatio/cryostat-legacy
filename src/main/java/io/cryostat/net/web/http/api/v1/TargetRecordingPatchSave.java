@@ -66,11 +66,10 @@ class TargetRecordingPatchSave {
             String saveName =
                     recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
             ctx.response().end(saveName);
-        }
-        catch (ExecutionException e) {
+        } catch (ExecutionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e.getMessage(), e);
-            } else if (ExceptionUtils.hasCause(e, EmptyRecordingException.class)) {
+            } else if (e.getCause() instanceof EmptyRecordingException) {
                 ctx.response().setStatusCode(204);
                 ctx.response().end();
             }
