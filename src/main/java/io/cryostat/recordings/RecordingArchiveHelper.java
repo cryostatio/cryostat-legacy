@@ -342,6 +342,7 @@ public class RecordingArchiveHelper {
         try (InputStream stream = connection.getService().openStream(descriptor, false)) {
             fs.copy(stream, specificRecordingsPath.resolve(destination));
         } catch (IOException ioe) {
+            Files.delete(recordingsPath.resolve(destination));
             throw new EmptyRecordingException(ioe);
         }
         return destination;
