@@ -484,6 +484,7 @@
       <version>${org.apache.maven.plugins.surefire.version}</version>
       <configuration>
         <skipTests>${skipUTs}</skipTests>
+        <trimStackTrace>false</trimStackTrace>
       </configuration>
     </plugin>
     <plugin>
