@@ -61,38 +61,19 @@ public class TargetRecordingPatchIT extends StandardSelfTest {
     @Test
     void testSaveEmptyRecordingDoesNotArchiveRecordingFile() throws Exception {
         try {
-            // Limit recording size to 0 bytes to guarantee an empty recording
-            CompletableFuture<JsonObject> dumpResponse = new CompletableFuture<>();
-            MultiMap optionsForm = MultiMap.caseInsensitiveMultiMap();
-            optionsForm.add("maxAge", "0");
-            optionsForm.add("toDisk", "false");
-            optionsForm.add("maxSize", "0");
 
-            webClient
-                    .patch(OPTIONS_REQ_URL)
-                    .sendForm(
-                            optionsForm,
-                            ar -> {
-                                if (assertRequestStatus(ar, dumpResponse)) {
-                                    MatcherAssert.assertThat(
-                                            ar.result().statusCode(), Matchers.equalTo(200));
-                                    dumpResponse.complete(null);
-                                }
-                            });
-
-            dumpResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-
-            // Create a recording
+            // Create an empty recording
             CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
-            MultiMap createForm = MultiMap.caseInsensitiveMultiMap();
-            createForm.add("recordingName", TEST_RECORDING_NAME);
-            createForm.add("duration", "5");
-            createForm.add("events", "template=ALL");
+            MultiMap form = MultiMap.caseInsensitiveMultiMap();
+            form.add("recordingName", TEST_RECORDING_NAME);
+            form.add("duration", "5");
+            form.add("events", "template=ALL");
+            form.add("maxSize", "0");
 
             webClient
                     .post(RECORDING_REQ_URL)
                     .sendForm(
-                            createForm,
+                            form,
                             ar -> {
                                 if (assertRequestStatus(ar, postResponse)) {
                                     MatcherAssert.assertThat(
@@ -149,30 +130,6 @@ public class TargetRecordingPatchIT extends StandardSelfTest {
                             });
 
             MatcherAssert.assertThat(deleteActiveRecResponse.get(), Matchers.equalTo(null));
-
-            // Reset recording options to default values
-            CompletableFuture<JsonObject> dumpResponse = new CompletableFuture<>();
-            MultiMap resetForm = MultiMap.caseInsensitiveMultiMap();
-            resetForm.add("maxAge", "unset");
-            resetForm.add("toDisk", "unset");
-            resetForm.add("maxSize", "unset");
-
-            webClient
-                    .patch(
-                            String.format(
-                                    "/api/v1/targets/%s/recordingOptions",
-                                    SELF_REFERENCE_TARGET_ID))
-                    .sendForm(
-                            resetForm,
-                            ar -> {
-                                if (assertRequestStatus(ar, dumpResponse)) {
-                                    MatcherAssert.assertThat(
-                                            ar.result().statusCode(), Matchers.equalTo(200));
-                                    dumpResponse.complete(null);
-                                }
-                            });
-
-            dumpResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         }
     }
 }
