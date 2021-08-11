@@ -55,11 +55,11 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -147,7 +147,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             ctx.response().end(response.body);
         } catch (MalformedURLException e) {
             throw new HttpStatusException(501, e);
-        } catch (ReportService.RecordingNotFoundException e) {
+        } catch (RecordingNotFoundException e) {
             throw new HttpStatusException(404, e);
         }
     }
@@ -164,8 +164,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                                 getRecordingCopyPath(connection, targetId, recordingName)
                                         .orElseThrow(
                                                 () ->
-                                                        new ReportService
-                                                                .RecordingNotFoundException(
+                                                        new RecordingNotFoundException(
                                                                 targetId, recordingName)));
 
         MultipartForm form =

@@ -156,7 +156,9 @@ class RecordingsPostHandlerTest {
 
         Path filePath = mock(Path.class);
         when(filePath.toString()).thenReturn(savePath + filename);
-        when(recordingsPath.resolve(filename)).thenReturn(filePath);
+        Path specificRecordingsPath = mock(Path.class);
+        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(specificRecordingsPath);
+        when(specificRecordingsPath.resolve(filename)).thenReturn(filePath);
 
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
@@ -191,6 +193,8 @@ class RecordingsPostHandlerTest {
                         })
                 .when(vertx)
                 .executeBlocking(any(Handler.class), any(Handler.class));
+
+        when(cryoFs.exists(specificRecordingsPath)).thenReturn(true);
 
         when(vertxFs.exists(Mockito.eq(savePath + filename), any(Handler.class)))
                 .thenAnswer(

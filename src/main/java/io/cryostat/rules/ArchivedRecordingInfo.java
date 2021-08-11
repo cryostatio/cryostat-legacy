@@ -35,41 +35,68 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.rules;
 
-import java.util.concurrent.ExecutionException;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-import javax.inject.Inject;
+public class ArchivedRecordingInfo {
+    private final transient String encodedServiceUri;
+    private final String downloadUrl;
+    private final String name;
+    private final String reportUrl;
 
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
-
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
-class TargetRecordingPatchSave {
-
-    private final RecordingArchiveHelper recordingArchiveHelper;
-
-    @Inject
-    TargetRecordingPatchSave(RecordingArchiveHelper recordingArchiveHelper) {
-        this.recordingArchiveHelper = recordingArchiveHelper;
+    public ArchivedRecordingInfo(
+            String encodedServiceUri, String downloadUrl, String name, String reportUrl) {
+        this.encodedServiceUri = encodedServiceUri;
+        this.downloadUrl = downloadUrl;
+        this.name = name;
+        this.reportUrl = reportUrl;
     }
 
-    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
+    public String getEncodedServiceUri() {
+        return this.encodedServiceUri;
+    }
 
-        try {
-            String saveName =
-                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
-            ctx.response().end(saveName);
-        } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
-            }
-            throw e;
+    public String getDownloadUrl() {
+        return this.downloadUrl;
+    }
+
+    public String getName() {
+        return this.name;
+    }
+
+    public String getReportUrl() {
+        return this.reportUrl;
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (other == null) {
+            return false;
         }
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof ArchivedRecordingInfo)) {
+            return false;
+        }
+        ArchivedRecordingInfo ari = (ArchivedRecordingInfo) other;
+        return new EqualsBuilder()
+                .append(encodedServiceUri, ari.encodedServiceUri)
+                .append(name, ari.name)
+                .append(reportUrl, ari.reportUrl)
+                .append(downloadUrl, ari.downloadUrl)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder()
+                .append(encodedServiceUri)
+                .append(name)
+                .append(reportUrl)
+                .append(downloadUrl)
+                .hashCode();
     }
 }

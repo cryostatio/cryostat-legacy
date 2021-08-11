@@ -42,8 +42,6 @@ import java.util.concurrent.Future;
 
 import io.cryostat.net.ConnectionDescriptor;
 
-import org.apache.commons.lang3.tuple.Pair;
-
 public class ReportService {
 
     private final ActiveRecordingReportCache activeCache;
@@ -69,16 +67,5 @@ public class ReportService {
 
     public boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
         return activeCache.delete(connectionDescriptor, recordingName);
-    }
-
-    // FIXME This is basically duplicated from UploadRecordingCommand
-    public static class RecordingNotFoundException extends RuntimeException {
-        public RecordingNotFoundException(String targetId, String recordingName) {
-            super(String.format("Recording %s not found in target %s", recordingName, targetId));
-        }
-
-        public RecordingNotFoundException(Pair<String, String> key) {
-            this(key.getLeft(), key.getRight());
-        }
     }
 }

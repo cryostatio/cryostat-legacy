@@ -37,21 +37,22 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivePathException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -61,29 +62,25 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingsGetHandlerTest {
 
     RecordingsGetHandler handler;
     @Mock AuthManager auth;
-    @Mock Path savedRecordingsPath;
-    @Mock FileSystem fs;
-    @Mock WebServer webServer;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
+    @Mock RoutingContext ctx;
+    @Mock HttpServerResponse resp;
+
     @BeforeEach
     void setup() {
-        this.handler =
-                new RecordingsGetHandler(
-                        auth, savedRecordingsPath, fs, () -> webServer, gson, logger);
+        this.handler = new RecordingsGetHandler(auth, recordingArchiveHelper, gson);
     }
 
     @Test
@@ -103,104 +100,54 @@ class RecordingsGetHandlerTest {
     }
 
     @Test
-    void shouldRespondWith501IfDirectoryDoesNotExist() throws IOException {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+    void shouldRespondWith501IfArchivePathException() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(false);
-
-        HttpStatusException httpEx =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
-    }
-
-    @Test
-    void shouldResponseWith501IfDirectoryNotReadable() throws IOException {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(false);
+        CompletableFuture<List<ArchivedRecordingInfo>> future =
+                Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(future);
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(future.get()).thenThrow(e);
+        Mockito.when(e.getCause()).thenReturn(new ArchivePathException("/some/path", "test"));
 
         HttpStatusException httpEx =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
+        MatcherAssert.assertThat(
+                httpEx.getCause().getCause().getMessage(),
+                Matchers.equalTo("Archive path /some/path test"));
     }
 
     @Test
-    void shouldRespondWith501IfPathNotDirectory() throws IOException {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+    void testCustomJsonSerialization() throws Exception {
+        CompletableFuture<List<ArchivedRecordingInfo>> listFuture = new CompletableFuture<>();
+        listFuture.complete(
+                List.of(
+                        new ArchivedRecordingInfo(
+                                "encodedServiceUriFoo",
+                                "/some/path/download/recordingFoo",
+                                "recordingFoo",
+                                "/some/path/archive/recordingFoo")));
+        Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(false);
-
-        HttpStatusException httpEx =
-                Assertions.assertThrows(
-                        HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        MatcherAssert.assertThat(httpEx.getStatusCode(), Matchers.equalTo(501));
-    }
-
-    @Test
-    void shouldRespondWithInternalErrorIfExceptionThrown() throws IOException {
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenThrow(IOException.class);
-
-        Assertions.assertThrows(IOException.class, () -> handler.handleAuthenticated(ctx));
-    }
-
-    @Test
-    void shouldRespondWithListOfRecordings() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
 
-        Mockito.when(fs.exists(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isDirectory(Mockito.any())).thenReturn(true);
-        List<String> names = List.of("recordingA", "123recording");
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(names);
+        handler.handle(ctx);
 
-        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
-                                return "/some/path/archive/" + name;
-                            }
-                        });
-        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
-                .thenAnswer(
-                        new Answer<String>() {
-                            @Override
-                            public String answer(InvocationOnMock invocation) throws Throwable {
-                                String name = invocation.getArgument(0);
-                                return "/some/path/download/" + name;
-                            }
-                        });
-
-        handler.handleAuthenticated(ctx);
-
-        List<Map<String, String>> expected =
-                List.of(
-                        Map.of(
-                                "name", "recordingA",
-                                "downloadUrl", "/some/path/download/recordingA",
-                                "reportUrl", "/some/path/archive/recordingA"),
-                        Map.of(
-                                "name", "123recording",
-                                "downloadUrl", "/some/path/download/123recording",
-                                "reportUrl", "/some/path/archive/123recording"));
-
-        ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(resp).end(responseCaptor.capture());
-        String rawResult = responseCaptor.getValue();
-        List result = gson.fromJson(rawResult, List.class);
-        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
+        Mockito.verify(resp)
+                .end(
+                        "[{\"downloadUrl\":\"/some/path/download/recordingFoo\",\"name\":\"recordingFoo\",\"reportUrl\":\"/some/path/archive/recordingFoo\"}]");
     }
 }

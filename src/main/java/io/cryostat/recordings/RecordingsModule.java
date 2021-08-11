@@ -40,22 +40,26 @@ package io.cryostat.recordings;
 import java.nio.file.Path;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.RecordingOptionsCustomizer;
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebModule;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 
 import dagger.Module;
 import dagger.Provides;
+import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class RecordingsModule {
@@ -74,13 +78,26 @@ public abstract class RecordingsModule {
     @Singleton
     static RecordingArchiveHelper provideRecordingArchiveHelper(
             FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
+            Provider<WebServer> webServerProvider,
+            Logger logger,
+            @Named(MainModule.RECORDINGS_PATH) Path archivedRecordingsPath,
+            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path archivedRecordingsReportPath,
             TargetConnectionManager targetConnectionManager,
             Clock clock,
             PlatformClient platformClient,
-            ReportService reportService) {
+            NotificationFactory notificationFactory,
+            Base32 base32) {
         return new RecordingArchiveHelper(
-                fs, recordingsPath, targetConnectionManager, clock, platformClient, reportService);
+                fs,
+                webServerProvider,
+                logger,
+                archivedRecordingsPath,
+                archivedRecordingsReportPath,
+                targetConnectionManager,
+                clock,
+                platformClient,
+                notificationFactory,
+                base32);
     }
 
     @Provides

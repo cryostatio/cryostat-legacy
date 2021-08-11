@@ -64,6 +64,7 @@ import io.cryostat.rules.RuleRegistry.RuleEvent;
 import io.cryostat.util.events.Event;
 import io.cryostat.util.events.EventListener;
 
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RuleProcessor
@@ -79,6 +80,7 @@ public class RuleProcessor
     private final RecordingTargetHelper recordingTargetHelper;
     private final PeriodicArchiverFactory periodicArchiverFactory;
     private final Logger logger;
+    private final Base32 base32;
 
     private final Map<Pair<ServiceRef, Rule>, Future<?>> tasks;
 
@@ -92,7 +94,8 @@ public class RuleProcessor
             RecordingArchiveHelper recordingArchiveHelper,
             RecordingTargetHelper recordingTargetHelper,
             PeriodicArchiverFactory periodicArchiverFactory,
-            Logger logger) {
+            Logger logger,
+            Base32 base32) {
         this.platformClient = platformClient;
         this.registry = registry;
         this.scheduler = scheduler;
@@ -103,6 +106,7 @@ public class RuleProcessor
         this.recordingTargetHelper = recordingTargetHelper;
         this.periodicArchiverFactory = periodicArchiverFactory;
         this.logger = logger;
+        this.base32 = base32;
         this.tasks = new HashMap<>();
 
         this.registry.addListener(this);
@@ -173,7 +177,8 @@ public class RuleProcessor
                                 credentialsManager,
                                 rule,
                                 recordingArchiveHelper,
-                                this::archivalFailureHandler),
+                                this::archivalFailureHandler,
+                                base32),
                         rule.getArchivalPeriodSeconds(),
                         rule.getArchivalPeriodSeconds(),
                         TimeUnit.SECONDS));

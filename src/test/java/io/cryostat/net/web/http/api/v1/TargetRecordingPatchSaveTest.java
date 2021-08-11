@@ -37,23 +37,18 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.lenient;
-
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
-import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
@@ -76,9 +71,6 @@ class TargetRecordingPatchSaveTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Clock clock;
     @Mock PlatformClient platformClient;
-    @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @Mock RoutingContext ctx;
@@ -91,49 +83,25 @@ class TargetRecordingPatchSaveTest {
 
     @BeforeEach
     void setup() {
-        this.patchSave = new TargetRecordingPatchSave(recordingArchiveHelper, notificationFactory);
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
+        this.patchSave = new TargetRecordingPatchSave(recordingArchiveHelper);
     }
 
     @Test
     void shouldSaveRecordingWithAlias() throws Exception {
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
         Mockito.when(ctx.response()).thenReturn(resp);
 
         Instant now = Instant.now();
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
 
+        CompletableFuture<String> future = new CompletableFuture<>();
+        future.complete("some-Alias-2_someRecording_" + timestamp + ".jfr");
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
-                .thenReturn("some-Alias-2_someRecording_" + timestamp + ".jfr");
+                .thenReturn(future);
 
         patchSave.handle(ctx, new ConnectionDescriptor(targetId));
 
         InOrder inOrder = Mockito.inOrder(resp);
-        inOrder.verify(resp).setStatusCode(200);
         inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".jfr");
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(
-                        Map.of(
-                                "recording",
-                                "some-Alias-2_someRecording_" + timestamp + ".jfr",
-                                "target",
-                                targetId));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
     }
 }

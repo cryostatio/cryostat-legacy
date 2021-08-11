@@ -53,6 +53,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
 import org.hamcrest.MatcherAssert;
@@ -192,9 +193,7 @@ class ActiveRecordingReportCacheTest {
                         subprocessReportGenerator.exec(
                                 Mockito.any(SubprocessReportGenerator.RecordingDescriptor.class),
                                 Mockito.any(Duration.class)))
-                .thenThrow(
-                        new CompletionException(
-                                new ReportService.RecordingNotFoundException("", "")));
+                .thenThrow(new CompletionException(new RecordingNotFoundException("", "")));
         Assertions.assertThrows(
                 ExecutionException.class, () -> cache.get(connectionDescriptor, "bar").get());
     }

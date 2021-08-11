@@ -54,6 +54,7 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -121,7 +122,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
 
-            if (rootCause instanceof ReportService.RecordingNotFoundException
+            if (rootCause instanceof RecordingNotFoundException
                     || targetRecordingNotFound(rootCause)) {
                 throw new HttpStatusException(404, ee);
             }

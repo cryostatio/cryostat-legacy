@@ -44,6 +44,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiverFactory {
@@ -59,13 +60,15 @@ class PeriodicArchiverFactory {
             CredentialsManager credentialsManager,
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
-            Function<Pair<ServiceRef, Rule>, Void> failureNotifier) {
+            Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
+            Base32 base32) {
         return new PeriodicArchiver(
                 serviceRef,
                 credentialsManager,
                 rule,
                 recordingArchiveHelper,
                 failureNotifier,
-                logger);
+                logger,
+                base32);
     }
 }

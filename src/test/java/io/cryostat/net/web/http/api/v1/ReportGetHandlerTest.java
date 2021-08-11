@@ -49,6 +49,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -154,8 +155,7 @@ class ReportGetHandlerTest {
         when(reportService.get(Mockito.anyString()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
-                                new ReportService.RecordingNotFoundException(
-                                        null, "someRecording")));
+                                new RecordingNotFoundException(null, "someRecording")));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

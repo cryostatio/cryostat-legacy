@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
@@ -86,6 +87,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Gson gson;
     private final Logger logger;
     private final NotificationFactory notificationFactory;
+
     private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
 
     @Inject
@@ -182,12 +184,14 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         ? 0
                         : Integer.parseInt(m.group(4).substring(1));
 
+        final String subdirectoryName = "unlabelled";
         final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
         final String uploadedFileName = upload.uploadedFileName();
         validateRecording(
                 upload.uploadedFileName(),
                 (res) ->
                         saveRecording(
+                                subdirectoryName,
                                 basename,
                                 uploadedFileName,
                                 count,
@@ -247,7 +251,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     private void saveRecording(
-            String basename, String tmpFile, int counter, Handler<AsyncResult<String>> handler) {
+            String subdirectoryName,
+            String basename,
+            String tmpFile,
+            int counter,
+            Handler<AsyncResult<String>> handler) {
         // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings
         // are also differentiated by second-resolution timestamp
         if (counter >= Byte.MAX_VALUE) {
@@ -259,10 +267,20 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         }
 
         String filename = counter > 1 ? basename + "." + counter + ".jfr" : basename + ".jfr";
+        Path specificRecordingsPath = savedRecordingsPath.resolve(subdirectoryName);
+
+        if (!fs.exists(specificRecordingsPath)) {
+            try {
+                Files.createDirectory(specificRecordingsPath);
+            } catch (IOException e) {
+                handler.handle(makeFailedAsyncResult(e));
+                return;
+            }
+        }
 
         vertx.fileSystem()
                 .exists(
-                        savedRecordingsPath.resolve(filename).toString(),
+                        specificRecordingsPath.resolve(filename).toString(),
                         (res) -> {
                             if (res.failed()) {
                                 handler.handle(makeFailedAsyncResult(res.cause()));
@@ -270,7 +288,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                             }
 
                             if (res.result()) {
-                                saveRecording(basename, tmpFile, counter + 1, handler);
+                                saveRecording(
+                                        subdirectoryName, basename, tmpFile, counter + 1, handler);
                                 return;
                             }
 
@@ -278,7 +297,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                             vertx.fileSystem()
                                     .move(
                                             tmpFile,
-                                            savedRecordingsPath.resolve(filename).toString(),
+                                            specificRecordingsPath.resolve(filename).toString(),
                                             (res2) -> {
                                                 if (res2.failed()) {
                                                     handler.handle(

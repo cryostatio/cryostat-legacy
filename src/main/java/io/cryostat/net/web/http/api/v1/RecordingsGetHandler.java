@@ -37,59 +37,37 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.net.SocketException;
-import java.net.URISyntaxException;
-import java.net.UnknownHostException;
-import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-import java.util.stream.Collectors;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
-import javax.inject.Named;
-import javax.inject.Provider;
 
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivePathException;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import com.google.gson.Gson;
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final Path savedRecordingsPath;
-    private final FileSystem fs;
-    private final Provider<WebServer> webServerProvider;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final Gson gson;
-    private final Logger logger;
 
     @Inject
     RecordingsGetHandler(
-            AuthManager auth,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            FileSystem fs,
-            Provider<WebServer> webServerProvider,
-            Gson gson,
-            Logger logger) {
+            AuthManager auth, RecordingArchiveHelper recordingArchiveHelper, Gson gson) {
         super(auth);
-        this.savedRecordingsPath = savedRecordingsPath;
-        this.fs = fs;
-        this.webServerProvider = webServerProvider;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.gson = gson;
-        this.logger = logger;
     }
 
     @Override
@@ -119,48 +97,14 @@ class RecordingsGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        if (!fs.exists(savedRecordingsPath)) {
-            throw new HttpStatusException(
-                    501,
-                    String.format(
-                            "Archive path %s does not exist", savedRecordingsPath.toString()));
+        try {
+            List<ArchivedRecordingInfo> result = recordingArchiveHelper.getRecordings().get();
+            ctx.response().end(gson.toJson(result));
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof ArchivePathException) {
+                throw new HttpStatusException(501, e.getMessage(), e);
+            }
+            throw e;
         }
-        if (!fs.isReadable(savedRecordingsPath)) {
-            throw new HttpStatusException(
-                    501,
-                    String.format(
-                            "Archive path %s is not readable", savedRecordingsPath.toString()));
-        }
-        if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpStatusException(
-                    501,
-                    String.format(
-                            "Archive path %s is not a directory", savedRecordingsPath.toString()));
-        }
-        WebServer webServer = webServerProvider.get();
-        List<String> names = this.fs.listDirectoryChildren(savedRecordingsPath);
-        List<Map<String, String>> result =
-                names.stream()
-                        .map(
-                                name -> {
-                                    try {
-                                        return Map.of(
-                                                "name",
-                                                name,
-                                                "reportUrl",
-                                                webServer.getArchivedReportURL(name),
-                                                "downloadUrl",
-                                                webServer.getArchivedDownloadURL(name));
-                                    } catch (SocketException
-                                            | UnknownHostException
-                                            | URISyntaxException e) {
-                                        logger.warn(e);
-                                        return null;
-                                    }
-                                })
-                        .filter(Objects::nonNull)
-                        .collect(Collectors.toList());
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
-        ctx.response().end(gson.toJson(result));
     }
 }

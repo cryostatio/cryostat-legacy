@@ -53,6 +53,7 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
@@ -149,8 +150,7 @@ class TargetReportGetHandlerTest {
         when(reportService.get(Mockito.any(), Mockito.anyString()))
                 .thenThrow(
                         new CompletionException(
-                                new ReportService.RecordingNotFoundException(
-                                        "fooHost:0", "someRecording")));
+                                new RecordingNotFoundException("fooHost:0", "someRecording")));
 
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");

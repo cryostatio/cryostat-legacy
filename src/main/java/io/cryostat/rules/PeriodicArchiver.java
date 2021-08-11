@@ -37,12 +37,14 @@
  */
 package io.cryostat.rules;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.security.sasl.SaslException;
 
@@ -53,10 +55,15 @@ import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 class PeriodicArchiver implements Runnable {
+
+    private static final Pattern RECORDING_FILENAME_PATTERN =
+            Pattern.compile(
+                    "([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?(\\.jfr)?");
 
     private final ServiceRef serviceRef;
     private final CredentialsManager credentialsManager;
@@ -64,6 +71,7 @@ class PeriodicArchiver implements Runnable {
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
+    private final Base32 base32;
 
     private final Queue<String> previousRecordings;
 
@@ -73,16 +81,16 @@ class PeriodicArchiver implements Runnable {
             Rule rule,
             RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
-            Logger logger) {
+            Logger logger,
+            Base32 base32) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
+        this.base32 = base32;
 
-        // FIXME this needs to be populated at startup by scanning the existing archived recordings,
-        // in case we have been restarted and already previously processed archival for this rule
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
 
@@ -91,11 +99,37 @@ class PeriodicArchiver implements Runnable {
         logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
-            while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
-                pruneArchive(this.previousRecordings.remove()).get();
+            // If there are no previous recordings, either this is the first time this rule is being
+            // archived or the Cryostat instance was restarted. Since it could be the latter,
+            // populate the array with any previously archived recordings for this rule.
+            if (previousRecordings.isEmpty()) {
+                String serviceUri = serviceRef.getServiceUri().toString();
+                List<ArchivedRecordingInfo> archivedRecordings =
+                        recordingArchiveHelper.getRecordings().get();
+
+                for (ArchivedRecordingInfo archivedRecordingInfo : archivedRecordings) {
+                    String decodedServiceUri =
+                            new String(
+                                    base32.decode(archivedRecordingInfo.getEncodedServiceUri()),
+                                    StandardCharsets.UTF_8);
+                    String fileName = archivedRecordingInfo.getName();
+                    Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
+                    if (m.matches()) {
+                        String recordingName = m.group(2);
+
+                        if (decodedServiceUri.equals(serviceUri)
+                                && recordingName.equals(rule.getRecordingName())) {
+                            previousRecordings.add(fileName);
+                        }
+                    }
+                }
             }
 
-            performArchival().get();
+            while (previousRecordings.size() > rule.getPreservedArchives() - 1) {
+                pruneArchive(previousRecordings.remove());
+            }
+
+            performArchival();
         } catch (Exception e) {
             logger.error(e);
 
@@ -103,47 +137,30 @@ class PeriodicArchiver implements Runnable {
                     || ExceptionUtils.hasCause(e, InterruptedException.class)
                     || ExceptionUtils.hasCause(e, RecordingNotFoundException.class)
                     || ExceptionUtils.hasCause(e, SecurityException.class)
-                    || ExceptionUtils.hasCause(e, SaslException.class)) {
+                    || ExceptionUtils.hasCause(e, SaslException.class)
+                    || ExceptionUtils.hasCause(e, ArchivePathException.class)) {
 
                 failureNotifier.apply(Pair.of(serviceRef, rule));
             }
         }
     }
 
-    public Future<Boolean> performArchival()
-            throws InterruptedException, ExecutionException, Exception {
+    private void performArchival() throws InterruptedException, ExecutionException, Exception {
+        String recordingName = rule.getRecordingName();
+        ConnectionDescriptor connectionDescriptor =
+                new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
 
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-        try {
-            String recordingName = rule.getRecordingName();
-            ConnectionDescriptor connectionDescriptor =
-                    new ConnectionDescriptor(
-                            serviceRef, credentialsManager.getCredentials(serviceRef));
-
-            String saveName =
-                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName);
-            this.previousRecordings.add(saveName);
-            future.complete(true);
-        } catch (RecordingNotFoundException e) {
-            future.completeExceptionally(e);
-        }
-
-        return future;
+        String saveName =
+                recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
+        previousRecordings.add(saveName);
     }
 
-    public Future<Boolean> pruneArchive(String recordingName) throws Exception {
+    private void pruneArchive(String recordingName) throws Exception {
+        recordingArchiveHelper.deleteRecording(recordingName).get();
+        previousRecordings.remove(recordingName);
+    }
 
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-
-        try {
-            ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(serviceRef);
-            recordingArchiveHelper.deleteRecording(connectionDescriptor, recordingName);
-            previousRecordings.remove(recordingName);
-            future.complete(true);
-        } catch (RecordingNotFoundException e) {
-            future.completeExceptionally(e);
-        }
-        return future;
+    public Queue<String> getPreviousRecordings() {
+        return previousRecordings;
     }
 }

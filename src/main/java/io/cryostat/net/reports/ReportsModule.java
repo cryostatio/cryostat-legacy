@@ -47,13 +47,12 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
-import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.WebModule;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.util.JavaProcess;
 
 import dagger.Module;
@@ -126,19 +125,17 @@ public abstract class ReportsModule {
     @Provides
     @Singleton
     static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
-            @Named(WebModule.WEBSERVER_TEMP_DIR_PATH) Path webServerTempDir,
             FileSystem fs,
             Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
-            Logger logger) {
+            Logger logger,
+            RecordingArchiveHelper recordingArchiveHelper) {
         return new ArchivedRecordingReportCache(
-                savedRecordingsPath,
-                webServerTempDir,
                 fs,
                 subprocessReportGeneratorProvider,
                 generationLock,
-                logger);
+                logger,
+                recordingArchiveHelper);
     }
 
     @Provides
