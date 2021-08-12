@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -114,9 +113,7 @@ class TargetRecordingPatchSaveTest {
         Mockito.when(ctx.response()).thenReturn(resp);
 
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(
-                        CompletableFuture.failedFuture(
-                                new EmptyRecordingException(new IOException())));
+                .thenReturn(CompletableFuture.failedFuture(new EmptyRecordingException()));
 
         Assertions.assertThrows(
                 ExecutionException.class,

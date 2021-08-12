@@ -37,15 +37,13 @@
  */
 package io.cryostat.recordings;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.DirectoryNotEmptyException;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
@@ -341,15 +339,21 @@ public class RecordingArchiveHelper {
             }
         }
         destination += ".jfr";
-        try (InputStream stream = connection.getService().openStream(descriptor, false)) {
-            fs.copy(stream, specificRecordingsPath.resolve(destination));
-        } catch (IOException ioe) {
-            if (ioe instanceof FileAlreadyExistsException
-                    || ioe instanceof DirectoryNotEmptyException) {
-                throw ioe;
+        try (BufferedInputStream bufferedStream =
+                new BufferedInputStream(connection.getService().openStream(descriptor, false))) {
+
+            // Check if recording stream is non-empty
+            int readLimit = 1000; // arbitrary number
+            bufferedStream.mark(readLimit);
+
+            if ((bufferedStream.read() == -1) || (bufferedStream.available() == 0)) {
+                fs.deleteIfExists(specificRecordingsPath.resolve(destination));
+                throw new EmptyRecordingException();
             }
-            fs.deleteIfExists(specificRecordingsPath.resolve(destination));
-            throw new EmptyRecordingException(ioe);
+
+            bufferedStream.reset();
+
+            fs.copy(bufferedStream, specificRecordingsPath.resolve(destination));
         }
         return destination;
     }

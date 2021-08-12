@@ -40,7 +40,7 @@ package io.cryostat.recordings;
 import java.io.IOException;
 
 public class EmptyRecordingException extends IOException {
-    public EmptyRecordingException(Throwable cause) {
-        super(cause);
+    public EmptyRecordingException() {
+        super();
     }
 }
