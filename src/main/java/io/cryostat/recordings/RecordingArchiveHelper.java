@@ -295,7 +295,7 @@ public class RecordingArchiveHelper {
 
     public String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor)
-            throws IOException, URISyntaxException, FlightRecorderException {
+            throws IOException, URISyntaxException, FlightRecorderException, Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri =
                 base32.encodeAsString(serviceUri.toString().getBytes(StandardCharsets.UTF_8));
