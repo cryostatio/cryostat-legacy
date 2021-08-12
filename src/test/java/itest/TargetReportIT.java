@@ -99,23 +99,23 @@ public class TargetReportIT extends StandardSelfTest {
             postResponse.get();
 
             // Make a webserver request to generate some recording data
-            CompletableFuture<JsonArray> dumpGetResponse = new CompletableFuture<>();
+            CompletableFuture<JsonArray> targetGetResponse = new CompletableFuture<>();
             webClient
                     .get("/api/v1/targets")
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, dumpGetResponse)) {
+                                if (assertRequestStatus(ar, targetGetResponse)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(200));
                                     MatcherAssert.assertThat(
                                             ar.result()
                                                     .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
                                             Matchers.equalTo(HttpMimeType.JSON.mime()));
-                                    dumpGetResponse.complete(ar.result().bodyAsJsonArray());
+                                    targetGetResponse.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
 
-            dumpGetResponse.get();
+            targetGetResponse.get();
 
             // Get a report for the above recording
             CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
