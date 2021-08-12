@@ -44,6 +44,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.DirectoryNotEmptyException;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.temporal.ChronoUnit;
@@ -342,6 +344,10 @@ public class RecordingArchiveHelper {
         try (InputStream stream = connection.getService().openStream(descriptor, false)) {
             fs.copy(stream, specificRecordingsPath.resolve(destination));
         } catch (IOException ioe) {
+            if (ioe instanceof FileAlreadyExistsException
+                    || ioe instanceof DirectoryNotEmptyException) {
+                throw ioe;
+            }
             fs.deleteIfExists(specificRecordingsPath.resolve(destination));
             throw new EmptyRecordingException(ioe);
         }
