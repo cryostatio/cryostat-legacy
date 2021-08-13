@@ -59,6 +59,7 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -139,6 +140,31 @@ public abstract class StandardSelfTest {
             System.err.println("HTTP " + response.statusCode() + ": " + response.statusMessage());
             future.completeExceptionally(
                     new HttpStatusException(response.statusCode(), response.statusMessage()));
+            return false;
+        }
+        return true;
+    }
+
+    public static boolean assertCleanupRequestStatus(
+            AsyncResult<HttpResponse<Buffer>> result,
+            CompletableFuture<?> future,
+            String failureMessage) {
+
+        if (result.failed()) {
+            Throwable cause = result.cause();
+            cause.printStackTrace();
+            future.completeExceptionally(
+                    new ITestCleanupFailedException(failureMessage, cause));
+            return false;
+        }
+        HttpResponse<Buffer> response = result.result();
+        if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode())) {
+            System.err.println("HTTP " + response.statusCode() + ": " + response.statusMessage());
+            future.completeExceptionally(
+                    new ITestCleanupFailedException(
+                            failureMessage,
+                            new HttpStatusException(
+                                    response.statusCode(), response.statusMessage())));
             return false;
         }
         return true;

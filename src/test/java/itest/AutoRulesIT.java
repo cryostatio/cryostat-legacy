@@ -85,9 +85,10 @@ class AutoRulesIT extends ExternalTargetsTest {
             try {
                 Podman.kill(id);
             } catch (Exception e) {
-                throw new ITestCleanupFailedException(String.format("Failed to kill container instance with ID %s", id), e);
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to kill container instance with ID %s", id), e);
             }
-        } 
+        }
     }
 
     @Test
