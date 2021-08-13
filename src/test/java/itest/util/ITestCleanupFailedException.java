@@ -39,7 +39,7 @@
 package itest.util;
 
 public class ITestCleanupFailedException extends Exception {
-    public ITestCleanupFailedException(String reason) {
-        super(reason);
+    public ITestCleanupFailedException(String reason, Throwable cause) {
+        super(reason, cause);
     }
 }

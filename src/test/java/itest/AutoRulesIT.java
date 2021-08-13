@@ -53,6 +53,7 @@ import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.ExternalTargetsTest;
+import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
@@ -79,10 +80,14 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @AfterAll
-    static void cleanup() throws Exception {
+    static void cleanup() throws ITestCleanupFailedException {
         for (String id : CONTAINERS) {
-            Podman.kill(id);
-        }
+            try {
+                Podman.kill(id);
+            } catch (Exception e) {
+                throw new ITestCleanupFailedException(String.format("Failed to kill container instance with ID %s", id), e);
+            }
+        } 
     }
 
     @Test
