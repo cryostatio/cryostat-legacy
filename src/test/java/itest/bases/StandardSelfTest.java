@@ -145,31 +145,6 @@ public abstract class StandardSelfTest {
         return true;
     }
 
-    public static boolean assertCleanupRequestStatus(
-            AsyncResult<HttpResponse<Buffer>> result,
-            CompletableFuture<?> future,
-            String failureMessage) {
-
-        if (result.failed()) {
-            Throwable cause = result.cause();
-            cause.printStackTrace();
-            future.completeExceptionally(
-                    new ITestCleanupFailedException(failureMessage, cause));
-            return false;
-        }
-        HttpResponse<Buffer> response = result.result();
-        if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode())) {
-            System.err.println("HTTP " + response.statusCode() + ": " + response.statusMessage());
-            future.completeExceptionally(
-                    new ITestCleanupFailedException(
-                            failureMessage,
-                            new HttpStatusException(
-                                    response.statusCode(), response.statusMessage())));
-            return false;
-        }
-        return true;
-    }
-
     private static Future<String> getNotificationsUrl() {
         CompletableFuture<String> future = new CompletableFuture<>();
         webClient
