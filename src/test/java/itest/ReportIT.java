@@ -51,6 +51,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
@@ -172,8 +174,11 @@ public class ReportIT extends StandardSelfTest {
                                             ar.result().bodyAsJsonObject());
                                 }
                             });
-
-            MatcherAssert.assertThat(deleteActiveRecResponse.get(), Matchers.equalTo(null));
+            try {
+                MatcherAssert.assertThat(deleteActiveRecResponse.get(), Matchers.equalTo(null));
+            } catch (ExecutionException | InterruptedException e) {
+                throw new ITestCleanupFailedException(String.format("Failed to delete target recording %s", TEST_RECORDING_NAME), e);
+            }
 
             CompletableFuture<JsonObject> deleteArchivedRecResp = new CompletableFuture<>();
             webClient
@@ -186,8 +191,11 @@ public class ReportIT extends StandardSelfTest {
                                     deleteArchivedRecResp.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
-
-            MatcherAssert.assertThat(deleteArchivedRecResp.get(), Matchers.equalTo(null));
+            try {
+                MatcherAssert.assertThat(deleteArchivedRecResp.get(), Matchers.equalTo(null));     
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(String.format("Failed to delete archived version of target recording %s", TEST_RECORDING_NAME), e);
+            }
         }
     }
 

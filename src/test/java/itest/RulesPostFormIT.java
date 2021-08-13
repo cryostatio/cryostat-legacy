@@ -49,6 +49,8 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -61,6 +63,8 @@ class RulesPostFormIT extends StandardSelfTest {
 
     static final Map<String, String> NULL_RESULT = new HashMap<>();
 
+    static final String TEST_RULE_NAME = "Test_Rule";
+
     static {
         NULL_RESULT.put("result", null);
     }
@@ -68,7 +72,7 @@ class RulesPostFormIT extends StandardSelfTest {
     @BeforeAll
     static void setup() throws Exception {
         testRule = MultiMap.caseInsensitiveMultiMap();
-        testRule.add("name", "Test Rule");
+        testRule.add("name", TEST_RULE_NAME);
         testRule.add("matchExpression", "target.alias == 'es.andrewazor.demo.Main'");
         testRule.add("description", "AutoRulesIT automated rule");
         testRule.add("eventSpecifier", "template=Continuous,type=TARGET");
@@ -117,7 +121,7 @@ class RulesPostFormIT extends StandardSelfTest {
                                                     HttpMimeType.PLAINTEXT.mime(),
                                                     "status",
                                                     "Created"),
-                                    "data", Map.of("result", "Test_Rule")));
+                                    "data", Map.of("result", TEST_RULE_NAME)));
             MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
 
             CompletableFuture<JsonObject> duplicatePostResponse = new CompletableFuture<>();
@@ -140,7 +144,7 @@ class RulesPostFormIT extends StandardSelfTest {
             // clean up rule before running next test
             CompletableFuture<JsonObject> deleteResponse = new CompletableFuture<>();
             webClient
-                    .delete(String.format("/api/v2/rules/%s", "Test_Rule"))
+                    .delete(String.format("/api/v2/rules/%s", TEST_RULE_NAME))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteResponse)) {
@@ -155,8 +159,11 @@ class RulesPostFormIT extends StandardSelfTest {
                                     Map.of("type", HttpMimeType.PLAINTEXT.mime(), "status", "OK"),
                                     "data",
                                     NULL_RESULT));
-            MatcherAssert.assertThat(
-                    deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));
+            try {
+                MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));      
+            } catch  (InterruptedException | ExecutionException e) {   
+                throw new ITestCleanupFailedException(String.format("Failed to delete rule %s", TEST_RULE_NAME), e);
+            }
         }
     }
 

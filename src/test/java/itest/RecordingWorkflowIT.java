@@ -41,13 +41,16 @@ import java.io.File;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
 import jdk.jfr.consumer.RecordedEvent;
 import jdk.jfr.consumer.RecordingFile;
 import org.hamcrest.MatcherAssert;
@@ -245,7 +248,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
 
         } finally {
             // Clean up what we created
-            CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
+            CompletableFuture<Void> deleteRespFuture1 = new CompletableFuture<>();
             webClient
                     .delete(
                             String.format(
@@ -253,11 +256,16 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                                     TARGET_ID, TEST_RECORDING_NAME))
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, deleteRespFuture)) {
-                                    deleteRespFuture.complete(null);
+                                if (assertRequestStatus(ar, deleteRespFuture1)) {
+                                    deleteRespFuture1.complete(null);
                                 }
                             });
-            deleteRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                
+            try {
+                deleteRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new ITestCleanupFailedException(String.format("Failed to delete target recording %s", TEST_RECORDING_NAME), e);
+            }
 
             CompletableFuture<JsonArray> savedRecordingsFuture = new CompletableFuture<>();
             webClient
@@ -268,31 +276,40 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                                     savedRecordingsFuture.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
-            savedRecordingsFuture
-                    .get()
-                    .forEach(
-                            rec -> {
-                                String savedRecordingName = ((JsonObject) rec).getString("name");
-                                if (!savedRecordingName.matches(
-                                        TARGET_ID
-                                                + "_"
-                                                + TEST_RECORDING_NAME
-                                                + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
-                                    return;
-                                }
+            
+            JsonArray savedRecordings = null;
+            try {
+                savedRecordings = savedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new ITestCleanupFailedException("Failed to retrieve archived recordings", e);
+            }
 
-                                webClient
-                                        .delete(
-                                                String.format(
-                                                        "/api/v1/recordings/%s",
-                                                        savedRecordingName))
-                                        .send(
-                                                ar -> {
-                                                    if (ar.failed()) {
-                                                        ar.cause().printStackTrace();
-                                                    }
-                                                });
-                            });
+            for (Object savedRecording : savedRecordings) {
+                String recordingName = ((JsonObject) savedRecording).getString("name");
+                if (recordingName.matches(
+                        TARGET_ID
+                                + "_"
+                                + TEST_RECORDING_NAME
+                                + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
+                    CompletableFuture<Void> deleteRespFuture2 = new CompletableFuture<>();
+                    webClient
+                            .delete(
+                                    String.format(
+                                            "/api/v1/recordings/%s",
+                                            recordingName))
+                            .send(
+                                    ar -> {
+                                        if (assertRequestStatus(ar, deleteRespFuture2)) {
+                                            deleteRespFuture2.complete(null);
+                                        }
+                                    });
+                    try {
+                        deleteRespFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                        throw new ITestCleanupFailedException(String.format("Failed to delete archived version of target recording %s", TEST_RECORDING_NAME), e);
+                    }
+                }                                                                                                                                                                                                                                          
+            }
         }
     }
 }
