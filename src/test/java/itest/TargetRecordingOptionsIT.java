@@ -40,7 +40,9 @@ package itest;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import io.cryostat.net.web.http.HttpMimeType;
 
@@ -48,6 +50,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -85,7 +88,12 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
                             }
                         });
 
-        dumpResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        try {
+            dumpResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            throw new ITestCleanupFailedException(
+                    "Failed to reset default recording recording options", e);
+        }
     }
 
     @Test
@@ -233,7 +241,13 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
                                     deleteRespFuture.complete(null);
                                 }
                             });
-            deleteRespFuture.get();
+
+            try {
+                deleteRespFuture.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", RECORDING_NAME), e);
+            }
         }
     }
 

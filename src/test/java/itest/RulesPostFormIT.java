@@ -50,7 +50,6 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
 import itest.util.ITestCleanupFailedException;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -160,9 +159,11 @@ class RulesPostFormIT extends StandardSelfTest {
                                     "data",
                                     NULL_RESULT));
             try {
-                MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));      
-            } catch  (InterruptedException | ExecutionException e) {   
-                throw new ITestCleanupFailedException(String.format("Failed to delete rule %s", TEST_RULE_NAME), e);
+                MatcherAssert.assertThat(
+                        deleteResponse.get(), Matchers.equalTo(expectedDeleteResponse));
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete rule %s", TEST_RULE_NAME), e);
             }
         }
     }
