@@ -52,6 +52,7 @@ public class Rule {
 
     private final String name;
     private final String description;
+    private final boolean oneShot;
     private final String matchExpression;
     private final String eventSpecifier;
     private final int archivalPeriodSeconds;
@@ -59,13 +60,22 @@ public class Rule {
     private final int maxAgeSeconds;
     private final int maxSizeBytes;
 
-    Rule(Builder builder) throws MatchExpressionValidationException {
+    Rule(Builder builder)
+            throws MatchExpressionValidationException, OneShotRuleDefinitionException {
         this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
         this.description = builder.description == null ? "" : builder.description;
+        this.oneShot = builder.oneShot;
         this.matchExpression = builder.matchExpression;
         this.eventSpecifier = builder.eventSpecifier;
         this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
+        if (oneShot && archivalPeriodSeconds > 0) {
+            throw new OneShotRuleDefinitionException(
+                    "archivalPeriodSeconds", archivalPeriodSeconds);
+        }
         this.preservedArchives = builder.preservedArchives;
+        if (oneShot && preservedArchives > 0) {
+            throw new OneShotRuleDefinitionException("preservedArchives", preservedArchives);
+        }
         this.maxAgeSeconds =
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
@@ -83,6 +93,10 @@ public class Rule {
 
     public String getDescription() {
         return this.description;
+    }
+
+    public boolean isOneShot() {
+        return this.oneShot;
     }
 
     public String getMatchExpression() {
@@ -156,10 +170,11 @@ public class Rule {
     public static class Builder {
         private String name;
         private String description;
+        private boolean oneShot = false;
         private String matchExpression;
         private String eventSpecifier;
-        private int archivalPeriodSeconds = 30;
-        private int preservedArchives = 1;
+        private int archivalPeriodSeconds = 0;
+        private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
 
@@ -170,6 +185,11 @@ public class Rule {
 
         public Builder description(String description) {
             this.description = description;
+            return this;
+        }
+
+        public Builder oneShot(boolean oneShot) {
+            this.oneShot = oneShot;
             return this;
         }
 
@@ -211,11 +231,15 @@ public class Rule {
             Rule.Builder builder =
                     new Rule.Builder()
                             .name(formAttributes.get(Rule.Attribute.NAME.getSerialKey()))
+                            .description(
+                                    formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
+                            .oneShot(
+                                    Boolean.valueOf(
+                                            formAttributes.get(
+                                                    Rule.Attribute.ONE_SHOT.getSerialKey())))
                             .matchExpression(
                                     formAttributes.get(
                                             Rule.Attribute.MATCH_EXPRESSION.getSerialKey()))
-                            .description(
-                                    formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
                             .eventSpecifier(
                                     formAttributes.get(
                                             Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
@@ -232,11 +256,14 @@ public class Rule {
             Rule.Builder builder =
                     new Rule.Builder()
                             .name(jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
-                            .matchExpression(
-                                    jsonObj.get(Rule.Attribute.MATCH_EXPRESSION.getSerialKey())
-                                            .getAsString())
                             .description(
                                     jsonObj.get(Rule.Attribute.DESCRIPTION.getSerialKey())
+                                            .getAsString())
+                            .oneShot(
+                                    jsonObj.get(Rule.Attribute.ONE_SHOT.getSerialKey())
+                                            .getAsBoolean())
+                            .matchExpression(
+                                    jsonObj.get(Rule.Attribute.MATCH_EXPRESSION.getSerialKey())
                                             .getAsString())
                             .eventSpecifier(
                                     jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
@@ -324,6 +351,7 @@ public class Rule {
     public enum Attribute {
         NAME("name"),
         DESCRIPTION("description"),
+        ONE_SHOT("oneShot"),
         MATCH_EXPRESSION("matchExpression"),
         EVENT_SPECIFIER("eventSpecifier"),
         ARCHIVAL_PERIOD_SECONDS("archivalPeriodSeconds"),

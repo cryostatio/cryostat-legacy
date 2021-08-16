@@ -1401,6 +1401,11 @@ The handler-specific descriptions below describe how each handler populates the
     `"name"`: the name of this rule definition. This must be unique. This name
     will also be used to generate the name of the associated recordings.
 
+    `"oneShot"`: a boolean flag indicating whether this rule should be executed
+    only once at creation time (`true`), or whether it should be executed
+    immediately as well as persisted to Cryostat's storage and checked against
+    any targets that are discovered at a later time (`false.`)
+
     `"matchExpression"`: a string expression used to determine which target JVMs
     this rule will apply to. The expression has a variable named `target` in
     scope, which is of type
@@ -1516,7 +1521,7 @@ The handler-specific descriptions below describe how each handler populates the
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2/rules/Test_Rule
-    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"name":"Test_Rule","description":"This is a rule for testing","matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}}}
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"name":"Test_Rule","description":"This is a rule for testing","oneShot":false,"matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}}}
     ```
 
 * #### `RulesGetHandler`
@@ -1539,7 +1544,7 @@ The handler-specific descriptions below describe how each handler populates the
     ##### example
     ```
     $ curl http://0.0.0.0:8181/api/v2/rules
-    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Test_Rule","description":"This is a rule for testing","matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}]}}    ```
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Test_Rule","description":"This is a rule for testing","oneShot":false,"matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}]}}    ```
 
 ### Stored Target Credentials
 

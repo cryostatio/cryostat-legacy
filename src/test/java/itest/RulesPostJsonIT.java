@@ -70,6 +70,7 @@ class RulesPostJsonIT extends StandardSelfTest {
         testRule.put("name", "Test Rule");
         testRule.put("matchExpression", "target.alias == 'es.andrewazor.demo.Main'");
         testRule.put("description", "AutoRulesIT automated rule");
+        testRule.put("oneShot", false);
         testRule.put("eventSpecifier", "template=Continuous,type=TARGET");
     }
 

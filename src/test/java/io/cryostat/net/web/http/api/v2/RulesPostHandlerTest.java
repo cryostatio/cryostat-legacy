@@ -226,6 +226,7 @@ class RulesPostHandlerTest {
             MultiMap form = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(form);
             form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
+            form.set(Rule.Attribute.ONE_SHOT.getSerialKey(), "false");
             form.set(
                     Rule.Attribute.MATCH_EXPRESSION.getSerialKey(),
                     "target.annotations.cryostat.JAVA_MAIN == 'someTarget'");
@@ -250,6 +251,7 @@ class RulesPostHandlerTest {
                             Map.of(
                                     "name", "Auto Rule ",
                                     "description", "AutoRulesIT automated rule",
+                                    "oneShot", "false",
                                     "eventSpecifier", "template=Continuous,type=TARGET",
                                     "matchExpression",
                                             "target.annotations.cryostat.JAVA_MAIN == 'es.andrewazor.demo.Main'",
@@ -284,6 +286,7 @@ class RulesPostHandlerTest {
             Mockito.when(params.getFormAttributes()).thenReturn(form);
             form.set(Rule.Attribute.NAME.getSerialKey(), "fooRule");
             form.set(Rule.Attribute.DESCRIPTION.getSerialKey(), "rule description");
+            form.set(Rule.Attribute.ONE_SHOT.getSerialKey(), "false");
             form.set(
                     Rule.Attribute.MATCH_EXPRESSION.getSerialKey(),
                     "target.annotations.cryostat.JAVA_MAIN == 'someTarget'");
@@ -313,6 +316,8 @@ class RulesPostHandlerTest {
                                     "Auto Rule",
                                     "description",
                                     "AutoRulesIT automated rule",
+                                    "oneShot",
+                                    "false",
                                     "eventSpecifier",
                                     "template=Continuous,type=TARGET",
                                     "matchExpression",

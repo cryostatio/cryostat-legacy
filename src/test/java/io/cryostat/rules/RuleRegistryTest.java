@@ -45,11 +45,14 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.rules.RuleRegistry.RuleEvent;
+import io.cryostat.util.events.Event;
 
 import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
@@ -141,6 +144,28 @@ class RuleRegistryTest {
                         StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING);
         inOrder.verify(fs).listDirectoryChildren(rulesDir);
+    }
+
+    @Test
+    void testAddEmitsButDoesNotPersistOneShots() throws Exception {
+        CompletableFuture<Event<RuleEvent, Rule>> eventFuture = new CompletableFuture<>();
+        registry.addListener(eventFuture::complete);
+
+        Rule oneShotRule =
+                new Rule.Builder()
+                        .name("oneshot_rule")
+                        .matchExpression("target.alias == 'com.example.App'")
+                        .oneShot(true)
+                        .eventSpecifier("template=Continuous")
+                        .build();
+        registry.addRule(oneShotRule);
+
+        Event<RuleEvent, Rule> event = eventFuture.get();
+        MatcherAssert.assertThat(event.getEventType(), Matchers.equalTo(RuleEvent.ADDED));
+        MatcherAssert.assertThat(event.getPayload(), Matchers.equalTo(oneShotRule));
+
+        Mockito.verify(fs, Mockito.never())
+                .writeString(Mockito.any(), Mockito.any(), Mockito.any());
     }
 
     @Test

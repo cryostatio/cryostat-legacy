@@ -100,14 +100,16 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
                             "Rule with name \"%s\" already exists; refusing to overwrite",
                             rule.getName()));
         }
-        Path destination = rulesDir.resolve(rule.getName() + ".json");
-        this.fs.writeString(
-                destination,
-                gson.toJson(rule),
-                StandardOpenOption.WRITE,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
-        loadRules();
+        if (!rule.isOneShot()) {
+            Path destination = rulesDir.resolve(rule.getName() + ".json");
+            this.fs.writeString(
+                    destination,
+                    gson.toJson(rule),
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+            loadRules();
+        }
         emit(RuleEvent.ADDED, rule);
         return rule;
     }

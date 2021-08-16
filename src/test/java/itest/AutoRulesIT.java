@@ -37,8 +37,8 @@
  */
 package itest;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +55,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.ExternalTargetsTest;
 import itest.util.Podman;
 import itest.util.Utils;
+import org.apache.commons.codec.binary.Base64;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.AfterAll;
@@ -109,10 +110,11 @@ class AutoRulesIT extends ExternalTargetsTest {
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
         form.add("name", "Auto Rule");
+        form.add("description", "AutoRulesIT automated rule");
+        form.add("oneShot", "false");
         form.add(
                 "matchExpression",
                 "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
-        form.add("description", "AutoRulesIT automated rule");
         form.add("eventSpecifier", "template=Continuous,type=TARGET");
         form.add("archivalPeriodSeconds", "60");
         form.add("preservedArchives", "3");
@@ -152,25 +154,19 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 rules.complete(ar.result().bodyAsJsonObject());
                             }
                         });
-        JsonObject expectedRule =
-                new JsonObject(
-                        Map.of(
-                                "name",
-                                "Auto_Rule",
-                                "description",
-                                "AutoRulesIT automated rule",
-                                "eventSpecifier",
-                                "template=Continuous,type=TARGET",
-                                "matchExpression",
-                                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'",
-                                "archivalPeriodSeconds",
-                                60,
-                                "preservedArchives",
-                                3,
-                                "maxAgeSeconds",
-                                60,
-                                "maxSizeBytes",
-                                -1));
+        Map<String, Object> ruleAttrs = new HashMap<>();
+        ruleAttrs.put("name", "Auto_Rule");
+        ruleAttrs.put("description", "AutoRulesIT automated rule");
+        ruleAttrs.put("oneShot", false);
+        ruleAttrs.put("eventSpecifier", "template=Continuous,type=TARGET");
+        ruleAttrs.put(
+                "matchExpression",
+                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        ruleAttrs.put("archivalPeriodSeconds", 60);
+        ruleAttrs.put("preservedArchives", 3);
+        ruleAttrs.put("maxAgeSeconds", 60);
+        ruleAttrs.put("maxSizeBytes", -1);
+        JsonObject expectedRule = new JsonObject(ruleAttrs);
         JsonObject expectedRules =
                 new JsonObject(
                         Map.of(
@@ -182,6 +178,12 @@ class AutoRulesIT extends ExternalTargetsTest {
         CompletableFuture<JsonObject> rule = new CompletableFuture<>();
         webClient
                 .get("/api/v2/rules/Auto_Rule")
+                .putHeader(
+                        "X-JMX-Authorization",
+                        String.format(
+                                "Basic %s",
+                                Base64.encodeBase64String(
+                                        "admin:adminpass123".getBytes(StandardCharsets.UTF_8))))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, rule)) {
@@ -268,8 +270,8 @@ class AutoRulesIT extends ExternalTargetsTest {
                 .putHeader(
                         "X-JMX-Authorization",
                         "Basic "
-                                + Base64.getEncoder()
-                                        .encodeToString("admin:adminpass123".getBytes()))
+                                + Base64.encodeBase64String(
+                                        "admin:adminpass123".getBytes(StandardCharsets.UTF_8)))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, response)) {
@@ -277,7 +279,6 @@ class AutoRulesIT extends ExternalTargetsTest {
                             }
                         });
         JsonObject recording = response.get().getJsonObject(0);
-        MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(1));
         MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo("auto_Auto_Rule"));
         MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
         MatcherAssert.assertThat(recording.getInteger("duration"), Matchers.equalTo(0));
@@ -305,6 +306,139 @@ class AutoRulesIT extends ExternalTargetsTest {
 
     @Test
     @Order(5)
+    void testAddOneShotRule() throws Exception {
+        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        MultiMap form = MultiMap.caseInsensitiveMultiMap();
+        form.add("name", "OneShot Rule");
+        form.add("description", "AutoRulesIT oneshot rule");
+        form.add("oneShot", "true");
+        form.add(
+                "matchExpression",
+                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        form.add("eventSpecifier", "template=Continuous,type=TARGET");
+        webClient
+                .post("/api/v2/rules")
+                .sendForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, postResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(201));
+                                MatcherAssert.assertThat(
+                                        ar.result().getHeader("Location"),
+                                        Matchers.equalTo("/api/v2/rules/OneShot_Rule"));
+                                postResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        JsonObject expectedPostResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "type",
+                                                HttpMimeType.PLAINTEXT.mime(),
+                                                "status",
+                                                "Created"),
+                                "data", Map.of("result", "OneShot_Rule")));
+        MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+
+        // assert newly added rule is not in total set
+        CompletableFuture<JsonObject> rules = new CompletableFuture<>();
+        webClient
+                .get("/api/v2/rules")
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, rules)) {
+                                rules.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        Map<String, Object> ruleAttrs = new HashMap<>();
+        ruleAttrs.put("name", "Auto_Rule");
+        ruleAttrs.put("description", "AutoRulesIT automated rule");
+        ruleAttrs.put("oneShot", false);
+        ruleAttrs.put("eventSpecifier", "template=Continuous,type=TARGET");
+        ruleAttrs.put(
+                "matchExpression",
+                "target.annotations.cryostat.JAVA_MAIN=='es.andrewazor.demo.Main'");
+        ruleAttrs.put("archivalPeriodSeconds", 60);
+        ruleAttrs.put("preservedArchives", 3);
+        ruleAttrs.put("maxAgeSeconds", 60);
+        ruleAttrs.put("maxSizeBytes", -1);
+        JsonObject expectedRule = new JsonObject(ruleAttrs);
+        JsonObject expectedRules =
+                new JsonObject(
+                        Map.of(
+                                "meta", Map.of("type", HttpMimeType.JSON.mime(), "status", "OK"),
+                                "data", Map.of("result", List.of(expectedRule))));
+        MatcherAssert.assertThat(rules.get(), Matchers.equalTo(expectedRules));
+
+        // assert newly added rule cannot be retrieved individually
+        CompletableFuture<JsonObject> rule = new CompletableFuture<>();
+        webClient
+                .get("/api/v2/rules/OneShot_Rule")
+                .send(
+                        ar -> {
+                            MatcherAssert.assertThat(
+                                    ar.result().statusCode(), Matchers.equalTo(404));
+                            rule.complete(ar.result().bodyAsJsonObject());
+                        });
+        Map<String, String> nullReason = new HashMap<>();
+        nullReason.put("reason", null);
+        JsonObject expectedRuleResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                Map.of(
+                                        "type",
+                                        HttpMimeType.PLAINTEXT.mime(),
+                                        "status",
+                                        "Not Found"),
+                                "data",
+                                nullReason));
+        MatcherAssert.assertThat(rule.get(), Matchers.equalTo(expectedRuleResponse));
+
+        CompletableFuture<JsonArray> recordingResponse = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
+                .putHeader(
+                        "X-JMX-Authorization",
+                        String.format(
+                                "Basic %s",
+                                Base64.encodeBase64String(
+                                        "admin:adminpass123".getBytes(StandardCharsets.UTF_8))))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, recordingResponse)) {
+                                recordingResponse.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonArray recordings = recordingResponse.get();
+        MatcherAssert.assertThat(recordings.getList().size(), Matchers.equalTo(2));
+        // recordings[0] is the recording created by the persistent rule earlier
+        JsonObject recording = recordings.getJsonObject(1);
+        MatcherAssert.assertThat(
+                recording.getString("name"), Matchers.equalTo("auto_OneShot_Rule"));
+        MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
+        MatcherAssert.assertThat(
+                recording.getString("downloadUrl"),
+                Matchers.equalTo(
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_OneShot_Rule"));
+        MatcherAssert.assertThat(
+                recording.getString("reportUrl"),
+                Matchers.equalTo(
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_OneShot_Rule"));
+    }
+
+    @Test
+    @Order(6)
     void testRuleCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -326,7 +460,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(6)
+    @Order(7)
     void testCredentialsCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -348,7 +482,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(6)
+    @Order(8)
     void testGetNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
@@ -366,7 +500,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(7)
+    @Order(9)
     void testDeleteNonExistentRuleThrows() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
