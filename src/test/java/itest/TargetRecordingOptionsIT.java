@@ -92,7 +92,7 @@ public class TargetRecordingOptionsIT extends StandardSelfTest {
             dumpResponse.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             throw new ITestCleanupFailedException(
-                    "Failed to reset default recording recording options", e);
+                    "Failed to reset default recording options", e);
         }
     }
 

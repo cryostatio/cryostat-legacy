@@ -157,7 +157,7 @@ public class TargetReportIT extends StandardSelfTest {
                             });
 
             try {
-                MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(null));
+                deleteResponse.get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete target recording %s", TEST_RECORDING_NAME),

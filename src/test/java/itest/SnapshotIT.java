@@ -143,7 +143,7 @@ public class SnapshotIT extends StandardSelfTest {
                             });
 
             try {
-                MatcherAssert.assertThat(deleteRecordingResponse.get(), Matchers.equalTo(null));
+                deleteRecordingResponse.get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete target recording %s", TEST_RECORDING_NAME),
@@ -162,7 +162,7 @@ public class SnapshotIT extends StandardSelfTest {
                             });
 
             try {
-                MatcherAssert.assertThat(deleteSnapshotResponse.get(), Matchers.equalTo(null));
+                deleteSnapshotResponse.get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete snapshot %s", snapshotName.get()), e);
@@ -311,7 +311,7 @@ public class SnapshotIT extends StandardSelfTest {
                             });
 
             try {
-                MatcherAssert.assertThat(deleteRecordingResponse.get(), Matchers.equalTo(null));
+                deleteRecordingResponse.get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete target recording %s", TEST_RECORDING_NAME),
@@ -330,7 +330,7 @@ public class SnapshotIT extends StandardSelfTest {
                             });
 
             try {
-                MatcherAssert.assertThat(deleteSnapshotResponse.get(), Matchers.equalTo(null));
+                deleteSnapshotResponse.get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete snapshot %s", snapshotName.get()), e);
