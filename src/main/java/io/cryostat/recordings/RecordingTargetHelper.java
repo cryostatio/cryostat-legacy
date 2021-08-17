@@ -79,6 +79,7 @@ public class RecordingTargetHelper {
     }
 
     public IRecordingDescriptor startRecording(
+            boolean restart,
             ConnectionDescriptor connectionDescriptor,
             IConstrainedMap<String> recordingOptions,
             String templateName,
@@ -88,11 +89,17 @@ public class RecordingTargetHelper {
         return targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
                 connection -> {
-                    if (getDescriptorByName(connection, recordingName).isPresent()) {
-                        throw new IllegalArgumentException(
-                                String.format(
-                                        "Recording with name \"%s\" already exists",
-                                        recordingName));
+                    Optional<IRecordingDescriptor> previous =
+                            getDescriptorByName(connection, recordingName);
+                    if (previous.isPresent()) {
+                        if (!restart) {
+                            throw new IllegalArgumentException(
+                                    String.format(
+                                            "Recording with name \"%s\" already exists",
+                                            recordingName));
+                        } else {
+                            connection.getService().close(previous.get());
+                        }
                     }
                     IRecordingDescriptor desc =
                             connection
@@ -114,6 +121,16 @@ public class RecordingTargetHelper {
                             .send();
                     return desc;
                 });
+    }
+
+    public IRecordingDescriptor startRecording(
+            ConnectionDescriptor connectionDescriptor,
+            IConstrainedMap<String> recordingOptions,
+            String templateName,
+            TemplateType templateType)
+            throws Exception {
+        return startRecording(
+                false, connectionDescriptor, recordingOptions, templateName, templateType);
     }
 
     public static Pair<String, TemplateType> parseEventSpecifierToTemplate(String eventSpecifier)

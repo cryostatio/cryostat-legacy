@@ -238,6 +238,7 @@ public class RuleProcessor
                             recordingTargetHelper.parseEventSpecifierToTemplate(
                                     rule.getEventSpecifier());
                     recordingTargetHelper.startRecording(
+                            true,
                             connectionDescriptor,
                             builder.build(),
                             template.getLeft(),

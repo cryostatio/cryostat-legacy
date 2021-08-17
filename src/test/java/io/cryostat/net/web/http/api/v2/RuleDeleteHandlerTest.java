@@ -37,18 +37,25 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import io.cryostat.MainModule;
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.platform.PlatformClient;
+import io.cryostat.rules.Rule;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -67,12 +74,23 @@ class RuleDeleteHandlerTest {
     RuleDeleteHandler handler;
     @Mock AuthManager auth;
     @Mock RuleRegistry registry;
+    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock PlatformClient platformClient;
+    @Mock CredentialsManager credentialsManager;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.handler = new RuleDeleteHandler(auth, registry, gson, logger);
+        this.handler =
+                new RuleDeleteHandler(
+                        auth,
+                        registry,
+                        targetConnectionManager,
+                        platformClient,
+                        credentialsManager,
+                        gson,
+                        logger);
     }
 
     @Nested
@@ -128,9 +146,19 @@ class RuleDeleteHandlerTest {
         @Test
         void shouldRespondOk() throws Exception {
             Mockito.when(params.getPathParams()).thenReturn(Map.of("name", testRuleName));
-            Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
+            Mockito.when(params.getQueryParams()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-            IntermediateResponse<Void> response = handler.handle(params);
+            Rule rule =
+                    new Rule.Builder()
+                            .name(testRuleName)
+                            .matchExpression("true")
+                            .eventSpecifier("template=Continuous")
+                            .build();
+            Mockito.when(registry.hasRuleByName(testRuleName)).thenReturn(true);
+            Mockito.when(registry.getRule(testRuleName)).thenReturn(Optional.of(rule));
+
+            IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>> response =
+                    handler.handle(params);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
 

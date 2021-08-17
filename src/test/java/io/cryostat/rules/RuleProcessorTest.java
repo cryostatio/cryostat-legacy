@@ -67,6 +67,7 @@ import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -193,6 +194,8 @@ class RuleProcessorTest {
         Mockito.verify(recordingOptionsBuilder).maxAge(30);
         Mockito.verify(recordingOptionsBuilder).maxSize(1234);
 
+        ArgumentCaptor<Boolean> restartCaptor = ArgumentCaptor.forClass(Boolean.class);
+
         ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
                 ArgumentCaptor.forClass(ConnectionDescriptor.class);
 
@@ -206,10 +209,13 @@ class RuleProcessorTest {
 
         Mockito.verify(recordingTargetHelper)
                 .startRecording(
+                        restartCaptor.capture(),
                         connectionDescriptorCaptor.capture(),
                         recordingOptionsCaptor.capture(),
                         templateNameCaptor.capture(),
                         templateTypeCaptor.capture());
+
+        Assertions.assertTrue(restartCaptor.getValue());
 
         ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
         MatcherAssert.assertThat(
