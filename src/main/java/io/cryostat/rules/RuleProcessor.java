@@ -235,7 +235,7 @@ public class RuleProcessor
                         builder = builder.maxSize(rule.getMaxSizeBytes());
                     }
                     Pair<String, TemplateType> template =
-                            recordingTargetHelper.parseEventSpecifierToTemplate(
+                            RecordingTargetHelper.parseEventSpecifierToTemplate(
                                     rule.getEventSpecifier());
                     recordingTargetHelper.startRecording(
                             true,

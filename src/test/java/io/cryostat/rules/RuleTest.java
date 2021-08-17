@@ -123,7 +123,8 @@ class RuleTest {
 
     @ParameterizedTest
     @NullAndEmptySource
-    void shouldThrowOnBlankEventSpecifier(String s) {
+    @ValueSource(strings = {"invalid", "events=incorrect", "tenplate=typo"})
+    void shouldThrowOnInvalidEventSpecifier(String s) {
         IllegalArgumentException ex =
                 Assertions.assertThrows(
                         IllegalArgumentException.class,
@@ -135,7 +136,10 @@ class RuleTest {
                         });
         MatcherAssert.assertThat(
                 ex.getMessage(),
-                Matchers.containsString("\"eventSpecifier\" cannot be blank, was \"" + s + "\""));
+                Matchers.either(
+                                Matchers.equalTo(
+                                        "\"eventSpecifier\" cannot be blank, was \"" + s + "\""))
+                        .or(Matchers.equalTo(s)));
     }
 
     @Test

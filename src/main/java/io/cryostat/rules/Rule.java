@@ -39,6 +39,8 @@ package io.cryostat.rules;
 
 import java.util.function.Function;
 
+import io.cryostat.recordings.RecordingTargetHelper;
+
 import com.google.gson.JsonObject;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
@@ -114,16 +116,26 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
-    static String validateMatchExpression(Rule rule) throws MatchExpressionValidationException {
-        return MATCH_EXPRESSION_VALIDATOR.validate(rule);
-    }
-
     private static String requireNonBlank(String s, Attribute attr) {
         if (StringUtils.isBlank(s)) {
             throw new IllegalArgumentException(
                     String.format("\"%s\" cannot be blank, was \"%s\"", attr, s));
         }
         return s;
+    }
+
+    public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
+        requireNonBlank(this.name, Attribute.NAME);
+        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
+        validateEventSpecifier(requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER));
+        requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+        requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        validateMatchExpression(this);
+    }
+
+    private static String validateMatchExpression(Rule rule)
+            throws MatchExpressionValidationException {
+        return MATCH_EXPRESSION_VALIDATOR.validate(rule);
     }
 
     private static int requireNonNegative(int i, Attribute attr) {
@@ -134,13 +146,11 @@ public class Rule {
         return i;
     }
 
-    public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
-        requireNonBlank(this.name, Attribute.NAME);
-        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
-        requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
-        requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
-        requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
-        validateMatchExpression(this);
+    private static String validateEventSpecifier(String eventSpecifier)
+            throws IllegalArgumentException {
+        // throws if cannot be parsed
+        RecordingTargetHelper.parseEventSpecifierToTemplate(eventSpecifier);
+        return eventSpecifier;
     }
 
     @Override
