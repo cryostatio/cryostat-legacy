@@ -197,9 +197,7 @@ public class ReportIT extends StandardSelfTest {
                 MatcherAssert.assertThat(deleteArchivedRecResp.get(), Matchers.equalTo(null));
             } catch (InterruptedException | ExecutionException e) {
                 throw new ITestCleanupFailedException(
-                        String.format(
-                                "Failed to delete archived recording %s",
-                                savedRecordingName),
+                        String.format("Failed to delete archived recording %s", savedRecordingName),
                         e);
             }
         }

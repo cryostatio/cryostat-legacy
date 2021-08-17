@@ -305,8 +305,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                     } catch (InterruptedException | ExecutionException | TimeoutException e) {
                         throw new ITestCleanupFailedException(
                                 String.format(
-                                        "Failed to delete archived recording %s",
-                                        recordingName),
+                                        "Failed to delete archived recording %s", recordingName),
                                 e);
                     }
                 }
