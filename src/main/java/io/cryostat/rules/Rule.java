@@ -52,6 +52,8 @@ public class Rule {
     private static final MatchExpressionValidator MATCH_EXPRESSION_VALIDATOR =
             new MatchExpressionValidator();
 
+    static final String ARCHIVE_EVENT = "archive";
+
     private final String name;
     private final String description;
     private final String matchExpression;
@@ -93,6 +95,10 @@ public class Rule {
 
     public String getEventSpecifier() {
         return this.eventSpecifier;
+    }
+
+    public boolean isArchiver() {
+        return ARCHIVE_EVENT.equals(getEventSpecifier());
     }
 
     public int getArchivalPeriodSeconds() {
@@ -148,6 +154,9 @@ public class Rule {
 
     private static String validateEventSpecifier(String eventSpecifier)
             throws IllegalArgumentException {
+        if (eventSpecifier.equals(ARCHIVE_EVENT)) {
+            return eventSpecifier;
+        }
         // throws if cannot be parsed
         RecordingTargetHelper.parseEventSpecifierToTemplate(eventSpecifier);
         return eventSpecifier;

@@ -206,4 +206,14 @@ class RuleTest {
                         .build();
         MatcherAssert.assertThat(rule.getRecordingName(), Matchers.equalTo("auto_Some_Rule"));
     }
+
+    @Test
+    void shouldAcceptEventSpecifierArchiveSpecialCase() throws Exception {
+        Rule rule =
+                builder.name("Some Rule")
+                        .matchExpression(MATCH_EXPRESSION)
+                        .eventSpecifier("archive")
+                        .build();
+        MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo("archive"));
+    }
 }
