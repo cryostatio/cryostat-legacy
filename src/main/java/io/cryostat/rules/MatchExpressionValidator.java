@@ -49,7 +49,11 @@ public class MatchExpressionValidator {
 
     String validate(Rule rule) throws MatchExpressionValidationException {
         try {
-            CompilationUnitTree cut = parser.parse(rule.getName(), rule.getMatchExpression(), null);
+            String name = rule.getName();
+            if (name == null) {
+                name = "";
+            }
+            CompilationUnitTree cut = parser.parse(name, rule.getMatchExpression(), null);
             if (cut == null) {
                 throw new IllegalMatchExpressionException();
             }

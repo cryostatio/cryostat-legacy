@@ -39,13 +39,15 @@ package io.cryostat.rules;
 
 import java.util.function.Function;
 
-import io.cryostat.recordings.RecordingTargetHelper;
-
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import io.vertx.core.MultiMap;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
+
+import io.cryostat.recordings.RecordingTargetHelper;
+import io.vertx.core.MultiMap;
 
 public class Rule {
 
@@ -270,13 +272,11 @@ public class Rule {
         public static Builder from(JsonObject jsonObj) throws IllegalArgumentException {
             Rule.Builder builder =
                     new Rule.Builder()
-                            .name(jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
+                            .name(getAsNullableString(jsonObj, Rule.Attribute.NAME))
                             .matchExpression(
                                     jsonObj.get(Rule.Attribute.MATCH_EXPRESSION.getSerialKey())
                                             .getAsString())
-                            .description(
-                                    jsonObj.get(Rule.Attribute.DESCRIPTION.getSerialKey())
-                                            .getAsString())
+                            .description(getAsNullableString(jsonObj, Rule.Attribute.DESCRIPTION))
                             .eventSpecifier(
                                     jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
                                             .getAsString());
@@ -286,6 +286,14 @@ public class Rule {
             builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
 
             return builder;
+        }
+
+        private static String getAsNullableString(JsonObject jsonObj, Rule.Attribute attr) {
+            JsonElement el = jsonObj.get(attr.getSerialKey());
+            if (el == null) {
+                return null;
+            }
+            return el.getAsString();
         }
 
         private Builder setOptionalInt(Rule.Attribute key, MultiMap formAttributes)

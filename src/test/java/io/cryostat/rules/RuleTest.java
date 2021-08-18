@@ -37,16 +37,21 @@
  */
 package io.cryostat.rules;
 
+import com.google.gson.JsonObject;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import io.vertx.core.MultiMap;
 
 @ExtendWith(MockitoExtension.class)
 class RuleTest {
@@ -295,5 +300,149 @@ class RuleTest {
         MatcherAssert.assertThat(
                 ex.getMessage(),
                 Matchers.containsString("\"maxAgeSeconds\" cannot be positive, was \"5\""));
+    }
+
+    @Nested
+    class Deserialization {
+
+        @Nested
+        class Json {
+
+            @Test
+            void testCompleteRule() throws IllegalArgumentException, MatchExpressionValidationException {
+                String name = "Some Rule";
+                String description = "This is a description";
+                String matchExpression = "target.alias=='TheAlias'";
+                String eventSpecifier = "template=Foo";
+                int maxAgeSeconds = 60;
+                int maxSizeBytes = 32 * 1024;
+                int archivalPeriodSeconds = 300;
+                int preservedArchives = 5;
+
+                JsonObject json = new JsonObject();
+                json.addProperty("name", name);
+                json.addProperty("description", description);
+                json.addProperty("matchExpression", matchExpression);
+                json.addProperty("eventSpecifier", eventSpecifier);
+                json.addProperty("maxAgeSeconds", maxAgeSeconds);
+                json.addProperty("maxSizeBytes", maxSizeBytes);
+                json.addProperty("archivalPeriodSeconds", archivalPeriodSeconds);
+                json.addProperty("preservedArchives", preservedArchives);
+                Rule rule = Rule.Builder.from(json).build();
+
+                MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
+                MatcherAssert.assertThat(rule.getDescription(), Matchers.equalTo(description));
+                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(rule.getMaxAgeSeconds(), Matchers.equalTo(maxAgeSeconds));
+                MatcherAssert.assertThat(rule.getMaxSizeBytes(), Matchers.equalTo(maxSizeBytes));
+                MatcherAssert.assertThat(rule.getArchivalPeriodSeconds(),
+                        Matchers.equalTo(archivalPeriodSeconds));
+                MatcherAssert.assertThat(rule.getPreservedArchives(),
+                        Matchers.equalTo(preservedArchives));
+            }
+
+            @Test
+            void testRuleWithoutOptionalFields() throws IllegalArgumentException, MatchExpressionValidationException {
+                String name = "Some Rule";
+                String matchExpression = "target.alias=='TheAlias'";
+                String eventSpecifier = "template=Foo";
+
+                JsonObject json = new JsonObject();
+                json.addProperty("name", name);
+                json.addProperty("matchExpression", matchExpression);
+                json.addProperty("eventSpecifier", eventSpecifier);
+                Rule rule = Rule.Builder.from(json).build();
+
+                MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
+                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+            }
+
+            @Test
+            void testArchiverWithoutName() throws IllegalArgumentException, MatchExpressionValidationException {
+                String matchExpression = "target.alias=='TheAlias'";
+                String eventSpecifier = "archive";
+
+                JsonObject json = new JsonObject();
+                json.addProperty("matchExpression", matchExpression);
+                json.addProperty("eventSpecifier", eventSpecifier);
+                Rule rule = Rule.Builder.from(json).build();
+
+                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+            }
+
+        }
+        @Nested
+        class Form {
+
+            @Test
+            void testCompleteRule() throws IllegalArgumentException, MatchExpressionValidationException {
+                String name = "Some Rule";
+                String description = "This is a description";
+                String matchExpression = "target.alias=='TheAlias'";
+                String eventSpecifier = "template=Foo";
+                int maxAgeSeconds = 60;
+                int maxSizeBytes = 32 * 1024;
+                int archivalPeriodSeconds = 300;
+                int preservedArchives = 5;
+
+                MultiMap form = MultiMap.caseInsensitiveMultiMap();
+                form.set("name", name);
+                form.set("description", description);
+                form.set("matchExpression", matchExpression);
+                form.set("eventSpecifier", eventSpecifier);
+                form.set("maxAgeSeconds", String.valueOf(maxAgeSeconds));
+                form.set("maxSizeBytes", String.valueOf(maxSizeBytes));
+                form.set("archivalPeriodSeconds", String.valueOf(archivalPeriodSeconds));
+                form.set("preservedArchives", String.valueOf(preservedArchives));
+                Rule rule = Rule.Builder.from(form).build();
+
+                MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
+                MatcherAssert.assertThat(rule.getDescription(), Matchers.equalTo(description));
+                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(rule.getMaxAgeSeconds(), Matchers.equalTo(maxAgeSeconds));
+                MatcherAssert.assertThat(rule.getMaxSizeBytes(), Matchers.equalTo(maxSizeBytes));
+                MatcherAssert.assertThat(rule.getArchivalPeriodSeconds(),
+                        Matchers.equalTo(archivalPeriodSeconds));
+                MatcherAssert.assertThat(rule.getPreservedArchives(),
+                        Matchers.equalTo(preservedArchives));
+            }
+
+            @Test
+            void testRuleWithoutOptionalFields() throws IllegalArgumentException, MatchExpressionValidationException {
+                String name = "Some Rule";
+                String matchExpression = "target.alias=='TheAlias'";
+                String eventSpecifier = "template=Foo";
+
+                MultiMap form = MultiMap.caseInsensitiveMultiMap();
+                form.set("name", name);
+                form.set("matchExpression", matchExpression);
+                form.set("eventSpecifier", eventSpecifier);
+                Rule rule = Rule.Builder.from(form).build();
+
+                MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
+                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+            }
+
+            @Test
+            void testArchiverWithoutName() throws IllegalArgumentException, MatchExpressionValidationException {
+                String matchExpression = "target.alias=='TheAlias'";
+                String eventSpecifier = "archive";
+
+                MultiMap form = MultiMap.caseInsensitiveMultiMap();
+                form.set("matchExpression", matchExpression);
+                form.set("eventSpecifier", eventSpecifier);
+                Rule rule = Rule.Builder.from(form).build();
+
+                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+            }
+
+        }
+
     }
 }
