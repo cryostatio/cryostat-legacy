@@ -137,6 +137,13 @@ public class Rule {
         requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
         requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
         validateMatchExpression(this);
+
+        if (isArchiver()) {
+            requireNonPositive(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonPositive(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+            requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
+            requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
+        }
     }
 
     private static String validateMatchExpression(Rule rule)
@@ -148,6 +155,14 @@ public class Rule {
         if (i < 0) {
             throw new IllegalArgumentException(
                     String.format("\"%s\" cannot be negative, was \"%d\"", attr, i));
+        }
+        return i;
+    }
+
+    private static int requireNonPositive(int i, Attribute attr) {
+        if (i > 0) {
+            throw new IllegalArgumentException(
+                    String.format("\"%s\" cannot be positive, was \"%d\"", attr, i));
         }
         return i;
     }

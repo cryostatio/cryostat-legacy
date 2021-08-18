@@ -216,4 +216,72 @@ class RuleTest {
                         .build();
         MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo("archive"));
     }
+
+    @Test
+    void shouldThrowOnArchiverWithArchivalPeriod() throws Exception {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .matchExpression(MATCH_EXPRESSION)
+                                    .eventSpecifier("archive")
+                                    .archivalPeriodSeconds(5)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("\"archivalPeriodSeconds\" cannot be positive, was \"5\""));
+    }
+
+    @Test
+    void shouldThrowOnArchiverWithPreservedArchives() throws Exception {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .matchExpression(MATCH_EXPRESSION)
+                                    .eventSpecifier("archive")
+                                    .preservedArchives(5)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("\"preservedArchives\" cannot be positive, was \"5\""));
+    }
+
+    @Test
+    void shouldThrowOnArchiverWithMaxSizeBytes() throws Exception {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .matchExpression(MATCH_EXPRESSION)
+                                    .eventSpecifier("archive")
+                                    .maxSizeBytes(5)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("\"maxSizeBytes\" cannot be positive, was \"5\""));
+    }
+
+    @Test
+    void shouldThrowOnArchiverWithMaxAgeSeconds() throws Exception {
+        IllegalArgumentException ex =
+                Assertions.assertThrows(
+                        IllegalArgumentException.class,
+                        () -> {
+                            builder.name(NAME)
+                                    .matchExpression(MATCH_EXPRESSION)
+                                    .eventSpecifier("archive")
+                                    .maxAgeSeconds(5)
+                                    .build();
+                        });
+        MatcherAssert.assertThat(
+                ex.getMessage(),
+                Matchers.containsString("\"maxAgeSeconds\" cannot be positive, was \"5\""));
+    }
 }
