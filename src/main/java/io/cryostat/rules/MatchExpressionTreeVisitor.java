@@ -171,11 +171,6 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
     }
 
     @Override
-    public Void visitRegExpLiteral(RegExpLiteralTree node, String matchExpression) {
-        return fail(node, matchExpression);
-    }
-
-    @Override
     public Void visitReturn(ReturnTree node, String matchExpression) {
         return fail(node, matchExpression);
     }
