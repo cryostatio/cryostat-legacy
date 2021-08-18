@@ -174,7 +174,7 @@ class RuleDeleteHandler extends AbstractV2RequestHandler<List<RuleDeleteHandler.
             }
         }
         if (failures.size() == 0) {
-            return new IntermediateResponse<List<RuleDeleteHandler.CleanupFailure>>().body(null);
+            return new IntermediateResponse<List<CleanupFailure>>().body(null);
         } else {
             return new IntermediateResponse<List<CleanupFailure>>().statusCode(500).body(failures);
         }
