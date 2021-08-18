@@ -1474,7 +1474,14 @@ The handler-specific descriptions below describe how each handler populates the
     Deletes a rule definition.
 
     ##### request
-    `DELETE /api/v2/rules/:name`
+    `DELETE /api/v2/rules/:name[?clean=true]`
+
+    `name` - the name of the rule definition to delete.
+
+    `clean` - optional. If set to "true", all active recordings started by this
+    rule in existing target JVMs will be stopped after the rule is deleted.
+    Archived copies of recordings will not be deleted. If not set to "true", all
+    active recordings will remain running.
 
     ##### response
     `200` - The result is empty. The rule was successfully deleted.

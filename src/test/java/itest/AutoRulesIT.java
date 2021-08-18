@@ -314,7 +314,7 @@ class AutoRulesIT extends ExternalTargetsTest {
     void testRuleCanBeDeleted() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         webClient
-                .delete(String.format("/api/v2/rules/%s", "Auto_Rule"))
+                .delete(String.format("/api/v2/rules/%s?clean=true", "Auto_Rule"))
                 .send(
                         ar -> {
                             if (assertRequestStatus(ar, response)) {
