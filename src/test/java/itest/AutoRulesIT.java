@@ -228,6 +228,55 @@ class AutoRulesIT extends ExternalTargetsTest {
 
     @Test
     @Order(3)
+    void testAddRuleCreatedWithRegex() throws Exception {
+        CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
+        JsonObject regexRule = new JsonObject();
+        regexRule.put("name", "Regex_Rule");
+        regexRule.put("description", "AutoRulesIT automated rule");
+        regexRule.put("eventSpecifier", "template=Continuous,type=TARGET");
+        regexRule.put("matchExpression", "/^[a-zA-Z0-9]+$/");
+
+        try {
+        webClient
+                .post("/api/v2/rules")
+                .sendJsonObject(
+                    regexRule,
+                        ar -> {
+                            if (assertRequestStatus(ar, postResponse)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(201));
+                                postResponse.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+
+            JsonObject expectedPostResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "type",
+                                                HttpMimeType.PLAINTEXT.mime(),
+                                                "status",
+                                                "Created"),
+                                "data", Map.of("result", "Regex_Rule")));
+        MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+        } finally {
+             CompletableFuture<JsonObject> response = new CompletableFuture<>();
+            webClient
+                .delete(String.format("/api/v2/rules/%s", "Regex_Rule"))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        }
+    }
+
+    @Test
+    @Order(4)
     void testAddCredentials() throws Exception {
         CompletableFuture<JsonObject> response = new CompletableFuture<>();
         MultiMap form = MultiMap.caseInsensitiveMultiMap();
