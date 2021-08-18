@@ -255,13 +255,12 @@ public class RuleProcessor
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(connection.getService())
-                                    .name(rule.getRecordingName())
-                                    .toDisk(true);
+                                    .name(rule.getRecordingName());
                     if (rule.getMaxAgeSeconds() > 0) {
-                        builder = builder.maxAge(rule.getMaxAgeSeconds());
+                        builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
                     }
                     if (rule.getMaxSizeBytes() > 0) {
-                        builder = builder.maxSize(rule.getMaxSizeBytes());
+                        builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
                     }
                     Pair<String, TemplateType> template =
                             RecordingTargetHelper.parseEventSpecifierToTemplate(
