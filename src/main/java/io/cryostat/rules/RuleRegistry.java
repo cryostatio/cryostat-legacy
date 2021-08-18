@@ -141,7 +141,6 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
             return Set.of();
         }
         return rules.stream()
-                .filter(r -> !r.isArchiver())
                 .filter(r -> applies(r, serviceRef))
                 .collect(Collectors.toSet());
     }
