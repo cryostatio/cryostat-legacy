@@ -39,15 +39,14 @@ package io.cryostat.rules;
 
 import java.util.function.Function;
 
+import io.cryostat.recordings.RecordingTargetHelper;
+
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-
+import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
-
-import io.cryostat.recordings.RecordingTargetHelper;
-import io.vertx.core.MultiMap;
 
 public class Rule {
 

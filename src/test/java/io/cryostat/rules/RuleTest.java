@@ -38,7 +38,7 @@
 package io.cryostat.rules;
 
 import com.google.gson.JsonObject;
-
+import io.vertx.core.MultiMap;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -50,8 +50,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.vertx.core.MultiMap;
 
 @ExtendWith(MockitoExtension.class)
 class RuleTest {
@@ -309,7 +307,8 @@ class RuleTest {
         class Json {
 
             @Test
-            void testCompleteRule() throws IllegalArgumentException, MatchExpressionValidationException {
+            void testCompleteRule()
+                    throws IllegalArgumentException, MatchExpressionValidationException {
                 String name = "Some Rule";
                 String description = "This is a description";
                 String matchExpression = "target.alias=='TheAlias'";
@@ -332,18 +331,21 @@ class RuleTest {
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
                 MatcherAssert.assertThat(rule.getDescription(), Matchers.equalTo(description));
-                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
-                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(
+                        rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(
+                        rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
                 MatcherAssert.assertThat(rule.getMaxAgeSeconds(), Matchers.equalTo(maxAgeSeconds));
                 MatcherAssert.assertThat(rule.getMaxSizeBytes(), Matchers.equalTo(maxSizeBytes));
-                MatcherAssert.assertThat(rule.getArchivalPeriodSeconds(),
-                        Matchers.equalTo(archivalPeriodSeconds));
-                MatcherAssert.assertThat(rule.getPreservedArchives(),
-                        Matchers.equalTo(preservedArchives));
+                MatcherAssert.assertThat(
+                        rule.getArchivalPeriodSeconds(), Matchers.equalTo(archivalPeriodSeconds));
+                MatcherAssert.assertThat(
+                        rule.getPreservedArchives(), Matchers.equalTo(preservedArchives));
             }
 
             @Test
-            void testRuleWithoutOptionalFields() throws IllegalArgumentException, MatchExpressionValidationException {
+            void testRuleWithoutOptionalFields()
+                    throws IllegalArgumentException, MatchExpressionValidationException {
                 String name = "Some Rule";
                 String matchExpression = "target.alias=='TheAlias'";
                 String eventSpecifier = "template=Foo";
@@ -355,12 +357,15 @@ class RuleTest {
                 Rule rule = Rule.Builder.from(json).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
-                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
-                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(
+                        rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(
+                        rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
             }
 
             @Test
-            void testArchiverWithoutName() throws IllegalArgumentException, MatchExpressionValidationException {
+            void testArchiverWithoutName()
+                    throws IllegalArgumentException, MatchExpressionValidationException {
                 String matchExpression = "target.alias=='TheAlias'";
                 String eventSpecifier = "archive";
 
@@ -369,16 +374,19 @@ class RuleTest {
                 json.addProperty("eventSpecifier", eventSpecifier);
                 Rule rule = Rule.Builder.from(json).build();
 
-                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
-                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(
+                        rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(
+                        rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
             }
-
         }
+
         @Nested
         class Form {
 
             @Test
-            void testCompleteRule() throws IllegalArgumentException, MatchExpressionValidationException {
+            void testCompleteRule()
+                    throws IllegalArgumentException, MatchExpressionValidationException {
                 String name = "Some Rule";
                 String description = "This is a description";
                 String matchExpression = "target.alias=='TheAlias'";
@@ -401,18 +409,21 @@ class RuleTest {
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
                 MatcherAssert.assertThat(rule.getDescription(), Matchers.equalTo(description));
-                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
-                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(
+                        rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(
+                        rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
                 MatcherAssert.assertThat(rule.getMaxAgeSeconds(), Matchers.equalTo(maxAgeSeconds));
                 MatcherAssert.assertThat(rule.getMaxSizeBytes(), Matchers.equalTo(maxSizeBytes));
-                MatcherAssert.assertThat(rule.getArchivalPeriodSeconds(),
-                        Matchers.equalTo(archivalPeriodSeconds));
-                MatcherAssert.assertThat(rule.getPreservedArchives(),
-                        Matchers.equalTo(preservedArchives));
+                MatcherAssert.assertThat(
+                        rule.getArchivalPeriodSeconds(), Matchers.equalTo(archivalPeriodSeconds));
+                MatcherAssert.assertThat(
+                        rule.getPreservedArchives(), Matchers.equalTo(preservedArchives));
             }
 
             @Test
-            void testRuleWithoutOptionalFields() throws IllegalArgumentException, MatchExpressionValidationException {
+            void testRuleWithoutOptionalFields()
+                    throws IllegalArgumentException, MatchExpressionValidationException {
                 String name = "Some Rule";
                 String matchExpression = "target.alias=='TheAlias'";
                 String eventSpecifier = "template=Foo";
@@ -424,12 +435,15 @@ class RuleTest {
                 Rule rule = Rule.Builder.from(form).build();
 
                 MatcherAssert.assertThat(rule.getName(), Matchers.equalTo("Some_Rule"));
-                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
-                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(
+                        rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(
+                        rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
             }
 
             @Test
-            void testArchiverWithoutName() throws IllegalArgumentException, MatchExpressionValidationException {
+            void testArchiverWithoutName()
+                    throws IllegalArgumentException, MatchExpressionValidationException {
                 String matchExpression = "target.alias=='TheAlias'";
                 String eventSpecifier = "archive";
 
@@ -438,11 +452,11 @@ class RuleTest {
                 form.set("eventSpecifier", eventSpecifier);
                 Rule rule = Rule.Builder.from(form).build();
 
-                MatcherAssert.assertThat(rule.getMatchExpression(), Matchers.equalTo(matchExpression));
-                MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
+                MatcherAssert.assertThat(
+                        rule.getMatchExpression(), Matchers.equalTo(matchExpression));
+                MatcherAssert.assertThat(
+                        rule.getEventSpecifier(), Matchers.equalTo(eventSpecifier));
             }
-
         }
-
     }
 }
