@@ -140,9 +140,7 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
         if (!serviceRef.getAlias().isPresent()) {
             return Set.of();
         }
-        return rules.stream()
-                .filter(r -> applies(r, serviceRef))
-                .collect(Collectors.toSet());
+        return rules.stream().filter(r -> applies(r, serviceRef)).collect(Collectors.toSet());
     }
 
     public Set<Rule> getRules() {
