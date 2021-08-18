@@ -94,13 +94,13 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
     }
 
     public Rule addRule(Rule rule) throws IOException {
-        if (hasRuleByName(rule.getName())) {
-            throw new RuleException(
-                    String.format(
-                            "Rule with name \"%s\" already exists; refusing to overwrite",
-                            rule.getName()));
-        }
         if (!rule.isArchiver()) {
+            if (hasRuleByName(rule.getName())) {
+                throw new RuleException(
+                        String.format(
+                                "Rule with name \"%s\" already exists; refusing to overwrite",
+                                rule.getName()));
+            }
             Path destination = rulesDir.resolve(rule.getName() + ".json");
             this.fs.writeString(
                     destination,
