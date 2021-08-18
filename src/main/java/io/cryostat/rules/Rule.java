@@ -177,8 +177,8 @@ public class Rule {
         private String description;
         private String matchExpression;
         private String eventSpecifier;
-        private int archivalPeriodSeconds = 30;
-        private int preservedArchives = 1;
+        private int archivalPeriodSeconds = 0;
+        private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
 
