@@ -209,8 +209,24 @@ class RuleTest {
 
     @Test
     void shouldAcceptEventSpecifierArchiveSpecialCase() throws Exception {
+        Rule rule = builder.matchExpression(MATCH_EXPRESSION).eventSpecifier("archive").build();
+        MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo("archive"));
+    }
+
+    @Test
+    void shouldAcceptEventSpecifierArchiveSpecialCaseWithName() throws Exception {
         Rule rule =
                 builder.name("Some Rule")
+                        .matchExpression(MATCH_EXPRESSION)
+                        .eventSpecifier("archive")
+                        .build();
+        MatcherAssert.assertThat(rule.getEventSpecifier(), Matchers.equalTo("archive"));
+    }
+
+    @Test
+    void shouldAcceptEventSpecifierArchiveSpecialCaseWithDescription() throws Exception {
+        Rule rule =
+                builder.description("Unused description")
                         .matchExpression(MATCH_EXPRESSION)
                         .eventSpecifier("archive")
                         .build();
@@ -223,8 +239,7 @@ class RuleTest {
                 Assertions.assertThrows(
                         IllegalArgumentException.class,
                         () -> {
-                            builder.name(NAME)
-                                    .matchExpression(MATCH_EXPRESSION)
+                            builder.matchExpression(MATCH_EXPRESSION)
                                     .eventSpecifier("archive")
                                     .archivalPeriodSeconds(5)
                                     .build();
@@ -240,8 +255,7 @@ class RuleTest {
                 Assertions.assertThrows(
                         IllegalArgumentException.class,
                         () -> {
-                            builder.name(NAME)
-                                    .matchExpression(MATCH_EXPRESSION)
+                            builder.matchExpression(MATCH_EXPRESSION)
                                     .eventSpecifier("archive")
                                     .preservedArchives(5)
                                     .build();
@@ -257,8 +271,7 @@ class RuleTest {
                 Assertions.assertThrows(
                         IllegalArgumentException.class,
                         () -> {
-                            builder.name(NAME)
-                                    .matchExpression(MATCH_EXPRESSION)
+                            builder.matchExpression(MATCH_EXPRESSION)
                                     .eventSpecifier("archive")
                                     .maxSizeBytes(5)
                                     .build();
@@ -274,8 +287,7 @@ class RuleTest {
                 Assertions.assertThrows(
                         IllegalArgumentException.class,
                         () -> {
-                            builder.name(NAME)
-                                    .matchExpression(MATCH_EXPRESSION)
+                            builder.matchExpression(MATCH_EXPRESSION)
                                     .eventSpecifier("archive")
                                     .maxAgeSeconds(5)
                                     .build();

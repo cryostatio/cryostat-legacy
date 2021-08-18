@@ -1398,8 +1398,9 @@ The handler-specific descriptions below describe how each handler populates the
     attributes `"name"`, `"matchExpression"`, and `"eventSpecifier"` must be
     provided.
 
-    `"name"`: the name of this rule definition. This must be unique. This name
-    will also be used to generate the name of the associated recordings.
+    `"name"`: the name of this rule definition. This must be unique, except in
+    the case of "archiver rules" (see `eventSpecifier` below). This name will
+    also be used to generate the name of the associated recordings.
 
     `"matchExpression"`: a string expression used to determine which target JVMs
     this rule will apply to. The expression has a variable named `target` in
@@ -1412,9 +1413,15 @@ The handler-specific descriptions below describe how each handler populates the
     The simple expression `true` may also be used to create a rule which applies
     to any and all discovered targets.
 
-    `"eventSpecifier"`: a string of the form `template=Foo,type=TYPE`. This
+    `"eventSpecifier"`: a string of the form `template=Foo,type=TYPE`, which
     defines the event template that will be used for creating new recordings in
-    matching targets.
+    matching targets; or, the special string `"archive"`, which signifies that
+    this rule should cause all matching targets to have their current (at the
+    time of rule creation) JFR data copied to the Cryostat archives as a
+    one-time operation. When using `"archive"`, it is invalid to provide
+    `archivalPeriodSeconds`, `preservedArchives`, `maxSizeBytes`, or
+    `maxAgeSeconds`. Such "archiver rules" are only processed once and are not
+    persisted, so the `name` and `description` become optional.
 
     The following attributes are optional:
 

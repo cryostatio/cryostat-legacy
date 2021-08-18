@@ -64,10 +64,14 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) throws MatchExpressionValidationException {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        this.eventSpecifier = builder.eventSpecifier;
+        if (isArchiver()) {
+            this.name = builder.name;
+        } else {
+            this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        }
         this.description = builder.description == null ? "" : builder.description;
         this.matchExpression = builder.matchExpression;
-        this.eventSpecifier = builder.eventSpecifier;
         this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
         this.preservedArchives = builder.preservedArchives;
         this.maxAgeSeconds =
@@ -131,11 +135,8 @@ public class Rule {
     }
 
     public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
-        requireNonBlank(this.name, Attribute.NAME);
         requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
         validateEventSpecifier(requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER));
-        requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
-        requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
         validateMatchExpression(this);
 
         if (isArchiver()) {
@@ -143,6 +144,10 @@ public class Rule {
             requireNonPositive(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
             requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
             requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
+        } else {
+            requireNonBlank(this.name, Attribute.NAME);
+            requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
         }
     }
 
@@ -188,10 +193,10 @@ public class Rule {
     }
 
     public static class Builder {
-        private String name;
-        private String description;
-        private String matchExpression;
-        private String eventSpecifier;
+        private String name = "";
+        private String description = "";
+        private String matchExpression = "";
+        private String eventSpecifier = "";
         private int archivalPeriodSeconds = 0;
         private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
