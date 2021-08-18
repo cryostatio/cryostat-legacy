@@ -59,6 +59,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.ExternalTargetsTest;
+import itest.util.ITestCleanupFailedException;
 import itest.util.Podman;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -99,9 +100,14 @@ class InterleavedExternalTargetRequestsIT extends ExternalTargetsTest {
     }
 
     @AfterAll
-    static void cleanup() throws Exception {
+    static void cleanup() throws ITestCleanupFailedException {
         for (String id : CONTAINERS) {
-            Podman.kill(id);
+            try {
+                Podman.kill(id);
+            } catch (Exception e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to kill container instance with ID %s", id), e);
+            }
         }
     }
 

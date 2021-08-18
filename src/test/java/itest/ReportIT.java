@@ -51,6 +51,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
@@ -71,7 +72,8 @@ public class ReportIT extends StandardSelfTest {
     @Test
     void testGetReportShouldSendFile() throws Exception {
 
-        CompletableFuture<String> savedRecordingName = new CompletableFuture<>();
+        CompletableFuture<String> saveRecordingResp = new CompletableFuture<>();
+        String savedRecordingName = null;
         File file = new File(TEMP_REPORT);
 
         try {
@@ -102,23 +104,23 @@ public class ReportIT extends StandardSelfTest {
                     .sendBuffer(
                             Buffer.buffer("SAVE"),
                             ar -> {
-                                if (assertRequestStatus(ar, savedRecordingName)) {
+                                if (assertRequestStatus(ar, saveRecordingResp)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(200));
                                     MatcherAssert.assertThat(
                                             ar.result()
                                                     .getHeader(HttpHeaders.CONTENT_TYPE.toString()),
                                             Matchers.equalTo(HttpMimeType.PLAINTEXT.mime()));
-                                    savedRecordingName.complete(ar.result().bodyAsString());
+                                    saveRecordingResp.complete(ar.result().bodyAsString());
                                 }
                             });
 
-            savedRecordingName.get();
+            savedRecordingName = saveRecordingResp.get();
 
             // Get a report for the above recording
             CompletableFuture<Buffer> getResponse = new CompletableFuture<>();
             webClient
-                    .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName.get()))
+                    .get(String.format("%s/%s", REPORT_REQ_URL, savedRecordingName))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, getResponse)) {
@@ -172,12 +174,17 @@ public class ReportIT extends StandardSelfTest {
                                             ar.result().bodyAsJsonObject());
                                 }
                             });
-
-            MatcherAssert.assertThat(deleteActiveRecResponse.get(), Matchers.equalTo(null));
+            try {
+                MatcherAssert.assertThat(deleteActiveRecResponse.get(), Matchers.equalTo(null));
+            } catch (ExecutionException | InterruptedException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", TEST_RECORDING_NAME),
+                        e);
+            }
 
             CompletableFuture<JsonObject> deleteArchivedRecResp = new CompletableFuture<>();
             webClient
-                    .delete(String.format("%s/%s", ARCHIVE_REQ_URL, savedRecordingName.get()))
+                    .delete(String.format("%s/%s", ARCHIVE_REQ_URL, savedRecordingName))
                     .send(
                             ar -> {
                                 if (assertRequestStatus(ar, deleteArchivedRecResp)) {
@@ -186,8 +193,13 @@ public class ReportIT extends StandardSelfTest {
                                     deleteArchivedRecResp.complete(ar.result().bodyAsJsonObject());
                                 }
                             });
-
-            MatcherAssert.assertThat(deleteArchivedRecResp.get(), Matchers.equalTo(null));
+            try {
+                MatcherAssert.assertThat(deleteArchivedRecResp.get(), Matchers.equalTo(null));
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete archived recording %s", savedRecordingName),
+                        e);
+            }
         }
     }
 

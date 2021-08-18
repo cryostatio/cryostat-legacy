@@ -51,6 +51,7 @@ import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.jsoup.Jsoup;
@@ -155,7 +156,13 @@ public class TargetReportIT extends StandardSelfTest {
                                 }
                             });
 
-            MatcherAssert.assertThat(deleteResponse.get(), Matchers.equalTo(null));
+            try {
+                deleteResponse.get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", TEST_RECORDING_NAME),
+                        e);
+            }
         }
     }
 
