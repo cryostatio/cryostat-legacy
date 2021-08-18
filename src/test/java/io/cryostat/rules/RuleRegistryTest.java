@@ -45,11 +45,15 @@ import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.rules.RuleRegistry.RuleEvent;
+import io.cryostat.util.events.Event;
 
 import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
@@ -128,6 +132,9 @@ class RuleRegistryTest {
         Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
         Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
 
+        CompletableFuture<Event<RuleEvent, Rule>> eventListener = new CompletableFuture<>();
+        registry.addListener(eventListener::complete);
+
         registry.addRule(testRule);
 
         InOrder inOrder = Mockito.inOrder(gson, fs);
@@ -141,6 +148,10 @@ class RuleRegistryTest {
                         StandardOpenOption.CREATE,
                         StandardOpenOption.TRUNCATE_EXISTING);
         inOrder.verify(fs).listDirectoryChildren(rulesDir);
+
+        Event<RuleEvent, Rule> event = eventListener.get(1, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(event.getEventType(), Matchers.equalTo(RuleEvent.ADDED));
+        MatcherAssert.assertThat(event.getPayload(), Matchers.sameInstance(testRule));
     }
 
     @Test
@@ -169,6 +180,32 @@ class RuleRegistryTest {
         registry.loadRules();
 
         Assertions.assertThrows(IOException.class, () -> registry.addRule(testRule));
+    }
+
+    @Test
+    void testAddRuleAllowsDuplicateNameOnArchivers() throws Exception {
+        Path rulePath = Mockito.mock(Path.class);
+        Mockito.when(rulesDir.resolve(Mockito.anyString())).thenReturn(rulePath);
+        Mockito.when(fs.listDirectoryChildren(rulesDir)).thenReturn(List.of("test_rule.json"));
+        Mockito.when(fs.readFile(rulePath)).thenReturn(fileReader);
+
+        registry.loadRules();
+
+        Rule archiver =
+                new Rule.Builder()
+                        .name(testRule.getName())
+                        .matchExpression(testRule.getMatchExpression())
+                        .description(testRule.getDescription())
+                        .eventSpecifier("archive")
+                        .build();
+
+        CompletableFuture<Event<RuleEvent, Rule>> eventListener = new CompletableFuture<>();
+        registry.addListener(eventListener::complete);
+
+        Assertions.assertDoesNotThrow(() -> registry.addRule(archiver));
+        Event<RuleEvent, Rule> event = eventListener.get(1, TimeUnit.SECONDS);
+        MatcherAssert.assertThat(event.getEventType(), Matchers.equalTo(RuleEvent.ADDED));
+        MatcherAssert.assertThat(event.getPayload(), Matchers.sameInstance(archiver));
     }
 
     @Test
@@ -209,6 +246,23 @@ class RuleRegistryTest {
         MatcherAssert.assertThat(
                 registry.getRules(new ServiceRef(null, "com.example.App")),
                 Matchers.equalTo(Set.of(testRule)));
+    }
+
+    @Test
+    void testGetRulesByServiceRefIgnoresArchivers() throws Exception {
+        Rule archiverRule =
+                new Rule.Builder()
+                        .name(testRule.getName())
+                        .matchExpression(testRule.getMatchExpression())
+                        .description(testRule.getDescription())
+                        .eventSpecifier("archive")
+                        .build();
+
+        registry.addRule(archiverRule);
+
+        MatcherAssert.assertThat(
+                registry.getRules(new ServiceRef(null, "com.example.App")),
+                Matchers.equalTo(Set.of()));
     }
 
     @Test
