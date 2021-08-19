@@ -46,6 +46,7 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
+import io.cryostat.ApplicationVersion;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
@@ -66,13 +67,20 @@ class HealthGetHandler implements RequestHandler {
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
+    private final ApplicationVersion appVersion;
     private final WebClient webClient;
     private final Environment env;
     private final Gson gson;
     private final Logger logger;
 
     @Inject
-    HealthGetHandler(WebClient webClient, Environment env, Gson gson, Logger logger) {
+    HealthGetHandler(
+            ApplicationVersion appVersion,
+            WebClient webClient,
+            Environment env,
+            Gson gson,
+            Logger logger) {
+        this.appVersion = appVersion;
         this.webClient = webClient;
         this.env = env;
         this.gson = gson;
@@ -117,6 +125,8 @@ class HealthGetHandler implements RequestHandler {
                 .end(
                         gson.toJson(
                                 Map.of(
+                                        "cryostatVersion",
+                                        appVersion.getVersionString(),
                                         "dashboardAvailable",
                                         dashboardAvailable.join(),
                                         "datasourceAvailable",
