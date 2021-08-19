@@ -43,6 +43,7 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 
+import io.cryostat.ApplicationVersion;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -77,6 +78,7 @@ import org.mockito.stubbing.Answer;
 class HealthGetHandlerTest {
 
     HealthGetHandler handler;
+    @Mock ApplicationVersion appVersion;
     @Mock WebClient webClient;
     @Mock Environment env;
     @Mock Logger logger;
@@ -84,7 +86,7 @@ class HealthGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new HealthGetHandler(webClient, env, gson, logger);
+        this.handler = new HealthGetHandler(appVersion, webClient, env, gson, logger);
     }
 
     @Test
@@ -109,18 +111,25 @@ class HealthGetHandlerTest {
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
+        when(appVersion.getVersionString()).thenReturn("v1.2.3");
+
         handler.handle(ctx);
 
         verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         verify(rep).end(responseCaptor.capture());
 
-        Map<String, Boolean> responseMap =
+        Map<String, Object> responseMap =
                 gson.fromJson(
                         responseCaptor.getValue(),
-                        new TypeToken<Map<String, Boolean>>() {}.getType());
-        Assertions.assertEquals(responseMap.get("dashboardAvailable"), false);
-        Assertions.assertEquals(responseMap.get("datasourceAvailable"), false);
+                        new TypeToken<Map<String, Object>>() {}.getType());
+        MatcherAssert.assertThat(
+                responseMap,
+                Matchers.equalTo(
+                        Map.of(
+                                "cryostatVersion", "v1.2.3",
+                                "dashboardAvailable", false,
+                                "datasourceAvailable", false)));
     }
 
     @Test
@@ -129,6 +138,8 @@ class HealthGetHandlerTest {
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(appVersion.getVersionString()).thenReturn("v1.2.3");
 
         String url = "http://hostname:1/";
         when(env.hasEnv("GRAFANA_DATASOURCE_URL")).thenReturn(true);
@@ -163,12 +174,17 @@ class HealthGetHandlerTest {
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         verify(rep).end(responseCaptor.capture());
 
-        Map<String, Boolean> responseMap =
+        Map<String, Object> responseMap =
                 gson.fromJson(
                         responseCaptor.getValue(),
-                        new TypeToken<Map<String, Boolean>>() {}.getType());
-        Assertions.assertEquals(responseMap.get("dashboardAvailable"), false);
-        Assertions.assertEquals(responseMap.get("datasourceAvailable"), true);
+                        new TypeToken<Map<String, Object>>() {}.getType());
+        MatcherAssert.assertThat(
+                responseMap,
+                Matchers.equalTo(
+                        Map.of(
+                                "cryostatVersion", "v1.2.3",
+                                "dashboardAvailable", false,
+                                "datasourceAvailable", true)));
     }
 
     @Test
@@ -177,6 +193,8 @@ class HealthGetHandlerTest {
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(appVersion.getVersionString()).thenReturn("v1.2.3");
 
         String url = "http://hostname:1/";
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
@@ -211,12 +229,17 @@ class HealthGetHandlerTest {
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         verify(rep).end(responseCaptor.capture());
 
-        Map<String, Boolean> responseMap =
+        Map<String, Object> responseMap =
                 gson.fromJson(
                         responseCaptor.getValue(),
-                        new TypeToken<Map<String, Boolean>>() {}.getType());
-        Assertions.assertEquals(responseMap.get("dashboardAvailable"), true);
-        Assertions.assertEquals(responseMap.get("datasourceAvailable"), false);
+                        new TypeToken<Map<String, Object>>() {}.getType());
+        MatcherAssert.assertThat(
+                responseMap,
+                Matchers.equalTo(
+                        Map.of(
+                                "cryostatVersion", "v1.2.3",
+                                "dashboardAvailable", true,
+                                "datasourceAvailable", false)));
     }
 
     @Test
@@ -225,6 +248,8 @@ class HealthGetHandlerTest {
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(appVersion.getVersionString()).thenReturn("v1.2.3");
 
         String url = "https://hostname/";
         when(env.hasEnv("GRAFANA_DASHBOARD_URL")).thenReturn(true);
@@ -258,11 +283,16 @@ class HealthGetHandlerTest {
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
         verify(rep).end(responseCaptor.capture());
 
-        Map<String, Boolean> responseMap =
+        Map<String, Object> responseMap =
                 gson.fromJson(
                         responseCaptor.getValue(),
-                        new TypeToken<Map<String, Boolean>>() {}.getType());
-        Assertions.assertEquals(responseMap.get("dashboardAvailable"), true);
-        Assertions.assertEquals(responseMap.get("datasourceAvailable"), false);
+                        new TypeToken<Map<String, Object>>() {}.getType());
+        MatcherAssert.assertThat(
+                responseMap,
+                Matchers.equalTo(
+                        Map.of(
+                                "cryostatVersion", "v1.2.3",
+                                "dashboardAvailable", true,
+                                "datasourceAvailable", false)));
     }
 }

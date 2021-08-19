@@ -87,6 +87,12 @@ public abstract class MainModule {
 
     @Provides
     @Singleton
+    static ApplicationVersion provideApplicationVersion(Logger logger) {
+        return new ApplicationVersion(logger);
+    }
+
+    @Provides
+    @Singleton
     static Logger provideLogger() {
         return Logger.INSTANCE;
     }

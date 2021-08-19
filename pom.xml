@@ -270,10 +270,27 @@
       </configuration>
       <executions>
         <execution>
+          <id>generate-git-version</id>
+          <phase>generate-resources</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>git</executable>
+            <arguments>
+              <argument>describe</argument>
+              <argument>--dirty</argument>
+              <argument>--long</argument>
+              <argument>--always</argument>
+            </arguments>
+            <outputFile>${project.build.directory}/assets/app/resources/io/cryostat/version</outputFile>
+          </configuration>
+        </execution>
+        <execution>
           <id>create-pod</id>
           <phase>pre-integration-test</phase>
           <goals>
-              <goal>exec</goal>
+            <goal>exec</goal>
           </goals>
           <configuration>
             <executable>${imageBuilder}</executable>
