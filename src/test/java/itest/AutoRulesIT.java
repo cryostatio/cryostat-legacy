@@ -275,7 +275,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 getResponse.complete(ar.result().bodyAsJsonArray());
                             }
                         });
-        JsonObject recording = getResponse.get().getJsonObject(0);
+        JsonObject recording = getResponse.get().getJsonObject(1);
         MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(1));
         MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo("auto_Regex_Rule"));
         MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
