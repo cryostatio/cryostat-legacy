@@ -47,6 +47,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -159,29 +160,38 @@ public class RuleProcessor
 
         Credentials credentials =
                 credentialsManager.getCredentials(serviceRef.getServiceUri().toString());
-        try {
-            startRuleRecording(new ConnectionDescriptor(serviceRef, credentials), rule);
-        } catch (Exception e) {
-            logger.error(e);
-        }
-
         logger.trace("Rule activation successful");
-        if (rule.getPreservedArchives() <= 0 || rule.getArchivalPeriodSeconds() <= 0) {
-            return;
+
+        if (rule.isArchiver()) {
+            try {
+                archiveRuleRecording(new ConnectionDescriptor(serviceRef, credentials), rule);
+            } catch (Exception e) {
+                logger.error(e);
+            }
+        } else {
+            try {
+                startRuleRecording(new ConnectionDescriptor(serviceRef, credentials), rule);
+            } catch (Exception e) {
+                logger.error(e);
+            }
+
+            if (rule.getPreservedArchives() <= 0 || rule.getArchivalPeriodSeconds() <= 0) {
+                return;
+            }
+            tasks.put(
+                    Pair.of(serviceRef, rule),
+                    scheduler.scheduleAtFixedRate(
+                            periodicArchiverFactory.create(
+                                    serviceRef,
+                                    credentialsManager,
+                                    rule,
+                                    recordingArchiveHelper,
+                                    this::archivalFailureHandler,
+                                    base32),
+                            rule.getArchivalPeriodSeconds(),
+                            rule.getArchivalPeriodSeconds(),
+                            TimeUnit.SECONDS));
         }
-        tasks.put(
-                Pair.of(serviceRef, rule),
-                scheduler.scheduleAtFixedRate(
-                        periodicArchiverFactory.create(
-                                serviceRef,
-                                credentialsManager,
-                                rule,
-                                recordingArchiveHelper,
-                                this::archivalFailureHandler,
-                                base32),
-                        rule.getArchivalPeriodSeconds(),
-                        rule.getArchivalPeriodSeconds(),
-                        TimeUnit.SECONDS));
     }
 
     private void deactivate(Rule rule, ServiceRef serviceRef) {
@@ -217,6 +227,25 @@ public class RuleProcessor
         return null;
     }
 
+    private void archiveRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule)
+            throws Exception {
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    IRecordingDescriptor descriptor =
+                            connection.getService().getSnapshotRecording();
+                    try {
+                        recordingArchiveHelper
+                                .saveRecording(connectionDescriptor, descriptor.getName())
+                                .get();
+                    } finally {
+                        connection.getService().close(descriptor);
+                    }
+
+                    return null;
+                });
+    }
+
     private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule)
             throws Exception {
 
@@ -226,16 +255,15 @@ public class RuleProcessor
                     RecordingOptionsBuilder builder =
                             recordingOptionsBuilderFactory
                                     .create(connection.getService())
-                                    .name(rule.getRecordingName())
-                                    .toDisk(true);
+                                    .name(rule.getRecordingName());
                     if (rule.getMaxAgeSeconds() > 0) {
-                        builder = builder.maxAge(rule.getMaxAgeSeconds());
+                        builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
                     }
                     if (rule.getMaxSizeBytes() > 0) {
-                        builder = builder.maxSize(rule.getMaxSizeBytes());
+                        builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
                     }
                     Pair<String, TemplateType> template =
-                            recordingTargetHelper.parseEventSpecifierToTemplate(
+                            RecordingTargetHelper.parseEventSpecifierToTemplate(
                                     rule.getEventSpecifier());
                     recordingTargetHelper.startRecording(
                             true,

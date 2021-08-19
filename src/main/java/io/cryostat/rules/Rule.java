@@ -39,6 +39,9 @@ package io.cryostat.rules;
 
 import java.util.function.Function;
 
+import io.cryostat.recordings.RecordingTargetHelper;
+
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
@@ -50,6 +53,8 @@ public class Rule {
     private static final MatchExpressionValidator MATCH_EXPRESSION_VALIDATOR =
             new MatchExpressionValidator();
 
+    static final String ARCHIVE_EVENT = "archive";
+
     private final String name;
     private final String description;
     private final String matchExpression;
@@ -60,10 +65,14 @@ public class Rule {
     private final int maxSizeBytes;
 
     Rule(Builder builder) throws MatchExpressionValidationException {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        this.eventSpecifier = builder.eventSpecifier;
+        if (isArchiver()) {
+            this.name = builder.name;
+        } else {
+            this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        }
         this.description = builder.description == null ? "" : builder.description;
         this.matchExpression = builder.matchExpression;
-        this.eventSpecifier = builder.eventSpecifier;
         this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
         this.preservedArchives = builder.preservedArchives;
         this.maxAgeSeconds =
@@ -93,6 +102,10 @@ public class Rule {
         return this.eventSpecifier;
     }
 
+    public boolean isArchiver() {
+        return ARCHIVE_EVENT.equals(getEventSpecifier());
+    }
+
     public int getArchivalPeriodSeconds() {
         return this.archivalPeriodSeconds;
     }
@@ -114,16 +127,34 @@ public class Rule {
         return name.replaceAll("\\s", "_");
     }
 
-    static String validateMatchExpression(Rule rule) throws MatchExpressionValidationException {
-        return MATCH_EXPRESSION_VALIDATOR.validate(rule);
-    }
-
     private static String requireNonBlank(String s, Attribute attr) {
         if (StringUtils.isBlank(s)) {
             throw new IllegalArgumentException(
                     String.format("\"%s\" cannot be blank, was \"%s\"", attr, s));
         }
         return s;
+    }
+
+    public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
+        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
+        validateEventSpecifier(requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER));
+        validateMatchExpression(this);
+
+        if (isArchiver()) {
+            requireNonPositive(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonPositive(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+            requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
+            requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
+        } else {
+            requireNonBlank(this.name, Attribute.NAME);
+            requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        }
+    }
+
+    private static String validateMatchExpression(Rule rule)
+            throws MatchExpressionValidationException {
+        return MATCH_EXPRESSION_VALIDATOR.validate(rule);
     }
 
     private static int requireNonNegative(int i, Attribute attr) {
@@ -134,13 +165,22 @@ public class Rule {
         return i;
     }
 
-    public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
-        requireNonBlank(this.name, Attribute.NAME);
-        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
-        requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER);
-        requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
-        requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
-        validateMatchExpression(this);
+    private static int requireNonPositive(int i, Attribute attr) {
+        if (i > 0) {
+            throw new IllegalArgumentException(
+                    String.format("\"%s\" cannot be positive, was \"%d\"", attr, i));
+        }
+        return i;
+    }
+
+    private static String validateEventSpecifier(String eventSpecifier)
+            throws IllegalArgumentException {
+        if (eventSpecifier.equals(ARCHIVE_EVENT)) {
+            return eventSpecifier;
+        }
+        // throws if cannot be parsed
+        RecordingTargetHelper.parseEventSpecifierToTemplate(eventSpecifier);
+        return eventSpecifier;
     }
 
     @Override
@@ -154,12 +194,12 @@ public class Rule {
     }
 
     public static class Builder {
-        private String name;
-        private String description;
-        private String matchExpression;
-        private String eventSpecifier;
-        private int archivalPeriodSeconds = 30;
-        private int preservedArchives = 1;
+        private String name = "";
+        private String description = "";
+        private String matchExpression = "";
+        private String eventSpecifier = "";
+        private int archivalPeriodSeconds = 0;
+        private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
 
@@ -231,13 +271,11 @@ public class Rule {
         public static Builder from(JsonObject jsonObj) throws IllegalArgumentException {
             Rule.Builder builder =
                     new Rule.Builder()
-                            .name(jsonObj.get(Rule.Attribute.NAME.getSerialKey()).getAsString())
+                            .name(getAsNullableString(jsonObj, Rule.Attribute.NAME))
                             .matchExpression(
                                     jsonObj.get(Rule.Attribute.MATCH_EXPRESSION.getSerialKey())
                                             .getAsString())
-                            .description(
-                                    jsonObj.get(Rule.Attribute.DESCRIPTION.getSerialKey())
-                                            .getAsString())
+                            .description(getAsNullableString(jsonObj, Rule.Attribute.DESCRIPTION))
                             .eventSpecifier(
                                     jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
                                             .getAsString());
@@ -247,6 +285,14 @@ public class Rule {
             builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
 
             return builder;
+        }
+
+        private static String getAsNullableString(JsonObject jsonObj, Rule.Attribute attr) {
+            JsonElement el = jsonObj.get(attr.getSerialKey());
+            if (el == null) {
+                return null;
+            }
+            return el.getAsString();
         }
 
         private Builder setOptionalInt(Rule.Attribute key, MultiMap formAttributes)

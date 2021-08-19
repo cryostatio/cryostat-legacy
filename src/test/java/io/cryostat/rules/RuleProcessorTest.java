@@ -39,6 +39,7 @@ package io.cryostat.rules;
 
 import java.net.URI;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -47,6 +48,7 @@ import java.util.function.Function;
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
@@ -72,6 +74,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -232,6 +235,64 @@ class RuleProcessorTest {
         MatcherAssert.assertThat(templateTypeCaptor.getValue(), Matchers.nullValue());
 
         Mockito.verify(scheduler).scheduleAtFixedRate(periodicArchiver, 67, 67, TimeUnit.SECONDS);
+    }
+
+    @Test
+    void testSuccessfulArchiverRuleActivationWithCredentials() throws Exception {
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        arg0 ->
+                                ((TargetConnectionManager.ConnectedTask<Object>)
+                                                arg0.getArgument(1))
+                                        .execute(connection));
+        Mockito.when(connection.getService()).thenReturn(service);
+
+        IRecordingDescriptor snapshot = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(snapshot.getName()).thenReturn("Snapshot-1");
+        Mockito.when(service.getSnapshotRecording()).thenReturn(snapshot);
+
+        String jmxUrl = "service:jmx:rmi://localhost:9091/jndi/rmi://fooHost:9091/jmxrmi";
+        ServiceRef serviceRef = new ServiceRef(new URI(jmxUrl), "com.example.App");
+
+        Credentials credentials = new Credentials("foouser", "barpassword");
+        Mockito.when(credentialsManager.getCredentials(jmxUrl)).thenReturn(credentials);
+
+        TargetDiscoveryEvent tde = new TargetDiscoveryEvent(EventKind.FOUND, serviceRef);
+
+        Rule rule =
+                new Rule.Builder()
+                        .name("Test Rule")
+                        .description("Automated unit test rule")
+                        .matchExpression("target.alias == 'com.example.App'")
+                        .eventSpecifier("archive")
+                        .build();
+
+        Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
+
+        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture("unusedPath"));
+
+        processor.accept(tde);
+
+        ArgumentCaptor<ConnectionDescriptor> connectionDescriptorCaptor =
+                ArgumentCaptor.forClass(ConnectionDescriptor.class);
+        ArgumentCaptor<String> recordingSaveNameCaptor = ArgumentCaptor.forClass(String.class);
+
+        InOrder inOrder = Mockito.inOrder(service, recordingArchiveHelper);
+        inOrder.verify(service).getSnapshotRecording();
+        inOrder.verify(recordingArchiveHelper)
+                .saveRecording(
+                        connectionDescriptorCaptor.capture(), recordingSaveNameCaptor.capture());
+        inOrder.verify(service).close(snapshot);
+
+        ConnectionDescriptor connectionDescriptor = connectionDescriptorCaptor.getValue();
+        MatcherAssert.assertThat(
+                connectionDescriptor.getTargetId(),
+                Matchers.equalTo(serviceRef.getServiceUri().toString()));
+        MatcherAssert.assertThat(
+                connectionDescriptor.getCredentials().get(), Matchers.equalTo(credentials));
+        MatcherAssert.assertThat(
+                recordingSaveNameCaptor.getValue(), Matchers.equalTo(snapshot.getName()));
     }
 
     @Test
