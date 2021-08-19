@@ -235,6 +235,30 @@
       </configuration>
     </plugin>
     <plugin>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <version>${org.codehaus.mojo.exec.plugin.version}</version>
+      <executions>
+        <execution>
+          <id>generate-git-version</id>
+          <phase>generate-resources</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>git</executable>
+            <arguments>
+              <argument>describe</argument>
+              <argument>--dirty</argument>
+              <argument>--long</argument>
+              <argument>--always</argument>
+            </arguments>
+            <outputFile>${project.build.directory}/assets/app/resources/io/cryostat/version</outputFile>
+          </configuration>
+        </execution>
+      </executions>
+    </plugin>
+    <plugin>
       <artifactId>maven-resources-plugin</artifactId>
       <version>${org.apache.maven.plugins.resources.version}</version>
       <executions>
@@ -273,7 +297,7 @@
           <id>create-pod</id>
           <phase>pre-integration-test</phase>
           <goals>
-              <goal>exec</goal>
+            <goal>exec</goal>
           </goals>
           <configuration>
             <executable>${imageBuilder}</executable>
