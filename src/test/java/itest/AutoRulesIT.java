@@ -227,14 +227,14 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     void testAddRuleCreatedWithRegex() throws Exception {
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
         JsonObject regexRule = new JsonObject();
         regexRule.put("name", "Regex_Rule");
         regexRule.put("description", "AutoRulesIT automated rule");
         regexRule.put("eventSpecifier", "template=Continuous,type=TARGET");
-        regexRule.put("matchExpression", "/^[a-zA-Z0-9]+$/");
+        regexRule.put("matchExpression", "target.alias == /^[a-zA-Z0-9.]+$/");
 
         try {
         webClient
@@ -260,6 +260,47 @@ class AutoRulesIT extends ExternalTargetsTest {
                                                 "Created"),
                                 "data", Map.of("result", "Regex_Rule")));
         MatcherAssert.assertThat(postResponse.get(), Matchers.equalTo(expectedPostResponse));
+
+        CompletableFuture<JsonArray> getResponse = new CompletableFuture<>();
+        webClient
+                .get(String.format("/api/v1/targets/%s/recordings", Podman.POD_NAME + ":9093"))
+                .putHeader(
+                        "X-JMX-Authorization",
+                        "Basic "
+                                + Base64.getEncoder()
+                                        .encodeToString("admin:adminpass123".getBytes()))
+                .send(
+                        ar -> {
+                            if (assertRequestStatus(ar, getResponse)) {
+                                getResponse.complete(ar.result().bodyAsJsonArray());
+                            }
+                        });
+        JsonObject recording = getResponse.get().getJsonObject(0);
+        MatcherAssert.assertThat(recording.getInteger("id"), Matchers.equalTo(1));
+        MatcherAssert.assertThat(recording.getString("name"), Matchers.equalTo("auto_Regex_Rule"));
+        MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
+        MatcherAssert.assertThat(recording.getInteger("duration"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording.getInteger("maxAge"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording.getInteger("maxSize"), Matchers.equalTo(0));
+        MatcherAssert.assertThat(recording.getBoolean("continuous"), Matchers.equalTo(true));
+        MatcherAssert.assertThat(recording.getBoolean("toDisk"), Matchers.equalTo(true));
+        MatcherAssert.assertThat(
+                recording.getString("downloadUrl"),
+                Matchers.equalTo(
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/recordings/auto_Auto_Rule"));
+        MatcherAssert.assertThat(
+                recording.getString("reportUrl"),
+                Matchers.equalTo(
+                        "http://"
+                                + Utils.WEB_HOST
+                                + ":"
+                                + Utils.WEB_PORT
+                                + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
+    
         } finally {
              CompletableFuture<JsonObject> response = new CompletableFuture<>();
             webClient
