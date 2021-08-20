@@ -37,14 +37,21 @@
  */
 package io.cryostat.net.web.http;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Properties;
 import java.util.Set;
+import java.util.stream.Collectors;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.Handler;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.StringUtils;
 
 public interface RequestHandler extends Handler<RoutingContext> {
     /** Lower number == higher priority handler */
@@ -71,7 +78,46 @@ public interface RequestHandler extends Handler<RoutingContext> {
 
     HttpMethod httpMethod();
 
+    /**
+     * Default or fallback set of resource actions that this handler performs.
+     **/
     Set<ResourceAction> resourceActions();
+
+    /**
+     * Set of resource actions that this handler performs. This will be read from the
+     * com.example.package.ClassName.properties resource file.
+     * The expected file format looks like: "resourceactions: READ_TARGET;CREATE_RECORDING".
+     * That is, the key "resourceactions" has a string value which is a list of
+     * semicolon-delimited {@link io.cryosat.net.security.ResourceAction} enum member names.
+     * If this file is not present then the defaults from {@link #resourceActions()} will be used
+     * instead. If the file is present but unreadable or contains malformed contents, an exception
+     * will be thrown, likely resulting in an HTTP API 500 response.
+     **/
+    default Set<ResourceAction> effectiveResourceActions() {
+        Class<? extends RequestHandler> klazz = getClass();
+        InputStream resource =
+                klazz.getResourceAsStream(String.format("%s.properties", klazz.getSimpleName()));
+        if (resource == null) {
+            Logger.INSTANCE.warn("Class {} has no {}.properties resource file", klazz.getName(), klazz.getSimpleName());
+            return resourceActions();
+        }
+        Properties properties = new Properties();
+        try {
+            properties.load(resource);
+        } catch (IOException e) {
+            Logger.INSTANCE.error(e);
+            throw new RuntimeException(e);
+        }
+        String actionsString = properties.getProperty("resourceactions");
+        if (StringUtils.isBlank(actionsString)) {
+            return ResourceAction.NONE;
+        }
+        return Arrays.asList(actionsString.split(";")).stream()
+                .map(String::trim)
+                .filter(StringUtils::isNotBlank)
+                .map(ResourceAction::valueOf)
+                .collect(Collectors.toSet());
+    }
 
     default boolean isAvailable() {
         return true;

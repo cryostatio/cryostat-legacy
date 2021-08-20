@@ -135,7 +135,7 @@ abstract class AbstractV2RequestHandler<T> implements RequestHandler {
     }
 
     protected Future<Boolean> validateRequestAuthorization(String authHeader) throws Exception {
-        return auth.validateHttpHeader(() -> authHeader, resourceActions());
+        return auth.validateHttpHeader(() -> authHeader, effectiveResourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromParams(RequestParameters params) {

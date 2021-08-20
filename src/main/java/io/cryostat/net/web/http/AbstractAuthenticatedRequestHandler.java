@@ -118,7 +118,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
 
     protected Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
         return auth.validateHttpHeader(
-                () -> req.getHeader(HttpHeaders.AUTHORIZATION), resourceActions());
+                () -> req.getHeader(HttpHeaders.AUTHORIZATION), effectiveResourceActions());
     }
 
     protected ConnectionDescriptor getConnectionDescriptorFromContext(RoutingContext ctx) {

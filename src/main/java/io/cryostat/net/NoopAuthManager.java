@@ -66,6 +66,7 @@ public class NoopAuthManager extends AbstractAuthManager {
     @Override
     public Future<Boolean> validateHttpHeader(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+        logger.info("Resource Actions: {}", resourceActions);
         return CompletableFuture.completedFuture(true);
     }
 
