@@ -237,7 +237,7 @@ class RecordingArchiveHelperTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".jfr"));
-        Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
@@ -321,7 +321,7 @@ class RecordingArchiveHelperTest {
         MatcherAssert.assertThat(
                 saveName,
                 Matchers.equalTo("some-hostname-local_someRecording_" + timestamp + ".jfr"));
-        Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
@@ -399,7 +399,7 @@ class RecordingArchiveHelperTest {
         MatcherAssert.assertThat(
                 saveName,
                 Matchers.equalTo("some-hostname-local_someRecording_" + timestamp + ".jfr"));
-        Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
@@ -482,7 +482,7 @@ class RecordingArchiveHelperTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".jfr"));
-        Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
@@ -616,7 +616,7 @@ class RecordingArchiveHelperTest {
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
         MatcherAssert.assertThat(
                 saveName, Matchers.equalTo("some-Alias-2_someRecording_" + timestamp + ".1.jfr"));
-        Mockito.verify(fs).copy(Mockito.eq(stream), Mockito.eq(destination));
+        Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
