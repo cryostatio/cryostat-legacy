@@ -1,6 +1,0 @@
-{
-    "name": "Auto Rule",
-    "description": "AutoRulesIT automated rule",
-    "eventSpecifier":"template=Continuous,type=TARGET",
-    "matchExpression": "/^[a-zA-Z0-9]+$/"
-}

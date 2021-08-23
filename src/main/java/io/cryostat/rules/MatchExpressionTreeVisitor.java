@@ -71,6 +71,8 @@ import jdk.nashorn.api.tree.WithTree;
 import jdk.nashorn.api.tree.YieldTree;
 
 class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
+    final String ALLOWED_FUNCTION = "match";
+
     private Void fail(Tree node, String matchExpression) {
         throw new IllegalMatchExpressionException(node, matchExpression);
     }
@@ -132,7 +134,14 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
 
     @Override
     public Void visitFunctionCall(FunctionCallTree node, String matchExpression) {
-        return fail(node, matchExpression);
+        final String functionName = node.getFunctionSelect().toString();
+
+        if(functionName.equals(ALLOWED_FUNCTION)) {
+            return super.visitFunctionCall(node, matchExpression);
+        }
+        else {
+            return fail(node, matchExpression);
+        }
     }
 
     @Override

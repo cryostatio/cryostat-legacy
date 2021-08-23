@@ -227,14 +227,14 @@ class AutoRulesIT extends ExternalTargetsTest {
     }
 
     @Test
-    @Order(4)
+    @Order(3)
     void testAddRuleCreatedWithRegex() throws Exception {
         CompletableFuture<JsonObject> postResponse = new CompletableFuture<>();
         JsonObject regexRule = new JsonObject();
         regexRule.put("name", "Regex_Rule");
         regexRule.put("description", "AutoRulesIT automated rule");
         regexRule.put("eventSpecifier", "template=Continuous,type=TARGET");
-        regexRule.put("matchExpression", "target.alias == /^[a-zA-Z0-9.]+$/");
+        regexRule.put("matchExpression", "target.alias.match(/[a-zA-Z0-9.]+/)");
 
         try {
         webClient
@@ -300,7 +300,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                                 + ":"
                                 + Utils.WEB_PORT
                                 + "/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Fcryostat-itests:9093%2Fjmxrmi/reports/auto_Auto_Rule"));
-    
+
         } finally {
              CompletableFuture<JsonObject> response = new CompletableFuture<>();
             webClient
