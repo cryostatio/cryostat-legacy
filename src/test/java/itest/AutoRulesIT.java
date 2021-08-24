@@ -234,7 +234,7 @@ class AutoRulesIT extends ExternalTargetsTest {
         regexRule.put("name", "Regex_Rule");
         regexRule.put("description", "AutoRulesIT automated rule");
         regexRule.put("eventSpecifier", "template=Continuous,type=TARGET");
-        regexRule.put("matchExpression", "target.alias.match(/[a-zA-Z0-9.]+/)");
+        regexRule.put("matchExpression", "/[a-zA-Z0-9.]+/.test(target.alias)");
 
         try {
             webClient

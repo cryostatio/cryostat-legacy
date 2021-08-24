@@ -141,33 +141,44 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
     @Override
     public Void visitFunctionCall(FunctionCallTree node, String matchExpression) {
         ExpressionTree functionNode = node.getFunctionSelect();
-        boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
-        boolean isCalledOnRegExp = isMemberSelectTree && ((MemberSelectTree) functionNode).getExpression() instanceof
-            RegExpLiteralTree;
-        boolean isAcceptedFunction = isCalledOnRegExp
-                && ALLOWED_FUNCTIONS.contains(
-                        ((MemberSelectTree) functionNode)
-                                .getIdentifier()
-                        );
 
-        // validate that exactly one argument was passed to the regexp.test() function, and that
-        // argument must be either a string literal or a member access (ex. target.alias)
-        List<? extends ExpressionTree> arguments = node.getArguments();
-        if (arguments.size() != 1) {
-            return fail(node, matchExpression);
-        }
-        switch (arguments.get(0).getKind()) {
-            case MEMBER_SELECT:
-            case STRING_LITERAL:
-                break;
-            default:
-                return fail(node, matchExpression);
-        }
+        boolean isAcceptedFunction = hasValidFunctionName(functionNode)
+                && isCalledOnRegExp(functionNode)
+                && containsValidArgument(node);
 
         if (isAcceptedFunction) {
             return super.visitFunctionCall(node, matchExpression);
         } else {
             return fail(node, matchExpression);
+        }
+    }
+
+    private boolean hasValidFunctionName(ExpressionTree functionNode) {
+        return ALLOWED_FUNCTIONS.contains(((MemberSelectTree) functionNode).getIdentifier());
+    }
+
+    private boolean isCalledOnRegExp(ExpressionTree functionNode) {
+        boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
+        return isMemberSelectTree
+                && ((MemberSelectTree) functionNode).getExpression() instanceof RegExpLiteralTree;
+    }
+
+    // validate that exactly one argument was passed to the regexp.test() function, and that
+    // argument must be either a string literal or a member access (ex. target.alias)
+    private boolean containsValidArgument(FunctionCallTree node) {
+        List<? extends ExpressionTree> arguments = node.getArguments();
+
+        if (arguments.size() != 1) {
+            return false;
+        }
+
+        switch (arguments.get(0).getKind()) {
+            case MEMBER_SELECT:
+                return true;
+            case STRING_LITERAL:
+                return true;
+            default:
+                return false;
         }
     }
 

@@ -37,6 +37,7 @@
  */
 package io.cryostat.rules;
 
+import jdk.nashorn.api.scripting.NashornException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -47,8 +48,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import jdk.nashorn.api.scripting.NashornException;
 
 @ExtendWith(MockitoExtension.class)
 class MatchExpressionValidatorTest {
