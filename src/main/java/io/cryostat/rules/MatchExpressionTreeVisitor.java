@@ -47,6 +47,7 @@ import jdk.nashorn.api.tree.DebuggerTree;
 import jdk.nashorn.api.tree.DoWhileLoopTree;
 import jdk.nashorn.api.tree.ErroneousTree;
 import jdk.nashorn.api.tree.ExportEntryTree;
+import jdk.nashorn.api.tree.ExpressionTree;
 import jdk.nashorn.api.tree.ForInLoopTree;
 import jdk.nashorn.api.tree.ForLoopTree;
 import jdk.nashorn.api.tree.ForOfLoopTree;
@@ -56,9 +57,9 @@ import jdk.nashorn.api.tree.FunctionExpressionTree;
 import jdk.nashorn.api.tree.ImportEntryTree;
 import jdk.nashorn.api.tree.InstanceOfTree;
 import jdk.nashorn.api.tree.LabeledStatementTree;
+import jdk.nashorn.api.tree.MemberSelectTree;
 import jdk.nashorn.api.tree.ModuleTree;
 import jdk.nashorn.api.tree.NewTree;
-import jdk.nashorn.api.tree.RegExpLiteralTree;
 import jdk.nashorn.api.tree.ReturnTree;
 import jdk.nashorn.api.tree.SimpleTreeVisitorES5_1;
 import jdk.nashorn.api.tree.SpreadTree;
@@ -134,12 +135,17 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
 
     @Override
     public Void visitFunctionCall(FunctionCallTree node, String matchExpression) {
-        final String functionName = node.getFunctionSelect().toString();
+        ExpressionTree functionNode = node.getFunctionSelect();
+        Boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
+        Boolean isAcceptedFunction =
+                isMemberSelectTree
+                        && ((MemberSelectTree) functionNode)
+                                .getIdentifier()
+                                .equals(ALLOWED_FUNCTION);
 
-        if(functionName.equals(ALLOWED_FUNCTION)) {
+        if (isAcceptedFunction) {
             return super.visitFunctionCall(node, matchExpression);
-        }
-        else {
+        } else {
             return fail(node, matchExpression);
         }
     }
