@@ -344,7 +344,7 @@ class AbstractV2RequestHandlerTest {
         }
 
         @Override
-        boolean requiresAuthentication() {
+        public boolean requiresAuthentication() {
             return true;
         }
 

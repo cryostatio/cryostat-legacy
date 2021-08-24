@@ -101,7 +101,8 @@ class OpenShiftAuthManagerTest {
 
     @BeforeAll
     static void disableKubeConfig() {
-        // FIXME Disable reading ~/.kube/config. Remove once updated to 5.5.0 or newer.
+        // FIXME Disable reading ~/.kube/config. Remove once fabric8-client updated to 5.5.0 or
+        // newer.
         System.setProperty(Config.KUBERNETES_AUTH_TRYKUBECONFIG_SYSTEM_PROPERTY, "false");
         System.setProperty(Config.KUBERNETES_AUTH_TRYSERVICEACCOUNT_SYSTEM_PROPERTY, "false");
     }

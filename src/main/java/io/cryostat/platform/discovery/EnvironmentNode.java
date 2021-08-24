@@ -35,22 +35,57 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform;
+package io.cryostat.platform.discovery;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.Collections;
+import java.util.Map;
+import java.util.SortedSet;
+import java.util.concurrent.ConcurrentSkipListSet;
 
-import io.cryostat.platform.discovery.EnvironmentNode;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-public interface PlatformClient {
-    void start() throws IOException;
+public class EnvironmentNode extends AbstractNode {
 
-    List<ServiceRef> listDiscoverableServices();
+    private final SortedSet<AbstractNode> children;
 
-    void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    public EnvironmentNode(String name, NodeType nodeType) {
+        this(name, nodeType, Collections.emptyMap());
+    }
 
-    void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    public EnvironmentNode(String name, NodeType nodeType, Map<String, String> labels) {
+        super(name, nodeType, labels);
+        this.children = new ConcurrentSkipListSet<>();
+    }
 
-    EnvironmentNode getDiscoveryTree();
+    public SortedSet<AbstractNode> getChildren() {
+        return Collections.unmodifiableSortedSet(children);
+    }
+
+    public void addChildNode(AbstractNode child) {
+        this.children.add(child);
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().appendSuper(super.hashCode()).append(children).build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof EnvironmentNode)) {
+            return false;
+        }
+        EnvironmentNode other = (EnvironmentNode) o;
+        return new EqualsBuilder()
+                .appendSuper(super.equals(o))
+                .append(children, other.children)
+                .isEquals();
+    }
 }

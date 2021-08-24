@@ -35,22 +35,72 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.platform;
+package io.cryostat.platform.discovery;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.function.Consumer;
+import java.util.Collections;
+import java.util.Map;
 
-import io.cryostat.platform.discovery.EnvironmentNode;
+import com.google.gson.annotations.SerializedName;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-public interface PlatformClient {
-    void start() throws IOException;
+public abstract class AbstractNode implements Comparable<AbstractNode> {
 
-    List<ServiceRef> listDiscoverableServices();
+    protected final String name;
 
-    void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    @SerializedName("kind")
+    protected final NodeType nodeType;
 
-    void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+    protected final Map<String, String> labels;
 
-    EnvironmentNode getDiscoveryTree();
+    protected AbstractNode(String name, NodeType nodeType, Map<String, String> labels) {
+        this.name = name;
+        this.nodeType = nodeType;
+        this.labels = labels;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public NodeType getNodeType() {
+        return this.nodeType;
+    }
+
+    public Map<String, String> getLabels() {
+        return Collections.unmodifiableMap(labels);
+    }
+
+    @Override
+    public int compareTo(AbstractNode other) {
+        int type = nodeType.ordinal() - other.nodeType.ordinal();
+        if (type != 0) {
+            return type;
+        }
+        return name.compareTo(other.name);
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().append(name).append(nodeType).append(labels).build();
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof AbstractNode)) {
+            return false;
+        }
+        AbstractNode other = (AbstractNode) o;
+        return new EqualsBuilder()
+                .append(name, other.name)
+                .append(nodeType, other.nodeType)
+                .append(labels, other.labels)
+                .isEquals();
+    }
 }
