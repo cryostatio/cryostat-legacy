@@ -70,7 +70,9 @@ class MatchExpressionValidatorTest {
                 "target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'",
                 "target.connectUrl != '' && target.labels.SOMETHING == 'other'",
                 "/^[a-z]+$/.test(target.alias)",
-                "/^[a-z]+$/.test({ \"key\": \"value\" })",
+                "/^[a-z]+$/.test(target.noSuchProperty)",
+                "/^[a-z]+$/.test([].length)",
+                "/^[a-z]+$/.test(\"stringLiteral\")",
             })
     void shouldReturnValidExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);
@@ -87,6 +89,10 @@ class MatchExpressionValidatorTest {
                 "function foo() { return true; }; foo();",
                 "[]()",
                 "target.alias.test(\"nonempty\")",
+                "/^[a-z]+$/.test({ \"key\": \"value\" })",
+                "/^[a-z]+$/.test(1234)",
+                "/^[a-z]+$/.test([])",
+                "/^[a-z]+$/.test(/^another-regexp$/)",
             })
     void shouldThrowOnIllegalExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);

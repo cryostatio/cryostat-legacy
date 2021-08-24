@@ -37,6 +37,7 @@
  */
 package io.cryostat.rules;
 
+import java.util.List;
 import java.util.Set;
 
 import jdk.nashorn.api.tree.BreakTree;
@@ -148,6 +149,20 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
                         ((MemberSelectTree) functionNode)
                                 .getIdentifier()
                         );
+
+        // validate that exactly one argument was passed to the regexp.test() function, and that
+        // argument must be either a string literal or a member access (ex. target.alias)
+        List<? extends ExpressionTree> arguments = node.getArguments();
+        if (arguments.size() != 1) {
+            return fail(node, matchExpression);
+        }
+        switch (arguments.get(0).getKind()) {
+            case MEMBER_SELECT:
+            case STRING_LITERAL:
+                break;
+            default:
+                return fail(node, matchExpression);
+        }
 
         if (isAcceptedFunction) {
             return super.visitFunctionCall(node, matchExpression);
