@@ -68,10 +68,7 @@ public class EnvironmentNode extends AbstractNode {
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder()
-            .appendSuper(super.hashCode())
-            .append(children)
-            .build();
+        return new HashCodeBuilder().appendSuper(super.hashCode()).append(children).build();
     }
 
     @Override

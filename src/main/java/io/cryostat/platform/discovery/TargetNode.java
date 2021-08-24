@@ -40,11 +40,11 @@ package io.cryostat.platform.discovery;
 import java.util.Collections;
 import java.util.Map;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
+import io.cryostat.platform.ServiceRef;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import io.cryostat.platform.ServiceRef;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class TargetNode extends AbstractNode {
     @SuppressFBWarnings("URF_UNREAD_FIELD")
@@ -66,10 +66,7 @@ public class TargetNode extends AbstractNode {
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder()
-            .appendSuper(super.hashCode())
-            .append(target)
-            .build();
+        return new HashCodeBuilder().appendSuper(super.hashCode()).append(target).build();
     }
 
     @Override

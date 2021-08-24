@@ -41,7 +41,6 @@ import java.util.Collections;
 import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
-
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
@@ -83,11 +82,7 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
 
     @Override
     public int hashCode() {
-        return new HashCodeBuilder()
-            .append(name)
-            .append(nodeType)
-            .append(labels)
-            .build();
+        return new HashCodeBuilder().append(name).append(nodeType).append(labels).build();
     }
 
     @Override
