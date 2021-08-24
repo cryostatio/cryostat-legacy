@@ -42,6 +42,8 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListSet;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+
 public class EnvironmentNode extends AbstractNode {
 
     private final SortedSet<AbstractNode> children;
@@ -72,14 +74,20 @@ public class EnvironmentNode extends AbstractNode {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!super.equals(obj)) return false;
-        if (getClass() != obj.getClass()) return false;
-        EnvironmentNode other = (EnvironmentNode) obj;
-        if (children == null) {
-            if (other.children != null) return false;
-        } else if (!children.equals(other.children)) return false;
-        return true;
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof EnvironmentNode)) {
+            return false;
+        }
+        EnvironmentNode other = (EnvironmentNode) o;
+        return new EqualsBuilder()
+                .appendSuper(super.equals(o))
+                .append(children, other.children)
+                .isEquals();
     }
 }

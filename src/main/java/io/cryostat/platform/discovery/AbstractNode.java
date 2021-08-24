@@ -42,6 +42,8 @@ import java.util.Map;
 
 import com.google.gson.annotations.SerializedName;
 
+import org.apache.commons.lang3.builder.EqualsBuilder;
+
 public abstract class AbstractNode implements Comparable<AbstractNode> {
 
     protected final String name;
@@ -89,18 +91,21 @@ public abstract class AbstractNode implements Comparable<AbstractNode> {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null) return false;
-        if (getClass() != obj.getClass()) return false;
-        AbstractNode other = (AbstractNode) obj;
-        if (labels == null) {
-            if (other.labels != null) return false;
-        } else if (!labels.equals(other.labels)) return false;
-        if (name == null) {
-            if (other.name != null) return false;
-        } else if (!name.equals(other.name)) return false;
-        if (nodeType != other.nodeType) return false;
-        return true;
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof AbstractNode)) {
+            return false;
+        }
+        AbstractNode other = (AbstractNode) o;
+        return new EqualsBuilder()
+                .append(name, other.name)
+                .append(nodeType, other.nodeType)
+                .append(labels, other.labels)
+                .isEquals();
     }
 }

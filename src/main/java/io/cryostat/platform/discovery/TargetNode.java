@@ -40,9 +40,10 @@ package io.cryostat.platform.discovery;
 import java.util.Collections;
 import java.util.Map;
 
-import io.cryostat.platform.ServiceRef;
+import org.apache.commons.lang3.builder.EqualsBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.cryostat.platform.ServiceRef;
 
 public class TargetNode extends AbstractNode {
     @SuppressFBWarnings("URF_UNREAD_FIELD")
@@ -71,14 +72,20 @@ public class TargetNode extends AbstractNode {
     }
 
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (!super.equals(obj)) return false;
-        if (getClass() != obj.getClass()) return false;
-        TargetNode other = (TargetNode) obj;
-        if (target == null) {
-            if (other.target != null) return false;
-        } else if (!target.equals(other.target)) return false;
-        return true;
+    public boolean equals(Object o) {
+        if (o == null) {
+            return false;
+        }
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof TargetNode)) {
+            return false;
+        }
+        TargetNode other = (TargetNode) o;
+        return new EqualsBuilder()
+                .appendSuper(super.equals(o))
+                .append(target, other.target)
+                .isEquals();
     }
 }
