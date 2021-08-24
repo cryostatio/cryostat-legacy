@@ -1410,6 +1410,10 @@ The handler-specific descriptions below describe how each handler populates the
     `!=`, `||`, and `&&` are accepted, with their usual meanings. An example of
     such an expression is:
     `(target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat') && target.annotations.cryostat.PORT != 9091`.
+    Regular expressions may be used to select target properties 
+    matching the regular expression. This example expression will apply a rule to all targets 
+    whose `target.alias` starts with `abc`:
+    `/^abc.*$/.test(target.alias)`.
     The simple expression `true` may also be used to create a rule which applies
     to any and all discovered targets.
 
