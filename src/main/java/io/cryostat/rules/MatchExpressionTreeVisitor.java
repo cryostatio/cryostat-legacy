@@ -141,10 +141,13 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
     @Override
     public Void visitFunctionCall(FunctionCallTree node, String matchExpression) {
         ExpressionTree functionNode = node.getFunctionSelect();
+        boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
 
-        boolean isAcceptedFunction = hasValidFunctionName(functionNode)
-                && isCalledOnRegExp(functionNode)
-                && containsValidArgument(node);
+        boolean isAcceptedFunction =
+                isMemberSelectTree
+                        && hasValidFunctionName(functionNode)
+                        && isCalledOnRegExp(functionNode)
+                        && containsValidArgument(node);
 
         if (isAcceptedFunction) {
             return super.visitFunctionCall(node, matchExpression);
@@ -158,9 +161,7 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
     }
 
     private boolean isCalledOnRegExp(ExpressionTree functionNode) {
-        boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
-        return isMemberSelectTree
-                && ((MemberSelectTree) functionNode).getExpression() instanceof RegExpLiteralTree;
+        return ((MemberSelectTree) functionNode).getExpression() instanceof RegExpLiteralTree;
     }
 
     // validate that exactly one argument was passed to the regexp.test() function, and that
