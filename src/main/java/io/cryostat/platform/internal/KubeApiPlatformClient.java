@@ -270,14 +270,14 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         }
         synchronized (queryLocks.computeIfAbsent(lookupKey, k -> new Object())) {
             EnvironmentNode node;
-            HasMetadata ownerRef =
+            HasMetadata kubeObj =
                     nodeType.getQueryFunction().apply(k8sClient).apply(namespace).apply(nodeName);
-            if (ownerRef != null) {
-                node = new EnvironmentNode(nodeName, nodeType, ownerRef.getMetadata().getLabels());
+            if (kubeObj != null) {
+                node = new EnvironmentNode(nodeName, nodeType, kubeObj.getMetadata().getLabels());
             } else {
                 node = new EnvironmentNode(nodeName, nodeType);
             }
-            return Pair.of(ownerRef, node);
+            return Pair.of(kubeObj, node);
         }
     }
 
