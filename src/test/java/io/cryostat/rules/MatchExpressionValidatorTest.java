@@ -37,7 +37,6 @@
  */
 package io.cryostat.rules;
 
-import jdk.nashorn.api.scripting.NashornException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -48,6 +47,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import jdk.nashorn.api.scripting.NashornException;
 
 @ExtendWith(MockitoExtension.class)
 class MatchExpressionValidatorTest {
@@ -68,6 +69,8 @@ class MatchExpressionValidatorTest {
                 "target.alias == \"io.cryostat.Cryostat\"",
                 "target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat'",
                 "target.connectUrl != '' && target.labels.SOMETHING == 'other'",
+                "/^[a-z]+$/.test(target.alias)",
+                "/^[a-z]+$/.test({ \"key\": \"value\" })",
             })
     void shouldReturnValidExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);
@@ -83,6 +86,7 @@ class MatchExpressionValidatorTest {
                 "target.alias.contains('substr')",
                 "function foo() { return true; }; foo();",
                 "[]()",
+                "target.alias.test(\"nonempty\")",
             })
     void shouldThrowOnIllegalExpressions(String expr) throws Exception {
         Mockito.when(rule.getMatchExpression()).thenReturn(expr);

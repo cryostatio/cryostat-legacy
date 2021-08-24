@@ -37,6 +37,8 @@
  */
 package io.cryostat.rules;
 
+import java.util.Set;
+
 import jdk.nashorn.api.tree.BreakTree;
 import jdk.nashorn.api.tree.CaseTree;
 import jdk.nashorn.api.tree.CatchTree;
@@ -60,6 +62,7 @@ import jdk.nashorn.api.tree.LabeledStatementTree;
 import jdk.nashorn.api.tree.MemberSelectTree;
 import jdk.nashorn.api.tree.ModuleTree;
 import jdk.nashorn.api.tree.NewTree;
+import jdk.nashorn.api.tree.RegExpLiteralTree;
 import jdk.nashorn.api.tree.ReturnTree;
 import jdk.nashorn.api.tree.SimpleTreeVisitorES5_1;
 import jdk.nashorn.api.tree.SpreadTree;
@@ -72,7 +75,8 @@ import jdk.nashorn.api.tree.WithTree;
 import jdk.nashorn.api.tree.YieldTree;
 
 class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
-    final String ALLOWED_FUNCTION = "match";
+
+    static final Set<String> ALLOWED_FUNCTIONS = Set.of("test");
 
     private Void fail(Tree node, String matchExpression) {
         throw new IllegalMatchExpressionException(node, matchExpression);
@@ -136,12 +140,14 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
     @Override
     public Void visitFunctionCall(FunctionCallTree node, String matchExpression) {
         ExpressionTree functionNode = node.getFunctionSelect();
-        Boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
-        Boolean isAcceptedFunction =
-                isMemberSelectTree
-                        && ((MemberSelectTree) functionNode)
+        boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
+        boolean isCalledOnRegExp = isMemberSelectTree && ((MemberSelectTree) functionNode).getExpression() instanceof
+            RegExpLiteralTree;
+        boolean isAcceptedFunction = isCalledOnRegExp
+                && ALLOWED_FUNCTIONS.contains(
+                        ((MemberSelectTree) functionNode)
                                 .getIdentifier()
-                                .equals(ALLOWED_FUNCTION);
+                        );
 
         if (isAcceptedFunction) {
             return super.visitFunctionCall(node, matchExpression);
