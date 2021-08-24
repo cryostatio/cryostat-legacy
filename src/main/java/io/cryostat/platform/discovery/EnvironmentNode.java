@@ -43,6 +43,7 @@ import java.util.SortedSet;
 import java.util.concurrent.ConcurrentSkipListSet;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class EnvironmentNode extends AbstractNode {
 
@@ -67,10 +68,10 @@ public class EnvironmentNode extends AbstractNode {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
-        result = prime * result + ((children == null) ? 0 : children.hashCode());
-        return result;
+        return new HashCodeBuilder()
+            .appendSuper(super.hashCode())
+            .append(children)
+            .build();
     }
 
     @Override

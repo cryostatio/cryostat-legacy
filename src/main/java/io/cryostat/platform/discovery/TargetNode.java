@@ -41,6 +41,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.platform.ServiceRef;
@@ -65,10 +66,10 @@ public class TargetNode extends AbstractNode {
 
     @Override
     public int hashCode() {
-        final int prime = 31;
-        int result = super.hashCode();
-        result = prime * result + ((target == null) ? 0 : target.hashCode());
-        return result;
+        return new HashCodeBuilder()
+            .appendSuper(super.hashCode())
+            .append(target)
+            .build();
     }
 
     @Override
