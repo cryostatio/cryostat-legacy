@@ -239,7 +239,11 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
             return null;
         }
         List<OwnerReference> owners = childRef.getMetadata().getOwnerReferences();
-        // Take first "expected" owner Kind from NodeTypes, or if none, simply use the first owner
+        // Take first "expected" owner Kind from NodeTypes, or if none, simply use the first owner.
+        // If there are no owners then return null to signify this and break the chain
+        if (owners.isEmpty()) {
+            return null;
+        }
         OwnerReference owner =
                 owners.stream()
                         .filter(o -> KubernetesNodeType.fromKubernetesKind(o.getKind()) != null)

@@ -343,7 +343,6 @@ class KubeApiPlatformClientTest {
                         .build();
         k8sClient.endpoints().inNamespace(NAMESPACE).create(endpoints);
 
-        //// FIXME OLD
         EnvironmentNode realmNode = platformClient.getDiscoveryTree();
         ServiceRef serv1 =
                 new ServiceRef(
