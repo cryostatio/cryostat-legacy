@@ -81,7 +81,7 @@ class TargetSnapshotPostHandler
     }
 
     @Override
-    boolean requiresAuthentication() {
+    public boolean requiresAuthentication() {
         return true;
     }
 
@@ -106,7 +106,7 @@ class TargetSnapshotPostHandler
     }
 
     @Override
-    HttpMimeType mimeType() {
+    public HttpMimeType mimeType() {
         return HttpMimeType.PLAINTEXT;
     }
 
@@ -116,7 +116,7 @@ class TargetSnapshotPostHandler
     }
 
     @Override
-    IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
+    public IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
             RequestParameters requestParams) throws Exception {
         HyperlinkedSerializableRecordingDescriptor desc =
                 targetConnectionManager.executeConnectedTask(
