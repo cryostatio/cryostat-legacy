@@ -246,6 +246,13 @@ public class SnapshotIT extends StandardSelfTest {
                             .getJsonObject("result")
                             .getLong("startTime");
 
+            final Long duration =
+                    createResponse
+                            .get()
+                            .getJsonObject("data")
+                            .getJsonObject("result")
+                            .getLong("duration");
+
             // Extract id from snapshot name for validation
             Pattern idPattern = Pattern.compile("[0-9]+");
             Matcher idMatcher = idPattern.matcher(snapshotName.get());
@@ -288,7 +295,7 @@ public class SnapshotIT extends StandardSelfTest {
                                                                     Map.entry("state", "STOPPED"),
                                                                     Map.entry(
                                                                             "startTime", startTime),
-                                                                    Map.entry("duration", 0),
+                                                                    Map.entry("duration", duration),
                                                                     Map.entry("continuous", true),
                                                                     Map.entry("toDisk", true),
                                                                     Map.entry("maxSize", 0),
