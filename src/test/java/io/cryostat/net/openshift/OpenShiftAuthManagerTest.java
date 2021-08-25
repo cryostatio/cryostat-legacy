@@ -275,7 +275,9 @@ class OpenShiftAuthManagerTest {
                 Assertions.assertThrows(
                         ExecutionException.class,
                         () ->
-                                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_RECORDING))
+                                mgr.validateToken(
+                                                () -> "token",
+                                                Set.of(ResourceAction.READ_RECORDING))
                                         .get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
@@ -466,9 +468,7 @@ class OpenShiftAuthManagerTest {
     }
 
     @ParameterizedTest
-    @EnumSource(
-            mode = EnumSource.Mode.MATCH_ANY,
-            names = "^([a-zA-Z]+_(RECORDING|CERTIFICATE))$")
+    @EnumSource(mode = EnumSource.Mode.MATCH_ANY, names = "^([a-zA-Z]+_(RECORDING|CERTIFICATE))$")
     void shouldValidateExpectedPermissionsPerSecuredResource(ResourceAction resourceAction)
             throws Exception {
         String expectedVerb;

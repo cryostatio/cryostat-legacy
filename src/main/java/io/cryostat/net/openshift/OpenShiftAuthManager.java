@@ -37,13 +37,20 @@
  */
 package io.cryostat.net.openshift;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +65,19 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
+
+import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AbstractAuthManager;
@@ -70,15 +90,6 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Scheduler;
-import dagger.Lazy;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
@@ -97,9 +108,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
@@ -118,6 +126,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final Lazy<OpenShiftClient> serviceAccountClient;
     private final ConcurrentHashMap<String, CompletableFuture<String>> oauthUrls;
     private final ConcurrentHashMap<String, CompletableFuture<OAuthMetadata>> oauthMetadata;
+    private final Map<ResourceType, Set<GroupResource>> resourceMap;
 
     private final LoadingCache<String, OpenShiftClient> userClients;
 
@@ -143,6 +152,35 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         .expireAfterAccess(Duration.ofMinutes(5)) // should this be configurable?
                         .removalListener((k, v, cause) -> v.close());
         this.userClients = cacheBuilder.build(clientProvider::apply);
+
+        this.resourceMap = new HashMap<>();
+        try (InputStream stream = getClass().getResourceAsStream(getClass().getSimpleName() +
+                    ".properties")) {
+            if (stream == null) {
+                throw new FileNotFoundException(getClass().getName().replaceAll("\\.",
+                            File.separator) + ".properties");
+            }
+            Properties props = new Properties();
+            props.load(stream);
+            props.entrySet()
+                .forEach(entry -> {
+                    try {
+                        String key = (String) entry.getKey();
+                        Set<GroupResource> values = Arrays.asList(((String) entry.getValue()).split(","))
+                            .stream()
+                            .map(String::strip)
+                            .filter(StringUtils::isNotBlank)
+                            .map(GroupResource::valueOf)
+                            .collect(Collectors.toSet());
+                        ResourceType type = ResourceType.valueOf(key);
+                        resourceMap.put(type, values);
+                    } catch (IllegalArgumentException iae) {
+                        logger.error(iae);
+                    }
+                });
+        } catch (IOException ioe) {
+            logger.error(ioe);
+        }
     }
 
     @Override
@@ -253,7 +291,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private Stream<CompletableFuture<Void>> validateAction(
             OpenShiftClient client, String namespace, ResourceAction resourceAction) {
-        Set<GroupResource> resources = map(resourceAction.getResource());
+        Set<GroupResource> resources = resourceMap.getOrDefault(resourceAction.getResource(),
+                PERMISSION_NOT_REQUIRED);
         if (PERMISSION_NOT_REQUIRED.equals(resources) || resources.isEmpty()) {
             return Stream.of(CompletableFuture.completedFuture(null));
         }
@@ -513,23 +552,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 new String(Base64.getUrlEncoder().encode(checksum), StandardCharsets.UTF_8).trim();
 
         return sha256Prefix + StringUtils.removeEnd(encodedTokenHash, "=");
-    }
-
-    private static Set<GroupResource> map(ResourceType resource) {
-        switch (resource) {
-            case RECORDING:
-                return Set.of(GroupResource.RECORDINGS);
-            case CERTIFICATE:
-                return Set.of(
-                        GroupResource.DEPLOYMENTS, GroupResource.PODS);
-            case TARGET:
-            case CREDENTIALS:
-            case TEMPLATE:
-            case REPORT:
-            case RULE:
-            default:
-                return PERMISSION_NOT_REQUIRED;
-        }
     }
 
     private static String map(ResourceVerb verb) {
