@@ -523,9 +523,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 return Set.of(GroupResource.RECORDINGS);
             case CERTIFICATE:
                 return Set.of(
-                        GroupResource.DEPLOYMENTS, GroupResource.PODS, GroupResource.CRYOSTATS);
+                        GroupResource.DEPLOYMENTS, GroupResource.PODS);
             case CREDENTIALS:
-                return Set.of(GroupResource.CRYOSTATS);
             case TEMPLATE:
             case REPORT:
             case RULE:
@@ -573,7 +572,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static enum GroupResource {
         DEPLOYMENTS("apps", "deployments"),
         PODS("", "pods"),
-        CRYOSTATS("operator.cryostat.io", "cryostats"),
         FLIGHTRECORDERS("operator.cryostat.io", "flightrecorders"),
         RECORDINGS("operator.cryostat.io", "recordings"),
         PERMISSION_NOT_REQUIRED("", "PERMISSION_NOT_REQUIRED"),

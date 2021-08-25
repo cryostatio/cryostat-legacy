@@ -468,7 +468,7 @@ class OpenShiftAuthManagerTest {
     @ParameterizedTest
     @EnumSource(
             mode = EnumSource.Mode.MATCH_ANY,
-            names = "^([a-zA-Z]+_(RECORDING|TARGET|CERTIFICATE|CREDENTIALS))$")
+            names = "^([a-zA-Z]+_(RECORDING|TARGET|CERTIFICATE))$")
     void shouldValidateExpectedPermissionsPerSecuredResource(ResourceAction resourceAction)
             throws Exception {
         String expectedVerb;
@@ -494,10 +494,7 @@ class OpenShiftAuthManagerTest {
             expectedResources = Set.of("recordings");
         } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
             expectedGroups = Set.of("apps", "", "operator.cryostat.io");
-            expectedResources = Set.of("deployments", "pods", "cryostats");
-        } else if (resourceAction.getResource() == ResourceType.CREDENTIALS) {
-            expectedGroups = Set.of("operator.cryostat.io");
-            expectedResources = Set.of("cryostats");
+            expectedResources = Set.of("deployments", "pods");
         } else {
             throw new IllegalArgumentException(resourceAction.getResource().toString());
         }
@@ -575,10 +572,9 @@ class OpenShiftAuthManagerTest {
     @EnumSource(
             mode = EnumSource.Mode.MATCH_ALL,
             names = {
-                "^[a-zA-Z]+_(?!TARGET).*$",
                 "^[a-zA-Z]+_(?!RECORDING).*$",
+                "^[a-zA-Z]+_(?!TARGET).*$",
                 "^[a-zA-Z]+_(?!CERTIFICATE).*$",
-                "^[a-zA-Z]+_(?!CREDENTIALS).*$"
             })
     void shouldValidateExpectedPermissionsForUnsecuredResources(ResourceAction resourceAction)
             throws Exception {
