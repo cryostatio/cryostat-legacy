@@ -1417,7 +1417,7 @@ The handler-specific descriptions below describe how each handler populates the
     The simple expression `true` may also be used to create a rule which applies
     to any and all discovered targets.
 
-    Note: The `matchExpression` format `/regularExpressionLiteral/.test("stringValue)` is the only regex format supported at the time of writing and is subject to change in the future.
+    Note: The `matchExpression` format `/regularExpressionLiteral/.test("stringValue")` is the only regex format supported at the time of writing and is subject to change in the future.
 
     `"eventSpecifier"`: a string of the form `template=Foo,type=TYPE`, which
     defines the event template that will be used for creating new recordings in
