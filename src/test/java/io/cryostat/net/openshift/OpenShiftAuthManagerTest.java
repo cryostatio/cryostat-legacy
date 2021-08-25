@@ -275,14 +275,14 @@ class OpenShiftAuthManagerTest {
                 Assertions.assertThrows(
                         ExecutionException.class,
                         () ->
-                                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_TARGET))
+                                mgr.validateToken(() -> "token", Set.of(ResourceAction.READ_RECORDING))
                                         .get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
                 Matchers.instanceOf(PermissionDeniedException.class));
         PermissionDeniedException pde = (PermissionDeniedException) ExceptionUtils.getRootCause(ee);
         MatcherAssert.assertThat(pde.getNamespace(), Matchers.equalTo(NAMESPACE));
-        MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("flightrecorders"));
+        MatcherAssert.assertThat(pde.getResourceType(), Matchers.equalTo("recordings"));
         MatcherAssert.assertThat(pde.getVerb(), Matchers.equalTo("get"));
     }
 
@@ -468,7 +468,7 @@ class OpenShiftAuthManagerTest {
     @ParameterizedTest
     @EnumSource(
             mode = EnumSource.Mode.MATCH_ANY,
-            names = "^([a-zA-Z]+_(RECORDING|TARGET|CERTIFICATE))$")
+            names = "^([a-zA-Z]+_(RECORDING|CERTIFICATE))$")
     void shouldValidateExpectedPermissionsPerSecuredResource(ResourceAction resourceAction)
             throws Exception {
         String expectedVerb;
@@ -486,10 +486,7 @@ class OpenShiftAuthManagerTest {
 
         Set<String> expectedGroups;
         Set<String> expectedResources;
-        if (resourceAction.getResource() == ResourceType.TARGET) {
-            expectedGroups = Set.of("operator.cryostat.io");
-            expectedResources = Set.of("flightrecorders");
-        } else if (resourceAction.getResource() == ResourceType.RECORDING) {
+        if (resourceAction.getResource() == ResourceType.RECORDING) {
             expectedGroups = Set.of("operator.cryostat.io");
             expectedResources = Set.of("recordings");
         } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
@@ -573,7 +570,6 @@ class OpenShiftAuthManagerTest {
             mode = EnumSource.Mode.MATCH_ALL,
             names = {
                 "^[a-zA-Z]+_(?!RECORDING).*$",
-                "^[a-zA-Z]+_(?!TARGET).*$",
                 "^[a-zA-Z]+_(?!CERTIFICATE).*$",
             })
     void shouldValidateExpectedPermissionsForUnsecuredResources(ResourceAction resourceAction)

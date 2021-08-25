@@ -517,13 +517,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private static Set<GroupResource> map(ResourceType resource) {
         switch (resource) {
-            case TARGET:
-                return Set.of(GroupResource.FLIGHTRECORDERS);
             case RECORDING:
                 return Set.of(GroupResource.RECORDINGS);
             case CERTIFICATE:
                 return Set.of(
                         GroupResource.DEPLOYMENTS, GroupResource.PODS);
+            case TARGET:
             case CREDENTIALS:
             case TEMPLATE:
             case REPORT:
@@ -572,7 +571,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static enum GroupResource {
         DEPLOYMENTS("apps", "deployments"),
         PODS("", "pods"),
-        FLIGHTRECORDERS("operator.cryostat.io", "flightrecorders"),
         RECORDINGS("operator.cryostat.io", "recordings"),
         PERMISSION_NOT_REQUIRED("", "PERMISSION_NOT_REQUIRED"),
         ;
