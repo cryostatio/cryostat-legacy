@@ -365,7 +365,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                     recording.getString("name"), Matchers.equalTo("auto_Regex_Rule"));
             MatcherAssert.assertThat(recording.getString("state"), Matchers.equalTo("RUNNING"));
             MatcherAssert.assertThat(recording.getInteger("duration"), Matchers.equalTo(0));
-            MatcherAssert.assertThat(recording.getInteger("maxAge"), Matchers.equalTo(30000));
+            MatcherAssert.assertThat(recording.getInteger("maxAge"), Matchers.equalTo(0));
             MatcherAssert.assertThat(recording.getInteger("maxSize"), Matchers.equalTo(0));
             MatcherAssert.assertThat(recording.getBoolean("continuous"), Matchers.equalTo(true));
             MatcherAssert.assertThat(recording.getBoolean("toDisk"), Matchers.equalTo(true));
@@ -406,7 +406,7 @@ class AutoRulesIT extends ExternalTargetsTest {
                     recording2.getString("name"), Matchers.equalTo("auto_Regex_Rule"));
             MatcherAssert.assertThat(recording2.getString("state"), Matchers.equalTo("RUNNING"));
             MatcherAssert.assertThat(recording2.getInteger("duration"), Matchers.equalTo(0));
-            MatcherAssert.assertThat(recording2.getInteger("maxAge"), Matchers.equalTo(30000));
+            MatcherAssert.assertThat(recording2.getInteger("maxAge"), Matchers.equalTo(0));
             MatcherAssert.assertThat(recording2.getInteger("maxSize"), Matchers.equalTo(0));
             MatcherAssert.assertThat(recording2.getBoolean("continuous"), Matchers.equalTo(true));
             MatcherAssert.assertThat(recording2.getBoolean("toDisk"), Matchers.equalTo(true));
