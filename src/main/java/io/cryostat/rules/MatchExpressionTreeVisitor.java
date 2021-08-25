@@ -37,6 +37,9 @@
  */
 package io.cryostat.rules;
 
+import java.util.List;
+import java.util.Set;
+
 import jdk.nashorn.api.tree.BreakTree;
 import jdk.nashorn.api.tree.CaseTree;
 import jdk.nashorn.api.tree.CatchTree;
@@ -47,6 +50,7 @@ import jdk.nashorn.api.tree.DebuggerTree;
 import jdk.nashorn.api.tree.DoWhileLoopTree;
 import jdk.nashorn.api.tree.ErroneousTree;
 import jdk.nashorn.api.tree.ExportEntryTree;
+import jdk.nashorn.api.tree.ExpressionTree;
 import jdk.nashorn.api.tree.ForInLoopTree;
 import jdk.nashorn.api.tree.ForLoopTree;
 import jdk.nashorn.api.tree.ForOfLoopTree;
@@ -56,6 +60,7 @@ import jdk.nashorn.api.tree.FunctionExpressionTree;
 import jdk.nashorn.api.tree.ImportEntryTree;
 import jdk.nashorn.api.tree.InstanceOfTree;
 import jdk.nashorn.api.tree.LabeledStatementTree;
+import jdk.nashorn.api.tree.MemberSelectTree;
 import jdk.nashorn.api.tree.ModuleTree;
 import jdk.nashorn.api.tree.NewTree;
 import jdk.nashorn.api.tree.RegExpLiteralTree;
@@ -71,6 +76,9 @@ import jdk.nashorn.api.tree.WithTree;
 import jdk.nashorn.api.tree.YieldTree;
 
 class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
+
+    static final Set<String> ALLOWED_FUNCTIONS = Set.of("test");
+
     private Void fail(Tree node, String matchExpression) {
         throw new IllegalMatchExpressionException(node, matchExpression);
     }
@@ -132,7 +140,47 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
 
     @Override
     public Void visitFunctionCall(FunctionCallTree node, String matchExpression) {
-        return fail(node, matchExpression);
+        ExpressionTree functionNode = node.getFunctionSelect();
+        boolean isMemberSelectTree = functionNode instanceof MemberSelectTree;
+
+        boolean isAcceptedFunction =
+                isMemberSelectTree
+                        && hasValidFunctionName(functionNode)
+                        && isCalledOnRegExp(functionNode)
+                        && containsValidArgument(node);
+
+        if (isAcceptedFunction) {
+            return super.visitFunctionCall(node, matchExpression);
+        } else {
+            return fail(node, matchExpression);
+        }
+    }
+
+    private boolean hasValidFunctionName(ExpressionTree functionNode) {
+        return ALLOWED_FUNCTIONS.contains(((MemberSelectTree) functionNode).getIdentifier());
+    }
+
+    private boolean isCalledOnRegExp(ExpressionTree functionNode) {
+        return ((MemberSelectTree) functionNode).getExpression() instanceof RegExpLiteralTree;
+    }
+
+    // validate that exactly one argument was passed to the regexp.test() function, and that
+    // argument must be either a string literal or a member access (ex. target.alias)
+    private boolean containsValidArgument(FunctionCallTree node) {
+        List<? extends ExpressionTree> arguments = node.getArguments();
+
+        if (arguments.size() != 1) {
+            return false;
+        }
+
+        switch (arguments.get(0).getKind()) {
+            case MEMBER_SELECT:
+                return true;
+            case STRING_LITERAL:
+                return true;
+            default:
+                return false;
+        }
     }
 
     @Override
@@ -167,11 +215,6 @@ class MatchExpressionTreeVisitor extends SimpleTreeVisitorES5_1<Void, String> {
 
     @Override
     public Void visitNew(NewTree node, String matchExpression) {
-        return fail(node, matchExpression);
-    }
-
-    @Override
-    public Void visitRegExpLiteral(RegExpLiteralTree node, String matchExpression) {
         return fail(node, matchExpression);
     }
 
