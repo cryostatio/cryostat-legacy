@@ -364,7 +364,7 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
     }
 
     public enum KubernetesNodeType implements NodeType {
-        NAMESPACE("Namespace", c -> ns -> n -> c.namespaces().withName(n).get()),
+        NAMESPACE("Namespace"),
         STATEFULSET(
                 "StatefulSet",
                 c -> ns -> n -> c.apps().statefulSets().inNamespace(ns).withName(n).get()),
@@ -382,10 +382,6 @@ public class KubeApiPlatformClient extends AbstractPlatformClient {
         REPLICATIONCONTROLLER(
                 "ReplicationController",
                 c -> ns -> n -> c.replicationControllers().inNamespace(ns).withName(n).get()),
-        SERVICE("Service", c -> ns -> n -> c.services().inNamespace(ns).withName(n).get()),
-        INGRESS("Ingress", c -> ns -> n -> c.network().ingress().inNamespace(ns).withName(n).get()),
-        // FIXME Route is OpenShift-specific
-        ROUTE("Route"),
         POD("Pod", c -> ns -> n -> c.pods().inNamespace(ns).withName(n).get()),
         ENDPOINT("Endpoint", c -> ns -> n -> c.endpoints().inNamespace(ns).withName(n).get()),
         ;
