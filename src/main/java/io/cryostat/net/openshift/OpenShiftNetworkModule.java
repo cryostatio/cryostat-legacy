@@ -45,23 +45,25 @@ import java.util.function.Function;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.AuthManager;
-
 import com.github.benmanes.caffeine.cache.Scheduler;
+
+import org.apache.commons.lang3.StringUtils;
+
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
+import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.AuthManager;
+import io.cryostat.util.resource.ClassPropertiesLoader;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftConfigBuilder;
-import org.apache.commons.lang3.StringUtils;
 
 @Module
 public abstract class OpenShiftNetworkModule {
@@ -129,12 +131,21 @@ public abstract class OpenShiftNetworkModule {
             @Named(OPENSHIFT_NAMESPACE) Lazy<String> namespace,
             @Named(TOKENED_CLIENT) Function<String, OpenShiftClient> tokenedClient,
             Lazy<OpenShiftClient> serviceAccountClient,
+            ClassPropertiesLoader classPropertiesLoader,
             Logger logger) {
+        return new OpenShiftAuthManager(
+                logger,
+                fs,
+                classPropertiesLoader,
+                token ->
+                        new DefaultOpenShiftClient(
+                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
         return new OpenShiftAuthManager(
                 env,
                 namespace,
                 serviceAccountClient,
                 tokenedClient,
+                classPropertiesLoader,
                 ForkJoinPool.commonPool(),
                 Scheduler.systemScheduler(),
                 logger);

@@ -37,10 +37,20 @@
  */
 package io.cryostat.net.openshift;
 
+<<<<<<< HEAD:src/test/java/io/cryostat/net/openshift/OpenShiftAuthManagerTest.java
+=======
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
+>>>>>>> 4a417548 (chore(resource): extract ClassPropertiesLoader):src/test/java/io/cryostat/net/OpenShiftAuthManagerTest.java
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.HashSet;
+<<<<<<< HEAD:src/test/java/io/cryostat/net/openshift/OpenShiftAuthManagerTest.java
 import java.util.Map;
+=======
+import java.util.Properties;
+>>>>>>> 4a417548 (chore(resource): extract ClassPropertiesLoader):src/test/java/io/cryostat/net/OpenShiftAuthManagerTest.java
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -58,6 +68,7 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import com.google.gson.Gson;
@@ -134,7 +145,12 @@ class OpenShiftAuthManagerTest {
     static final String EXPECTED_LOGOUT_REDIRECT_URL = BASE_URL + "/logout";
 
     OpenShiftAuthManager mgr;
+<<<<<<< HEAD:src/test/java/io/cryostat/net/openshift/OpenShiftAuthManagerTest.java
     @Mock Environment env;
+=======
+    @Mock FileSystem fs;
+    @Mock ClassPropertiesLoader classPropertiesLoader;
+>>>>>>> 4a417548 (chore(resource): extract ClassPropertiesLoader):src/test/java/io/cryostat/net/OpenShiftAuthManagerTest.java
     @Mock Logger logger;
     @Mock OkHttpClient httpClient;
     OpenShiftClient client;
@@ -152,9 +168,10 @@ class OpenShiftAuthManagerTest {
     }
 
     @BeforeEach
-    void setup() {
+    void setup() throws IOException {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
+<<<<<<< HEAD:src/test/java/io/cryostat/net/openshift/OpenShiftAuthManagerTest.java
         mgr =
                 new OpenShiftAuthManager(
                         env,
@@ -166,6 +183,13 @@ class OpenShiftAuthManagerTest {
                         logger);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
+=======
+        Properties props = new Properties();
+        props.put("RECORDING", "recordings");
+        props.put("CERTIFICATE", "deployments,pods");
+        Mockito.when(classPropertiesLoader.loadProperties(Mockito.any())).thenReturn(props);
+        mgr = new OpenShiftAuthManager(logger, fs, classPropertiesLoader, tokenProvider);
+>>>>>>> 4a417548 (chore(resource): extract ClassPropertiesLoader):src/test/java/io/cryostat/net/OpenShiftAuthManagerTest.java
     }
 
     @Test

@@ -58,6 +58,7 @@ import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.util.resource.ClassPropertiesLoader;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
@@ -192,4 +193,8 @@ public abstract class NetworkModule {
     @Binds
     @IntoSet
     abstract AuthManager bindBasicAuthManager(BasicAuthManager mgr);
+
+    @Binds
+    @IntoSet
+    abstract AuthManager bindOpenShiftAuthManager(OpenShiftAuthManager mgr);
 }

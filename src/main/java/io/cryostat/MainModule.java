@@ -64,6 +64,7 @@ import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
 import io.cryostat.util.PluggableTypeAdapter;
 import io.cryostat.util.RuleDeserializer;
+import io.cryostat.util.resource.ResourceModule;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -74,13 +75,14 @@ import org.apache.commons.codec.binary.Base32;
 @Module(
         includes = {
             ConfigurationModule.class,
-            PlatformModule.class,
-            SystemModule.class,
-            NetworkModule.class,
             MessagingModule.class,
-            TemplatesModule.class,
-            RulesModule.class,
+            NetworkModule.class,
+            PlatformModule.class,
             RecordingsModule.class,
+            ResourceModule.class,
+            RulesModule.class,
+            SystemModule.class,
+            TemplatesModule.class,
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";

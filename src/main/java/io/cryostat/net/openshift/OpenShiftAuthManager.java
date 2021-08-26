@@ -37,10 +37,7 @@
  */
 package io.cryostat.net.openshift;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
@@ -90,6 +87,7 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.util.resource.ClassPropertiesLoader;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
@@ -135,6 +133,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Lazy<String> namespace,
             Lazy<OpenShiftClient> serviceAccountClient,
             Function<String, OpenShiftClient> clientProvider,
+            ClassPropertiesLoader classPropertiesLoader,
             Executor cacheExecutor,
             Scheduler cacheScheduler,
             Logger logger) {
@@ -154,14 +153,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         this.userClients = cacheBuilder.build(clientProvider::apply);
 
         this.resourceMap = new HashMap<>();
-        try (InputStream stream = getClass().getResourceAsStream(getClass().getSimpleName() +
-                    ".properties")) {
-            if (stream == null) {
-                throw new FileNotFoundException(getClass().getName().replaceAll("\\.",
-                            File.separator) + ".properties");
-            }
-            Properties props = new Properties();
-            props.load(stream);
+        try {
+            Properties props = classPropertiesLoader.loadProperties(getClass());
             props.entrySet()
                 .forEach(entry -> {
                     try {
