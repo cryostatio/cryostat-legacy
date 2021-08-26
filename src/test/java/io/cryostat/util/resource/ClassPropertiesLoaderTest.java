@@ -37,12 +37,14 @@
  */
 package io.cryostat.util.resource;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Properties;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -79,5 +81,15 @@ class ClassPropertiesLoaderTest {
         Map<String, String> result = loader.loadAsMap(getClass());
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
+
+    @Test
+    void throwsIfClassHasNoResourcePropertiesFile() {
+        FileNotFoundException fnfe = Assertions.assertThrows(FileNotFoundException.class, () ->
+                loader.loadProperties(InnerClass.class));
+        MatcherAssert.assertThat(fnfe.getMessage(),
+                Matchers.equalTo("io/cryostat/util/resource/ClassPropertiesLoaderTest$InnerClass.properties"));
+    }
+
+    static class InnerClass {}
 
 }
