@@ -343,12 +343,16 @@ public class RecordingArchiveHelper {
                 new BufferedInputStream(connection.getService().openStream(descriptor, false))) {
 
             // Check if recording stream is non-empty
-            int readLimit = 1000; // arbitrary number
+            int readLimit = 1; // arbitrary number greater than 0
             bufferedStream.mark(readLimit);
 
-            if ((bufferedStream.read() == -1) || (bufferedStream.available() == 0)) {
-                fs.deleteIfExists(specificRecordingsPath.resolve(destination));
-                throw new EmptyRecordingException();
+            try {
+                if (bufferedStream.read() == -1) {
+                    fs.deleteIfExists(specificRecordingsPath.resolve(destination));
+                    throw new EmptyRecordingException();
+                }
+            } catch (IOException e) {
+                throw new EmptyRecordingException(e);
             }
 
             bufferedStream.reset();

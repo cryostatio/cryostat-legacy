@@ -43,4 +43,8 @@ public class EmptyRecordingException extends IOException {
     public EmptyRecordingException() {
         super();
     }
+
+    public EmptyRecordingException(Throwable cause) {
+        super(cause);
+    }
 }
