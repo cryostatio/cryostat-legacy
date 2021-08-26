@@ -96,19 +96,18 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         this.fs = fs;
         this.clientProvider = clientProvider;
         try {
-            Properties props = classPropertiesLoader.loadProperties(getClass());
+            Map<String, String> props = classPropertiesLoader.loadAsMap(getClass());
             props.entrySet()
                     .forEach(
                             entry -> {
                                 try {
-                                    String key = (String) entry.getKey();
+                                    ResourceType type = ResourceType.valueOf(entry.getKey());
                                     Set<String> values =
-                                            Arrays.asList(((String) entry.getValue()).split(","))
+                                            Arrays.asList(entry.getValue().split(","))
                                                     .stream()
                                                     .map(String::strip)
                                                     .filter(StringUtils::isNotBlank)
                                                     .collect(Collectors.toSet());
-                                    ResourceType type = ResourceType.valueOf(key);
                                     resourceMap.put(type, values);
                                 } catch (IllegalArgumentException iae) {
                                     logger.error(iae);

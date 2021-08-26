@@ -41,6 +41,8 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Properties;
 
 public class ClassPropertiesLoader {
@@ -56,5 +58,11 @@ public class ClassPropertiesLoader {
             props.load(stream);
             return props;
         }
+    }
+
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public Map<String, String> loadAsMap(Class<?> klazz) throws IOException {
+        Map props = loadProperties(klazz);
+        return new HashMap<String, String>(props);
     }
 }

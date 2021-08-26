@@ -47,7 +47,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -154,18 +153,17 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         this.resourceMap = new HashMap<>();
         try {
-            Properties props = classPropertiesLoader.loadProperties(getClass());
+            Map<String, String> props = classPropertiesLoader.loadAsMap(getClass());
             props.entrySet()
                 .forEach(entry -> {
                     try {
-                        String key = (String) entry.getKey();
-                        Set<GroupResource> values = Arrays.asList(((String) entry.getValue()).split(","))
+                        ResourceType type = ResourceType.valueOf(entry.getKey());
+                        Set<GroupResource> values = Arrays.asList(entry.getValue().split(","))
                             .stream()
                             .map(String::strip)
                             .filter(StringUtils::isNotBlank)
                             .map(GroupResource::valueOf)
                             .collect(Collectors.toSet());
-                        ResourceType type = ResourceType.valueOf(key);
                         resourceMap.put(type, values);
                     } catch (IllegalArgumentException iae) {
                         logger.error(iae);
