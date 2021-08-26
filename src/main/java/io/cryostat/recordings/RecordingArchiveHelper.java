@@ -37,8 +37,8 @@
  */
 package io.cryostat.recordings;
 
+import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -293,7 +293,7 @@ public class RecordingArchiveHelper {
         return null;
     }
 
-    private String writeRecordingToDestination(
+    public String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor)
             throws IOException, URISyntaxException, FlightRecorderException, Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
@@ -339,8 +339,25 @@ public class RecordingArchiveHelper {
             }
         }
         destination += ".jfr";
-        try (InputStream stream = connection.getService().openStream(descriptor, false)) {
-            fs.copy(stream, specificRecordingsPath.resolve(destination));
+        try (BufferedInputStream bufferedStream =
+                new BufferedInputStream(connection.getService().openStream(descriptor, false))) {
+
+            // Check if recording stream is non-empty
+            int readLimit = 1; // arbitrary number greater than 0
+            bufferedStream.mark(readLimit);
+
+            try {
+                if (bufferedStream.read() == -1) {
+                    fs.deleteIfExists(specificRecordingsPath.resolve(destination));
+                    throw new EmptyRecordingException();
+                }
+            } catch (IOException e) {
+                throw new EmptyRecordingException(e);
+            }
+
+            bufferedStream.reset();
+
+            fs.copy(bufferedStream, specificRecordingsPath.resolve(destination));
         }
         return destination;
     }

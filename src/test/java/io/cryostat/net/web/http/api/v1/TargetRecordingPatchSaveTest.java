@@ -41,6 +41,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
@@ -50,10 +51,12 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.EmptyRecordingException;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -103,5 +106,28 @@ class TargetRecordingPatchSaveTest {
 
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).end("some-Alias-2_someRecording_" + timestamp + ".jfr");
+    }
+
+    @Test
+    void shouldNotSaveEmptyRecording() throws Exception {
+        Mockito.when(ctx.response()).thenReturn(resp);
+
+        Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.failedFuture(new EmptyRecordingException()));
+
+        Assertions.assertThrows(
+                ExecutionException.class,
+                () -> {
+                    try {
+                        patchSave.handle(ctx, new ConnectionDescriptor(targetId));
+                    } catch (ExecutionException ee) {
+                        Assertions.assertTrue(ee.getCause() instanceof EmptyRecordingException);
+                        throw ee;
+                    }
+                });
+
+        InOrder inOrder = Mockito.inOrder(resp);
+        inOrder.verify(resp).setStatusCode(204);
+        inOrder.verify(resp).end();
     }
 }

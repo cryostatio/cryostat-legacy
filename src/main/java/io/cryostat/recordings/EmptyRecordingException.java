@@ -35,45 +35,16 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.recordings;
 
-import java.util.concurrent.ExecutionException;
+import java.io.IOException;
 
-import javax.inject.Inject;
-
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.recordings.EmptyRecordingException;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
-
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
-class TargetRecordingPatchSave {
-
-    private final RecordingArchiveHelper recordingArchiveHelper;
-
-    @Inject
-    TargetRecordingPatchSave(RecordingArchiveHelper recordingArchiveHelper) {
-        this.recordingArchiveHelper = recordingArchiveHelper;
+public class EmptyRecordingException extends IOException {
+    public EmptyRecordingException() {
+        super();
     }
 
-    void handle(RoutingContext ctx, ConnectionDescriptor connectionDescriptor) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-
-        try {
-            String saveName =
-                    recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
-            ctx.response().end(saveName);
-        } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
-            } else if (e.getCause() instanceof EmptyRecordingException) {
-                ctx.response().setStatusCode(204);
-                ctx.response().end();
-            }
-            throw e;
-        }
+    public EmptyRecordingException(Throwable cause) {
+        super(cause);
     }
 }

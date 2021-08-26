@@ -787,6 +787,8 @@
     Note that this name will be different from the recording's original name,
     to add metadata.
 
+    `204` - The recording did not contain any data to archive.
+
     ###### example
     ```
     $ curl -X PATCH --data "STOP" localhost:8181/api/v1/targets/localhost/recordings/foo
