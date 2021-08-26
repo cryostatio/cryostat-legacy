@@ -40,6 +40,7 @@ package io.cryostat.net.openshift;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -47,6 +48,32 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
+import java.util.stream.Stream;
+
+import com.github.benmanes.caffeine.cache.Scheduler;
+import com.google.gson.Gson;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -54,16 +81,13 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.MissingEnvironmentVariableException;
 import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
-import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.TokenNotFoundException;
 import io.cryostat.net.UserInfo;
+import io.cryostat.net.openshift.OpenShiftAuthManager.GroupResource;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 import io.cryostat.util.resource.ClassPropertiesLoader;
-
-import com.github.benmanes.caffeine.cache.Scheduler;
-import com.google.gson.Gson;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
@@ -88,26 +112,6 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith({MockitoExtension.class, OpenShiftMockServerExtension.class})
 @EnableOpenShiftMockClient(https = false, crud = false)
@@ -174,6 +178,52 @@ class OpenShiftAuthManagerTest {
                         Runnable::run,
                         Scheduler.disabledScheduler(),
                         logger);
+    }
+
+    @ParameterizedTest
+    @MethodSource("getResourceMaps")
+    void testPropertiesResourceMapProcessing(Map<String, Object> map) throws IOException {
+        ClassPropertiesLoader loader = Mockito.mock(ClassPropertiesLoader.class);
+
+        Map<String, String> resourcesMap = new HashMap<>();
+        map.entrySet().stream()
+                .filter(e -> !e.getKey().equals("expected"))
+                .forEach(e -> resourcesMap.put((String) e.getKey(), (String) e.getValue()));
+
+        Map<ResourceType, Set<GroupResource>> expected =
+                (Map<ResourceType, Set<GroupResource>>) map.get("expected");
+
+        Mockito.when(loader.loadAsMap(Mockito.any())).thenReturn(resourcesMap);
+        Map<ResourceType, Set<GroupResource>> result =
+                OpenShiftAuthManager.processResourceMapping(loader, logger);
+
+        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
+    }
+
+    private static Stream<Map<String, Object>> getResourceMaps() {
+        return Stream.of(
+                Map.of("expected", Map.of()),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "operator.cryostat.io/recordings",
+                        "expected",
+                        Map.of(ResourceType.RECORDING, Set.of(GroupResource.RECORDINGS))),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "",
+                        "expected",
+                        Map.of(ResourceType.RECORDING, Set.<String>of())),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        ",",
+                        "expected",
+                        Map.of(ResourceType.RECORDING, Set.<String>of())),
+                Map.of(
+                        ResourceType.RECORDING.name(),
+                        "operator.cryostat.io/recordings, apps/deployments",
+                        "expected",
+                        Map.of(ResourceType.RECORDING, Set.of(GroupResource.RECORDINGS, GroupResource.DEPLOYMENTS)))
+                    );
     }
 
     @Test

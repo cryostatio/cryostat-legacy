@@ -42,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -84,7 +85,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
-    private final Map<ResourceType, Set<String>> resourceMap = new HashMap<>();
+    private final Map<ResourceType, Set<String>> resourceMap;
 
     OpenShiftAuthManager(
             Logger logger,
@@ -94,26 +95,35 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         super(logger);
         this.fs = fs;
         this.clientProvider = clientProvider;
+        this.resourceMap = processResourceMapping(classPropertiesLoader, logger);
+    }
+
+    static Map<ResourceType, Set<String>> processResourceMapping(
+            ClassPropertiesLoader loader, Logger logger) {
+        Map<ResourceType, Set<String>> resourceMap = new HashMap<>();
+        Map<String, String> props;
         try {
-            Map<String, String> props = classPropertiesLoader.loadAsMap(getClass());
-            props.entrySet()
-                    .forEach(
-                            entry -> {
-                                try {
-                                    ResourceType type = ResourceType.valueOf(entry.getKey());
-                                    Set<String> values =
-                                            Arrays.asList(entry.getValue().split(",")).stream()
-                                                    .map(String::strip)
-                                                    .filter(StringUtils::isNotBlank)
-                                                    .collect(Collectors.toSet());
-                                    resourceMap.put(type, values);
-                                } catch (IllegalArgumentException iae) {
-                                    logger.error(iae);
-                                }
-                            });
+            props = loader.loadAsMap(OpenShiftAuthManager.class);
         } catch (IOException ioe) {
             logger.error(ioe);
+            return Collections.unmodifiableMap(resourceMap);
         }
+        props.entrySet()
+                .forEach(
+                        entry -> {
+                            try {
+                                ResourceType type = ResourceType.valueOf(entry.getKey());
+                                Set<String> values =
+                                        Arrays.asList(entry.getValue().split(",")).stream()
+                                                .map(String::strip)
+                                                .filter(StringUtils::isNotBlank)
+                                                .collect(Collectors.toSet());
+                                resourceMap.put(type, values);
+                            } catch (IllegalArgumentException iae) {
+                                logger.error(iae);
+                            }
+                        });
+        return Collections.unmodifiableMap(resourceMap);
     }
 
     @Override
