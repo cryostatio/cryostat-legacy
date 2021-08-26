@@ -45,7 +45,6 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -103,8 +102,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                 try {
                                     ResourceType type = ResourceType.valueOf(entry.getKey());
                                     Set<String> values =
-                                            Arrays.asList(entry.getValue().split(","))
-                                                    .stream()
+                                            Arrays.asList(entry.getValue().split(",")).stream()
                                                     .map(String::strip)
                                                     .filter(StringUtils::isNotBlank)
                                                     .collect(Collectors.toSet());

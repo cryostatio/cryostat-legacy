@@ -61,19 +61,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.github.benmanes.caffeine.cache.Scheduler;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.http.client.utils.URIBuilder;
-
-import dagger.Lazy;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AbstractAuthManager;
@@ -87,6 +74,15 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 import io.cryostat.util.resource.ClassPropertiesLoader;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.github.benmanes.caffeine.cache.Scheduler;
+import dagger.Lazy;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
@@ -105,6 +101,9 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
@@ -155,20 +154,21 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         try {
             Map<String, String> props = classPropertiesLoader.loadAsMap(getClass());
             props.entrySet()
-                .forEach(entry -> {
-                    try {
-                        ResourceType type = ResourceType.valueOf(entry.getKey());
-                        Set<GroupResource> values = Arrays.asList(entry.getValue().split(","))
-                            .stream()
-                            .map(String::strip)
-                            .filter(StringUtils::isNotBlank)
-                            .map(GroupResource::valueOf)
-                            .collect(Collectors.toSet());
-                        resourceMap.put(type, values);
-                    } catch (IllegalArgumentException iae) {
-                        logger.error(iae);
-                    }
-                });
+                    .forEach(
+                            entry -> {
+                                try {
+                                    ResourceType type = ResourceType.valueOf(entry.getKey());
+                                    Set<GroupResource> values =
+                                            Arrays.asList(entry.getValue().split(",")).stream()
+                                                    .map(String::strip)
+                                                    .filter(StringUtils::isNotBlank)
+                                                    .map(GroupResource::valueOf)
+                                                    .collect(Collectors.toSet());
+                                    resourceMap.put(type, values);
+                                } catch (IllegalArgumentException iae) {
+                                    logger.error(iae);
+                                }
+                            });
         } catch (IOException ioe) {
             logger.error(ioe);
         }
@@ -282,8 +282,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private Stream<CompletableFuture<Void>> validateAction(
             OpenShiftClient client, String namespace, ResourceAction resourceAction) {
-        Set<GroupResource> resources = resourceMap.getOrDefault(resourceAction.getResource(),
-                PERMISSION_NOT_REQUIRED);
+        Set<GroupResource> resources =
+                resourceMap.getOrDefault(resourceAction.getResource(), PERMISSION_NOT_REQUIRED);
         if (PERMISSION_NOT_REQUIRED.equals(resources) || resources.isEmpty()) {
             return Stream.of(CompletableFuture.completedFuture(null));
         }

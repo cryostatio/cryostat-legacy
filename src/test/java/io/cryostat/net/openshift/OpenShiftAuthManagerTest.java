@@ -48,35 +48,12 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
-import com.github.benmanes.caffeine.cache.Scheduler;
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.exception.ExceptionUtils;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
-import org.junit.jupiter.params.provider.EnumSource;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.NullSource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
-
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.MissingEnvironmentVariableException;
+import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 import io.cryostat.net.PermissionDeniedException;
 import io.cryostat.net.TokenNotFoundException;
 import io.cryostat.net.UserInfo;
@@ -84,6 +61,9 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 import io.cryostat.util.resource.ClassPropertiesLoader;
+
+import com.github.benmanes.caffeine.cache.Scheduler;
+import com.google.gson.Gson;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
@@ -108,6 +88,26 @@ import okhttp3.Request;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.NullSource;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith({MockitoExtension.class, OpenShiftMockServerExtension.class})
 @EnableOpenShiftMockClient(https = false, crud = false)
@@ -161,8 +161,9 @@ class OpenShiftAuthManagerTest {
         tokenProvider = new TokenProvider(client);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
         headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
-        Mockito.lenient().when(classPropertiesLoader.loadAsMap(Mockito.any())).thenReturn(Map.of("RECORDING",
-                    "recordings", "CERTIFICATE", "deployments,pods"));
+        Mockito.lenient()
+                .when(classPropertiesLoader.loadAsMap(Mockito.any()))
+                .thenReturn(Map.of("RECORDING", "recordings", "CERTIFICATE", "deployments,pods"));
         mgr =
                 new OpenShiftAuthManager(
                         env,
