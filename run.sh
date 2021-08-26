@@ -62,9 +62,9 @@ fi
 
 podman run \
     --pod cryostat \
-    --mount type=tmpfs,target=/opt/cryostat.d/conf.d \
     --mount type=tmpfs,target=/opt/cryostat.d/recordings.d \
     --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
+    --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \

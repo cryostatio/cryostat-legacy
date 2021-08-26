@@ -37,8 +37,6 @@
  */
 package io.cryostat;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Set;
@@ -149,18 +147,5 @@ public abstract class MainModule {
         String archivePath = env.getEnv("CRYOSTAT_ARCHIVE_PATH", "/flightrecordings");
         logger.info("Local save path for flight recordings set as {}", archivePath);
         return Paths.get(archivePath);
-    }
-
-    @Provides
-    @Singleton
-    @Named(CONF_DIR)
-    static Path provideConfigurationPath(Environment env) {
-        Path path = Paths.get(env.getEnv(CONF_DIR)).resolve("conf");
-        try {
-            Files.createDirectory(path);
-            return path;
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
     }
 }

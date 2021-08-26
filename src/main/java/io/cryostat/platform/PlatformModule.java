@@ -44,7 +44,7 @@ import java.util.Set;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
-import io.cryostat.MainModule;
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.sys.Environment;
@@ -83,7 +83,7 @@ public abstract class PlatformModule {
     @Provides
     @Singleton
     static CustomTargetPlatformClient provideCustomTargetPlatformClient(
-            @Named(MainModule.CONF_DIR) Path confDir, FileSystem fs, Gson gson) {
+            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson) {
         return new CustomTargetPlatformClient(confDir, fs, gson);
     }
 
