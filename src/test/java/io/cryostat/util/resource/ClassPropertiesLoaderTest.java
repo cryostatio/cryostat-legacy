@@ -60,36 +60,38 @@ class ClassPropertiesLoaderTest {
     @Test
     void testAsProperties() throws IOException {
         Properties expected = new Properties();
-        expected.putAll(Map.of(
-                    "KEY1", "value1",
-                    "KEY2", "value2",
-                    "KEY3", "value3",
-                    "KEY4", "some,values,list"
-                    ));
+        expected.putAll(
+                Map.of(
+                        "KEY1", "value1",
+                        "KEY2", "value2",
+                        "KEY3", "value3",
+                        "KEY4", "some,values,list"));
         Properties result = loader.loadProperties(getClass());
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
 
     @Test
     void testAsMap() throws IOException {
-        Map<String, String> expected = Map.of(
-                    "KEY1", "value1",
-                    "KEY2", "value2",
-                    "KEY3", "value3",
-                    "KEY4", "some,values,list"
-                  );
+        Map<String, String> expected =
+                Map.of(
+                        "KEY1", "value1",
+                        "KEY2", "value2",
+                        "KEY3", "value3",
+                        "KEY4", "some,values,list");
         Map<String, String> result = loader.loadAsMap(getClass());
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }
 
     @Test
     void throwsIfClassHasNoResourcePropertiesFile() {
-        FileNotFoundException fnfe = Assertions.assertThrows(FileNotFoundException.class, () ->
-                loader.loadProperties(InnerClass.class));
-        MatcherAssert.assertThat(fnfe.getMessage(),
-                Matchers.equalTo("io/cryostat/util/resource/ClassPropertiesLoaderTest$InnerClass.properties"));
+        FileNotFoundException fnfe =
+                Assertions.assertThrows(
+                        FileNotFoundException.class, () -> loader.loadProperties(InnerClass.class));
+        MatcherAssert.assertThat(
+                fnfe.getMessage(),
+                Matchers.equalTo(
+                        "io/cryostat/util/resource/ClassPropertiesLoaderTest$InnerClass.properties"));
     }
 
     static class InnerClass {}
-
 }
