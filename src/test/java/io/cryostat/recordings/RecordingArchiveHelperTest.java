@@ -530,7 +530,8 @@ class RecordingArchiveHelperTest {
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
-        InputStream stream = new ByteArrayInputStream("".getBytes()); // intentionally empty recording stream
+        InputStream stream =
+                new ByteArrayInputStream("".getBytes()); // intentionally empty recording stream
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
