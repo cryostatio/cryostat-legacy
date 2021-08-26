@@ -44,6 +44,10 @@ if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname $0)/certs/cryostat-keystore.p12" ]
     KEYSTORE_PASS="$(cat $(dirname $0)/certs/keystore.pass)"
 fi
 
+if [ ! -d "$(dirname $0)/conf" ]; then
+    mkdir "$(dirname $0)/conf"
+fi
+
 if [ ! -d "$(dirname $0)/truststore" ]; then
     mkdir "$(dirname $0)/truststore"
 fi
