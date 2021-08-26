@@ -42,6 +42,7 @@ import static org.mockito.Mockito.lenient;
 import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -220,8 +221,7 @@ class RecordingArchiveHelperTest {
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
-        BufferedInputStream stream =
-                new BufferedInputStream(new ByteArrayInputStream("someRecordingData".getBytes()));
+        InputStream stream = new ByteArrayInputStream("someRecordingData".getBytes());
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
@@ -303,8 +303,7 @@ class RecordingArchiveHelperTest {
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
-        BufferedInputStream stream =
-                new BufferedInputStream(new ByteArrayInputStream("someRecordingData".getBytes()));
+        InputStream stream = new ByteArrayInputStream("someRecordingData".getBytes());
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
@@ -381,8 +380,7 @@ class RecordingArchiveHelperTest {
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
-        BufferedInputStream stream =
-                new BufferedInputStream(new ByteArrayInputStream("someRecordingData".getBytes()));
+        InputStream stream = new ByteArrayInputStream("someRecordingData".getBytes());
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
@@ -465,8 +463,7 @@ class RecordingArchiveHelperTest {
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
-        BufferedInputStream stream =
-                new BufferedInputStream(new ByteArrayInputStream("someRecordingData".getBytes()));
+        InputStream stream = new ByteArrayInputStream("someRecordingData".getBytes());
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
@@ -533,10 +530,7 @@ class RecordingArchiveHelperTest {
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
-        BufferedInputStream stream =
-                new BufferedInputStream(
-                        new ByteArrayInputStream(
-                                "".getBytes())); // intentionally empty recording stream
+        InputStream stream = new ByteArrayInputStream("".getBytes()); // intentionally empty recording stream
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
@@ -601,8 +595,7 @@ class RecordingArchiveHelperTest {
         Instant now = Instant.now();
         Mockito.when(clock.now()).thenReturn(now);
         Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(true).thenReturn(false);
-        BufferedInputStream stream =
-                new BufferedInputStream(new ByteArrayInputStream("someRecordingData".getBytes()));
+        InputStream stream = new ByteArrayInputStream("someRecordingData".getBytes());
         Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
         Path specificRecordingsPath = Mockito.mock(Path.class);
         Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
