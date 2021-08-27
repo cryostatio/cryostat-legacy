@@ -63,13 +63,15 @@ class BasicAuthManager extends AbstractAuthManager {
     static final String USER_PROPERTIES_FILENAME = "cryostat-users.properties";
 
     private final FileSystem fs;
+    private final Path confDir;
     private final Properties users;
     private volatile boolean configLoaded = false;
 
     // TODO salted hashes
-    BasicAuthManager(Logger logger, FileSystem fs) {
+    BasicAuthManager(Logger logger, FileSystem fs, Path confDir) {
         super(logger);
         this.fs = fs;
+        this.confDir = confDir;
         this.users = new Properties();
     }
 
@@ -152,7 +154,7 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     synchronized void loadConfig() {
-        Path properties = fs.pathOf(System.getProperty("user.home"), USER_PROPERTIES_FILENAME);
+        Path properties = confDir.resolve(USER_PROPERTIES_FILENAME);
         if (!fs.exists(properties)) {
             logger.warn("User properties file \"{}\" does not exist", properties);
             return;

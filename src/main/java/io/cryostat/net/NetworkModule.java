@@ -39,12 +39,14 @@ package io.cryostat.net;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.concurrent.ForkJoinPool;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
@@ -177,8 +179,11 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static BasicAuthManager provideBasicAuthManager(Logger logger, FileSystem fs) {
-        return new BasicAuthManager(logger, fs);
+    static BasicAuthManager provideBasicAuthManager(
+            Logger logger,
+            FileSystem fs,
+            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir) {
+        return new BasicAuthManager(logger, fs, confDir);
     }
 
     @Binds

@@ -98,6 +98,11 @@ environment variable flag in the `docker` or `podman` command invocation. If the
 `EXT` variables are unspecified then they default to the value of their non-EXT
 counterparts.
 
+The environment variable `$CRYOSTAT_CONFIG_PATH` can be used to specify the
+local filesystem path (within the container) that Cryostat uses for its
+configuration directory. By default, the path used is `/opt/cryostat.d/conf.d`
+if this environment variable is not set.
+
 The environment variable `CRYOSTAT_CORS_ORIGIN` can be used to specify
 the origin for CORS. This can be used in development to load a different
 instance of the web-client. See [cryostat-web](https://github.com/cryostatio/cryostat-web)
@@ -303,9 +308,10 @@ These tokens are passed through to the OpenShift API for authz and this result
 determines whether Cryostat accepts the request.
 
 The BasicAuthManager uses basic credential authentication configured with a
-standard Java properties file at `$HOME/cryostat-users.properties`.  The
-credentials stored in the Java properties file are the user name and a SHA-256
-sum hex of the user's password. The property file contents should look like:
+standard Java properties file at
+`$CRYOSTAT_CONFIG_PATH/cryostat-users.properties`.  The credentials stored in
+the Java properties file are the user name and a SHA-256 sum hex of the user's
+password. The property file contents should look like:
 ```
 user1=abc123
 user2=def987

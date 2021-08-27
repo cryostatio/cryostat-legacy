@@ -48,9 +48,6 @@ import java.util.Objects;
 import java.util.SortedSet;
 import java.util.TreeSet;
 
-import javax.inject.Named;
-
-import io.cryostat.MainModule;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
@@ -73,8 +70,7 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
     private final FileSystem fs;
     private final Gson gson;
 
-    public CustomTargetPlatformClient(
-            @Named(MainModule.CONF_DIR) Path confDir, FileSystem fs, Gson gson) {
+    public CustomTargetPlatformClient(Path confDir, FileSystem fs, Gson gson) {
         this.targets = new TreeSet<>((u1, u2) -> u1.getServiceUri().compareTo(u2.getServiceUri()));
         this.saveFile = confDir.resolve(SAVEFILE_NAME);
         this.fs = fs;
