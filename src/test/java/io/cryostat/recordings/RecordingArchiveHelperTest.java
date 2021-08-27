@@ -43,6 +43,8 @@ import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -248,6 +250,84 @@ class RecordingArchiveHelperTest {
                                 "some-Alias-2_someRecording_" + timestamp + ".jfr",
                                 "target",
                                 targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
+    }
+
+    @ParameterizedTest
+    @ValueSource(
+            strings = {
+                "with/fs/separators",
+                "/deployment/quarkus-run.jar",
+                "with spaces",
+            })
+    void shouldSaveRecordingWithNonFilesystemSafeAlias(String alias) throws Exception {
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(),
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn(recordingName);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        ServiceRef serviceRef1 =
+                new ServiceRef(
+                        URIUtil.convert(
+                                new JMXServiceURL(
+                                        "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")),
+                        alias);
+
+        Mockito.when(platformClient.listDiscoverableServices()).thenReturn(List.of(serviceRef1));
+        Mockito.when(connection.getJMXURL())
+                .thenReturn(
+                        (new JMXServiceURL("service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi")));
+        Mockito.when(base32.encodeAsString(Mockito.any())).thenReturn("encodedServiceUri");
+
+        Instant now = Instant.now();
+        Mockito.when(clock.now()).thenReturn(now);
+        Mockito.when(fs.exists(Mockito.any())).thenReturn(true).thenReturn(false);
+        InputStream stream = new ByteArrayInputStream("someRecordingData".getBytes());
+        Mockito.when(service.openStream(descriptor, false)).thenReturn(stream);
+        Path specificRecordingsPath = Mockito.mock(Path.class);
+        Mockito.when(archivedRecordingsPath.resolve(Mockito.anyString()))
+                .thenReturn(specificRecordingsPath);
+        Path destination = Mockito.mock(Path.class);
+        Mockito.when(specificRecordingsPath.resolve(Mockito.anyString())).thenReturn(destination);
+
+        String saveName =
+                recordingArchiveHelper
+                        .saveRecording(new ConnectionDescriptor(serviceRef1), recordingName)
+                        .get();
+
+        String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
+        String recordingName =
+                URLEncoder.encode(alias.replaceAll("[\\._]+", "-"), StandardCharsets.UTF_8)
+                        + "_someRecording_"
+                        + timestamp
+                        + ".jfr";
+        MatcherAssert.assertThat(saveName, Matchers.equalTo(recordingName));
+        Mockito.verify(fs).copy(Mockito.isA(BufferedInputStream.class), Mockito.eq(destination));
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingArchived");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(
+                        Map.of(
+                                "recording",
+                                recordingName,
+                                "target",
+                                serviceRef1.getServiceUri().toString()));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
     }
