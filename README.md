@@ -1,21 +1,23 @@
-# Cryostat
+# [Cryostat](https://cryostat.io)
 
 [![CI build](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml/badge.svg)](https://github.com/cryostatio/cryostat/actions/workflows/ci.yaml)
 [![Quay Repository](https://quay.io/repository/cryostat/cryostat/status "Quay Repository")](https://quay.io/repository/cryostat/cryostat)
 [![Google Group : Cryostat Development](https://img.shields.io/badge/Google%20Group-Cryostat%20Development-blue.svg)](https://groups.google.com/g/cryostat-development)
 
+A container-native JVM application which acts as a bridge to other containerized JVMs and exposes a secure API for producing, analyzing, and retrieving JDK Flight Recorder data from your cloud workloads.
+
 ## SEE ALSO
 
-* [cryostat-core](https://github.com/cryostatio/cryostat-core) for
+* [cryostat-core](https://github.com/cryostatio/cryostat-core) :
 the core library providing a convenience wrapper and headless stubs for use of
 JFR using JDK Mission Control internals.
 
 * [cryostat-operator](https://github.com/cryostatio/cryostat-operator)
-for an OpenShift Operator facilitating easy setup of Cryostat in your OpenShift
+ : an OpenShift Operator deploying Cryostat in your OpenShift
 cluster as well as exposing the Cryostat API as Kubernetes Custom Resources.
 
-* [cryostat-web](https://github.com/cryostatio/cryostat-web) for the React
-graphical frontend included as a submodule in Cryostat and built into
+* [cryostat-web](https://github.com/cryostatio/cryostat-web) : the React
+frontend included as a submodule in Cryostat and built into
 Cryostat's (non-minimal mode) OCI images.
 
 * [JDK Mission Control](https://github.com/openjdk/jmc) for the original JDK
@@ -25,141 +27,106 @@ a recommended tool for more full-featured analysis of JFR files beyond what
 Cryostat currently implements.
 
 ## REQUIREMENTS
-Build:
+Build Requirements:
 - Git
 - JDK11+
 - Maven 3+
 - Podman 2.0+
 
-Run:
+Run Requirements:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
 
 ## BUILD
-[cryostat-core](https://github.com/cryostatio/cryostat-core) is a
-required dependency, which is not currently published in an artefact repository
-and so must be built and installed into the Maven local repository.
-Instructions for doing so are available at that project's README.
 
-Submodules must be initialized via `git submodule init && git submodule update`.
+### Setup Dependencies
 
-Once the `cryostat-core` local dependency is made available,
-`mvn compile` will build the project.
+* Clone and install [cryostat-core](https://github.com/cryostatio/cryostat-core) via it's [instructions](https://github.com/cryostatio/cryostat-core/blob/main/README.md)
+* Initialize submodules via:  `git submodule init && git submodule update`
 
-Unit tests can be run with `mvn test`. Integration tests and additional quality
-tools can be run with `mvn verify`. `-DskipUTs=true` can be used to skip unit
-tests and `-DskipITs=true` can be used to skip integration tests;
-`-DskipTests=true` can be used to skip both.
+### Build project locally
+* `mvn compile`
 
-To re-run integration tests without a rebuild, do
-`mvn exec:exec@create-pod exec:exec@start-jfr-datasource
+
+### Build and push to local podman image registry
+* `mvn package`
+* Run `mvn -Dcryostat.minimal=true clean package` to exclude web-client assets. The
+`clean` phase should always be specified here, or else previously-generated
+client assets will still be included into the built image.
+* For other OCI builders, use the `imageBuilder` Maven property. For example, to use docker run: `mvn -DimageBuilder=$(which docker) clean verify`
+
+## TEST
+
+### Unit tests
+* `mvn test`
+
+### Integration tests and analysis tools
+* `mvn verify`
+
+### Skipping tests 
+* `-DskipUTs=true` to skip unit tests
+* `-DskipITs=true` to skip integration tests
+* `-DskipTests=true` to skip all tests
+
+### Running integration tests without rebuild
+* `mvn exec:exec@create-pod exec:exec@start-jfr-datasource
 exec:exec@start-grafana-dashboard exec:exec@start-container
 exec:exec@wait-for-container failsafe:integration-test
 exec:exec@stop-jfr-datasource exec:exec@stop-grafana exec:exec@stop-container
-exec:exec@destroy-pod`, or `bash repeated-integration-tests.sh 1`.
-
-An application OCI image can be built to your local `podman` image registry
-using `mvn package`. This will normally be a full-fledged image including built
-web-client assets. To skip building the web-client and not include its assets
-in the OCI image, use `mvn -Dcryostat.minimal=true clean package`. The
-`clean` phase should always be specified here, or else previously-generated
-client assets will still be included into the built image. To use other OCI
-builders, use the `imageBuilder` Maven property, ex.
-`mvn -DimageBuilder=$(which docker) clean verify` to build to Docker instead of
-Podman.
+exec:exec@destroy-pod`
+* or `bash repeated-integration-tests.sh 1`.
 
 ## RUN
-For a basic development non-containerized smoketest, use
-`MAVEN_OPTS="-Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.autodiscovery=true" mvn clean prepare-package exec:java`.
 
-For a Kubernetes/OpenShift deployment, see [cryostat-operator](https://github.com/cryostatio/cryostat-operator).
-This will deploy cryostat into your configured cluster.
+### Development Run Outside of Containers
+* `MAVEN_OPTS="-Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.autodiscovery=true" mvn clean prepare-package exec:java`.
 
-The `run.sh` script can be used to spin up a `podman` container of the Cryostat
-Client, running alone but set up so that it is able to introspect itself
-with JFR. This can be achieved by running `sh run.sh` and connecting to
-Cryostat in a separate terminal using `curl` or a similar tool to interact
-with Cryostat via its HTTP(S) API. See [HTTP_API.md](HTTP_API.md).
+### Run on Kubernetes/Openshift
+* See the [cryostat-operator](https://github.com/cryostatio/cryostat-operator)
 
-`smoketest.sh` builds upon `run.sh` and also deploys Grafana, jfr-datasource,
-and vertx-fib-demo as a sample app alongside Cryostat.
+### Run on local podman
+* `run.sh`
 
-There are three webserver-related environment variables that the client checks
-during its runtime:
-`CRYOSTAT_WEB_HOST`, `CRYOSTAT_WEB_PORT`,
-`CRYOSTAT_EXT_WEB_PORT`.
-These are used by the embedded webserver for controlling the port and hostname
-used and reported when making recordings and automated reports available for
-export (download). These affect both the HTTP(S) API as well as the WebSocket
-command channel which runs overtop of the same webserver.
+### Run on local podman with Grafana, jfr-datasource and demo application
+* `smoketest.sh`
 
-These may be set by setting the environment variable before invoking the
-`run.sh` shell script, or if this script is not used, by using the `-e`
-environment variable flag in the `docker` or `podman` command invocation. If the
-`EXT` variables are unspecified then they default to the value of their non-EXT
-counterparts.
+## CONFIGURATION
 
-The environment variable `$CRYOSTAT_CONFIG_PATH` can be used to specify the
-local filesystem path (within the container) that Cryostat uses for its
-configuration directory. By default, the path used is `/opt/cryostat.d/conf.d`
-if this environment variable is not set.
+Cryostat can be configured via the following environment variables
 
-The environment variable `CRYOSTAT_CORS_ORIGIN` can be used to specify
-the origin for CORS. This can be used in development to load a different
-instance of the web-client. See [cryostat-web](https://github.com/cryostatio/cryostat-web)
-for details.
+#### Configuration for cryostat-web
 
-The environment variable `CRYOSTAT_MAX_WS_CONNECTIONS` is used to
-configure the maximum number of concurrent WebSocket client connections that
-will be allowed. If this is not set then the default value is 2. Once the
-maximum number of concurrent connections is reached, the server will reject
-handshakes for any new incoming connections until a previous connection is
-closed. The maximum acceptable value is 64 and the minimum acceptable value is
-1\. Values outside of this range will be ignored and the default value set
-instead.
+* `CRYOSTAT_WEB_HOST`: the hostname used by cryostat-web
+* `CRYOSTAT_WEB_PORT`: the internal port used by cryostat-web
+* `CRYOSTAT_EXT_WEB_PORT`: the external port used by cryostat-web
+* `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance
 
-The environment variable `CRYOSTAT_AUTH_MANAGER` is used to configure which
-authentication/authorization manager is used for validating user accesses. See
-the `USER AUTHENTICATION / AUTHORIZATION` section for more details. The value
-of this variable should be set to the fully-qualified class name of the
-auth manager implementation to use, ex.
-`io.cryostat.net.BasicAuthManager`.
+#### Configuration for cryostat
 
-The environment variable `CRYOSTAT_PLATFORM` is used to configure which
-platform client will be used for performing platform-specific actions, such as
-listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified
-then a default auth manager will also be selected corresponding to the platform,
-whether that platform is specified by the user or automatically detected. The
-value of this variable should be set to the fully-qualified name of the
-platform detection strategy implementation to use, ex.
-`io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
+* `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of webscoket client connections allowed (minimum 1, maximum 64, default 2)
+* `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`.
+* `CRYOSTAT_PLATFORM`: the platform client  used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the platform, whether that platform is specified by the user or automatically detected. Set to the fully-qualified name of the platform detection strategy implementation to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
+* `CRYOSTAT_CONFIG_PATH`: the local filesystem path for the configuration directory (default `/opt/cryostat.d/conf.d`)
 
-The environment variable `CRYOSTAT_REPORT_GENERATION_MAX_HEAP` is used to
-configure the maximum heap size used by the container subprocess which forks to
-perform automated rules analysis report generation. The default is `200`,
-representing a `200MiB` maximum heap size. Too small of a heap size will lead
-to report generation failing due to Out-Of-Memory errors. Too large of a heap
-size may lead to the subprocess being forcibly killed and the parent process
-failing to detect the reason for the failure, leading to inaccurate failure
-error messages and API responses.
+#### Configuration for Automated Analysis Reports
 
-The environment variables `CRYOSTAT_TARGET_CACHE_MAX_CONNECTIONS` and
-`CRYOSTAT_TARGET_CACHE_TTL` are used to control the target JMX connection cache
-behaviour. `CRYOSTAT_TARGET_CACHE_MAX_CONNECTIONS` specifies how many
-connections may be held open at once. `-1` may be used to leave the cache size
-unlimited.  `CRYOSTAT_TARGET_CACHE_TTL` specifies how long (in seconds) these
-connections will be cached before they are closed due to inactivity.
+* `CRYOSTAT_REPORT_GENERATION_MAX_HEAP`: the maximum heap size used by the container subprocess which forks to perform automated rules analysis report generation. The default is `200`, representing a `200MiB` maximum heap size. Too small of a heap size will lead to report generation failing due to Out-Of-Memory errors. Too large of a heap size may lead to the subprocess being forcibly killed and the parent process failing to detect the reason for the failure, leading to inaccurate failure error messages and API responses.
 
-For logging, Cryostat uses SLF4J with the java.util.logging binding.
-The default configuration can be overridden by mounting the desired
-configuration file in the container, and setting the environment variable
-`CRYOSTAT_JUL_CONFIG` to the path of that file.
+#### Configuration for JMX Cache
 
-Some of Cryostat's dependencies also use java.util.logging for their logging.
-Cryostat disables
-[some of these](https://github.com/cryostatio/cryostat-core/tree/main/src/main/resources/config/logging.properties)
-by default, because they generate unnecessary logs.
-However, they can be reenabled by overriding the default configuration file
-and setting the disabled loggers to the desired level.
+* `CRYOSTAT_TARGET_CACHE_MAX_CONNECTIONS`: the maximum number of JMX connections to cache. Use `-1` for an unlimited amount
+* `CRYOSTAT_TARGET_CACHE_TTL`: the time to live in seconds for cached JMX connections
+
+#### Configuration for Logging
+
+* `CRYOSTAT_JUL_CONFIG` : the `java.util.logging.config.file` configuration file for logging via SLF4J Some of Cryostat's dependencies also use java.util.logging for their logging. Cryostat disables [some of these](https://github.com/cryostatio/cryostat-core/tree/main/src/main/resources/config/logging.properties) by default, because they generate unnecessary logs. However, they can be reenabled by overriding the default configuration file and setting the disabled loggers to the desired level.
+
+#### Configuration for Event Templates
+
+* `CRYOSTAT_TEMPLATE_PATH`: the local storage path for Cryostat event templates
+
+#### Configuration for Archiving
+
+* `CRYOSTAT_ARCHIVE_PATH`: the local storage path for archived recordings
 
 ## MONITORING APPLICATIONS
 In order for `cryostat` to be able to monitor JVM application targets the
