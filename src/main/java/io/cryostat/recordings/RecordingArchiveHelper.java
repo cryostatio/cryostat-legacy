@@ -42,6 +42,7 @@ import java.io.IOException;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -326,7 +327,12 @@ public class RecordingArchiveHelper {
 
         String timestamp =
                 clock.now().truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
-        String destination = String.format("%s_%s_%s", targetName, recordingName, timestamp);
+        String destination =
+                String.format(
+                        "%s_%s_%s",
+                        URLEncoder.encode(targetName, StandardCharsets.UTF_8),
+                        URLEncoder.encode(recordingName, StandardCharsets.UTF_8),
+                        timestamp);
         // TODO byte-sized rename limit is arbitrary. Probably plenty since recordings are also
         // differentiated by second-resolution timestamp
         byte count = 1;
