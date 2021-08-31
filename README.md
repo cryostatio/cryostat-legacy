@@ -77,9 +77,6 @@ exec:exec@destroy-pod`
 
 ## RUN
 
-### Development Run Outside of Containers
-* `MAVEN_OPTS="-Dcom.sun.management.jmxremote.port=9091 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.autodiscovery=true" mvn clean prepare-package exec:java`.
-
 ### Run on Kubernetes/Openshift
 * See the [cryostat-operator](https://github.com/cryostatio/cryostat-operator)
 
@@ -93,19 +90,16 @@ exec:exec@destroy-pod`
 
 Cryostat can be configured via the following environment variables
 
-#### Configuration for cryostat-web
-
-* `CRYOSTAT_WEB_HOST`: the hostname used by cryostat-web
-* `CRYOSTAT_WEB_PORT`: the internal port used by cryostat-web
-* `CRYOSTAT_EXT_WEB_PORT`: the external port used by cryostat-web
-* `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance
-
 #### Configuration for cryostat
 
+* `CRYOSTAT_WEB_HOST`: the hostname used by the cryostat web server
+* `CRYOSTAT_WEB_PORT`: the internal port used by the cryostat web server
+* `CRYOSTAT_EXT_WEB_PORT`: the external port used by the cryostat web server
+* `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance
 * `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of webscoket client connections allowed (minimum 1, maximum 64, default 2)
 * `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`.
-* `CRYOSTAT_PLATFORM`: the platform client  used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the platform, whether that platform is specified by the user or automatically detected. Set to the fully-qualified name of the platform detection strategy implementation to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
-* `CRYOSTAT_CONFIG_PATH`: the local filesystem path for the configuration directory (default `/opt/cryostat.d/conf.d`)
+* `CRYOSTAT_PLATFORM`: the platform client used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the platform, whether that platform is specified by the user or automatically detected. Set to the fully-qualified name of the platform detection strategy implementation to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
+* `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory (default `/opt/cryostat.d/conf.d`)
 
 #### Configuration for Automated Analysis Reports
 
@@ -122,11 +116,11 @@ Cryostat can be configured via the following environment variables
 
 #### Configuration for Event Templates
 
-* `CRYOSTAT_TEMPLATE_PATH`: the local storage path for Cryostat event templates
+* `CRYOSTAT_TEMPLATE_PATH`: the storage path for Cryostat event templates
 
 #### Configuration for Archiving
 
-* `CRYOSTAT_ARCHIVE_PATH`: the local storage path for archived recordings
+* `CRYOSTAT_ARCHIVE_PATH`: the storage path for archived recordings
 
 ## MONITORING APPLICATIONS
 In order for `cryostat` to be able to monitor JVM application targets the
@@ -199,7 +193,7 @@ volume mounted to the Cryostat container and containing library JARs (ex.
 JDK Flight Recorder has event templates, which are preset definition of a set of
 events, and for each a set of options and option values. A given JVM is likely
 to have some built-in templates ready for use out-of-the-box, but Cryostat
-also hosts its own small catalog of templates within its own local storage. This
+also hosts its own small catalog of templates within its own storage. This
 catalog is stored at the path specified by the environment variable
 `CRYOSTAT_TEMPLATE_PATH`. Templates can be uploaded to Cryostat and
 then used to create recordings.
@@ -208,7 +202,7 @@ then used to create recordings.
 
 `cryostat` supports a concept of "archiving" recordings. This simply means
 taking the contents of a recording at a point in time and saving these contents
-to a file local to the `cryostat` process (as opposed to "active"
+to a file to the `cryostat` process (as opposed to "active"
 recordings, which exist within the memory of the JVM target and continue to grow
 over time). The default directory used is `/flightrecordings`, but the
 environment variable `CRYOSTAT_ARCHIVE_PATH` can be used to specify a
