@@ -39,6 +39,7 @@ package io.cryostat.templates;
 
 import javax.inject.Singleton;
 
+import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
@@ -54,5 +55,12 @@ public abstract class TemplatesModule {
     static LocalStorageTemplateService provideLocalStorageTemplateService(
             FileSystem fs, Environment env) {
         return new LocalStorageTemplateService(fs, env);
+    }
+
+    @Provides
+    @Singleton
+    static LocalProbeTemplateService provideLocalProbeTemplateService(
+        FileSystem fs, Environment env) {
+        return new LocalProbeTemplateService(fs, env);
     }
 }
