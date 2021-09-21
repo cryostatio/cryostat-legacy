@@ -38,11 +38,15 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -77,8 +81,7 @@ class RecordingUploadPostHandlerTest {
     @Mock AuthManager auth;
     @Mock Environment env;
     @Mock WebClient webClient;
-    @Mock FileSystem fs;
-    @Mock Path savedRecordingsPath;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @Mock RoutingContext ctx;
 
@@ -86,8 +89,7 @@ class RecordingUploadPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new RecordingUploadPostHandler(auth, env, webClient, fs, savedRecordingsPath);
+        this.handler = new RecordingUploadPostHandler(auth, env, webClient, recordingArchiveHelper);
     }
 
     @Test
@@ -99,6 +101,12 @@ class RecordingUploadPostHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/recordings/:recordingName/upload"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RECORDING)));
     }
 
     @ParameterizedTest
@@ -115,7 +123,13 @@ class RecordingUploadPostHandlerTest {
             })
     @NullAndEmptySource
     void shouldThrow501IfDatasourceUrlMalformed(String rawUrl) {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(rawUrl);
 
@@ -126,10 +140,25 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldThrowExceptionIfRecordingNotFound() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+
+        String recordingName = "foo";
+        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
-        Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(false);
+
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(recordingName)).thenReturn(future);
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(future.get()).thenThrow(e);
+        Mockito.when(e.getCause())
+                .thenReturn(new RecordingNotFoundException("archives", recordingName));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -138,16 +167,18 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldDoUpload() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
-                .thenReturn(Mockito.mock(Path.class));
-        Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
+        Path recordingPath = Mockito.mock(Path.class);
+        Mockito.when(future.get()).thenReturn(recordingPath);
+        Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");
 
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);
@@ -173,6 +204,10 @@ class RecordingUploadPostHandlerTest {
 
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         handler.handle(ctx);
 
@@ -188,16 +223,18 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleInvalidResponseStatusCode() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
-                .thenReturn(Mockito.mock(Path.class));
-        Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
+        Path recordingPath = Mockito.mock(Path.class);
+        Mockito.when(future.get()).thenReturn(recordingPath);
+        Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");
 
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);
@@ -221,6 +258,13 @@ class RecordingUploadPostHandlerTest {
                 .when(httpReq)
                 .sendMultipartForm(Mockito.any(), Mockito.any());
 
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+
         HttpStatusException e =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
 
@@ -238,16 +282,24 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleNullStatusMessage() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
-                .thenReturn(Mockito.mock(Path.class));
-        Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
+        Path recordingPath = Mockito.mock(Path.class);
+        Mockito.when(future.get()).thenReturn(recordingPath);
+        Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");
 
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);
@@ -288,16 +340,24 @@ class RecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleNullResponseBody() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(env.getEnv("GRAFANA_DATASOURCE_URL")).thenReturn(DATASOURCE_URL);
 
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("foo");
 
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString()))
-                .thenReturn(Mockito.mock(Path.class));
-        Mockito.when(fs.isRegularFile(Mockito.any())).thenReturn(true);
-        Mockito.when(fs.isReadable(Mockito.any())).thenReturn(true);
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.getRecordingPath(Mockito.anyString()))
+                .thenReturn(future);
+        Path recordingPath = Mockito.mock(Path.class);
+        Mockito.when(future.get()).thenReturn(recordingPath);
+        Mockito.when(recordingPath.toString()).thenReturn("/recordings/foo");
 
         HttpRequest<Buffer> httpReq = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> httpResp = Mockito.mock(HttpResponse.class);

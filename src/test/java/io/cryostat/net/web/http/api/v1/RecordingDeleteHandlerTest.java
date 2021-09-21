@@ -37,20 +37,15 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.lenient;
-
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.List;
-import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.Notification;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
@@ -71,37 +66,18 @@ class RecordingDeleteHandlerTest {
 
     RecordingDeleteHandler handler;
     @Mock AuthManager auth;
-    @Mock ReportService reportService;
-    @Mock FileSystem fs;
-    @Mock Path savedRecordingsPath;
-    @Mock NotificationFactory notificationFactory;
-    @Mock Notification notification;
-    @Mock Notification.Builder notificationBuilder;
+    @Mock RecordingArchiveHelper recordingArchiveHelper;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerResponse resp;
 
     @BeforeEach
     void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
-        this.handler =
-                new RecordingDeleteHandler(
-                        auth, reportService, fs, notificationFactory, savedRecordingsPath);
+        this.handler = new RecordingDeleteHandler(auth, recordingArchiveHelper);
     }
 
     @Test
-    void shouldHandleDELETE() {
+    void shouldHandleDELETERequest() {
         MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
     }
 
@@ -112,11 +88,29 @@ class RecordingDeleteHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.DELETE_RECORDING)));
+    }
+
+    @Test
     void shouldThrow404IfNoMatchingRecordingFound() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of());
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(future);
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(future.get()).thenThrow(e);
+        Mockito.when(e.getCause())
+                .thenReturn(new RecordingNotFoundException("archives", "someRecording"));
+
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -124,54 +118,19 @@ class RecordingDeleteHandlerTest {
     }
 
     @Test
-    void shouldDeleteIfRecordingFound() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+    void shouldHandleSuccessfulDELETERequest() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         String recordingName = "someRecording";
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(recordingName));
-
-        Path path = Mockito.mock(Path.class);
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(path);
-        Mockito.when(fs.exists(path)).thenReturn(true);
-
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
+        CompletableFuture<Path> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingArchiveHelper.deleteRecording(recordingName)).thenReturn(future);
+
         handler.handle(ctx);
 
-        Mockito.verify(fs).deleteIfExists(path);
-        Mockito.verify(reportService).delete(recordingName);
-        Mockito.verify(resp).setStatusCode(200);
         Mockito.verify(resp).end();
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
-    }
-
-    @Test
-    void shouldThrowExceptionIfDeletionFails() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        String recordingName = "someRecording";
-        Mockito.when(fs.listDirectoryChildren(Mockito.any())).thenReturn(List.of(recordingName));
-
-        Path path = Mockito.mock(Path.class);
-        Mockito.when(savedRecordingsPath.resolve(Mockito.anyString())).thenReturn(path);
-        Mockito.when(fs.exists(path)).thenReturn(true);
-        Mockito.when(fs.deleteIfExists(path)).thenThrow(IOException.class);
-
-        Mockito.when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-
-        HttpStatusException ex =
-                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-
-        Mockito.verify(reportService).delete(recordingName);
     }
 }

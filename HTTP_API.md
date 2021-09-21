@@ -1,5 +1,8 @@
 # HTTP API
 
+* [V1](#V1-API)
+* [V2](#V2-API)
+
 ## V1 API
 
 ### Quick Reference
@@ -7,7 +10,7 @@
 | What you want to do                                                       | Which handler you should use                                                |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
 | **Miscellaneous**                                                         |                                                                             |
-| Get a URL you can use to access Cryostat's WebSocket command channel      | [`ClientUrlGetHandler`](#ClientUrlGetHandler)                               |
+| Get a URL you can use to access Cryostat's WebSocket notification channel | [`NotificationsUrlGetHandler`](#NotificationsUrlGetHandler)                               |
 | Scan for and get a list of target JVMs visible to Cryostat                | [`TargetsGetHandler`](#TargetsGetHandler)                                   |
 | Get a static asset from the web client                                    | [`StaticAssetsGetHandler`](#StaticAssetsGetHandler)                         |
 | Send a `GET` request to a path not supported by this API                  | [`WebClientAssetsGetHandler`](#WebClientAssetsGetHandler)                   |
@@ -82,25 +85,25 @@
     ```
 
 
-* #### `ClientUrlGetHandler`
+* #### `NotificationsUrlGetHandler`
 
     ###### synopsis
     Returns a URL that a client can connect to, to access Cryostat's
-    WebSocket command channel (see [COMMANDS.md](COMMANDS.md)).
+    WebSocket notification channel.
 
     ###### request
-    `GET /api/v1/clienturl`
+    `GET /api/v1/notifications_url`
 
     ###### response
-    `200` - The body is `{"clientUrl":"$URL"}`.
+    `200` - The body is `{"notificationsUrl":"$URL"}`.
 
     `500` - The URL could not be constructed due to an error with the socket
     or the host. Or there was an unexpected error. The body is an error message.
 
     ###### example
     ```
-    $ curl localhost:8181/api/v1/clienturl
-    {"clientUrl":"ws://0.0.0.0:8181/api/v1/command"}
+    $ curl localhost:8181/api/v1/notifications_url
+    {"notificationsUrl":"ws://0.0.0.0:8181/api/v1/notifications"}
     ```
 
 
@@ -683,15 +686,15 @@
     **The request must include the following fields:**
 
     `toDisk` - Whether a recording is stored to disk;
-    either `true` or `false`.
+    either `true` or `false`, or `unset` to restore the JVM default.
 
     **The request may include the following fields:**
 
-    `maxAge` - The maximum event age of a recording, in seconds.
-    A value of zero means there is no maximum event age.
+    `maxAge` - The maximum event age of a recording, in seconds as a positive
+    integer, or `unset` to restore the JVM default.
 
-    `maxSize` - The maximum size of a recording, in bytes.
-    A value of zero means there is no maximum recording size.
+    `maxSize` - The maximum size of a recording, in bytes as a positive integer,
+    or `unset` to restore the JVM default.
 
     ###### response
     `200` - The body is the updated default recording options of the
@@ -718,8 +721,8 @@
 
     ###### example
     ```
-    $ curl -X PATCH --data "toDisk=true&maxAge=0" localhost:8181/api/v1/targets/localhost/recordingOptions
-    {"maxAge":0,"toDisk":true,"maxSize":0}
+    $ curl -X PATCH --data "toDisk=unset&maxAge=60&maxSize=1024" localhost:8181/api/v1/targets/localhost/recordingOptions
+    {"maxAge":60,"toDisk":"unset","maxSize":1024}
     ```
 
 
@@ -783,6 +786,8 @@
     `200` - The body is the name of the recording that was saved.
     Note that this name will be different from the recording's original name,
     to add metadata.
+
+    `204` - The recording did not contain any data to archive.
 
     ###### example
     ```
@@ -1200,7 +1205,7 @@ metadata-wrapped and JSON-encoded response format with the following general
 form:
 
 ```
-{ "meta:" { "status:" "statusString", "type:" "mime/type"}, "data:" { "someKey:" someValue } }
+{ "meta": { "status": "statusString", "type": "mime/type"}, "data": { "someKey": someValue } }
 ```
 
 `statusString` will always be `OK` if the response status code is `200`. If the
@@ -1234,29 +1239,39 @@ The handler-specific descriptions below describe how each handler populates the
 
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
-| **Recordings in target JVMs**                                             |                                                                                 |
-| Search event types that can be produced by a target JVM                   | [`TargetEventsSearchGetHandler`](#TargetEventsSearchGetHandler)                 |
+| **Recordings in Target JVMs**                                             |                                                                                 |
+| List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
 | Create a snapshot recording in a target JVM                               | [`TargetSnapshotPostHandler`](#TargetSnapshotPostHandler-1)                     |
+| **Automated Rules**                                                       |                                                                                 |
+| Create an automated rule definition                                       | [`RulesPostHandler`](#RulesPostHandler)                                         |
+| Delete an automated rule definition                                       | [`RuleDeleteHandler`](#RuleDeleteHandler)                                       |
+| Get an automated rule definition                                          | [`RuleGetHandler`](#RuleGetHandler)                                             |
+| Get all automated rule definitions                                        | [`RulesGetHandler`](#RulesGetHandler)                                           |
+| **Stored Target Credentials**                                             |                                                                                 |
+| Add stored credentials for a target                                       | [`TargetCredentialsPostHandler`](#TargetCredentialsPostHandler)                 |
+| Delete stored credentials for a target                                    | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)             |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
 
-### Flight Recorder
+### Recordings in Target JVMs
 
-* #### `TargetEventsSearchGetHandler`
+* #### `TargetEventsGetHandler`
 
     ###### synopsis
     Returns a list of event types that can be produced by a target JVM,
     where the event name, category, label, etc. matches the given query.
 
     ###### request
-    `GET /api/v2/targets/:targetId/eventsSearch/:query`
+    `GET /api/v2/targets/:targetId/events[?q=searchQuery]`
 
     `targetId` - The location of the target JVM to connect to,
     in the form of a `service:rmi:jmx://` JMX Service URL, or `hostname:port`.
     Should use percent-encoding.
 
-    `query` - The search query.
+    `q` - The search query. Event names, IDs, categories, and descriptions will
+    be searched for case-insensitive substring matches of the supplied query. If
+    this parameter is omitted or blank then all events will be returned.
 
     ###### response
     `200` - The result is a JSON array of event objects.
@@ -1282,7 +1297,7 @@ The handler-specific descriptions below describe how each handler populates the
 
     ###### example
     ```
-    $ curl localhost:8181/api/v2/targets/localhost/eventsSearch/javaerrorthrow
+    $ curl localhost:8181/api/v2/targets/localhost/events?q=javaerrorthrow
     {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Java Error","typeId":"jdk.JavaErrorThrow","description":"An object derived from java.lang.Error has been created. OutOfMemoryErrors are ignored","category":["Java Application"],"options":{"enabled":{"name":"Enabled","description":"Record event","defaultValue":"false"},"threshold":{"name":"Threshold","description":"Record event with duration above or equal to threshold","defaultValue":"0ns[ns]"},"stackTrace":{"name":"Stack Trace","description":"Record stack traces","defaultValue":"false"}}}]}}
     ```
 
@@ -1366,6 +1381,250 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl -X POST localhost:8181/api/v2/targets/localhost/snapshot
     {"meta":{"status":"Created","type":"application/json"},"data":{"result":{"downloadUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/recordings/snapshot-1","reportUrl":"http://192.168.0.109:8181/api/v1/targets/service:jmx:rmi:%2F%2F%2Fjndi%2Frmi:%2F%2Flocalhost:9091%2Fjmxrmi/reports/snapshot-1","id":1,"name":"snapshot-1","state":"STOPPED","startTime":1601998841300,"duration":0,"continuous":true,"toDisk":true,"maxSize":0,"maxAge":0}}}
+    ```
+
+### Automated Rules
+
+* #### `RulesPostHandler`
+
+    ##### synopsis
+    Creates a new automated rule definition. Cryostat processes automated rules
+    to start recordings on matching targets as they appear, non-interactively.
+    Newly-POSTed rule definitions will also retroactively apply to already-known
+    targets, if any.
+
+    ##### request
+    `POST /api/v2/rules`
+
+    The request may be an HTTP form or a JSON document. In either case, the
+    attributes `"name"`, `"matchExpression"`, and `"eventSpecifier"` must be
+    provided.
+
+    `"name"`: the name of this rule definition. This must be unique, except in
+    the case of "archiver rules" (see `eventSpecifier` below). This name will
+    also be used to generate the name of the associated recordings.
+
+    `"matchExpression"`: a string expression used to determine which target JVMs
+    this rule will apply to. The expression has a variable named `target` in
+    scope, which is of type
+    [`ServiceRef`](src/main/java/io/cryostat/platform/ServiceRef.java).
+    Properties can be accessed using `.` separators, and the operators `==`,
+    `!=`, `||`, and `&&` are accepted, with their usual meanings. An example of
+    such an expression is:
+    `(target.alias == 'io.cryostat.Cryostat' || target.annotations.cryostat.JAVA_MAIN == 'io.cryostat.Cryostat') && target.annotations.cryostat.PORT != 9091`.
+    Regular expressions may be used to select target properties
+    matching the regular expression. This example expression will apply a rule to all targets
+    whose `target.alias` starts with `abc`:
+    `/^abc.*$/.test(target.alias)`.
+    The simple expression `true` may also be used to create a rule which applies
+    to any and all discovered targets.
+
+    Note: The `matchExpression` format
+    `/regularExpressionLiteral/.test("stringValue")` is the only regex format
+    supported at the time of writing and is subject to change in the future.
+
+    `"eventSpecifier"`: a string of the form `template=Foo,type=TYPE`, which
+    defines the event template that will be used for creating new recordings in
+    matching targets; or, the special string `"archive"`, which signifies that
+    this rule should cause all matching targets to have their current (at the
+    time of rule creation) JFR data copied to the Cryostat archives as a
+    one-time operation. When using `"archive"`, it is invalid to provide
+    `archivalPeriodSeconds`, `preservedArchives`, `maxSizeBytes`, or
+    `maxAgeSeconds`. Such "archiver rules" are only processed once and are not
+    persisted, so the `name` and `description` become optional.
+
+    The following attributes are optional:
+
+    `"description"`: a textual description of the purpose or reason for this
+    rule definition. This is informational and for display only.
+
+    `"archivalPeriodSeconds"`: a positive integer value that defines how long
+    Cryostat should wait, in seconds, between archiving snapshots of the
+    recording. The default setting is 30.
+
+    `"preservedArchives"`: a positive integer value that defines how many
+    archived copies of the recording should be kept in storage. When the number
+    of archived copies exceeds this number the oldest copies are deleted from
+    storage. The default setting is 1.
+
+    `"maxAgeSeconds"`: a positive integer value that defines the maximum age of
+    data to be retained in the active, in-memory Flight Recording within the
+    Target JVM. This can be used in combination with `"archivalPeriodSeconds"`
+    to minimize or eliminate data overlap between the end of one archived
+    recording and the start of the subsequent archived recording. If not
+    specified, the default setting is equal to `"archivalPeriodSeconds"`.
+
+    `"maxSizeBytes"`: a positive integer value that defines the maximum size, in
+    bytes, of the active in-memory Flight Recording within the Target JVM. If
+    the recording exceeds this memory size then event data will be dropped from
+    the recording. The default setting is unlimited.
+
+    ##### response
+    `201` - The result is the name of the created rule. The `LOCATION` header
+    will be set and its value will be the relative path to the created resource.
+
+    `400` - The rule definition could not be processed, either because the
+    provided document was malformed or invalid.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `409` - A rule with the same name already exists.
+
+    `415` - The request's `Content-Type` was invalid or unrecognized.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl -X POST -F name="Test Rule" -F description="This is a rule for testing" -F matchExpression="target.alias == 'io.cryostat.Cryostat'" -F eventSpecifier="template=Continuous,type=TARGET" http://0.0.0.0:8181/api/v2/rules
+    < HTTP/1.1 201 Created
+    < location: /api/v2/rules/Test_Rule
+    < content-length: 79
+    {"meta":{"type":"text/plain","status":"Created"},"data":{"result":"Test_Rule"}}
+    ```
+
+* #### `RuleDeleteHandler`
+
+    ##### synopsis
+    Deletes a rule definition.
+
+    ##### request
+    `DELETE /api/v2/rules/:name[?clean=true]`
+
+    `name` - the name of the rule definition to delete.
+
+    `clean` - optional. If set to "true", all active recordings started by this
+    rule in existing target JVMs will be stopped after the rule is deleted.
+    Archived copies of recordings will not be deleted. If not set to "true", all
+    active recordings will remain running.
+
+    ##### response
+    `200` - The result is empty. The rule was successfully deleted.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - No rule with the given name exists.
+
+    `500`- An unexpected IOException occurred while deleting the rule
+    definition.
+
+    ##### example
+    ```
+    $ curl -X DELETE http://0.0.0.0:8181/api/v2/rules/Test_Rule
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
+    ```
+
+* #### `RuleGetHandler`
+
+    ##### synopsis
+    Get a JSON document describing a rule definition with the given name.
+
+    ##### request
+    `GET /api/v2/rules/:name`
+
+    ##### response
+    `200` - The result is a JSON string representing the rule definition.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `404` - No rule with the given name exists.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2/rules/Test_Rule
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"name":"Test_Rule","description":"This is a rule for testing","matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}}}
+    ```
+
+* #### `RulesGetHandler`
+
+    ##### synopsis
+    Get a JSON array representing all rule definitions.
+
+    ##### request
+    `GET /api/v2/rules`
+
+    ##### response
+    `200` - The result is a JSON array representing all rule definitions.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl http://0.0.0.0:8181/api/v2/rules
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":[{"name":"Test_Rule","description":"This is a rule for testing","matchExpression":"target.alias=='io.cryostat.Cryostat'","eventSpecifier":"template=Continuous,type=TARGET","archivalPeriodSeconds":30,"preservedArchives":1,"maxAgeSeconds":30,"maxSizeBytes":-1}]}}    ```
+
+### Stored Target Credentials
+
+* #### `TargetCredentialsPostHandler`
+
+    ##### synopsis
+    Creates stored credentials for a given target. These are used for automated
+    rules processing - if a Target JVM requires JMX authentication, Cryostat
+    will use stored credentials when attempting to open JMX connections to the
+    target. These are retained in Cryostat's memory only and not persisted to
+    disk.
+
+    ##### request
+    `POST /api/v2/targets/:targetId/credentials`
+
+    The request should be an HTTP form with the attributes `"username"` and
+    `"password"`. Both are required.
+
+    ##### response
+    `200` - The result is null. The request was processed successfully and the
+    credentials were stored, potentially overriding previous credentials for the
+    same target.
+
+    `400` - `"username"` and/or `"password"` were not provided.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl -F username=user -F password=pass http://0.0.0.0:8181/api/v2/targets/localhost/credentials
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
+    ```
+
+* #### `TargetCredentialsDeleteHandler`
+
+    ##### synopsis
+    Deletes stored credentials for a given target.
+
+    ##### request
+    `DELETE /api/v2/targets/:targetId/credentials`
+
+    ##### response
+    `200` - The result is null. The request was processed successfully and the
+    credentials were deleted.
+
+    `404` - The target had no stored credentials.
+
+    `401` - User authentication failed. The reason is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error.
+
+    ##### example
+    ```
+    $ curl -X DELETE http://0.0.0.0:8181/api/v2/targets/localhost/credentials
+    {"meta":{"type":"text/plain","status":"OK"},"data":{"result":null}}
     ```
 
 ### Security

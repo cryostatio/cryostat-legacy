@@ -39,21 +39,22 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
-import java.util.Optional;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
-import io.cryostat.MainModule;
 import io.cryostat.core.sys.Environment;
-import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.buffer.Buffer;
@@ -69,22 +70,19 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
     private final WebClient webClient;
-    private final FileSystem fs;
-    private final Path savedRecordingsPath;
     private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
     RecordingUploadPostHandler(
             AuthManager auth,
             Environment env,
             WebClient webClient,
-            FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
+            RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
         this.env = env;
         this.webClient = webClient;
-        this.fs = fs;
-        this.savedRecordingsPath = savedRecordingsPath;
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
@@ -95,6 +93,11 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     @Override
@@ -140,9 +143,15 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     private ResponseMessage doPost(String recordingName, URL uploadUrl) throws Exception {
-        Path recordingPath =
-                getRecordingPath(recordingName)
-                        .orElseThrow(() -> new HttpStatusException(404, recordingName));
+        Path recordingPath = null;
+        try {
+            recordingPath = recordingArchiveHelper.getRecordingPath(recordingName).get();
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, e.getMessage(), e);
+            }
+            throw e;
+        }
 
         MultipartForm form =
                 MultipartForm.create()
@@ -171,18 +180,6 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
                                             response.bodyAsString()));
                         });
         return future.get();
-    }
-
-    Optional<Path> getRecordingPath(String recordingName) throws Exception {
-        try {
-            Path archivedRecording = savedRecordingsPath.resolve(recordingName);
-            if (fs.isRegularFile(archivedRecording) && fs.isReadable(archivedRecording)) {
-                return Optional.of(archivedRecording);
-            }
-            return Optional.empty();
-        } catch (InvalidPathException e) {
-            throw new HttpStatusException(400, e.getMessage(), e);
-        }
     }
 
     private static class ResponseMessage {

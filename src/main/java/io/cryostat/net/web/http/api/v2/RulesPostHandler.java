@@ -38,19 +38,23 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.IOException;
-import java.util.function.Function;
+import java.util.EnumSet;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.rules.MatchExpressionValidationException;
 import io.cryostat.rules.Rule;
+import io.cryostat.rules.RuleException;
 import io.cryostat.rules.RuleRegistry;
 
 import com.google.gson.Gson;
-import io.vertx.core.MultiMap;
+import com.google.gson.JsonSyntaxException;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
@@ -89,6 +93,16 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.CREATE_RULE,
+                ResourceAction.READ_TARGET,
+                ResourceAction.CREATE_RECORDING,
+                ResourceAction.UPDATE_RECORDING,
+                ResourceAction.READ_TEMPLATE);
+    }
+
+    @Override
     public HttpMimeType mimeType() {
         return HttpMimeType.PLAINTEXT;
     }
@@ -118,36 +132,23 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
         switch (mime) {
             case MULTIPART_FORM:
             case URLENCODED_FORM:
-                Rule.Builder builder =
-                        new Rule.Builder()
-                                .name(
-                                        params.getFormAttributes()
-                                                .get(Rule.Attribute.NAME.getSerialKey()))
-                                .targetAlias(
-                                        params.getFormAttributes()
-                                                .get(Rule.Attribute.TARGET_ALIAS.getSerialKey()))
-                                .description(
-                                        params.getFormAttributes()
-                                                .get(Rule.Attribute.DESCRIPTION.getSerialKey()))
-                                .eventSpecifier(
-                                        params.getFormAttributes()
-                                                .get(
-                                                        Rule.Attribute.EVENT_SPECIFIER
-                                                                .getSerialKey()));
-
-                builder = setOptionalInt(builder, Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, params);
-                builder = setOptionalInt(builder, Rule.Attribute.PRESERVED_ARCHIVES, params);
-                builder = setOptionalInt(builder, Rule.Attribute.MAX_AGE_SECONDS, params);
-                builder = setOptionalInt(builder, Rule.Attribute.MAX_SIZE_BYTES, params);
-
                 try {
+                    Rule.Builder builder = Rule.Builder.from(params.getFormAttributes());
                     rule = builder.build();
-                } catch (IllegalArgumentException iae) {
+                } catch (MatchExpressionValidationException | IllegalArgumentException iae) {
                     throw new ApiException(400, iae);
                 }
                 break;
             case JSON:
-                rule = gson.fromJson(params.getBody(), Rule.class);
+                try {
+                    rule = gson.fromJson(params.getBody(), Rule.class);
+
+                    if (rule == null) {
+                        throw new IllegalArgumentException("POST body was null");
+                    }
+                } catch (IllegalArgumentException | JsonSyntaxException e) {
+                    throw new ApiException(400, e);
+                }
                 break;
             default:
                 throw new ApiException(415, "Bad content type: " + rawMime);
@@ -155,6 +156,8 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
 
         try {
             rule = this.ruleRegistry.addRule(rule);
+        } catch (RuleException e) {
+            throw new ApiException(409, e);
         } catch (IOException e) {
             throw new ApiException(
                     500,
@@ -166,43 +169,5 @@ class RulesPostHandler extends AbstractV2RequestHandler<String> {
                 .statusCode(201)
                 .addHeader(HttpHeaders.LOCATION, String.format("%s/%s", path(), rule.getName()))
                 .body(rule.getName());
-    }
-
-    private Rule.Builder setOptionalInt(
-            Rule.Builder builder, Rule.Attribute key, RequestParameters params)
-            throws IllegalArgumentException {
-        MultiMap attrs = params.getFormAttributes();
-        if (!attrs.contains(key.getSerialKey())) {
-            return builder;
-        }
-        Function<Integer, Rule.Builder> fn;
-        switch (key) {
-            case ARCHIVAL_PERIOD_SECONDS:
-                fn = builder::archivalPeriodSeconds;
-                break;
-            case PRESERVED_ARCHIVES:
-                fn = builder::preservedArchives;
-                break;
-            case MAX_AGE_SECONDS:
-                fn = builder::maxAgeSeconds;
-                break;
-            case MAX_SIZE_BYTES:
-                fn = builder::maxSizeBytes;
-                break;
-            default:
-                throw new IllegalArgumentException("Unknown key \"" + key + "\"");
-        }
-        int value;
-        try {
-            value = Integer.parseInt(attrs.get(key.getSerialKey()));
-        } catch (NumberFormatException nfe) {
-            throw new ApiException(
-                    400,
-                    String.format(
-                            "\"%s\" is an invalid (non-integer) value for \"%s\"",
-                            attrs.get(key.getSerialKey()), key),
-                    nfe);
-        }
-        return fn.apply(value);
     }
 }

@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,6 +46,8 @@ import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateEncodingException;
 import java.util.Collection;
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.function.Function;
 
 import javax.inject.Inject;
@@ -54,6 +57,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.CertificateValidator;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -101,6 +105,11 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.CREATE_CERTIFICATE);
     }
 
     @Override
@@ -154,7 +163,7 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
             Collection<? extends Certificate> certificates = certValidator.parseCertificates(fis);
 
             if (certificates.isEmpty()) {
-                throw new ApiException(500, "No certificates found");
+                throw new FileNotFoundException("No certificates found");
             }
 
             try (FileOutputStream out = outputStreamFunction.apply(filePath.toFile())) {
@@ -165,6 +174,8 @@ class CertificatePostHandler extends AbstractV2RequestHandler<Path> {
                 }
             }
 
+        } catch (FileNotFoundException e) {
+            throw new ApiException(400, e.getMessage(), e);
         } catch (IOException ioe) {
             throw new ApiException(500, ioe.getMessage(), ioe);
         } catch (CertificateEncodingException cee) {

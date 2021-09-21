@@ -37,14 +37,17 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.security.ResourceAction;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
@@ -69,6 +72,7 @@ class TargetRecordingPatchHandlerTest {
     @Mock TargetRecordingPatchStop patchStop;
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;
+    @Mock HttpServerResponse resp;
     @Mock ConnectionDescriptor connectionDescriptor;
 
     @BeforeEach
@@ -89,6 +93,17 @@ class TargetRecordingPatchHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(
+                                ResourceAction.READ_TARGET,
+                                ResourceAction.READ_RECORDING,
+                                ResourceAction.UPDATE_RECORDING)));
+    }
+
+    @Test
     void shouldNotBeAsync() {
         // recording saving is a blocking operation, so the handler should be marked as such
         Assertions.assertFalse(handler.isAsync());
@@ -96,7 +111,7 @@ class TargetRecordingPatchHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails() {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         HttpStatusException ex =
@@ -108,9 +123,14 @@ class TargetRecordingPatchHandlerTest {
     @ValueSource(strings = {"unknown", "start", "dump"})
     @NullAndEmptySource
     void shouldThrow400InvalidOperations(String mtd) {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -120,12 +140,17 @@ class TargetRecordingPatchHandlerTest {
     @ParameterizedTest
     @ValueSource(strings = {"save", "stop"})
     void shouldDelegateSupportedOperations(String mtd) throws Exception {
-        Mockito.when(authManager.validateHttpHeader(Mockito.any()))
+        Mockito.when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(ctx.pathParam("targetId")).thenReturn("fooHost:1234");
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.getBodyAsString()).thenReturn(mtd);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         handler.handle(ctx);
 

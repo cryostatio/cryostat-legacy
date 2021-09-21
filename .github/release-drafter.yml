@@ -1,0 +1,46 @@
+categories:
+    - title: 'Features'
+      label: 'feat'
+    - title: 'Fixes'
+      label: 'fix'
+    - title: 'Documentation'
+      label: 'docs'
+    - title: 'Maintenance'
+      labels:
+          - 'chore'
+          - 'ci'
+          - 'cleanup'
+          - 'perf'
+          - 'refactor'
+          - 'style'
+          - 'test'
+
+autolabeler:
+    - label: 'feat'
+      title: '/^feat:/'
+    - label: 'fix'
+      title: '/^fix:/'
+    - label: 'docs'
+      title: '/^docs:/'
+
+    - label: 'chore'
+      title: '/^chore:/'
+    - label: 'ci'
+      title: '/^ci:/'
+    - label: 'cleanup'
+      title: '/^cleanup:/'
+    - label: 'perf'
+      title: '/^perf:/'
+    - label: 'refactor'
+      title: '/^refactor:/'
+    - label: 'style'
+      title: '/^style:/'
+    - label: 'test'
+      title: '/^test:/'
+
+template: |
+    ## Contributors
+    $CONTRIBUTORS
+    ## What's Changed
+    $CHANGES
+

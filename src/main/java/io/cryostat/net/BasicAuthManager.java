@@ -44,6 +44,7 @@ import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Supplier;
@@ -52,6 +53,7 @@ import java.util.regex.Pattern;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.security.ResourceAction;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -61,13 +63,15 @@ class BasicAuthManager extends AbstractAuthManager {
     static final String USER_PROPERTIES_FILENAME = "cryostat-users.properties";
 
     private final FileSystem fs;
+    private final Path confDir;
     private final Properties users;
     private volatile boolean configLoaded = false;
 
     // TODO salted hashes
-    BasicAuthManager(Logger logger, FileSystem fs) {
+    BasicAuthManager(Logger logger, FileSystem fs, Path confDir) {
         super(logger);
         this.fs = fs;
+        this.confDir = confDir;
         this.users = new Properties();
     }
 
@@ -77,7 +81,8 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> validateToken(Supplier<String> tokenProvider) {
+    public Future<Boolean> validateToken(
+            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         if (!configLoaded) {
             this.loadConfig();
         }
@@ -90,12 +95,21 @@ class BasicAuthManager extends AbstractAuthManager {
         String user = matcher.group(1);
         String pass = matcher.group(2);
         String passHashHex = DigestUtils.sha256Hex(pass);
-        return CompletableFuture.completedFuture(
-                Objects.equals(users.getProperty(user), passHashHex));
+        boolean granted = Objects.equals(users.getProperty(user), passHashHex);
+        // FIXME actually implement this
+        resourceActions.forEach(
+                action ->
+                        logger.trace(
+                                "user {} granted {} {}",
+                                user,
+                                action.getVerb(),
+                                action.getResource()));
+        return CompletableFuture.completedFuture(granted);
     }
 
     @Override
-    public Future<Boolean> validateHttpHeader(Supplier<String> headerProvider) {
+    public Future<Boolean> validateHttpHeader(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         String authorization = headerProvider.get();
         if (StringUtils.isBlank(authorization)) {
             return CompletableFuture.completedFuture(false);
@@ -109,14 +123,15 @@ class BasicAuthManager extends AbstractAuthManager {
         try {
             String decoded =
                     new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded);
+            return validateToken(() -> decoded, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }
     }
 
     @Override
-    public Future<Boolean> validateWebSocketSubProtocol(Supplier<String> subProtocolProvider) {
+    public Future<Boolean> validateWebSocketSubProtocol(
+            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
         String subprotocol = subProtocolProvider.get();
         if (StringUtils.isBlank(subprotocol)) {
             return CompletableFuture.completedFuture(false);
@@ -132,14 +147,14 @@ class BasicAuthManager extends AbstractAuthManager {
         try {
             String decoded =
                     new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded);
+            return validateToken(() -> decoded, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }
     }
 
     synchronized void loadConfig() {
-        Path properties = fs.pathOf(System.getProperty("user.home"), USER_PROPERTIES_FILENAME);
+        Path properties = confDir.resolve(USER_PROPERTIES_FILENAME);
         if (!fs.exists(properties)) {
             logger.warn("User properties file \"{}\" does not exist", properties);
             return;

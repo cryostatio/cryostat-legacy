@@ -46,6 +46,8 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.script.ScriptException;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
@@ -58,13 +60,15 @@ import com.google.gson.Gson;
 public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
 
     private final Path rulesDir;
+    private final RuleMatcher ruleMatcher;
     private final FileSystem fs;
     private final Set<Rule> rules;
     private final Gson gson;
     private final Logger logger;
 
-    RuleRegistry(Path rulesDir, FileSystem fs, Gson gson, Logger logger) {
+    RuleRegistry(Path rulesDir, RuleMatcher ruleMatcher, FileSystem fs, Gson gson, Logger logger) {
         this.rulesDir = rulesDir;
+        this.ruleMatcher = ruleMatcher;
         this.fs = fs;
         this.gson = gson;
         this.logger = logger;
@@ -90,20 +94,22 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
     }
 
     public Rule addRule(Rule rule) throws IOException {
-        if (hasRuleByName(rule.getName())) {
-            throw new RuleException(
-                    String.format(
-                            "Rule with name \"%s\" already exists; refusing to overwrite",
-                            rule.getName()));
+        if (!rule.isArchiver()) {
+            if (hasRuleByName(rule.getName())) {
+                throw new RuleException(
+                        String.format(
+                                "Rule with name \"%s\" already exists; refusing to overwrite",
+                                rule.getName()));
+            }
+            Path destination = rulesDir.resolve(rule.getName() + ".json");
+            this.fs.writeString(
+                    destination,
+                    gson.toJson(rule),
+                    StandardOpenOption.WRITE,
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING);
+            loadRules();
         }
-        Path destination = rulesDir.resolve(rule.getName() + ".json");
-        this.fs.writeString(
-                destination,
-                gson.toJson(rule),
-                StandardOpenOption.WRITE,
-                StandardOpenOption.CREATE,
-                StandardOpenOption.TRUNCATE_EXISTING);
-        loadRules();
         emit(RuleEvent.ADDED, rule);
         return rule;
     }
@@ -116,13 +122,25 @@ public class RuleRegistry extends AbstractEventEmitter<RuleEvent, Rule> {
         return this.rules.stream().filter(r -> Objects.equals(r.getName(), name)).findFirst();
     }
 
+    public boolean applies(Rule rule, ServiceRef serviceRef) {
+        try {
+            return ruleMatcher.applies(rule, serviceRef);
+        } catch (ScriptException se) {
+            logger.error(se);
+            try {
+                deleteRule(rule);
+            } catch (IOException ioe) {
+                logger.error(ioe);
+            }
+            return false;
+        }
+    }
+
     public Set<Rule> getRules(ServiceRef serviceRef) {
         if (!serviceRef.getAlias().isPresent()) {
             return Set.of();
         }
-        return rules.stream()
-                .filter(r -> r.getTargetAlias().equals(serviceRef.getAlias().get()))
-                .collect(Collectors.toSet());
+        return rules.stream().filter(r -> applies(r, serviceRef)).collect(Collectors.toSet());
     }
 
     public Set<Rule> getRules() {

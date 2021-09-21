@@ -41,6 +41,7 @@ import static org.mockito.Mockito.lenient;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
@@ -54,6 +55,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
@@ -121,6 +123,14 @@ class TargetRecordingDeleteHandlerTest {
         MatcherAssert.assertThat(
                 handler.path(),
                 Matchers.equalTo("/api/v1/targets/:targetId/recordings/:recordingName"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(ResourceAction.READ_TARGET, ResourceAction.DELETE_RECORDING)));
     }
 
     @Test

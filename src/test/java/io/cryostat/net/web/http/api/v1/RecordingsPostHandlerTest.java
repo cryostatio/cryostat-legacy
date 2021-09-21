@@ -38,8 +38,10 @@
 package io.cryostat.net.web.http.api.v1;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -54,6 +56,7 @@ import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 
@@ -122,6 +125,13 @@ class RecordingsPostHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.CREATE_RECORDING)));
+    }
+
+    @Test
     void shouldHandleRecordingUploadRequest() throws Exception {
         String basename = "localhost_test_20191219T213834Z";
         String filename = basename + ".jfr";
@@ -129,7 +139,7 @@ class RecordingsPostHandlerTest {
 
         RoutingContext ctx = mock(RoutingContext.class);
 
-        when(authManager.validateHttpHeader(any()))
+        when(authManager.validateHttpHeader(any(), any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
@@ -146,7 +156,9 @@ class RecordingsPostHandlerTest {
 
         Path filePath = mock(Path.class);
         when(filePath.toString()).thenReturn(savePath + filename);
-        when(recordingsPath.resolve(filename)).thenReturn(filePath);
+        Path specificRecordingsPath = mock(Path.class);
+        when(recordingsPath.resolve(Mockito.anyString())).thenReturn(specificRecordingsPath);
+        when(specificRecordingsPath.resolve(filename)).thenReturn(filePath);
 
         io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
         when(vertx.fileSystem()).thenReturn(vertxFs);
@@ -181,6 +193,8 @@ class RecordingsPostHandlerTest {
                         })
                 .when(vertx)
                 .executeBlocking(any(Handler.class), any(Handler.class));
+
+        when(cryoFs.exists(specificRecordingsPath)).thenReturn(true);
 
         when(vertxFs.exists(Mockito.eq(savePath + filename), any(Handler.class)))
                 .thenAnswer(

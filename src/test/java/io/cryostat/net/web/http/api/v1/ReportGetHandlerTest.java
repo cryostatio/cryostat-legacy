@@ -40,14 +40,21 @@ package io.cryostat.net.web.http.api.v1;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingNotFoundException;
 
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
@@ -85,6 +92,17 @@ class ReportGetHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(
+                                ResourceAction.READ_REPORT,
+                                ResourceAction.CREATE_REPORT,
+                                ResourceAction.READ_RECORDING)));
+    }
+
+    @Test
     void shouldNotBeAsync() {
         Assertions.assertFalse(handler.isAsync());
     }
@@ -95,20 +113,49 @@ class ReportGetHandlerTest {
     }
 
     @Test
-    void shouldRespond404IfRecordingNameNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+    void shouldRespondBySendingFile() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.request()).thenReturn(req);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+
+        Path fakePath = Paths.get("/some/fake/path.html");
+
+        when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+        when(reportService.get(Mockito.anyString()))
+                .thenReturn(CompletableFuture.completedFuture(fakePath));
+
+        handler.handle(ctx);
+
+        Mockito.verify(reportService).get("someRecording");
+        Mockito.verify(resp).sendFile(fakePath.toString());
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+    }
+
+    @Test
+    void shouldRespond404IfRecordingNameNotFound() throws Exception {
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = mock(RoutingContext.class);
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.request()).thenReturn(req);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         when(reportService.get(Mockito.anyString()))
                 .thenReturn(
                         CompletableFuture.failedFuture(
-                                new ReportService.RecordingNotFoundException(
-                                        null, "someRecording")));
+                                new RecordingNotFoundException(null, "someRecording")));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));

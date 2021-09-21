@@ -47,6 +47,7 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
@@ -91,7 +92,12 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
     }
 
     @Override
-    HttpMimeType mimeType() {
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
         return HttpMimeType.JSON;
     }
 
@@ -101,7 +107,8 @@ class ApiGetHandler extends AbstractV2RequestHandler<ApiGetHandler.ApiResponse> 
     }
 
     @Override
-    IntermediateResponse<ApiResponse> handle(RequestParameters requestParams) throws Exception {
+    public IntermediateResponse<ApiResponse> handle(RequestParameters requestParams)
+            throws Exception {
         List<SerializedHandler> serializedHandlers =
                 handlers.get().stream()
                         .filter(RequestHandler::isAvailable)

@@ -39,7 +39,9 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -50,6 +52,7 @@ import io.cryostat.core.templates.MutableTemplateService.InvalidEventTemplateExc
 import io.cryostat.core.templates.MutableTemplateService.InvalidXmlException;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -94,6 +97,11 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.CREATE_TEMPLATE);
+    }
+
+    @Override
     public String path() {
         return basePath() + PATH;
     }
@@ -110,8 +118,10 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
                 Path path = fs.pathOf(u.uploadedFileName());
                 try (InputStream is = fs.newInputStream(path)) {
                     if (!"template".equals(u.name())) {
-                        logger.info("Received unexpected file upload named {}", u.name());
-                        continue;
+                        throw new HttpStatusException(
+                                400,
+                                String.format(
+                                        "Received unexpected file upload named {}", u.name()));
                     }
                     notificationFactory
                             .createBuilder()

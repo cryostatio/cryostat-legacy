@@ -39,7 +39,9 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -48,10 +50,13 @@ import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import io.cryostat.jmc.serialization.SerializableEventTypeInfo;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 
@@ -75,6 +80,11 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET);
     }
 
     @Override
@@ -102,6 +112,7 @@ class TargetEventsGetHandler extends AbstractAuthenticatedRequestHandler {
                             }
                             return infos;
                         });
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         ctx.response().end(gson.toJson(templates));
     }
 }

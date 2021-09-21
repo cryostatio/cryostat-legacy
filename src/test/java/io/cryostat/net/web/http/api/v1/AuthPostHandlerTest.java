@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v1;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
@@ -82,8 +83,13 @@ class AuthPostHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(Set.of()));
+    }
+
+    @Test
     void shouldRespond200IfAuthPasses() {
-        when(auth.validateHttpHeader(Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -101,7 +107,7 @@ class AuthPostHandlerTest {
 
     @Test
     void shouldThrow401IfAuthFails() {
-        when(auth.validateHttpHeader(Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         RoutingContext ctx = mock(RoutingContext.class);
@@ -115,7 +121,7 @@ class AuthPostHandlerTest {
 
     @Test
     void shouldThrow500IfAuthThrows() {
-        when(auth.validateHttpHeader(Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
         RoutingContext ctx = mock(RoutingContext.class);

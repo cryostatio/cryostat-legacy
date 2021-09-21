@@ -37,22 +37,15 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.nio.file.Path;
-
-import javax.inject.Named;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.sys.Clock;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.RecordingArchiveHelper;
 
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class HttpApiV1Module {
@@ -63,7 +56,7 @@ public abstract class HttpApiV1Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindClientUrlGetHandler(ClientUrlGetHandler handler);
+    abstract RequestHandler bindNotificationsUrlGetHandler(NotificationsUrlGetHandler handler);
 
     @Binds
     @IntoSet
@@ -99,19 +92,8 @@ public abstract class HttpApiV1Module {
 
     @Provides
     static TargetRecordingPatchSave provideTargetRecordingPatchSave(
-            FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            TargetConnectionManager targetConnectionManager,
-            Clock clock,
-            PlatformClient platformClient,
-            NotificationFactory notificationFactory) {
-        return new TargetRecordingPatchSave(
-                fs,
-                recordingsPath,
-                targetConnectionManager,
-                clock,
-                platformClient,
-                notificationFactory);
+            RecordingArchiveHelper recordingArchiveHelper) {
+        return new TargetRecordingPatchSave(recordingArchiveHelper);
     }
 
     @Provides
@@ -151,6 +133,11 @@ public abstract class HttpApiV1Module {
     @Binds
     @IntoSet
     abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
+
+    @Provides
+    static Base32 provideBase32() {
+        return new Base32();
+    }
 
     @Binds
     @IntoSet

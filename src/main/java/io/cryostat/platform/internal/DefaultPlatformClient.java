@@ -39,18 +39,31 @@ package io.cryostat.platform.internal;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import javax.management.remote.JMXServiceURL;
+
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.discovery.DiscoveredJvmDescriptor;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient.JvmDiscoveryEvent;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
+import io.cryostat.platform.discovery.BaseNodeType;
+import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.NodeType;
+import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.util.URIUtil;
 
-class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<JvmDiscoveryEvent> {
+public class DefaultPlatformClient extends AbstractPlatformClient
+        implements Consumer<JvmDiscoveryEvent> {
+
+    public static final JDPNodeType NODE_TYPE = new JDPNodeType();
 
     private final Logger logger;
     private final JvmDiscoveryClient discoveryClient;
@@ -69,11 +82,7 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
     @Override
     public void accept(JvmDiscoveryEvent evt) {
         try {
-            ServiceRef serviceRef =
-                    new ServiceRef(
-                            URIUtil.convert(evt.getJvmDescriptor().getJmxServiceUrl()),
-                            evt.getJvmDescriptor().getMainClass());
-            notifyAsyncTargetDiscovery(evt.getEventKind(), serviceRef);
+            notifyAsyncTargetDiscovery(evt.getEventKind(), convert(evt.getJvmDescriptor()));
         } catch (MalformedURLException | URISyntaxException e) {
             logger.warn(e);
         }
@@ -83,10 +92,9 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
     public List<ServiceRef> listDiscoverableServices() {
         return discoveryClient.getDiscoveredJvmDescriptors().stream()
                 .map(
-                        u -> {
+                        desc -> {
                             try {
-                                return new ServiceRef(
-                                        URIUtil.convert(u.getJmxServiceUrl()), u.getMainClass());
+                                return convert(desc);
                             } catch (MalformedURLException | URISyntaxException e) {
                                 logger.warn(e);
                                 return null;
@@ -94,5 +102,44 @@ class DefaultPlatformClient extends AbstractPlatformClient implements Consumer<J
                         })
                 .filter(s -> s != null)
                 .collect(Collectors.toList());
+    }
+
+    private static ServiceRef convert(DiscoveredJvmDescriptor desc)
+            throws MalformedURLException, URISyntaxException {
+        JMXServiceURL serviceUrl = desc.getJmxServiceUrl();
+        ServiceRef serviceRef = new ServiceRef(URIUtil.convert(serviceUrl), desc.getMainClass());
+        URI rmiTarget = URIUtil.getRmiTarget(serviceUrl);
+        serviceRef.setCryostatAnnotations(
+                Map.of(
+                        AnnotationKey.JAVA_MAIN, desc.getMainClass(),
+                        AnnotationKey.HOST, rmiTarget.getHost(),
+                        AnnotationKey.PORT, Integer.toString(rmiTarget.getPort())));
+        return serviceRef;
+    }
+
+    @Override
+    public EnvironmentNode getDiscoveryTree() {
+        EnvironmentNode root = new EnvironmentNode("JDP", BaseNodeType.REALM);
+        List<ServiceRef> targets = listDiscoverableServices();
+        for (ServiceRef target : targets) {
+            TargetNode targetNode = new TargetNode(NODE_TYPE, target);
+            root.addChildNode(targetNode);
+        }
+        return root;
+    }
+
+    public static class JDPNodeType implements NodeType {
+
+        public static final String KIND = "JVM";
+
+        @Override
+        public String getKind() {
+            return KIND;
+        }
+
+        @Override
+        public int ordinal() {
+            return 0;
+        }
     }
 }

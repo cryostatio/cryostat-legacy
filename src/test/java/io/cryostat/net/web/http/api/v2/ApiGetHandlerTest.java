@@ -45,6 +45,7 @@ import java.util.Set;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
@@ -97,6 +98,11 @@ class ApiGetHandlerTest {
         }
 
         @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(Set.of()));
+        }
+
+        @Test
         void shouldReturnJsonMimeType() {
             MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }
@@ -137,6 +143,11 @@ class ApiGetHandlerTest {
                         public HttpMethod httpMethod() {
                             return HttpMethod.GET;
                         }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
+                        }
                     };
             requestHandlers.add(testHandler1);
 
@@ -174,6 +185,11 @@ class ApiGetHandlerTest {
                         public boolean isAvailable() {
                             return false;
                         }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
+                        }
                     };
             RequestHandler testHandler2 =
                     new TestRequestHandler() {
@@ -190,6 +206,11 @@ class ApiGetHandlerTest {
                         @Override
                         public HttpMethod httpMethod() {
                             return HttpMethod.GET;
+                        }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
                         }
                     };
             requestHandlers.add(testHandler1);
@@ -222,6 +243,11 @@ class ApiGetHandlerTest {
                         public HttpMethod httpMethod() {
                             return HttpMethod.GET;
                         }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
+                        }
                     };
             RequestHandler testHandler2 =
                     new TestRequestHandler() {
@@ -238,6 +264,11 @@ class ApiGetHandlerTest {
                         @Override
                         public HttpMethod httpMethod() {
                             return HttpMethod.GET;
+                        }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
                         }
                     };
             requestHandlers.add(testHandler1);
@@ -270,6 +301,11 @@ class ApiGetHandlerTest {
                         public HttpMethod httpMethod() {
                             return HttpMethod.GET;
                         }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
+                        }
                     };
             RequestHandler testHandler2 =
                     new TestRequestHandler() {
@@ -286,6 +322,11 @@ class ApiGetHandlerTest {
                         @Override
                         public HttpMethod httpMethod() {
                             return HttpMethod.GET;
+                        }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
                         }
                     };
             RequestHandler testHandler3 =
@@ -304,6 +345,11 @@ class ApiGetHandlerTest {
                         public HttpMethod httpMethod() {
                             return HttpMethod.POST;
                         }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
+                        }
                     };
             RequestHandler testHandler4 =
                     new TestRequestHandler() {
@@ -320,6 +366,11 @@ class ApiGetHandlerTest {
                         @Override
                         public HttpMethod httpMethod() {
                             return HttpMethod.PATCH;
+                        }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
                         }
                     };
             requestHandlers.add(testHandler1);
@@ -359,6 +410,11 @@ class ApiGetHandlerTest {
                         public HttpMethod httpMethod() {
                             return HttpMethod.POST;
                         }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
+                        }
                     };
             // duplicate on purpose - this will serialize identically. This simulates ex.
             // TargtPostHandler and TargetPostBodyHandler, which also serialize identically.
@@ -377,6 +433,11 @@ class ApiGetHandlerTest {
                         @Override
                         public HttpMethod httpMethod() {
                             return HttpMethod.POST;
+                        }
+
+                        @Override
+                        public Set<ResourceAction> resourceActions() {
+                            return Set.of();
                         }
                     };
             requestHandlers.add(testHandler1);

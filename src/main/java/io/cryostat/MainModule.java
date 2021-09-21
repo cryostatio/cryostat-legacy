@@ -37,16 +37,14 @@
  */
 package io.cryostat;
 
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Set;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
-import io.cryostat.commands.CommandsModule;
 import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
@@ -55,12 +53,16 @@ import io.cryostat.messaging.MessagingModule;
 import io.cryostat.net.NetworkModule;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.platform.PlatformModule;
+import io.cryostat.recordings.RecordingsModule;
+import io.cryostat.rules.Rule;
 import io.cryostat.rules.RulesModule;
 import io.cryostat.sys.SystemModule;
 import io.cryostat.templates.TemplatesModule;
 import io.cryostat.util.GsonJmxServiceUrlAdapter;
 import io.cryostat.util.HttpMimeTypeAdapter;
 import io.cryostat.util.PathTypeAdapter;
+import io.cryostat.util.PluggableTypeAdapter;
+import io.cryostat.util.RuleDeserializer;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -75,13 +77,19 @@ import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
             SystemModule.class,
             NetworkModule.class,
             MessagingModule.class,
-            CommandsModule.class,
             TemplatesModule.class,
             RulesModule.class,
+            RecordingsModule.class,
         })
 public abstract class MainModule {
     public static final String RECORDINGS_PATH = "RECORDINGS_PATH";
     public static final String CONF_DIR = "CONF_DIR";
+
+    @Provides
+    @Singleton
+    static ApplicationVersion provideApplicationVersion(Logger logger) {
+        return new ApplicationVersion(logger);
+    }
 
     @Provides
     @Singleton
@@ -107,17 +115,28 @@ public abstract class MainModule {
         };
     }
 
+    // testing-only when extra adapters aren't needed
+    public static Gson provideGson(Logger logger) {
+        return provideGson(Set.of(), logger);
+    }
+
     // public since this is useful to use directly in tests
     @Provides
     @Singleton
-    public static Gson provideGson(Logger logger) {
-        return new GsonBuilder()
-                .serializeNulls()
-                .disableHtmlEscaping()
-                .registerTypeAdapter(JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
-                .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
-                .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
-                .create();
+    public static Gson provideGson(Set<PluggableTypeAdapter<?>> extraAdapters, Logger logger) {
+        GsonBuilder builder =
+                new GsonBuilder()
+                        .serializeNulls()
+                        .disableHtmlEscaping()
+                        .registerTypeAdapter(
+                                JMXServiceURL.class, new GsonJmxServiceUrlAdapter(logger))
+                        .registerTypeAdapter(HttpMimeType.class, new HttpMimeTypeAdapter())
+                        .registerTypeHierarchyAdapter(Path.class, new PathTypeAdapter())
+                        .registerTypeAdapter(Rule.class, new RuleDeserializer());
+        for (PluggableTypeAdapter<?> pta : extraAdapters) {
+            builder = builder.registerTypeAdapter(pta.getAdaptedType(), pta);
+        }
+        return builder.create();
     }
 
     @SuppressFBWarnings("DMI_HARDCODED_ABSOLUTE_FILENAME")
@@ -128,18 +147,5 @@ public abstract class MainModule {
         String archivePath = env.getEnv("CRYOSTAT_ARCHIVE_PATH", "/flightrecordings");
         logger.info("Local save path for flight recordings set as {}", archivePath);
         return Paths.get(archivePath);
-    }
-
-    @Provides
-    @Singleton
-    @Named(CONF_DIR)
-    static Path provideConfigurationPath(Environment env) {
-        Path path = Paths.get(env.getEnv(CONF_DIR)).resolve("conf");
-        try {
-            Files.createDirectory(path);
-            return path;
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
     }
 }

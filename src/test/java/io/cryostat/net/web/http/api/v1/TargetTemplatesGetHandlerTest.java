@@ -39,9 +39,9 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 import io.cryostat.MainModule;
-import io.cryostat.commands.internal.AbstractRecordingCommand;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.Template;
@@ -50,6 +50,7 @@ import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -92,6 +93,13 @@ class TargetTemplatesGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/targets/:targetId/templates"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.READ_TEMPLATE, ResourceAction.READ_TARGET)));
     }
 
     @Test
@@ -154,6 +162,6 @@ class TargetTemplatesGetHandlerTest {
                         Arrays.asList(
                                 template1,
                                 template2,
-                                AbstractRecordingCommand.ALL_EVENTS_TEMPLATE)));
+                                TargetTemplatesGetHandler.ALL_EVENTS_TEMPLATE)));
     }
 }

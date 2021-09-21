@@ -38,7 +38,9 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -46,16 +48,19 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 
-import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.core.RecordingOptionsCustomizer;
 import io.cryostat.core.RecordingOptionsCustomizer.OptionKey;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -63,6 +68,7 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHandler {
 
     static final String PATH = TargetRecordingOptionsGetHandler.PATH;
+    private static final String UNSET_KEYWORD = "unset";
     private final RecordingOptionsCustomizer customizer;
     private final TargetConnectionManager connectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -98,13 +104,18 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.UPDATE_TARGET);
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        Pattern bool = Pattern.compile("true|false");
+        Pattern bool = Pattern.compile("true|false|" + UNSET_KEYWORD);
         MultiMap attrs = ctx.request().formAttributes();
         if (attrs.contains("toDisk")) {
             Matcher m = bool.matcher(attrs.get("toDisk"));
@@ -115,8 +126,12 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
                         key -> {
                             if (attrs.contains(key)) {
                                 try {
-                                    Long.parseLong(attrs.get(key));
-                                } catch (Exception e) {
+                                    String v = attrs.get(key);
+                                    if (UNSET_KEYWORD.equals(v)) {
+                                        return;
+                                    }
+                                    Long.parseLong(v);
+                                } catch (NumberFormatException e) {
                                     throw new HttpStatusException(400, "Invalid options");
                                 }
                             }
@@ -129,13 +144,14 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
                                     .forEach(
                                             key -> {
                                                 if (attrs.contains(key)) {
-                                                    OptionKey.fromOptionName(key)
-                                                            .ifPresent(
-                                                                    optionKey ->
-                                                                            customizer.set(
-                                                                                    optionKey,
-                                                                                    attrs.get(
-                                                                                            key)));
+                                                    String v = attrs.get(key);
+                                                    OptionKey optionKey =
+                                                            OptionKey.fromOptionName(key).get();
+                                                    if (UNSET_KEYWORD.equals(v)) {
+                                                        customizer.unset(optionKey);
+                                                    } else {
+                                                        customizer.set(optionKey, v);
+                                                    }
                                                 }
                                             });
 
@@ -145,6 +161,7 @@ class TargetRecordingOptionsPatchHandler extends AbstractAuthenticatedRequestHan
                                     connection.getService(), builder);
                         });
 
+        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         ctx.response().setStatusCode(200);
         ctx.response().end(gson.toJson(updatedMap));
     }

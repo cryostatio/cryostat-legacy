@@ -54,8 +54,12 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingOptionsBuilderFactory;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import dagger.Module;
@@ -64,6 +68,7 @@ import io.vertx.core.MultiMap;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
+import org.apache.commons.codec.binary.Base32;
 import org.apache.commons.codec.binary.Base64;
 
 @Module
@@ -76,6 +81,7 @@ public abstract class RulesModule {
     @Singleton
     static RuleRegistry provideRuleRegistry(
             @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir,
+            RuleMatcher ruleMatcher,
             FileSystem fs,
             Gson gson,
             Logger logger) {
@@ -84,10 +90,16 @@ public abstract class RulesModule {
             if (!fs.isDirectory(rulesDir)) {
                 Files.createDirectory(rulesDir);
             }
-            return new RuleRegistry(rulesDir, fs, gson, logger);
+            return new RuleRegistry(rulesDir, ruleMatcher, fs, gson, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Provides
+    @Singleton
+    static RuleMatcher provideRuleMatcher() {
+        return new RuleMatcher();
     }
 
     @Provides
@@ -96,28 +108,33 @@ public abstract class RulesModule {
             PlatformClient platformClient,
             RuleRegistry registry,
             CredentialsManager credentialsManager,
-            @Named(RULES_WEB_CLIENT) WebClient webClient,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            TargetConnectionManager targetConnectionManager,
+            RecordingArchiveHelper recordingArchiveHelper,
+            RecordingTargetHelper recordingTargetHelper,
             PeriodicArchiverFactory periodicArchiverFactory,
-            @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
-            Logger logger) {
+            Logger logger,
+            Base32 base32) {
         return new RuleProcessor(
                 platformClient,
                 registry,
                 Executors.newScheduledThreadPool(1),
                 credentialsManager,
-                webClient,
+                recordingOptionsBuilderFactory,
+                targetConnectionManager,
+                recordingArchiveHelper,
+                recordingTargetHelper,
                 periodicArchiverFactory,
-                headersFactory,
-                logger);
+                logger,
+                base32);
     }
 
     @Provides
     @Singleton
     static PeriodicArchiverFactory providePeriodicArchivedFactory(
-            @Named(RULES_WEB_CLIENT) WebClient webClient,
             @Named(RULES_HEADERS_FACTORY) Function<Credentials, MultiMap> headersFactory,
             Logger logger) {
-        return new PeriodicArchiverFactory(webClient, headersFactory, logger);
+        return new PeriodicArchiverFactory(logger);
     }
 
     @Provides

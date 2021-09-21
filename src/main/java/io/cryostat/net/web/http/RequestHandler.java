@@ -37,6 +37,9 @@
  */
 package io.cryostat.net.web.http;
 
+import java.util.Set;
+
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import io.vertx.core.Handler;
@@ -67,6 +70,8 @@ public interface RequestHandler extends Handler<RoutingContext> {
     String path();
 
     HttpMethod httpMethod();
+
+    Set<ResourceAction> resourceActions();
 
     default boolean isAvailable() {
         return true;

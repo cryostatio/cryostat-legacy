@@ -41,15 +41,20 @@ import static org.mockito.Mockito.when;
 
 import java.net.UnknownHostException;
 import java.rmi.ConnectIOException;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.api.ApiVersion;
 
+import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -79,11 +84,28 @@ class AbstractAuthenticatedRequestHandlerTest {
     @BeforeEach
     void setup() {
         this.handler = new AuthenticatedHandler(auth);
+        Mockito.lenient().when(ctx.response()).thenReturn(resp);
+        Mockito.lenient()
+                .when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
+        Mockito.lenient()
+                .when(resp.putHeader(Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(resp);
+    }
+
+    @Test
+    void shouldPutDefaultContentTypeHeader() {
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        handler.handle(ctx);
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/plain");
     }
 
     @Test
     void shouldThrow401IfAuthFails() {
-        when(auth.validateHttpHeader(Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(false));
 
         HttpStatusException ex =
@@ -92,8 +114,31 @@ class AbstractAuthenticatedRequestHandlerTest {
     }
 
     @Test
+    void shouldThrow401IfAuthFails2() {
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(
+                        CompletableFuture.failedFuture(
+                                new PermissionDeniedException(
+                                        "namespace", "group", "resource", "verb", "reason")));
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+    }
+
+    @Test
+    void shouldThrow401IfAuthFails3() {
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.failedFuture(new KubernetesClientException("test")));
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+    }
+
+    @Test
     void shouldThrow500IfAuthThrows() {
-        when(auth.validateHttpHeader(Mockito.any()))
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new NullPointerException()));
 
         HttpStatusException ex =
@@ -106,7 +151,7 @@ class AbstractAuthenticatedRequestHandlerTest {
 
         @BeforeEach
         void setup2() {
-            when(auth.validateHttpHeader(Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -194,7 +239,7 @@ class AbstractAuthenticatedRequestHandlerTest {
             handler = new ConnectionDescriptorHandler(auth);
             Mockito.when(ctx.request()).thenReturn(req);
             when(req.headers()).thenReturn(headers);
-            when(auth.validateHttpHeader(Mockito.any()))
+            when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                     .thenReturn(CompletableFuture.completedFuture(true));
         }
 
@@ -356,6 +401,11 @@ class AbstractAuthenticatedRequestHandlerTest {
         @Override
         public HttpMethod httpMethod() {
             return null;
+        }
+
+        @Override
+        public Set<ResourceAction> resourceActions() {
+            return ResourceAction.NONE;
         }
 
         @Override

@@ -41,6 +41,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.function.Consumer;
 
+import io.cryostat.platform.discovery.EnvironmentNode;
+
 public interface PlatformClient {
     void start() throws IOException;
 
@@ -49,4 +51,6 @@ public interface PlatformClient {
     void addTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
 
     void removeTargetDiscoveryListener(Consumer<TargetDiscoveryEvent> listener);
+
+    EnvironmentNode getDiscoveryTree();
 }

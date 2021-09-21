@@ -38,21 +38,24 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
 import io.cryostat.MainModule;
-import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -99,6 +102,12 @@ class TargetRecordingOptionsGetHandlerTest {
     void shouldHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/targets/:targetId/recordingOptions"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
     }
 
     @Test
@@ -153,6 +162,10 @@ class TargetRecordingOptionsGetHandlerTest {
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
         IFlightRecorderService service = Mockito.mock(IFlightRecorderService.class);
         Mockito.when(jfrConnection.getService()).thenReturn(service);
 
@@ -164,5 +177,6 @@ class TargetRecordingOptionsGetHandlerTest {
         MatcherAssert.assertThat(
                 responseCaptor.getValue(),
                 Matchers.equalTo("{\"maxAge\":50,\"toDisk\":true,\"maxSize\":32}"));
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     }
 }

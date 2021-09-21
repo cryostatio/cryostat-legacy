@@ -41,11 +41,13 @@ import static org.mockito.Mockito.lenient;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
 
 import io.cryostat.core.templates.LocalStorageTemplateService;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.http.HttpMethod;
@@ -97,6 +99,13 @@ class TemplateDeleteHandlerTest {
     void sholdHandleCorrectPath() {
         MatcherAssert.assertThat(
                 handler.path(), Matchers.equalTo("/api/v1/templates/:templateName"));
+    }
+
+    @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(Set.of(ResourceAction.DELETE_TEMPLATE)));
     }
 
     @Test

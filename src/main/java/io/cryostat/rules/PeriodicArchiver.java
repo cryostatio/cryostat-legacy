@@ -37,37 +37,41 @@
  */
 package io.cryostat.rules;
 
-import java.io.IOException;
-import java.net.URI;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
+import java.util.List;
 import java.util.Queue;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import javax.security.sasl.SaslException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.Credentials;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.platform.ServiceRef;
-import io.cryostat.util.HttpStatusCodeIdentifier;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
-import io.vertx.core.MultiMap;
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
-import io.vertx.ext.web.client.WebClient;
+import org.apache.commons.codec.binary.Base32;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.client.utils.URLEncodedUtils;
 
 class PeriodicArchiver implements Runnable {
+
+    private static final Pattern RECORDING_FILENAME_PATTERN =
+            Pattern.compile(
+                    "([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?(\\.jfr)?");
 
     private final ServiceRef serviceRef;
     private final CredentialsManager credentialsManager;
     private final Rule rule;
-    private final WebClient webClient;
-    private final Function<Credentials, MultiMap> headersFactory;
+    private final RecordingArchiveHelper recordingArchiveHelper;
     private final Function<Pair<ServiceRef, Rule>, Void> failureNotifier;
     private final Logger logger;
+    private final Base32 base32;
 
     private final Queue<String> previousRecordings;
 
@@ -75,20 +79,18 @@ class PeriodicArchiver implements Runnable {
             ServiceRef serviceRef,
             CredentialsManager credentialsManager,
             Rule rule,
-            WebClient webClient,
-            Function<Credentials, MultiMap> headersFactory,
+            RecordingArchiveHelper recordingArchiveHelper,
             Function<Pair<ServiceRef, Rule>, Void> failureNotifier,
-            Logger logger) {
-        this.webClient = webClient;
+            Logger logger,
+            Base32 base32) {
         this.serviceRef = serviceRef;
         this.credentialsManager = credentialsManager;
+        this.recordingArchiveHelper = recordingArchiveHelper;
         this.rule = rule;
-        this.headersFactory = headersFactory;
         this.failureNotifier = failureNotifier;
         this.logger = logger;
+        this.base32 = base32;
 
-        // FIXME this needs to be populated at startup by scanning the existing archived recordings,
-        // in case we have been restarted and already previously processed archival for this rule
         this.previousRecordings = new ArrayDeque<>(this.rule.getPreservedArchives());
     }
 
@@ -97,91 +99,68 @@ class PeriodicArchiver implements Runnable {
         logger.trace("PeriodicArchiver for {} running", rule.getRecordingName());
 
         try {
-            while (this.previousRecordings.size() > this.rule.getPreservedArchives() - 1) {
-                pruneArchive(this.previousRecordings.remove()).get();
+            // If there are no previous recordings, either this is the first time this rule is being
+            // archived or the Cryostat instance was restarted. Since it could be the latter,
+            // populate the array with any previously archived recordings for this rule.
+            if (previousRecordings.isEmpty()) {
+                String serviceUri = serviceRef.getServiceUri().toString();
+                List<ArchivedRecordingInfo> archivedRecordings =
+                        recordingArchiveHelper.getRecordings().get();
+
+                for (ArchivedRecordingInfo archivedRecordingInfo : archivedRecordings) {
+                    String decodedServiceUri =
+                            new String(
+                                    base32.decode(archivedRecordingInfo.getEncodedServiceUri()),
+                                    StandardCharsets.UTF_8);
+                    String fileName = archivedRecordingInfo.getName();
+                    Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
+                    if (m.matches()) {
+                        String recordingName = m.group(2);
+
+                        if (decodedServiceUri.equals(serviceUri)
+                                && recordingName.equals(rule.getRecordingName())) {
+                            previousRecordings.add(fileName);
+                        }
+                    }
+                }
+            }
+
+            while (previousRecordings.size() > rule.getPreservedArchives() - 1) {
+                pruneArchive(previousRecordings.remove());
             }
 
             performArchival();
-        } catch (InterruptedException | ExecutionException e) {
+        } catch (Exception e) {
             logger.error(e);
-            failureNotifier.apply(Pair.of(serviceRef, rule));
+
+            if (ExceptionUtils.hasCause(e, ExecutionException.class)
+                    || ExceptionUtils.hasCause(e, InterruptedException.class)
+                    || ExceptionUtils.hasCause(e, RecordingNotFoundException.class)
+                    || ExceptionUtils.hasCause(e, SecurityException.class)
+                    || ExceptionUtils.hasCause(e, SaslException.class)
+                    || ExceptionUtils.hasCause(e, ArchivePathException.class)) {
+
+                failureNotifier.apply(Pair.of(serviceRef, rule));
+            }
         }
     }
 
-    void performArchival() throws InterruptedException, ExecutionException {
-        // FIXME using an HTTP request to localhost here works well enough, but is needlessly
-        // complex. The API handler targeted here should be refactored to extract the logic that
-        // creates the recording from the logic that simply figures out the recording parameters
-        // from the POST form, path param, and headers. Then the handler should consume the API
-        // exposed by this refactored chunk, and this refactored chunk can also be consumed here
-        // rather than firing HTTP requests to ourselves
+    private void performArchival() throws InterruptedException, ExecutionException, Exception {
+        String recordingName = rule.getRecordingName();
+        ConnectionDescriptor connectionDescriptor =
+                new ConnectionDescriptor(serviceRef, credentialsManager.getCredentials(serviceRef));
 
-        String path =
-                URI.create(
-                                String.format(
-                                        "/api/v1/targets/%s/recordings/%s",
-                                        URLEncodedUtils.formatSegments(
-                                                serviceRef.getServiceUri().toString()),
-                                        URLEncodedUtils.formatSegments(rule.getRecordingName())))
-                        .normalize()
-                        .toString();
-        this.logger.trace("PATCH \"save\" {}", path);
-
-        CompletableFuture<String> future = new CompletableFuture<>();
-        this.webClient
-                .patch(path)
-                .putHeaders(headersFactory.apply(credentialsManager.getCredentials(serviceRef)))
-                .sendBuffer(
-                        Buffer.buffer("save"),
-                        ar -> {
-                            if (ar.failed()) {
-                                this.logger.error(
-                                        new IOException("Periodic archival failed", ar.cause()));
-                                future.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> resp = ar.result();
-                            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
-                                this.logger.error(resp.bodyAsString());
-                                future.completeExceptionally(new IOException(resp.bodyAsString()));
-                                return;
-                            }
-                            future.complete(resp.bodyAsString());
-                        });
-        this.previousRecordings.add(future.get());
+        String saveName =
+                recordingArchiveHelper.saveRecording(connectionDescriptor, recordingName).get();
+        previousRecordings.add(saveName);
     }
 
-    Future<Boolean> pruneArchive(String recordingName) {
-        logger.trace("Pruning {}", recordingName);
-        String path =
-                URI.create(
-                                String.format(
-                                        "/api/v1/recordings/%s",
-                                        URLEncodedUtils.formatSegments(recordingName)))
-                        .normalize()
-                        .toString();
-        this.logger.trace("DELETE {}", path);
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        this.webClient
-                .delete(path)
-                .putHeaders(headersFactory.apply(credentialsManager.getCredentials(serviceRef)))
-                .send(
-                        ar -> {
-                            if (ar.failed()) {
-                                this.logger.error(
-                                        new IOException("Archival prune failed", ar.cause()));
-                                future.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> resp = ar.result();
-                            if (!HttpStatusCodeIdentifier.isSuccessCode(resp.statusCode())) {
-                                this.logger.error(resp.bodyAsString());
-                                future.completeExceptionally(new IOException(resp.bodyAsString()));
-                                return;
-                            }
-                            previousRecordings.remove(recordingName);
-                            future.complete(true);
-                        });
-        return future;
+    private void pruneArchive(String recordingName) throws Exception {
+        recordingArchiveHelper.deleteRecording(recordingName).get();
+        previousRecordings.remove(recordingName);
+    }
+
+    public Queue<String> getPreviousRecordings() {
+        return previousRecordings;
     }
 }

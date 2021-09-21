@@ -40,15 +40,19 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.net.URI;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 
 import com.google.gson.Gson;
@@ -105,6 +109,12 @@ class TargetsPostHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.CREATE_TARGET)));
+    }
+
+    @Test
     void shouldHaveJsonMimeType() {
         MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
     }
@@ -140,6 +150,8 @@ class TargetsPostHandlerTest {
         ServiceRef captured = refCaptor.getValue();
         MatcherAssert.assertThat(captured.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
         MatcherAssert.assertThat(captured.getAlias(), Matchers.equalTo(Optional.of(alias)));
+        MatcherAssert.assertThat(captured.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
+        MatcherAssert.assertThat(captured.getCryostatAnnotations(), Matchers.equalTo(Map.of()));
         MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }
 
@@ -184,6 +196,38 @@ class TargetsPostHandlerTest {
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+    }
+
+    @Test
+    void testRequestWithAdditionalAnnotations() throws Exception {
+        MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
+        RequestParameters params = Mockito.mock(RequestParameters.class);
+        Mockito.when(params.getFormAttributes()).thenReturn(attrs);
+        String connectUrl = "service:jmx:rmi:///jndi/rmi://cryostat:9099/jmxrmi";
+        String alias = "TestTarget";
+
+        attrs.set("connectUrl", connectUrl);
+        attrs.set("alias", alias);
+        attrs.set("annotations.cryostat.HOST", "app.example.com");
+        attrs.set("annotations.cryostat.PID", "1234");
+        attrs.set("annotations.cryostat.MADEUPKEY", "should not appear");
+
+        Mockito.when(customTargetPlatformClient.addTarget(Mockito.any())).thenReturn(true);
+
+        IntermediateResponse<ServiceRef> response = handler.handle(params);
+        MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
+
+        ArgumentCaptor<ServiceRef> refCaptor = ArgumentCaptor.forClass(ServiceRef.class);
+        Mockito.verify(customTargetPlatformClient).addTarget(refCaptor.capture());
+        ServiceRef captured = refCaptor.getValue();
+        MatcherAssert.assertThat(captured.getServiceUri(), Matchers.equalTo(new URI(connectUrl)));
+        MatcherAssert.assertThat(captured.getAlias(), Matchers.equalTo(Optional.of(alias)));
+        MatcherAssert.assertThat(captured.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
+        MatcherAssert.assertThat(
+                captured.getCryostatAnnotations(),
+                Matchers.equalTo(
+                        Map.of(AnnotationKey.HOST, "app.example.com", AnnotationKey.PID, "1234")));
+        MatcherAssert.assertThat(response.getBody(), Matchers.equalTo(captured));
     }
 
     @Test

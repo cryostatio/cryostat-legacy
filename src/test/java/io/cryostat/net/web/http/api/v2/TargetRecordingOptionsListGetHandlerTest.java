@@ -44,6 +44,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.common.unit.IOptionDescriptor;
@@ -55,6 +56,7 @@ import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -102,6 +104,12 @@ class TargetRecordingOptionsListGetHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
+    }
+
+    @Test
     void shouldRespondWithRecordingOptionsList() throws Exception {
         IOptionDescriptor<String> descriptor = mock(IOptionDescriptor.class);
         when(descriptor.getName()).thenReturn("foo");
@@ -127,7 +135,7 @@ class TargetRecordingOptionsListGetHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
 
-        Mockito.when(auth.validateHttpHeader(Mockito.any()))
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         try {

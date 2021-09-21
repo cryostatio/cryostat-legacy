@@ -44,6 +44,7 @@ import static org.mockito.Mockito.when;
 import java.io.ByteArrayInputStream;
 import java.util.List;
 import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
@@ -53,6 +54,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.MultiMap;
@@ -103,19 +105,29 @@ class TargetRecordingGetHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(),
+                Matchers.equalTo(
+                        Set.of(ResourceAction.READ_TARGET, ResourceAction.READ_RECORDING)));
+    }
+
+    @Test
     void shouldNotBeAsync() {
         Assertions.assertFalse(handler.isAsync());
     }
 
     @Test
     void shouldHandleRecordingDownloadRequest() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
@@ -159,13 +171,15 @@ class TargetRecordingGetHandlerTest {
 
     @Test
     void shouldHandleRecordingDownloadRequestWithJfrSuffix() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         when(connection.getService()).thenReturn(service);
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerResponse resp = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
@@ -209,13 +223,17 @@ class TargetRecordingGetHandlerTest {
 
     @Test
     void shouldRespond404IfRecordingNameNotFound() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(
@@ -240,13 +258,17 @@ class TargetRecordingGetHandlerTest {
 
     @Test
     void shouldRespond500IfUnexpectedExceptionThrown() throws Exception {
-        when(authManager.validateHttpHeader(Mockito.any()))
+        when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = mock(RoutingContext.class);
         HttpServerRequest req = mock(HttpServerRequest.class);
         when(ctx.request()).thenReturn(req);
         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        HttpServerResponse resp = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(resp);
+        when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
                 .thenAnswer(

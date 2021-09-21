@@ -37,24 +37,36 @@
  */
 package io.cryostat.net.web.http.generic;
 
+import java.nio.file.Path;
+import java.util.Set;
+
 import javax.inject.Inject;
 
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class WebClientAssetsGetHandler implements RequestHandler {
 
     static final String WEB_CLIENT_ASSETS_BASE =
             WebServer.class.getPackageName().replaceAll("\\.", "/");
+    private static final Path INDEX_HTML =
+            Path.of(WEB_CLIENT_ASSETS_BASE, "index.html").normalize();
+
+    private final boolean hasIndexHtml;
 
     @Inject
-    WebClientAssetsGetHandler() {}
+    WebClientAssetsGetHandler(Vertx vertx) {
+        this.hasIndexHtml = vertx.fileSystem().existsBlocking(INDEX_HTML.toString());
+    }
 
     @Override
     public ApiVersion apiVersion() {
@@ -72,13 +84,21 @@ class WebClientAssetsGetHandler implements RequestHandler {
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
     public String path() {
         return basePath() + "*";
     }
 
     @Override
     public void handle(RoutingContext ctx) {
+        if (!hasIndexHtml) {
+            throw new HttpStatusException(404);
+        }
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        ctx.response().sendFile(WEB_CLIENT_ASSETS_BASE + "/index.html");
+        ctx.response().sendFile(INDEX_HTML.toString());
     }
 }

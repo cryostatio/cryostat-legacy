@@ -7,6 +7,8 @@
 build/
 target/
 bin/
+
+conf/
 truststore/
 clientlib/
 certs/*.p12

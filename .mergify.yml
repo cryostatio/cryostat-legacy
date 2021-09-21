@@ -1,0 +1,11 @@
+pull_request_rules:
+  - name: backport patches to v2 branch
+    conditions:
+      - base=main
+      - label=backport
+    actions:
+      backport:
+        branches:
+          - v2
+        assignees:
+          - "{{ author }}"

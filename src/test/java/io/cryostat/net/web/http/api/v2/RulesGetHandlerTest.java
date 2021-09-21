@@ -42,6 +42,7 @@ import java.util.Set;
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.Rule;
@@ -97,6 +98,12 @@ class RulesGetHandlerTest {
         }
 
         @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(
+                    handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RULE)));
+        }
+
+        @Test
         void shouldHavePlaintextMimeType() {
             MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }
@@ -118,19 +125,19 @@ class RulesGetHandlerTest {
         Set<Rule> testRules;
 
         @BeforeEach
-        void setup() {
+        void setup() throws Exception {
             Rule ruleA =
                     new Rule.Builder()
                             .name("Rule A")
                             .eventSpecifier("template=Profiling")
-                            .targetAlias("fooTarget")
+                            .matchExpression("target.annotations.cryostat.JAVA_MAIN == 'fooTarget'")
                             .build();
 
             Rule ruleB =
                     new Rule.Builder()
                             .name("Rule B")
                             .eventSpecifier("template=Continuous")
-                            .targetAlias("barTarget")
+                            .matchExpression("target.annotations.cryostat.JAVA_MAIN == 'barTarget'")
                             .build();
 
             testRules = Set.of(ruleA, ruleB);

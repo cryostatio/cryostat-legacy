@@ -37,6 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.EnumSet;
+import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -47,10 +49,12 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -86,6 +90,15 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(
+                ResourceAction.READ_TARGET,
+                ResourceAction.READ_RECORDING,
+                ResourceAction.CREATE_REPORT,
+                ResourceAction.READ_REPORT);
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
@@ -109,14 +122,20 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
 
-            if (rootCause instanceof ReportService.RecordingNotFoundException) {
-                throw new HttpStatusException(404, ee);
-            } else if (rootCause instanceof SubprocessReportGenerator.ReportGenerationException
-                    && ((SubprocessReportGenerator.ReportGenerationException) rootCause).getStatus()
-                            == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE) {
+            if (rootCause instanceof RecordingNotFoundException
+                    || targetRecordingNotFound(rootCause)) {
                 throw new HttpStatusException(404, ee);
             }
             throw ee;
         }
+    }
+
+    private boolean targetRecordingNotFound(Exception rootCause) {
+        return rootCause instanceof SubprocessReportGenerator.ReportGenerationException
+                        && (((SubprocessReportGenerator.ReportGenerationException) rootCause)
+                                        .getStatus()
+                                == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE)
+                || (((SubprocessReportGenerator.ReportGenerationException) rootCause).getStatus()
+                        == SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING);
     }
 }

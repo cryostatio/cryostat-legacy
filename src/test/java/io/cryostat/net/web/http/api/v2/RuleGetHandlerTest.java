@@ -39,10 +39,12 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.rules.Rule;
@@ -98,6 +100,12 @@ class RuleGetHandlerTest {
         }
 
         @Test
+        void shouldHaveExpectedRequiredPermissions() {
+            MatcherAssert.assertThat(
+                    handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_RULE)));
+        }
+
+        @Test
         void shouldHavePlaintextMimeType() {
             MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }
@@ -116,12 +124,18 @@ class RuleGetHandlerTest {
     @Nested
     class Requests {
         @Mock RequestParameters params;
-        final Rule testRule =
-                new Rule.Builder()
-                        .name("Test Rule")
-                        .targetAlias("localhost:0")
-                        .eventSpecifier("template=Profiling")
-                        .build();
+        Rule testRule;
+
+        @BeforeEach
+        void setup() throws Exception {
+            testRule =
+                    new Rule.Builder()
+                            .name("Test Rule")
+                            .matchExpression(
+                                    "target.annotations.cryostat.HOST=='localhost' && target.annotations.cryostat.PORT==0")
+                            .eventSpecifier("template=Profiling")
+                            .build();
+        }
 
         @Test
         void shouldRespondWithRuleDefinition() throws Exception {

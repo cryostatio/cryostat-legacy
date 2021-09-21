@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.management.remote.JMXServiceURL;
 
@@ -46,12 +47,14 @@ import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.util.URIUtil;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -93,6 +96,12 @@ class TargetsGetHandlerTest {
     }
 
     @Test
+    void shouldHaveExpectedRequiredPermissions() {
+        MatcherAssert.assertThat(
+                handler.resourceActions(), Matchers.equalTo(Set.of(ResourceAction.READ_TARGET)));
+    }
+
+    @Test
     void shouldReturnListOfTargets() throws Exception {
         Mockito.when(connectionToolkit.createServiceURL(Mockito.anyString(), Mockito.anyInt()))
                 .thenAnswer(
@@ -118,10 +127,13 @@ class TargetsGetHandlerTest {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
         Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(
+                        resp.putHeader(
+                                Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+                .thenReturn(resp);
 
         handler.handleAuthenticated(ctx);
 
-        Mockito.verify(ctx).response();
         Mockito.verifyNoMoreInteractions(ctx);
 
         ArgumentCaptor<String> responseCaptor = ArgumentCaptor.forClass(String.class);
@@ -131,5 +143,6 @@ class TargetsGetHandlerTest {
                 gson.fromJson(
                         responseCaptor.getValue(), new TypeToken<List<ServiceRef>>() {}.getType());
         MatcherAssert.assertThat(result, Matchers.equalTo(targets));
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/json");
     }
 }

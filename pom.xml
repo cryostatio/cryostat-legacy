@@ -5,7 +5,7 @@
 <modelVersion>4.0.0</modelVersion>
 <groupId>io.cryostat</groupId>
 <artifactId>cryostat</artifactId>
-<version>2.0.0-SNAPSHOT</version>
+<version>2.1.0-SNAPSHOT</version>
 <packaging>jar</packaging>
 <name>cryostat</name>
 <url>http://maven.apache.org</url>
@@ -18,8 +18,8 @@
 
   <imageBuilder>/usr/bin/podman</imageBuilder>
   <baseImage>quay.io/cryostat/cryostat-base</baseImage>
-  <baseImageTag>@sha256:233cb0897086bdb4ac74bd1d736c719ebebf660e2e7a6b5f25fc0b7e972d0a77</baseImageTag><!-- 0.2.0 -->
-  <baseImageJdkVersion>java-11-openjdk-11.0.11.0.9-0.el8_3.x86_64</baseImageJdkVersion>
+  <baseImageTag>@sha256:2f9383116a556e1d5e431e58831e7eae40496eb72990595df2da0578a050b5b2</baseImageTag><!-- 0.3.0 -->
+  <baseImageJdkVersion>java-11-openjdk-11.0.11.0.9-2.el8_4.x86_64</baseImageJdkVersion>
   <node.version>v12.5.0</node.version>
   <yarn.version>v1.22.10</yarn.version>
 
@@ -29,10 +29,12 @@
   <cryostat.minimal>false</cryostat.minimal>
   <cryostat.imageStream>quay.io/cryostat/cryostat</cryostat.imageStream>
   <cryostat.entrypoint>/app/entrypoint.sh</cryostat.entrypoint>
+  <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
   <cryostat.listenPort>9090</cryostat.listenPort>
   <cryostat.itest.webPort>8181</cryostat.itest.webPort>
+  <cryostat.itest.webHost>localhost</cryostat.itest.webHost>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
   <cryostat.itest.grafana.port>3000</cryostat.itest.grafana.port>
   <cryostat.itest.grafana.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana.imageStream>
@@ -53,19 +55,19 @@
   <org.codehaus.mojo.exec.plugin.version>3.0.0</org.codehaus.mojo.exec.plugin.version>
   <com.mycila.license.maven.plugin.version>4.0</com.mycila.license.maven.plugin.version>
   <org.owasp.dependency.check.version>6.1.5</org.owasp.dependency.check.version>
-  <com.google.cloud.tools.jib.maven.plugin.version>3.0.0</com.google.cloud.tools.jib.maven.plugin.version>
+  <com.google.cloud.tools.jib.maven.plugin.version>3.1.1</com.google.cloud.tools.jib.maven.plugin.version>
 
   <com.google.dagger.version>2.34.1</com.google.dagger.version>
   <com.google.dagger.compiler.version>2.26</com.google.dagger.compiler.version>
 
-  <io.cryostat.core.version>2.3.0</io.cryostat.core.version>
+  <io.cryostat.core.version>2.3.1</io.cryostat.core.version>
 
   <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.15</org.apache.commons.codec.version>
   <org.apache.commons.validator.version>1.7</org.apache.commons.validator.version>
   <org.apache.commons.io.version>2.8.0</org.apache.commons.io.version>
   <org.apache.httpcomponents.version>4.5.13</org.apache.httpcomponents.version>
-  <io.fabric8.client.version>5.3.0</io.fabric8.client.version>
+  <io.fabric8.client.version>5.4.1</io.fabric8.client.version>
   <io.vertx.web.version>3.9.7</io.vertx.web.version>
   <org.slf4j.version>1.7.30</org.slf4j.version>
   <com.google.code.gson.version>2.8.6</com.google.code.gson.version>
@@ -78,7 +80,7 @@
   <org.mockito.version>3.9.0</org.mockito.version>
   <org.jacoco.maven.plugin.version>0.8.6</org.jacoco.maven.plugin.version>
   <com.diffplug.spotless.maven.plugin.version>2.10.1</com.diffplug.spotless.maven.plugin.version>
-  <org.jsoup.version>1.13.1</org.jsoup.version>
+  <org.jsoup.version>1.14.2</org.jsoup.version>
 </properties>
 
 <dependencies>
@@ -199,6 +201,18 @@
     <version>${com.github.spotbugs.version}</version>
     <scope>provided</scope>
   </dependency>
+  <dependency>
+    <groupId>io.fabric8</groupId>
+    <artifactId>kubernetes-server-mock</artifactId>
+    <version>${io.fabric8.client.version}</version>
+    <scope>test</scope>
+  </dependency>
+  <dependency>
+    <groupId>io.fabric8</groupId>
+    <artifactId>openshift-server-mock</artifactId>
+    <version>${io.fabric8.client.version}</version>
+    <scope>test</scope>
+  </dependency>
 </dependencies>
 
 <build>
@@ -249,17 +263,34 @@
       <artifactId>exec-maven-plugin</artifactId>
       <version>${org.codehaus.mojo.exec.plugin.version}</version>
       <configuration>
-        <mainClass>io.cryostat.Cryostat</mainClass>
+        <mainClass>${cryostat.mainClass}</mainClass>
         <additionalClasspathElements>
           <additionalClasspathElement>${project.build.directory}/assets/app/resources</additionalClasspathElement>
         </additionalClasspathElements>
       </configuration>
       <executions>
         <execution>
+          <id>generate-git-version</id>
+          <phase>generate-resources</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>git</executable>
+            <arguments>
+              <argument>describe</argument>
+              <argument>--dirty</argument>
+              <argument>--long</argument>
+              <argument>--always</argument>
+            </arguments>
+            <outputFile>${project.build.directory}/assets/app/resources/io/cryostat/version</outputFile>
+          </configuration>
+        </execution>
+        <execution>
           <id>create-pod</id>
           <phase>pre-integration-test</phase>
           <goals>
-              <goal>exec</goal>
+            <goal>exec</goal>
           </goals>
           <configuration>
             <executable>${imageBuilder}</executable>
@@ -277,6 +308,7 @@
               <argument>--publish</argument>
               <argument>${cryostat.itest.grafana.port}:${cryostat.itest.grafana.port}</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -295,6 +327,7 @@
               <argument>--rm</argument>
               <argument>${cryostat.itest.jfr-datasource.imageStream}:${cryostat.itest.jfr-datasource.version}</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -317,6 +350,7 @@
               <argument>--rm</argument>
               <argument>${cryostat.itest.grafana.imageStream}:${cryostat.itest.grafana.version}</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -337,14 +371,18 @@
               <argument>type=tmpfs,target=/opt/cryostat.d/templates.d</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/recordings.d</argument>
+              <argument>--mount</argument>
+              <argument>type=tmpfs,target=/opt/cryostat.d/truststore.d</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_TARGET_CACHE_MAX_CONNECTIONS=1</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_TARGET_CACHE_TTL=5</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_SSL=true</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_WEB_HOST=0.0.0.0</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_LISTEN_HOST=0.0.0.0</argument>
+              <argument>CRYOSTAT_WEB_HOST=${cryostat.itest.webHost}</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_RJMX_PORT=9091</argument>
               <argument>--env</argument>
@@ -358,13 +396,16 @@
               <argument>--env</argument>
               <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DATASOURCE_URL=http://0.0.0.0:8080</argument>
+              <argument>SSL_TRUSTSTORE_DIR=/opt/cryostat.d/truststore.d</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DASHBOARD_URL=http://0.0.0.0:3000</argument>
+              <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:8080</argument>
+              <argument>--env</argument>
+              <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:3000</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.imageStream}:${cryostat.imageVersion}</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -379,8 +420,25 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk http://0.0.0.0:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+              <argument>until curl -sSk http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
             </arguments>
+            <skip>${skipITs}</skip>
+          </configuration>
+        </execution>
+        <execution>
+          <id>capture-oci-logs</id>
+          <phase>post-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>${imageBuilder}</executable>
+            <arguments>
+              <argument>logs</argument>
+              <argument>cryostat-itest</argument>
+            </arguments>
+            <outputFile>${project.build.directory}/cryostat-itest-${maven.build.timestamp}.log</outputFile>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -395,6 +453,7 @@
               <argument>kill</argument>
               <argument>jfr-datasource-itest</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -409,6 +468,7 @@
               <argument>kill</argument>
               <argument>grafana-itest</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -423,6 +483,7 @@
               <argument>kill</argument>
               <argument>cryostat-itest</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
         <execution>
@@ -439,6 +500,7 @@
               <argument>--force</argument>
               <argument>${cryostat.itest.podName}</argument>
             </arguments>
+            <skip>${skipITs}</skip>
           </configuration>
         </execution>
       </executions>
@@ -449,6 +511,7 @@
       <version>${org.apache.maven.plugins.surefire.version}</version>
       <configuration>
         <skipTests>${skipUTs}</skipTests>
+        <trimStackTrace>false</trimStackTrace>
       </configuration>
     </plugin>
     <plugin>
@@ -502,6 +565,7 @@
           <format>OCI</format>
           <creationTime>USE_CURRENT_TIMESTAMP</creationTime>
           <entrypoint>${cryostat.entrypoint}</entrypoint>
+          <mainClass>${cryostat.mainClass}</mainClass>
           <ports>
             <port>${cryostat.webPort}</port>
             <port>${cryostat.listenPort}</port>

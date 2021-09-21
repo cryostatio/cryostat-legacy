@@ -19,6 +19,10 @@ if [ -z "$CRYOSTAT_RJMX_PORT" ]; then
     CRYOSTAT_RJMX_PORT=9091
 fi
 
+if [ -z "$CRYOSTAT_RMI_PORT" ]; then
+    CRYOSTAT_RMI_PORT="$CRYOSTAT_RJMX_PORT"
+fi
+
 if [ -z "$CRYOSTAT_WEB_HOST" ]; then
     CRYOSTAT_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
 fi
@@ -29,18 +33,6 @@ fi
 
 if [ -z "$CRYOSTAT_EXT_WEB_PORT" ]; then
     CRYOSTAT_EXT_WEB_PORT="$CRYOSTAT_WEB_PORT"
-fi
-
-if [ -z "$CRYOSTAT_LISTEN_HOST" ]; then
-    CRYOSTAT_LISTEN_HOST="$CRYOSTAT_WEB_HOST"
-fi
-
-if [ -z "$CRYOSTAT_LISTEN_PORT" ]; then
-    CRYOSTAT_LISTEN_PORT=9090;
-fi
-
-if [ -z "$CRYOSTAT_EXT_LISTEN_PORT" ]; then
-    CRYOSTAT_EXT_LISTEN_PORT="$CRYOSTAT_LISTEN_PORT"
 fi
 
 if [ -z "$CRYOSTAT_AUTH_MANAGER" ]; then
@@ -56,6 +48,10 @@ if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname $0)/certs/cryostat-keystore.p12" ]
     KEYSTORE_PASS="$(cat $(dirname $0)/certs/keystore.pass)"
 fi
 
+if [ ! -d "$(dirname $0)/conf" ]; then
+    mkdir "$(dirname $0)/conf"
+fi
+
 if [ ! -d "$(dirname $0)/truststore" ]; then
     mkdir "$(dirname $0)/truststore"
 fi
@@ -69,16 +65,15 @@ if ! podman pod exists cryostat; then
         --hostname cryostat \
         --name cryostat \
         --publish $CRYOSTAT_RJMX_PORT:$CRYOSTAT_RJMX_PORT \
-        --publish $CRYOSTAT_EXT_LISTEN_PORT:$CRYOSTAT_LISTEN_PORT \
         --publish $CRYOSTAT_EXT_WEB_PORT:$CRYOSTAT_WEB_PORT
 fi
 
 podman run \
     --pod cryostat \
-    --mount type=tmpfs,target=/opt/cryostat.d/conf.d \
     --mount type=tmpfs,target=/opt/cryostat.d/recordings.d \
     --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
     --mount type=tmpfs,target=/opt/cryostat.d/probes.d \
+    --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
@@ -90,14 +85,14 @@ podman run \
     -e CRYOSTAT_RJMX_USER=$CRYOSTAT_RJMX_USER \
     -e CRYOSTAT_RJMX_PASS=$CRYOSTAT_RJMX_PASS \
     -e CRYOSTAT_RJMX_PORT=$CRYOSTAT_RJMX_PORT \
+    -e CRYOSTAT_RMI_PORT=$CRYOSTAT_RMI_PORT \
     -e CRYOSTAT_CORS_ORIGIN=$CRYOSTAT_CORS_ORIGIN \
     -e CRYOSTAT_WEB_HOST=$CRYOSTAT_WEB_HOST \
     -e CRYOSTAT_WEB_PORT=$CRYOSTAT_WEB_PORT \
     -e CRYOSTAT_EXT_WEB_PORT=$CRYOSTAT_EXT_WEB_PORT \
-    -e CRYOSTAT_LISTEN_HOST=$CRYOSTAT_LISTEN_HOST \
-    -e CRYOSTAT_LISTEN_PORT=$CRYOSTAT_LISTEN_PORT \
-    -e CRYOSTAT_EXT_LISTEN_PORT=$CRYOSTAT_EXT_LISTEN_PORT \
     -e CRYOSTAT_AUTH_MANAGER=$CRYOSTAT_AUTH_MANAGER \
+    -e CRYOSTAT_TARGET_CACHE_SIZE=$CRYOSTAT_TARGET_CACHE_SIZE \
+    -e CRYOSTAT_TARGET_CACHE_TTL=$CRYOSTAT_TARGET_CACHE_TTL \
     -e CRYOSTAT_CONFIG_PATH="/opt/cryostat.d/conf.d" \
     -e CRYOSTAT_ARCHIVE_PATH="/opt/cryostat.d/recordings.d" \
     -e CRYOSTAT_TEMPLATE_PATH="/opt/cryostat.d/templates.d" \

@@ -37,19 +37,23 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.commands.internal.RecordingOptionsBuilderFactory;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -77,7 +81,7 @@ class TargetSnapshotPostHandler
     }
 
     @Override
-    boolean requiresAuthentication() {
+    public boolean requiresAuthentication() {
         return true;
     }
 
@@ -92,12 +96,17 @@ class TargetSnapshotPostHandler
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.UPDATE_RECORDING);
+    }
+
+    @Override
     public String path() {
         return basePath() + "targets/:targetId/snapshot";
     }
 
     @Override
-    HttpMimeType mimeType() {
+    public HttpMimeType mimeType() {
         return HttpMimeType.PLAINTEXT;
     }
 
@@ -107,7 +116,7 @@ class TargetSnapshotPostHandler
     }
 
     @Override
-    IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
+    public IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
             RequestParameters requestParams) throws Exception {
         HyperlinkedSerializableRecordingDescriptor desc =
                 targetConnectionManager.executeConnectedTask(

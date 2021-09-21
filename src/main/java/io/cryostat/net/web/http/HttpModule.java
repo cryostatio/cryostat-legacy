@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http;
 
+import io.cryostat.net.web.http.api.beta.HttpApiBetaModule;
 import io.cryostat.net.web.http.api.v1.HttpApiV1Module;
 import io.cryostat.net.web.http.api.v2.HttpApiV2Module;
 import io.cryostat.net.web.http.generic.HttpGenericModule;
@@ -46,6 +47,7 @@ import dagger.Module;
 @Module(
         includes = {
             HttpGenericModule.class,
+            HttpApiBetaModule.class,
             HttpApiV1Module.class,
             HttpApiV2Module.class,
         })

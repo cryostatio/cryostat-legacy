@@ -1,0 +1,23 @@
+name: Verify Linked Issue
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - edited
+      - synchronize
+
+jobs:
+  verify-linked-issue:
+    runs-on: ubuntu-latest
+    if: github.actor != 'dependabot[bot]' && github.actor != 'dependabot-preview[bot]'
+    name: Verify Pull Request references Issue
+    steps:
+      - uses: Codeinwp/verify-linked-issue-action@6da9af91d78847c7ea264083a64eab3271b4369f
+        id: verify_issue_reference
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Report no referenced issue
+        if: steps.verify_issue_reference.outputs.has_linked_issues != 'true'
+        run: exit 1;

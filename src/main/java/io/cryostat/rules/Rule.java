@@ -37,37 +37,48 @@
  */
 package io.cryostat.rules;
 
+import java.util.function.Function;
+
+import io.cryostat.recordings.RecordingTargetHelper;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import io.vertx.core.MultiMap;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class Rule {
 
+    private static final MatchExpressionValidator MATCH_EXPRESSION_VALIDATOR =
+            new MatchExpressionValidator();
+
+    static final String ARCHIVE_EVENT = "archive";
+
     private final String name;
     private final String description;
-    // TODO for now, simply allow matching based on target's alias. This should be expanded to allow
-    // for different match parameters such as port number, port name, container/pod label, etc.,
-    //  and allow wildcards
-    private final String targetAlias;
+    private final String matchExpression;
     private final String eventSpecifier;
     private final int archivalPeriodSeconds;
     private final int preservedArchives;
     private final int maxAgeSeconds;
     private final int maxSizeBytes;
 
-    Rule(Builder builder) {
-        this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+    Rule(Builder builder) throws MatchExpressionValidationException {
+        this.eventSpecifier = builder.eventSpecifier;
+        if (isArchiver()) {
+            this.name = builder.name;
+        } else {
+            this.name = sanitizeRuleName(requireNonBlank(builder.name, Attribute.NAME));
+        }
         this.description = builder.description == null ? "" : builder.description;
-        this.targetAlias = requireNonBlank(builder.targetAlias, Attribute.TARGET_ALIAS);
-        this.eventSpecifier = requireNonBlank(builder.eventSpecifier, Attribute.EVENT_SPECIFIER);
-        this.archivalPeriodSeconds =
-                requireNonNegative(
-                        builder.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
-        this.preservedArchives =
-                requireNonNegative(builder.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        this.matchExpression = builder.matchExpression;
+        this.archivalPeriodSeconds = builder.archivalPeriodSeconds;
+        this.preservedArchives = builder.preservedArchives;
         this.maxAgeSeconds =
                 builder.maxAgeSeconds > 0 ? builder.maxAgeSeconds : this.archivalPeriodSeconds;
         this.maxSizeBytes = builder.maxSizeBytes;
+        this.validate();
     }
 
     public String getName() {
@@ -83,12 +94,16 @@ public class Rule {
         return this.description;
     }
 
-    public String getTargetAlias() {
-        return this.targetAlias;
+    public String getMatchExpression() {
+        return this.matchExpression;
     }
 
     public String getEventSpecifier() {
         return this.eventSpecifier;
+    }
+
+    public boolean isArchiver() {
+        return ARCHIVE_EVENT.equals(getEventSpecifier());
     }
 
     public int getArchivalPeriodSeconds() {
@@ -107,7 +122,7 @@ public class Rule {
         return this.maxSizeBytes;
     }
 
-    static String sanitizeRuleName(String name) {
+    public static String sanitizeRuleName(String name) {
         // FIXME this is not robust
         return name.replaceAll("\\s", "_");
     }
@@ -120,12 +135,52 @@ public class Rule {
         return s;
     }
 
+    public void validate() throws IllegalArgumentException, MatchExpressionValidationException {
+        requireNonBlank(this.matchExpression, Attribute.MATCH_EXPRESSION);
+        validateEventSpecifier(requireNonBlank(this.eventSpecifier, Attribute.EVENT_SPECIFIER));
+        validateMatchExpression(this);
+
+        if (isArchiver()) {
+            requireNonPositive(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonPositive(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+            requireNonPositive(this.maxSizeBytes, Attribute.MAX_SIZE_BYTES);
+            requireNonPositive(this.maxAgeSeconds, Attribute.MAX_AGE_SECONDS);
+        } else {
+            requireNonBlank(this.name, Attribute.NAME);
+            requireNonNegative(this.archivalPeriodSeconds, Attribute.ARCHIVAL_PERIOD_SECONDS);
+            requireNonNegative(this.preservedArchives, Attribute.PRESERVED_ARCHIVES);
+        }
+    }
+
+    private static String validateMatchExpression(Rule rule)
+            throws MatchExpressionValidationException {
+        return MATCH_EXPRESSION_VALIDATOR.validate(rule);
+    }
+
     private static int requireNonNegative(int i, Attribute attr) {
         if (i < 0) {
             throw new IllegalArgumentException(
                     String.format("\"%s\" cannot be negative, was \"%d\"", attr, i));
         }
         return i;
+    }
+
+    private static int requireNonPositive(int i, Attribute attr) {
+        if (i > 0) {
+            throw new IllegalArgumentException(
+                    String.format("\"%s\" cannot be positive, was \"%d\"", attr, i));
+        }
+        return i;
+    }
+
+    private static String validateEventSpecifier(String eventSpecifier)
+            throws IllegalArgumentException {
+        if (eventSpecifier.equals(ARCHIVE_EVENT)) {
+            return eventSpecifier;
+        }
+        // throws if cannot be parsed
+        RecordingTargetHelper.parseEventSpecifierToTemplate(eventSpecifier);
+        return eventSpecifier;
     }
 
     @Override
@@ -139,12 +194,12 @@ public class Rule {
     }
 
     public static class Builder {
-        private String name;
-        private String description;
-        private String targetAlias;
-        private String eventSpecifier;
-        private int archivalPeriodSeconds = 30;
-        private int preservedArchives = 1;
+        private String name = "";
+        private String description = "";
+        private String matchExpression = "";
+        private String eventSpecifier = "";
+        private int archivalPeriodSeconds = 0;
+        private int preservedArchives = 0;
         private int maxAgeSeconds = -1;
         private int maxSizeBytes = -1;
 
@@ -158,8 +213,8 @@ public class Rule {
             return this;
         }
 
-        public Builder targetAlias(String targetAlias) {
-            this.targetAlias = targetAlias;
+        public Builder matchExpression(String matchExpression) {
+            this.matchExpression = matchExpression;
             return this;
         }
 
@@ -188,15 +243,134 @@ public class Rule {
             return this;
         }
 
-        public Rule build() {
+        public Rule build() throws MatchExpressionValidationException {
             return new Rule(this);
+        }
+
+        public static Builder from(MultiMap formAttributes) {
+            Rule.Builder builder =
+                    new Rule.Builder()
+                            .name(formAttributes.get(Rule.Attribute.NAME.getSerialKey()))
+                            .matchExpression(
+                                    formAttributes.get(
+                                            Rule.Attribute.MATCH_EXPRESSION.getSerialKey()))
+                            .description(
+                                    formAttributes.get(Rule.Attribute.DESCRIPTION.getSerialKey()))
+                            .eventSpecifier(
+                                    formAttributes.get(
+                                            Rule.Attribute.EVENT_SPECIFIER.getSerialKey()));
+
+            builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, formAttributes);
+            builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, formAttributes);
+            builder.setOptionalInt(Rule.Attribute.MAX_AGE_SECONDS, formAttributes);
+            builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, formAttributes);
+
+            return builder;
+        }
+
+        public static Builder from(JsonObject jsonObj) throws IllegalArgumentException {
+            Rule.Builder builder =
+                    new Rule.Builder()
+                            .name(getAsNullableString(jsonObj, Rule.Attribute.NAME))
+                            .matchExpression(
+                                    jsonObj.get(Rule.Attribute.MATCH_EXPRESSION.getSerialKey())
+                                            .getAsString())
+                            .description(getAsNullableString(jsonObj, Rule.Attribute.DESCRIPTION))
+                            .eventSpecifier(
+                                    jsonObj.get(Rule.Attribute.EVENT_SPECIFIER.getSerialKey())
+                                            .getAsString());
+            builder.setOptionalInt(Rule.Attribute.ARCHIVAL_PERIOD_SECONDS, jsonObj);
+            builder.setOptionalInt(Rule.Attribute.PRESERVED_ARCHIVES, jsonObj);
+            builder.setOptionalInt(Rule.Attribute.MAX_AGE_SECONDS, jsonObj);
+            builder.setOptionalInt(Rule.Attribute.MAX_SIZE_BYTES, jsonObj);
+
+            return builder;
+        }
+
+        private static String getAsNullableString(JsonObject jsonObj, Rule.Attribute attr) {
+            JsonElement el = jsonObj.get(attr.getSerialKey());
+            if (el == null) {
+                return null;
+            }
+            return el.getAsString();
+        }
+
+        private Builder setOptionalInt(Rule.Attribute key, MultiMap formAttributes)
+                throws IllegalArgumentException {
+
+            if (!formAttributes.contains(key.getSerialKey())) {
+                return this;
+            }
+
+            Function<Integer, Rule.Builder> fn = this.selectAttribute(key);
+
+            int value;
+            try {
+                value = Integer.parseInt(formAttributes.get(key.getSerialKey()));
+            } catch (NumberFormatException nfe) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                                formAttributes.get(key.getSerialKey()), key),
+                        nfe);
+            }
+            return fn.apply(value);
+        }
+
+        private Builder setOptionalInt(Rule.Attribute key, JsonObject jsonObj)
+                throws IllegalArgumentException {
+
+            if (jsonObj.get(key.getSerialKey()) == null) {
+                return this;
+            }
+
+            Function<Integer, Rule.Builder> fn = this.selectAttribute(key);
+
+            int value;
+            String attr = key.getSerialKey();
+
+            try {
+                value = jsonObj.get(attr).getAsInt();
+            } catch (ClassCastException | IllegalStateException e) {
+                throw new IllegalArgumentException(
+                        String.format(
+                                "\"%s\" is an invalid (non-integer) value for \"%s\"",
+                                jsonObj.get(attr), attr),
+                        e);
+            }
+            return fn.apply(value);
+        }
+
+        private Function<Integer, Rule.Builder> selectAttribute(Rule.Attribute key)
+                throws IllegalArgumentException {
+
+            Function<Integer, Rule.Builder> fn;
+
+            switch (key) {
+                case ARCHIVAL_PERIOD_SECONDS:
+                    fn = this::archivalPeriodSeconds;
+                    break;
+                case PRESERVED_ARCHIVES:
+                    fn = this::preservedArchives;
+                    break;
+                case MAX_AGE_SECONDS:
+                    fn = this::maxAgeSeconds;
+                    break;
+                case MAX_SIZE_BYTES:
+                    fn = this::maxSizeBytes;
+                    break;
+                default:
+                    throw new IllegalArgumentException("Unknown key \"" + key + "\"");
+            }
+
+            return fn;
         }
     }
 
     public enum Attribute {
         NAME("name"),
         DESCRIPTION("description"),
-        TARGET_ALIAS("targetAlias"),
+        MATCH_EXPRESSION("matchExpression"),
         EVENT_SPECIFIER("eventSpecifier"),
         ARCHIVAL_PERIOD_SECONDS("archivalPeriodSeconds"),
         PRESERVED_ARCHIVES("preservedArchives"),

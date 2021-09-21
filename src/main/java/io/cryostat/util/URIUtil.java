@@ -56,4 +56,13 @@ public class URIUtil {
     public static URI convert(JMXServiceURL serviceUrl) throws URISyntaxException {
         return new URI(serviceUrl.toString());
     }
+
+    public static URI getRmiTarget(JMXServiceURL serviceUrl) throws URISyntaxException {
+        String rmiPart = "/jndi/rmi://";
+        String pathPart = serviceUrl.getURLPath();
+        if (!pathPart.startsWith(rmiPart)) {
+            throw new IllegalArgumentException(serviceUrl.getURLPath());
+        }
+        return new URI(pathPart.substring("/jndi/".length(), pathPart.length()));
+    }
 }

@@ -41,12 +41,15 @@ import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
+import io.cryostat.ApplicationVersion;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -64,13 +67,20 @@ class HealthGetHandler implements RequestHandler {
     static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
+    private final ApplicationVersion appVersion;
     private final WebClient webClient;
     private final Environment env;
     private final Gson gson;
     private final Logger logger;
 
     @Inject
-    HealthGetHandler(WebClient webClient, Environment env, Gson gson, Logger logger) {
+    HealthGetHandler(
+            ApplicationVersion appVersion,
+            WebClient webClient,
+            Environment env,
+            Gson gson,
+            Logger logger) {
+        this.appVersion = appVersion;
         this.webClient = webClient;
         this.env = env;
         this.gson = gson;
@@ -93,6 +103,11 @@ class HealthGetHandler implements RequestHandler {
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
     public boolean isAsync() {
         return false;
     }
@@ -110,6 +125,8 @@ class HealthGetHandler implements RequestHandler {
                 .end(
                         gson.toJson(
                                 Map.of(
+                                        "cryostatVersion",
+                                        appVersion.getVersionString(),
                                         "dashboardAvailable",
                                         dashboardAvailable.join(),
                                         "datasourceAvailable",

@@ -38,27 +38,31 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.nio.file.Path;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
-import io.cryostat.MainModule;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final Path savedRecordingsPath;
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    RecordingGetHandler(
-            AuthManager auth, @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath) {
+    RecordingGetHandler(AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
-        this.savedRecordingsPath = savedRecordingsPath;
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
@@ -69,6 +73,11 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public HttpMethod httpMethod() {
         return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_RECORDING);
     }
 
     @Override
@@ -84,24 +93,14 @@ class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
-        String filePath =
-                savedRecordingsPath.resolve(recordingName).normalize().toAbsolutePath().toString();
-        ctx.vertx()
-                .fileSystem()
-                .exists(
-                        filePath,
-                        ar -> {
-                            if (ar.result()) {
-                                ctx.response().sendFile(filePath);
-                            } else {
-                                ctx.response().setStatusCode(404);
-                                ctx.response()
-                                        .setStatusMessage(
-                                                String.format(
-                                                        "Recording \"%s\" not found",
-                                                        recordingName));
-                                ctx.response().end();
-                            }
-                        });
+        try {
+            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            ctx.response().sendFile(archivedRecording.toString());
+        } catch (ExecutionException e) {
+            if (e.getCause() instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, e.getMessage(), e);
+            }
+            throw e;
+        }
     }
 }

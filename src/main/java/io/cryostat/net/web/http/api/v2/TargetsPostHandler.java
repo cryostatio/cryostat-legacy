@@ -40,15 +40,21 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 import io.cryostat.util.URIUtil;
 
@@ -91,6 +97,11 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
     }
 
     @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.CREATE_TARGET);
+    }
+
+    @Override
     public String path() {
         return basePath() + PATH;
     }
@@ -128,7 +139,18 @@ class TargetsPostHandler extends AbstractV2RequestHandler<ServiceRef> {
                     throw new ApiException(400, "Duplicate connectUrl");
                 }
             }
+            Map<AnnotationKey, String> cryostatAnnotations = new HashMap<>();
             ServiceRef serviceRef = new ServiceRef(uri, alias);
+            for (AnnotationKey ak : AnnotationKey.values()) {
+                // TODO is there a good way to determine this prefix from the structure of the
+                // ServiceRef's serialized form?
+                String formKey = "annotations.cryostat." + ak.name();
+                if (attrs.contains(formKey)) {
+                    cryostatAnnotations.put(ak, attrs.get(formKey));
+                }
+            }
+            serviceRef.setCryostatAnnotations(cryostatAnnotations);
+
             boolean v = customTargetPlatformClient.addTarget(serviceRef);
             if (!v) {
                 throw new ApiException(400, "Duplicate connectUrl");

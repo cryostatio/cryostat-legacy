@@ -44,6 +44,7 @@ import java.nio.file.Path;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
+import io.cryostat.net.security.ResourceAction;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -66,10 +67,11 @@ class BasicAuthManagerTest {
     BasicAuthManager mgr;
     @Mock Logger logger;
     @Mock FileSystem fs;
+    @Mock Path confDir;
 
     @BeforeEach
     void setup() {
-        mgr = new BasicAuthManager(logger, fs);
+        mgr = new BasicAuthManager(logger, fs, confDir);
     }
 
     @Nested
@@ -89,11 +91,7 @@ class BasicAuthManagerTest {
         @Test
         void shouldWarnWhenPropertiesNotFile() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(false);
 
@@ -110,11 +108,7 @@ class BasicAuthManagerTest {
         @Test
         void shouldWarnWhenPropertiesNotReadable() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(false);
@@ -132,11 +126,7 @@ class BasicAuthManagerTest {
         @Test
         void shouldLogFileReadErrors() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -153,7 +143,7 @@ class BasicAuthManagerTest {
     class TokenValidationTest {
         @Test
         void shouldFailAuthenticationWhenCredentialsMalformed() throws Exception {
-            Assertions.assertFalse(mgr.validateToken(() -> "user").get());
+            Assertions.assertFalse(mgr.validateToken(() -> "user", ResourceAction.NONE).get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
             Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
@@ -164,7 +154,7 @@ class BasicAuthManagerTest {
 
         @Test
         void shouldFailAuthenticationWhenNoMatchFound() throws Exception {
-            Assertions.assertFalse(mgr.validateToken(() -> "user:pass").get());
+            Assertions.assertFalse(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
             ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
             ArgumentCaptor<Object> objectCaptor = ArgumentCaptor.forClass(Object.class);
             Mockito.verify(logger).warn(messageCaptor.capture(), objectCaptor.capture());
@@ -176,11 +166,7 @@ class BasicAuthManagerTest {
         @Test
         void shouldPassAuthenticationWhenMatchFound() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -189,18 +175,14 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
+            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
             Mockito.verifyNoInteractions(logger);
         }
 
         @Test
         void shouldHandleMultipleAuthentications() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -209,20 +191,17 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
-            Assertions.assertFalse(mgr.validateToken(() -> "user:sass").get());
-            Assertions.assertFalse(mgr.validateToken(() -> "user2:pass").get());
+            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
+            Assertions.assertFalse(mgr.validateToken(() -> "user:sass", ResourceAction.NONE).get());
+            Assertions.assertFalse(
+                    mgr.validateToken(() -> "user2:pass", ResourceAction.NONE).get());
             Mockito.verifyNoInteractions(logger);
         }
 
         @Test
         void shouldIgnoreMalformedPropertiesLines() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -236,9 +215,10 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     String.join(System.lineSeparator(), creds1, creds2, creds3)));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateToken(() -> "user:pass").get());
-            Assertions.assertFalse(mgr.validateToken(() -> "foo:bar").get());
-            Assertions.assertTrue(mgr.validateToken(() -> "admin:admin").get());
+            Assertions.assertTrue(mgr.validateToken(() -> "user:pass", ResourceAction.NONE).get());
+            Assertions.assertFalse(mgr.validateToken(() -> "foo:bar", ResourceAction.NONE).get());
+            Assertions.assertTrue(
+                    mgr.validateToken(() -> "admin:admin", ResourceAction.NONE).get());
             Mockito.verifyNoInteractions(logger);
         }
     }
@@ -248,11 +228,7 @@ class BasicAuthManagerTest {
         @Test
         void shouldPassKnownCredentials() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -261,17 +237,14 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertTrue(mgr.validateHttpHeader(() -> "Basic dXNlcjpwYXNz").get());
+            Assertions.assertTrue(
+                    mgr.validateHttpHeader(() -> "Basic dXNlcjpwYXNz", ResourceAction.NONE).get());
         }
 
         @Test
         void shouldFailUnknownCredentials() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -280,14 +253,15 @@ class BasicAuthManagerTest {
                             new StringReader(
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
-            Assertions.assertFalse(mgr.validateHttpHeader(() -> "Basic foo").get());
+            Assertions.assertFalse(
+                    mgr.validateHttpHeader(() -> "Basic foo", ResourceAction.NONE).get());
         }
 
         @ParameterizedTest
         @ValueSource(strings = {"", "Bearer sometoken", "Basic (not_b64)"})
         @NullSource
         void shouldFailBadCredentials(String s) throws Exception {
-            Assertions.assertFalse(mgr.validateHttpHeader(() -> s).get());
+            Assertions.assertFalse(mgr.validateHttpHeader(() -> s, ResourceAction.NONE).get());
         }
     }
 
@@ -296,11 +270,7 @@ class BasicAuthManagerTest {
         @Test
         void shouldPassKnownCredentials() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -312,18 +282,15 @@ class BasicAuthManagerTest {
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertTrue(
                     mgr.validateWebSocketSubProtocol(
-                                    () -> "basic.authorization.cryostat.dXNlcjpwYXNz")
+                                    () -> "basic.authorization.cryostat.dXNlcjpwYXNz",
+                                    ResourceAction.NONE)
                             .get());
         }
 
         @Test
         void shouldPassKnownCredentialsWithPadding() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -335,18 +302,15 @@ class BasicAuthManagerTest {
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertTrue(
                     mgr.validateWebSocketSubProtocol(
-                                    () -> "basic.authorization.cryostat.dXNlcjpwYXNzMTIzNA==")
+                                    () -> "basic.authorization.cryostat.dXNlcjpwYXNzMTIzNA==",
+                                    ResourceAction.NONE)
                             .get());
         }
 
         @Test
         void shouldPassKnownCredentialsAndStrippedPadding() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -362,18 +326,15 @@ class BasicAuthManagerTest {
             // specification for the Sec-WebSocket-Protocol header
             Assertions.assertTrue(
                     mgr.validateWebSocketSubProtocol(
-                                    () -> "basic.authorization.cryostat.dXNlcjpwYXNzMTIzNA")
+                                    () -> "basic.authorization.cryostat.dXNlcjpwYXNzMTIzNA",
+                                    ResourceAction.NONE)
                             .get());
         }
 
         @Test
         void shouldFailUnknownCredentials() throws Exception {
             Path mockPath = Mockito.mock(Path.class);
-            Mockito.when(
-                            fs.pathOf(
-                                    System.getProperty("user.home"),
-                                    BasicAuthManager.USER_PROPERTIES_FILENAME))
-                    .thenReturn(mockPath);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
             Mockito.when(fs.exists(mockPath)).thenReturn(true);
             Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
             Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
@@ -384,7 +345,8 @@ class BasicAuthManagerTest {
                                     "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             Assertions.assertFalse(
-                    mgr.validateWebSocketSubProtocol(() -> "basic.authorization.cryostat.foo")
+                    mgr.validateWebSocketSubProtocol(
+                                    () -> "basic.authorization.cryostat.foo", ResourceAction.NONE)
                             .get());
         }
 
@@ -393,7 +355,8 @@ class BasicAuthManagerTest {
                 strings = {"", "basic.credentials.foo", "basic.authorization.cryostat.user:pass"})
         @NullSource
         void shouldFailBadCredentials(String s) throws Exception {
-            Assertions.assertFalse(mgr.validateWebSocketSubProtocol(() -> s).get());
+            Assertions.assertFalse(
+                    mgr.validateWebSocketSubProtocol(() -> s, ResourceAction.NONE).get());
         }
     }
 }

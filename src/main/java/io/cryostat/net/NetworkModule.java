@@ -39,9 +39,14 @@ package io.cryostat.net;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.nio.file.Path;
+import java.time.Duration;
+import java.util.concurrent.ForkJoinPool;
 
+import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.configuration.ConfigurationModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnectionToolkit;
 import io.cryostat.core.sys.Environment;
@@ -50,11 +55,14 @@ import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.web.WebModule;
 
+import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Binds;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import io.fabric8.openshift.client.DefaultOpenShiftClient;
+import io.fabric8.openshift.client.OpenShiftConfigBuilder;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.client.WebClientOptions;
@@ -65,6 +73,9 @@ import io.vertx.ext.web.client.WebClientOptions;
             ReportsModule.class,
         })
 public abstract class NetworkModule {
+
+    static final String TARGET_CACHE_SIZE = "CRYOSTAT_TARGET_CACHE_SIZE";
+    static final String TARGET_CACHE_TTL = "CRYOSTAT_TARGET_CACHE_TTL";
 
     @Provides
     @Singleton
@@ -87,11 +98,31 @@ public abstract class NetworkModule {
     }
 
     @Provides
+    @Named(TARGET_CACHE_SIZE)
+    static int provideMaxTargetConnections(Environment env) {
+        return Integer.parseInt(env.getEnv(TARGET_CACHE_SIZE, "-1"));
+    }
+
+    @Provides
+    @Named(TARGET_CACHE_TTL)
+    static Duration provideMaxTargetTTL(Environment env) {
+        return Duration.ofSeconds(Integer.parseInt(env.getEnv(TARGET_CACHE_TTL, "10")));
+    }
+
+    @Provides
     @Singleton
     static TargetConnectionManager provideTargetConnectionManager(
-            Logger logger, Lazy<JFRConnectionToolkit> connectionToolkit) {
+            Lazy<JFRConnectionToolkit> connectionToolkit,
+            @Named(TARGET_CACHE_TTL) Duration maxTargetTtl,
+            @Named(TARGET_CACHE_SIZE) int maxTargetConnections,
+            Logger logger) {
         return new TargetConnectionManager(
-                connectionToolkit, TargetConnectionManager.DEFAULT_TTL, logger);
+                connectionToolkit,
+                ForkJoinPool.commonPool(),
+                Scheduler.systemScheduler(),
+                maxTargetTtl,
+                maxTargetConnections,
+                logger);
     }
 
     @Provides
@@ -148,8 +179,11 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static BasicAuthManager provideBasicAuthManager(Logger logger, FileSystem fs) {
-        return new BasicAuthManager(logger, fs);
+    static BasicAuthManager provideBasicAuthManager(
+            Logger logger,
+            FileSystem fs,
+            @Named(ConfigurationModule.CONFIGURATION_PATH) Path confDir) {
+        return new BasicAuthManager(logger, fs, confDir);
     }
 
     @Binds
@@ -159,7 +193,12 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(Logger logger, FileSystem fs) {
-        return new OpenShiftAuthManager(logger, fs);
+        return new OpenShiftAuthManager(
+                logger,
+                fs,
+                token ->
+                        new DefaultOpenShiftClient(
+                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
     }
 
     @Binds

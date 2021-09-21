@@ -40,6 +40,7 @@ package io.cryostat.net;
 import java.util.Optional;
 
 import io.cryostat.core.net.Credentials;
+import io.cryostat.platform.ServiceRef;
 
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
@@ -49,8 +50,16 @@ public class ConnectionDescriptor {
     private final String targetId;
     private final Optional<Credentials> credentials;
 
+    public ConnectionDescriptor(ServiceRef serviceRef) {
+        this(serviceRef.getServiceUri().toString());
+    }
+
     public ConnectionDescriptor(String targetId) {
         this(targetId, null);
+    }
+
+    public ConnectionDescriptor(ServiceRef serviceRef, Credentials credentials) {
+        this(serviceRef.getServiceUri().toString(), credentials);
     }
 
     public ConnectionDescriptor(String targetId, Credentials credentials) {

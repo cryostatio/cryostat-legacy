@@ -44,6 +44,7 @@ import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import itest.bases.StandardSelfTest;
+import itest.util.Utils;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +84,8 @@ public class ApiListingIT extends StandardSelfTest {
                 response.getJsonObject("data").getJsonObject("result"), Matchers.notNullValue());
         MatcherAssert.assertThat(
                 response.getJsonObject("data").getJsonObject("result").getString("overview"),
-                Matchers.equalTo("http://0.0.0.0:8181/HTTP_API.md"));
+                Matchers.equalTo(
+                        String.format("http://%s:%d/HTTP_API.md", Utils.WEB_HOST, Utils.WEB_PORT)));
         MatcherAssert.assertThat(
                 response.getJsonObject("data").getJsonObject("result").getJsonArray("endpoints"),
                 Matchers.notNullValue());

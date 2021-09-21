@@ -87,7 +87,7 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetEventsSearchGetHandler(TargetEventsSearchGetHandler handler);
+    abstract RequestHandler bindTargetEventsGetHandler(TargetEventsGetHandler handler);
 
     @Provides
     @Singleton

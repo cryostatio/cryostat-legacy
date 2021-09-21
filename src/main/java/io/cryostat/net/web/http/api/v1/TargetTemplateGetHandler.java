@@ -37,11 +37,15 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.util.EnumSet;
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -74,6 +78,11 @@ class TargetTemplateGetHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public String path() {
         return basePath() + "targets/:targetId/templates/:templateName/type/:templateType";
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.READ_TEMPLATE);
     }
 
     @Override

@@ -37,17 +37,27 @@
  */
 package itest;
 
+import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.json.JsonArray;
 import io.vertx.core.json.JsonObject;
 import itest.bases.StandardSelfTest;
+import itest.util.ITestCleanupFailedException;
+import jdk.jfr.consumer.RecordedEvent;
+import jdk.jfr.consumer.RecordingFile;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.select.Elements;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
@@ -196,7 +206,7 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(recordingInfo.getInteger("duration"), Matchers.equalTo(5_000));
 
             // verify in-memory and saved recordings can be downloaded successfully and yield
-            // non-empty recording binaries (TODO: better verification of file content), and that
+            // non-empty recording binaries containing events, and that
             // the fully completed in-memory recording is larger than the saved partial copy
             String inMemoryDownloadUrl = recordingInfo.getString("downloadUrl");
             Path inMemoryDownloadPath =
@@ -208,20 +218,37 @@ public class RecordingWorkflowIT extends StandardSelfTest {
             MatcherAssert.assertThat(
                     inMemoryDownloadPath.toFile().length(), Matchers.greaterThan(0L));
             MatcherAssert.assertThat(savedDownloadPath.toFile().length(), Matchers.greaterThan(0L));
-            MatcherAssert.assertThat(
-                    inMemoryDownloadPath.toFile().length(),
-                    Matchers.greaterThan(savedDownloadPath.toFile().length()));
 
-            // verify that reports can be downloaded successfully and yield non-empty HTML documents
-            // (TODO: verify response body is a valid HTML document)
+            List<RecordedEvent> inMemoryEvents = RecordingFile.readAllEvents(inMemoryDownloadPath);
+            List<RecordedEvent> savedEvents = RecordingFile.readAllEvents(savedDownloadPath);
+
+            MatcherAssert.assertThat(
+                    inMemoryEvents.size(), Matchers.greaterThan(savedEvents.size()));
+
             String reportUrl = recordingInfo.getString("reportUrl");
             Path reportPath =
                     downloadFileAbs(reportUrl, TEST_RECORDING_NAME + "_report", ".html")
                             .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
-            MatcherAssert.assertThat(reportPath.toFile().length(), Matchers.greaterThan(0L));
+            File reportFile = reportPath.toFile();
+            MatcherAssert.assertThat(reportFile.length(), Matchers.greaterThan(0L));
+            Document doc = Jsoup.parse(reportFile, "UTF-8");
+
+            Elements head = doc.getElementsByTag("head");
+            Elements titles = head.first().getElementsByTag("title");
+            Elements body = doc.getElementsByTag("body");
+            Elements script = head.first().getElementsByTag("script");
+
+            MatcherAssert.assertThat("Expected one <head>", head.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(titles.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
+            MatcherAssert.assertThat(
+                    "Expected at least one <script>",
+                    script.size(),
+                    Matchers.greaterThanOrEqualTo(1));
+
         } finally {
             // Clean up what we created
-            CompletableFuture<Void> deleteRespFuture = new CompletableFuture<>();
+            CompletableFuture<Void> deleteRespFuture1 = new CompletableFuture<>();
             webClient
                     .delete(
                             String.format(
@@ -229,11 +256,18 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                                     TARGET_ID, TEST_RECORDING_NAME))
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, deleteRespFuture)) {
-                                    deleteRespFuture.complete(null);
+                                if (assertRequestStatus(ar, deleteRespFuture1)) {
+                                    deleteRespFuture1.complete(null);
                                 }
                             });
-            deleteRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+
+            try {
+                deleteRespFuture1.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new ITestCleanupFailedException(
+                        String.format("Failed to delete target recording %s", TEST_RECORDING_NAME),
+                        e);
+            }
 
             CompletableFuture<JsonArray> savedRecordingsFuture = new CompletableFuture<>();
             webClient
@@ -244,31 +278,38 @@ public class RecordingWorkflowIT extends StandardSelfTest {
                                     savedRecordingsFuture.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
-            savedRecordingsFuture
-                    .get()
-                    .forEach(
-                            rec -> {
-                                String savedRecordingName = ((JsonObject) rec).getString("name");
-                                if (!savedRecordingName.matches(
-                                        TARGET_ID
-                                                + "_"
-                                                + TEST_RECORDING_NAME
-                                                + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
-                                    return;
-                                }
 
-                                webClient
-                                        .delete(
-                                                String.format(
-                                                        "/api/v1/recordings/%s",
-                                                        savedRecordingName))
-                                        .send(
-                                                ar -> {
-                                                    if (ar.failed()) {
-                                                        ar.cause().printStackTrace();
-                                                    }
-                                                });
-                            });
+            JsonArray savedRecordings = null;
+            try {
+                savedRecordings =
+                        savedRecordingsFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                throw new ITestCleanupFailedException("Failed to retrieve archived recordings", e);
+            }
+
+            for (Object savedRecording : savedRecordings) {
+                String recordingName = ((JsonObject) savedRecording).getString("name");
+                if (recordingName.matches(
+                        TARGET_ID + "_" + TEST_RECORDING_NAME + "_[\\d]{8}T[\\d]{6}Z.jfr")) {
+                    CompletableFuture<Void> deleteRespFuture2 = new CompletableFuture<>();
+                    webClient
+                            .delete(String.format("/api/v1/recordings/%s", recordingName))
+                            .send(
+                                    ar -> {
+                                        if (assertRequestStatus(ar, deleteRespFuture2)) {
+                                            deleteRespFuture2.complete(null);
+                                        }
+                                    });
+                    try {
+                        deleteRespFuture2.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+                    } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                        throw new ITestCleanupFailedException(
+                                String.format(
+                                        "Failed to delete archived recording %s", recordingName),
+                                e);
+                    }
+                }
+            }
         }
     }
 }

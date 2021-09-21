@@ -38,52 +38,148 @@
 package itest;
 
 import java.io.File;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ExecutionException;
 
-import io.vertx.core.buffer.Buffer;
-import io.vertx.ext.web.client.HttpResponse;
+import io.cryostat.net.web.http.HttpMimeType;
+
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import io.vertx.ext.web.multipart.MultipartForm;
 import itest.bases.StandardSelfTest;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 public class UploadCertificateIT extends StandardSelfTest {
 
     static final String CERT_NAME = "cert";
-    static final String FILE_NAME = "empty.cer";
-    static final String TRUSTSTORE_CERT = "truststore/" + FILE_NAME;
+    static final String EMPTY_FILE_NAME = "empty.cer";
+    static final String VALID_FILE_NAME = "valid.cert";
     static final String MEDIA_TYPE = "application/pkix-cert";
+    static final String TRUSTSTORE_DIR = "/opt/cryostat.d/truststore.d";
+    static final String REQ_URL = String.format("/api/v2/certificates");
+
+    @Test
+    public void shouldThrowOnNullCertificateUpload() throws Exception {
+
+        CompletableFuture<Integer> response = new CompletableFuture<>();
+
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        null,
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
 
     @Test
     public void shouldNotAddEmptyCertToTrustStore() throws Exception {
 
-        CompletableFuture<Integer> uploadRespFuture = new CompletableFuture<>();
+        CompletableFuture<Integer> response = new CompletableFuture<>();
         ClassLoader classLoader = getClass().getClassLoader();
-        File emptyCert = new File(classLoader.getResource(FILE_NAME).getFile());
+        File emptyCert = new File(classLoader.getResource(EMPTY_FILE_NAME).getFile());
         String path = emptyCert.getAbsolutePath();
 
         MultipartForm form =
                 MultipartForm.create()
                         .attribute("name", CERT_NAME)
-                        .binaryFileUpload(CERT_NAME, FILE_NAME, path, MEDIA_TYPE);
+                        .binaryFileUpload(CERT_NAME, EMPTY_FILE_NAME, path, MEDIA_TYPE);
 
         webClient
-                .post(String.format("/api/v2/certificates"))
+                .post(REQ_URL)
                 .sendMultipartForm(
                         form,
                         ar -> {
-                            if (ar.failed()) {
-                                uploadRespFuture.completeExceptionally(ar.cause());
-                                return;
-                            }
-                            HttpResponse<Buffer> result = ar.result();
-                            uploadRespFuture.complete(result.statusCode());
+                            assertRequestStatus(ar, response);
                         });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
 
-        int statusCode = uploadRespFuture.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+    @Test
+    public void shouldThrowWhenPostingWithoutCert() throws Exception {
 
-        MatcherAssert.assertThat(statusCode, Matchers.equalTo(500));
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+
+        webClient
+                .post(REQ_URL)
+                .send(
+                        ar -> {
+                            assertRequestStatus(ar, response);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> response.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Bad Request"));
+    }
+
+    @Test
+    public void shouldThrowOnDuplicateCert() throws Exception {
+
+        CompletableFuture<JsonObject> response = new CompletableFuture<>();
+        ClassLoader classLoader = getClass().getClassLoader();
+        File validCert = new File(classLoader.getResource(VALID_FILE_NAME).getFile());
+        String path = validCert.getAbsolutePath();
+
+        MultipartForm form =
+                MultipartForm.create()
+                        .attribute("name", CERT_NAME)
+                        .binaryFileUpload(CERT_NAME, VALID_FILE_NAME, path, MEDIA_TYPE);
+
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            if (assertRequestStatus(ar, response)) {
+                                MatcherAssert.assertThat(
+                                        ar.result().statusCode(), Matchers.equalTo(200));
+                                response.complete(ar.result().bodyAsJsonObject());
+                            }
+                        });
+        JsonObject expectedResponse =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "type",
+                                                HttpMimeType.PLAINTEXT.mime(),
+                                                "status",
+                                                "OK"),
+                                "data",
+                                        Map.of(
+                                                "result",
+                                                String.format(
+                                                        "%s/%s",
+                                                        TRUSTSTORE_DIR, VALID_FILE_NAME))));
+        MatcherAssert.assertThat(response.get(), Matchers.equalTo(expectedResponse));
+
+        CompletableFuture<JsonObject> duplicateResponse = new CompletableFuture<>();
+
+        webClient
+                .post(REQ_URL)
+                .sendMultipartForm(
+                        form,
+                        ar -> {
+                            assertRequestStatus(ar, duplicateResponse);
+                        });
+        ExecutionException ex =
+                Assertions.assertThrows(ExecutionException.class, () -> duplicateResponse.get());
+        MatcherAssert.assertThat(
+                ((HttpStatusException) ex.getCause()).getStatusCode(), Matchers.equalTo(409));
+        MatcherAssert.assertThat(ex.getCause().getMessage(), Matchers.equalTo("Conflict"));
     }
 }

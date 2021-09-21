@@ -17,6 +17,7 @@
       <directory>${project.basedir}/src/main/extras</directory>
       <includes>
         <include>${cryostat.entrypoint}</include>
+        <include>cryostat.jfc</include>
       </includes>
       <fileMode>0755</fileMode>
     </fileSet>

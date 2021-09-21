@@ -41,6 +41,7 @@ import java.net.MalformedURLException;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Optional;
+import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -68,21 +69,25 @@ public class TargetConnectionManager {
     public static final Pattern HOST_PORT_PAIR_PATTERN =
             Pattern.compile("^([^:\\s]+)(?::(\\d{1,5}))?$");
 
-    static final Duration DEFAULT_TTL = Duration.ofSeconds(90);
-
     private final Lazy<JFRConnectionToolkit> jfrConnectionToolkit;
     private final Logger logger;
 
     private final LoadingCache<ConnectionDescriptor, JFRConnection> connections;
 
     TargetConnectionManager(
-            Lazy<JFRConnectionToolkit> jfrConnectionToolkit, Duration ttl, Logger logger) {
+            Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
+            Executor executor,
+            Scheduler scheduler,
+            Duration ttl,
+            int maxTargetConnections,
+            Logger logger) {
         this.jfrConnectionToolkit = jfrConnectionToolkit;
         this.logger = logger;
 
-        this.connections =
+        Caffeine<ConnectionDescriptor, JFRConnection> cacheBuilder =
                 Caffeine.newBuilder()
-                        .scheduler(Scheduler.systemScheduler())
+                        .executor(executor)
+                        .scheduler(scheduler)
                         .expireAfterAccess(ttl)
                         .removalListener(
                                 new RemovalListener<ConnectionDescriptor, JFRConnection>() {
@@ -119,8 +124,11 @@ public class TargetConnectionManager {
                                             }
                                         }
                                     }
-                                })
-                        .build(this::connect);
+                                });
+        if (maxTargetConnections >= 0) {
+            cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
+        }
+        this.connections = cacheBuilder.build(this::connect);
     }
 
     public <T> T executeConnectedTask(
@@ -130,8 +138,8 @@ public class TargetConnectionManager {
 
     /**
      * Mark a connection as still in use by the consumer. Connections expire from cache and are
-     * automatically closed after {@link TargetConnectionManager.DEFAULT_TTL}. For long-running
-     * operations which may hold the connection open and active for longer than the default TTL,
+     * automatically closed after {@link NetworkModule.TARGET_CACHE_TTL}. For long-running
+     * operations which may hold the connection open and active for longer than the configured TTL,
      * this method provides a way for the consumer to inform the {@link TargetConnectionManager} and
      * its internal cache that the connection is in fact still active and should not be
      * expired/closed. This will extend the lifetime of the cache entry by another TTL into the
@@ -186,15 +194,12 @@ public class TargetConnectionManager {
         logger.info("Creating connection for {}", url.toString());
         evt.begin();
         try {
-            JFRConnection connection =
-                    jfrConnectionToolkit
-                            .get()
-                            .connect(
-                                    url,
-                                    credentials.orElse(null),
-                                    Collections.singletonList(
-                                            () -> this.connections.invalidate(cacheKey)));
-            return connection;
+            return jfrConnectionToolkit
+                    .get()
+                    .connect(
+                            url,
+                            credentials.orElse(null),
+                            Collections.singletonList(() -> this.connections.invalidate(cacheKey)));
         } catch (Exception e) {
             evt.setExceptionThrown(true);
             throw e;

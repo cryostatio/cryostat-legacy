@@ -58,6 +58,7 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import itest.util.Podman;
 import itest.util.Utils;
 import org.apache.http.client.utils.URLEncodedUtils;
@@ -78,7 +79,7 @@ public abstract class StandardSelfTest {
         CompletableFuture<JsonObject> future = new CompletableFuture<>();
 
         Utils.HTTP_CLIENT.webSocket(
-                getClientUrl().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
+                getNotificationsUrl().get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS),
                 ar -> {
                     if (ar.failed()) {
                         future.completeExceptionally(ar.cause());
@@ -130,26 +131,30 @@ public abstract class StandardSelfTest {
         if (result.failed()) {
             result.cause().printStackTrace();
             future.completeExceptionally(result.cause());
+
             return false;
         }
         HttpResponse<Buffer> response = result.result();
         if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode())) {
             System.err.println("HTTP " + response.statusCode() + ": " + response.statusMessage());
-            future.completeExceptionally(new Exception(response.statusMessage()));
+            future.completeExceptionally(
+                    new HttpStatusException(response.statusCode(), response.statusMessage()));
             return false;
         }
         return true;
     }
 
-    private static Future<String> getClientUrl() {
+    private static Future<String> getNotificationsUrl() {
         CompletableFuture<String> future = new CompletableFuture<>();
         webClient
-                .get("/api/v1/clienturl")
+                .get("/api/v1/notifications_url")
                 .send(
                         ar -> {
                             if (ar.succeeded()) {
                                 future.complete(
-                                        ar.result().bodyAsJsonObject().getString("clientUrl"));
+                                        ar.result()
+                                                .bodyAsJsonObject()
+                                                .getString("notificationsUrl"));
                             } else {
                                 future.completeExceptionally(ar.cause());
                             }
