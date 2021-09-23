@@ -42,6 +42,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -53,7 +54,9 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 import javax.inject.Inject;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 class ProbeTemplateUploadHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -124,5 +127,10 @@ class ProbeTemplateUploadHandler extends AbstractAuthenticatedRequestHandler {
             throw new HttpStatusException(400, e.getMessage(), e);
         }
         ctx.response().end();
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.CREATE_PROBE_TEMPLATE);
     }
 }
