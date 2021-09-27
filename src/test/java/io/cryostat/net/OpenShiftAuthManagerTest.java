@@ -258,14 +258,19 @@ class OpenShiftAuthManagerTest {
             throw new IllegalArgumentException(resourceAction.getVerb().toString());
         }
 
+        Set<String> expectedGroups;
         Set<String> expectedResources;
         if (resourceAction.getResource() == ResourceType.TARGET) {
+            expectedGroups = Set.of("operator.cryostat.io");
             expectedResources = Set.of("flightrecorders");
         } else if (resourceAction.getResource() == ResourceType.RECORDING) {
+            expectedGroups = Set.of("operator.cryostat.io");
             expectedResources = Set.of("recordings");
         } else if (resourceAction.getResource() == ResourceType.CERTIFICATE) {
+            expectedGroups = Set.of("apps", "", "operator.cryostat.io");
             expectedResources = Set.of("deployments", "pods", "cryostats");
         } else if (resourceAction.getResource() == ResourceType.CREDENTIALS) {
+            expectedGroups = Set.of("operator.cryostat.io");
             expectedResources = Set.of("cryostats");
         } else {
             throw new IllegalArgumentException(resourceAction.getResource().toString());
@@ -312,7 +317,9 @@ class OpenShiftAuthManagerTest {
         MatcherAssert.assertThat(
                 body.getSpec().getResourceAttributes().getVerb(), Matchers.equalTo(expectedVerb));
 
+        Set<String> actualGroups = new HashSet<>();
         Set<String> actualResources = new HashSet<>();
+        actualGroups.add(body.getSpec().getResourceAttributes().getGroup());
         actualResources.add(body.getSpec().getResourceAttributes().getResource());
         // start at 1 because we've already checked the first request above
         for (int i = 1; i < expectedResources.size(); i++) {
@@ -330,9 +337,11 @@ class OpenShiftAuthManagerTest {
             MatcherAssert.assertThat(
                     body.getSpec().getResourceAttributes().getVerb(),
                     Matchers.equalTo(expectedVerb));
+            actualGroups.add(body.getSpec().getResourceAttributes().getGroup());
             actualResources.add(body.getSpec().getResourceAttributes().getResource());
         }
 
+        MatcherAssert.assertThat(actualGroups, Matchers.equalTo(expectedGroups));
         MatcherAssert.assertThat(actualResources, Matchers.equalTo(expectedResources));
     }
 
