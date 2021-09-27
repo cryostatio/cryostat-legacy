@@ -76,7 +76,8 @@ import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
-    private static final Set<String> PERMISSION_NOT_REQUIRED = Set.of("PERMISSION_NOT_REQUIRED");
+    private static final Set<GroupResource> PERMISSION_NOT_REQUIRED =
+            Set.of(GroupResource.PERMISSION_NOT_REQUIRED);
 
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
@@ -146,11 +147,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private Stream<CompletableFuture<Void>> validateAction(
             OpenShiftClient client, String namespace, ResourceAction resourceAction) {
-        Set<String> resources = map(resourceAction.getResource());
+        Set<GroupResource> resources = map(resourceAction.getResource());
         if (PERMISSION_NOT_REQUIRED.equals(resources) || resources.isEmpty()) {
             return Stream.of(CompletableFuture.completedFuture(null));
         }
-        String group = "operator.cryostat.io";
         String verb = map(resourceAction.getVerb());
         return resources
                 .parallelStream()
@@ -164,8 +164,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                                 .withNewSpec()
                                                 .withNewResourceAttributes()
                                                 .withNamespace(namespace)
-                                                .withGroup(group)
-                                                .withResource(resource)
+                                                .withGroup(resource.getGroup())
+                                                .withResource(resource.getResource())
                                                 .withVerb(verb)
                                                 .endResourceAttributes()
                                                 .endSpec()
@@ -180,8 +180,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                     return CompletableFuture.failedFuture(
                                             new PermissionDeniedException(
                                                     namespace,
-                                                    group,
-                                                    resource,
+                                                    resource.getGroup(),
+                                                    resource.getResource(),
                                                     verb,
                                                     accessReview.getStatus().getReason()));
                                 } else {
@@ -260,16 +260,17 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 .get();
     }
 
-    private static Set<String> map(ResourceType resource) {
+    private static Set<GroupResource> map(ResourceType resource) {
         switch (resource) {
             case TARGET:
-                return Set.of("flightrecorders");
+                return Set.of(GroupResource.FLIGHTRECORDERS);
             case RECORDING:
-                return Set.of("recordings");
+                return Set.of(GroupResource.RECORDINGS);
             case CERTIFICATE:
-                return Set.of("deployments", "pods", "cryostats");
+                return Set.of(
+                        GroupResource.DEPLOYMENTS, GroupResource.PODS, GroupResource.CRYOSTATS);
             case CREDENTIALS:
-                return Set.of("cryostats");
+                return Set.of(GroupResource.CRYOSTATS);
             case TEMPLATE:
             case REPORT:
             case RULE:
@@ -340,6 +341,33 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         public void setRequestSuccessful(boolean requestSuccessful) {
             this.requestSuccessful = requestSuccessful;
+        }
+    }
+
+    // A pairing of a Kubernetes group name and resource name
+    private static enum GroupResource {
+        DEPLOYMENTS("apps", "deployments"),
+        PODS("", "pods"),
+        CRYOSTATS("operator.cryostat.io", "cryostats"),
+        FLIGHTRECORDERS("operator.cryostat.io", "flightrecorders"),
+        RECORDINGS("operator.cryostat.io", "recordings"),
+        PERMISSION_NOT_REQUIRED("", "PERMISSION_NOT_REQUIRED"),
+        ;
+
+        private final String group;
+        private final String resource;
+
+        private GroupResource(String group, String resource) {
+            this.group = group;
+            this.resource = resource;
+        }
+
+        public String getGroup() {
+            return group;
+        }
+
+        public String getResource() {
+            return resource;
         }
     }
 }
