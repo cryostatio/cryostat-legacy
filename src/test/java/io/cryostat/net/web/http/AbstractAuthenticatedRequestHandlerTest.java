@@ -43,6 +43,7 @@ import java.net.UnknownHostException;
 import java.rmi.ConnectIOException;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
@@ -130,6 +131,40 @@ class AbstractAuthenticatedRequestHandlerTest {
     void shouldThrow401IfAuthFails3() {
         when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.failedFuture(new KubernetesClientException("test")));
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+    }
+
+    @Test
+    void shouldThrow401IfAuthFails4() {
+        // Check a doubly-nested PermissionDeniedException
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(
+                        CompletableFuture.failedFuture(
+                                new ExecutionException(
+                                        new PermissionDeniedException(
+                                                "namespace",
+                                                "group",
+                                                "resource",
+                                                "verb",
+                                                "reason"))));
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(401));
+    }
+
+    @Test
+    void shouldThrow401IfAuthFails5() {
+        // Check doubly-nested KubernetesClientException with its own cause
+        when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(
+                        CompletableFuture.failedFuture(
+                                new ExecutionException(
+                                        new KubernetesClientException(
+                                                "test", new Exception("test2")))));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
