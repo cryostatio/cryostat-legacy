@@ -89,9 +89,7 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.PLAINTEXT.mime());
             handleAuthenticated(ctx);
         } catch (ExecutionException ee) {
-            Throwable cause = ee.getCause();
-            if (cause instanceof PermissionDeniedException
-                    || cause instanceof KubernetesClientException) {
+            if (isAuthFailure(ee)) {
                 throw new HttpStatusException(401, "HTTP Authorization Failure", ee);
             }
             throw new HttpStatusException(500, ee.getMessage(), ee);
@@ -162,5 +160,12 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             credentials = new Credentials(parts[0], parts[1]);
         }
         return new ConnectionDescriptor(targetId, credentials);
+    }
+
+    private boolean isAuthFailure(ExecutionException e) {
+        // Check if the Exception has a PermissionDeniedException or KubernetesClientException
+        // in its cause chain
+        return ExceptionUtils.indexOfType(e, PermissionDeniedException.class) >= 0
+                || ExceptionUtils.indexOfType(e, KubernetesClientException.class) >= 0;
     }
 }
