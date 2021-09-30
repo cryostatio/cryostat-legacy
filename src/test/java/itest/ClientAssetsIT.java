@@ -88,14 +88,14 @@ public class ClientAssetsIT extends StandardSelfTest {
         Elements body = doc.getElementsByTag("body");
         MatcherAssert.assertThat("Expected one <body>", body.size(), Matchers.equalTo(1));
 
-        Elements script = head.first().getElementsByTag("script");
+        Elements scripts = head.first().getElementsByTag("script");
         MatcherAssert.assertThat(
-                "Expected at least one <script>", script.size(), Matchers.greaterThanOrEqualTo(1));
+                "Expected at least one <script>", scripts.size(), Matchers.greaterThanOrEqualTo(1));
 
-        boolean anyMatch = false;
-        for (Element el : script) {
-            anyMatch |= el.attr("src").matches("app(?:.\\w*)?\\.bundle\\.js");
+        boolean foundAppBundle = false;
+        for (Element el : scripts) {
+            foundAppBundle |= el.attr("src").matches("^/app(?:.\\w*)?\\.bundle\\.js$");
         }
-        Assertions.assertTrue(anyMatch, "No app.bundle.js script tag found");
+        Assertions.assertTrue(foundAppBundle, "No app.bundle.js script tag found");
     }
 }
