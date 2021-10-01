@@ -45,6 +45,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -135,8 +136,7 @@ public class SubprocessReportGenerator {
                         // See https://github.com/cryostatio/cryostat/issues/287
                         .jvmArgs(
                                 createJvmArgs(
-                                        Integer.parseInt(
-                                                env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "200"))))
+                                        Integer.parseInt(env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "0"))))
                         .processArgs(createProcessArgs(recording, saveFile))
                         .exec();
         return CompletableFuture.supplyAsync(
@@ -205,18 +205,18 @@ public class SubprocessReportGenerator {
     }
 
     private List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
-        // These JVM flags must be kept in-sync with the flags set on the parent process in
-        // entrypoint.sh in order to keep the auth and certs setup consistent
-        return List.of(
-                String.format("-Xmx%dM", maxHeapMegabytes),
-                "-XX:+ExitOnOutOfMemoryError",
-                // use EpsilonGC since we're a one-shot process and report generation doesn't
-                // allocate that much memory beyond the initial recording load - no point in
-                // over-complicating memory allocation. Preferable to just complete the request
-                // quickly, or if we're running up against the memory limit, fail early
-                "-XX:+UnlockExperimentalVMOptions",
-                "-XX:+UseEpsilonGC",
-                "-XX:+AlwaysPreTouch");
+        List<String> args = new ArrayList<>();
+        if (maxHeapMegabytes > 0) {
+            args.add(String.format("-Xms%dM", maxHeapMegabytes));
+            args.add(String.format("-Xmx%dM", maxHeapMegabytes));
+        }
+        args.add("-XX:+ExitOnOutOfMemoryError");
+        // use Serial GC since we have a small heap and likely little garbage to clean,
+        // and low GC overhead is more important here than minimizing pause time since the
+        // result will end up cached for subsequent user accesses so long as the process
+        // succeeds in the end
+        args.add("-XX:+UseSerialGC");
+        return args;
     }
 
     private List<String> createProcessArgs(Path recording, Path saveFile) {
