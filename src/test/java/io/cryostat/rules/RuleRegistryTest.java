@@ -40,6 +40,7 @@ package io.cryostat.rules;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.URI;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
@@ -244,7 +245,10 @@ class RuleRegistryTest {
         registry.addRule(testRule);
 
         MatcherAssert.assertThat(
-                registry.getRules(new ServiceRef(null, "com.example.App")),
+                registry.getRules(
+                        new ServiceRef(
+                                URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"),
+                                "com.example.App")),
                 Matchers.equalTo(Set.of(testRule)));
     }
 
@@ -261,7 +265,10 @@ class RuleRegistryTest {
         registry.addRule(archiverRule);
 
         MatcherAssert.assertThat(
-                registry.getRules(new ServiceRef(null, "com.example.App")),
+                registry.getRules(
+                        new ServiceRef(
+                                URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"),
+                                "com.example.App")),
                 Matchers.equalTo(Set.of()));
     }
 
