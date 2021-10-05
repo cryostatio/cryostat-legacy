@@ -42,9 +42,11 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 
 import com.google.gson.annotations.SerializedName;
+
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
@@ -57,7 +59,7 @@ public class ServiceRef {
     private final Annotations annotations = new Annotations();
 
     public ServiceRef(URI uri, String alias) {
-        this.serviceUri = uri;
+        this.serviceUri = Objects.requireNonNull(uri);
         this.alias = alias;
     }
 
@@ -71,6 +73,9 @@ public class ServiceRef {
 
     public void setLabels(Map<String, String> labels) {
         this.labels.clear();
+        if (labels == null) {
+            labels = Map.of();
+        }
         this.labels.putAll(labels);
     }
 
@@ -80,6 +85,9 @@ public class ServiceRef {
 
     public void setPlatformAnnotations(Map<String, String> annotations) {
         this.annotations.platform.clear();
+        if (annotations == null) {
+            annotations = Map.of();
+        }
         this.annotations.platform.putAll(annotations);
     }
 
@@ -89,6 +97,9 @@ public class ServiceRef {
 
     public void setCryostatAnnotations(Map<AnnotationKey, String> annotations) {
         this.annotations.cryostat.clear();
+        if (annotations == null) {
+            annotations = Map.of();
+        }
         this.annotations.cryostat.putAll(annotations);
     }
 
