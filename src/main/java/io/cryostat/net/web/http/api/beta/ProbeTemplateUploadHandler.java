@@ -35,20 +35,23 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta;
 
+import com.google.gson.Gson;
 import io.cryostat.core.agent.LocalProbeTemplateService;
+import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
-import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 import javax.inject.Inject;
@@ -58,9 +61,9 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-class ProbeTemplateUploadHandler extends AbstractAuthenticatedRequestHandler {
+class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
-    static final String PATH = "probes";
+    static final String PATH = "probes/:probetemplateName";
 
     private static Logger logger;
     private final NotificationFactory notificationFactory;
@@ -74,9 +77,10 @@ class ProbeTemplateUploadHandler extends AbstractAuthenticatedRequestHandler {
             NotificationFactory notificationFactory,
             LocalProbeTemplateService probeTemplateService,
             Logger logger,
-            FileSystem fs
+            FileSystem fs,
+            Gson gson
     ) {
-        super(auth);
+        super(auth, gson);
         this.notificationFactory = notificationFactory;
         this.logger = logger;
         this.probeTemplateService = probeTemplateService;
@@ -85,7 +89,7 @@ class ProbeTemplateUploadHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
+        return ApiVersion.V2;
     }
 
     @Override
@@ -104,11 +108,26 @@ class ProbeTemplateUploadHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return EnumSet.of(ResourceAction.CREATE_PROBE_TEMPLATE);
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return false;
+    }
+
+    @Override
+    public IntermediateResponse handle(RequestParameters requestParams) throws Exception {
         try {
-            for (FileUpload u : ctx.fileUploads()) {
+            for (FileUpload u : requestParams.getFileUploads()) {
+                String templateName = requestParams.getPathParams().get("probetemplateName");
                 Path path = fs.pathOf(u.uploadedFileName());
-                logger.info("Found path: " + u.uploadedFileName());
                 try (InputStream is = fs.newInputStream(path)) {
                     notificationFactory.createBuilder()
                         .metaCategory(NOTIFICATION_CATEGORY)
@@ -117,20 +136,23 @@ class ProbeTemplateUploadHandler extends AbstractAuthenticatedRequestHandler {
                         .build()
                         .send();
                     logger.info("Adding template to probeTemplateService: " + path.toString());
-                    probeTemplateService.addTemplate(is);
+                    probeTemplateService.addTemplate(is, templateName);
                 } finally {
                     fs.deleteIfExists(path);
                 }
             }
-        } catch (Exception e) {
+        } catch (ProbeValidationException pve) {
+            logger.error(pve.getMessage());
+            throw new HttpStatusException(400, pve.getMessage(), pve);
+        } catch(Exception e) {
             logger.error(e.getMessage());
-            throw new HttpStatusException(400, e.getMessage(), e);
+            throw new HttpStatusException(500, e.getMessage(), e);
         }
-        ctx.response().end();
+        return new IntermediateResponse().body(null);
     }
 
     @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.CREATE_PROBE_TEMPLATE);
+    public HttpMimeType mimeType() {
+        return HttpMimeType.PLAINTEXT;
     }
 }

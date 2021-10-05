@@ -198,9 +198,4 @@ public abstract class HttpApiV1Module {
     @IntoSet
     abstract RequestHandler bindTargetRecoringOptionsGetHandler(
             TargetRecordingOptionsGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(
-        ProbeTemplateUploadHandler handler);
 }

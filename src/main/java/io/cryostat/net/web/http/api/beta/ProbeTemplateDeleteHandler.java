@@ -35,8 +35,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.beta;
 
+import com.google.gson.Gson;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -46,6 +47,9 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -55,10 +59,10 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-public class ProbeTemplateDeleteHandler extends AbstractAuthenticatedRequestHandler {
+public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
 
 
-    static final String PATH = "probes";
+    static final String PATH = "probes/:probetemplateName";
 
     private static Logger logger;
     private final NotificationFactory notificationFactory;
@@ -72,9 +76,10 @@ public class ProbeTemplateDeleteHandler extends AbstractAuthenticatedRequestHand
         NotificationFactory notificationFactory,
         LocalProbeTemplateService probeTemplateService,
         Logger logger,
-        FileSystem fs
+        FileSystem fs,
+        Gson gson
     ) {
-        super(auth);
+        super(auth, gson);
         this.notificationFactory = notificationFactory;
         this.logger = logger;
         this.probeTemplateService = probeTemplateService;
@@ -83,12 +88,12 @@ public class ProbeTemplateDeleteHandler extends AbstractAuthenticatedRequestHand
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V1;
+        return ApiVersion.V2;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.POST;
+        return HttpMethod.DELETE;
     }
 
     @Override
@@ -102,8 +107,18 @@ public class ProbeTemplateDeleteHandler extends AbstractAuthenticatedRequestHand
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String probeTemplateName = ctx.pathParam("templateName");
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return false;
+    }
+
+    @Override
+    public IntermediateResponse<Void> handle(RequestParameters params) throws Exception {
+        String probeTemplateName = params.getPathParams().get("probetemplateName");
         try {
             this.probeTemplateService.deleteTemplate(probeTemplateName);
             notificationFactory.createBuilder()
@@ -112,14 +127,19 @@ public class ProbeTemplateDeleteHandler extends AbstractAuthenticatedRequestHand
                 .message(Map.of("probeTemplate", probeTemplateName))
                 .build()
                 .send();
-            ctx.response().end();
         } catch (Exception e) {
             throw new HttpStatusException(400, e.getMessage(), e);
         }
+        return new IntermediateResponse().body(null);
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
         return EnumSet.of(ResourceAction.DELETE_PROBE_TEMPLATE);
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.PLAINTEXT;
     }
 }
