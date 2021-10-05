@@ -49,8 +49,14 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import com.google.gson.Gson;
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.FileSystem;
+import io.cryostat.platform.ServiceRef;
+import io.cryostat.rules.RuleRegistry.RuleEvent;
+import io.cryostat.util.events.Event;
 
+import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -61,13 +67,6 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.rules.RuleRegistry.RuleEvent;
-import io.cryostat.util.events.Event;
 
 @ExtendWith(MockitoExtension.class)
 class RuleRegistryTest {
@@ -246,7 +245,10 @@ class RuleRegistryTest {
         registry.addRule(testRule);
 
         MatcherAssert.assertThat(
-                registry.getRules(new ServiceRef(URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"), "com.example.App")),
+                registry.getRules(
+                        new ServiceRef(
+                                URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"),
+                                "com.example.App")),
                 Matchers.equalTo(Set.of(testRule)));
     }
 
@@ -263,7 +265,10 @@ class RuleRegistryTest {
         registry.addRule(archiverRule);
 
         MatcherAssert.assertThat(
-                registry.getRules(new ServiceRef(URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"), "com.example.App")),
+                registry.getRules(
+                        new ServiceRef(
+                                URI.create("service:jmx:rmi:///jndi/rmi://app:9091/jmxrmi"),
+                                "com.example.App")),
                 Matchers.equalTo(Set.of()));
     }
 

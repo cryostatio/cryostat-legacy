@@ -41,12 +41,12 @@ import java.net.URI;
 import java.util.Map;
 import java.util.Optional;
 
+import io.cryostat.platform.ServiceRef.AnnotationKey;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-
-import io.cryostat.platform.ServiceRef.AnnotationKey;
 
 class ServiceRefTest {
 
@@ -118,8 +118,8 @@ class ServiceRefTest {
     @Test
     void shouldBeAbleToSetNonEmptyCryostatAnnotations() {
         ServiceRef sr = new ServiceRef(EXAMPLE_URI, EXAMPLE_ALIAS);
-        Map<AnnotationKey, String> annotations = Map.of(AnnotationKey.HOST, "fooHost",
-                AnnotationKey.JAVA_MAIN, "some.App");
+        Map<AnnotationKey, String> annotations =
+                Map.of(AnnotationKey.HOST, "fooHost", AnnotationKey.JAVA_MAIN, "some.App");
         sr.setCryostatAnnotations(annotations);
         MatcherAssert.assertThat(sr.getCryostatAnnotations(), Matchers.equalTo(annotations));
     }
@@ -127,8 +127,8 @@ class ServiceRefTest {
     @Test
     void shouldBeAbleToReplaceCryostatAnnotations() {
         ServiceRef sr = new ServiceRef(EXAMPLE_URI, EXAMPLE_ALIAS);
-        Map<AnnotationKey, String> annotations = Map.of(AnnotationKey.HOST, "fooHost",
-                AnnotationKey.JAVA_MAIN, "some.App");
+        Map<AnnotationKey, String> annotations =
+                Map.of(AnnotationKey.HOST, "fooHost", AnnotationKey.JAVA_MAIN, "some.App");
         sr.setCryostatAnnotations(annotations);
         MatcherAssert.assertThat(sr.getCryostatAnnotations(), Matchers.equalTo(annotations));
         sr.setCryostatAnnotations(Map.of());
@@ -165,5 +165,4 @@ class ServiceRefTest {
         sr.setPlatformAnnotations(Map.of());
         MatcherAssert.assertThat(sr.getPlatformAnnotations(), Matchers.equalTo(Map.of()));
     }
-
 }

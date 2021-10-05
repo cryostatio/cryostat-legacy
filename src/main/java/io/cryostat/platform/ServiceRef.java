@@ -46,7 +46,6 @@ import java.util.Objects;
 import java.util.Optional;
 
 import com.google.gson.annotations.SerializedName;
-
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 import org.apache.commons.lang3.builder.ToStringBuilder;
