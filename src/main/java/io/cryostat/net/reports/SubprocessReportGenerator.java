@@ -81,8 +81,6 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 public class SubprocessReportGenerator {
 
     static final String SUBPROCESS_MAX_HEAP_ENV = "CRYOSTAT_REPORT_GENERATION_MAX_HEAP";
-    static String ENV_USERNAME = "TARGET_USERNAME";
-    static String ENV_PASSWORD = "TARGET_PASSWORD";
 
     private final Environment env;
     private final FileSystem fs;
