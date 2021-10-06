@@ -54,15 +54,17 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.apache.commons.lang3.StringUtils;
+
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
-
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
+import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -72,7 +74,6 @@ import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
-import org.apache.commons.lang3.StringUtils;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
@@ -97,17 +98,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
-        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
-            TokenReview review =
-                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
-            review = client.tokenReviews().create(review);
-            return CompletableFuture.completedFuture(
-                    new UserInfo(review.getStatus().getUser().getUsername()));
-        } catch (KubernetesClientException e) {
-            logger.info(e);
-            return CompletableFuture.failedFuture(e);
+        Future<TokenReviewStatus> fStatus = performTokenReview(token);
+        try {
+            TokenReviewStatus status = fStatus.get();
+            return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
         } catch (Exception e) {
-            logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -148,17 +143,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     Future<Boolean> reviewToken(String token) {
-        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
-            TokenReview review =
-                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
-            review = client.tokenReviews().create(review);
-            Boolean authenticated = review.getStatus().getAuthenticated();
+        Future<TokenReviewStatus> fStatus = performTokenReview(token);
+        try {
+            TokenReviewStatus status = fStatus.get();
+            Boolean authenticated = status.getAuthenticated();
             return CompletableFuture.completedFuture(authenticated != null && authenticated);
-        } catch (KubernetesClientException e) {
-            logger.info(e);
-            return CompletableFuture.failedFuture(e);
         } catch (Exception e) {
-            logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -262,6 +252,21 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return null;
         }
         return matcher.group(1);
+    }
+
+    private Future<TokenReviewStatus> performTokenReview(String token) {
+        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+            TokenReview review =
+                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
+            review = client.tokenReviews().create(review);
+            return CompletableFuture.completedFuture(review.getStatus());
+        } catch (KubernetesClientException e) {
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     @SuppressFBWarnings(
