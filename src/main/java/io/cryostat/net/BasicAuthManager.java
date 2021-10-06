@@ -51,12 +51,13 @@ import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
-
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
 
 class BasicAuthManager extends AbstractAuthManager {
 
@@ -83,13 +84,11 @@ class BasicAuthManager extends AbstractAuthManager {
     @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         String credentials = getCredentialsFromHeader(httpHeaderProvider.get());
-        Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
-        Matcher matcher = credentialsPattern.matcher(credentials);
-        if (!matcher.matches()) {
+        Pair<String, String> splitCredentials = splitCredentials(credentials);
+        if (splitCredentials == null) {
             return CompletableFuture.failedFuture(new UnknownUserException(null));
         }
-        String user = matcher.group(1);
-        return CompletableFuture.completedFuture(new UserInfo(user));
+        return CompletableFuture.completedFuture(new UserInfo(splitCredentials.getLeft()));
     }
 
     @Override
@@ -99,13 +98,12 @@ class BasicAuthManager extends AbstractAuthManager {
             this.loadConfig();
         }
         String credentials = tokenProvider.get();
-        Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
-        Matcher matcher = credentialsPattern.matcher(credentials);
-        if (!matcher.matches()) {
+        Pair<String, String> splitCredentials = splitCredentials(credentials);
+        if (splitCredentials == null) {
             return CompletableFuture.completedFuture(false);
         }
-        String user = matcher.group(1);
-        String pass = matcher.group(2);
+        String user = splitCredentials.getLeft();
+        String pass = splitCredentials.getRight();
         String passHashHex = DigestUtils.sha256Hex(pass);
         boolean granted = Objects.equals(users.getProperty(user), passHashHex);
         // FIXME actually implement this
@@ -151,6 +149,17 @@ class BasicAuthManager extends AbstractAuthManager {
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }
+    }
+
+    private Pair<String, String> splitCredentials(String credentials) {
+        Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
+        Matcher matcher = credentialsPattern.matcher(credentials);
+        if (!matcher.matches()) {
+            return null;
+        }
+        String user = matcher.group(1);
+        String pass = matcher.group(2);
+        return Pair.of(user, pass);
     }
 
     private String getCredentialsFromHeader(String rawHttpHeader) {
