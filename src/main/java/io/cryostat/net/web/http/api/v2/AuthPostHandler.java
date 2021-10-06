@@ -35,29 +35,73 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
+import javax.inject.Inject;
+
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-public interface AuthManager {
-    AuthenticationScheme getScheme();
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 
-    Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
+class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
-    Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
+    @Inject
+    protected AuthPostHandler(AuthManager auth, Gson gson) {
+        super(auth, gson);
+    }
 
-    Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions);
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
 
-    Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2;
+    }
 
-    AuthenticatedAction doAuthenticated(
-            Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "auth";
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
+        return new IntermediateResponse<UserInfo>()
+                .body(
+                        auth.getUserInfo(
+                                        () ->
+                                                requestParams
+                                                        .getHeaders()
+                                                        .get(HttpHeaders.AUTHORIZATION))
+                                .get());
+    }
 }

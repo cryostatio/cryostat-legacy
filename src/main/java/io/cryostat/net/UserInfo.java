@@ -37,27 +37,14 @@
  */
 package io.cryostat.net;
 
-import java.util.Set;
-import java.util.concurrent.Future;
-import java.util.function.Function;
-import java.util.function.Supplier;
+public class UserInfo {
+    private final String username;
 
-import io.cryostat.net.security.ResourceAction;
+    public UserInfo(String username) {
+        this.username = username;
+    }
 
-public interface AuthManager {
-    AuthenticationScheme getScheme();
-
-    Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
-
-    Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
-
-    Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions);
-
-    Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
-
-    AuthenticatedAction doAuthenticated(
-            Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+    public String getUsername() {
+        return username;
+    }
 }

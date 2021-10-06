@@ -95,6 +95,24 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        String token = getTokenFromHttpHeader(httpHeaderProvider.get());
+        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+            TokenReview review =
+                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
+            review = client.tokenReviews().create(review);
+            return CompletableFuture.completedFuture(
+                    new UserInfo(review.getStatus().getUser().getUsername()));
+        } catch (KubernetesClientException e) {
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Override
     public Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         String token = tokenProvider.get();
@@ -202,15 +220,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     public Future<Boolean> validateHttpHeader(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         String authorization = headerProvider.get();
-        if (StringUtils.isBlank(authorization)) {
+        String token = getTokenFromHttpHeader(authorization);
+        if (token == null) {
             return CompletableFuture.completedFuture(false);
         }
-        Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
-        Matcher matcher = bearerPattern.matcher(authorization);
-        if (!matcher.matches()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        return validateToken(() -> matcher.group(1), resourceActions);
+        return validateToken(() -> token, resourceActions);
     }
 
     @Override
@@ -236,6 +250,18 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
         }
+    }
+
+    private String getTokenFromHttpHeader(String rawHttpHeader) {
+        if (StringUtils.isBlank(rawHttpHeader)) {
+            return null;
+        }
+        Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
+        Matcher matcher = bearerPattern.matcher(rawHttpHeader);
+        if (!matcher.matches()) {
+            return null;
+        }
+        return matcher.group(1);
     }
 
     @SuppressFBWarnings(

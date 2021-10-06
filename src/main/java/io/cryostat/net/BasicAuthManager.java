@@ -81,6 +81,18 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        String credentials = getCredentialsFromHeader(httpHeaderProvider.get());
+        Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
+        Matcher matcher = credentialsPattern.matcher(credentials);
+        if (!matcher.matches()) {
+            return CompletableFuture.failedFuture(new UnknownUserException(null));
+        }
+        String user = matcher.group(1);
+        return CompletableFuture.completedFuture(new UserInfo(user));
+    }
+
+    @Override
     public Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         if (!configLoaded) {
@@ -110,23 +122,11 @@ class BasicAuthManager extends AbstractAuthManager {
     @Override
     public Future<Boolean> validateHttpHeader(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        String authorization = headerProvider.get();
-        if (StringUtils.isBlank(authorization)) {
+        String decoded = getCredentialsFromHeader(headerProvider.get());
+        if (decoded == null) {
             return CompletableFuture.completedFuture(false);
         }
-        Pattern basicPattern = Pattern.compile("Basic[\\s]+(.*)");
-        Matcher matcher = basicPattern.matcher(authorization);
-        if (!matcher.matches()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        String b64 = matcher.group(1);
-        try {
-            String decoded =
-                    new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded, resourceActions);
-        } catch (IllegalArgumentException e) {
-            return CompletableFuture.completedFuture(false);
-        }
+        return validateToken(() -> decoded, resourceActions);
     }
 
     @Override
@@ -150,6 +150,23 @@ class BasicAuthManager extends AbstractAuthManager {
             return validateToken(() -> decoded, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
+        }
+    }
+
+    private String getCredentialsFromHeader(String rawHttpHeader) {
+        if (StringUtils.isBlank(rawHttpHeader)) {
+            return null;
+        }
+        Pattern basicPattern = Pattern.compile("Basic[\\s]+(.*)");
+        Matcher matcher = basicPattern.matcher(rawHttpHeader);
+        if (!matcher.matches()) {
+            return null;
+        }
+        String b64 = matcher.group(1);
+        try {
+            return new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 

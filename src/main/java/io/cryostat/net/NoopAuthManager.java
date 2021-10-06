@@ -58,6 +58,11 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        return CompletableFuture.completedFuture(new UserInfo("user"));
+    }
+
+    @Override
     public Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
