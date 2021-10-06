@@ -143,7 +143,10 @@ public class SubprocessReportGenerator {
                 () -> {
                     try {
                         proc.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
-                        ExitStatus status = ExitStatus.byExitCode(proc.exitValue());
+                        ExitStatus status =
+                                proc.isAlive()
+                                        ? ExitStatus.TIMED_OUT
+                                        : ExitStatus.byExitCode(proc.exitValue());
                         switch (status) {
                             case OK:
                                 return saveFile;
@@ -158,7 +161,9 @@ public class SubprocessReportGenerator {
                         proc.destroyForcibly();
                         throw new CompletionException(
                                 new ReportGenerationException(ExitStatus.TERMINATED));
-                    } catch (ReportGenerationException | RecordingNotFoundException e) {
+                    } catch (ReportGenerationException
+                            | RecordingNotFoundException
+                            | IllegalThreadStateException e) {
                         logger.error(e);
                         proc.destroyForcibly();
                         throw new CompletionException(e);
@@ -383,7 +388,7 @@ public class SubprocessReportGenerator {
         IO_EXCEPTION(5, "An unspecified IO exception occurred while writing the report file."),
         OTHER(6, "An unspecified unexpected exception occurred."),
         TERMINATED(-1, "The subprocess timed out and was terminated."),
-        ;
+        TIMED_OUT(-2, "The subprocess did not complete its work within the allotted time.");
 
         final int code;
         final String message;
