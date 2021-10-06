@@ -50,7 +50,7 @@ import io.vertx.ext.web.RoutingContext;
 
 public class TimeoutHandler implements RequestHandler {
 
-    public static final long TIMEOUT_MS = 15_000L;
+    public static final long TIMEOUT_MS = 30_000L;
     final io.vertx.ext.web.handler.TimeoutHandler handler;
 
     @Inject
