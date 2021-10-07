@@ -40,12 +40,14 @@ package io.cryostat.net;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 
+import org.apache.commons.codec.binary.Base64;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -141,6 +143,14 @@ class BasicAuthManagerTest {
 
     @Nested
     class TokenValidationTest {
+        @Test
+        void shouldReturnUserInfoWithSuppliedUsername() throws Exception {
+            String credentials =
+                    Base64.encodeBase64String("user:pass".getBytes(StandardCharsets.UTF_8));
+            UserInfo userInfo = mgr.getUserInfo(() -> "Basic " + credentials).get();
+            MatcherAssert.assertThat(userInfo.getUsername(), Matchers.equalTo("user"));
+        }
+
         @Test
         void shouldFailAuthenticationWhenCredentialsMalformed() throws Exception {
             Assertions.assertFalse(mgr.validateToken(() -> "user", ResourceAction.NONE).get());
