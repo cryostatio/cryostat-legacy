@@ -149,21 +149,8 @@ class RecordingGetHandlerTest {
 
         handler.handle(ctx);
 
-        ArgumentCaptor<Handler<AsyncResult<Void>>> resultHandlerCaptor =
-                ArgumentCaptor.forClass(Handler.class);
-
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
-        Mockito.verify(resp)
-                .sendFile(
-                        Mockito.anyString(),
-                        Mockito.eq(0L),
-                        Mockito.eq(12345L),
-                        resultHandlerCaptor.capture());
-
-        Handler resultHandler = resultHandlerCaptor.getValue();
-        Mockito.verify(resp, Mockito.never()).close();
-        resultHandler.handle(null);
-        Mockito.verify(resp).close();
+        Mockito.verify(resp).sendFile(archivedRecording.toString());
     }
 }
