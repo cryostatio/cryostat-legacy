@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.io.File;
 import java.nio.file.Path;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -44,9 +45,13 @@ import java.util.concurrent.ExecutionException;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -57,6 +62,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -136,9 +142,28 @@ class RecordingGetHandlerTest {
 
         Path archivedRecording = Mockito.mock(Path.class);
         Mockito.when(future.get()).thenReturn(archivedRecording);
+        Mockito.when(archivedRecording.toString()).thenReturn("/path/to/recording.jfr");
+        File file = Mockito.mock(File.class);
+        Mockito.when(archivedRecording.toFile()).thenReturn(file);
+        Mockito.when(file.length()).thenReturn(12345L);
 
         handler.handle(ctx);
 
-        Mockito.verify(resp).sendFile(Mockito.anyString());
+        ArgumentCaptor<Handler<AsyncResult<Void>>> resultHandlerCaptor =
+                ArgumentCaptor.forClass(Handler.class);
+
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
+        Mockito.verify(resp)
+                .sendFile(
+                        Mockito.anyString(),
+                        Mockito.eq(0L),
+                        Mockito.eq(12345L),
+                        resultHandlerCaptor.capture());
+
+        Handler resultHandler = resultHandlerCaptor.getValue();
+        Mockito.verify(resp, Mockito.never()).close();
+        resultHandler.handle(null);
+        Mockito.verify(resp).close();
     }
 }
