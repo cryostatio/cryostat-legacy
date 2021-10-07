@@ -118,7 +118,10 @@ class SubprocessReportGeneratorTest {
                 .thenReturn(javaProcessBuilder);
         Mockito.lenient().when(javaProcessBuilder.exec()).thenReturn(proc);
         Mockito.lenient()
-                .when(env.getEnv(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV, "200"))
+                .when(
+                        env.getEnv(
+                                Mockito.eq(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV),
+                                Mockito.anyString()))
                 .thenReturn("200");
         this.generator =
                 new SubprocessReportGenerator(
@@ -189,12 +192,27 @@ class SubprocessReportGeneratorTest {
         Mockito.verify(javaProcessBuilder).jvmArgs(captor.capture());
 
         List<String> expected =
-                List.of(
-                        "-Xmx200M",
-                        "-XX:+ExitOnOutOfMemoryError",
-                        "-XX:+UnlockExperimentalVMOptions",
-                        "-XX:+UseEpsilonGC",
-                        "-XX:+AlwaysPreTouch");
+                List.of("-Xms200M", "-Xmx200M", "-XX:+ExitOnOutOfMemoryError", "-XX:+UseSerialGC");
+        MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
+    }
+
+    @Test
+    void shouldSetJvmArgsWithoutReportMaxHeapEnvVar() throws Exception {
+        Path dest = Mockito.mock(Path.class);
+        Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
+        Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
+        Mockito.when(
+                        env.getEnv(
+                                Mockito.eq(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV),
+                                Mockito.anyString()))
+                .thenReturn("0");
+
+        generator.exec(recordingFile, dest, Duration.ofSeconds(10));
+
+        ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
+        Mockito.verify(javaProcessBuilder).jvmArgs(captor.capture());
+
+        List<String> expected = List.of("-XX:+ExitOnOutOfMemoryError", "-XX:+UseSerialGC");
         MatcherAssert.assertThat(captor.getValue(), Matchers.equalTo(expected));
     }
 
