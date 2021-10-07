@@ -101,6 +101,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         Future<TokenReviewStatus> fStatus = performTokenReview(token);
         try {
             TokenReviewStatus status = fStatus.get();
+            if (!Boolean.TRUE.equals(status.getAuthenticated())) {
+                return CompletableFuture.failedFuture(new
+                        AuthorizationErrorException(status.getError()));
+            }
             return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
@@ -259,7 +263,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             TokenReview review =
                     new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
             review = client.tokenReviews().create(review);
-            return CompletableFuture.completedFuture(review.getStatus());
+            TokenReviewStatus status = review.getStatus();
+            if (StringUtils.isNotBlank(status.getError())) {
+                return CompletableFuture.failedFuture(new
+                        AuthorizationErrorException(status.getError()));
+            }
+            return CompletableFuture.completedFuture(status);
         } catch (KubernetesClientException e) {
             logger.info(e);
             return CompletableFuture.failedFuture(e);
@@ -399,6 +408,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
         public String getResource() {
             return resource;
+        }
+    }
+
+    static class AuthorizationErrorException extends Exception {
+        AuthorizationErrorException(String msg) {
+            super(msg);
         }
     }
 }
