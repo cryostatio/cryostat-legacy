@@ -70,6 +70,7 @@ fi
 
 podman run \
     --pod cryostat \
+    --memory 512M \
     --mount type=tmpfs,target=/opt/cryostat.d/recordings.d \
     --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
     --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
