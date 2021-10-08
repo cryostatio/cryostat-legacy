@@ -103,7 +103,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             TokenReviewStatus status = fStatus.get();
             if (!Boolean.TRUE.equals(status.getAuthenticated())) {
                 return CompletableFuture.failedFuture(
-                        new AuthorizationErrorException(status.getError()));
+                        new AuthorizationErrorException("Authentication Failed"));
             }
             return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
         } catch (Exception e) {
