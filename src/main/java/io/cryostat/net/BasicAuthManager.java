@@ -88,7 +88,11 @@ class BasicAuthManager extends AbstractAuthManager {
         if (splitCredentials == null) {
             return CompletableFuture.failedFuture(new UnknownUserException(null));
         }
-        return CompletableFuture.completedFuture(new UserInfo(splitCredentials.getLeft()));
+        String user = splitCredentials.getLeft();
+        if (!users.containsKey(user)) {
+            return CompletableFuture.failedFuture(new UnknownUserException(user));
+        }
+        return CompletableFuture.completedFuture(new UserInfo(user));
     }
 
     @Override
