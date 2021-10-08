@@ -102,8 +102,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         try {
             TokenReviewStatus status = fStatus.get();
             if (!Boolean.TRUE.equals(status.getAuthenticated())) {
-                return CompletableFuture.failedFuture(new
-                        AuthorizationErrorException(status.getError()));
+                return CompletableFuture.failedFuture(
+                        new AuthorizationErrorException(status.getError()));
             }
             return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
         } catch (Exception e) {
@@ -265,8 +265,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             review = client.tokenReviews().create(review);
             TokenReviewStatus status = review.getStatus();
             if (StringUtils.isNotBlank(status.getError())) {
-                return CompletableFuture.failedFuture(new
-                        AuthorizationErrorException(status.getError()));
+                return CompletableFuture.failedFuture(
+                        new AuthorizationErrorException(status.getError()));
             }
             return CompletableFuture.completedFuture(status);
         } catch (KubernetesClientException e) {
