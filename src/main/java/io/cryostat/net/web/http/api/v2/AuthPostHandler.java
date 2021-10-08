@@ -42,6 +42,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -50,6 +51,8 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
@@ -95,13 +98,20 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
     @Override
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
-        return new IntermediateResponse<UserInfo>()
-                .body(
-                        auth.getUserInfo(
-                                        () ->
-                                                requestParams
-                                                        .getHeaders()
-                                                        .get(HttpHeaders.AUTHORIZATION))
-                                .get());
+        try {
+            return new IntermediateResponse<UserInfo>()
+                    .body(
+                            auth.getUserInfo(
+                                            () ->
+                                                    requestParams
+                                                            .getHeaders()
+                                                            .get(HttpHeaders.AUTHORIZATION))
+                                    .get());
+        } catch (Exception e) {
+            if (ExceptionUtils.indexOfType(e, AuthorizationErrorException.class) >= 0) {
+                throw new HttpStatusException(401, e);
+            }
+            throw e;
+        }
     }
 }

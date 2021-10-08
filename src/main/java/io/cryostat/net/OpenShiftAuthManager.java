@@ -410,10 +410,4 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return resource;
         }
     }
-
-    static class AuthorizationErrorException extends Exception {
-        AuthorizationErrorException(String msg) {
-            super(msg);
-        }
-    }
 }
