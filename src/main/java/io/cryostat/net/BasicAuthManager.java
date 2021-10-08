@@ -83,6 +83,9 @@ class BasicAuthManager extends AbstractAuthManager {
 
     @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        if (!configLoaded) {
+            this.loadConfig();
+        }
         String credentials = getCredentialsFromHeader(httpHeaderProvider.get());
         Pair<String, String> splitCredentials = splitCredentials(credentials);
         if (splitCredentials == null) {

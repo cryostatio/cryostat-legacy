@@ -145,6 +145,16 @@ class BasicAuthManagerTest {
     class TokenValidationTest {
         @Test
         void shouldReturnUserInfoWithSuppliedUsername() throws Exception {
+            Path mockPath = Mockito.mock(Path.class);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+            Mockito.when(fs.exists(mockPath)).thenReturn(true);
+            Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
+            Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
+            BufferedReader props =
+                    new BufferedReader(
+                            new StringReader(
+                                    "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
+            Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             String credentials =
                     Base64.encodeBase64String("user:pass".getBytes(StandardCharsets.UTF_8));
             UserInfo userInfo = mgr.getUserInfo(() -> "Basic " + credentials).get();
