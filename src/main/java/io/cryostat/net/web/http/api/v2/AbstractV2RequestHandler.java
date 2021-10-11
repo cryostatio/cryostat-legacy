@@ -50,6 +50,7 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -106,6 +107,7 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                 } catch (ExecutionException ee) {
                     Throwable cause = ee.getCause();
                     if (cause instanceof PermissionDeniedException
+                            || cause instanceof AuthorizationErrorException
                             || cause instanceof KubernetesClientException) {
                         throw new ApiException(401, "HTTP Authorization Failure", ee);
                     }
