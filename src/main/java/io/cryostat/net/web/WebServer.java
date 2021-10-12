@@ -125,10 +125,22 @@ public class WebServer {
                         exception = new HttpStatusException(500, ctx.failure());
                     }
 
+                    String payload =
+                            exception.getPayload() != null
+                                    ? exception.getPayload()
+                                    : exception.getMessage();
                     if (!HttpStatusCodeIdentifier.isServerErrorCode(exception.getStatusCode())) {
-                        logger.warn(exception);
+                        logger.warn(
+                                "HTTP {}: {}\n{}",
+                                exception.getStatusCode(),
+                                payload,
+                                ExceptionUtils.getStackTrace(exception).trim());
                     } else {
-                        logger.error(exception);
+                        logger.error(
+                                "HTTP {}: {}\n{}",
+                                exception.getStatusCode(),
+                                payload,
+                                ExceptionUtils.getStackTrace(exception).trim());
                     }
 
                     if (exception.getStatusCode() == 401) {
@@ -153,11 +165,6 @@ public class WebServer {
                                 .end(gson.toJson(resp));
                     } else {
                         // kept for V1 API handler compatibility
-                        String payload =
-                                exception.getPayload() != null
-                                        ? exception.getPayload()
-                                        : exception.getMessage();
-
                         if (ExceptionUtils.hasCause(exception, HttpStatusException.class)) {
                             payload +=
                                     " caused by " + ExceptionUtils.getRootCauseMessage(exception);
