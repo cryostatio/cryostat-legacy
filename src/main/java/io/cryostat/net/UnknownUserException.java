@@ -37,46 +37,8 @@
  */
 package io.cryostat.net;
 
-import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
-
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.security.ResourceAction;
-
-public class NoopAuthManager extends AbstractAuthManager {
-
-    public NoopAuthManager(Logger logger) {
-        super(logger);
-    }
-
-    @Override
-    public AuthenticationScheme getScheme() {
-        // accepts everything and anything, so this is really meaningless
-        return AuthenticationScheme.BASIC;
-    }
-
-    @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
-    }
-
-    @Override
-    public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
-    }
-
-    @Override
-    public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
-    }
-
-    @Override
-    public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+public class UnknownUserException extends Exception {
+    public UnknownUserException(String username) {
+        super(String.format("User information requested for unknown user: \"%s\"", username));
     }
 }

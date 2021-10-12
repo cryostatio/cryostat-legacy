@@ -58,6 +58,10 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindAuthPostHandler(AuthPostHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindApiGetHandler(ApiGetHandler handler);
 
     @Binds

@@ -40,12 +40,14 @@ package io.cryostat.net;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 
+import org.apache.commons.codec.binary.Base64;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -141,6 +143,24 @@ class BasicAuthManagerTest {
 
     @Nested
     class TokenValidationTest {
+        @Test
+        void shouldReturnUserInfoWithSuppliedUsername() throws Exception {
+            Path mockPath = Mockito.mock(Path.class);
+            Mockito.when(confDir.resolve(Mockito.anyString())).thenReturn(mockPath);
+            Mockito.when(fs.exists(mockPath)).thenReturn(true);
+            Mockito.when(fs.isRegularFile(mockPath)).thenReturn(true);
+            Mockito.when(fs.isReadable(mockPath)).thenReturn(true);
+            BufferedReader props =
+                    new BufferedReader(
+                            new StringReader(
+                                    "user:d74ff0ee8da3b9806b18c877dbf29bbde50b5bd8e4dad7a3a725000feb82e8f1"));
+            Mockito.when(fs.readFile(mockPath)).thenReturn(props);
+            String credentials =
+                    Base64.encodeBase64String("user:pass".getBytes(StandardCharsets.UTF_8));
+            UserInfo userInfo = mgr.getUserInfo(() -> "Basic " + credentials).get();
+            MatcherAssert.assertThat(userInfo.getUsername(), Matchers.equalTo("user"));
+        }
+
         @Test
         void shouldFailAuthenticationWhenCredentialsMalformed() throws Exception {
             Assertions.assertFalse(mgr.validateToken(() -> "user", ResourceAction.NONE).get());

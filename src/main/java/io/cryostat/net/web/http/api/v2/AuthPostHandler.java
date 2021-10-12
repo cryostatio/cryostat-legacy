@@ -35,48 +35,73 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.web.http.api.v2;
 
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
 
-import io.cryostat.core.log.Logger;
+import javax.inject.Inject;
+
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-public class NoopAuthManager extends AbstractAuthManager {
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 
-    public NoopAuthManager(Logger logger) {
-        super(logger);
+class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
+
+    @Inject
+    protected AuthPostHandler(AuthManager auth, Gson gson) {
+        super(auth, gson);
     }
 
     @Override
-    public AuthenticationScheme getScheme() {
-        // accepts everything and anything, so this is really meaningless
-        return AuthenticationScheme.BASIC;
+    public boolean requiresAuthentication() {
+        return true;
     }
 
     @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2;
     }
 
     @Override
-    public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
     }
 
     @Override
-    public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override
-    public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public String path() {
+        return basePath() + "auth";
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
+        return new IntermediateResponse<UserInfo>()
+                .body(
+                        auth.getUserInfo(
+                                        () ->
+                                                requestParams
+                                                        .getHeaders()
+                                                        .get(HttpHeaders.AUTHORIZATION))
+                                .get());
     }
 }
