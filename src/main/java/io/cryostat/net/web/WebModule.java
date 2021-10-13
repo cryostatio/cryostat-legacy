@@ -134,6 +134,7 @@ public abstract class WebModule {
         if (jwt.isUnsecure()) {
             return List.of("none");
         }
+        // FIXME extract this env var name to a constant and document it
         String raw = env.getEnv("CRYOSTAT_SUPPORTED_SIGNING_ALGOS", "none");
         String[] split = raw.split(",");
         List<String> result =

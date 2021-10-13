@@ -47,6 +47,7 @@ import java.net.UnknownHostException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -64,6 +65,7 @@ import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiData;
 import io.cryostat.net.web.http.api.ApiMeta;
 import io.cryostat.net.web.http.api.ApiResponse;
+import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
@@ -292,48 +294,41 @@ public class WebServer {
                 .normalize();
     }
 
+    // FIXME this has a non-explicit dependency on the RecordingGetHandler path
     public String getArchivedDownloadURL(String recordingName)
             throws UnknownHostException, URISyntaxException, SocketException {
-        return new URIBuilder(getHostUri())
-                .setScheme(server.isSsl() ? "https" : "http")
-                .setPathSegments("api", "v1", "recordings", recordingName)
-                .build()
-                .normalize()
-                .toString();
+        return getAssetDownloadURL(ApiVersion.V1, "recordings", recordingName);
     }
 
+    // FIXME this has a non-explicit dependency on the TargetRecordingGetHandler path
     public String getDownloadURL(JFRConnection connection, String recordingName)
             throws URISyntaxException, IOException {
-        return new URIBuilder(getHostUri())
-                .setScheme(server.isSsl() ? "https" : "http")
-                .setPathSegments(
-                        "api",
-                        "v1",
-                        "targets",
-                        getTargetId(connection),
-                        "recordings",
-                        recordingName)
-                .build()
-                .normalize()
-                .toString();
+        return getAssetDownloadURL(
+                ApiVersion.V1, "targets", getTargetId(connection), "recordings", recordingName);
     }
 
+    // FIXME this has a non-explicit dependency on the ReportGetHandler path
     public String getArchivedReportURL(String recordingName)
             throws SocketException, UnknownHostException, URISyntaxException {
-        return new URIBuilder(getHostUri())
-                .setScheme(server.isSsl() ? "https" : "http")
-                .setPathSegments("api", "v1", "reports", recordingName)
-                .build()
-                .normalize()
-                .toString();
+        return getAssetDownloadURL(ApiVersion.V1, "reports", recordingName);
     }
 
+    // FIXME this has a non-explicit dependency on the TargetReportGetHandler path
     public String getReportURL(JFRConnection connection, String recordingName)
             throws URISyntaxException, IOException {
+        return getAssetDownloadURL(
+                ApiVersion.V1, "targets", getTargetId(connection), "reports", recordingName);
+    }
+
+    public String getAssetDownloadURL(ApiVersion apiVersion, String... pathSegments)
+            throws SocketException, UnknownHostException, URISyntaxException {
+        List<String> segments = new ArrayList<>();
+        segments.add("api");
+        segments.add(apiVersion.getVersionString());
+        segments.addAll(Arrays.asList(pathSegments));
         return new URIBuilder(getHostUri())
-                .setScheme(server.isSsl() ? "https" : "http")
-                .setPathSegments(
-                        "api", "v1", "targets", getTargetId(connection), "reports", recordingName)
+                .setScheme(server.isSsl() ? "https" : "htto")
+                .setPathSegments(segments)
                 .build()
                 .normalize()
                 .toString();
