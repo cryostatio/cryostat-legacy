@@ -40,8 +40,8 @@ package io.cryostat.net.web.http.api.v1;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -125,7 +125,12 @@ class ReportGetHandlerTest {
         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
                 .thenReturn(resp);
 
-        Path fakePath = Paths.get("/some/fake/path.html");
+        Path fakePath = Mockito.mock(Path.class);
+        Mockito.when(fakePath.toAbsolutePath()).thenReturn(fakePath);
+        Mockito.when(fakePath.toString()).thenReturn("/some/fake/path.html");
+        File file = Mockito.mock(File.class);
+        Mockito.when(fakePath.toFile()).thenReturn(file);
+        Mockito.when(file.length()).thenReturn(12345L);
 
         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         when(reportService.get(Mockito.anyString()))
@@ -136,6 +141,7 @@ class ReportGetHandlerTest {
         Mockito.verify(reportService).get("someRecording");
         Mockito.verify(resp).sendFile(fakePath.toString());
         Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+        Mockito.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "12345");
     }
 
     @Test
