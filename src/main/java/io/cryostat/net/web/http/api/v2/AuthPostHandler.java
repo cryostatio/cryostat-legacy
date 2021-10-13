@@ -65,7 +65,7 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
     @Override
     public ApiVersion apiVersion() {
-        return ApiVersion.V2;
+        return ApiVersion.V2_1;
     }
 
     @Override
