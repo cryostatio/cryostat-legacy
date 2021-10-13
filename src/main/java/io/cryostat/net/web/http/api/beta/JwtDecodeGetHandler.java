@@ -37,23 +37,71 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.Set;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindJwtGetHandler(JwtGetHandler handler);
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.auth.JWTOptions;
+import io.vertx.ext.jwt.JWT;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindJwtDecodeGetHandler(JwtDecodeGetHandler handler);
+class JwtDecodeGetHandler extends AbstractV2RequestHandler<JsonObject> {
+
+    private final JWT jwt;
+
+    @Inject
+    JwtDecodeGetHandler(AuthManager auth, Gson gson, JWT jwt) {
+        super(auth, gson);
+        this.jwt = jwt;
+    }
+
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "jwtdecode";
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public boolean requiresAuthentication() {
+        return false;
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public IntermediateResponse<JsonObject> handle(RequestParameters requestParams)
+            throws Exception {
+        String token = requestParams.getQueryParams().get("token");
+        JsonObject resp = jwt.decode(token);
+        resp.put("algos", jwt.availableAlgorithms().toString());
+        resp.put("isExpired", jwt.isExpired(resp, new JWTOptions()));
+        return new IntermediateResponse<JsonObject>().body(resp);
+    }
 }

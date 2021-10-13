@@ -70,7 +70,7 @@ function generateSslCert() {
     pushd /tmp
 
     keytool -genkeypair -v \
-        -alias cryostat \
+        -alias RS256 \
         -dname "cn=cryostat, o=Cryostat, c=CA" \
         -storetype PKCS12 \
         -validity 180 \
@@ -80,7 +80,7 @@ function generateSslCert() {
         -keystore "$SSL_KEYSTORE"
 
     keytool -exportcert -v \
-        -alias cryostat \
+        -alias RS256 \
         -keystore "$SSL_KEYSTORE" \
         -storepass "$SSL_STORE_PASS" \
         -file server.cer
@@ -89,7 +89,7 @@ function generateSslCert() {
         -noprompt \
         -trustcacerts \
         -keystore "$SSL_TRUSTSTORE" \
-        -alias selftrust \
+        -alias RS256 \
         -file server.cer \
         -storepass "$SSL_TRUSTSTORE_PASS"
 
@@ -135,6 +135,7 @@ else
     if [ -z "$KEYSTORE_PATH" ] || [ -z "$KEYSTORE_PASS" ]; then
         generateSslCert
         banner "Using self-signed SSL certificate"
+        export CRYOSTAT_SUPPORTED_SIGNING_ALGOS="RS256,none"
 
         KEYSTORE_PATH="$SSL_KEYSTORE"
         KEYSTORE_PASS="$SSL_KEY_PASS"

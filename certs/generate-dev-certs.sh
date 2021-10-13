@@ -39,6 +39,8 @@ SSL_TRUSTSTORE_PASS=$(genpass)
 
 SSL_KEYSTORE_PASS=$(genpass)
 
+ALIAS=RS256
+
 pushd $CERTS_DIR
 trap popd EXIT
 
@@ -55,17 +57,18 @@ keytool \
 
 keytool \
     -genkeypair -v \
-    -alias custom-cryostat \
+    -alias "$ALIAS" \
     -dname "cn=cryostat, o=Cryostat, c=CA" \
     -storetype PKCS12 \
     -validity 365 \
     -keyalg RSA \
+    -keysize 2048 \
     -storepass "$SSL_KEYSTORE_PASS" \
     -keystore "$SSL_KEYSTORE"
 
 keytool \
     -exportcert -v \
-    -alias custom-cryostat \
+    -alias "$ALIAS" \
     -keystore "$SSL_KEYSTORE" \
     -storepass "$SSL_KEYSTORE_PASS" \
     -file server.cer
