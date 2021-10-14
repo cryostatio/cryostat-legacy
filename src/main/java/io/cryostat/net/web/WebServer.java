@@ -327,7 +327,7 @@ public class WebServer {
         segments.add(apiVersion.getVersionString());
         segments.addAll(Arrays.asList(pathSegments));
         return new URIBuilder(getHostUri())
-                .setScheme(server.isSsl() ? "https" : "htto")
+                .setScheme(server.isSsl() ? "https" : "http")
                 .setPathSegments(segments)
                 .build()
                 .normalize()

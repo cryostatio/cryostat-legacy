@@ -168,10 +168,14 @@ public abstract class WebModule {
     @Singleton
     @Named(SIGNING_ALGO)
     static String provideSigningAlgo(
+            SslConfiguration sslConf,
             @Named(JWT_SIGNING_ALGOS) List<String> signingAlgos,
             @Named(SUPPORTED_SIGNING_ALGOS) List<String> supportedSigningAlgos,
             Logger logger) {
         logger.info("Known signing algorithms: {}", signingAlgos);
+        if (!sslConf.enabled()) {
+            supportedSigningAlgos = List.of("none");
+        }
         logger.info("Supported signing algorithms: {}", supportedSigningAlgos);
         List<String> intersection =
                 signingAlgos.stream()

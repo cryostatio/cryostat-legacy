@@ -74,6 +74,12 @@ public class SslConfiguration {
         this.fs = fs;
         this.logger = logger;
 
+        if (env.hasEnv("CRYOSTAT_DISABLE_SSL")) {
+            strategy = new NoSslStrategy();
+            logger.info("Selected NoSSL strategy");
+            return;
+        }
+
         {
             Path path = obtainKeyStorePathIfSpecified();
             if (path != null) {

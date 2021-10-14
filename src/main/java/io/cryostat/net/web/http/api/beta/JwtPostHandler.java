@@ -143,7 +143,7 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
                         .setIssuer(netConf.getWebServerHost())
                         .setAudience(List.of(netConf.getWebServerHost()))
                         .setSubject(userInfo.getUsername())
-                        .setExpiresInMinutes(2);
+                        .setExpiresInMinutes(10); // FIXME reduce this to 1-2 minutes
         JsonObject claim = new JsonObject();
         claim.put("resource", resource);
         // FIXME implement some way for the POSTing client to include optional JMX credentials in

@@ -60,4 +60,8 @@ public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindJwtGetHandler(JwtGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
 }
