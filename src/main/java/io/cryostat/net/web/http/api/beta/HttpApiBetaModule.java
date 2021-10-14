@@ -68,4 +68,12 @@ public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
+
+    @Binds
+    @IntoSet
+    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
 }
