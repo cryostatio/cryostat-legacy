@@ -46,6 +46,7 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.UserInfo;
@@ -77,6 +78,7 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
     private final String signingAlgo;
     private final Lazy<WebServer> webServer;
     private final NetworkConfiguration netConf;
+    private final Logger logger;
 
     @Inject
     JwtPostHandler(
@@ -85,12 +87,14 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
             JWTAuth jwtAuth,
             @Named(WebModule.SIGNING_ALGO) String signingAlgo,
             Lazy<WebServer> webServer,
-            NetworkConfiguration netConf) {
+            NetworkConfiguration netConf,
+            Logger logger) {
         super(auth, gson);
         this.jwtAuth = jwtAuth;
         this.signingAlgo = signingAlgo;
         this.webServer = webServer;
         this.netConf = netConf;
+        this.logger = logger;
     }
 
     @Override
@@ -158,6 +162,7 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
                             .getHeaders()
                             .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER));
         }
+        logger.info("jwt: {}", claim);
 
         String jwt = jwtAuth.generateToken(claim, options);
         try {

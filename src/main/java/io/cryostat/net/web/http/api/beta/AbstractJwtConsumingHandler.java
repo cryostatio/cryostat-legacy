@@ -37,13 +37,17 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.regex.Matcher;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 
@@ -116,10 +120,39 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
     protected ConnectionDescriptor getConnectionDescriptorFromJwt(
             RoutingContext ctx, JsonObject jwt) {
+        logger.info("receivd jwt: {}", jwt);
         String targetId = ctx.pathParam("targetId");
         // TODO inject the CredentialsManager here to check for stored credentials
         Credentials credentials = null;
-        // TODO get the stored credentials out of the JWT's encrypted 'jmxauth' claim !!!
+        // FIXME jmxauth credentials should be encrypted within the JWT !!!
+        // FIXME extract "jmxauth" to a constant and reuse in JwtPostHandler
+        if (jwt.containsKey("jmxauth")) {
+            String c;
+            try {
+                Matcher m =
+                        AbstractAuthenticatedRequestHandler.AUTH_HEADER_PATTERN.matcher(
+                                jwt.getString("jmxauth"));
+                if (!m.find()) {
+                    throw new ApiException(427, "Invalid jmxauth claim format");
+                }
+                String t = m.group("type");
+                if (!"basic".equals(t.toLowerCase())) {
+                    throw new ApiException(427, "Unacceptable jmxauth credentials type");
+                }
+                c =
+                        new String(
+                                Base64.getUrlDecoder().decode(m.group("credentials")),
+                                StandardCharsets.UTF_8);
+            } catch (IllegalArgumentException iae) {
+                throw new ApiException(
+                        427, "jmxauth claim credentials do not appear to be Base64-encoded", iae);
+            }
+            String[] parts = c.split(":");
+            if (parts.length != 2) {
+                throw new ApiException(427, "Unrecognized jmxauth claim credential format");
+            }
+            credentials = new Credentials(parts[0], parts[1]);
+        }
         return new ConnectionDescriptor(targetId, credentials);
     }
 }
