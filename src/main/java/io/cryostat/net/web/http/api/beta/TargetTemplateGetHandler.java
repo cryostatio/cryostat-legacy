@@ -39,20 +39,15 @@ package io.cryostat.net.web.http.api.beta;
 
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.reports.SubprocessReportGenerator;
+import io.cryostat.core.templates.TemplateType;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.generic.TimeoutHandler;
-import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -60,16 +55,16 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
-class TargetReportGetHandler extends AbstractJwtConsumingHandler {
+class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
 
-    protected final ReportService reportService;
+    private final TargetConnectionManager targetConnectionManager;
 
     @Inject
-    TargetReportGetHandler(JWTAuth jwtAuth, ReportService reportService, Logger logger) {
+    TargetTemplateGetHandler(
+            JWTAuth jwtAuth, TargetConnectionManager targetConnectionManager, Logger logger) {
         super(jwtAuth, logger);
-        this.reportService = reportService;
+        this.targetConnectionManager = targetConnectionManager;
     }
 
     @Override
@@ -84,16 +79,12 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
 
     @Override
     public String path() {
-        return basePath() + "targets/:targetId/reports/:recordingName";
+        return basePath() + "targets/:targetId/templates/:templateName/type/:templateType";
     }
 
     @Override
     public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(
-                ResourceAction.READ_TARGET,
-                ResourceAction.READ_RECORDING,
-                ResourceAction.CREATE_REPORT,
-                ResourceAction.READ_REPORT);
+        return EnumSet.of(ResourceAction.READ_TARGET, ResourceAction.READ_TEMPLATE);
     }
 
     @Override
@@ -102,38 +93,21 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
-    public boolean isOrdered() {
-        return true;
-    }
-
-    @Override
     public void handleWithValidJwt(RoutingContext ctx, JsonObject jwt) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
-        try {
-            ctx.response()
-                    .end(
-                            reportService
-                                    .get(getConnectionDescriptorFromJwt(ctx, jwt), recordingName)
-                                    .get(TimeoutHandler.TIMEOUT_MS, TimeUnit.MILLISECONDS));
-        } catch (CompletionException | ExecutionException ee) {
-
-            Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
-
-            if (rootCause instanceof RecordingNotFoundException
-                    || targetRecordingNotFound(rootCause)) {
-                throw new HttpStatusException(404, ee);
-            }
-            throw ee;
-        }
-    }
-
-    private boolean targetRecordingNotFound(Exception rootCause) {
-        return rootCause instanceof SubprocessReportGenerator.ReportGenerationException
-                        && (((SubprocessReportGenerator.ReportGenerationException) rootCause)
-                                        .getStatus()
-                                == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE)
-                || (((SubprocessReportGenerator.ReportGenerationException) rootCause).getStatus()
-                        == SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING);
+        String templateName = ctx.pathParam("templateName");
+        TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));
+        targetConnectionManager
+                .executeConnectedTask(
+                        getConnectionDescriptorFromJwt(ctx, jwt),
+                        conn -> conn.getTemplateService().getXml(templateName, templateType))
+                .ifPresentOrElse(
+                        doc -> {
+                            ctx.response()
+                                    .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JFC.mime());
+                            ctx.response().end(doc.toString());
+                        },
+                        () -> {
+                            throw new HttpStatusException(404);
+                        });
     }
 }
