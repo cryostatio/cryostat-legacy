@@ -48,7 +48,6 @@ import io.vertx.ext.web.RoutingContext;
 
 public class RequestParameters {
 
-    private final String absoluteUri;
     private final Map<String, String> pathParams;
     private final MultiMap queryParams;
     private final MultiMap headers;
@@ -57,14 +56,12 @@ public class RequestParameters {
     private final String body;
 
     public RequestParameters(
-            String absoluteUri,
             Map<String, String> pathParams,
             MultiMap queryParams,
             MultiMap headers,
             MultiMap formAttributes,
             Set<FileUpload> fileUploads,
             String body) {
-        this.absoluteUri = absoluteUri;
         this.pathParams = new HashMap<>(pathParams);
         this.queryParams = MultiMap.caseInsensitiveMultiMap();
         this.queryParams.addAll(queryParams);
@@ -108,17 +105,7 @@ public class RequestParameters {
         }
 
         return new RequestParameters(
-                ctx.request().absoluteURI(),
-                pathParams,
-                queryParams,
-                headers,
-                formAttributes,
-                fileUploads,
-                body);
-    }
-
-    public String getAbsoluteUri() {
-        return this.absoluteUri;
+                pathParams, queryParams, headers, formAttributes, fileUploads, body);
     }
 
     public Map<String, String> getPathParams() {

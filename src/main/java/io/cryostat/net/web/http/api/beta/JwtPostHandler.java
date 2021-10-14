@@ -46,7 +46,6 @@ import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.UserInfo;
@@ -77,7 +76,6 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
     private final String signingAlgo;
     private final Lazy<WebServer> webServer;
     private final NetworkConfiguration netConf;
-    private final Logger logger;
 
     @Inject
     JwtPostHandler(
@@ -86,14 +84,12 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
             JWTAuth jwtAuth,
             @Named(WebModule.SIGNING_ALGO) String signingAlgo,
             Lazy<WebServer> webServer,
-            NetworkConfiguration netConf,
-            Logger logger) {
+            NetworkConfiguration netConf) {
         super(auth, gson);
         this.jwtAuth = jwtAuth;
         this.signingAlgo = signingAlgo;
         this.webServer = webServer;
         this.netConf = netConf;
-        this.logger = logger;
     }
 
     @Override
@@ -150,11 +146,14 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
                         .setExpiresInMinutes(2);
         JsonObject claim = new JsonObject();
         claim.put("resource", resource);
+        // FIXME implement some way for the POSTing client to include optional JMX credentials in
+        // the request which are encoded into the JWT. Re-use the X-JMX-Authorization header?
+        // FIXME encode the jwt !!!
         String jwt = jwtAuth.generateToken(claim, options);
         try {
             URI resourceUri = new URIBuilder(resource).setParameter("token", jwt).build();
             return new IntermediateResponse<Map<String, String>>()
-                    .body(Map.of("token", jwt, "resourceUrl", resourceUri.toString()));
+                    .body(Map.of("resourceUrl", resourceUri.toString()));
         } catch (URISyntaxException use) {
             throw new ApiException(400, use);
         }

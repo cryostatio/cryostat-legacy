@@ -37,47 +37,48 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.Credentials;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
-import com.google.gson.Gson;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.User;
 import io.vertx.ext.auth.jwt.JWTAuth;
+import io.vertx.ext.web.RoutingContext;
 
-abstract class AbstractJwtConsumingHandler<T> extends AbstractV2RequestHandler<T> {
+abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
     protected final JWTAuth jwtAuth;
+    protected final Logger logger;
 
-    protected AbstractJwtConsumingHandler(JWTAuth jwtAuth, AuthManager auth, Gson gson) {
-        super(auth, gson);
+    protected AbstractJwtConsumingHandler(JWTAuth jwtAuth, Logger logger) {
         this.jwtAuth = jwtAuth;
+        this.logger = logger;
     }
 
-    @Override
-    public final Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
-    }
+    abstract void handleWithValidJwt(RoutingContext ctx, JsonObject jwt) throws Exception;
 
     @Override
-    public final boolean requiresAuthentication() {
-        return false;
-    }
-
-    @Override
-    public final IntermediateResponse<T> handle(RequestParameters requestParams) throws Exception {
-        String token = requestParams.getQueryParams().get("token");
-        if (token == null) {
-            throw new ApiException(401);
+    public final void handle(RoutingContext ctx) {
+        try {
+            JsonObject jwt = validateJwt(ctx).get();
+            handleWithValidJwt(ctx, jwt);
+        } catch (Exception e) {
+            if (e instanceof ApiException) {
+                throw (ApiException) e;
+            }
+            throw new ApiException(500, e);
         }
+    }
+
+    private Future<JsonObject> validateJwt(RoutingContext ctx) {
+        String token = ctx.queryParams().get("token");
         JsonObject authInfo = new JsonObject();
         authInfo.put("jwt", token);
         CompletableFuture<User> result = new CompletableFuture<>();
@@ -87,32 +88,38 @@ abstract class AbstractJwtConsumingHandler<T> extends AbstractV2RequestHandler<T
                     if (ar.succeeded()) {
                         result.complete(ar.result());
                     } else {
-                        result.completeExceptionally(new ApiException(401));
+                        result.complete(null);
                     }
                 });
 
         User user;
         try {
             user = result.get();
-        } catch (ExecutionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof ApiException) {
-                throw (ApiException) cause;
+            if (user == null) {
+                return CompletableFuture.failedFuture(new ApiException(401));
             }
-            throw new ApiException(500, cause);
+        } catch (InterruptedException | ExecutionException e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(new ApiException(401));
         }
 
-        String rawRequestUri = requestParams.getAbsoluteUri();
+        String rawRequestUri = ctx.request().absoluteURI();
         // We know there is a '?' (query param separator) because we checked for the 'token' query
         // param earlier
         String requestUri = rawRequestUri.substring(0, rawRequestUri.indexOf('?'));
         if (!requestUri.equals(user.principal().getString("resource"))) {
-            throw new ApiException(401);
+            return CompletableFuture.failedFuture(new ApiException(401));
         }
 
-        return handleWithValidJwt(requestParams);
+        return CompletableFuture.completedFuture(user.principal());
     }
 
-    abstract IntermediateResponse<T> handleWithValidJwt(RequestParameters requestParams)
-            throws Exception;
+    protected ConnectionDescriptor getConnectionDescriptorFromJwt(
+            RoutingContext ctx, JsonObject jwt) {
+        String targetId = ctx.pathParam("targetId");
+        // TODO inject the CredentialsManager here to check for stored credentials
+        Credentials credentials = null;
+        // TODO get the stored credentials out of the decrypted JWT
+        return new ConnectionDescriptor(targetId, credentials);
+    }
 }

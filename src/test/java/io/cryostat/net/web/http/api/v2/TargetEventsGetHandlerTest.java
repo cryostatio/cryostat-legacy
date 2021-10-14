@@ -118,7 +118,6 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
-                        "https://0.0.0.0:8181/api/v2/targets/foo:9091/events?q=foo",
                         Map.of("targetId", "foo:9091"),
                         MultiMap.caseInsensitiveMultiMap().set("q", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
@@ -187,7 +186,6 @@ class TargetEventsGetHandlerTest {
 
         RequestParameters params =
                 new RequestParameters(
-                        "https://0.0.0.0:8181/api/v2/targets/foo:9091/events?q=foo",
                         Map.of("targetId", "foo:9091"),
                         MultiMap.caseInsensitiveMultiMap().set("q", "foo"),
                         MultiMap.caseInsensitiveMultiMap(),
