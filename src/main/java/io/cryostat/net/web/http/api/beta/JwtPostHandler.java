@@ -52,6 +52,7 @@ import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
@@ -143,12 +144,21 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
                         .setIssuer(netConf.getWebServerHost())
                         .setAudience(List.of(netConf.getWebServerHost()))
                         .setSubject(userInfo.getUsername())
-                        .setExpiresInMinutes(10); // FIXME reduce this to 1-2 minutes
+                        .setExpiresInMinutes(1);
         JsonObject claim = new JsonObject();
         claim.put("resource", resource);
-        // FIXME implement some way for the POSTing client to include optional JMX credentials in
-        // the request which are encoded into the JWT. Re-use the X-JMX-Authorization header?
-        // FIXME encode the jwt !!!
+
+        if (requestParams
+                .getHeaders()
+                .contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)) {
+            // FIXME encrypt the credentials !!!
+            claim.put(
+                    "jmxauth",
+                    requestParams
+                            .getHeaders()
+                            .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER));
+        }
+
         String jwt = jwtAuth.generateToken(claim, options);
         try {
             URI resourceUri = new URIBuilder(resource).setParameter("token", jwt).build();

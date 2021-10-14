@@ -119,7 +119,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         String targetId = ctx.pathParam("targetId");
         // TODO inject the CredentialsManager here to check for stored credentials
         Credentials credentials = null;
-        // TODO get the stored credentials out of the decrypted JWT
+        // TODO get the stored credentials out of the JWT's encrypted 'jmxauth' claim !!!
         return new ConnectionDescriptor(targetId, credentials);
     }
 }
