@@ -107,7 +107,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         // We know there is a '?' (query param separator) because we checked for the 'token' query
         // param earlier
         String requestUri = rawRequestUri.substring(0, rawRequestUri.indexOf('?'));
-        if (!requestUri.equals(user.principal().getString("resource"))) {
+        if (!requestUri.endsWith(user.principal().getString("resource"))) {
             return CompletableFuture.failedFuture(new ApiException(401));
         }
 

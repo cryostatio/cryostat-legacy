@@ -131,7 +131,7 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
             throw new ApiException(400, "\"resource\" form attribute is required");
         }
         String resourcePrefix = webServer.get().getHostUrl().toString();
-        if (!resource.startsWith(resourcePrefix)) {
+        if (new URI(resource).isAbsolute() && !resource.startsWith(resourcePrefix)) {
             throw new ApiException(400, "\"resource\" URL is invalid");
         }
 
