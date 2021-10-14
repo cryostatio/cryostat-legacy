@@ -44,29 +44,29 @@ public class ApiException extends HttpStatusException {
     protected final String apiStatus;
     protected final String reason;
 
-    ApiException(int statusCode, String apiStatus, String reason, Throwable cause) {
+    public ApiException(int statusCode, String apiStatus, String reason, Throwable cause) {
         super(statusCode, cause);
         this.apiStatus = apiStatus;
         this.reason = reason;
     }
 
-    ApiException(int statusCode, String apiStatus, String reason) {
+    public ApiException(int statusCode, String apiStatus, String reason) {
         this(statusCode, apiStatus, reason, null);
     }
 
-    ApiException(int statusCode, String reason, Throwable cause) {
+    public ApiException(int statusCode, String reason, Throwable cause) {
         this(statusCode, null, reason, cause);
     }
 
-    ApiException(int statusCode, String reason) {
+    public ApiException(int statusCode, String reason) {
         this(statusCode, null, reason, null);
     }
 
-    ApiException(int statusCode, Throwable cause) {
+    public ApiException(int statusCode, Throwable cause) {
         this(statusCode, null, cause.getMessage(), cause);
     }
 
-    ApiException(int statusCode) {
+    public ApiException(int statusCode) {
         this(statusCode, (String) null);
     }
 

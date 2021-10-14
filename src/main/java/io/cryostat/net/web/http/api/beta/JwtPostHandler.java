@@ -37,32 +37,63 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.NetworkConfiguration;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebModule;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
+import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
+import dagger.Lazy;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.auth.JWTOptions;
-import io.vertx.ext.jwt.JWT;
+import io.vertx.ext.auth.jwt.JWTAuth;
+import org.apache.http.client.utils.URIBuilder;
 
-class JwtDecodeGetHandler extends AbstractV2RequestHandler<JsonObject> {
+class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
-    private final JWT jwt;
+    static final String PATH = "jwt";
+
+    private final JWTAuth jwtAuth;
+    private final String signingAlgo;
+    private final Lazy<WebServer> webServer;
+    private final NetworkConfiguration netConf;
+    private final Logger logger;
 
     @Inject
-    JwtDecodeGetHandler(AuthManager auth, Gson gson, JWT jwt) {
+    JwtPostHandler(
+            AuthManager auth,
+            Gson gson,
+            JWTAuth jwtAuth,
+            @Named(WebModule.SIGNING_ALGO) String signingAlgo,
+            Lazy<WebServer> webServer,
+            NetworkConfiguration netConf,
+            Logger logger) {
         super(auth, gson);
-        this.jwt = jwt;
+        this.jwtAuth = jwtAuth;
+        this.signingAlgo = signingAlgo;
+        this.webServer = webServer;
+        this.netConf = netConf;
+        this.logger = logger;
     }
 
     @Override
@@ -72,12 +103,12 @@ class JwtDecodeGetHandler extends AbstractV2RequestHandler<JsonObject> {
 
     @Override
     public String path() {
-        return basePath() + "jwtdecode";
+        return basePath() + PATH;
     }
 
     @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
@@ -87,7 +118,7 @@ class JwtDecodeGetHandler extends AbstractV2RequestHandler<JsonObject> {
 
     @Override
     public boolean requiresAuthentication() {
-        return false;
+        return true;
     }
 
     @Override
@@ -96,12 +127,36 @@ class JwtDecodeGetHandler extends AbstractV2RequestHandler<JsonObject> {
     }
 
     @Override
-    public IntermediateResponse<JsonObject> handle(RequestParameters requestParams)
+    public IntermediateResponse<Map<String, String>> handle(RequestParameters requestParams)
             throws Exception {
-        String token = requestParams.getQueryParams().get("token");
-        JsonObject resp = jwt.decode(token);
-        resp.put("algos", jwt.availableAlgorithms().toString());
-        resp.put("isExpired", jwt.isExpired(resp, new JWTOptions()));
-        return new IntermediateResponse<JsonObject>().body(resp);
+        String resource = requestParams.getFormAttributes().get("resource");
+        if (resource == null) {
+            throw new ApiException(400, "\"resource\" form attribute is required");
+        }
+        String resourcePrefix = webServer.get().getHostUrl().toString();
+        if (!resource.startsWith(resourcePrefix)) {
+            throw new ApiException(400, "\"resource\" URL is invalid");
+        }
+
+        UserInfo userInfo =
+                auth.getUserInfo(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
+                        .get();
+        JWTOptions options =
+                new JWTOptions()
+                        .setAlgorithm(signingAlgo)
+                        .setIssuer(netConf.getWebServerHost())
+                        .setAudience(List.of(netConf.getWebServerHost()))
+                        .setSubject(userInfo.getUsername())
+                        .setExpiresInMinutes(2);
+        JsonObject claim = new JsonObject();
+        claim.put("resource", resource);
+        String jwt = jwtAuth.generateToken(claim, options);
+        try {
+            URI resourceUri = new URIBuilder(resource).setParameter("token", jwt).build();
+            return new IntermediateResponse<Map<String, String>>()
+                    .body(Map.of("token", jwt, "resourceUrl", resourceUri.toString()));
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
+        }
     }
 }

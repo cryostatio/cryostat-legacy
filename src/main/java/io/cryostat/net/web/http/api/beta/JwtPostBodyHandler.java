@@ -37,23 +37,31 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.util.Set;
+
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
-import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.auth.jwt.JWTAuth;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-class JwtGetHandler extends AbstractJwtConsumingHandler<String> {
+class JwtPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    JwtGetHandler(JWTAuth jwtAuth, AuthManager auth, Gson gson) {
-        super(jwtAuth, auth, gson);
+    JwtPostBodyHandler(AuthManager auth) {
+        super(auth);
+    }
+
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
     }
 
     @Override
@@ -62,23 +70,22 @@ class JwtGetHandler extends AbstractJwtConsumingHandler<String> {
     }
 
     @Override
-    public String path() {
-        return basePath() + "jwt";
-    }
-
-    @Override
     public HttpMethod httpMethod() {
-        return HttpMethod.GET;
+        return HttpMethod.POST;
     }
 
     @Override
-    public HttpMimeType mimeType() {
-        return HttpMimeType.JSON;
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override
-    public IntermediateResponse<String> handleWithValidJwt(RequestParameters requestParams)
-            throws Exception {
-        return new IntermediateResponse<String>().body("Hello JWT!");
+    public String path() {
+        return basePath() + JwtPostHandler.PATH;
+    }
+
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        BODY_HANDLER.handle(ctx);
     }
 }

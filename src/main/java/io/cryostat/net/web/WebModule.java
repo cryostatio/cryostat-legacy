@@ -39,6 +39,8 @@ package io.cryostat.net.web;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.net.SocketException;
+import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -64,6 +66,7 @@ import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.Vertx;
+import io.vertx.ext.auth.JWTOptions;
 import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.auth.jwt.JWTAuthOptions;
 import io.vertx.ext.auth.jwt.impl.JWTAuthProviderImpl;
@@ -102,8 +105,23 @@ public abstract class WebModule {
 
     @Provides
     @Singleton
-    static JWTAuth provideJWTAuth(Vertx vertx, SslConfiguration sslConfig) {
-        return JWTAuth.create(vertx, sslConfig.applyToJWTAuthOptions(new JWTAuthOptions()));
+    static JWTAuth provideJWTAuth(
+            Vertx vertx,
+            NetworkConfiguration netConf,
+            SslConfiguration sslConfig,
+            @Named(SIGNING_ALGO) String signingAlgo) {
+        try {
+            JWTAuthOptions authOptions = new JWTAuthOptions();
+            JWTOptions options =
+                    new JWTOptions()
+                            .setAlgorithm(signingAlgo)
+                            .setIssuer(netConf.getWebServerHost())
+                            .setAudience(List.of(netConf.getWebServerHost()));
+            authOptions.setJWTOptions(options);
+            return JWTAuth.create(vertx, sslConfig.applyToJWTAuthOptions(authOptions));
+        } catch (UnknownHostException | SocketException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Provides
@@ -130,10 +148,7 @@ public abstract class WebModule {
     @Provides
     @Singleton
     @Named(SUPPORTED_SIGNING_ALGOS)
-    static List<String> provideSupportedSigningAlgos(JWT jwt, Environment env) {
-        if (jwt.isUnsecure()) {
-            return List.of("none");
-        }
+    static List<String> provideSupportedSigningAlgos(Environment env) {
         // FIXME extract this env var name to a constant and document it
         String raw = env.getEnv("CRYOSTAT_SUPPORTED_SIGNING_ALGOS", "none");
         String[] split = raw.split(",");
