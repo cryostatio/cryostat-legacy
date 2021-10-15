@@ -62,7 +62,6 @@ keytool \
     -storetype PKCS12 \
     -validity 365 \
     -keyalg RSA \
-    -keysize 2048 \
     -storepass "$SSL_KEYSTORE_PASS" \
     -keystore "$SSL_KEYSTORE"
 
