@@ -50,12 +50,12 @@ import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
 
-class JwtPostBodyHandler extends AbstractAuthenticatedRequestHandler {
+class AuthTokenPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
     @Inject
-    JwtPostBodyHandler(AuthManager auth) {
+    AuthTokenPostBodyHandler(AuthManager auth) {
         super(auth);
     }
 
@@ -81,7 +81,7 @@ class JwtPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public String path() {
-        return basePath() + JwtPostHandler.PATH;
+        return basePath() + AuthTokenPostHandler.PATH;
     }
 
     @Override

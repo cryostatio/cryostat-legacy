@@ -74,9 +74,9 @@ import io.vertx.ext.auth.JWTOptions;
 import io.vertx.ext.auth.jwt.JWTAuth;
 import org.apache.http.client.utils.URIBuilder;
 
-class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
+class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
-    static final String PATH = "jwt";
+    static final String PATH = "auth/token";
 
     private final JWTAuth jwtAuth;
     private final String signingAlgo;
@@ -86,7 +86,7 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
     private final Logger logger;
 
     @Inject
-    JwtPostHandler(
+    AuthTokenPostHandler(
             AuthManager auth,
             Gson gson,
             JWTAuth jwtAuth,
