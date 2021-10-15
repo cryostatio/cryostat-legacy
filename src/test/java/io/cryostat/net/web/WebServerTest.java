@@ -81,11 +81,20 @@ class WebServerTest {
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    @Mock RequestHandlerLookup requestHandlerLookup;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        exporter = new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger);
+        exporter =
+                new WebServer(
+                        httpServer,
+                        netConf,
+                        Set.of(),
+                        requestHandlerLookup,
+                        gson,
+                        authManager,
+                        logger);
     }
 
     @Test
@@ -98,7 +107,15 @@ class WebServerTest {
     @Test
     void shouldSuccessfullyInstantiateWithDefaultServer() {
         assertDoesNotThrow(
-                () -> new WebServer(httpServer, netConf, Set.of(), gson, authManager, logger));
+                () ->
+                        new WebServer(
+                                httpServer,
+                                netConf,
+                                Set.of(),
+                                requestHandlerLookup,
+                                gson,
+                                authManager,
+                                logger));
     }
 
     @Test

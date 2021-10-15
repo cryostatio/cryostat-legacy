@@ -120,7 +120,6 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
     protected ConnectionDescriptor getConnectionDescriptorFromJwt(
             RoutingContext ctx, JsonObject jwt) {
-        logger.info("receivd jwt: {}", jwt);
         String targetId = ctx.pathParam("targetId");
         // TODO inject the CredentialsManager here to check for stored credentials
         Credentials credentials = null;

@@ -41,7 +41,9 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.Future;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -51,10 +53,12 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.RequestHandlerLookup;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -77,6 +81,7 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
     private final JWTAuth jwtAuth;
     private final String signingAlgo;
     private final Lazy<WebServer> webServer;
+    private final RequestHandlerLookup requestHandlerLookup;
     private final NetworkConfiguration netConf;
     private final Logger logger;
 
@@ -87,12 +92,14 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
             JWTAuth jwtAuth,
             @Named(WebModule.SIGNING_ALGO) String signingAlgo,
             Lazy<WebServer> webServer,
+            RequestHandlerLookup requestHandlerLookup,
             NetworkConfiguration netConf,
             Logger logger) {
         super(auth, gson);
         this.jwtAuth = jwtAuth;
         this.signingAlgo = signingAlgo;
         this.webServer = webServer;
+        this.requestHandlerLookup = requestHandlerLookup;
         this.netConf = netConf;
         this.logger = logger;
     }
@@ -135,13 +142,26 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
             throw new ApiException(400, "\"resource\" form attribute is required");
         }
         String resourcePrefix = webServer.get().getHostUrl().toString();
-        if (new URI(resource).isAbsolute() && !resource.startsWith(resourcePrefix)) {
+        URI resourceUri = new URI(resource);
+        if (resourceUri.isAbsolute() && !resource.startsWith(resourcePrefix)) {
             throw new ApiException(400, "\"resource\" URL is invalid");
         }
 
-        UserInfo userInfo =
-                auth.getUserInfo(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
-                        .get();
+        String authzHeader = requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION);
+        Optional<RequestHandler> targetHandler = requestHandlerLookup.forRequestUri(resourceUri);
+        if (targetHandler.isPresent()) {
+            Set<ResourceAction> delegatedActions = targetHandler.get().resourceActions();
+            logger.info("target handler: {}", targetHandler.get().getClass().getName());
+            logger.info("delegated actions: {}", delegatedActions);
+            Future<Boolean> authzd = auth.validateHttpHeader(() -> authzHeader, delegatedActions);
+            if (!Boolean.TRUE.equals(authzd.get())) {
+                throw new ApiException(401);
+            }
+        } else {
+            throw new ApiException(400, "API handler could not be determined");
+        }
+
+        UserInfo userInfo = auth.getUserInfo(() -> authzHeader).get();
         JWTOptions options =
                 new JWTOptions()
                         .setAlgorithm(signingAlgo)
@@ -162,13 +182,12 @@ class JwtPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
                             .getHeaders()
                             .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER));
         }
-        logger.info("jwt: {}", claim);
 
         String jwt = jwtAuth.generateToken(claim, options);
         try {
-            URI resourceUri = new URIBuilder(resource).setParameter("token", jwt).build();
+            URI finalUri = new URIBuilder(resource).setParameter("token", jwt).build();
             return new IntermediateResponse<Map<String, String>>()
-                    .body(Map.of("resourceUrl", resourceUri.toString()));
+                    .body(Map.of("resourceUrl", finalUri.toString()));
         } catch (URISyntaxException use) {
             throw new ApiException(400, use);
         }
