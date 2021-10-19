@@ -44,6 +44,8 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthenticationScheme;
+import io.cryostat.net.web.WebServer;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -97,11 +99,14 @@ class AuthPostHandlerTest {
         when(ctx.request()).thenReturn(req);
         HttpServerResponse rep = mock(HttpServerResponse.class);
         when(ctx.response()).thenReturn(rep);
+        when(auth.getScheme()).thenReturn(AuthenticationScheme.BASIC);
 
         handler.handle(ctx);
 
         InOrder inOrder = Mockito.inOrder(rep);
         inOrder.verify(rep).setStatusCode(200);
+        inOrder.verify(rep)
+                .putHeader(WebServer.AUTH_SCHEME_HEADER, AuthenticationScheme.BASIC.toString());
         inOrder.verify(rep).end();
     }
 

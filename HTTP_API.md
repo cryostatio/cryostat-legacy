@@ -69,7 +69,9 @@
 
     ###### response
     `200` - No body. Getting this response means that the header is valid
-    and that the user has been successfully authenticated.
+    and that the user has been successfully authenticated. There will be an
+    `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -1240,7 +1242,7 @@ The handler-specific descriptions below describe how each handler populates the
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
-| Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler)                                           |
+| Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
@@ -1277,7 +1279,9 @@ The handler-specific descriptions below describe how each handler populates the
 
     ##### response
     `200` - The result is a JSON object containing user information. The format
-    of the user information is `{"username": "$user"}`.
+    of the user information is `{"username": "$user"}`. There will be an
+    `X-WWW-Authenticate: $SCHEME` header that indicates the authentication
+    scheme that is used.
 
     `401` - User authentication failed. The reason is an error message. There
     will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
