@@ -73,7 +73,7 @@ podman run \
     --mount type=tmpfs,target=/opt/cryostat.d/recordings.d \
     --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
     --mount type=tmpfs,target=/opt/cryostat.d/probes.d \
-    --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
+    --mount type=tmpfs,target=/opt/cryostat.d/conf.d \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
@@ -96,8 +96,9 @@ podman run \
     -e CRYOSTAT_CONFIG_PATH="/opt/cryostat.d/conf.d" \
     -e CRYOSTAT_ARCHIVE_PATH="/opt/cryostat.d/recordings.d" \
     -e CRYOSTAT_TEMPLATE_PATH="/opt/cryostat.d/templates.d" \
-    -e CRYOSTAT_PROBE_TENPLATE_PATH="/opt/cryostat.d/probes.d" \
+    -e CRYOSTAT_PROBE_TEMPLATE_PATH="/opt/cryostat.d/probes.d" \
     -e CRYOSTAT_CLIENTLIB_PATH="/clientlib" \
+    -e CRYOSTAT_AGENT_PATH="/clientlib/agent-1.0.1.jar" \
     -e CRYOSTAT_REPORT_GENERATION_MAX_HEAP="$CRYOSTAT_REPORT_GENERATION_MAX_HEAP" \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
     -e GRAFANA_DASHBOARD_URL=$GRAFANA_DASHBOARD_URL \

@@ -112,6 +112,7 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                     throw new ApiException(500, ee);
                 }
             }
+            System.out.println("Did we get here?");
             writeResponse(ctx, handle(requestParams));
         } catch (ApiException e) {
             throw e;
