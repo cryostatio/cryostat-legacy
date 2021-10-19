@@ -44,6 +44,7 @@ import javax.inject.Inject;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -96,6 +97,7 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
     @Override
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
         return new IntermediateResponse<UserInfo>()
+                .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString())
                 .body(
                         auth.getUserInfo(
                                         () ->
