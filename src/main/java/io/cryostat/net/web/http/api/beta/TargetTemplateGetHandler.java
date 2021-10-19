@@ -46,13 +46,13 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.JwtFactory;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
+import com.nimbusds.jwt.JWT;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
@@ -62,8 +62,8 @@ class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
 
     @Inject
     TargetTemplateGetHandler(
-            JWTAuth jwtAuth, TargetConnectionManager targetConnectionManager, Logger logger) {
-        super(jwtAuth, logger);
+            JwtFactory jwtFactory, TargetConnectionManager targetConnectionManager, Logger logger) {
+        super(jwtFactory, logger);
         this.targetConnectionManager = targetConnectionManager;
     }
 
@@ -93,7 +93,7 @@ class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
-    public void handleWithValidJwt(RoutingContext ctx, JsonObject jwt) throws Exception {
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String templateName = ctx.pathParam("templateName");
         TemplateType templateType = TemplateType.valueOf(ctx.pathParam("templateType"));
         targetConnectionManager

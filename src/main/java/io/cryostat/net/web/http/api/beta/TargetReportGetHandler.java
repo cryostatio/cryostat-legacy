@@ -49,15 +49,15 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.JwtFactory;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.recordings.RecordingNotFoundException;
 
+import com.nimbusds.jwt.JWT;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -67,8 +67,8 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     protected final ReportService reportService;
 
     @Inject
-    TargetReportGetHandler(JWTAuth jwtAuth, ReportService reportService, Logger logger) {
-        super(jwtAuth, logger);
+    TargetReportGetHandler(JwtFactory jwtFactory, ReportService reportService, Logger logger) {
+        super(jwtFactory, logger);
         this.reportService = reportService;
     }
 
@@ -107,7 +107,7 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
-    public void handleWithValidJwt(RoutingContext ctx, JsonObject jwt) throws Exception {
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {

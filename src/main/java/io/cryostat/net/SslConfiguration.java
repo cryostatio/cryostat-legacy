@@ -37,9 +37,6 @@
  */
 package io.cryostat.net;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 
 import io.cryostat.core.log.Logger;
@@ -50,10 +47,6 @@ import io.vertx.core.http.HttpServerOptions;
 import io.vertx.core.net.JksOptions;
 import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
-import io.vertx.ext.auth.KeyStoreOptions;
-import io.vertx.ext.auth.PubSecKeyOptions;
-import io.vertx.ext.auth.jwt.JWTAuthOptions;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class SslConfiguration {
@@ -216,18 +209,12 @@ public class SslConfiguration {
         return strategy.applyToHttpServerOptions(options);
     }
 
-    public JWTAuthOptions applyToJWTAuthOptions(JWTAuthOptions options) {
-        return strategy.applyToJWTAuthOptions(options);
-    }
-
     public boolean enabled() {
         return strategy.enabled();
     }
 
     interface SslConfigurationStrategy {
         HttpServerOptions applyToHttpServerOptions(HttpServerOptions options);
-
-        JWTAuthOptions applyToJWTAuthOptions(JWTAuthOptions options);
 
         default boolean enabled() {
             return true;
@@ -239,11 +226,6 @@ public class SslConfiguration {
         @Override
         public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
             return options.setSsl(false);
-        }
-
-        @Override
-        public JWTAuthOptions applyToJWTAuthOptions(JWTAuthOptions options) {
-            return options;
         }
 
         @Override
@@ -287,32 +269,6 @@ public class SslConfiguration {
             throw new IllegalStateException(); // extension checked in constructor. should never
             // reach this step
         }
-
-        @Override
-        public JWTAuthOptions applyToJWTAuthOptions(JWTAuthOptions options) {
-            if (path.toString().endsWith(".jks")) {
-                return options.setKeyStore(
-                        new KeyStoreOptions()
-                                .setType("JKS")
-                                .setPath(path.toString())
-                                .setPassword(password));
-            } else if (path.toString().endsWith(".pfx")) {
-                return options.setKeyStore(
-                        new KeyStoreOptions()
-                                .setType("PKCS12")
-                                .setPath(path.toString())
-                                .setPassword(password));
-            } else if (path.toString().endsWith(".p12")) {
-                return options.setKeyStore(
-                        new KeyStoreOptions()
-                                .setType("PKCS12")
-                                .setPath(path.toString())
-                                .setPassword(password));
-            }
-
-            throw new IllegalStateException(); // extension checked in constructor. should never
-            // reach this step
-        }
     }
 
     static class KeyCertStrategy implements SslConfigurationStrategy {
@@ -339,30 +295,6 @@ public class SslConfiguration {
                             new PemKeyCertOptions()
                                     .setKeyPath(keyPath.toString())
                                     .setCertPath(certPath.toString()));
-        }
-
-        @Override
-        public JWTAuthOptions applyToJWTAuthOptions(JWTAuthOptions options) {
-            try (FileInputStream publicKeyStream = new FileInputStream(certPath.toFile());
-                    FileInputStream secretKeyStream = new FileInputStream(keyPath.toFile()); ) {
-                String publicKey = IOUtils.toString(publicKeyStream, StandardCharsets.UTF_8);
-                String secretKey = IOUtils.toString(secretKeyStream, StandardCharsets.UTF_8);
-                // FIXME how is this implemented properly? Need to know the algorithm
-                options.addPubSecKey(
-                                new PubSecKeyOptions()
-                                        .setCertificate(true)
-                                        .setAlgorithm("RS256")
-                                        .setPublicKey(publicKey))
-                        .addPubSecKey(
-                                new PubSecKeyOptions()
-                                        .setCertificate(false)
-                                        .setAlgorithm("RS256")
-                                        .setSecretKey(secretKey));
-                return options;
-            } catch (IOException ioe) {
-                ioe.printStackTrace();
-                throw new RuntimeException(ioe);
-            }
         }
     }
 

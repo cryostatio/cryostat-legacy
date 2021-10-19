@@ -38,22 +38,14 @@
 package io.cryostat.net.web;
 
 import java.io.IOException;
-import java.lang.reflect.Field;
-import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
@@ -63,22 +55,23 @@ import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.RequestHandler;
 
 import com.google.gson.Gson;
+import com.nimbusds.jose.JWEDecrypter;
+import com.nimbusds.jose.JWEEncrypter;
+import com.nimbusds.jose.JWSSigner;
+import com.nimbusds.jose.JWSVerifier;
+import com.nimbusds.jose.crypto.RSADecrypter;
+import com.nimbusds.jose.crypto.RSAEncrypter;
+import com.nimbusds.jose.crypto.RSASSASigner;
+import com.nimbusds.jose.crypto.RSASSAVerifier;
+import com.nimbusds.jose.jwk.RSAKey;
+import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
-import io.vertx.core.Vertx;
-import io.vertx.ext.auth.JWTOptions;
-import io.vertx.ext.auth.jwt.JWTAuth;
-import io.vertx.ext.auth.jwt.JWTAuthOptions;
-import io.vertx.ext.auth.jwt.impl.JWTAuthProviderImpl;
-import io.vertx.ext.jwt.JWT;
-import org.apache.commons.lang3.StringUtils;
 
 @Module(includes = {HttpModule.class})
 public abstract class WebModule {
     public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
-    public static final String JWT_SIGNING_ALGOS = "JWT_SIGNING_ALGOS";
-    public static final String SUPPORTED_SIGNING_ALGOS = "SUPPORTED_SIGNING_ALGOS";
-    public static final String SIGNING_ALGO = "SIGNING_ALGO";
 
     @Provides
     @Singleton
@@ -119,86 +112,69 @@ public abstract class WebModule {
 
     @Provides
     @Singleton
-    static JWTAuth provideJWTAuth(
-            Vertx vertx,
-            NetworkConfiguration netConf,
-            SslConfiguration sslConfig,
-            @Named(SIGNING_ALGO) String signingAlgo) {
+    static JwtFactory provideJwtFactory(
+            Lazy<WebServer> webServer,
+            JWSSigner signer,
+            JWSVerifier verifier,
+            JWEEncrypter encrypter,
+            JWEDecrypter decrypter) {
         try {
-            JWTAuthOptions authOptions = new JWTAuthOptions();
-            JWTOptions options =
-                    new JWTOptions()
-                            .setAlgorithm(signingAlgo)
-                            .setIssuer(netConf.getWebServerHost())
-                            .setAudience(List.of(netConf.getWebServerHost()));
-            authOptions.setJWTOptions(options);
-            return JWTAuth.create(vertx, sslConfig.applyToJWTAuthOptions(authOptions));
-        } catch (UnknownHostException | SocketException e) {
+            return new JwtFactory(webServer, signer, verifier, encrypter, decrypter);
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @Provides
     @Singleton
-    static JWT provideJWT(JWTAuth jwtAuth) {
+    static RSAKey provideRsaKey(SslConfiguration sslConf) {
+        // FIXME get this from SslConfiguration and existing provided certs
         try {
-            Field f = JWTAuthProviderImpl.class.getDeclaredField("jwt");
-            f.setAccessible(true);
-            return (JWT) f.get(jwtAuth);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
+            return new RSAKeyGenerator(2048)
+                    .keyID("changeit") // FIXME
+                    .generate();
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
     }
 
     @Provides
     @Singleton
-    @Named(JWT_SIGNING_ALGOS)
-    static List<String> provideJWTSigningAlgos() {
-        return List.of(
-                "HS256", "HS384", "HS512", "RS256", "RS384", "RS512", "ES256", "ES384", "ES512",
-                "none");
+    static JWSSigner provideJwsSigner(SslConfiguration sslConf, RSAKey rsaKey) {
+        try {
+            return new RSASSASigner(rsaKey);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Provides
     @Singleton
-    @Named(SUPPORTED_SIGNING_ALGOS)
-    static List<String> provideSupportedSigningAlgos(Environment env) {
-        // FIXME extract this env var name to a constant and document it
-        String raw = env.getEnv("CRYOSTAT_SUPPORTED_SIGNING_ALGOS", "none");
-        String[] split = raw.split(",");
-        List<String> result =
-                new ArrayList<>(
-                        Arrays.asList(split).stream()
-                                .map(String::trim)
-                                .filter(StringUtils::isNotBlank)
-                                .collect(Collectors.toList()));
-        if (!result.contains("none")) {
-            result.add("none");
+    static JWSVerifier provideJwsVerifier(SslConfiguration sslConf, RSAKey rsaKey) {
+        try {
+            return new RSASSAVerifier(rsaKey);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return result;
     }
 
     @Provides
     @Singleton
-    @Named(SIGNING_ALGO)
-    static String provideSigningAlgo(
-            SslConfiguration sslConf,
-            @Named(JWT_SIGNING_ALGOS) List<String> signingAlgos,
-            @Named(SUPPORTED_SIGNING_ALGOS) List<String> supportedSigningAlgos,
-            Logger logger) {
-        logger.info("Known signing algorithms: {}", signingAlgos);
-        if (!sslConf.enabled()) {
-            supportedSigningAlgos = List.of("none");
+    static JWEEncrypter provideJweEncrypter(SslConfiguration sslConf, RSAKey rsaKey) {
+        try {
+            return new RSAEncrypter(rsaKey);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        logger.info("Supported signing algorithms: {}", supportedSigningAlgos);
-        List<String> intersection =
-                signingAlgos.stream()
-                        .distinct()
-                        .filter(supportedSigningAlgos::contains)
-                        .collect(Collectors.toList());
-        logger.info("Intersection of algorithms: {}", intersection);
-        String algo = intersection.get(0);
-        logger.info("Using JWT signing algorithm {}", algo);
-        return algo;
+    }
+
+    @Provides
+    @Singleton
+    static JWEDecrypter provideJweDecrypter(SslConfiguration sslConf, RSAKey rsaKey) {
+        try {
+            return new RSADecrypter(rsaKey);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

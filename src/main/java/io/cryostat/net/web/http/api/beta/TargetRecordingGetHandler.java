@@ -50,15 +50,15 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.JwtFactory;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 
+import com.nimbusds.jwt.JWT;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.jwt.JWTAuth;
 import io.vertx.ext.web.RoutingContext;
 
 class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
@@ -68,8 +68,8 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
 
     @Inject
     TargetRecordingGetHandler(
-            JWTAuth jwtAuth, TargetConnectionManager targetConnectionManager, Logger logger) {
-        super(jwtAuth, logger);
+            JwtFactory jwtFactory, TargetConnectionManager targetConnectionManager, Logger logger) {
+        super(jwtFactory, logger);
         this.targetConnectionManager = targetConnectionManager;
     }
 
@@ -94,7 +94,7 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
-    public void handleWithValidJwt(RoutingContext ctx, JsonObject jwt) throws Exception {
+    public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         if (recordingName != null && recordingName.endsWith(".jfr")) {
             recordingName = recordingName.substring(0, recordingName.length() - 4);
@@ -102,7 +102,7 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
         handleRecordingDownloadRequest(ctx, jwt, recordingName);
     }
 
-    void handleRecordingDownloadRequest(RoutingContext ctx, JsonObject jwt, String recordingName)
+    void handleRecordingDownloadRequest(RoutingContext ctx, JWT jwt, String recordingName)
             throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromJwt(ctx, jwt);
         Optional<InputStream> stream =

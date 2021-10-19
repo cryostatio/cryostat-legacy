@@ -37,41 +37,43 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.net.SocketException;
+import java.net.URISyntaxException;
+import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.Base64;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.web.JwtFactory;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
 
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.User;
-import io.vertx.ext.auth.jwt.JWTAuth;
+import com.nimbusds.jose.JOSEException;
+import com.nimbusds.jwt.JWT;
+import com.nimbusds.jwt.proc.BadJWTException;
 import io.vertx.ext.web.RoutingContext;
 
 abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
-    protected final JWTAuth jwtAuth;
+    protected final JwtFactory jwt;
     protected final Logger logger;
 
-    protected AbstractJwtConsumingHandler(JWTAuth jwtAuth, Logger logger) {
-        this.jwtAuth = jwtAuth;
+    protected AbstractJwtConsumingHandler(JwtFactory jwt, Logger logger) {
+        this.jwt = jwt;
         this.logger = logger;
     }
 
-    abstract void handleWithValidJwt(RoutingContext ctx, JsonObject jwt) throws Exception;
+    abstract void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception;
 
     @Override
     public final void handle(RoutingContext ctx) {
         try {
-            JsonObject jwt = validateJwt(ctx).get();
+            JWT jwt = validateJwt(ctx);
             handleWithValidJwt(ctx, jwt);
         } catch (Exception e) {
             if (e instanceof ApiException) {
@@ -81,56 +83,40 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         }
     }
 
-    private Future<JsonObject> validateJwt(RoutingContext ctx) {
+    private JWT validateJwt(RoutingContext ctx)
+            throws ParseException, JOSEException, SocketException, UnknownHostException,
+                    URISyntaxException {
         String token = ctx.queryParams().get("token");
-        JsonObject authInfo = new JsonObject();
-        authInfo.put("jwt", token);
-        CompletableFuture<User> result = new CompletableFuture<>();
-        jwtAuth.authenticate(
-                authInfo,
-                ar -> {
-                    if (ar.succeeded()) {
-                        result.complete(ar.result());
-                    } else {
-                        result.complete(null);
-                    }
-                });
-
-        User user;
+        JWT parsed;
         try {
-            user = result.get();
-            if (user == null) {
-                return CompletableFuture.failedFuture(new ApiException(401));
-            }
-        } catch (InterruptedException | ExecutionException e) {
-            logger.error(e);
-            return CompletableFuture.failedFuture(new ApiException(401));
+            parsed = jwt.parseAssetDownloadJwt(token);
+        } catch (BadJWTException e) {
+            throw new ApiException(401);
         }
 
         String rawRequestUri = ctx.request().absoluteURI();
         // We know there is a '?' (query param separator) because we checked for the 'token' query
         // param earlier
         String requestUri = rawRequestUri.substring(0, rawRequestUri.indexOf('?'));
-        if (!requestUri.endsWith(user.principal().getString("resource"))) {
-            return CompletableFuture.failedFuture(new ApiException(401));
+        if (!requestUri.endsWith(parsed.getJWTClaimsSet().getStringClaim("resource"))) {
+            throw new ApiException(401);
         }
 
-        return CompletableFuture.completedFuture(user.principal());
+        return parsed;
     }
 
-    protected ConnectionDescriptor getConnectionDescriptorFromJwt(
-            RoutingContext ctx, JsonObject jwt) {
+    protected ConnectionDescriptor getConnectionDescriptorFromJwt(RoutingContext ctx, JWT jwt)
+            throws ParseException {
         String targetId = ctx.pathParam("targetId");
         // TODO inject the CredentialsManager here to check for stored credentials
         Credentials credentials = null;
-        // FIXME jmxauth credentials should be encrypted within the JWT !!!
-        // FIXME extract "jmxauth" to a constant and reuse in JwtPostHandler
-        if (jwt.containsKey("jmxauth")) {
+        // FIXME extract "jmxauth" to a constant and reuse in JwtFactory/AuthTokenPostHandler
+        String jmxauth = jwt.getJWTClaimsSet().getStringClaim("jmxauth");
+        if (jmxauth != null) {
             String c;
             try {
                 Matcher m =
-                        AbstractAuthenticatedRequestHandler.AUTH_HEADER_PATTERN.matcher(
-                                jwt.getString("jmxauth"));
+                        AbstractAuthenticatedRequestHandler.AUTH_HEADER_PATTERN.matcher(jmxauth);
                 if (!m.find()) {
                     throw new ApiException(427, "Invalid jmxauth claim format");
                 }

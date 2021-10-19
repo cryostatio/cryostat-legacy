@@ -39,22 +39,19 @@ package io.cryostat.net.web.http.api.beta;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.Future;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.NetworkConfiguration;
 import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.JwtFactory;
 import io.cryostat.net.web.RequestHandlerLookup;
-import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -69,38 +66,29 @@ import com.google.gson.Gson;
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.core.json.JsonObject;
-import io.vertx.ext.auth.JWTOptions;
-import io.vertx.ext.auth.jwt.JWTAuth;
 import org.apache.http.client.utils.URIBuilder;
 
 class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>> {
 
     static final String PATH = "auth/token";
 
-    private final JWTAuth jwtAuth;
-    private final String signingAlgo;
+    private final JwtFactory jwt;
     private final Lazy<WebServer> webServer;
     private final RequestHandlerLookup requestHandlerLookup;
-    private final NetworkConfiguration netConf;
     private final Logger logger;
 
     @Inject
     AuthTokenPostHandler(
             AuthManager auth,
             Gson gson,
-            JWTAuth jwtAuth,
-            @Named(WebModule.SIGNING_ALGO) String signingAlgo,
+            JwtFactory jwt,
             Lazy<WebServer> webServer,
             RequestHandlerLookup requestHandlerLookup,
-            NetworkConfiguration netConf,
             Logger logger) {
         super(auth, gson);
-        this.jwtAuth = jwtAuth;
-        this.signingAlgo = signingAlgo;
+        this.jwt = jwt;
         this.webServer = webServer;
         this.requestHandlerLookup = requestHandlerLookup;
-        this.netConf = netConf;
         this.logger = logger;
     }
 
@@ -162,30 +150,13 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         }
 
         UserInfo userInfo = auth.getUserInfo(() -> authzHeader).get();
-        JWTOptions options =
-                new JWTOptions()
-                        .setAlgorithm(signingAlgo)
-                        .setIssuer(netConf.getWebServerHost())
-                        .setAudience(List.of(netConf.getWebServerHost()))
-                        .setSubject(userInfo.getUsername())
-                        .setExpiresInMinutes(1);
-        JsonObject claim = new JsonObject();
-        claim.put("resource", resource);
-
-        if (requestParams
-                .getHeaders()
-                .contains(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)) {
-            // FIXME encrypt the credentials !!!
-            claim.put(
-                    "jmxauth",
-                    requestParams
-                            .getHeaders()
-                            .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER));
-        }
-
-        String jwt = jwtAuth.generateToken(claim, options);
+        String jmxauth =
+                requestParams
+                        .getHeaders()
+                        .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER);
+        String token = jwt.createAssetDownloadJwt(userInfo.getUsername(), resource, jmxauth);
         try {
-            URI finalUri = new URIBuilder(resource).setParameter("token", jwt).build();
+            URI finalUri = new URIBuilder(resource).setParameter("token", token).build();
             return new IntermediateResponse<Map<String, String>>()
                     .body(Map.of("resourceUrl", finalUri.toString()));
         } catch (URISyntaxException use) {
