@@ -47,6 +47,7 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
@@ -68,8 +69,11 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
 
     @Inject
     TargetRecordingGetHandler(
-            JwtFactory jwtFactory, TargetConnectionManager targetConnectionManager, Logger logger) {
-        super(jwtFactory, logger);
+            AuthManager auth,
+            JwtFactory jwtFactory,
+            TargetConnectionManager targetConnectionManager,
+            Logger logger) {
+        super(auth, jwtFactory, logger);
         this.targetConnectionManager = targetConnectionManager;
     }
 

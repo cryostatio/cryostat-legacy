@@ -93,7 +93,6 @@ public class WebServer {
     private final HttpServer server;
     private final NetworkConfiguration netConf;
     private final List<RequestHandler> requestHandlers;
-    private final RequestHandlerLookup requestHandlerLookup;
     private final Gson gson;
     private final AuthManager auth;
     private final Logger logger;
@@ -102,14 +101,12 @@ public class WebServer {
             HttpServer server,
             NetworkConfiguration netConf,
             Set<RequestHandler> requestHandlers,
-            RequestHandlerLookup requestHandlerLookup,
             Gson gson,
             AuthManager auth,
             Logger logger) {
         this.server = server;
         this.netConf = netConf;
         this.requestHandlers = new ArrayList<>(requestHandlers);
-        this.requestHandlerLookup = requestHandlerLookup;
         Collections.sort(this.requestHandlers, (a, b) -> a.path().compareTo(b.path()));
         this.gson = gson;
         this.auth = auth;
@@ -216,7 +213,6 @@ public class WebServer {
                         logger.trace("{} handler disabled", handler.getClass().getSimpleName());
                         route = route.disable();
                     }
-                    requestHandlerLookup.addPair(handler, route);
                 });
 
         this.server.requestHandler(

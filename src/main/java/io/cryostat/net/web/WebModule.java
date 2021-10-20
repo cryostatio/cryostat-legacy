@@ -79,24 +79,10 @@ public abstract class WebModule {
             HttpServer httpServer,
             NetworkConfiguration netConf,
             Set<RequestHandler> requestHandlers,
-            RequestHandlerLookup requestHandlerLookup,
             Gson gson,
             AuthManager authManager,
             Logger logger) {
-        return new WebServer(
-                httpServer,
-                netConf,
-                requestHandlers,
-                requestHandlerLookup,
-                gson,
-                authManager,
-                logger);
-    }
-
-    @Provides
-    @Singleton
-    static RequestHandlerLookup provideRequeustHandlerLookup() {
-        return new RequestHandlerLookup();
+        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
     }
 
     @Provides

@@ -43,7 +43,6 @@ import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.Date;
-import java.util.Objects;
 import java.util.Set;
 
 import com.nimbusds.jose.EncryptionMethod;
@@ -103,7 +102,7 @@ public class JwtFactory {
                         .issueTime(now)
                         .notBeforeTime(now)
                         .expirationTime(expiry)
-                        .subject(Objects.requireNonNull(subject))
+                        .subject(subject)
                         .claim("resource", resource)
                         .claim("jmxauth", jmxauth)
                         .build();

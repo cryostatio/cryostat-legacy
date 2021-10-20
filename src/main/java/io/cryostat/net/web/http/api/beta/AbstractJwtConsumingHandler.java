@@ -43,10 +43,12 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.JwtFactory;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -60,10 +62,12 @@ import io.vertx.ext.web.RoutingContext;
 
 abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
+    protected final AuthManager auth;
     protected final JwtFactory jwt;
     protected final Logger logger;
 
-    protected AbstractJwtConsumingHandler(JwtFactory jwt, Logger logger) {
+    protected AbstractJwtConsumingHandler(AuthManager auth, JwtFactory jwt, Logger logger) {
+        this.auth = auth;
         this.jwt = jwt;
         this.logger = logger;
     }
@@ -99,6 +103,15 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         // param earlier
         String requestUri = rawRequestUri.substring(0, rawRequestUri.indexOf('?'));
         if (!requestUri.endsWith(parsed.getJWTClaimsSet().getStringClaim("resource"))) {
+            throw new ApiException(401);
+        }
+
+        try {
+            String subject = parsed.getJWTClaimsSet().getSubject();
+            if (!auth.validateHttpHeader(() -> subject, resourceActions()).get()) {
+                throw new ApiException(401);
+            }
+        } catch (ExecutionException | InterruptedException e) {
             throw new ApiException(401);
         }
 

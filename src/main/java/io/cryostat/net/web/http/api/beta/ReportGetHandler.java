@@ -46,6 +46,7 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.JwtFactory;
@@ -65,8 +66,9 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
     private final ReportService reportService;
 
     @Inject
-    ReportGetHandler(JwtFactory jwtFactory, ReportService reportService, Logger logger) {
-        super(jwtFactory, logger);
+    ReportGetHandler(
+            AuthManager auth, JwtFactory jwtFactory, ReportService reportService, Logger logger) {
+        super(auth, jwtFactory, logger);
         this.reportService = reportService;
     }
 

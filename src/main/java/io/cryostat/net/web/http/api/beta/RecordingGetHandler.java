@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.JwtFactory;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -64,8 +65,11 @@ class RecordingGetHandler extends AbstractJwtConsumingHandler {
 
     @Inject
     RecordingGetHandler(
-            JwtFactory jwtFactory, RecordingArchiveHelper recordingArchiveHelper, Logger logger) {
-        super(jwtFactory, logger);
+            AuthManager auth,
+            JwtFactory jwtFactory,
+            RecordingArchiveHelper recordingArchiveHelper,
+            Logger logger) {
+        super(auth, jwtFactory, logger);
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
 

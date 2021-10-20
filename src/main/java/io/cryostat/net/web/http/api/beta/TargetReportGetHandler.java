@@ -46,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
@@ -67,8 +68,9 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     protected final ReportService reportService;
 
     @Inject
-    TargetReportGetHandler(JwtFactory jwtFactory, ReportService reportService, Logger logger) {
-        super(jwtFactory, logger);
+    TargetReportGetHandler(
+            AuthManager auth, JwtFactory jwtFactory, ReportService reportService, Logger logger) {
+        super(auth, jwtFactory, logger);
         this.reportService = reportService;
     }
 

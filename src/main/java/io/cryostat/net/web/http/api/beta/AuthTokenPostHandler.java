@@ -40,22 +40,17 @@ package io.cryostat.net.web.http.api.beta;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.Future;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.JwtFactory;
-import io.cryostat.net.web.RequestHandlerLookup;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -74,22 +69,13 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
     private final JwtFactory jwt;
     private final Lazy<WebServer> webServer;
-    private final RequestHandlerLookup requestHandlerLookup;
-    private final Logger logger;
 
     @Inject
     AuthTokenPostHandler(
-            AuthManager auth,
-            Gson gson,
-            JwtFactory jwt,
-            Lazy<WebServer> webServer,
-            RequestHandlerLookup requestHandlerLookup,
-            Logger logger) {
+            AuthManager auth, Gson gson, JwtFactory jwt, Lazy<WebServer> webServer, Logger logger) {
         super(auth, gson);
         this.jwt = jwt;
         this.webServer = webServer;
-        this.requestHandlerLookup = requestHandlerLookup;
-        this.logger = logger;
     }
 
     @Override
@@ -136,25 +122,11 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
         }
 
         String authzHeader = requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION);
-        Optional<RequestHandler> targetHandler = requestHandlerLookup.forRequestUri(resourceUri);
-        if (targetHandler.isPresent()) {
-            Set<ResourceAction> delegatedActions = targetHandler.get().resourceActions();
-            logger.info("target handler: {}", targetHandler.get().getClass().getName());
-            logger.info("delegated actions: {}", delegatedActions);
-            Future<Boolean> authzd = auth.validateHttpHeader(() -> authzHeader, delegatedActions);
-            if (!Boolean.TRUE.equals(authzd.get())) {
-                throw new ApiException(401);
-            }
-        } else {
-            throw new ApiException(400, "API handler could not be determined");
-        }
-
-        UserInfo userInfo = auth.getUserInfo(() -> authzHeader).get();
         String jmxauth =
                 requestParams
                         .getHeaders()
                         .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER);
-        String token = jwt.createAssetDownloadJwt(userInfo.getUsername(), resource, jmxauth);
+        String token = jwt.createAssetDownloadJwt(authzHeader, resource, jmxauth);
         try {
             URI finalUri = new URIBuilder(resource).setParameter("token", token).build();
             return new IntermediateResponse<Map<String, String>>()
