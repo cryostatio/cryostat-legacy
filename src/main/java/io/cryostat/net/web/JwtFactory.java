@@ -95,7 +95,7 @@ public class JwtFactory {
             throws JOSEException, SocketException, UnknownHostException, URISyntaxException {
         String issuer = webServer.get().getHostUri().toString();
         Date now = Date.from(Instant.now());
-        Date expiry = Date.from(now.toInstant().plusSeconds(600)); // FIXME reduce to 2 minutes
+        Date expiry = Date.from(now.toInstant().plusSeconds(120));
         JWTClaimsSet claims =
                 new JWTClaimsSet.Builder()
                         .issuer(issuer)
