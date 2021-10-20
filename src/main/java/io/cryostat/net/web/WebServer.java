@@ -294,26 +294,26 @@ public class WebServer {
                 .normalize();
     }
 
-    // FIXME this has a non-explicit dependency on the RecordingGetHandler path
+    // FIXME this has an implicit dependency on the RecordingGetHandler path
     public String getArchivedDownloadURL(String recordingName)
             throws UnknownHostException, URISyntaxException, SocketException {
         return getAssetDownloadURL(ApiVersion.V1, "recordings", recordingName);
     }
 
-    // FIXME this has a non-explicit dependency on the TargetRecordingGetHandler path
+    // FIXME this has a an implicit dependency on the TargetRecordingGetHandler path
     public String getDownloadURL(JFRConnection connection, String recordingName)
             throws URISyntaxException, IOException {
         return getAssetDownloadURL(
                 ApiVersion.V1, "targets", getTargetId(connection), "recordings", recordingName);
     }
 
-    // FIXME this has a non-explicit dependency on the ReportGetHandler path
+    // FIXME this has a an implicit dependency on the ReportGetHandler path
     public String getArchivedReportURL(String recordingName)
             throws SocketException, UnknownHostException, URISyntaxException {
         return getAssetDownloadURL(ApiVersion.V1, "reports", recordingName);
     }
 
-    // FIXME this has a non-explicit dependency on the TargetReportGetHandler path
+    // FIXME this has a an implicit dependency on the TargetReportGetHandler path
     public String getReportURL(JFRConnection connection, String recordingName)
             throws URISyntaxException, IOException {
         return getAssetDownloadURL(

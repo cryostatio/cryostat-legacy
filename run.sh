@@ -48,10 +48,6 @@ if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname $0)/certs/cryostat-keystore.p12" ]
     KEYSTORE_PASS="$(cat $(dirname $0)/certs/keystore.pass)"
 fi
 
-if [ -z "$CRYOSTAT_SUPPORTED_SIGNING_ALGOS" ]; then
-    CRYOSTAT_SUPPORTED_SIGNING_ALGOS="RS256,none";
-fi
-
 if [ ! -d "$(dirname $0)/archive" ]; then
     mkdir "$(dirname $0)/archive"
 fi
@@ -120,7 +116,6 @@ podman run \
     -e CRYOSTAT_TEMPLATE_PATH="/opt/cryostat.d/templates.d" \
     -e CRYOSTAT_CLIENTLIB_PATH="/clientlib" \
     -e CRYOSTAT_REPORT_GENERATION_MAX_HEAP="$CRYOSTAT_REPORT_GENERATION_MAX_HEAP" \
-    -e CRYOSTAT_SUPPORTED_SIGNING_ALGOS="$CRYOSTAT_SUPPORTED_SIGNING_ALGOS" \
     -e GRAFANA_DATASOURCE_URL=$GRAFANA_DATASOURCE_URL \
     -e GRAFANA_DASHBOARD_URL=$GRAFANA_DASHBOARD_URL \
     -e KEYSTORE_PATH=$KEYSTORE_PATH \
