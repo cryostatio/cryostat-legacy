@@ -259,7 +259,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         if (!matcher.matches()) {
             return null;
         }
-        return matcher.group(1);
+        String b64 = matcher.group(1);
+        try {
+            return new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
+        } catch (IllegalArgumentException e) {
+            return null;
+        }
     }
 
     private Future<TokenReviewStatus> performTokenReview(String token) {
