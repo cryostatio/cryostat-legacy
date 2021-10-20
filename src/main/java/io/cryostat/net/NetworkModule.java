@@ -197,13 +197,15 @@ public abstract class NetworkModule {
 
     @Provides
     @Singleton
-    static OpenShiftAuthManager provideOpenShiftAuthManager(Logger logger, FileSystem fs) {
+    static OpenShiftAuthManager provideOpenShiftAuthManager(
+            Logger logger, FileSystem fs, WebClient webClient) {
         return new OpenShiftAuthManager(
                 logger,
                 fs,
                 token ->
                         new DefaultOpenShiftClient(
-                                new OpenShiftConfigBuilder().withOauthToken(token).build()));
+                                new OpenShiftConfigBuilder().withOauthToken(token).build()),
+                webClient);
     }
 
     @Binds

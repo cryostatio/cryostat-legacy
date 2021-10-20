@@ -66,6 +66,7 @@ import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.server.mock.EnableOpenShiftMockClient;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServer;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServerExtension;
+import io.vertx.ext.web.client.WebClient;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
@@ -94,6 +95,7 @@ class OpenShiftAuthManagerTest {
     OpenShiftAuthManager mgr;
     @Mock FileSystem fs;
     @Mock Logger logger;
+    @Mock WebClient webClient;
     OpenShiftClient client;
     OpenShiftMockServer server;
     TokenProvider tokenProvider;
@@ -111,7 +113,7 @@ class OpenShiftAuthManagerTest {
     void setup() {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        mgr = new OpenShiftAuthManager(logger, fs, tokenProvider);
+        mgr = new OpenShiftAuthManager(logger, fs, tokenProvider, webClient);
     }
 
     @Test

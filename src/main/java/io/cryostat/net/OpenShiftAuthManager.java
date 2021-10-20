@@ -59,6 +59,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
+import io.cryostat.net.web.http.api.v2.EmptyOpenShiftTokenException;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
@@ -69,6 +70,8 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewB
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.OpenShiftClient;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClient;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
@@ -82,12 +85,35 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
+    private final WebClient webClient;
+
+    public static String authorizationUrl;
+
+    private final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
+    private final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
+    private final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
+    private final String OAUTH_REQ_PARAMS =
+            String.format(
+                    "?%s=%s&%s=%s&%s=%s",
+                    "client_id", "cryostat", "response_type", "token", "response_mode", "fragment");
 
     OpenShiftAuthManager(
-            Logger logger, FileSystem fs, Function<String, OpenShiftClient> clientProvider) {
+            Logger logger,
+            FileSystem fs,
+            Function<String, OpenShiftClient> clientProvider,
+            WebClient webClient)
+             {
         super(logger);
         this.fs = fs;
         this.clientProvider = clientProvider;
+        this.webClient = webClient;
+        try {
+            authorizationUrl = this.computeAuthorizationEndpoint();
+        } catch (ExecutionException | InterruptedException e) {
+            logger.error("OAuth endpoint retrieval failed", e.getMessage());
+            //throw new IOException(
+            //        "OAuth server unreachable", e); // how to handle exceptions properly?
+        }
     }
 
     @Override
@@ -98,6 +124,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     @Override
     public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
+
         Future<TokenReviewStatus> fStatus = performTokenReview(token);
         try {
             TokenReviewStatus status = fStatus.get();
@@ -118,7 +145,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         String token = tokenProvider.get();
         if (StringUtils.isBlank(token)) {
-            return CompletableFuture.completedFuture(false);
+            return CompletableFuture.failedFuture(new EmptyOpenShiftTokenException());
         }
         if (resourceActions.isEmpty()) {
             return reviewToken(token);
@@ -220,7 +247,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         String authorization = headerProvider.get();
         String token = getTokenFromHttpHeader(authorization);
         if (token == null) {
-            return CompletableFuture.completedFuture(false);
+            return CompletableFuture.failedFuture(new EmptyOpenShiftTokenException());
         }
         return validateToken(() -> token, resourceActions);
     }
@@ -285,6 +312,31 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    public static String getAuthorizationEndpoint() {
+        return authorizationUrl;
+    }
+
+    private String computeAuthorizationEndpoint() throws ExecutionException, InterruptedException {
+        CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
+        CompletableFuture<String> authUrl = new CompletableFuture<>();
+
+        webClient
+                .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
+                .putHeader("Accept", "application/json")
+                .send(
+                        ar -> {
+                            if (ar.failed()) {
+                                oauthMetadata.completeExceptionally(ar.cause());
+                                return;
+                            }
+
+                            oauthMetadata.complete(ar.result().bodyAsJsonObject());
+                        });
+
+        authUrl.complete(oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY) + OAUTH_REQ_PARAMS);
+        return authUrl.get();
     }
 
     @SuppressFBWarnings(
