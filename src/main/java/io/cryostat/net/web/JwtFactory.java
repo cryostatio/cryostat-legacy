@@ -65,6 +65,7 @@ import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import dagger.Lazy;
 
+// TODO rename this, it isn't a factory
 public class JwtFactory {
 
     private final Lazy<WebServer> webServer;
