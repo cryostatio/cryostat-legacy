@@ -46,7 +46,6 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
-import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -54,6 +53,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -65,14 +65,14 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     protected final TargetConnectionManager targetConnectionManager;
-    protected final Logger logger;
+    protected final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
     TargetRecordingGetHandler(
-            AuthManager auth, TargetConnectionManager targetConnectionManager, Logger logger) {
+            AuthManager auth, TargetConnectionManager targetConnectionManager, RecordingTargetHelper recordingTargetHelper) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
-        this.logger = logger;
+        this.recordingTargetHelper = recordingTargetHelper;
     }
 
     @Override
@@ -111,24 +111,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Optional<InputStream> stream =
-                targetConnectionManager.executeConnectedTask(
-                        connectionDescriptor,
-                        conn ->
-                                conn.getService().getAvailableRecordings().stream()
-                                        .filter(r -> Objects.equals(recordingName, r.getName()))
-                                        .map(
-                                                desc -> {
-                                                    try {
-                                                        return conn.getService()
-                                                                .openStream(desc, false);
-                                                    } catch (Exception e) {
-                                                        logger.error(e);
-                                                        return null;
-                                                    }
-                                                })
-                                        .filter(Objects::nonNull)
-                                        .findFirst());
+        Optional<InputStream> stream = recordingTargetHelper.getRecording(connectionDescriptor, recordingName);
         if (stream.isEmpty()) {
             throw new HttpStatusException(404, String.format("%s not found", recordingName));
         }

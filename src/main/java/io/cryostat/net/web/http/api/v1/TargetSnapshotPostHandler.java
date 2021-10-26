@@ -37,7 +37,11 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.io.IOError;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -46,28 +50,35 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
     TargetSnapshotPostHandler(
             AuthManager auth,
             TargetConnectionManager targetConnectionManager,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory) {
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            RecordingTargetHelper recordingTargetHelper) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
+        this.recordingTargetHelper = recordingTargetHelper;
     }
 
     @Override
@@ -97,9 +108,10 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        final ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         String result =
                 targetConnectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromContext(ctx),
+                        connectionDescriptor,
                         connection -> {
                             IRecordingDescriptor descriptor =
                                     connection.getService().getSnapshotRecording();
@@ -120,7 +132,19 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
                             return rename;
                         });
-        ctx.response().setStatusCode(200);
-        ctx.response().end(result);
+        
+        Optional<InputStream> snapshotOptional = recordingTargetHelper.getRecording(connectionDescriptor, result);
+        if (snapshotOptional.isEmpty()) {
+            throw new HttpStatusException(500, String.format("Successful upload verification of %s failed", result));
+        } else if (snapshotIsEmpty(snapshotOptional.get())) {
+
+        } else {
+            ctx.response().setStatusCode(200);
+            ctx.response().end(result);
+        } 
+    }
+
+    private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
+        return (snapshot.read() == -1);
     }
 }

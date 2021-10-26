@@ -37,7 +37,9 @@
  */
 package io.cryostat.recordings;
 
+import java.io.InputStream;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -48,6 +50,7 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -68,14 +71,17 @@ public class RecordingTargetHelper {
     private final TargetConnectionManager targetConnectionManager;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
+    private final Logger logger;
 
     RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
+        this.logger = logger;
     }
 
     public IRecordingDescriptor startRecording(
@@ -156,6 +162,27 @@ public class RecordingTargetHelper {
                 .filter(recording -> recording.getName().equals(recordingName))
                 .findFirst();
     }
+
+    public Optional<InputStream> getRecording(ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                        connectionDescriptor,
+                        conn ->
+                                conn.getService().getAvailableRecordings().stream()
+                                        .filter(r -> Objects.equals(recordingName, r.getName()))
+                                        .map(
+                                                desc -> {
+                                                try {
+                                                        return conn.getService()
+                                                                .openStream(desc, false);
+                                                } catch (Exception e) {
+                                                        logger.error(e);
+                                                        return null;
+                                                }
+                                                })
+                                        .filter(Objects::nonNull)
+                                        .findFirst());
+    }
+    
 
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)
