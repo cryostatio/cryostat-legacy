@@ -45,6 +45,9 @@ import java.time.Instant;
 import java.util.Date;
 import java.util.Set;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
+
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWEAlgorithm;
@@ -71,27 +74,36 @@ public class JwtFactory {
     public static final String RESOURCE_CLAIM = "resource";
     public static final String JMXAUTH_CLAIM = "jmxauth";
 
+    static final String DISABLE_JWT_ENCRYPTION = "CRYOSTAT_DISABLE_JWT_ENCRYPTION";
+
     private final Lazy<WebServer> webServer;
     private final JWSSigner signer;
     private final JWSVerifier verifier;
     private final JWEEncrypter encrypter;
     private final JWEDecrypter decrypter;
+    private final Environment env;
 
     JwtFactory(
             Lazy<WebServer> webServer,
             JWSSigner signer,
             JWSVerifier verifier,
             JWEEncrypter encrypter,
-            JWEDecrypter decrypter) {
+            JWEDecrypter decrypter,
+            Environment env,
+            Logger logger) {
         this.webServer = webServer;
         this.signer = signer;
         this.verifier = verifier;
         this.encrypter = encrypter;
         this.decrypter = decrypter;
+        this.env = env;
+        if (isSecurityEnabled()) {
+            logger.info("JWT security (signing and encryption) disabled");
+        }
     }
 
-    public boolean isEncryptionEnabled() {
-        return encrypter != null && decrypter != null;
+    public boolean isSecurityEnabled() {
+        return !env.hasEnv(DISABLE_JWT_ENCRYPTION);
     }
 
     public String createAssetDownloadJwt(String subject, String resource, String jmxauth)
@@ -111,34 +123,32 @@ public class JwtFactory {
                         .claim(JMXAUTH_CLAIM, jmxauth)
                         .build();
 
-        if (!isEncryptionEnabled()) {
+        if (!isSecurityEnabled()) {
             return new PlainJWT(claims).serialize();
         }
 
-        SignedJWT jwt =
-                new SignedJWT(
-                        // FIXME
-                        new JWSHeader.Builder(JWSAlgorithm.RS256).keyID("changeit").build(),
-                        claims);
+        SignedJWT jwt = new SignedJWT(new JWSHeader.Builder(JWSAlgorithm.HS256).build(), claims);
         jwt.sign(signer);
 
         JWEHeader header =
-                new JWEHeader.Builder(JWEAlgorithm.RSA_OAEP_256, EncryptionMethod.A256GCM)
+                new JWEHeader.Builder(JWEAlgorithm.DIR, EncryptionMethod.A256GCM)
                         .contentType("JWT")
                         .build();
         JWEObject jwe = new JWEObject(header, new Payload(jwt));
         jwe.encrypt(encrypter);
+
         return jwe.serialize();
     }
 
     public JWT parseAssetDownloadJwt(String rawToken)
             throws ParseException, JOSEException, BadJWTException, SocketException,
                     UnknownHostException, URISyntaxException {
-        if (!isEncryptionEnabled()) {
+        if (!isSecurityEnabled()) {
             return PlainJWT.parse(rawToken);
         }
         JWEObject jwe = JWEObject.parse(rawToken);
         jwe.decrypt(decrypter);
+
         SignedJWT jwt = jwe.getPayload().toSignedJWT();
         jwt.verify(verifier);
 

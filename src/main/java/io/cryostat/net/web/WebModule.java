@@ -42,15 +42,17 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.NetworkConfiguration;
-import io.cryostat.net.SslConfiguration;
 import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.RequestHandler;
 
@@ -59,12 +61,10 @@ import com.nimbusds.jose.JWEDecrypter;
 import com.nimbusds.jose.JWEEncrypter;
 import com.nimbusds.jose.JWSSigner;
 import com.nimbusds.jose.JWSVerifier;
-import com.nimbusds.jose.crypto.RSADecrypter;
-import com.nimbusds.jose.crypto.RSAEncrypter;
-import com.nimbusds.jose.crypto.RSASSASigner;
-import com.nimbusds.jose.crypto.RSASSAVerifier;
-import com.nimbusds.jose.jwk.RSAKey;
-import com.nimbusds.jose.jwk.gen.RSAKeyGenerator;
+import com.nimbusds.jose.crypto.DirectDecrypter;
+import com.nimbusds.jose.crypto.DirectEncrypter;
+import com.nimbusds.jose.crypto.MACSigner;
+import com.nimbusds.jose.crypto.MACVerifier;
 import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
@@ -103,9 +103,11 @@ public abstract class WebModule {
             JWSSigner signer,
             JWSVerifier verifier,
             JWEEncrypter encrypter,
-            JWEDecrypter decrypter) {
+            JWEDecrypter decrypter,
+            Environment env,
+            Logger logger) {
         try {
-            return new JwtFactory(webServer, signer, verifier, encrypter, decrypter);
+            return new JwtFactory(webServer, signer, verifier, encrypter, decrypter, env, logger);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -113,12 +115,11 @@ public abstract class WebModule {
 
     @Provides
     @Singleton
-    static RSAKey provideRsaKey(SslConfiguration sslConf) {
-        // FIXME get this from SslConfiguration and existing provided certs
+    static SecretKey provideSecretKey() {
         try {
-            return new RSAKeyGenerator(2048)
-                    .keyID("changeit") // FIXME
-                    .generate();
+            KeyGenerator generator = KeyGenerator.getInstance("AES");
+            generator.init(256);
+            return generator.generateKey();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -126,9 +127,9 @@ public abstract class WebModule {
 
     @Provides
     @Singleton
-    static JWSSigner provideJwsSigner(SslConfiguration sslConf, RSAKey rsaKey) {
+    static JWSSigner provideJwsSigner(SecretKey key) {
         try {
-            return new RSASSASigner(rsaKey);
+            return new MACSigner(key);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -136,9 +137,9 @@ public abstract class WebModule {
 
     @Provides
     @Singleton
-    static JWSVerifier provideJwsVerifier(SslConfiguration sslConf, RSAKey rsaKey) {
+    static JWSVerifier provideJwsVerifier(SecretKey key) {
         try {
-            return new RSASSAVerifier(rsaKey);
+            return new MACVerifier(key);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -146,9 +147,9 @@ public abstract class WebModule {
 
     @Provides
     @Singleton
-    static JWEEncrypter provideJweEncrypter(SslConfiguration sslConf, RSAKey rsaKey) {
+    static JWEEncrypter provideJweEncrypter(Environment env, SecretKey key, Logger logger) {
         try {
-            return new RSAEncrypter(rsaKey);
+            return new DirectEncrypter(key);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -156,9 +157,9 @@ public abstract class WebModule {
 
     @Provides
     @Singleton
-    static JWEDecrypter provideJweDecrypter(SslConfiguration sslConf, RSAKey rsaKey) {
+    static JWEDecrypter provideJweDecrypter(Environment env, SecretKey key) {
         try {
-            return new RSADecrypter(rsaKey);
+            return new DirectDecrypter(key);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
