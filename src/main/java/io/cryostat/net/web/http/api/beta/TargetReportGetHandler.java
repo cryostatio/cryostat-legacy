@@ -41,7 +41,6 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
@@ -54,7 +53,6 @@ import io.cryostat.net.security.jwt.JwtFactory;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
@@ -123,7 +121,7 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
                     .end(
                             reportService
                                     .get(getConnectionDescriptorFromJwt(ctx, jwt), recordingName)
-                                    .get(TimeoutHandler.TIMEOUT_MS, TimeUnit.MILLISECONDS));
+                                    .get());
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
