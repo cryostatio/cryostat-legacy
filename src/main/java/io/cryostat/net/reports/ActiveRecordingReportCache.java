@@ -38,7 +38,6 @@
 package io.cryostat.net.reports;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
@@ -56,7 +55,6 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.http.generic.TimeoutHandler;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -126,13 +124,7 @@ class ActiveRecordingReportCache {
             generationLock.lock();
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
-                saveFile =
-                        subprocessReportGeneratorProvider
-                                .get()
-                                .exec(
-                                        recordingDescriptor,
-                                        Duration.ofMillis(TimeoutHandler.TIMEOUT_MS))
-                                .get();
+                saveFile = subprocessReportGeneratorProvider.get().exec(recordingDescriptor).get();
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException ee) {
                 logger.error(ee);

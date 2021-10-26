@@ -39,7 +39,6 @@ package io.cryostat.net.reports;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.locks.ReentrantLock;
@@ -49,7 +48,6 @@ import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
 
 class ArchivedRecordingReportCache {
@@ -92,13 +90,7 @@ class ArchivedRecordingReportCache {
 
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             Path saveFile =
-                    subprocessReportGeneratorProvider
-                            .get()
-                            .exec(
-                                    archivedRecording,
-                                    dest,
-                                    Duration.ofMillis(TimeoutHandler.TIMEOUT_MS))
-                            .get();
+                    subprocessReportGeneratorProvider.get().exec(archivedRecording, dest).get();
             f.complete(saveFile);
         } catch (Exception e) {
             logger.error(e);

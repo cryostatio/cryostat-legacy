@@ -44,7 +44,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -108,7 +107,7 @@ public class SubprocessReportGenerator {
         this.logger = logger;
     }
 
-    CompletableFuture<Path> exec(Path recording, Path saveFile, Duration timeout)
+    CompletableFuture<Path> exec(Path recording, Path saveFile)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -140,7 +139,7 @@ public class SubprocessReportGenerator {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
-                        proc.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
+                        proc.waitFor(5, TimeUnit.MINUTES); // FIXME extract to constant or env var
                         ExitStatus status =
                                 proc.isAlive()
                                         ? ExitStatus.TIMED_OUT
@@ -171,13 +170,13 @@ public class SubprocessReportGenerator {
                 });
     }
 
-    Future<Path> exec(RecordingDescriptor recordingDescriptor, Duration timeout) throws Exception {
+    Future<Path> exec(RecordingDescriptor recordingDescriptor) throws Exception {
         Path recording =
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,
                         recordingDescriptor.connectionDescriptor);
         Path saveFile = tempFileProvider.get();
-        CompletableFuture<Path> cf = exec(recording, saveFile, timeout);
+        CompletableFuture<Path> cf = exec(recording, saveFile);
         return cf.whenComplete(
                 (p, t) -> {
                     try {
