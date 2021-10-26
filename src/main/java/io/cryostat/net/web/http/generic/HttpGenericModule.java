@@ -48,10 +48,6 @@ public abstract class HttpGenericModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTimeoutHandler(TimeoutHandler handler);
-
-    @Binds
-    @IntoSet
     abstract RequestHandler bindCorsEnablingHandler(CorsEnablingHandler handler);
 
     @Binds
