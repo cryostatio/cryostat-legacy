@@ -51,12 +51,14 @@ import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.JwtFactory;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -69,8 +71,12 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
 
     @Inject
     TargetReportGetHandler(
-            AuthManager auth, JwtFactory jwtFactory, ReportService reportService, Logger logger) {
-        super(auth, jwtFactory, logger);
+            AuthManager auth,
+            JwtFactory jwtFactory,
+            Lazy<WebServer> webServer,
+            ReportService reportService,
+            Logger logger) {
+        super(auth, jwtFactory, webServer, logger);
         this.reportService = reportService;
     }
 

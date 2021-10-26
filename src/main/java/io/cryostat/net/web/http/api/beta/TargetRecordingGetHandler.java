@@ -52,11 +52,13 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.JwtFactory;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
 
 import com.nimbusds.jwt.JWT;
+import dagger.Lazy;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -71,9 +73,10 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
     TargetRecordingGetHandler(
             AuthManager auth,
             JwtFactory jwtFactory,
+            Lazy<WebServer> webServer,
             TargetConnectionManager targetConnectionManager,
             Logger logger) {
-        super(auth, jwtFactory, logger);
+        super(auth, jwtFactory, webServer, logger);
         this.targetConnectionManager = targetConnectionManager;
     }
 

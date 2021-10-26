@@ -37,12 +37,16 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.net.MalformedURLException;
 import java.net.SocketException;
+import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 
@@ -51,6 +55,7 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.web.JwtFactory;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.v2.ApiException;
@@ -58,17 +63,21 @@ import io.cryostat.net.web.http.api.v2.ApiException;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.proc.BadJWTException;
+import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
 
 abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
     protected final AuthManager auth;
     protected final JwtFactory jwt;
+    protected final Lazy<WebServer> webServer;
     protected final Logger logger;
 
-    protected AbstractJwtConsumingHandler(AuthManager auth, JwtFactory jwt, Logger logger) {
+    protected AbstractJwtConsumingHandler(
+            AuthManager auth, JwtFactory jwt, Lazy<WebServer> webServer, Logger logger) {
         this.auth = auth;
         this.jwt = jwt;
+        this.webServer = webServer;
         this.logger = logger;
     }
 
@@ -89,7 +98,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
     private JWT validateJwt(RoutingContext ctx)
             throws ParseException, JOSEException, SocketException, UnknownHostException,
-                    URISyntaxException {
+                    URISyntaxException, MalformedURLException {
         String token = ctx.queryParams().get("token");
         JWT parsed;
         try {
@@ -98,11 +107,14 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
             throw new ApiException(401);
         }
 
-        String rawRequestUri = ctx.request().absoluteURI();
-        // We know there is a '?' (query param separator) because we checked for the 'token' query
-        // param earlier
-        String requestUri = rawRequestUri.substring(0, rawRequestUri.indexOf('?'));
-        if (!requestUri.endsWith(parsed.getJWTClaimsSet().getStringClaim("resource"))) {
+        URL hostUrl = webServer.get().getHostUrl();
+        URI requestUri = new URI(ctx.request().absoluteURI());
+        URI fullRequestUri =
+                new URI(hostUrl.getProtocol(), hostUrl.getAuthority(), null, null, null)
+                        .resolve(requestUri.getRawPath());
+        URI resourceClaim =
+                new URI(parsed.getJWTClaimsSet().getStringClaim(JwtFactory.RESOURCE_CLAIM));
+        if (!Objects.equals(fullRequestUri, resourceClaim)) {
             throw new ApiException(401);
         }
 
@@ -123,19 +135,23 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         String targetId = ctx.pathParam("targetId");
         // TODO inject the CredentialsManager here to check for stored credentials
         Credentials credentials = null;
-        // FIXME extract "jmxauth" to a constant and reuse in JwtFactory/AuthTokenPostHandler
-        String jmxauth = jwt.getJWTClaimsSet().getStringClaim("jmxauth");
+        String jmxauth = jwt.getJWTClaimsSet().getStringClaim(JwtFactory.JMXAUTH_CLAIM);
         if (jmxauth != null) {
             String c;
             try {
                 Matcher m =
                         AbstractAuthenticatedRequestHandler.AUTH_HEADER_PATTERN.matcher(jmxauth);
                 if (!m.find()) {
-                    throw new ApiException(427, "Invalid jmxauth claim format");
+                    throw new ApiException(
+                            427,
+                            String.format("Invalid %s claim format", JwtFactory.JMXAUTH_CLAIM));
                 }
                 String t = m.group("type");
                 if (!"basic".equals(t.toLowerCase())) {
-                    throw new ApiException(427, "Unacceptable jmxauth credentials type");
+                    throw new ApiException(
+                            427,
+                            String.format(
+                                    "Unacceptable %s credentials type", JwtFactory.JMXAUTH_CLAIM));
                 }
                 c =
                         new String(
@@ -143,11 +159,19 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
                                 StandardCharsets.UTF_8);
             } catch (IllegalArgumentException iae) {
                 throw new ApiException(
-                        427, "jmxauth claim credentials do not appear to be Base64-encoded", iae);
+                        427,
+                        String.format(
+                                "%s claim credentials do not appear to be Base64-encoded",
+                                JwtFactory.JMXAUTH_CLAIM),
+                        iae);
             }
             String[] parts = c.split(":");
             if (parts.length != 2) {
-                throw new ApiException(427, "Unrecognized jmxauth claim credential format");
+                throw new ApiException(
+                        427,
+                        String.format(
+                                "Unrecognized %s claim credential format",
+                                JwtFactory.JMXAUTH_CLAIM));
             }
             credentials = new Credentials(parts[0], parts[1]);
         }

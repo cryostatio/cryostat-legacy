@@ -68,6 +68,9 @@ import dagger.Lazy;
 // TODO rename this, it isn't a factory
 public class JwtFactory {
 
+    public static final String RESOURCE_CLAIM = "resource";
+    public static final String JMXAUTH_CLAIM = "jmxauth";
+
     private final Lazy<WebServer> webServer;
     private final JWSSigner signer;
     private final JWSVerifier verifier;
@@ -104,8 +107,8 @@ public class JwtFactory {
                         .notBeforeTime(now)
                         .expirationTime(expiry)
                         .subject(subject)
-                        .claim("resource", resource)
-                        .claim("jmxauth", jmxauth)
+                        .claim(RESOURCE_CLAIM, resource)
+                        .claim(JMXAUTH_CLAIM, jmxauth)
                         .build();
 
         if (!isEncryptionEnabled()) {
@@ -145,7 +148,7 @@ public class JwtFactory {
         JWTClaimsSet exactMatchClaims =
                 new JWTClaimsSet.Builder().issuer(cryostatUri).audience(cryostatUri).build();
         Set<String> requiredClaimNames =
-                Set.of("exp", "nbf", "iat", "iss", "sub", "aud", "resource");
+                Set.of("exp", "nbf", "iat", "iss", "sub", "aud", RESOURCE_CLAIM);
         new DefaultJWTClaimsVerifier<>(cryostatUri, exactMatchClaims, requiredClaimNames)
                 .verify(jwt.getJWTClaimsSet(), null);
 

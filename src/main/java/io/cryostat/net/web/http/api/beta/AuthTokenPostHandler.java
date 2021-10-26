@@ -111,14 +111,17 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters requestParams)
             throws Exception {
-        String resource = requestParams.getFormAttributes().get("resource");
+        String resource = requestParams.getFormAttributes().get(JwtFactory.RESOURCE_CLAIM);
         if (resource == null) {
-            throw new ApiException(400, "\"resource\" form attribute is required");
+            throw new ApiException(
+                    400,
+                    String.format("\"%s\" form attribute is required", JwtFactory.RESOURCE_CLAIM));
         }
         String resourcePrefix = webServer.get().getHostUrl().toString();
         URI resourceUri = new URI(resource);
         if (resourceUri.isAbsolute() && !resource.startsWith(resourcePrefix)) {
-            throw new ApiException(400, "\"resource\" URL is invalid");
+            throw new ApiException(
+                    400, String.format("\"%s\" URL is invalid", JwtFactory.RESOURCE_CLAIM));
         }
 
         String authzHeader = requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION);
@@ -128,7 +131,7 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
                         .get(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER);
         String token = jwt.createAssetDownloadJwt(authzHeader, resource, jmxauth);
         try {
-            URI finalUri = new URIBuilder(resource).setParameter("token", token).build();
+            URI finalUri = new URIBuilder(resourceUri).setParameter("token", token).build();
             return new IntermediateResponse<Map<String, String>>()
                     .body(Map.of("resourceUrl", finalUri.toString()));
         } catch (URISyntaxException use) {
