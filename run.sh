@@ -52,6 +52,14 @@ if [ ! -d "$(dirname $0)/conf" ]; then
     mkdir "$(dirname $0)/conf"
 fi
 
+if [ ! -d "$(dirname $0)/conf/credentials" ]; then
+    mkdir "$(dirname $0)/conf/credentials"
+fi
+
+if [ ! -d "$(dirname $0)/conf/rules" ]; then
+    mkdir "$(dirname $0)/conf/rules"
+fi
+
 if [ ! -d "$(dirname $0)/truststore" ]; then
     mkdir "$(dirname $0)/truststore"
 fi
