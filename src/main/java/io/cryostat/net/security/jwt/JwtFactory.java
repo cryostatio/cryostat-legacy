@@ -35,8 +35,9 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web;
+package io.cryostat.net.security.jwt;
 
+import java.net.MalformedURLException;
 import java.net.SocketException;
 import java.net.URISyntaxException;
 import java.net.UnknownHostException;
@@ -47,6 +48,7 @@ import java.util.Set;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.web.WebServer;
 
 import com.nimbusds.jose.EncryptionMethod;
 import com.nimbusds.jose.JOSEException;
@@ -107,8 +109,9 @@ public class JwtFactory {
     }
 
     public String createAssetDownloadJwt(String subject, String resource, String jmxauth)
-            throws JOSEException, SocketException, UnknownHostException, URISyntaxException {
-        String issuer = webServer.get().getHostUri().toString();
+            throws JOSEException, SocketException, UnknownHostException, URISyntaxException,
+                    MalformedURLException {
+        String issuer = webServer.get().getHostUrl().toString();
         Date now = Date.from(Instant.now());
         Date expiry = Date.from(now.toInstant().plusSeconds(120));
         JWTClaimsSet claims =
@@ -142,7 +145,7 @@ public class JwtFactory {
 
     public JWT parseAssetDownloadJwt(String rawToken)
             throws ParseException, JOSEException, BadJWTException, SocketException,
-                    UnknownHostException, URISyntaxException {
+                    UnknownHostException, URISyntaxException, MalformedURLException {
         if (!isSecurityEnabled()) {
             return PlainJWT.parse(rawToken);
         }
@@ -154,7 +157,7 @@ public class JwtFactory {
 
         // TODO extract this claims verifier
         // TODO add a SecurityContext
-        String cryostatUri = webServer.get().getHostUri().toString();
+        String cryostatUri = webServer.get().getHostUrl().toString();
         JWTClaimsSet exactMatchClaims =
                 new JWTClaimsSet.Builder().issuer(cryostatUri).audience(cryostatUri).build();
         Set<String> requiredClaimNames =

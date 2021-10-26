@@ -35,52 +35,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web;
+package io.cryostat.net.security;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import io.cryostat.net.security.jwt.JwtModule;
 
-import javax.inject.Named;
-import javax.inject.Singleton;
-
-import io.cryostat.core.log.Logger;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.HttpServer;
-import io.cryostat.net.NetworkConfiguration;
-import io.cryostat.net.web.http.HttpModule;
-import io.cryostat.net.web.http.RequestHandler;
-
-import com.google.gson.Gson;
 import dagger.Module;
-import dagger.Provides;
 
-@Module(includes = {HttpModule.class})
-public abstract class WebModule {
-    public static final String WEBSERVER_TEMP_DIR_PATH = "WEBSERVER_TEMP_DIR_PATH";
-
-    @Provides
-    @Singleton
-    static WebServer provideWebServer(
-            HttpServer httpServer,
-            NetworkConfiguration netConf,
-            Set<RequestHandler> requestHandlers,
-            Gson gson,
-            AuthManager authManager,
-            Logger logger) {
-        return new WebServer(httpServer, netConf, requestHandlers, gson, authManager, logger);
-    }
-
-    @Provides
-    @Singleton
-    @Named(WEBSERVER_TEMP_DIR_PATH)
-    static Path provideWebServerTempDirPath(FileSystem fs) {
-        try {
-            return Files.createTempDirectory("cryostat").toAbsolutePath();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-    }
-}
+@Module(
+        includes = {
+            JwtModule.class,
+        })
+public abstract class SecurityModule {}
