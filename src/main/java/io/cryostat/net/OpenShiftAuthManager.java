@@ -63,6 +63,7 @@ import io.cryostat.net.security.ResourceVerb;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
+import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -92,6 +93,24 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     @Override
     public AuthenticationScheme getScheme() {
         return AuthenticationScheme.BEARER;
+    }
+
+    @Override
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        String token = getTokenFromHttpHeader(httpHeaderProvider.get());
+        Future<TokenReviewStatus> fStatus = performTokenReview(token);
+        try {
+            TokenReviewStatus status = fStatus.get();
+            if (!Boolean.TRUE.equals(status.getAuthenticated())) {
+                return CompletableFuture.failedFuture(
+                        new AuthorizationErrorException("Authentication Failed"));
+            }
+            return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
+        } catch (ExecutionException ee) {
+            return CompletableFuture.failedFuture(ee.getCause());
+        } catch (Exception e) {
+            return CompletableFuture.failedFuture(e);
+        }
     }
 
     @Override
@@ -130,17 +149,14 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     Future<Boolean> reviewToken(String token) {
-        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
-            TokenReview review =
-                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
-            review = client.tokenReviews().create(review);
-            Boolean authenticated = review.getStatus().getAuthenticated();
+        Future<TokenReviewStatus> fStatus = performTokenReview(token);
+        try {
+            TokenReviewStatus status = fStatus.get();
+            Boolean authenticated = status.getAuthenticated();
             return CompletableFuture.completedFuture(authenticated != null && authenticated);
-        } catch (KubernetesClientException e) {
-            logger.info(e);
-            return CompletableFuture.failedFuture(e);
+        } catch (ExecutionException ee) {
+            return CompletableFuture.failedFuture(ee.getCause());
         } catch (Exception e) {
-            logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -202,15 +218,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     public Future<Boolean> validateHttpHeader(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         String authorization = headerProvider.get();
-        if (StringUtils.isBlank(authorization)) {
+        String token = getTokenFromHttpHeader(authorization);
+        if (token == null) {
             return CompletableFuture.completedFuture(false);
         }
-        Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
-        Matcher matcher = bearerPattern.matcher(authorization);
-        if (!matcher.matches()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        return validateToken(() -> matcher.group(1), resourceActions);
+        return validateToken(() -> token, resourceActions);
     }
 
     @Override
@@ -235,6 +247,38 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return validateToken(() -> decoded, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
+        }
+    }
+
+    private String getTokenFromHttpHeader(String rawHttpHeader) {
+        if (StringUtils.isBlank(rawHttpHeader)) {
+            return null;
+        }
+        Pattern bearerPattern = Pattern.compile("Bearer[\\s]+(.*)");
+        Matcher matcher = bearerPattern.matcher(rawHttpHeader);
+        if (!matcher.matches()) {
+            return null;
+        }
+        return matcher.group(1);
+    }
+
+    private Future<TokenReviewStatus> performTokenReview(String token) {
+        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+            TokenReview review =
+                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
+            review = client.tokenReviews().create(review);
+            TokenReviewStatus status = review.getStatus();
+            if (StringUtils.isNotBlank(status.getError())) {
+                return CompletableFuture.failedFuture(
+                        new AuthorizationErrorException(status.getError()));
+            }
+            return CompletableFuture.completedFuture(status);
+        } catch (KubernetesClientException e) {
+            logger.info(e);
+            return CompletableFuture.failedFuture(e);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
         }
     }
 

@@ -35,47 +35,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package itest;
 
-import java.util.Set;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
+import java.util.concurrent.TimeUnit;
 
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.security.ResourceAction;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
+import itest.bases.StandardSelfTest;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-public class NoopAuthManager extends AbstractAuthManager {
+public class NoopAuthV2IT extends StandardSelfTest {
 
-    public NoopAuthManager(Logger logger) {
-        super(logger);
+    HttpRequest<Buffer> req;
+
+    @BeforeEach
+    void createRequest() {
+        req = webClient.post("/api/v2.1/auth");
     }
 
-    @Override
-    public AuthenticationScheme getScheme() {
-        return AuthenticationScheme.NONE;
-    }
-
-    @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
-    }
-
-    @Override
-    public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
-    }
-
-    @Override
-    public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
-    }
-
-    @Override
-    public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    @Test
+    public void shouldRespond200() throws Exception {
+        CompletableFuture<JsonObject> future = new CompletableFuture<>();
+        req.send(
+                ar -> {
+                    if (ar.succeeded()) {
+                        future.complete(ar.result().bodyAsJsonObject());
+                    } else {
+                        future.completeExceptionally(ar.cause());
+                    }
+                });
+        JsonObject expected =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "status", "OK",
+                                                "type", "application/json"),
+                                "data", Map.of("result", Map.of("username", ""))));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(expected));
     }
 }

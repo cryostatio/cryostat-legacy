@@ -119,6 +119,30 @@ class OpenShiftAuthManagerTest {
         MatcherAssert.assertThat(mgr.getScheme(), Matchers.equalTo(AuthenticationScheme.BEARER));
     }
 
+    @Test
+    void shouldReturnUserInfo() throws Exception {
+        TokenReview tokenReview =
+                new TokenReviewBuilder()
+                        .withNewStatus()
+                        .withAuthenticated(true)
+                        .withNewUser()
+                        .withUsername("fooUser")
+                        .endUser()
+                        .endStatus()
+                        .build();
+        server.expect()
+                .post()
+                .withPath(TOKEN_REVIEW_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .once();
+
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
+
+        UserInfo userInfo = mgr.getUserInfo(() -> "Bearer abc123").get();
+        MatcherAssert.assertThat(userInfo.getUsername(), Matchers.equalTo("fooUser"));
+    }
+
     @ParameterizedTest
     @NullAndEmptySource
     void shouldNotValidateBlankToken(String tok) throws Exception {

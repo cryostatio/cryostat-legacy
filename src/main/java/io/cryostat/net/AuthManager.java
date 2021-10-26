@@ -47,6 +47,8 @@ import io.cryostat.net.security.ResourceAction;
 public interface AuthManager {
     AuthenticationScheme getScheme();
 
+    Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
+
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
 
