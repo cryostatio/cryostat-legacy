@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOError;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
@@ -137,7 +136,9 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         if (snapshotOptional.isEmpty()) {
             throw new HttpStatusException(500, String.format("Successful upload verification of %s failed", result));
         } else if (snapshotIsEmpty(snapshotOptional.get())) {
-
+            recordingTargetHelper.deleteRecording(connectionDescriptor, result);
+            ctx.response().setStatusCode(202);
+            ctx.response().setStatusMessage("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
         } else {
             ctx.response().setStatusCode(200);
             ctx.response().end(result);

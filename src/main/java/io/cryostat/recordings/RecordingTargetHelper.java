@@ -56,6 +56,7 @@ import io.cryostat.core.templates.TemplateType;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import org.apache.commons.lang3.StringUtils;
@@ -71,16 +72,19 @@ public class RecordingTargetHelper {
     private final TargetConnectionManager targetConnectionManager;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
+    private final ReportService reportService;
     private final Logger logger;
 
     RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
+            ReportService reportService,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
+        this.reportService = reportService;
         this.logger = logger;
     }
 
@@ -181,6 +185,37 @@ public class RecordingTargetHelper {
                                                 })
                                         .filter(Objects::nonNull)
                                         .findFirst());
+    }
+
+    public void deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        String targetId = connectionDescriptor.getTargetId();
+        targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> {
+                    Optional<IRecordingDescriptor> descriptor =
+                            connection.getService().getAvailableRecordings().stream()
+                                    .filter(recording -> recording.getName().equals(recordingName))
+                                    .findFirst();
+                    if (descriptor.isPresent()) {
+                        connection.getService().close(descriptor.get());
+                        reportService.delete(connectionDescriptor, recordingName);
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .metaType(HttpMimeType.JSON)
+                                .message(
+                                        Map.of(
+                                                "recording",
+                                                recordingName,
+                                                "target",
+                                                targetId))
+                                .build()
+                                .send();
+                    } else {
+                        throw new RecordingNotFoundException(targetId, recordingName);
+                    }
+                    return null;
+                });
     }
     
 

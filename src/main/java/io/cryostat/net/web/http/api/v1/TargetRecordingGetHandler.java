@@ -40,7 +40,6 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.EnumSet;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
