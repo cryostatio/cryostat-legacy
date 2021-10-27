@@ -8,6 +8,7 @@ build/
 target/
 bin/
 
+archive/
 conf/
 truststore/
 clientlib/
