@@ -1792,6 +1792,6 @@ The handler-specific descriptions below describe how each handler populates the
 
     ###### example
     ```
-    $ curl -kv --progress-bar --data-binary @vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr localhost:8181/api/beta/recordings/vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr | cat
+    $ curl -kv --progress-bar -H Content-Type:'application/octet-stream' --data-binary @vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr localhost:8181/api/beta/recordings/vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr | cat
     {"name":"vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr"}
     ```
