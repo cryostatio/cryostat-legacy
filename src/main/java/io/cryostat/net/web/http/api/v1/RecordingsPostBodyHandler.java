@@ -63,9 +63,7 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
         super(auth);
         this.bodyHandler =
                 BodyHandler.create(
-                                recordingsPath.resolve("file-uploads").toAbsolutePath().toString())
-                        .setHandleFileUploads(true)
-                        .setPreallocateBodyBuffer(true);
+                        recordingsPath.resolve("file-uploads").toAbsolutePath().toString());
     }
 
     @Override
