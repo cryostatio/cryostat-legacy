@@ -41,7 +41,6 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
@@ -53,7 +52,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.generic.TimeoutHandler;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import io.vertx.core.http.HttpHeaders;
@@ -117,7 +115,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                     .end(
                             reportService
                                     .get(getConnectionDescriptorFromContext(ctx), recordingName)
-                                    .get(TimeoutHandler.TIMEOUT_MS, TimeUnit.MILLISECONDS));
+                                    .get());
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
