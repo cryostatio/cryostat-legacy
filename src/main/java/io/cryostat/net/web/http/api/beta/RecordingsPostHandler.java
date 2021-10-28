@@ -42,14 +42,12 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -154,6 +152,7 @@ class RecordingsPostHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
+        ctx.request().pause();
         String desiredSaveName = ctx.pathParam("recordingName");
         if (StringUtils.isBlank(desiredSaveName)) {
             throw new HttpStatusException(400, "Recording name must not be empty");
@@ -196,6 +195,7 @@ class RecordingsPostHandler implements RequestHandler {
 
         Path upload;
         try {
+            ctx.request().resume();
             upload = fileUploadPath.get();
         } catch (Exception e) {
             throw new HttpStatusException(500, e);
@@ -265,6 +265,7 @@ class RecordingsPostHandler implements RequestHandler {
                         }
                         event.complete();
                     } catch (CouldNotLoadRecordingException | IOException e) {
+                        // FIXME need to reject the request and clean up the file here
                         event.fail(e);
                     }
                 },
