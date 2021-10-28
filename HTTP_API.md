@@ -2,6 +2,7 @@
 
 * [V1](#V1-API)
 * [V2](#V2-API)
+* [Beta](#Beta-API)
 
 ## V1 API
 
@@ -1695,4 +1696,102 @@ The handler-specific descriptions below describe how each handler populates the
     ```
     $ curl -F cert=@vertx-fib-demo.cer localhost:8181/api/v2/certificates
     {"meta":{"type":"text/plain","status":"OK"},"data":{"result":"/truststore/vertx-fib-demo.cer"}}
+    ```
+
+## Beta API
+
+### Quick Reference
+
+| What you want to do                                                       | Which handler you should use                                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Miscellaneous**                                                         |                                                                                 |
+| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+| **Recordings in archive**                                                 |                                                                                 |
+| Upload a recording to archive                                             | [`RecordingsPostHandler`](#RecordingsPostHandler-1)                               |
+
+### Miscellaneous
+
+* #### `DiscoveryGetHandler`
+
+    ###### synopsis
+    Queries the platform client(s) for the discoverable targets and constructs a
+    hierarchical tree view of the full deployment environment with targets
+    belonging to ex. Pods, belonging to Deployments, etc.
+
+    ###### request
+    `GET /api/beta/discovery`
+
+    ###### response
+    `200` - The result is the path of the saved file in the server's storage.
+
+    `401` - The user does not have sufficient permissions.
+
+### Recordings in archive
+
+* #### `RecordingsPostHandler-1`
+
+    ###### synopsis
+    Uploads a recording to the archives as a binary file upload rather than a
+    multipart-form-data upload. This is faster than the API V1 multipart form
+    upload and should be preferred, particularly for larger JFR files.
+
+    ###### request
+    `POST /api/beta/recordings/:recordingName`
+
+    The `recordingName` is the name of the JFR file that will be written in the
+    archives and must be in the following format, which is the same format that
+    Cryostat uses for recordings it saves itself (all fields in brackets are
+    optional):
+    ```
+    [$TARGET_NAME]_[$RECORDING_NAME]_[$DATE]T[$TIME]Z[.$COUNTER][.jfr]
+    ```
+
+    `TARGET_NAME` - The name of the target JVM (alphanumerics and hyphens allowed)
+
+    `RECORDING_NAME` - The name of the recording
+    (alphanumerics, hyphens, and underscores allowed)
+
+    `DATE` - The date of the recording (numbers allowed)
+
+    `TIME` - The time of the recording (numbers allowed)
+
+    `COUNTER` - An additional number used to avoid name collisions
+    (numbers allowed)
+
+    Formally, the required format is:
+    ```
+    ([A-Za-z\d-]*)_([A-Za-z\d-_]*)_([\d]*T[\d]*Z)(\.[\d]+)?(\.jfr)?
+    ```
+
+    ###### response
+    `200` - The body is `{"name":"$NAME"}`, where `$NAME` is the name of the
+    recording that is now saved in archive.
+    This name may be different from the filename of the uploaded file
+    for two reasons.
+
+    First, if there is a name collision, a counter will be added to the
+    original filename, or the existing counter will be modified,
+    and the new counter will be set to the next available number,
+    starting from `2`. A counter of `1` will be removed if there is no
+    name conflict, and modified to the next available number if there is.
+
+    And second, if the filename of the uploaded file does not include a `.jfr`
+    ending, one will be added.
+
+    `400` - The recording submission is invalid. The body is an error
+    message.
+
+    `401` - User authentication failed. The body is an error message.
+    There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
+
+    `500` - There was an unexpected error. The body is an error message.
+
+    `503` - `CRYOSTAT_ARCHIVE_PATH` is an invalid directory.
+    The body is an error message.
+
+    ###### example
+    ```
+    $ curl -kv --progress-bar --data-binary @vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr localhost:8181/api/beta/recordings/vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr | cat
+    {"name":"vertx-fib-demo-6f4775cdbf-82dvl_150mb_20211006T152006Z.jfr"}
     ```
