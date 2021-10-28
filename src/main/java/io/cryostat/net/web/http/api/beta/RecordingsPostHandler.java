@@ -42,6 +42,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
@@ -50,6 +51,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -87,6 +90,7 @@ class RecordingsPostHandler implements RequestHandler {
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
 
     private final AuthManager auth;
     private final FileSystem fs;
@@ -94,6 +98,7 @@ class RecordingsPostHandler implements RequestHandler {
     private final Gson gson;
     private final Logger logger;
     private final NotificationFactory notificationFactory;
+    private final AtomicLong lastReadTimestamp = new AtomicLong(0);
 
     private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
 
@@ -136,7 +141,7 @@ class RecordingsPostHandler implements RequestHandler {
 
     @Override
     public boolean isAsync() {
-        return true;
+        return false;
     }
 
     @Override
@@ -154,8 +159,7 @@ class RecordingsPostHandler implements RequestHandler {
         ctx.request().pause();
         String desiredSaveName = ctx.pathParam("recordingName");
         if (StringUtils.isBlank(desiredSaveName)) {
-            ctx.fail(400, new HttpStatusException(400, "Recording name must not be empty"));
-            return;
+            throw new HttpStatusException(400, "Recording name must not be empty");
         }
 
         if (desiredSaveName.endsWith(".jfr")) {
@@ -163,45 +167,77 @@ class RecordingsPostHandler implements RequestHandler {
         }
         Matcher m = RECORDING_FILENAME_PATTERN.matcher(desiredSaveName);
         if (!m.matches()) {
-            ctx.fail(400, new HttpStatusException(400, "Incorrect recording file name pattern"));
-            return;
+            throw new HttpStatusException(400, "Incorrect recording file name pattern");
         }
 
-        Path dest =
+        String destinationFile =
                 savedRecordingsPath
                         .toAbsolutePath()
                         .resolve("file-uploads")
-                        .resolve(UUID.randomUUID().toString());
-        CompletableFuture<Path> fileUploadPath = new CompletableFuture<>();
+                        .resolve(UUID.randomUUID().toString())
+                        .toString();
+        CompletableFuture<String> fileUploadPath = new CompletableFuture<>();
+        long timerId =
+                ctx.vertx()
+                        .setPeriodic(
+                                READ_TIMEOUT.toMillis(),
+                                id -> {
+                                    if (System.nanoTime() - lastReadTimestamp.get()
+                                            > READ_TIMEOUT.toNanos()) {
+                                        fileUploadPath.completeExceptionally(
+                                                new TimeoutException());
+                                    }
+                                });
         ctx.vertx()
                 .fileSystem()
                 .createFile(
-                        dest.toString(),
+                        destinationFile,
                         createFile -> {
                             if (createFile.failed()) {
-                                ctx.fail(500, createFile.cause());
-                                return;
+                                throw new HttpStatusException(500, createFile.cause());
                             }
                             ctx.vertx()
                                     .fileSystem()
                                     .open(
-                                            dest.toString(),
+                                            destinationFile,
                                             new OpenOptions().setAppend(true),
                                             openFile -> {
                                                 if (openFile.failed()) {
-                                                    ctx.fail(500, openFile.cause());
-                                                    return;
+                                                    throw new HttpStatusException(
+                                                            500, openFile.cause());
                                                 }
                                                 ctx.request()
                                                         .handler(
-                                                                buffer ->
-                                                                        openFile.result()
-                                                                                .write(buffer))
+                                                                buffer -> {
+                                                                    lastReadTimestamp.set(
+                                                                            System.nanoTime());
+                                                                    openFile.result().write(buffer);
+                                                                })
+                                                        .exceptionHandler(
+                                                                t -> {
+                                                                    openFile.result().close();
+                                                                    ctx.vertx()
+                                                                            .fileSystem()
+                                                                            .deleteBlocking(
+                                                                                    destinationFile);
+                                                                    ctx.vertx()
+                                                                            .cancelTimer(timerId);
+                                                                    fileUploadPath
+                                                                            .completeExceptionally(
+                                                                                    t);
+                                                                })
                                                         .endHandler(
                                                                 v -> {
+                                                                    ctx.vertx()
+                                                                            .cancelTimer(timerId);
                                                                     openFile.result().close();
-                                                                    fileUploadPath.complete(dest);
+                                                                    fileUploadPath.complete(
+                                                                            destinationFile);
                                                                 });
+                                                ctx.addEndHandler(
+                                                        ar -> {
+                                                            ctx.vertx().cancelTimer(timerId);
+                                                        });
                                                 ctx.request().resume();
                                             });
                         });
@@ -209,24 +245,20 @@ class RecordingsPostHandler implements RequestHandler {
         try {
             boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
             if (!permissionGranted) {
-                ctx.fail(401, new HttpStatusException(401, "HTTP Authorization Failure"));
-                return;
+                throw new HttpStatusException(401, "HTTP Authorization Failure");
             }
         } catch (Exception e) {
-            ctx.fail(500, e);
-            return;
+            throw new HttpStatusException(500, e);
         }
 
         if (!fs.isDirectory(savedRecordingsPath)) {
-            ctx.fail(503, new HttpStatusException(503, "Recording saving not available"));
-            return;
+            throw new HttpStatusException(503, "Recording saving not available");
         }
 
         if (!Objects.equals(
                 HttpMimeType.OCTET_STREAM.mime(),
                 ctx.request().getHeader(HttpHeaders.CONTENT_TYPE))) {
-            ctx.fail(400);
-            return;
+            throw new HttpStatusException(400);
         }
 
         ctx.vertx()
@@ -240,10 +272,10 @@ class RecordingsPostHandler implements RequestHandler {
                         },
                         ar -> {
                             if (ar.failed()) {
-                                ctx.fail(500, ar.cause());
-                                return;
+                                ctx.vertx().fileSystem().deleteBlocking(destinationFile);
+                                throw new HttpStatusException(500, ar.cause());
                             }
-                            Path upload = (Path) ar.result();
+                            String upload = (String) ar.result();
 
                             String targetName = m.group(1);
                             String recordingName = m.group(2);
@@ -256,25 +288,23 @@ class RecordingsPostHandler implements RequestHandler {
                             final String subdirectoryName = "unlabelled";
                             final String basename =
                                     String.format("%s_%s_%s", targetName, recordingName, timestamp);
-                            final String uploadedFileName = upload.toString();
                             validateRecording(
                                     ctx.vertx(),
-                                    uploadedFileName,
+                                    upload,
                                     res -> {
                                         if (res.failed()) {
-                                            ctx.fail(400, res.cause());
-                                            return;
+                                            throw new HttpStatusException(400, res.cause());
                                         }
                                         saveRecording(
                                                 ctx.vertx(),
                                                 subdirectoryName,
                                                 basename,
-                                                uploadedFileName,
+                                                upload,
                                                 count,
                                                 res2 -> {
                                                     if (res2.failed()) {
-                                                        ctx.fail(res2.cause());
-                                                        return;
+                                                        throw new HttpStatusException(
+                                                                500, res2.cause());
                                                     }
 
                                                     ctx.response()
