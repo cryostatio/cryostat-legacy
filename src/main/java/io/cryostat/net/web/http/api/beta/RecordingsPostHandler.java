@@ -44,9 +44,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -73,7 +75,6 @@ import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -88,7 +89,6 @@ class RecordingsPostHandler implements RequestHandler {
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
 
     private final AuthManager auth;
-    private final Vertx vertx;
     private final FileSystem fs;
     private final Path savedRecordingsPath;
     private final Gson gson;
@@ -107,7 +107,6 @@ class RecordingsPostHandler implements RequestHandler {
             Logger logger,
             NotificationFactory notificationFactory) {
         this.auth = auth;
-        this.vertx = httpServer.getVertx();
         this.fs = fs;
         this.savedRecordingsPath = savedRecordingsPath;
         this.gson = gson;
@@ -137,12 +136,12 @@ class RecordingsPostHandler implements RequestHandler {
 
     @Override
     public boolean isAsync() {
-        return false;
+        return true;
     }
 
     @Override
     public boolean isOrdered() {
-        return true;
+        return false;
     }
 
     private Future<Boolean> validateRequestAuthorization(HttpServerRequest req) throws Exception {
@@ -155,103 +154,157 @@ class RecordingsPostHandler implements RequestHandler {
         ctx.request().pause();
         String desiredSaveName = ctx.pathParam("recordingName");
         if (StringUtils.isBlank(desiredSaveName)) {
-            throw new HttpStatusException(400, "Recording name must not be empty");
-        }
-        Path dest =
-                savedRecordingsPath
-                        .toAbsolutePath()
-                        .resolve("file-uploads")
-                        .resolve(UUID.randomUUID().toString());
-        ctx.vertx().fileSystem().createFileBlocking(dest.toString());
-        AsyncFile as =
-                ctx.vertx()
-                        .fileSystem()
-                        .openBlocking(dest.toString(), new OpenOptions().setAppend(true));
-        CompletableFuture<Path> fileUploadPath = new CompletableFuture<>();
-        ctx.request()
-                .handler(
-                        buffer -> {
-                            as.write(buffer);
-                        });
-        ctx.request()
-                .endHandler(
-                        ar -> {
-                            as.close();
-                            fileUploadPath.complete(dest);
-                        });
-
-        try {
-            boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
-            if (!permissionGranted) {
-                throw new HttpStatusException(401, "HTTP Authorization Failure");
-            }
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e.getMessage(), e);
-        }
-
-        if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpStatusException(503, "Recording saving not available");
-        }
-
-        Path upload;
-        try {
-            ctx.request().resume();
-            upload = fileUploadPath.get();
-        } catch (Exception e) {
-            throw new HttpStatusException(500, e);
+            ctx.fail(400, new HttpStatusException(400, "Recording name must not be empty"));
+            return;
         }
 
         if (desiredSaveName.endsWith(".jfr")) {
             desiredSaveName = desiredSaveName.substring(0, desiredSaveName.length() - 4);
         }
-
         Matcher m = RECORDING_FILENAME_PATTERN.matcher(desiredSaveName);
         if (!m.matches()) {
-            throw new HttpStatusException(400, "Incorrect recording file name pattern");
+            ctx.fail(400, new HttpStatusException(400, "Incorrect recording file name pattern"));
+            return;
         }
 
-        String targetName = m.group(1);
-        String recordingName = m.group(2);
-        String timestamp = m.group(3);
-        int count =
-                m.group(4) == null || m.group(4).isEmpty()
-                        ? 0
-                        : Integer.parseInt(m.group(4).substring(1));
+        Path dest =
+                savedRecordingsPath
+                        .toAbsolutePath()
+                        .resolve("file-uploads")
+                        .resolve(UUID.randomUUID().toString());
+        CompletableFuture<Path> fileUploadPath = new CompletableFuture<>();
+        ctx.vertx()
+                .fileSystem()
+                .createFile(
+                        dest.toString(),
+                        createFile -> {
+                            if (createFile.failed()) {
+                                ctx.fail(500, createFile.cause());
+                                return;
+                            }
+                            ctx.vertx()
+                                    .fileSystem()
+                                    .open(
+                                            dest.toString(),
+                                            new OpenOptions().setAppend(true),
+                                            openFile -> {
+                                                if (openFile.failed()) {
+                                                    ctx.fail(500, openFile.cause());
+                                                    return;
+                                                }
+                                                ctx.request()
+                                                        .handler(
+                                                                buffer ->
+                                                                        openFile.result()
+                                                                                .write(buffer))
+                                                        .endHandler(
+                                                                v -> {
+                                                                    openFile.result().close();
+                                                                    fileUploadPath.complete(dest);
+                                                                });
+                                                ctx.request().resume();
+                                            });
+                        });
 
-        final String subdirectoryName = "unlabelled";
-        final String basename = String.format("%s_%s_%s", targetName, recordingName, timestamp);
-        final String uploadedFileName = upload.toString();
-        validateRecording(
-                uploadedFileName,
-                (res) ->
-                        saveRecording(
-                                subdirectoryName,
-                                basename,
-                                uploadedFileName,
-                                count,
-                                (res2) -> {
-                                    if (res2.failed()) {
-                                        ctx.fail(res2.cause());
-                                        return;
-                                    }
+        try {
+            boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
+            if (!permissionGranted) {
+                ctx.fail(401, new HttpStatusException(401, "HTTP Authorization Failure"));
+                return;
+            }
+        } catch (Exception e) {
+            ctx.fail(500, e);
+            return;
+        }
 
-                                    ctx.response()
-                                            .putHeader(
-                                                    HttpHeaders.CONTENT_TYPE,
-                                                    HttpMimeType.JSON.mime())
-                                            .end(gson.toJson(Map.of("name", res2.result())));
+        if (!fs.isDirectory(savedRecordingsPath)) {
+            ctx.fail(503, new HttpStatusException(503, "Recording saving not available"));
+            return;
+        }
 
-                                    notificationFactory
-                                            .createBuilder()
-                                            .metaCategory(NOTIFICATION_CATEGORY)
-                                            .metaType(HttpMimeType.JSON)
-                                            .message(Map.of("recording", res2.result()))
-                                            .build()
-                                            .send();
-                                }));
+        if (!Objects.equals(
+                HttpMimeType.OCTET_STREAM.mime(),
+                ctx.request().getHeader(HttpHeaders.CONTENT_TYPE))) {
+            ctx.fail(400);
+            return;
+        }
+
+        ctx.vertx()
+                .executeBlocking(
+                        event -> {
+                            try {
+                                event.complete(fileUploadPath.get());
+                            } catch (ExecutionException | InterruptedException e) {
+                                event.fail(e);
+                            }
+                        },
+                        ar -> {
+                            if (ar.failed()) {
+                                ctx.fail(500, ar.cause());
+                                return;
+                            }
+                            Path upload = (Path) ar.result();
+
+                            String targetName = m.group(1);
+                            String recordingName = m.group(2);
+                            String timestamp = m.group(3);
+                            int count =
+                                    m.group(4) == null || m.group(4).isEmpty()
+                                            ? 0
+                                            : Integer.parseInt(m.group(4).substring(1));
+
+                            final String subdirectoryName = "unlabelled";
+                            final String basename =
+                                    String.format("%s_%s_%s", targetName, recordingName, timestamp);
+                            final String uploadedFileName = upload.toString();
+                            validateRecording(
+                                    ctx.vertx(),
+                                    uploadedFileName,
+                                    res -> {
+                                        if (res.failed()) {
+                                            ctx.fail(400, res.cause());
+                                            return;
+                                        }
+                                        saveRecording(
+                                                ctx.vertx(),
+                                                subdirectoryName,
+                                                basename,
+                                                uploadedFileName,
+                                                count,
+                                                res2 -> {
+                                                    if (res2.failed()) {
+                                                        ctx.fail(res2.cause());
+                                                        return;
+                                                    }
+
+                                                    ctx.response()
+                                                            .putHeader(
+                                                                    HttpHeaders.CONTENT_TYPE,
+                                                                    HttpMimeType.JSON.mime())
+                                                            .end(
+                                                                    gson.toJson(
+                                                                            Map.of(
+                                                                                    "name",
+                                                                                    res2
+                                                                                            .result())));
+
+                                                    notificationFactory
+                                                            .createBuilder()
+                                                            .metaCategory(NOTIFICATION_CATEGORY)
+                                                            .metaType(HttpMimeType.JSON)
+                                                            .message(
+                                                                    Map.of(
+                                                                            "recording",
+                                                                            res2.result()))
+                                                            .build()
+                                                            .send();
+                                                });
+                                    });
+                        });
     }
 
-    private void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
+    private void validateRecording(
+            Vertx vertx, String recordingFile, Handler<AsyncResult<Void>> handler) {
         vertx.executeBlocking(
                 event -> {
                     try {
@@ -260,7 +313,7 @@ class RecordingsPostHandler implements RequestHandler {
                             var supplier = FlightRecordingLoader.createChunkSupplier(is);
                             var chunks = FlightRecordingLoader.readChunkInfo(supplier);
                             if (chunks.size() < 1) {
-                                throw new InvalidJfrFileException();
+                                event.fail(new InvalidJfrFileException());
                             }
                         }
                         event.complete();
@@ -279,6 +332,7 @@ class RecordingsPostHandler implements RequestHandler {
                         } else {
                             t = res.cause();
                         }
+                        vertx.fileSystem().deleteBlocking(recordingFile);
 
                         handler.handle(makeFailedAsyncResult(t));
                         return;
@@ -289,6 +343,7 @@ class RecordingsPostHandler implements RequestHandler {
     }
 
     private void saveRecording(
+            Vertx vertx,
             String subdirectoryName,
             String basename,
             String tmpFile,
@@ -327,7 +382,12 @@ class RecordingsPostHandler implements RequestHandler {
 
                             if (res.result()) {
                                 saveRecording(
-                                        subdirectoryName, basename, tmpFile, counter + 1, handler);
+                                        vertx,
+                                        subdirectoryName,
+                                        basename,
+                                        tmpFile,
+                                        counter + 1,
+                                        handler);
                                 return;
                             }
 
