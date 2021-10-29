@@ -107,7 +107,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        final ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
+        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         String result =
                 targetConnectionManager.executeConnectedTask(
                         connectionDescriptor,

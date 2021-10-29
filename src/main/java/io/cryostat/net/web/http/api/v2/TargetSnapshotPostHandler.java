@@ -37,7 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.EnumSet;
+import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
@@ -48,12 +51,14 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -66,6 +71,7 @@ class TargetSnapshotPostHandler
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
     TargetSnapshotPostHandler(
@@ -73,11 +79,13 @@ class TargetSnapshotPostHandler
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            RecordingTargetHelper recordingTargetHelper,
             Gson gson) {
         super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
+        this.recordingTargetHelper = recordingTargetHelper;
     }
 
     @Override
@@ -118,9 +126,10 @@ class TargetSnapshotPostHandler
     @Override
     public IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
             RequestParameters requestParams) throws Exception {
+        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromParams(requestParams);
         HyperlinkedSerializableRecordingDescriptor desc =
                 targetConnectionManager.executeConnectedTask(
-                        getConnectionDescriptorFromParams(requestParams),
+                        connectionDescriptor,
                         connection -> {
                             IRecordingDescriptor descriptor =
                                     connection.getService().getSnapshotRecording();
@@ -145,10 +154,27 @@ class TargetSnapshotPostHandler
                                     webServer.get().getDownloadURL(connection, rename),
                                     webServer.get().getReportURL(connection, rename));
                         });
-        return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
+    
+        String snapshotName = desc.getName();
+        Optional<InputStream> snapshotOptional = recordingTargetHelper.getRecording(connectionDescriptor, snapshotName);
+        if (snapshotOptional.isEmpty()) {
+            throw new ApiException(500, String.format("Successful upload verification of %s failed", snapshotName));
+        } else if (snapshotIsEmpty(snapshotOptional.get())) {
+            recordingTargetHelper.deleteRecording(connectionDescriptor, snapshotName);
+            return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
+                .statusCode(202)
+                .statusMessage("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from")
+                .body(null);
+        } else {
+            return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                 .statusCode(201)
                 .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
                 .body(desc);
+        }    
+    }
+
+    private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
+        return (snapshot.read() == -1);
     }
 
     static class SnapshotDescriptor extends HyperlinkedSerializableRecordingDescriptor {
