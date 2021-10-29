@@ -160,7 +160,9 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             // ignore unrecognized form fields
             if ("recording".equals(fu.name())) {
                 upload = fu;
-                break;
+            } else {
+                Path p = savedRecordingsPath.resolve("file-uploads").resolve(fu.uploadedFileName());
+                vertx.fileSystem().deleteBlocking(p.toString());
             }
         }
 
