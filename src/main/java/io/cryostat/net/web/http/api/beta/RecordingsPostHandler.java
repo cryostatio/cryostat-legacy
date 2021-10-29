@@ -159,7 +159,8 @@ class RecordingsPostHandler implements RequestHandler {
         ctx.request().pause();
         String desiredSaveName = ctx.pathParam("recordingName");
         if (StringUtils.isBlank(desiredSaveName)) {
-            throw new HttpStatusException(400, "Recording name must not be empty");
+            ctx.fail(400, new HttpStatusException(400, "Recording name must not be empty"));
+            return;
         }
 
         if (desiredSaveName.endsWith(".jfr")) {
@@ -167,7 +168,8 @@ class RecordingsPostHandler implements RequestHandler {
         }
         Matcher m = RECORDING_FILENAME_PATTERN.matcher(desiredSaveName);
         if (!m.matches()) {
-            throw new HttpStatusException(400, "Incorrect recording file name pattern");
+            ctx.fail(400, new HttpStatusException(400, "Incorrect recording file name pattern"));
+            return;
         }
 
         String destinationFile =
@@ -194,7 +196,8 @@ class RecordingsPostHandler implements RequestHandler {
                         destinationFile,
                         createFile -> {
                             if (createFile.failed()) {
-                                throw new HttpStatusException(500, createFile.cause());
+                                ctx.fail(new HttpStatusException(500, createFile.cause()));
+                                return;
                             }
                             ctx.vertx()
                                     .fileSystem()
@@ -203,8 +206,10 @@ class RecordingsPostHandler implements RequestHandler {
                                             new OpenOptions().setAppend(true),
                                             openFile -> {
                                                 if (openFile.failed()) {
-                                                    throw new HttpStatusException(
-                                                            500, openFile.cause());
+                                                    ctx.fail(
+                                                            new HttpStatusException(
+                                                                    500, openFile.cause()));
+                                                    return;
                                                 }
                                                 ctx.request()
                                                         .handler(
@@ -214,18 +219,8 @@ class RecordingsPostHandler implements RequestHandler {
                                                                     openFile.result().write(buffer);
                                                                 })
                                                         .exceptionHandler(
-                                                                t -> {
-                                                                    openFile.result().close();
-                                                                    ctx.vertx()
-                                                                            .fileSystem()
-                                                                            .deleteBlocking(
-                                                                                    destinationFile);
-                                                                    ctx.vertx()
-                                                                            .cancelTimer(timerId);
-                                                                    fileUploadPath
-                                                                            .completeExceptionally(
-                                                                                    t);
-                                                                })
+                                                                fileUploadPath
+                                                                        ::completeExceptionally)
                                                         .endHandler(
                                                                 v -> {
                                                                     ctx.vertx()
@@ -245,20 +240,24 @@ class RecordingsPostHandler implements RequestHandler {
         try {
             boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
             if (!permissionGranted) {
-                throw new HttpStatusException(401, "HTTP Authorization Failure");
+                ctx.fail(401, new HttpStatusException(401, "HTTP Authorization Failure"));
+                return;
             }
         } catch (Exception e) {
-            throw new HttpStatusException(500, e);
+            ctx.fail(e);
+            return;
         }
 
         if (!fs.isDirectory(savedRecordingsPath)) {
-            throw new HttpStatusException(503, "Recording saving not available");
+            ctx.fail(503, new HttpStatusException(503, "Recording saving not available"));
+            return;
         }
 
         if (!Objects.equals(
                 HttpMimeType.OCTET_STREAM.mime(),
                 ctx.request().getHeader(HttpHeaders.CONTENT_TYPE))) {
-            throw new HttpStatusException(400);
+            ctx.fail(400);
+            return;
         }
 
         ctx.vertx()
@@ -273,7 +272,8 @@ class RecordingsPostHandler implements RequestHandler {
                         ar -> {
                             if (ar.failed()) {
                                 ctx.vertx().fileSystem().deleteBlocking(destinationFile);
-                                throw new HttpStatusException(500, ar.cause());
+                                ctx.fail(ar.cause());
+                                return;
                             }
                             String upload = (String) ar.result();
 
@@ -293,7 +293,8 @@ class RecordingsPostHandler implements RequestHandler {
                                     upload,
                                     res -> {
                                         if (res.failed()) {
-                                            throw new HttpStatusException(400, res.cause());
+                                            ctx.fail(400, res.cause());
+                                            return;
                                         }
                                         saveRecording(
                                                 ctx.vertx(),
@@ -303,8 +304,8 @@ class RecordingsPostHandler implements RequestHandler {
                                                 count,
                                                 res2 -> {
                                                     if (res2.failed()) {
-                                                        throw new HttpStatusException(
-                                                                500, res2.cause());
+                                                        ctx.fail(res2.cause());
+                                                        return;
                                                     }
 
                                                     ctx.response()
