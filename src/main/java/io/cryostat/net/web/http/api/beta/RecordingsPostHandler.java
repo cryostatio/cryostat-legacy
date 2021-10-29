@@ -192,49 +192,32 @@ class RecordingsPostHandler implements RequestHandler {
                                 });
         ctx.vertx()
                 .fileSystem()
-                .createFile(
+                .open(
                         destinationFile,
-                        createFile -> {
-                            if (createFile.failed()) {
-                                ctx.fail(new HttpStatusException(500, createFile.cause()));
+                        new OpenOptions().setAppend(true).setCreateNew(true),
+                        openFile -> {
+                            if (openFile.failed()) {
+                                ctx.fail(new HttpStatusException(500, openFile.cause()));
                                 return;
                             }
-                            ctx.vertx()
-                                    .fileSystem()
-                                    .open(
-                                            destinationFile,
-                                            new OpenOptions().setAppend(true),
-                                            openFile -> {
-                                                if (openFile.failed()) {
-                                                    ctx.fail(
-                                                            new HttpStatusException(
-                                                                    500, openFile.cause()));
-                                                    return;
-                                                }
-                                                ctx.request()
-                                                        .handler(
-                                                                buffer -> {
-                                                                    lastReadTimestamp.set(
-                                                                            System.nanoTime());
-                                                                    openFile.result().write(buffer);
-                                                                })
-                                                        .exceptionHandler(
-                                                                fileUploadPath
-                                                                        ::completeExceptionally)
-                                                        .endHandler(
-                                                                v -> {
-                                                                    ctx.vertx()
-                                                                            .cancelTimer(timerId);
-                                                                    openFile.result().close();
-                                                                    fileUploadPath.complete(
-                                                                            destinationFile);
-                                                                });
-                                                ctx.addEndHandler(
-                                                        ar -> {
-                                                            ctx.vertx().cancelTimer(timerId);
-                                                        });
-                                                ctx.request().resume();
+                            ctx.request()
+                                    .handler(
+                                            buffer -> {
+                                                lastReadTimestamp.set(System.nanoTime());
+                                                openFile.result().write(buffer);
+                                            })
+                                    .exceptionHandler(fileUploadPath::completeExceptionally)
+                                    .endHandler(
+                                            v -> {
+                                                ctx.vertx().cancelTimer(timerId);
+                                                openFile.result().close();
+                                                fileUploadPath.complete(destinationFile);
                                             });
+                            ctx.addEndHandler(
+                                    ar -> {
+                                        ctx.vertx().cancelTimer(timerId);
+                                    });
+                            ctx.request().resume();
                         });
 
         try {
