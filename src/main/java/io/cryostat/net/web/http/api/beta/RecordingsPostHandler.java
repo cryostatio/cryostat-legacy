@@ -82,6 +82,7 @@ import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
+import io.vertx.core.spi.FutureFactory;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
@@ -98,6 +99,7 @@ class RecordingsPostHandler implements RequestHandler {
     private final Path savedRecordingsPath;
     private final FileSystem fs;
     private final Clock clock;
+    private final FutureFactory futureFactory;
     private final NotificationFactory notificationFactory;
     private final Logger logger;
     private final AtomicLong lastReadTimestamp = new AtomicLong(0);
@@ -109,6 +111,7 @@ class RecordingsPostHandler implements RequestHandler {
             @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             FileSystem fs,
             Clock clock,
+            FutureFactory futureFactory,
             NotificationFactory notificationFactory,
             Logger logger) {
         this.auth = auth;
@@ -116,6 +119,7 @@ class RecordingsPostHandler implements RequestHandler {
         this.savedRecordingsPath = savedRecordingsPath;
         this.fs = fs;
         this.clock = clock;
+        this.futureFactory = futureFactory;
         this.notificationFactory = notificationFactory;
         this.logger = logger;
     }
@@ -349,11 +353,11 @@ class RecordingsPostHandler implements RequestHandler {
                         }
                         vertx.fileSystem().deleteBlocking(recordingFile);
 
-                        handler.handle(makeFailedAsyncResult(t));
+                        handler.handle(futureFactory.failedFuture(t));
                         return;
                     }
 
-                    handler.handle(makeAsyncResult(null));
+                    handler.handle(futureFactory.succeededFuture());
                 });
     }
 
@@ -368,7 +372,7 @@ class RecordingsPostHandler implements RequestHandler {
         // are also differentiated by second-resolution timestamp
         if (counter >= Byte.MAX_VALUE) {
             handler.handle(
-                    makeFailedAsyncResult(
+                    futureFactory.failedFuture(
                             new IOException(
                                     "Recording could not be saved. File already exists and rename attempts were exhausted.")));
             return;
@@ -381,7 +385,7 @@ class RecordingsPostHandler implements RequestHandler {
             try {
                 Files.createDirectory(specificRecordingsPath);
             } catch (IOException e) {
-                handler.handle(makeFailedAsyncResult(e));
+                handler.handle(futureFactory.failedFuture(e));
                 return;
             }
         }
@@ -391,7 +395,7 @@ class RecordingsPostHandler implements RequestHandler {
                         specificRecordingsPath.resolve(filename).toString(),
                         (res) -> {
                             if (res.failed()) {
-                                handler.handle(makeFailedAsyncResult(res.cause()));
+                                handler.handle(futureFactory.failedFuture(res.cause()));
                                 return;
                             }
 
@@ -414,60 +418,14 @@ class RecordingsPostHandler implements RequestHandler {
                                             (res2) -> {
                                                 if (res2.failed()) {
                                                     handler.handle(
-                                                            makeFailedAsyncResult(res2.cause()));
+                                                            futureFactory.failedFuture(
+                                                                    res2.cause()));
                                                     return;
                                                 }
 
-                                                handler.handle(makeAsyncResult(filename));
+                                                handler.handle(
+                                                        futureFactory.succeededFuture(filename));
                                             });
                         });
-    }
-
-    private <T> AsyncResult<T> makeAsyncResult(T result) {
-        return new AsyncResult<>() {
-            @Override
-            public T result() {
-                return result;
-            }
-
-            @Override
-            public Throwable cause() {
-                return null;
-            }
-
-            @Override
-            public boolean succeeded() {
-                return true;
-            }
-
-            @Override
-            public boolean failed() {
-                return false;
-            }
-        };
-    }
-
-    private <T> AsyncResult<T> makeFailedAsyncResult(Throwable cause) {
-        return new AsyncResult<>() {
-            @Override
-            public T result() {
-                return null;
-            }
-
-            @Override
-            public Throwable cause() {
-                return cause;
-            }
-
-            @Override
-            public boolean succeeded() {
-                return false;
-            }
-
-            @Override
-            public boolean failed() {
-                return true;
-            }
-        };
     }
 }
