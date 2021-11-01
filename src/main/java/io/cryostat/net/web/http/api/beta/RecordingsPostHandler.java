@@ -65,10 +65,10 @@ import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
@@ -90,33 +90,34 @@ class RecordingsPostHandler implements RequestHandler {
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
+    private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
     private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
 
     private final AuthManager auth;
-    private final FileSystem fs;
-    private final Path savedRecordingsPath;
     private final Gson gson;
-    private final Logger logger;
+    private final Path savedRecordingsPath;
+    private final FileSystem fs;
+    private final Clock clock;
     private final NotificationFactory notificationFactory;
+    private final Logger logger;
     private final AtomicLong lastReadTimestamp = new AtomicLong(0);
-
-    private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
 
     @Inject
     RecordingsPostHandler(
             AuthManager auth,
-            HttpServer httpServer,
-            FileSystem fs,
-            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
             Gson gson,
-            Logger logger,
-            NotificationFactory notificationFactory) {
+            @Named(MainModule.RECORDINGS_PATH) Path savedRecordingsPath,
+            FileSystem fs,
+            Clock clock,
+            NotificationFactory notificationFactory,
+            Logger logger) {
         this.auth = auth;
-        this.fs = fs;
-        this.savedRecordingsPath = savedRecordingsPath;
         this.gson = gson;
-        this.logger = logger;
+        this.savedRecordingsPath = savedRecordingsPath;
+        this.fs = fs;
+        this.clock = clock;
         this.notificationFactory = notificationFactory;
+        this.logger = logger;
     }
 
     @Override
@@ -184,7 +185,7 @@ class RecordingsPostHandler implements RequestHandler {
                         .setPeriodic(
                                 READ_TIMEOUT.toMillis(),
                                 id -> {
-                                    if (System.nanoTime() - lastReadTimestamp.get()
+                                    if (clock.getMonotonicTime() - lastReadTimestamp.get()
                                             > READ_TIMEOUT.toNanos()) {
                                         fileUploadPath.completeExceptionally(
                                                 new TimeoutException());
@@ -203,8 +204,8 @@ class RecordingsPostHandler implements RequestHandler {
                             ctx.request()
                                     .handler(
                                             buffer -> {
-                                                lastReadTimestamp.set(System.nanoTime());
                                                 openFile.result().write(buffer);
+                                                lastReadTimestamp.set(clock.getMonotonicTime());
                                             })
                                     .exceptionHandler(fileUploadPath::completeExceptionally)
                                     .endHandler(
