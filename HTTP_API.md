@@ -1733,7 +1733,11 @@ The handler-specific descriptions below describe how each handler populates the
     ###### synopsis
     Uploads a recording to the archives as a binary file upload rather than a
     multipart-form-data upload. This is faster than the API V1 multipart form
-    upload and should be preferred, particularly for larger JFR files.
+    upload and should be preferred when possible, particularly for larger JFR
+    files. However, this requires the client to send the `Expect: 100-continue`
+    header, which common web browser implementations do not do. The
+    `Content-Length` header must be included and the `Content-Type` must be
+    `application/octet-stream`.
 
     ###### request
     `POST /api/beta/recordings/:recordingName`
