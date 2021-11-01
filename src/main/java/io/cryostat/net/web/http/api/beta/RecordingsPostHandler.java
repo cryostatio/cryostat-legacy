@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -59,6 +58,9 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Named;
 
+import com.google.gson.Gson;
+
+import org.apache.commons.lang3.StringUtils;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
 import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
@@ -73,8 +75,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -85,7 +85,6 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.spi.FutureFactory;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.StringUtils;
 
 class RecordingsPostHandler implements RequestHandler {
 
@@ -162,6 +161,42 @@ class RecordingsPostHandler implements RequestHandler {
     @Override
     public void handle(RoutingContext ctx) {
         ctx.request().pause();
+
+        try {
+            boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
+            if (!permissionGranted) {
+                ctx.fail(401, new HttpStatusException(401, "HTTP Authorization Failure"));
+                return;
+            }
+        } catch (Exception e) {
+            ctx.fail(e);
+            return;
+        }
+
+        if (!fs.isDirectory(savedRecordingsPath)) {
+            ctx.fail(503, new HttpStatusException(503, "Recording saving not available"));
+            return;
+        }
+
+        if (!"100-continue".equals(ctx.request().getHeader(HttpHeaders.EXPECT))) {
+            ctx.fail(400, new HttpStatusException(400, "Expect:100-continue header is required"));
+            return;
+        }
+
+        if (!HttpMimeType.OCTET_STREAM.mime().equals(
+                ctx.request().getHeader(HttpHeaders.CONTENT_TYPE))) {
+            ctx.fail(400);
+            return;
+        }
+
+        if (ctx.request().getHeader(HttpHeaders.CONTENT_LENGTH) == null
+                || Long.parseLong(ctx.request().getHeader(HttpHeaders.CONTENT_LENGTH)) < 1) {
+            ctx.fail(
+                    400,
+                    new HttpStatusException(400, "Content-Length header must be a positive value"));
+            return;
+        }
+
         String desiredSaveName = ctx.pathParam("recordingName");
         if (StringUtils.isBlank(desiredSaveName)) {
             ctx.fail(400, new HttpStatusException(400, "Recording name must not be empty"));
@@ -224,29 +259,6 @@ class RecordingsPostHandler implements RequestHandler {
                                     });
                             ctx.request().resume();
                         });
-
-        try {
-            boolean permissionGranted = validateRequestAuthorization(ctx.request()).get();
-            if (!permissionGranted) {
-                ctx.fail(401, new HttpStatusException(401, "HTTP Authorization Failure"));
-                return;
-            }
-        } catch (Exception e) {
-            ctx.fail(e);
-            return;
-        }
-
-        if (!fs.isDirectory(savedRecordingsPath)) {
-            ctx.fail(503, new HttpStatusException(503, "Recording saving not available"));
-            return;
-        }
-
-        if (!Objects.equals(
-                HttpMimeType.OCTET_STREAM.mime(),
-                ctx.request().getHeader(HttpHeaders.CONTENT_TYPE))) {
-            ctx.fail(400);
-            return;
-        }
 
         ctx.vertx()
                 .executeBlocking(
