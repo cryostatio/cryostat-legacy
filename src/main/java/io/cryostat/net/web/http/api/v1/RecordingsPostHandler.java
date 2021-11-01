@@ -42,11 +42,9 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -149,8 +147,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        long start = System.currentTimeMillis();
-        logger.info("RecordingsPostHandler started at {}", Instant.ofEpochMilli(start));
         if (!fs.isDirectory(savedRecordingsPath)) {
             throw new HttpStatusException(503, "Recording saving not available");
         }
@@ -215,12 +211,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                     HttpMimeType.JSON.mime())
                                             .end(gson.toJson(Map.of("name", res2.result())));
 
-                                    logger.info("Recording saved as {}", res2.result());
-
-                                    logger.info(
-                                            "RecordingsPostHandler completed successfully in {}ms",
-                                            System.currentTimeMillis() - start);
-
                                     notificationFactory
                                             .createBuilder()
                                             .metaCategory(NOTIFICATION_CATEGORY)
@@ -234,10 +224,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private void validateRecording(String recordingFile, Handler<AsyncResult<Void>> handler) {
         vertx.executeBlocking(
                 event -> {
-                    // FIXME remove logging and timing. Add a custom JFR event for the Cryostat
-                    // event profile?
-                    long start = System.nanoTime();
-                    logger.info("Starting JFR validation for {}", recordingFile);
                     try {
                         // try loading chunk info to see if it's a valid file
                         try (var is = new BufferedInputStream(new FileInputStream(recordingFile))) {
@@ -247,12 +233,8 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                 throw new InvalidJfrFileException();
                             }
                         }
-                        logger.info(
-                                "JFR validation succeeded in {}ms",
-                                TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - start));
                         event.complete();
                     } catch (CouldNotLoadRecordingException | IOException e) {
-                        logger.info("JFR validation FAILED");
                         event.fail(e);
                     }
                 },
