@@ -58,9 +58,6 @@ import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Named;
 
-import com.google.gson.Gson;
-
-import org.apache.commons.lang3.StringUtils;
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
 import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
 import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
@@ -75,6 +72,8 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+
+import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
@@ -85,6 +84,7 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.spi.FutureFactory;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.StringUtils;
 
 class RecordingsPostHandler implements RequestHandler {
 
@@ -183,8 +183,9 @@ class RecordingsPostHandler implements RequestHandler {
             return;
         }
 
-        if (!HttpMimeType.OCTET_STREAM.mime().equals(
-                ctx.request().getHeader(HttpHeaders.CONTENT_TYPE))) {
+        if (!HttpMimeType.OCTET_STREAM
+                .mime()
+                .equals(ctx.request().getHeader(HttpHeaders.CONTENT_TYPE))) {
             ctx.fail(400);
             return;
         }
