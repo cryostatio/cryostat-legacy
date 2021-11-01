@@ -42,6 +42,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.EnumSet;
 import java.util.Map;
 import java.util.Objects;
@@ -50,6 +51,8 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -75,7 +78,6 @@ import com.google.gson.Gson;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
 import io.vertx.core.Vertx;
-import io.vertx.core.file.AsyncFile;
 import io.vertx.core.file.OpenOptions;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -88,6 +90,7 @@ class RecordingsPostHandler implements RequestHandler {
 
     private static final Pattern RECORDING_FILENAME_PATTERN =
             Pattern.compile("([A-Za-z\\d-]*)_([A-Za-z\\d-_]*)_([\\d]*T[\\d]*Z)(\\.[\\d]+)?");
+    private static final Duration READ_TIMEOUT = Duration.ofSeconds(10);
 
     private final AuthManager auth;
     private final FileSystem fs;
@@ -95,6 +98,7 @@ class RecordingsPostHandler implements RequestHandler {
     private final Gson gson;
     private final Logger logger;
     private final NotificationFactory notificationFactory;
+    private final AtomicLong lastReadTimestamp = new AtomicLong(0);
 
     private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
 
@@ -175,47 +179,44 @@ class RecordingsPostHandler implements RequestHandler {
                         .resolve(UUID.randomUUID().toString())
                         .toString();
         CompletableFuture<String> fileUploadPath = new CompletableFuture<>();
+        long timerId =
+                ctx.vertx()
+                        .setPeriodic(
+                                READ_TIMEOUT.toMillis(),
+                                id -> {
+                                    if (System.nanoTime() - lastReadTimestamp.get()
+                                            > READ_TIMEOUT.toNanos()) {
+                                        fileUploadPath.completeExceptionally(
+                                                new TimeoutException());
+                                    }
+                                });
         ctx.vertx()
                 .fileSystem()
                 .open(
                         destinationFile,
-                        new OpenOptions().setCreateNew(true).setWrite(true).setAppend(true),
+                        new OpenOptions().setAppend(true).setCreateNew(true),
                         openFile -> {
                             if (openFile.failed()) {
-                                ctx.fail(openFile.cause());
+                                ctx.fail(new HttpStatusException(500, openFile.cause()));
                                 return;
                             }
-                            AsyncFile as = openFile.result();
                             ctx.request()
-                                    .pipeTo(
-                                            as,
-                                            pipe -> {
-                                                if (pipe.failed()) {
-                                                    ctx.fail(pipe.cause());
-                                                    return;
-                                                }
-                                            });
-                            ctx.request()
+                                    .handler(
+                                            buffer -> {
+                                                lastReadTimestamp.set(System.nanoTime());
+                                                openFile.result().write(buffer);
+                                            })
                                     .exceptionHandler(fileUploadPath::completeExceptionally)
                                     .endHandler(
                                             v -> {
-                                                as.flush(
-                                                        flush -> {
-                                                            if (flush.failed()) {
-                                                                ctx.fail(flush.cause());
-                                                                return;
-                                                            }
-                                                            as.close(
-                                                                    close -> {
-                                                                        if (close.failed()) {
-                                                                            ctx.fail(close.cause());
-                                                                            return;
-                                                                        }
-                                                                        fileUploadPath.complete(
-                                                                                destinationFile);
-                                                                    });
-                                                        });
+                                                ctx.vertx().cancelTimer(timerId);
+                                                openFile.result().close();
+                                                fileUploadPath.complete(destinationFile);
                                             });
+                            ctx.addEndHandler(
+                                    ar -> {
+                                        ctx.vertx().cancelTimer(timerId);
+                                    });
                             ctx.request().resume();
                         });
 
@@ -331,6 +332,7 @@ class RecordingsPostHandler implements RequestHandler {
                         }
                         event.complete();
                     } catch (CouldNotLoadRecordingException | IOException e) {
+                        // FIXME need to reject the request and clean up the file here
                         event.fail(e);
                     }
                 },
