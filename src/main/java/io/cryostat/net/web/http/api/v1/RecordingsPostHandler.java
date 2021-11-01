@@ -248,6 +248,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         } else {
                             t = res.cause();
                         }
+                        vertx.fileSystem().deleteBlocking(recordingFile);
 
                         handler.handle(makeFailedAsyncResult(t));
                         return;
