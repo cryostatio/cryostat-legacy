@@ -48,7 +48,6 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
-import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.CorsHandler;
@@ -66,7 +65,6 @@ class CorsEnablingHandler implements RequestHandler {
                 CorsHandler.create(getOrigin())
                         .allowedHeader("Authorization")
                         .allowedHeader(AbstractAuthenticatedRequestHandler.JMX_AUTHORIZATION_HEADER)
-                        .allowedHeader(HttpHeaders.CONTENT_TYPE.toString())
                         .allowedMethod(HttpMethod.GET)
                         .allowedMethod(HttpMethod.POST)
                         .allowedMethod(HttpMethod.PATCH)
