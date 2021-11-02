@@ -37,31 +37,34 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 
-import java.io.IOException;
 import java.util.Map;
-import java.util.Set;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
 
 import com.google.gson.Gson;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
+import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -69,11 +72,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.openjdk.jmc.rjmx.IConnectionHandle;
+
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
 
 @ExtendWith(MockitoExtension.class)
-public class ProbeTemplateDeleteHandlerTest {
+public class TargetProbeGetHandlerTest {
 
-    ProbeTemplateDeleteHandler handler;
+    TargetProbesGetHandler handler;
     @Mock AuthManager auth;
     @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
@@ -81,55 +88,60 @@ public class ProbeTemplateDeleteHandlerTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock Environment env;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
+            .when(notificationBuilder.metaCategory(Mockito.any()))
+            .thenReturn(notificationBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
+            .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+            .thenReturn(notificationBuilder);
         lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
+            .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+            .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-                new ProbeTemplateDeleteHandler(
-                        auth, notificationFactory, templateService, logger, fs, gson);
+            new TargetProbesGetHandler(
+                auth,
+                targetConnectionManager,
+                notificationFactory,
+                gson);
     }
 
     @Nested
     class BasicHandlerDefinition {
         @Test
-        void shouldBePOSTHandler() {
-            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.DELETE));
+        void shouldBeGETHandler() {
+            MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.GET));
         }
 
         @Test
-        void shouldBeAPIV2() {
+        void shouldBeV2API() {
             MatcherAssert.assertThat(handler.apiVersion(), Matchers.equalTo(ApiVersion.V2));
         }
 
         @Test
         void shouldHaveExpectedPath() {
             MatcherAssert.assertThat(
-                    handler.path(), Matchers.equalTo("/api/v2/probes/:probetemplateName"));
+                handler.path(),
+                Matchers.equalTo("/api/v2/targets/:targetId/probes"));
         }
 
         @Test
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
-                    handler.resourceActions(),
-                    Matchers.equalTo(Set.of(ResourceAction.DELETE_PROBE_TEMPLATE)));
+                handler.resourceActions(), Matchers.equalTo(ResourceAction.NONE));
         }
 
         @Test
-        void shouldReturnPlaintextMimeType() {
-            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
+        void shouldReturnJSONMimeType() {
+            MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }
 
         /* @Test
@@ -139,32 +151,42 @@ public class ProbeTemplateDeleteHandlerTest {
     }
 
     @Nested
-    class RequestHandling {
+    class Requests {
 
         @Mock RequestParameters requestParams;
 
         @Test
-        void shouldRespond400WhenTemplateNotFound() throws Exception {
-            Mockito.when(requestParams.getPathParams())
-                    .thenReturn(Map.of("probetemplateName", "foo.xml"));
-            Mockito.doThrow(new IOException()).when(templateService).deleteTemplate("foo.xml");
-            HttpStatusException ex =
-                    Assertions.assertThrows(
-                            HttpStatusException.class, () -> handler.handle(requestParams));
-            MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        public void shouldRespondOK() throws Exception {
+            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "foo"));
+            Mockito.when(requestParams.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+            JFRConnection connection = Mockito.mock(JFRConnection.class);
+            IConnectionHandle handle = Mockito.mock(IConnectionHandle.class);
+            MBeanServerConnection mbsc = Mockito.mock(MBeanServerConnection.class);
+            Mockito.when(
+                    targetConnectionManager.executeConnectedTask(
+                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                .thenAnswer(
+                    arg0 ->
+                        ((TargetConnectionManager.ConnectedTask<Object>)
+                            arg0.getArgument(1))
+                            .execute(connection));
+            Mockito.when(connection.getHandle()).thenReturn(handle);
+            Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
+            Object result = Mockito.mock(Object.class);
+            Mockito.when(mbsc.invoke(any(ObjectName.class), any(String.class), any(Object[].class)
+                , any(String[].class))).thenReturn(result);
+            IntermediateResponse<String> response = handler.handle(requestParams);
+            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }
 
         @Test
-        void shouldCallThroughToService() throws Exception {
-            Mockito.when(requestParams.getPathParams())
-                    .thenReturn(Map.of("probetemplateName", "foo.xml"));
-            IntermediateResponse<Void> response = handler.handle(requestParams);
-
-            Mockito.verify(templateService).deleteTemplate("foo.xml");
-            Mockito.verifyNoMoreInteractions(templateService);
-
-            MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
-            MatcherAssert.assertThat(response.getBody(), Matchers.nullValue());
+        public void shouldRespond400WhenTargetIdIsMissing() throws Exception {
+            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", ""));
+            try {
+                IntermediateResponse<String> response = handler.handle(requestParams);
+            } catch (HttpStatusException e) {
+                MatcherAssert.assertThat(e.getStatusCode(), Matchers.equalTo(400));
+            }
         }
     }
 }

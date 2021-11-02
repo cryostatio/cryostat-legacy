@@ -37,7 +37,11 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import com.google.gson.Gson;
+import java.util.Map;
+import java.util.Set;
+
+import javax.inject.Inject;
+
 import io.cryostat.core.agent.AgentJMXHelper;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
@@ -51,43 +55,17 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
-import io.cryostat.net.web.http.api.v2.ApiException;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.apache.commons.lang3.StringUtils;
 
-import javax.inject.Inject;
-import java.util.Map;
-import java.util.Set;
-
-/**
- * TargetProbePostHandler will facilitate adding probes to a target and will have the following form and response types:
- *
- * POST /api/v2/targets/:targetId/probes/
- *
- * targetId - The location of the target JVM to connect to, in the form of a service:rmi:jmx:// JMX Service URL. Should use percent-encoding.
- *
- * Parameters
- *
- * probeTemplate - name of the probe template to use
- *
- * Responses
- *
- * 200 - No body
- *
- * 401 - User authentication failed. The body is an error message.
- * There will be an X-WWW-Authenticate: $SCHEME header that indicates the authentication scheme that is used.
- *
- * 404 - The target could not be found. The body is an error message.
- *
- * 427 - JMX authentication failed. The body is an error message.
- * There will be an X-JMX-Authenticate: $SCHEME header that indicates the authentication scheme that is used.
- */
 public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
-    static final String PATH = "targets/:targetId/probes/:probeTemplate";
+    static final String PATH = "targets/:targetId/probes";
 
     private static Logger logger;
     private final NotificationFactory notificationFactory;
@@ -95,13 +73,18 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
     private final FileSystem fs;
     private final TargetConnectionManager connectionManager;
     private final Environment env;
-    private static final String  NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
+    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateDeleted";
 
     @Inject
-    TargetProbeDeleteHandler(Logger logger, NotificationFactory notificationFactory,
-                           LocalProbeTemplateService service, FileSystem fs,
-                           AuthManager auth, TargetConnectionManager connectionManager,
-                           Environment env, Gson gson) {
+    TargetProbeDeleteHandler(
+            Logger logger,
+            NotificationFactory notificationFactory,
+            LocalProbeTemplateService service,
+            FileSystem fs,
+            AuthManager auth,
+            TargetConnectionManager connectionManager,
+            Environment env,
+            Gson gson) {
         super(auth, gson);
         this.logger = logger;
         this.notificationFactory = notificationFactory;
@@ -109,7 +92,6 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
         this.connectionManager = connectionManager;
         this.env = env;
         this.fs = fs;
-        System.out.println("Constructed TargetProbePostHandler: " + path());
     }
 
     @Override
@@ -139,37 +121,34 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
-        System.out.println("TargetProbePostHandler called!");
-        Map<String,String> pathParams = requestParams.getPathParams();
+        Map<String, String> pathParams = requestParams.getPathParams();
         String targetId = pathParams.get("targetId");
-        String probeTemplate = pathParams.get("probeTemplate");
-        System.out.println("Sanity checking targetId and probeTemplate: " + targetId + ", "
-            + probeTemplate);
-        if(StringUtils.isAnyBlank(targetId, probeTemplate)) {
-            StringBuilder sb = new StringBuilder();
-            if (StringUtils.isBlank(targetId)) {
-                sb.append("targetId is required.");
-            } if (StringUtils.isBlank(probeTemplate)) {
-                sb.append("\"probeTemplate\" is required.");
-            }
+        StringBuilder sb = new StringBuilder();
+        if (StringUtils.isBlank(targetId)) {
+            sb.append("targetId is required.");
             throw new HttpStatusException(400, sb.toString().trim());
         }
-        System.out.println("Calling out to connectionManager");
-        return connectionManager.executeConnectedTask(new ConnectionDescriptor(targetId, null),
-            connection -> {
-                connection.connect();
-                logger.info("Creating Agent JMX helper");
-                AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-
-                logger.info("Connecting agent");
-                System.out.println(connection.serverDescriptor().getJvmInfo());
-                helper.connectAgent(env.getEnv("CRYOSTAT_AGENT_PATH"),
-                    connection.serverDescriptor().getJvmInfo());
-
-                logger.info("Calling defineEventProbes");
-                helper.defineEventProbes(null);
-                return new IntermediateResponse<Void>().body(null);
-            });
+        try {
+            return connectionManager.executeConnectedTask(
+                getConnectionDescriptorFromParams(requestParams),
+                connection -> {
+                    connection.connect();
+                    AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
+                    // The convention for removing probes in the agent controller mbean is to call
+                    // defineEventProbes with a null argument.
+                    helper.defineEventProbes(null);
+                    notificationFactory
+                        .createBuilder()
+                        .metaCategory(NOTIFICATION_CATEGORY)
+                        .metaType(HttpMimeType.JSON)
+                        .message(Map.of("targetId", targetId))
+                        .build()
+                        .send();
+                    return new IntermediateResponse<Void>().body(null);
+                });
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     @Override

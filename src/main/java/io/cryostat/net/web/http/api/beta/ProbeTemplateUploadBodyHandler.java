@@ -37,16 +37,18 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
+import java.util.Set;
+
+import javax.inject.Inject;
+
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.BodyHandler;
-
-import javax.inject.Inject;
-import java.util.Set;
 
 public class ProbeTemplateUploadBodyHandler extends AbstractAuthenticatedRequestHandler {
 

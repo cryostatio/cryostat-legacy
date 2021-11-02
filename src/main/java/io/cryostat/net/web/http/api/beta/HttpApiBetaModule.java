@@ -51,31 +51,26 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(
-        ProbeTemplateUploadHandler handler);
+    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
 
     @Binds
     @IntoSet
     abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-        ProbeTemplateUploadBodyHandler handler);
+            ProbeTemplateUploadBodyHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(
-        ProbeTemplateDeleteHandler handler);
+    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(
-        TargetProbePostHandler handler);
+    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(
-        TargetProbePostHandler handler);
+    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbePostHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(
-        TargetProbePostHandler handler);
+    abstract RequestHandler bindTargetProbesGetHandler(TargetProbePostHandler handler);
 }

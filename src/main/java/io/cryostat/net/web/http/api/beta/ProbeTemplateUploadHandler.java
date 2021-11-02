@@ -37,7 +37,14 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import com.google.gson.Gson;
+import java.io.InputStream;
+import java.nio.file.Path;
+import java.util.EnumSet;
+import java.util.Map;
+import java.util.Set;
+
+import javax.inject.Inject;
+
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.agent.ProbeValidationException;
 import io.cryostat.core.log.Logger;
@@ -50,16 +57,11 @@ import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.AbstractV2RequestHandler;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-
-import javax.inject.Inject;
-import java.io.InputStream;
-import java.nio.file.Path;
-import java.util.EnumSet;
-import java.util.Map;
-import java.util.Set;
 
 class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
@@ -69,7 +71,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
     private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
-    private static final String  NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
+    private static final String NOTIFICATION_CATEGORY = "ProbeTemplateUploaded";
 
     @Inject
     ProbeTemplateUploadHandler(
@@ -78,8 +80,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
             LocalProbeTemplateService probeTemplateService,
             Logger logger,
             FileSystem fs,
-            Gson gson
-    ) {
+            Gson gson) {
         super(auth, gson);
         this.notificationFactory = notificationFactory;
         this.logger = logger;
@@ -129,12 +130,13 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
                 String templateName = requestParams.getPathParams().get("probetemplateName");
                 Path path = fs.pathOf(u.uploadedFileName());
                 try (InputStream is = fs.newInputStream(path)) {
-                    notificationFactory.createBuilder()
-                        .metaCategory(NOTIFICATION_CATEGORY)
-                        .metaType(HttpMimeType.JSON)
-                        .message(Map.of("probeTemplate", u.uploadedFileName()))
-                        .build()
-                        .send();
+                    notificationFactory
+                            .createBuilder()
+                            .metaCategory(NOTIFICATION_CATEGORY)
+                            .metaType(HttpMimeType.JSON)
+                            .message(Map.of("probeTemplate", u.uploadedFileName()))
+                            .build()
+                            .send();
                     logger.info("Adding template to probeTemplateService: " + path.toString());
                     probeTemplateService.addTemplate(is, templateName);
                 } finally {
@@ -144,7 +146,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
         } catch (ProbeValidationException pve) {
             logger.error(pve.getMessage());
             throw new HttpStatusException(400, pve.getMessage(), pve);
-        } catch(Exception e) {
+        } catch (Exception e) {
             logger.error(e.getMessage());
             throw new HttpStatusException(500, e.getMessage(), e);
         }
