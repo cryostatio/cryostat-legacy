@@ -53,14 +53,4 @@ public abstract class HttpApiBetaModule {
     @Binds
     @IntoSet
     abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingsPostHandler(RecordingsPostHandler handler);
-
-    @Provides
-    @Singleton
-    static FutureFactory provideFutureFactory() {
-        return new FutureFactoryImpl();
-    }
 }
