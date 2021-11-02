@@ -37,16 +37,11 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import javax.inject.Singleton;
-
 import io.cryostat.net.web.http.RequestHandler;
 
 import dagger.Binds;
 import dagger.Module;
-import dagger.Provides;
 import dagger.multibindings.IntoSet;
-import io.vertx.core.impl.FutureFactoryImpl;
-import io.vertx.core.spi.FutureFactory;
 
 @Module
 public abstract class HttpApiBetaModule {
