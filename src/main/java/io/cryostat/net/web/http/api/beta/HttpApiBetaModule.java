@@ -68,9 +68,9 @@ public abstract class HttpApiBetaModule {
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbePostHandler handler);
+    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
 
     @Binds
     @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbePostHandler handler);
+    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
 }
