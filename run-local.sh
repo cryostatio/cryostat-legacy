@@ -38,4 +38,4 @@ MAVEN_OPTS="${flags[@]}" \
     CRYOSTAT_CLIENTLIB_PATH="$script_dir/clientlib" \
     CRYOSTAT_CONFIG_PATH="$script_dir/conf" \
     CRYOSTAT_TEMPLATE_PATH="$script_dir/templates" \
-    $MVN vertx:run
+    $MVN -Dcryostat.minimal=true clean vertx:run
