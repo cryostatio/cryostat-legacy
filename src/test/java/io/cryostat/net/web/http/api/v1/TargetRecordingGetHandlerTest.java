@@ -56,7 +56,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
-
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -83,13 +83,15 @@ class TargetRecordingGetHandlerTest {
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock RecordingTargetHelper recordingTargetHelper;
+
     @Mock Logger logger;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetRecordingGetHandler(authManager, targetConnectionManager, logger);
+        this.handler = new TargetRecordingGetHandler(authManager, targetConnectionManager, recordingTargetHelper);
     }
 
     @Test

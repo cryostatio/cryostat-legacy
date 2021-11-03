@@ -58,6 +58,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -86,6 +87,7 @@ class TargetSnapshotPostHandlerTest {
     @Mock WebServer webServer;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
@@ -97,6 +99,7 @@ class TargetSnapshotPostHandlerTest {
                         targetConnectionManager,
                         () -> webServer,
                         recordingOptionsBuilderFactory,
+                        recordingTargetHelper,
                         gson);
     }
 

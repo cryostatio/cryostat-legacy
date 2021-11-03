@@ -57,7 +57,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
-
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -87,6 +87,7 @@ class TargetRecordingDeleteHandlerTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
+    @Mock RecordingTargetHelper recordingTargetHelper;
 
     @Mock RoutingContext ctx;
     @Mock HttpServerRequest req;
@@ -96,21 +97,9 @@ class TargetRecordingDeleteHandlerTest {
 
     @BeforeEach
     void setup() {
-        lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaCategory(Mockito.any()))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-                .thenReturn(notificationBuilder);
-        lenient()
-                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-                .thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
-        lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
                 new TargetRecordingDeleteHandler(
-                        auth, targetConnectionManager, notificationFactory, reportService);
+                        auth, recordingTargetHelper);
     }
 
     @Test

@@ -51,7 +51,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
-
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -74,12 +74,13 @@ class TargetSnapshotPostHandlerTest {
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    @Mock RecordingTargetHelper recordingTargetHelper;
 
     @BeforeEach
     void setup() {
         this.snapshot =
                 new TargetSnapshotPostHandler(
-                        auth, targetConnectionManager, recordingOptionsBuilderFactory);
+                        auth, targetConnectionManager, recordingOptionsBuilderFactory, recordingTargetHelper);
     }
 
     @Test
