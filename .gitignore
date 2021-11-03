@@ -10,7 +10,8 @@ bin/
 
 archive/
 conf/
-truststore/
-clientlib/
 certs/*.p12
 certs/*.pass
+clientlib/
+templates/
+truststore/
