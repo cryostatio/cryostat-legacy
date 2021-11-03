@@ -37,7 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.File;
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,7 +52,8 @@ import javax.inject.Inject;
 import javax.inject.Named;
 
 import org.openjdk.jmc.flightrecorder.CouldNotLoadRecordingException;
-import org.openjdk.jmc.flightrecorder.JfrLoaderToolkit;
+import org.openjdk.jmc.flightrecorder.internal.FlightRecordingLoader;
+import org.openjdk.jmc.flightrecorder.internal.InvalidJfrFileException;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -154,7 +156,9 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             // ignore unrecognized form fields
             if ("recording".equals(fu.name())) {
                 upload = fu;
-                break;
+            } else {
+                Path p = savedRecordingsPath.resolve("file-uploads").resolve(fu.uploadedFileName());
+                vertx.fileSystem().deleteBlocking(p.toString());
             }
         }
 
@@ -207,8 +211,6 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                     HttpMimeType.JSON.mime())
                                             .end(gson.toJson(Map.of("name", res2.result())));
 
-                                    logger.info("Recording saved as {}", res2.result());
-
                                     notificationFactory
                                             .createBuilder()
                                             .metaCategory(NOTIFICATION_CATEGORY)
@@ -223,9 +225,14 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
         vertx.executeBlocking(
                 event -> {
                     try {
-                        JfrLoaderToolkit.loadEvents(
-                                new File(recordingFile)); // try loading events to see if
-                        // it's a valid file
+                        // try loading chunk info to see if it's a valid file
+                        try (var is = new BufferedInputStream(new FileInputStream(recordingFile))) {
+                            var supplier = FlightRecordingLoader.createChunkSupplier(is);
+                            var chunks = FlightRecordingLoader.readChunkInfo(supplier);
+                            if (chunks.size() < 1) {
+                                throw new InvalidJfrFileException();
+                            }
+                        }
                         event.complete();
                     } catch (CouldNotLoadRecordingException | IOException e) {
                         event.fail(e);
@@ -241,6 +248,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                         } else {
                             t = res.cause();
                         }
+                        vertx.fileSystem().deleteBlocking(recordingFile);
 
                         handler.handle(makeFailedAsyncResult(t));
                         return;

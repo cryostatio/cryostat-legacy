@@ -113,16 +113,16 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
+        boolean handledUpload = false;
         try {
             for (FileUpload u : ctx.fileUploads()) {
                 Path path = fs.pathOf(u.uploadedFileName());
+                if (!"template".equals(u.name())) {
+                    fs.deleteIfExists(path);
+                    continue;
+                }
+                handledUpload = true;
                 try (InputStream is = fs.newInputStream(path)) {
-                    if (!"template".equals(u.name())) {
-                        throw new HttpStatusException(
-                                400,
-                                String.format(
-                                        "Received unexpected file upload named {}", u.name()));
-                    }
                     notificationFactory
                             .createBuilder()
                             .metaCategory(NOTIFICATION_CATEGORY)
@@ -137,6 +137,9 @@ class TemplatesPostHandler extends AbstractAuthenticatedRequestHandler {
             }
         } catch (InvalidXmlException | InvalidEventTemplateException e) {
             throw new HttpStatusException(400, e.getMessage(), e);
+        }
+        if (!handledUpload) {
+            throw new HttpStatusException(400, "No template submission");
         }
         ctx.response().end();
     }
