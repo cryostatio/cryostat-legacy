@@ -52,7 +52,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 
 class TargetRecordingPatchBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
     TargetRecordingPatchBodyHandler(AuthManager auth) {

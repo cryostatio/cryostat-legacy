@@ -2,6 +2,7 @@
 
 * [V1](#V1-API)
 * [V2](#V2-API)
+* [Beta](#Beta-API)
 
 ## V1 API
 
@@ -1696,3 +1697,29 @@ The handler-specific descriptions below describe how each handler populates the
     $ curl -F cert=@vertx-fib-demo.cer localhost:8181/api/v2/certificates
     {"meta":{"type":"text/plain","status":"OK"},"data":{"result":"/truststore/vertx-fib-demo.cer"}}
     ```
+
+## Beta API
+
+### Quick Reference
+
+| What you want to do                                                       | Which handler you should use                                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Miscellaneous**                                                         |                                                                                 |
+| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+
+### Miscellaneous
+
+* #### `DiscoveryGetHandler`
+
+    ###### synopsis
+    Queries the platform client(s) for the discoverable targets and constructs a
+    hierarchical tree view of the full deployment environment with targets
+    belonging to ex. Pods, belonging to Deployments, etc.
+
+    ###### request
+    `GET /api/beta/discovery`
+
+    ###### response
+    `200` - The result is the path of the saved file in the server's storage.
+
+    `401` - The user does not have sufficient permissions.

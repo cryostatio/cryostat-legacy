@@ -37,10 +37,16 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
+import io.cryostat.MainModule;
+import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -55,9 +61,21 @@ class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
     private final BodyHandler bodyHandler;
 
     @Inject
-    RecordingsPostBodyHandler(AuthManager auth) {
+    RecordingsPostBodyHandler(
+            AuthManager auth,
+            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
+            FileSystem fs) {
         super(auth);
-        this.bodyHandler = BodyHandler.create(true);
+        Path fileUploads = recordingsPath.resolve("file-uploads");
+        this.bodyHandler = BodyHandler.create(fileUploads.toAbsolutePath().toString());
+        try {
+            // FIXME put this somewhere more appropriate
+            if (!fs.isDirectory(fileUploads)) {
+                Files.createDirectories(fileUploads);
+            }
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 
     @Override

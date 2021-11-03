@@ -121,6 +121,7 @@ class TemplatesPostHandlerTest {
     void shouldThrowIfWriteFails() throws Exception {
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         FileUpload upload = Mockito.mock(FileUpload.class);
+        Mockito.when(upload.name()).thenReturn("template");
         Mockito.when(ctx.fileUploads()).thenReturn(Set.of(upload));
         Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
@@ -169,9 +170,6 @@ class TemplatesPostHandlerTest {
 
         Path uploadPath = Mockito.mock(Path.class);
         Mockito.when(fs.pathOf("/file-uploads/abcd-1234")).thenReturn(uploadPath);
-
-        InputStream stream = Mockito.mock(InputStream.class);
-        Mockito.when(fs.newInputStream(Mockito.any())).thenReturn(stream);
 
         HttpStatusException ex =
                 Assertions.assertThrows(
