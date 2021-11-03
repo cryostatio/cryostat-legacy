@@ -47,7 +47,7 @@ Run Requirements:
 * `mvn compile`
 
 ### Build and run project locally in development hot-reload mode
-* `sh run-local.sh` - this will start the Vert.x backend in hot-reload mode, so
+* `sh devserver.sh` - this will start the Vert.x backend in hot-reload mode, so
 any modifications to files in `src/` will cause a re-compilation and re-deploy.
 This is only intended for use during development. The `web-client` assets will
 not be built and will not be included in the application classpath. To set up
