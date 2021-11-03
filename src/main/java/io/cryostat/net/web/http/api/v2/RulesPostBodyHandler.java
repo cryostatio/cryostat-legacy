@@ -52,7 +52,7 @@ import io.vertx.ext.web.handler.BodyHandler;
 
 class RulesPostBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true).setHandleFileUploads(false);
 
     @Inject
     RulesPostBodyHandler(AuthManager auth) {

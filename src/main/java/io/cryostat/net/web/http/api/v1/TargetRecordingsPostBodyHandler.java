@@ -57,7 +57,7 @@ class TargetRecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandle
     @Inject
     TargetRecordingsPostBodyHandler(AuthManager auth) {
         super(auth);
-        this.bodyHandler = BodyHandler.create(true);
+        this.bodyHandler = BodyHandler.create(true).setHandleFileUploads(false);
     }
 
     @Override

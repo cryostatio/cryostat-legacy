@@ -48,6 +48,10 @@ if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname $0)/certs/cryostat-keystore.p12" ]
     KEYSTORE_PASS="$(cat $(dirname $0)/certs/keystore.pass)"
 fi
 
+if [ ! -d "$(dirname $0)/archive" ]; then
+    mkdir "$(dirname $0)/archive"
+fi
+
 if [ ! -d "$(dirname $0)/conf" ]; then
     mkdir "$(dirname $0)/conf"
 fi
@@ -78,8 +82,13 @@ fi
 
 podman run \
     --pod cryostat \
+<<<<<<< HEAD
     --mount type=tmpfs,target=/opt/cryostat.d/recordings.d \
+=======
+    --memory 512M \
+>>>>>>> 460e2fd7 (fix(archiveupload): improve performance of archive uploads and validation (#742))
     --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
+    --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
