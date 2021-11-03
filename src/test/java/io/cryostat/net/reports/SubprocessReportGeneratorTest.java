@@ -207,7 +207,7 @@ class SubprocessReportGeneratorTest {
                                 Mockito.anyString()))
                 .thenReturn("0");
 
-        generator.exec(recordingFile, dest, Duration.ofSeconds(10));
+        generator.exec(recordingFile, dest);
 
         ArgumentCaptor<List<String>> captor = ArgumentCaptor.forClass(List.class);
         Mockito.verify(javaProcessBuilder).jvmArgs(captor.capture());

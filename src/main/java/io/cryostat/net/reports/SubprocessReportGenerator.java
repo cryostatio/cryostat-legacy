@@ -44,11 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-<<<<<<< HEAD
-=======
-import java.time.Duration;
 import java.util.ArrayList;
->>>>>>> c4cc64b1 (fix(reports): tune flags for reliability (#698))
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -143,16 +139,11 @@ public class SubprocessReportGenerator {
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
-<<<<<<< HEAD
                         proc.waitFor(5, TimeUnit.MINUTES);
-                        ExitStatus status = ExitStatus.byExitCode(proc.exitValue());
-=======
-                        proc.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
                         ExitStatus status =
                                 proc.isAlive()
                                         ? ExitStatus.TIMED_OUT
                                         : ExitStatus.byExitCode(proc.exitValue());
->>>>>>> c4cc64b1 (fix(reports): tune flags for reliability (#698))
                         switch (status) {
                             case OK:
                                 return saveFile;
