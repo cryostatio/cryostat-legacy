@@ -82,11 +82,7 @@ fi
 
 podman run \
     --pod cryostat \
-<<<<<<< HEAD
-    --mount type=tmpfs,target=/opt/cryostat.d/recordings.d \
-=======
     --memory 512M \
->>>>>>> 460e2fd7 (fix(archiveupload): improve performance of archive uploads and validation (#742))
     --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
     --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
