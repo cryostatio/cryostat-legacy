@@ -1706,8 +1706,6 @@ The handler-specific descriptions below describe how each handler populates the
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
 | **Miscellaneous**                                                         |                                                                                 |
 | View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
-| **Recordings in archive**                                                 |                                                                                 |
-| Upload a recording to archive                                             | [`RecordingsPostHandler`](#RecordingsPostHandler-1)                               |
 
 ### Miscellaneous
 
