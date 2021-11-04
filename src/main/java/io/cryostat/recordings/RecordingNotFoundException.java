@@ -40,11 +40,24 @@ package io.cryostat.recordings;
 import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingNotFoundException extends Exception {
+    private String targetId;
+    private String recordingName;
+
     public RecordingNotFoundException(String targetId, String recordingName) {
         super(String.format("Recording %s not found in target %s", recordingName, targetId));
+        this.targetId = targetId;
+        this.recordingName = recordingName;
     }
 
     public RecordingNotFoundException(Pair<String, String> key) {
         this(key.getLeft(), key.getRight());
+    }
+
+    public String getTargetId() {
+        return targetId;
+    }
+
+    public String getRecordingName() {
+        return recordingName;
     }
 }

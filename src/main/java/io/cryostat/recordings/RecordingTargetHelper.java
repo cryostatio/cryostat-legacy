@@ -64,7 +64,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String RECORDING_CREATION_NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String RECORDING_DELETION_NOTIFICATION_CATEGORY = "RecordingDeleted";
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
@@ -119,7 +120,7 @@ public class RecordingTargetHelper {
                                             enableEvents(connection, templateName, templateType));
                     notificationFactory
                             .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
+                            .metaCategory(RECORDING_CREATION_NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
                             .message(
                                     Map.of(
@@ -201,7 +202,7 @@ public class RecordingTargetHelper {
                         reportService.delete(connectionDescriptor, recordingName);
                         notificationFactory
                                 .createBuilder()
-                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .metaCategory(RECORDING_DELETION_NOTIFICATION_CATEGORY)
                                 .metaType(HttpMimeType.JSON)
                                 .message(
                                         Map.of(
