@@ -41,6 +41,6 @@ import java.io.IOException;
 
 public class EmptyOpenShiftTokenException extends IOException {
     public EmptyOpenShiftTokenException() {
-        super("Token cannot be empty");
+        super("Token is empty");
     }
 }

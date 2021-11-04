@@ -108,11 +108,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         this.clientProvider = clientProvider;
         this.webClient = webClient;
         try {
-            authorizationUrl = this.computeAuthorizationEndpoint();
+            authorizationUrl = this.computeAuthorizationEndpoint().get();
         } catch (ExecutionException | InterruptedException e) {
             logger.error("OAuth endpoint retrieval failed", e.getMessage());
-            //throw new IOException(
-            //        "OAuth server unreachable", e); // how to handle exceptions properly?
+            // how to handle exceptions properly?
         }
     }
 
@@ -318,7 +317,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         return authorizationUrl;
     }
 
-    private String computeAuthorizationEndpoint() throws ExecutionException, InterruptedException {
+    private Future<String> computeAuthorizationEndpoint()
+            throws ExecutionException, InterruptedException {
         CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
         CompletableFuture<String> authUrl = new CompletableFuture<>();
 
@@ -336,7 +336,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         });
 
         authUrl.complete(oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY) + OAUTH_REQ_PARAMS);
-        return authUrl.get();
+        return authUrl;
     }
 
     @SuppressFBWarnings(
