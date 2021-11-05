@@ -46,13 +46,21 @@ Run Requirements:
 ### Build project locally
 * `mvn compile`
 
+### Build and run project locally in development hot-reload mode
+* `sh devserver.sh` - this will start the Vert.x backend in hot-reload mode, so
+any modifications to files in `src/` will cause a re-compilation and re-deploy.
+This is only intended for use during development. The `web-client` assets will
+not be built and will not be included in the application classpath. To set up
+the `web-client` frontend for hot-reload development, see
+[cryostat-web Development Server](https://github.com/cryostatio/cryostat-web/blob/main/README.md#development-server).
 
 ### Build and push to local podman image registry
 * `mvn package`
-* Run `mvn -Dcryostat.minimal=true clean package` to exclude web-client assets. The
-`clean` phase should always be specified here, or else previously-generated
+* Run `mvn -Dcryostat.minimal=true clean package` to exclude web-client assets.
+The `clean` phase should always be specified here, or else previously-generated
 client assets will still be included into the built image.
-* For other OCI builders, use the `imageBuilder` Maven property. For example, to use docker run: `mvn -DimageBuilder=$(which docker) clean verify`
+* For other OCI builders, use the `imageBuilder` Maven property. For example, to
+use docker, run: `mvn -DimageBuilder=$(which docker) clean verify`
 
 ## TEST
 
@@ -62,7 +70,7 @@ client assets will still be included into the built image.
 ### Integration tests and analysis tools
 * `mvn verify`
 
-### Skipping tests 
+### Skipping tests
 * `-DskipUTs=true` to skip unit tests
 * `-DskipITs=true` to skip integration tests
 * `-DskipTests=true` to skip all tests
