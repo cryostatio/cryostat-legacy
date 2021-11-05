@@ -1,19 +1,19 @@
 #!/bin/sh
 
-script_dir="$(dirname $(realpath $0))"
+work_dir=$(mktemp -d)
 
 if [ -z $MVN ]; then
     MVN=$(which mvn)
 fi
 
 for i in archive clientlib conf templates; do
-    if [ -e $i ]; then
-        if [ ! -d $i ]; then
-            echo "$i already exists but is not a directory"
+    if [ -e $work_dir/$i ]; then
+        if [ ! -d $work_dir/$i ]; then
+            echo "$work_dir/$i already exists but is not a directory"
             exit 1
         fi
     else
-        mkdir $i
+        mkdir $work_dir/$i
     fi
 done
 
@@ -34,8 +34,8 @@ MAVEN_OPTS="${flags[@]}" \
     CRYOSTAT_WEB_PORT=8181 \
     CRYOSTAT_CORS_ORIGIN=http://localhost:9000 \
     CRYOSTAT_AUTH_MANAGER=io.cryostat.net.NoopAuthManager \
-    CRYOSTAT_ARCHIVE_PATH="$script_dir/archive" \
-    CRYOSTAT_CLIENTLIB_PATH="$script_dir/clientlib" \
-    CRYOSTAT_CONFIG_PATH="$script_dir/conf" \
-    CRYOSTAT_TEMPLATE_PATH="$script_dir/templates" \
+    CRYOSTAT_ARCHIVE_PATH="$work_dir/archive" \
+    CRYOSTAT_CLIENTLIB_PATH="$work_dir/clientlib" \
+    CRYOSTAT_CONFIG_PATH="$work_dir/conf" \
+    CRYOSTAT_TEMPLATE_PATH="$work_dir/templates" \
     $MVN -Dcryostat.minimal=true clean vertx:run
