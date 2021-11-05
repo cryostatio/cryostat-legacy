@@ -192,4 +192,182 @@ public class RecordingTargetHelperTest {
         return descriptor;
     }
 
+    // From TargetRecordingGetHandlerTest
+
+//     @Test
+//     void shouldHandleRecordingDownloadRequest() throws Exception {
+//         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+//                 .thenReturn(CompletableFuture.completedFuture(true));
+
+//         when(connection.getService()).thenReturn(service);
+//         RoutingContext ctx = mock(RoutingContext.class);
+//         HttpServerResponse resp = mock(HttpServerResponse.class);
+//         when(ctx.response()).thenReturn(resp);
+//         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+//                 .thenReturn(resp);
+//         HttpServerRequest req = mock(HttpServerRequest.class);
+//         when(ctx.request()).thenReturn(req);
+//         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+//         byte[] src = new byte[1024 * 1024];
+//         new Random(123456).nextBytes(src);
+//         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
+//         String recordingName = "foo";
+//         when(descriptor.getName()).thenReturn(recordingName);
+//         when(service.openStream(descriptor, false)).thenReturn(new ByteArrayInputStream(src));
+//         when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+//         Buffer dst = Buffer.buffer(1024 * 1024);
+//         when(resp.write(Mockito.any(Buffer.class)))
+//                 .thenAnswer(
+//                         invocation -> {
+//                             Buffer chunk = invocation.getArgument(0);
+//                             dst.appendBuffer(chunk);
+//                             return null;
+//                         });
+//         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
+//         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
+
+//         when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+//                 .thenAnswer(
+//                         new Answer<Object>() {
+//                             @Override
+//                             public Object answer(InvocationOnMock invocation) throws Throwable {
+//                                 TargetConnectionManager.ConnectedTask task =
+//                                         invocation.getArgument(1);
+//                                 return task.execute(connection);
+//                             }
+//                         });
+//         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
+
+//         handler.handle(ctx);
+
+//         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
+//         Assertions.assertArrayEquals(src, dst.getBytes());
+//     }
+
+//     @Test
+//     void shouldHandleRecordingDownloadRequestWithJfrSuffix() throws Exception {
+//         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+//                 .thenReturn(CompletableFuture.completedFuture(true));
+
+//         when(connection.getService()).thenReturn(service);
+//         RoutingContext ctx = mock(RoutingContext.class);
+//         HttpServerResponse resp = mock(HttpServerResponse.class);
+//         when(ctx.response()).thenReturn(resp);
+//         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+//                 .thenReturn(resp);
+//         HttpServerRequest req = mock(HttpServerRequest.class);
+//         when(ctx.request()).thenReturn(req);
+//         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+
+//         byte[] src = new byte[1024 * 1024];
+//         new Random(123456).nextBytes(src);
+//         IRecordingDescriptor descriptor = mock(IRecordingDescriptor.class);
+//         String recordingName = "foo";
+//         when(descriptor.getName()).thenReturn(recordingName);
+//         when(service.openStream(descriptor, false)).thenReturn(new ByteArrayInputStream(src));
+//         when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+//         Buffer dst = Buffer.buffer(1024 * 1024);
+//         when(resp.write(Mockito.any(Buffer.class)))
+//                 .thenAnswer(
+//                         invocation -> {
+//                             Buffer chunk = invocation.getArgument(0);
+//                             dst.appendBuffer(chunk);
+//                             return null;
+//                         });
+//         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
+//         when(ctx.pathParam("recordingName")).thenReturn(recordingName + ".jfr");
+
+//         when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+//                 .thenAnswer(
+//                         new Answer<Object>() {
+//                             @Override
+//                             public Object answer(InvocationOnMock invocation) throws Throwable {
+//                                 TargetConnectionManager.ConnectedTask task =
+//                                         invocation.getArgument(1);
+//                                 return task.execute(connection);
+//                             }
+//                         });
+//         when(targetConnectionManager.markConnectionInUse(Mockito.any())).thenReturn(true);
+
+//         handler.handle(ctx);
+
+//         verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
+//         Assertions.assertArrayEquals(src, dst.getBytes());
+//     }
+
+//     @Test
+//     void shouldRespond404IfRecordingNameNotFound() throws Exception {
+//         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+//                 .thenReturn(CompletableFuture.completedFuture(true));
+
+//         RoutingContext ctx = mock(RoutingContext.class);
+//         HttpServerRequest req = mock(HttpServerRequest.class);
+//         when(ctx.request()).thenReturn(req);
+//         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+//         HttpServerResponse resp = mock(HttpServerResponse.class);
+//         when(ctx.response()).thenReturn(resp);
+//         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+//                 .thenReturn(resp);
+
+//         when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+//                 .thenAnswer(
+//                         new Answer<Object>() {
+//                             @Override
+//                             public Object answer(InvocationOnMock invocation) throws Throwable {
+//                                 TargetConnectionManager.ConnectedTask task =
+//                                         invocation.getArgument(1);
+//                                 return task.execute(connection);
+//                             }
+//                         });
+//         when(connection.getService()).thenReturn(service);
+//         when(service.getAvailableRecordings()).thenReturn(List.of());
+
+//         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
+//         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+
+//         HttpStatusException ex =
+//                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+//         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+//     }
+
+//     @Test
+//     void shouldRespond500IfUnexpectedExceptionThrown() throws Exception {
+//         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
+//                 .thenReturn(CompletableFuture.completedFuture(true));
+
+//         RoutingContext ctx = mock(RoutingContext.class);
+//         HttpServerRequest req = mock(HttpServerRequest.class);
+//         when(ctx.request()).thenReturn(req);
+//         when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+//         HttpServerResponse resp = mock(HttpServerResponse.class);
+//         when(ctx.response()).thenReturn(resp);
+//         when(resp.putHeader(Mockito.any(CharSequence.class), Mockito.any(CharSequence.class)))
+//                 .thenReturn(resp);
+
+//         when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+//                 .thenAnswer(
+//                         new Answer<Object>() {
+//                             @Override
+//                             public Object answer(InvocationOnMock invocation) throws Throwable {
+//                                 TargetConnectionManager.ConnectedTask task =
+//                                         invocation.getArgument(1);
+//                                 return task.execute(connection);
+//                             }
+//                         });
+//         when(connection.getService()).thenReturn(service);
+//         when(service.getAvailableRecordings()).thenThrow(NullPointerException.class);
+
+//         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
+//         when(ctx.pathParam("recordingName")).thenReturn("someRecording");
+
+//         HttpStatusException ex =
+//                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+//         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+//     }
+}
+
+
 }
