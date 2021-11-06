@@ -139,6 +139,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             recordingTargetHelper.deleteRecording(connectionDescriptor, result);
             ctx.response().setStatusCode(202);
             ctx.response().setStatusMessage("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
+            ctx.response().end();
         } else {
             ctx.response().setStatusCode(200);
             ctx.response().end(result);
