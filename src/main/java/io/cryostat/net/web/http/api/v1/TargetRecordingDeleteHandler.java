@@ -59,9 +59,7 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
-    TargetRecordingDeleteHandler(
-            AuthManager auth,
-            RecordingTargetHelper recordingTargetHelper) {
+    TargetRecordingDeleteHandler(AuthManager auth, RecordingTargetHelper recordingTargetHelper) {
         super(auth);
         this.recordingTargetHelper = recordingTargetHelper;
     }
@@ -101,9 +99,7 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().end();
         } catch (RecordingNotFoundException e) {
             throw new HttpStatusException(
-                                404,
-                                String.format(
-                                        "No recording with name \"%s\" found", recordingName));
+                    404, String.format("No recording with name \"%s\" found", recordingName));
         }
     }
 }

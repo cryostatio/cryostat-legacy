@@ -147,7 +147,7 @@ class TargetSnapshotPostHandlerTest {
                 .thenAnswer(
                         new Answer() {
                             @Override
-                             public Object answer(InvocationOnMock invocation) throws Throwable {
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
@@ -161,12 +161,13 @@ class TargetSnapshotPostHandlerTest {
                 .thenReturn("http://example.com/report");
 
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any())).thenReturn(snapshotOptional);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
         Mockito.when(snapshot.read()).thenReturn(0);
-        
+
         handler.handle(ctx);
 
         Mockito.verify(svc).getSnapshotRecording();
@@ -238,7 +239,7 @@ class TargetSnapshotPostHandlerTest {
                 .thenAnswer(
                         new Answer() {
                             @Override
-                             public Object answer(InvocationOnMock invocation) throws Throwable {
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
@@ -252,12 +253,13 @@ class TargetSnapshotPostHandlerTest {
                 .thenReturn("http://example.com/report");
 
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any())).thenReturn(snapshotOptional);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
         Mockito.when(snapshot.read()).thenReturn(-1);
-        
+
         handler.handle(ctx);
 
         Mockito.verify(svc).getSnapshotRecording();
@@ -265,7 +267,9 @@ class TargetSnapshotPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).build();
         Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
         Mockito.verify(resp).setStatusCode(202);
-        Mockito.verify(resp).setStatusMessage("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
+        Mockito.verify(resp)
+                .setStatusMessage(
+                        "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
     }
 
     @Test
@@ -299,7 +303,7 @@ class TargetSnapshotPostHandlerTest {
                 .thenAnswer(
                         new Answer() {
                             @Override
-                             public Object answer(InvocationOnMock invocation) throws Throwable {
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
                                 TargetConnectionManager.ConnectedTask task =
                                         (TargetConnectionManager.ConnectedTask)
                                                 invocation.getArgument(1);
@@ -313,14 +317,16 @@ class TargetSnapshotPostHandlerTest {
                 .thenReturn("http://example.com/report");
 
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any())).thenReturn(snapshotOptional);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(true);
 
-        ApiException ex =
-                Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-        MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("Successful creation verification of snapshot snapshot-1 failed"));
-        
+        MatcherAssert.assertThat(
+                ex.getFailureReason(),
+                Matchers.equalTo("Successful creation verification of snapshot snapshot-1 failed"));
+
         Mockito.verify(svc).getSnapshotRecording();
         Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
         Mockito.verify(recordingOptionsBuilder).build();

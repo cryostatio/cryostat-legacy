@@ -60,7 +60,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.recordings.RecordingTargetHelper;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -102,7 +102,13 @@ public class RecordingTargetHelperTest {
                 .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
-        this.recordingTargetHelper = new RecordingTargetHelper(targetConnectionManager, eventOptionsBuilderFactory, notificationFactory, reportService, logger);
+        this.recordingTargetHelper =
+                new RecordingTargetHelper(
+                        targetConnectionManager,
+                        eventOptionsBuilderFactory,
+                        notificationFactory,
+                        reportService,
+                        logger);
     }
 
     @Test
@@ -124,12 +130,14 @@ public class RecordingTargetHelperTest {
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        
+
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
-        Mockito.when(service.openStream(descriptor, false)).thenReturn(new ByteArrayInputStream(src));
-        
-        InputStream stream = recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
+        Mockito.when(service.openStream(descriptor, false))
+                .thenReturn(new ByteArrayInputStream(src));
+
+        InputStream stream =
+                recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
 
         Assertions.assertArrayEquals(src, stream.readAllBytes());
     }
@@ -153,8 +161,9 @@ public class RecordingTargetHelperTest {
         Mockito.when(connection.getService()).thenReturn(service);
         IRecordingDescriptor descriptor = createDescriptor("notSomeRecording");
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
-        
-        Optional<InputStream> stream = recordingTargetHelper.getRecording(connectionDescriptor, recordingName);
+
+        Optional<InputStream> stream =
+                recordingTargetHelper.getRecording(connectionDescriptor, recordingName);
 
         Assertions.assertTrue(stream.isEmpty());
     }
@@ -180,7 +189,7 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-       recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName);
+        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName);
 
         Mockito.verify(service).close(descriptor);
         Mockito.verify(reportService)
@@ -222,8 +231,12 @@ public class RecordingTargetHelperTest {
 
         RecordingNotFoundException ex =
                 Assertions.assertThrows(
-                        RecordingNotFoundException.class, () -> recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName));
-        MatcherAssert.assertThat(ex.getTargetId(), Matchers.equalTo(connectionDescriptor.getTargetId()));
+                        RecordingNotFoundException.class,
+                        () ->
+                                recordingTargetHelper.deleteRecording(
+                                        connectionDescriptor, recordingName));
+        MatcherAssert.assertThat(
+                ex.getTargetId(), Matchers.equalTo(connectionDescriptor.getTargetId()));
         MatcherAssert.assertThat(ex.getRecordingName(), Matchers.equalTo(recordingName));
     }
 
@@ -245,5 +258,3 @@ public class RecordingTargetHelperTest {
         return descriptor;
     }
 }
-
-

@@ -74,7 +74,11 @@ public abstract class RecordingsModule {
             ReportService reportService,
             Logger logger) {
         return new RecordingTargetHelper(
-                targetConnectionManager, eventOptionsBuilderFactory, notificationFactory, reportService, logger);
+                targetConnectionManager,
+                eventOptionsBuilderFactory,
+                notificationFactory,
+                reportService,
+                logger);
     }
 
     @Provides

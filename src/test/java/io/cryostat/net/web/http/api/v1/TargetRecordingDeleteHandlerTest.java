@@ -43,6 +43,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
@@ -73,9 +74,7 @@ class TargetRecordingDeleteHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new TargetRecordingDeleteHandler(
-                        auth, recordingTargetHelper);
+        this.handler = new TargetRecordingDeleteHandler(auth, recordingTargetHelper);
     }
 
     @Test
@@ -104,9 +103,9 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.response()).thenReturn(resp);
-        
+
         handler.handleAuthenticated(ctx);
-        
+
         InOrder inOrder = Mockito.inOrder(resp);
         inOrder.verify(resp).setStatusCode(200);
         inOrder.verify(resp).end();
@@ -117,13 +116,17 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.doThrow(RecordingNotFoundException.class).when(recordingTargetHelper).deleteRecording(Mockito.any(), Mockito.eq("someRecording"));
-        
+        Mockito.doThrow(RecordingNotFoundException.class)
+                .when(recordingTargetHelper)
+                .deleteRecording(Mockito.any(), Mockito.eq("someRecording"));
+
         HttpStatusException ex =
                 Assertions.assertThrows(
                         HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
-        
-                        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording with name \"someRecording\" found"));
+
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
+        MatcherAssert.assertThat(
+                ex.getPayload(),
+                Matchers.equalTo("No recording with name \"someRecording\" found"));
     }
 }

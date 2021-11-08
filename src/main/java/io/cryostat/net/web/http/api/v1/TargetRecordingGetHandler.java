@@ -68,7 +68,9 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Inject
     TargetRecordingGetHandler(
-            AuthManager auth, TargetConnectionManager targetConnectionManager, RecordingTargetHelper recordingTargetHelper) {
+            AuthManager auth,
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
@@ -110,7 +112,8 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Optional<InputStream> stream = recordingTargetHelper.getRecording(connectionDescriptor, recordingName);
+        Optional<InputStream> stream =
+                recordingTargetHelper.getRecording(connectionDescriptor, recordingName);
         if (stream.isEmpty()) {
             throw new HttpStatusException(404, String.format("%s not found", recordingName));
         }

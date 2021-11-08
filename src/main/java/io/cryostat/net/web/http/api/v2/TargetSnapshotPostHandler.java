@@ -126,7 +126,8 @@ class TargetSnapshotPostHandler
     @Override
     public IntermediateResponse<HyperlinkedSerializableRecordingDescriptor> handle(
             RequestParameters requestParams) throws Exception {
-        ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromParams(requestParams);
+        ConnectionDescriptor connectionDescriptor =
+                getConnectionDescriptorFromParams(requestParams);
         HyperlinkedSerializableRecordingDescriptor desc =
                 targetConnectionManager.executeConnectedTask(
                         connectionDescriptor,
@@ -154,23 +155,29 @@ class TargetSnapshotPostHandler
                                     webServer.get().getDownloadURL(connection, rename),
                                     webServer.get().getReportURL(connection, rename));
                         });
-    
+
         String snapshotName = desc.getName();
-        Optional<InputStream> snapshotOptional = recordingTargetHelper.getRecording(connectionDescriptor, snapshotName);
+        Optional<InputStream> snapshotOptional =
+                recordingTargetHelper.getRecording(connectionDescriptor, snapshotName);
         if (snapshotOptional.isEmpty()) {
-            throw new ApiException(500, String.format("Successful creation verification of snapshot %s failed", snapshotName));
+            throw new ApiException(
+                    500,
+                    String.format(
+                            "Successful creation verification of snapshot %s failed",
+                            snapshotName));
         } else if (snapshotIsEmpty(snapshotOptional.get())) {
             recordingTargetHelper.deleteRecording(connectionDescriptor, snapshotName);
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
-                .statusCode(202)
-                .statusMessage("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from")
-                .body(null);
+                    .statusCode(202)
+                    .statusMessage(
+                            "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from")
+                    .body(null);
         } else {
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
-                .statusCode(201)
-                .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
-                .body(desc);
-        }    
+                    .statusCode(201)
+                    .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
+                    .body(desc);
+        }
     }
 
     private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {

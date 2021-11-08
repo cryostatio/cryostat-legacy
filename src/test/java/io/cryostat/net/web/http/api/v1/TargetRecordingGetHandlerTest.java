@@ -58,6 +58,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
@@ -91,7 +92,9 @@ class TargetRecordingGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetRecordingGetHandler(authManager, targetConnectionManager, recordingTargetHelper);
+        this.handler =
+                new TargetRecordingGetHandler(
+                        authManager, targetConnectionManager, recordingTargetHelper);
     }
 
     @Test
@@ -138,7 +141,8 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName))).thenReturn(stream);
+        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
+                .thenReturn(stream);
         when(stream.isEmpty()).thenReturn(true);
 
         HttpStatusException ex =
@@ -164,8 +168,10 @@ class TargetRecordingGetHandlerTest {
 
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
-        
-        doThrow(Exception.class).when(recordingTargetHelper).getRecording(Mockito.any(), Mockito.eq(recordingName));
+
+        doThrow(Exception.class)
+                .when(recordingTargetHelper)
+                .getRecording(Mockito.any(), Mockito.eq(recordingName));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -182,7 +188,7 @@ class TargetRecordingGetHandlerTest {
         shouldHandleRecordingDownloadRequest("someRecording.jfr");
     }
 
-    private void shouldHandleRecordingDownloadRequest (String recordingName) throws Exception {  
+    private void shouldHandleRecordingDownloadRequest(String recordingName) throws Exception {
         when(authManager.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -200,8 +206,9 @@ class TargetRecordingGetHandlerTest {
 
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
-        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any())).thenReturn(Optional.of(new ByteArrayInputStream(src)));
-    
+        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(new ByteArrayInputStream(src)));
+
         Buffer dst = Buffer.buffer(1024 * 1024);
         when(resp.write(Mockito.any(Buffer.class)))
                 .thenAnswer(

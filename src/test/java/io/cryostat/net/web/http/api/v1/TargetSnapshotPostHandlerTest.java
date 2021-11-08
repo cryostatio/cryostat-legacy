@@ -54,12 +54,12 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -85,7 +85,10 @@ class TargetSnapshotPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetSnapshotPostHandler(
-                        auth, targetConnectionManager, recordingOptionsBuilderFactory, recordingTargetHelper);
+                        auth,
+                        targetConnectionManager,
+                        recordingOptionsBuilderFactory,
+                        recordingTargetHelper);
     }
 
     @Test
@@ -140,7 +143,8 @@ class TargetSnapshotPostHandlerTest {
                         });
 
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any())).thenReturn(snapshotOptional);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
@@ -159,7 +163,7 @@ class TargetSnapshotPostHandlerTest {
     @Test
     void shouldHandleEmptySnapshot() throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-        .thenReturn(CompletableFuture.completedFuture(true));
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
@@ -200,7 +204,8 @@ class TargetSnapshotPostHandlerTest {
                         });
 
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any())).thenReturn(snapshotOptional);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
@@ -213,14 +218,16 @@ class TargetSnapshotPostHandlerTest {
         Mockito.verify(recordingOptionsBuilder).build();
         Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
         Mockito.verify(resp).setStatusCode(202);
-        Mockito.verify(resp).setStatusMessage("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
+        Mockito.verify(resp)
+                .setStatusMessage(
+                        "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
         Mockito.verify(resp).end();
     }
 
     @Test
     void shouldRespond500IfSnapshotCreationFails() throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-        .thenReturn(CompletableFuture.completedFuture(true));
+                .thenReturn(CompletableFuture.completedFuture(true));
 
         RoutingContext ctx = Mockito.mock(RoutingContext.class);
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
@@ -261,13 +268,17 @@ class TargetSnapshotPostHandlerTest {
                         });
 
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any())).thenReturn(snapshotOptional);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(true);
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Successful creation verification of snapshot thesnapshot-1234 failed"));
+        MatcherAssert.assertThat(
+                ex.getPayload(),
+                Matchers.equalTo(
+                        "Successful creation verification of snapshot thesnapshot-1234 failed"));
 
         Mockito.verify(svc).getSnapshotRecording();
         Mockito.verify(recordingOptionsBuilder).name("thesnapshot-1234");

@@ -168,27 +168,28 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
-    public Optional<InputStream> getRecording(ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+    public Optional<InputStream> getRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
         return targetConnectionManager.executeConnectedTask(
-                        connectionDescriptor,
-                        conn ->
-                                conn.getService().getAvailableRecordings().stream()
-                                        .filter(r -> Objects.equals(recordingName, r.getName()))
-                                        .map(
-                                                desc -> {
-                                                try {
-                                                        return conn.getService()
-                                                                .openStream(desc, false);
-                                                } catch (Exception e) {
-                                                        logger.error(e);
-                                                        return null;
-                                                }
-                                                })
-                                        .filter(Objects::nonNull)
-                                        .findFirst());
+                connectionDescriptor,
+                conn ->
+                        conn.getService().getAvailableRecordings().stream()
+                                .filter(r -> Objects.equals(recordingName, r.getName()))
+                                .map(
+                                        desc -> {
+                                            try {
+                                                return conn.getService().openStream(desc, false);
+                                            } catch (Exception e) {
+                                                logger.error(e);
+                                                return null;
+                                            }
+                                        })
+                                .filter(Objects::nonNull)
+                                .findFirst());
     }
 
-    public void deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+    public void deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
+            throws Exception {
         String targetId = connectionDescriptor.getTargetId();
         targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
@@ -204,12 +205,7 @@ public class RecordingTargetHelper {
                                 .createBuilder()
                                 .metaCategory(RECORDING_DELETION_NOTIFICATION_CATEGORY)
                                 .metaType(HttpMimeType.JSON)
-                                .message(
-                                        Map.of(
-                                                "recording",
-                                                recordingName,
-                                                "target",
-                                                targetId))
+                                .message(Map.of("recording", recordingName, "target", targetId))
                                 .build()
                                 .send();
                     } else {
@@ -218,7 +214,6 @@ public class RecordingTargetHelper {
                     return null;
                 });
     }
-    
 
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)

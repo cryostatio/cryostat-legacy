@@ -54,7 +54,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -131,19 +130,25 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
                             return rename;
                         });
-        
-        Optional<InputStream> snapshotOptional = recordingTargetHelper.getRecording(connectionDescriptor, result);
+
+        Optional<InputStream> snapshotOptional =
+                recordingTargetHelper.getRecording(connectionDescriptor, result);
         if (snapshotOptional.isEmpty()) {
-            throw new HttpStatusException(500, String.format("Successful creation verification of snapshot %s failed", result));
+            throw new HttpStatusException(
+                    500,
+                    String.format(
+                            "Successful creation verification of snapshot %s failed", result));
         } else if (snapshotIsEmpty(snapshotOptional.get())) {
             recordingTargetHelper.deleteRecording(connectionDescriptor, result);
             ctx.response().setStatusCode(202);
-            ctx.response().setStatusMessage("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
+            ctx.response()
+                    .setStatusMessage(
+                            "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
             ctx.response().end();
         } else {
             ctx.response().setStatusCode(200);
             ctx.response().end(result);
-        } 
+        }
     }
 
     private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
