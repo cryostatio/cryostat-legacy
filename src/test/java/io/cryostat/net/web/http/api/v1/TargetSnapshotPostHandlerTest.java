@@ -267,7 +267,7 @@ class TargetSnapshotPostHandlerTest {
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Successful creation verification of Snapshot thesnapshot-1234 failed"));
+        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Successful creation verification of snapshot thesnapshot-1234 failed"));
 
         Mockito.verify(svc).getSnapshotRecording();
         Mockito.verify(recordingOptionsBuilder).name("thesnapshot-1234");
