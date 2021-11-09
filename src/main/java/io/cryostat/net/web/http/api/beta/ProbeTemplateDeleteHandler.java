@@ -111,7 +111,7 @@ public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public boolean requiresAuthentication() {
-        return false;
+        return true;
     }
 
     @Override

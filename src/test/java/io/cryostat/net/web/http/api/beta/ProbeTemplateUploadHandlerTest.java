@@ -136,10 +136,10 @@ public class ProbeTemplateUploadHandlerTest {
             MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.PLAINTEXT));
         }
 
-        /* @Test
+        @Test
         void shouldRequireAuthentication() {
             MatcherAssert.assertThat(handler.requiresAuthentication(), Matchers.is(true));
-        }*/
+        }
     }
 
     @Nested

@@ -120,7 +120,7 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public boolean requiresAuthentication() {
-        return false;
+        return true;
     }
 
     @Override
@@ -129,6 +129,10 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
             for (FileUpload u : requestParams.getFileUploads()) {
                 String templateName = requestParams.getPathParams().get("probetemplateName");
                 Path path = fs.pathOf(u.uploadedFileName());
+                if (!"probeTemplate".equals(u.name())) {
+                    fs.deleteIfExists(path);
+                    continue;
+                }
                 try (InputStream is = fs.newInputStream(path)) {
                     notificationFactory
                             .createBuilder()

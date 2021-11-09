@@ -100,7 +100,7 @@ public class TargetProbesGetHandler extends AbstractV2RequestHandler<String> {
 
     @Override
     public boolean requiresAuthentication() {
-        return false;
+        return true;
     }
 
     @Override

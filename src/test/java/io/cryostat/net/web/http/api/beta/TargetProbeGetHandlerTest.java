@@ -144,10 +144,10 @@ public class TargetProbeGetHandlerTest {
             MatcherAssert.assertThat(handler.mimeType(), Matchers.equalTo(HttpMimeType.JSON));
         }
 
-        /* @Test
+        @Test
         void shouldRequireAuthentication() {
             MatcherAssert.assertThat(handler.requiresAuthentication(), Matchers.is(true));
-        }*/
+        }
     }
 
     @Nested
