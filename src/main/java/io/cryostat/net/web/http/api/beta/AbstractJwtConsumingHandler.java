@@ -44,11 +44,16 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
+import java.rmi.ConnectIOException;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
+
+import javax.security.sasl.SaslException;
+
+import org.openjdk.jmc.rjmx.ConnectionException;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
@@ -65,6 +70,7 @@ import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.proc.BadJWTException;
 import dagger.Lazy;
 import io.vertx.ext.web.RoutingContext;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
@@ -88,6 +94,23 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         try {
             JWT jwt = validateJwt(ctx);
             handleWithValidJwt(ctx, jwt);
+        } catch (ConnectionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof SecurityException || cause instanceof SaslException) {
+                ctx.response()
+                        .putHeader(
+                                AbstractAuthenticatedRequestHandler.JMX_AUTHENTICATE_HEADER,
+                                "Basic");
+                throw new ApiException(427, "JMX Authentication Failure", e);
+            }
+            Throwable rootCause = ExceptionUtils.getRootCause(e);
+            if (rootCause instanceof ConnectIOException) {
+                throw new ApiException(502, "Target SSL Untrusted", e);
+            }
+            if (rootCause instanceof UnknownHostException) {
+                throw new ApiException(404, "Target Not Found", e);
+            }
+            throw new ApiException(500, e);
         } catch (Exception e) {
             if (e instanceof ApiException) {
                 throw (ApiException) e;
@@ -112,8 +135,13 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         URI fullRequestUri =
                 new URI(hostUrl.getProtocol(), hostUrl.getAuthority(), null, null, null)
                         .resolve(requestUri.getRawPath());
-        URI resourceClaim =
-                new URI(parsed.getJWTClaimsSet().getStringClaim(AssetJwtHelper.RESOURCE_CLAIM));
+        URI resourceClaim;
+        try {
+            resourceClaim =
+                    new URI(parsed.getJWTClaimsSet().getStringClaim(AssetJwtHelper.RESOURCE_CLAIM));
+        } catch (URISyntaxException use) {
+            throw new ApiException(401, use);
+        }
         if (!Objects.equals(fullRequestUri, resourceClaim)) {
             throw new ApiException(401);
         }
