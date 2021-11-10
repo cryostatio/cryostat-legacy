@@ -51,7 +51,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.JwtFactory;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -72,7 +72,7 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
     @Inject
     TargetRecordingGetHandler(
             AuthManager auth,
-            JwtFactory jwtFactory,
+            AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             TargetConnectionManager targetConnectionManager,
             Logger logger) {

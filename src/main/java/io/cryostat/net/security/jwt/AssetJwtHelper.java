@@ -68,8 +68,7 @@ import com.nimbusds.jwt.proc.BadJWTException;
 import com.nimbusds.jwt.proc.DefaultJWTClaimsVerifier;
 import dagger.Lazy;
 
-// TODO rename this, it isn't a factory
-public class JwtFactory {
+public class AssetJwtHelper {
 
     public static final String RESOURCE_CLAIM = "resource";
     public static final String JMXAUTH_CLAIM = "jmxauth";
@@ -80,7 +79,7 @@ public class JwtFactory {
     private final JWEEncrypter encrypter;
     private final JWEDecrypter decrypter;
 
-    JwtFactory(
+    AssetJwtHelper(
             Lazy<WebServer> webServer,
             JWSSigner signer,
             JWSVerifier verifier,

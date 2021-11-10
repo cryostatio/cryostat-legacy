@@ -49,7 +49,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.JwtFactory;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
@@ -70,7 +70,7 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     @Inject
     TargetReportGetHandler(
             AuthManager auth,
-            JwtFactory jwtFactory,
+            AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             ReportService reportService,
             Logger logger) {

@@ -47,7 +47,7 @@ import javax.inject.Inject;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.JwtFactory;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -67,12 +67,16 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
 
     static final String PATH = "auth/token";
 
-    private final JwtFactory jwt;
+    private final AssetJwtHelper jwt;
     private final Lazy<WebServer> webServer;
 
     @Inject
     AuthTokenPostHandler(
-            AuthManager auth, Gson gson, JwtFactory jwt, Lazy<WebServer> webServer, Logger logger) {
+            AuthManager auth,
+            Gson gson,
+            AssetJwtHelper jwt,
+            Lazy<WebServer> webServer,
+            Logger logger) {
         super(auth, gson);
         this.jwt = jwt;
         this.webServer = webServer;
@@ -111,17 +115,18 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
     @Override
     public IntermediateResponse<Map<String, String>> handle(RequestParameters requestParams)
             throws Exception {
-        String resource = requestParams.getFormAttributes().get(JwtFactory.RESOURCE_CLAIM);
+        String resource = requestParams.getFormAttributes().get(AssetJwtHelper.RESOURCE_CLAIM);
         if (resource == null) {
             throw new ApiException(
                     400,
-                    String.format("\"%s\" form attribute is required", JwtFactory.RESOURCE_CLAIM));
+                    String.format(
+                            "\"%s\" form attribute is required", AssetJwtHelper.RESOURCE_CLAIM));
         }
         String resourcePrefix = webServer.get().getHostUrl().toString();
         URI resourceUri = new URI(resource);
         if (resourceUri.isAbsolute() && !resource.startsWith(resourcePrefix)) {
             throw new ApiException(
-                    400, String.format("\"%s\" URL is invalid", JwtFactory.RESOURCE_CLAIM));
+                    400, String.format("\"%s\" URL is invalid", AssetJwtHelper.RESOURCE_CLAIM));
         }
 
         String authzHeader = requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION);

@@ -62,7 +62,7 @@ public abstract class JwtModule {
 
     @Provides
     @Singleton
-    static JwtFactory provideJwtFactory(
+    static AssetJwtHelper provideJwtFactory(
             Lazy<WebServer> webServer,
             JWSSigner signer,
             JWSVerifier verifier,
@@ -70,7 +70,7 @@ public abstract class JwtModule {
             JWEDecrypter decrypter,
             Logger logger) {
         try {
-            return new JwtFactory(webServer, signer, verifier, encrypter, decrypter, logger);
+            return new AssetJwtHelper(webServer, signer, verifier, encrypter, decrypter, logger);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }

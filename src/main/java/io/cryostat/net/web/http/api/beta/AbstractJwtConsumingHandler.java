@@ -54,7 +54,7 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.security.jwt.JwtFactory;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.RequestHandler;
@@ -69,12 +69,12 @@ import io.vertx.ext.web.RoutingContext;
 abstract class AbstractJwtConsumingHandler implements RequestHandler {
 
     protected final AuthManager auth;
-    protected final JwtFactory jwt;
+    protected final AssetJwtHelper jwt;
     protected final Lazy<WebServer> webServer;
     protected final Logger logger;
 
     protected AbstractJwtConsumingHandler(
-            AuthManager auth, JwtFactory jwt, Lazy<WebServer> webServer, Logger logger) {
+            AuthManager auth, AssetJwtHelper jwt, Lazy<WebServer> webServer, Logger logger) {
         this.auth = auth;
         this.jwt = jwt;
         this.webServer = webServer;
@@ -113,7 +113,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
                 new URI(hostUrl.getProtocol(), hostUrl.getAuthority(), null, null, null)
                         .resolve(requestUri.getRawPath());
         URI resourceClaim =
-                new URI(parsed.getJWTClaimsSet().getStringClaim(JwtFactory.RESOURCE_CLAIM));
+                new URI(parsed.getJWTClaimsSet().getStringClaim(AssetJwtHelper.RESOURCE_CLAIM));
         if (!Objects.equals(fullRequestUri, resourceClaim)) {
             throw new ApiException(401);
         }
@@ -135,7 +135,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         String targetId = ctx.pathParam("targetId");
         // TODO inject the CredentialsManager here to check for stored credentials
         Credentials credentials = null;
-        String jmxauth = jwt.getJWTClaimsSet().getStringClaim(JwtFactory.JMXAUTH_CLAIM);
+        String jmxauth = jwt.getJWTClaimsSet().getStringClaim(AssetJwtHelper.JMXAUTH_CLAIM);
         if (jmxauth != null) {
             String c;
             try {
@@ -144,14 +144,15 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
                 if (!m.find()) {
                     throw new ApiException(
                             427,
-                            String.format("Invalid %s claim format", JwtFactory.JMXAUTH_CLAIM));
+                            String.format("Invalid %s claim format", AssetJwtHelper.JMXAUTH_CLAIM));
                 }
                 String t = m.group("type");
                 if (!"basic".equals(t.toLowerCase())) {
                     throw new ApiException(
                             427,
                             String.format(
-                                    "Unacceptable %s credentials type", JwtFactory.JMXAUTH_CLAIM));
+                                    "Unacceptable %s credentials type",
+                                    AssetJwtHelper.JMXAUTH_CLAIM));
                 }
                 c =
                         new String(
@@ -162,7 +163,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
                         427,
                         String.format(
                                 "%s claim credentials do not appear to be Base64-encoded",
-                                JwtFactory.JMXAUTH_CLAIM),
+                                AssetJwtHelper.JMXAUTH_CLAIM),
                         iae);
             }
             String[] parts = c.split(":");
@@ -171,7 +172,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
                         427,
                         String.format(
                                 "Unrecognized %s claim credential format",
-                                JwtFactory.JMXAUTH_CLAIM));
+                                AssetJwtHelper.JMXAUTH_CLAIM));
             }
             credentials = new Credentials(parts[0], parts[1]);
         }
