@@ -41,8 +41,20 @@ import java.net.URL;
 import java.util.Map;
 import java.util.Set;
 
-import com.google.gson.Gson;
+import io.cryostat.MainModule;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
+import io.cryostat.net.web.http.api.v2.RequestParameters;
 
+import com.google.gson.Gson;
+import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpMethod;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -55,19 +67,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.net.web.http.api.v2.ApiException;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
-import io.cryostat.net.web.http.api.v2.RequestParameters;
-import io.vertx.core.MultiMap;
-import io.vertx.core.http.HttpMethod;
 
 @ExtendWith(MockitoExtension.class)
 class AuthTokenPostHandlerTest {
@@ -125,24 +124,27 @@ class AuthTokenPostHandlerTest {
         void shouldThrowIfNoResourceClaimMade() throws Exception {
             MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
             Mockito.when(params.getFormAttributes()).thenReturn(attrs);
-            ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {
-        "not a url",
-        "https://cryostat.example.com:8080",
-        "https://cryostat.com:8080/api/v1/recordings/foo.jfr",
-        "http://cryostat.com/api/v1/recordings/foo.jfr",
-        })
+        @ValueSource(
+                strings = {
+                    "not a url",
+                    "https://cryostat.example.com:8080",
+                    "https://cryostat.com:8080/api/v1/recordings/foo.jfr",
+                    "http://cryostat.com/api/v1/recordings/foo.jfr",
+                })
         void shouldThrowIfResourceClaimUrlIsInvalid(String resourceUrl) throws Exception {
             URL hostUrl = new URL("http://cryostat.example.com:8080");
             Mockito.when(webServer.getHostUrl()).thenReturn(hostUrl);
             MultiMap attrs = MultiMap.caseInsensitiveMultiMap();
             attrs.set("resource", resourceUrl);
             Mockito.when(params.getFormAttributes()).thenReturn(attrs);
-            ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
+            ApiException ex =
+                    Assertions.assertThrows(ApiException.class, () -> handler.handle(params));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
         }
 
@@ -160,16 +162,21 @@ class AuthTokenPostHandlerTest {
             Mockito.when(params.getHeaders()).thenReturn(headers);
 
             String token = "mytoken";
-            Mockito.when(jwt.createAssetDownloadJwt(Mockito.anyString(), Mockito.anyString(),
-                        Mockito.anyString())).thenReturn(token);
+            Mockito.when(
+                            jwt.createAssetDownloadJwt(
+                                    Mockito.anyString(), Mockito.anyString(), Mockito.anyString()))
+                    .thenReturn(token);
 
             IntermediateResponse<Map<String, String>> resp = handler.handle(params);
             MatcherAssert.assertThat(resp.getStatusCode(), Matchers.equalTo(200));
-            MatcherAssert.assertThat(resp.getBody(), Matchers.equalTo(Map.of("resourceUrl",
-                            String.format("%s?token=%s", resource, token))));
+            MatcherAssert.assertThat(
+                    resp.getBody(),
+                    Matchers.equalTo(
+                            Map.of("resourceUrl", String.format("%s?token=%s", resource, token))));
 
-            Mockito.verify(jwt).createAssetDownloadJwt("Basic user:pass",
-                    "/api/v1/recordings/foo.jfr", "Basic user2:pass2");
+            Mockito.verify(jwt)
+                    .createAssetDownloadJwt(
+                            "Basic user:pass", "/api/v1/recordings/foo.jfr", "Basic user2:pass2");
             Mockito.verifyNoMoreInteractions(jwt);
         }
     }

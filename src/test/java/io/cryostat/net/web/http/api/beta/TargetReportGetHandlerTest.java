@@ -38,16 +38,27 @@
 package io.cryostat.net.web.http.api.beta;
 
 import java.util.EnumSet;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.security.jwt.AssetJwtHelper;
+import io.cryostat.net.web.WebServer;
+import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingNotFoundException;
+
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
-
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.core.http.HttpServerResponse;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
-import org.jsoup.nodes.Document;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -55,25 +66,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
-
-import io.cryostat.core.log.Logger;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.reports.ReportService;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.security.jwt.AssetJwtHelper;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingNotFoundException;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.core.http.HttpServerResponse;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 @ExtendWith(MockitoExtension.class)
 class TargetReportGetHandlerTest {
@@ -105,15 +98,21 @@ class TargetReportGetHandlerTest {
 
         @Test
         void shouldUseExpectedPath() {
-            MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/api/beta/targets/:targetId/reports/:recordingName"));
+            MatcherAssert.assertThat(
+                    handler.path(),
+                    Matchers.equalTo("/api/beta/targets/:targetId/reports/:recordingName"));
         }
 
         @Test
         void shouldRequireResourceActions() {
-            MatcherAssert.assertThat(handler.resourceActions(), Matchers.equalTo(EnumSet.of(ResourceAction.READ_TARGET,
-                ResourceAction.READ_RECORDING,
-                ResourceAction.CREATE_REPORT,
-                ResourceAction.READ_REPORT)));
+            MatcherAssert.assertThat(
+                    handler.resourceActions(),
+                    Matchers.equalTo(
+                            EnumSet.of(
+                                    ResourceAction.READ_TARGET,
+                                    ResourceAction.READ_RECORDING,
+                                    ResourceAction.CREATE_REPORT,
+                                    ResourceAction.READ_REPORT)));
         }
 
         @Test
@@ -134,7 +133,7 @@ class TargetReportGetHandlerTest {
         @Mock JWT token;
 
         @Test
-        void shouldRespond404IfNotFound() throws Exception{
+        void shouldRespond404IfNotFound() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
@@ -142,15 +141,18 @@ class TargetReportGetHandlerTest {
             Mockito.when(claims.getStringClaim(Mockito.anyString())).thenReturn(null);
             Mockito.when(token.getJWTClaimsSet()).thenReturn(claims);
             Future<String> future =
-                CompletableFuture.failedFuture(new RecordingNotFoundException("target", "myrecording"));
+                    CompletableFuture.failedFuture(
+                            new RecordingNotFoundException("target", "myrecording"));
             Mockito.when(reports.get(Mockito.any(), Mockito.anyString())).thenReturn(future);
-            HttpStatusException ex = Assertions.assertThrows(HttpStatusException.class, () -> handler.handleWithValidJwt(ctx,
-                        token));
+            HttpStatusException ex =
+                    Assertions.assertThrows(
+                            HttpStatusException.class,
+                            () -> handler.handleWithValidJwt(ctx, token));
             MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         }
 
         @Test
-        void shouldSendFileIfFound() throws Exception{
+        void shouldSendFileIfFound() throws Exception {
             HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
             Mockito.when(ctx.response()).thenReturn(resp);
             Mockito.when(ctx.pathParam("recordingName")).thenReturn("myrecording");
@@ -166,6 +168,4 @@ class TargetReportGetHandlerTest {
             Mockito.verify(resp).end("report text");
         }
     }
-
 }
-
