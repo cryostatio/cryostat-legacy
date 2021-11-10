@@ -103,7 +103,7 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
 
     @Override
     public boolean isAsync() {
-        return false;
+        return true;
     }
 
     @Override

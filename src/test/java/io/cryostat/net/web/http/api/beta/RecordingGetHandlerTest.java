@@ -45,11 +45,11 @@ import java.util.concurrent.Future;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
 
 import com.nimbusds.jwt.JWT;
@@ -71,18 +71,18 @@ import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class ReportGetHandlerTest {
+class RecordingGetHandlerTest {
 
-    ReportGetHandler handler;
+    RecordingGetHandler handler;
     @Mock AuthManager auth;
     @Mock AssetJwtHelper jwt;
     @Mock WebServer webServer;
-    @Mock ReportService reports;
+    @Mock RecordingArchiveHelper archive;
     @Mock Logger logger;
 
     @BeforeEach
     void setup() {
-        this.handler = new ReportGetHandler(auth, jwt, () -> webServer, reports, logger);
+        this.handler = new RecordingGetHandler(auth, jwt, () -> webServer, archive, logger);
     }
 
     @Nested
@@ -101,18 +101,14 @@ class ReportGetHandlerTest {
         @Test
         void shouldUseExpectedPath() {
             MatcherAssert.assertThat(
-                    handler.path(), Matchers.equalTo("/api/beta/reports/:recordingName"));
+                    handler.path(), Matchers.equalTo("/api/beta/recordings/:recordingName"));
         }
 
         @Test
         void shouldRequireResourceActions() {
             MatcherAssert.assertThat(
                     handler.resourceActions(),
-                    Matchers.equalTo(
-                            EnumSet.of(
-                                    ResourceAction.READ_RECORDING,
-                                    ResourceAction.CREATE_REPORT,
-                                    ResourceAction.READ_REPORT)));
+                    Matchers.equalTo(EnumSet.of(ResourceAction.READ_RECORDING)));
         }
 
         @Test
@@ -138,7 +134,7 @@ class ReportGetHandlerTest {
             Future<Path> future =
                     CompletableFuture.failedFuture(
                             new RecordingNotFoundException("archive", "myrecording"));
-            Mockito.when(reports.get(Mockito.anyString())).thenReturn(future);
+            Mockito.when(archive.getRecordingPath(Mockito.anyString())).thenReturn(future);
             HttpStatusException ex =
                     Assertions.assertThrows(
                             HttpStatusException.class,
@@ -158,12 +154,12 @@ class ReportGetHandlerTest {
             Mockito.when(path.toFile()).thenReturn(file);
             Mockito.when(file.length()).thenReturn(1234L);
             Future<Path> future = CompletableFuture.completedFuture(path);
-            Mockito.when(reports.get(Mockito.anyString())).thenReturn(future);
+            Mockito.when(archive.getRecordingPath(Mockito.anyString())).thenReturn(future);
 
             handler.handleWithValidJwt(ctx, token);
 
             InOrder inOrder = Mockito.inOrder(resp);
-            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "text/html");
+            inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_TYPE, "application/octet-stream");
             inOrder.verify(resp).putHeader(HttpHeaders.CONTENT_LENGTH, "1234");
             inOrder.verify(resp).sendFile("foo.jfr");
         }

@@ -111,7 +111,7 @@ class RecordingGetHandler extends AbstractJwtConsumingHandler {
                     .putHeader(
                             HttpHeaders.CONTENT_LENGTH,
                             Long.toString(archivedRecording.toFile().length()));
-            ctx.response().sendFile(archivedRecording.toString());
+            ctx.response().sendFile(archivedRecording.toAbsolutePath().toString());
         } catch (ExecutionException e) {
             if (e.getCause() instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, e.getMessage(), e);
