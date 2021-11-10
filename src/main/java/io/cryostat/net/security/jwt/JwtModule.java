@@ -68,10 +68,9 @@ public abstract class JwtModule {
             JWSVerifier verifier,
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
-            Environment env,
             Logger logger) {
         try {
-            return new JwtFactory(webServer, signer, verifier, encrypter, decrypter, env, logger);
+            return new JwtFactory(webServer, signer, verifier, encrypter, decrypter, logger);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
