@@ -157,7 +157,7 @@ class BasicAuthManagerTest {
             Mockito.when(fs.readFile(mockPath)).thenReturn(props);
             String credentials =
                     Base64.encodeBase64String("user:pass".getBytes(StandardCharsets.UTF_8));
-            UserInfo userInfo = mgr.getUserInfo(() -> "Basic " + credentials).get();
+            UserInfo userInfo = mgr.getUserInfo(() -> "Basic " + credentials).get().getBody();
             MatcherAssert.assertThat(userInfo.getUsername(), Matchers.equalTo("user"));
         }
 

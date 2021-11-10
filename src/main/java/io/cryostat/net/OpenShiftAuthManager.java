@@ -59,7 +59,7 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
-import io.cryostat.net.web.http.api.v2.EmptyOpenShiftTokenException;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
@@ -87,32 +87,31 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final Function<String, OpenShiftClient> clientProvider;
     private final WebClient webClient;
 
-    public static String authorizationUrl;
-
+    private final CompletableFuture<String> authUrl = new CompletableFuture<>();
     private final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
     private final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
     private final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
     private final String OAUTH_REQ_PARAMS =
             String.format(
-                    "?%s=%s&%s=%s&%s=%s",
-                    "client_id", "cryostat", "response_type", "token", "response_mode", "fragment");
+                    "?%s=%s&%s=%s&%s=%s&%s=%s",
+                    "client_id",
+                    "system%3Aserviceaccount%3Acryostat-operator-system%3Acryostat-sample",
+                    "response_type",
+                    "token",
+                    "response_mode",
+                    "fragment",
+                    "scope",
+                    "user%3Acheck-access+role%3Acryostat-oauth%3Acryostat-operator-system");
 
     OpenShiftAuthManager(
             Logger logger,
             FileSystem fs,
             Function<String, OpenShiftClient> clientProvider,
-            WebClient webClient)
-             {
+            WebClient webClient) {
         super(logger);
         this.fs = fs;
         this.clientProvider = clientProvider;
         this.webClient = webClient;
-        try {
-            authorizationUrl = this.computeAuthorizationEndpoint().get();
-        } catch (ExecutionException | InterruptedException e) {
-            logger.error("OAuth endpoint retrieval failed", e.getMessage());
-            // how to handle exceptions properly?
-        }
     }
 
     @Override
@@ -121,8 +120,12 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+    public Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider) {
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
+
+        if (StringUtils.isBlank(token)) {
+            return this.getOAuthRedirectResponse();
+        }
 
         Future<TokenReviewStatus> fStatus = performTokenReview(token);
         try {
@@ -131,7 +134,9 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 return CompletableFuture.failedFuture(
                         new AuthorizationErrorException("Authentication Failed"));
             }
-            return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
+            return CompletableFuture.completedFuture(
+                    new IntermediateResponse<UserInfo>()
+                            .body(new UserInfo(status.getUser().getUsername())));
         } catch (ExecutionException ee) {
             return CompletableFuture.failedFuture(ee.getCause());
         } catch (Exception e) {
@@ -144,8 +149,9 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         String token = tokenProvider.get();
         if (StringUtils.isBlank(token)) {
-            return CompletableFuture.failedFuture(new EmptyOpenShiftTokenException());
+            return CompletableFuture.completedFuture(false);
         }
+
         if (resourceActions.isEmpty()) {
             return reviewToken(token);
         }
@@ -246,7 +252,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         String authorization = headerProvider.get();
         String token = getTokenFromHttpHeader(authorization);
         if (token == null) {
-            return CompletableFuture.failedFuture(new EmptyOpenShiftTokenException());
+            // allow empty tokens. auth post handler will trigger redirect response
+            return CompletableFuture.completedFuture(true);
         }
         return validateToken(() -> token, resourceActions);
     }
@@ -313,14 +320,22 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    public static String getAuthorizationEndpoint() {
-        return authorizationUrl;
+    private Future<IntermediateResponse<UserInfo>> getOAuthRedirectResponse() {
+        try {
+            return CompletableFuture.completedFuture(
+                    new IntermediateResponse<UserInfo>()
+                            .addHeader("X-Location", this.computeAuthorizationEndpoint().get())
+                            .addHeader("access-control-expose-headers", "Location")
+                            .statusCode(302));
+        } catch (ExecutionException | InterruptedException e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e.getCause());
+        }
     }
 
     private Future<String> computeAuthorizationEndpoint()
             throws ExecutionException, InterruptedException {
         CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
-        CompletableFuture<String> authUrl = new CompletableFuture<>();
 
         webClient
                 .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)

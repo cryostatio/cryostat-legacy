@@ -54,6 +54,7 @@ import java.util.regex.Pattern;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -82,7 +83,7 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+    public Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider) {
         if (!configLoaded) {
             this.loadConfig();
         }
@@ -95,7 +96,8 @@ class BasicAuthManager extends AbstractAuthManager {
         if (!users.containsKey(user)) {
             return CompletableFuture.failedFuture(new UnknownUserException(user));
         }
-        return CompletableFuture.completedFuture(new UserInfo(user));
+        return CompletableFuture.completedFuture(
+                new IntermediateResponse<UserInfo>().body(new UserInfo(user)));
     }
 
     @Override

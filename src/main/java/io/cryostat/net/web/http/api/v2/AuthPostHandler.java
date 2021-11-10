@@ -96,14 +96,8 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
     @Override
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
-        return new IntermediateResponse<UserInfo>()
-                .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString())
-                .body(
-                        auth.getUserInfo(
-                                        () ->
-                                                requestParams
-                                                        .getHeaders()
-                                                        .get(HttpHeaders.AUTHORIZATION))
-                                .get());
+        return auth.getUserInfo(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
+                .get()
+                .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString());
     }
 }

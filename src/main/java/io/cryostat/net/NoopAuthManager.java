@@ -44,6 +44,7 @@ import java.util.function.Supplier;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
@@ -57,8 +58,9 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
+    public Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider) {
+        return CompletableFuture.completedFuture(
+                new IntermediateResponse<UserInfo>().body(new UserInfo("")));
     }
 
     @Override

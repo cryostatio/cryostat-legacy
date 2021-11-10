@@ -52,7 +52,6 @@ import io.cryostat.core.net.Credentials;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.AuthorizationErrorException;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.OpenShiftAuthManager;
 import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
@@ -111,14 +110,6 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                             || cause instanceof AuthorizationErrorException
                             || cause instanceof KubernetesClientException) {
                         throw new ApiException(401, "HTTP Authorization Failure", ee);
-                    } else if (cause instanceof EmptyOpenShiftTokenException) {
-                        ctx.response()
-                                .putHeader(
-                                        "X-Location",
-                                        OpenShiftAuthManager.getAuthorizationEndpoint())
-                                .putHeader("access-control-expose-headers", "Location")
-                                .setStatusCode(302)
-                                .end();
                     } else {
                         throw new ApiException(500, ee);
                     }

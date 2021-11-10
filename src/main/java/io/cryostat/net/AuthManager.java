@@ -43,11 +43,12 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 
 public interface AuthManager {
     AuthenticationScheme getScheme();
 
-    Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
+    Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider);
 
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
