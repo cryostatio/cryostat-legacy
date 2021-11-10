@@ -66,11 +66,11 @@ class TargetTemplateGetHandler extends AbstractJwtConsumingHandler {
     @Inject
     TargetTemplateGetHandler(
             AuthManager auth,
-            AssetJwtHelper jwtFactory,
+            AssetJwtHelper jwt,
             Lazy<WebServer> webServer,
             TargetConnectionManager targetConnectionManager,
             Logger logger) {
-        super(auth, jwtFactory, webServer, logger);
+        super(auth, jwt, webServer, logger);
         this.targetConnectionManager = targetConnectionManager;
     }
 
