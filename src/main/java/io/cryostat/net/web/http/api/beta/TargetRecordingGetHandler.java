@@ -101,6 +101,16 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
     }
 
     @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public boolean isOrdered() {
+        return true;
+    }
+
+    @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         if (recordingName != null && recordingName.endsWith(".jfr")) {
@@ -125,7 +135,7 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
                                                                 .openStream(desc, false);
                                                     } catch (Exception e) {
                                                         logger.error(e);
-                                                        return null;
+                                                        throw new ApiException(500, e);
                                                     }
                                                 })
                                         .filter(Objects::nonNull)
