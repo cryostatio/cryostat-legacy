@@ -123,7 +123,12 @@ class AuthTokenPostHandler extends AbstractV2RequestHandler<Map<String, String>>
                             "\"%s\" form attribute is required", AssetJwtHelper.RESOURCE_CLAIM));
         }
         String resourcePrefix = webServer.get().getHostUrl().toString();
-        URI resourceUri = new URI(resource);
+        URI resourceUri;
+        try {
+            resourceUri = new URI(resource);
+        } catch (URISyntaxException use) {
+            throw new ApiException(400, use);
+        }
         if (resourceUri.isAbsolute() && !resource.startsWith(resourcePrefix)) {
             throw new ApiException(
                     400, String.format("\"%s\" URL is invalid", AssetJwtHelper.RESOURCE_CLAIM));
