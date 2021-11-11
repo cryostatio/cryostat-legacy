@@ -44,6 +44,7 @@ import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.time.Instant;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.Set;
 
 import io.cryostat.core.log.Logger;
@@ -78,6 +79,7 @@ public class AssetJwtHelper {
     private final JWSVerifier verifier;
     private final JWEEncrypter encrypter;
     private final JWEDecrypter decrypter;
+    private final boolean subjectRequired;
 
     AssetJwtHelper(
             Lazy<WebServer> webServer,
@@ -85,12 +87,14 @@ public class AssetJwtHelper {
             JWSVerifier verifier,
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
+            boolean subjectRequired,
             Logger logger) {
         this.webServer = webServer;
         this.signer = signer;
         this.verifier = verifier;
         this.encrypter = encrypter;
         this.decrypter = decrypter;
+        this.subjectRequired = subjectRequired;
     }
 
     public String createAssetDownloadJwt(String subject, String resource, String jmxauth)
@@ -139,7 +143,10 @@ public class AssetJwtHelper {
         JWTClaimsSet exactMatchClaims =
                 new JWTClaimsSet.Builder().issuer(cryostatUri).audience(cryostatUri).build();
         Set<String> requiredClaimNames =
-                Set.of("exp", "nbf", "iat", "iss", "sub", "aud", RESOURCE_CLAIM);
+                new HashSet<>(Set.of("exp", "nbf", "iat", "iss", "aud", RESOURCE_CLAIM));
+        if (subjectRequired) {
+            requiredClaimNames.add("sub");
+        }
         new DefaultJWTClaimsVerifier<>(cryostatUri, exactMatchClaims, requiredClaimNames)
                 .verify(jwt.getJWTClaimsSet(), null);
 

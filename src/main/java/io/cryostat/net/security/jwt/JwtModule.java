@@ -43,6 +43,8 @@ import javax.inject.Singleton;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.AuthenticationScheme;
 import io.cryostat.net.web.WebServer;
 
 import com.nimbusds.jose.JWEDecrypter;
@@ -68,9 +70,17 @@ public abstract class JwtModule {
             JWSVerifier verifier,
             JWEEncrypter encrypter,
             JWEDecrypter decrypter,
+            AuthManager auth,
             Logger logger) {
         try {
-            return new AssetJwtHelper(webServer, signer, verifier, encrypter, decrypter, logger);
+            return new AssetJwtHelper(
+                    webServer,
+                    signer,
+                    verifier,
+                    encrypter,
+                    decrypter,
+                    !AuthenticationScheme.NONE.equals(auth.getScheme()),
+                    logger);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
