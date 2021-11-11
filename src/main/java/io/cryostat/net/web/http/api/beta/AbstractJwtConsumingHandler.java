@@ -127,7 +127,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         try {
             parsed = jwt.parseAssetDownloadJwt(token);
         } catch (BadJWTException e) {
-            throw new ApiException(401);
+            throw new ApiException(401, e);
         }
 
         URL hostUrl = webServer.get().getHostUrl();
@@ -143,16 +143,16 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
             throw new ApiException(401, use);
         }
         if (!Objects.equals(fullRequestUri, resourceClaim)) {
-            throw new ApiException(401);
+            throw new ApiException(401, "Token resource claim does not match requested resource");
         }
 
         try {
             String subject = parsed.getJWTClaimsSet().getSubject();
             if (!auth.validateHttpHeader(() -> subject, resourceActions()).get()) {
-                throw new ApiException(401);
+                throw new ApiException(401, "Token subject has insufficient permissions");
             }
         } catch (ExecutionException | InterruptedException e) {
-            throw new ApiException(401);
+            throw new ApiException(401, "Token subject permissions could not be determined");
         }
 
         return parsed;
