@@ -38,6 +38,8 @@
 package io.cryostat.net;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Base64;
@@ -77,6 +79,7 @@ import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
@@ -91,17 +94,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
     private final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
     private final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
-    private final String OAUTH_REQ_PARAMS =
-            String.format(
-                    "?%s=%s&%s=%s&%s=%s&%s=%s",
-                    "client_id",
-                    "system%3Aserviceaccount%3Acryostat-operator-system%3Acryostat-sample",
-                    "response_type",
-                    "token",
-                    "response_mode",
-                    "fragment",
-                    "scope",
-                    "user%3Acheck-access+role%3Acryostat-oauth%3Acryostat-operator-system");
 
     OpenShiftAuthManager(
             Logger logger,
@@ -335,22 +327,47 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private Future<String> computeAuthorizationEndpoint()
             throws ExecutionException, InterruptedException {
+
+        if (authUrl.isDone()) {
+            return authUrl;
+        }
+
         CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
+        try {
+            String clientId =
+                            String.format(
+                                    "system:serviceaccount:%s:cryostat-sample",
+                                    this.getNamespace());
+            String scope =
+                            String.format(
+                                    "user:check-access role:cryostat-oauth:%s",
+                                    this.getNamespace());
 
-        webClient
-                .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
-                .putHeader("Accept", "application/json")
-                .send(
-                        ar -> {
-                            if (ar.failed()) {
-                                oauthMetadata.completeExceptionally(ar.cause());
-                                return;
-                            }
+            webClient
+                    .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
+                    .putHeader("Accept", "application/json")
+                    .send(
+                            ar -> {
+                                if (ar.failed()) {
+                                    oauthMetadata.completeExceptionally(ar.cause());
+                                    return;
+                                }
 
-                            oauthMetadata.complete(ar.result().bodyAsJsonObject());
-                        });
+                                oauthMetadata.complete(ar.result().bodyAsJsonObject());
+                            });
 
-        authUrl.complete(oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY) + OAUTH_REQ_PARAMS);
+            String authorizeEndpoint = oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY);
+
+            URIBuilder builder = new URIBuilder(authorizeEndpoint);
+            builder.addParameter("client_id", clientId);
+            builder.addParameter("response_type", "token");
+            builder.addParameter("response_mode", "fragment");
+            builder.addParameter("scope", scope);
+
+            authUrl.complete(builder.build().toString());
+        } catch (URISyntaxException | IOException e) {
+            authUrl.completeExceptionally(e);
+        }
         return authUrl;
     }
 
