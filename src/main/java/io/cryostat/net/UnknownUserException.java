@@ -35,71 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
-
-import javax.inject.Inject;
-import javax.inject.Named;
-
-import io.cryostat.MainModule;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.api.ApiVersion;
-
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
-
-class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
-
-    private final BodyHandler bodyHandler;
-
-    @Inject
-    RecordingsPostBodyHandler(
-            AuthManager auth,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            FileSystem fs) {
-        super(auth);
-        Path fileUploads = recordingsPath.resolve("file-uploads");
-        this.bodyHandler = BodyHandler.create(fileUploads.toAbsolutePath().toString());
-        try {
-            // FIXME put this somewhere more appropriate
-            if (!fs.isDirectory(fileUploads)) {
-                Files.createDirectories(fileUploads);
-            }
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-    }
-
-    @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.V1;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.POST;
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
-    }
-
-    @Override
-    public String path() {
-        return basePath() + RecordingsPostHandler.PATH;
-    }
-
-    @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        this.bodyHandler.handle(ctx);
+public class UnknownUserException extends Exception {
+    public UnknownUserException(String username) {
+        super(String.format("User information requested for unknown user: \"%s\"", username));
     }
 }

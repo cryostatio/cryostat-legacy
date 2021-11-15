@@ -2,6 +2,7 @@
 
 * [V1](#V1-API)
 * [V2](#V2-API)
+* [Beta](#Beta-API)
 
 ## V1 API
 
@@ -69,7 +70,9 @@
 
     ###### response
     `200` - No body. Getting this response means that the header is valid
-    and that the user has been successfully authenticated.
+    and that the user has been successfully authenticated. There will be an
+    `X-WWW-Authenticate: $SCHEME` header that indicates
+    the authentication scheme that is used.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -1239,6 +1242,8 @@ The handler-specific descriptions below describe how each handler populates the
 
 | What you want to do                                                       | Which handler you should use                                                    |
 | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Miscellaneous**                                                         |                                                                                 |
+| Check user authentication                                                 | [`AuthPostHandler`](#AuthPostHandler-1)                                         |
 | **Recordings in Target JVMs**                                             |                                                                                 |
 | List or search event types that can be produced by a target JVM           | [`TargetEventsGetHandler`](#TargetEventsGetHandler)                             |
 | Get a list of recording options for a target JVM                          | [`TargetRecordingOptionsListGetHandler`](#TargetRecordingOptionsListGetHandler) |
@@ -1253,6 +1258,44 @@ The handler-specific descriptions below describe how each handler populates the
 | Delete stored credentials for a target                                    | [`TargetCredentialsDeleteHandler`](#TargetCredentialsDeleteHandler)             |
 | **Security**                                                              |                                                                                 |
 | Upload an SSL Certificate                                                 | [`CertificatePostHandler`](#CertificatePostHandler)                             |
+
+
+### Miscellaneous
+
+* #### `AuthPostHandler`
+
+    ##### synopsis
+    Check user authentication and if successful retrieve basic user information.
+
+    ##### request
+    `POST /api/v2/auth`
+
+    The `Authorization` header should be included. The value of the
+    `Authorization` header will be used to perform a platform-specific
+    authentication check for the user specified by the header. If using `Basic`
+    authentication, the returned user information will contain a username
+    identical to the user portion of the provided credentials. If using `Bearer`
+    authentication, the returned user information will container the username of
+    the user who owns the supplied Bearer token.
+
+    ##### response
+    `200` - The result is a JSON object containing user information. The format
+    of the user information is `{"username": "$user"}`. There will be an
+    `X-WWW-Authenticate: $SCHEME` header that indicates the authentication
+    scheme that is used.
+
+    `401` - User authentication failed. The reason is an error message. There
+    will be an `X-WWW-Authenticate: $SCHEME` header that indicates the
+    authentication scheme that is used.
+
+    `500` - There was an unexpected error. The reason is an error message.
+
+    ##### example
+    ```
+    $ curl -H "Authorization: Basic $(echo -n user:pass | base64)" -X POST localhost:8181/api/v2/auth
+    {"meta":{"type":"application/json","status":"OK"},"data":{"result":{"username":"user"}}}
+    ```
+
 
 ### Recordings in Target JVMs
 
@@ -1654,3 +1697,29 @@ The handler-specific descriptions below describe how each handler populates the
     $ curl -F cert=@vertx-fib-demo.cer localhost:8181/api/v2/certificates
     {"meta":{"type":"text/plain","status":"OK"},"data":{"result":"/truststore/vertx-fib-demo.cer"}}
     ```
+
+## Beta API
+
+### Quick Reference
+
+| What you want to do                                                       | Which handler you should use                                                    |
+| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------|
+| **Miscellaneous**                                                         |                                                                                 |
+| View targets in overall deployment environment                            | [`DiscoveryGetHandler`](#DiscoveryGetHandler)                                   |
+
+### Miscellaneous
+
+* #### `DiscoveryGetHandler`
+
+    ###### synopsis
+    Queries the platform client(s) for the discoverable targets and constructs a
+    hierarchical tree view of the full deployment environment with targets
+    belonging to ex. Pods, belonging to Deployments, etc.
+
+    ###### request
+    `GET /api/beta/discovery`
+
+    ###### response
+    `200` - The result is the path of the saved file in the server's storage.
+
+    `401` - The user does not have sufficient permissions.

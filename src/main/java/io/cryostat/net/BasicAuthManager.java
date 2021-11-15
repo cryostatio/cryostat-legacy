@@ -57,6 +57,7 @@ import io.cryostat.net.security.ResourceAction;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 
 class BasicAuthManager extends AbstractAuthManager {
 
@@ -81,19 +82,35 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        if (!configLoaded) {
+            this.loadConfig();
+        }
+        String credentials = getCredentialsFromHeader(httpHeaderProvider.get());
+        Pair<String, String> splitCredentials = splitCredentials(credentials);
+        if (splitCredentials == null) {
+            return CompletableFuture.failedFuture(new UnknownUserException(null));
+        }
+        String user = splitCredentials.getLeft();
+        if (!users.containsKey(user)) {
+            return CompletableFuture.failedFuture(new UnknownUserException(user));
+        }
+        return CompletableFuture.completedFuture(new UserInfo(user));
+    }
+
+    @Override
     public Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
         if (!configLoaded) {
             this.loadConfig();
         }
         String credentials = tokenProvider.get();
-        Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
-        Matcher matcher = credentialsPattern.matcher(credentials);
-        if (!matcher.matches()) {
+        Pair<String, String> splitCredentials = splitCredentials(credentials);
+        if (splitCredentials == null) {
             return CompletableFuture.completedFuture(false);
         }
-        String user = matcher.group(1);
-        String pass = matcher.group(2);
+        String user = splitCredentials.getLeft();
+        String pass = splitCredentials.getRight();
         String passHashHex = DigestUtils.sha256Hex(pass);
         boolean granted = Objects.equals(users.getProperty(user), passHashHex);
         // FIXME actually implement this
@@ -110,23 +127,11 @@ class BasicAuthManager extends AbstractAuthManager {
     @Override
     public Future<Boolean> validateHttpHeader(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        String authorization = headerProvider.get();
-        if (StringUtils.isBlank(authorization)) {
+        String decoded = getCredentialsFromHeader(headerProvider.get());
+        if (decoded == null) {
             return CompletableFuture.completedFuture(false);
         }
-        Pattern basicPattern = Pattern.compile("Basic[\\s]+(.*)");
-        Matcher matcher = basicPattern.matcher(authorization);
-        if (!matcher.matches()) {
-            return CompletableFuture.completedFuture(false);
-        }
-        String b64 = matcher.group(1);
-        try {
-            String decoded =
-                    new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
-            return validateToken(() -> decoded, resourceActions);
-        } catch (IllegalArgumentException e) {
-            return CompletableFuture.completedFuture(false);
-        }
+        return validateToken(() -> decoded, resourceActions);
     }
 
     @Override
@@ -150,6 +155,34 @@ class BasicAuthManager extends AbstractAuthManager {
             return validateToken(() -> decoded, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
+        }
+    }
+
+    private Pair<String, String> splitCredentials(String credentials) {
+        Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
+        Matcher matcher = credentialsPattern.matcher(credentials);
+        if (!matcher.matches()) {
+            return null;
+        }
+        String user = matcher.group(1);
+        String pass = matcher.group(2);
+        return Pair.of(user, pass);
+    }
+
+    private String getCredentialsFromHeader(String rawHttpHeader) {
+        if (StringUtils.isBlank(rawHttpHeader)) {
+            return null;
+        }
+        Pattern basicPattern = Pattern.compile("Basic[\\s]+(.*)");
+        Matcher matcher = basicPattern.matcher(rawHttpHeader);
+        if (!matcher.matches()) {
+            return null;
+        }
+        String b64 = matcher.group(1);
+        try {
+            return new String(Base64.getUrlDecoder().decode(b64), StandardCharsets.UTF_8).trim();
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 

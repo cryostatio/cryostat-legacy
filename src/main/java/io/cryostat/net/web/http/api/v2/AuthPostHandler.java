@@ -35,79 +35,75 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.web.http.api.v2;
 
-import java.nio.file.Path;
-import java.util.EnumSet;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingArchiveHelper;
-import io.cryostat.recordings.RecordingNotFoundException;
 
+import com.google.gson.Gson;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
 
-class RecordingGetHandler extends AbstractAuthenticatedRequestHandler {
-
-    private final RecordingArchiveHelper recordingArchiveHelper;
+class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
     @Inject
-    RecordingGetHandler(AuthManager auth, RecordingArchiveHelper recordingArchiveHelper) {
-        super(auth);
-        this.recordingArchiveHelper = recordingArchiveHelper;
+    protected AuthPostHandler(AuthManager auth, Gson gson) {
+        super(auth, gson);
     }
 
     @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.V1;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return EnumSet.of(ResourceAction.READ_RECORDING);
-    }
-
-    @Override
-    public String path() {
-        return basePath() + "recordings/:recordingName";
-    }
-
-    @Override
-    public boolean isAsync() {
+    public boolean requiresAuthentication() {
         return true;
     }
 
     @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        String recordingName = ctx.pathParam("recordingName");
-        try {
-            Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
-            ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-            ctx.response()
-                    .putHeader(
-                            HttpHeaders.CONTENT_LENGTH,
-                            Long.toString(archivedRecording.toFile().length()));
-            ctx.response().sendFile(archivedRecording.toString());
-        } catch (ExecutionException e) {
-            if (e.getCause() instanceof RecordingNotFoundException) {
-                throw new HttpStatusException(404, e.getMessage(), e);
-            }
-            throw e;
-        }
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_1;
+    }
+
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
+
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public String path() {
+        return basePath() + "auth";
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return false;
+    }
+
+    @Override
+    public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
+        return new IntermediateResponse<UserInfo>()
+                .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString())
+                .body(
+                        auth.getUserInfo(
+                                        () ->
+                                                requestParams
+                                                        .getHeaders()
+                                                        .get(HttpHeaders.AUTHORIZATION))
+                                .get());
     }
 }

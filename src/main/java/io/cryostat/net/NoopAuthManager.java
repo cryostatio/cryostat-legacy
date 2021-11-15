@@ -53,8 +53,12 @@ public class NoopAuthManager extends AbstractAuthManager {
 
     @Override
     public AuthenticationScheme getScheme() {
-        // accepts everything and anything, so this is really meaningless
-        return AuthenticationScheme.BASIC;
+        return AuthenticationScheme.NONE;
+    }
+
+    @Override
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        return CompletableFuture.completedFuture(new UserInfo(""));
     }
 
     @Override

@@ -48,8 +48,20 @@ if [ -z "$KEYSTORE_PATH" ] && [ -f "$(dirname $0)/certs/cryostat-keystore.p12" ]
     KEYSTORE_PASS="$(cat $(dirname $0)/certs/keystore.pass)"
 fi
 
+if [ ! -d "$(dirname $0)/archive" ]; then
+    mkdir "$(dirname $0)/archive"
+fi
+
 if [ ! -d "$(dirname $0)/conf" ]; then
     mkdir "$(dirname $0)/conf"
+fi
+
+if [ ! -d "$(dirname $0)/conf/credentials" ]; then
+    mkdir "$(dirname $0)/conf/credentials"
+fi
+
+if [ ! -d "$(dirname $0)/conf/rules" ]; then
+    mkdir "$(dirname $0)/conf/rules"
 fi
 
 if [ ! -d "$(dirname $0)/truststore" ]; then
@@ -75,8 +87,13 @@ podman run \
     --mount type=tmpfs,target=/opt/cryostat.d/probes.d \
     --mount type=tmpfs,target=/opt/cryostat.d/conf.d \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
+    --memory 512M \
+    --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/templates",destination=/opt/cryostat.d/templates.d,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     -e CRYOSTAT_PLATFORM=$CRYOSTAT_PLATFORM \
     -e CRYOSTAT_DISABLE_SSL=$CRYOSTAT_DISABLE_SSL \
     -e CRYOSTAT_DISABLE_JMX_AUTH=$CRYOSTAT_DISABLE_JMX_AUTH \

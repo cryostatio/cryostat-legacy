@@ -35,56 +35,10 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.generic;
+package io.cryostat.net;
 
-import java.util.Set;
-
-import javax.inject.Inject;
-
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.ApiVersion;
-
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-
-public class TimeoutHandler implements RequestHandler {
-
-    public static final long TIMEOUT_MS = 15_000L;
-    final io.vertx.ext.web.handler.TimeoutHandler handler;
-
-    @Inject
-    TimeoutHandler() {
-        this.handler = io.vertx.ext.web.handler.TimeoutHandler.create(TIMEOUT_MS);
-    }
-
-    @Override
-    public int getPriority() {
-        return 0;
-    }
-
-    @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.GENERIC;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.OTHER;
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
-    }
-
-    @Override
-    public String path() {
-        return ALL_PATHS;
-    }
-
-    @Override
-    public void handle(RoutingContext ctx) {
-        handler.handle(ctx);
+public class AuthorizationErrorException extends Exception {
+    AuthorizationErrorException(String msg) {
+        super(msg);
     }
 }

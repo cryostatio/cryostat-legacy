@@ -44,7 +44,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
-import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -80,8 +80,6 @@ import org.apache.commons.lang3.builder.HashCodeBuilder;
 public class SubprocessReportGenerator {
 
     static final String SUBPROCESS_MAX_HEAP_ENV = "CRYOSTAT_REPORT_GENERATION_MAX_HEAP";
-    static String ENV_USERNAME = "TARGET_USERNAME";
-    static String ENV_PASSWORD = "TARGET_PASSWORD";
 
     private final Environment env;
     private final FileSystem fs;
@@ -109,7 +107,7 @@ public class SubprocessReportGenerator {
         this.logger = logger;
     }
 
-    CompletableFuture<Path> exec(Path recording, Path saveFile, Duration timeout)
+    CompletableFuture<Path> exec(Path recording, Path saveFile)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -135,15 +133,17 @@ public class SubprocessReportGenerator {
                         // See https://github.com/cryostatio/cryostat/issues/287
                         .jvmArgs(
                                 createJvmArgs(
-                                        Integer.parseInt(
-                                                env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "200"))))
+                                        Integer.parseInt(env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "0"))))
                         .processArgs(createProcessArgs(recording, saveFile))
                         .exec();
         return CompletableFuture.supplyAsync(
                 () -> {
                     try {
-                        proc.waitFor(timeout.toMillis(), TimeUnit.MILLISECONDS);
-                        ExitStatus status = ExitStatus.byExitCode(proc.exitValue());
+                        proc.waitFor(5, TimeUnit.MINUTES); // FIXME extract to constant or env var
+                        ExitStatus status =
+                                proc.isAlive()
+                                        ? ExitStatus.TIMED_OUT
+                                        : ExitStatus.byExitCode(proc.exitValue());
                         switch (status) {
                             case OK:
                                 return saveFile;
@@ -158,7 +158,9 @@ public class SubprocessReportGenerator {
                         proc.destroyForcibly();
                         throw new CompletionException(
                                 new ReportGenerationException(ExitStatus.TERMINATED));
-                    } catch (ReportGenerationException | RecordingNotFoundException e) {
+                    } catch (ReportGenerationException
+                            | RecordingNotFoundException
+                            | IllegalThreadStateException e) {
                         logger.error(e);
                         proc.destroyForcibly();
                         throw new CompletionException(e);
@@ -168,13 +170,13 @@ public class SubprocessReportGenerator {
                 });
     }
 
-    Future<Path> exec(RecordingDescriptor recordingDescriptor, Duration timeout) throws Exception {
+    Future<Path> exec(RecordingDescriptor recordingDescriptor) throws Exception {
         Path recording =
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,
                         recordingDescriptor.connectionDescriptor);
         Path saveFile = tempFileProvider.get();
-        CompletableFuture<Path> cf = exec(recording, saveFile, timeout);
+        CompletableFuture<Path> cf = exec(recording, saveFile);
         return cf.whenComplete(
                 (p, t) -> {
                     try {
@@ -205,18 +207,18 @@ public class SubprocessReportGenerator {
     }
 
     private List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
-        // These JVM flags must be kept in-sync with the flags set on the parent process in
-        // entrypoint.sh in order to keep the auth and certs setup consistent
-        return List.of(
-                String.format("-Xmx%dM", maxHeapMegabytes),
-                "-XX:+ExitOnOutOfMemoryError",
-                // use EpsilonGC since we're a one-shot process and report generation doesn't
-                // allocate that much memory beyond the initial recording load - no point in
-                // over-complicating memory allocation. Preferable to just complete the request
-                // quickly, or if we're running up against the memory limit, fail early
-                "-XX:+UnlockExperimentalVMOptions",
-                "-XX:+UseEpsilonGC",
-                "-XX:+AlwaysPreTouch");
+        List<String> args = new ArrayList<>();
+        if (maxHeapMegabytes > 0) {
+            args.add(String.format("-Xms%dM", maxHeapMegabytes));
+            args.add(String.format("-Xmx%dM", maxHeapMegabytes));
+        }
+        args.add("-XX:+ExitOnOutOfMemoryError");
+        // use Serial GC since we have a small heap and likely little garbage to clean,
+        // and low GC overhead is more important here than minimizing pause time since the
+        // result will end up cached for subsequent user accesses so long as the process
+        // succeeds in the end
+        args.add("-XX:+UseSerialGC");
+        return args;
     }
 
     private List<String> createProcessArgs(Path recording, Path saveFile) {
@@ -383,7 +385,7 @@ public class SubprocessReportGenerator {
         IO_EXCEPTION(5, "An unspecified IO exception occurred while writing the report file."),
         OTHER(6, "An unspecified unexpected exception occurred."),
         TERMINATED(-1, "The subprocess timed out and was terminated."),
-        ;
+        TIMED_OUT(-2, "The subprocess did not complete its work within the allotted time.");
 
         final int code;
         final String message;

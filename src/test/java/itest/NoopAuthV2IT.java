@@ -35,71 +35,50 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package itest;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Set;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
-import javax.inject.Inject;
-import javax.inject.Named;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
+import itest.bases.StandardSelfTest;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 
-import io.cryostat.MainModule;
-import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.AuthManager;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
-import io.cryostat.net.web.http.api.ApiVersion;
+public class NoopAuthV2IT extends StandardSelfTest {
 
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.BodyHandler;
+    HttpRequest<Buffer> req;
 
-class RecordingsPostBodyHandler extends AbstractAuthenticatedRequestHandler {
-
-    private final BodyHandler bodyHandler;
-
-    @Inject
-    RecordingsPostBodyHandler(
-            AuthManager auth,
-            @Named(MainModule.RECORDINGS_PATH) Path recordingsPath,
-            FileSystem fs) {
-        super(auth);
-        Path fileUploads = recordingsPath.resolve("file-uploads");
-        this.bodyHandler = BodyHandler.create(fileUploads.toAbsolutePath().toString());
-        try {
-            // FIXME put this somewhere more appropriate
-            if (!fs.isDirectory(fileUploads)) {
-                Files.createDirectories(fileUploads);
-            }
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
+    @BeforeEach
+    void createRequest() {
+        req = webClient.post("/api/v2.1/auth");
     }
 
-    @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.V1;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.POST;
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
-    }
-
-    @Override
-    public String path() {
-        return basePath() + RecordingsPostHandler.PATH;
-    }
-
-    @Override
-    public void handleAuthenticated(RoutingContext ctx) throws Exception {
-        this.bodyHandler.handle(ctx);
+    @Test
+    public void shouldRespond200() throws Exception {
+        CompletableFuture<JsonObject> future = new CompletableFuture<>();
+        req.send(
+                ar -> {
+                    if (ar.succeeded()) {
+                        future.complete(ar.result().bodyAsJsonObject());
+                    } else {
+                        future.completeExceptionally(ar.cause());
+                    }
+                });
+        JsonObject expected =
+                new JsonObject(
+                        Map.of(
+                                "meta",
+                                        Map.of(
+                                                "status", "OK",
+                                                "type", "application/json"),
+                                "data", Map.of("result", Map.of("username", ""))));
+        MatcherAssert.assertThat(
+                future.get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS), Matchers.equalTo(expected));
     }
 }

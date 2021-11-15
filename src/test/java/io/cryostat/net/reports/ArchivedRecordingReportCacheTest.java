@@ -38,7 +38,6 @@
 package io.cryostat.net.reports;
 
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -122,9 +121,7 @@ class ArchivedRecordingReportCacheTest {
         Mockito.when(pathFuture.get()).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(Path.class),
-                                Mockito.any(Path.class),
-                                Mockito.any(Duration.class)))
+                                Mockito.any(Path.class), Mockito.any(Path.class)))
                 .thenReturn(pathFuture);
 
         Future<Path> res = cache.get(recordingName);
@@ -167,9 +164,7 @@ class ArchivedRecordingReportCacheTest {
 
         Mockito.when(
                         subprocessReportGenerator.exec(
-                                Mockito.any(Path.class),
-                                Mockito.any(Path.class),
-                                Mockito.any(Duration.class)))
+                                Mockito.any(Path.class), Mockito.any(Path.class)))
                 .thenThrow(
                         new CompletionException(
                                 new SubprocessReportGenerator.ReportGenerationException(

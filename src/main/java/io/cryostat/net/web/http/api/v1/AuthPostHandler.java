@@ -43,6 +43,7 @@ import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 
@@ -86,6 +87,7 @@ class AuthPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         ctx.response().setStatusCode(200);
+        ctx.response().putHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString());
         ctx.response().end();
     }
 }
