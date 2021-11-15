@@ -49,7 +49,6 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -117,7 +116,9 @@ public class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
         this.connectionManager = connectionManager;
         this.env = env;
         this.fs = fs;
-        System.out.println("Constructed TargetProbePostHandler: " + path());
+        if (probeTemplateService == null) {
+            throw new RuntimeException("Construction of probeTemplateService failed");
+        }
     }
 
     @Override

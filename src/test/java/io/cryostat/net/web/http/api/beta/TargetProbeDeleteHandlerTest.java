@@ -42,6 +42,11 @@ import static org.mockito.Mockito.lenient;
 
 import java.util.Map;
 
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+
+import org.openjdk.jmc.rjmx.IConnectionHandle;
+
 import io.cryostat.MainModule;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
@@ -56,10 +61,10 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import com.google.gson.Gson;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+
+import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -72,17 +77,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.rjmx.IConnectionHandle;
-
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
 
 @ExtendWith(MockitoExtension.class)
 public class TargetProbeDeleteHandlerTest {
 
     TargetProbeDeleteHandler handler;
     @Mock AuthManager auth;
-    @Mock LocalProbeTemplateService templateService;
     @Mock FileSystem fs;
     @Mock Logger logger;
     @Mock NotificationFactory notificationFactory;
@@ -110,7 +110,6 @@ public class TargetProbeDeleteHandlerTest {
                 new TargetProbeDeleteHandler(
                         logger,
                         notificationFactory,
-                        templateService,
                         fs,
                         auth,
                         targetConnectionManager,
@@ -133,8 +132,7 @@ public class TargetProbeDeleteHandlerTest {
         @Test
         void shouldHaveExpectedPath() {
             MatcherAssert.assertThat(
-                    handler.path(),
-                    Matchers.equalTo("/api/v2/targets/:targetId/probes"));
+                    handler.path(), Matchers.equalTo("/api/v2/targets/:targetId/probes"));
         }
 
         @Test
@@ -159,7 +157,7 @@ public class TargetProbeDeleteHandlerTest {
 
         @Mock RequestParameters requestParams;
         private static final String AGENT_OBJECT_NAME =
-            "org.openjdk.jmc.jfr.agent:type=AgentController";
+                "org.openjdk.jmc.jfr.agent:type=AgentController";
         private static final String DEFINE_EVENT_PROBES = "defineEventProbes";
 
         @Test
@@ -170,17 +168,22 @@ public class TargetProbeDeleteHandlerTest {
             IConnectionHandle handle = Mockito.mock(IConnectionHandle.class);
             MBeanServerConnection mbsc = Mockito.mock(MBeanServerConnection.class);
             Mockito.when(
-                    targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                    arg0 ->
-                        ((TargetConnectionManager.ConnectedTask<Object>)
-                            arg0.getArgument(1))
-                            .execute(connection));
+                            targetConnectionManager.executeConnectedTask(
+                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                    .thenAnswer(
+                            arg0 ->
+                                    ((TargetConnectionManager.ConnectedTask<Object>)
+                                                    arg0.getArgument(1))
+                                            .execute(connection));
             Mockito.when(connection.getHandle()).thenReturn(handle);
             Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
-            Mockito.when(mbsc.invoke(any(ObjectName.class), any(String.class), any(Object[].class)
-                , any(String[].class))).thenReturn(null);
+            Mockito.when(
+                            mbsc.invoke(
+                                    any(ObjectName.class),
+                                    any(String.class),
+                                    any(Object[].class),
+                                    any(String[].class)))
+                    .thenReturn(null);
             IntermediateResponse<Void> response = handler.handle(requestParams);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }

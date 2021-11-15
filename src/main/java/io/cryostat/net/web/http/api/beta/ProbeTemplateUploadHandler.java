@@ -86,6 +86,9 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
         this.logger = logger;
         this.probeTemplateService = probeTemplateService;
         this.fs = fs;
+        if (probeTemplateService == null) {
+            throw new RuntimeException("Construction of probeTemplateService failed");
+        }
     }
 
     @Override
@@ -141,7 +144,6 @@ class ProbeTemplateUploadHandler extends AbstractV2RequestHandler<Void> {
                             .message(Map.of("probeTemplate", u.uploadedFileName()))
                             .build()
                             .send();
-                    logger.info("Adding template to probeTemplateService: " + path.toString());
                     probeTemplateService.addTemplate(is, templateName);
                 } finally {
                     fs.deleteIfExists(path);

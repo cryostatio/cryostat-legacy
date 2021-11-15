@@ -49,7 +49,6 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
-import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -69,7 +68,6 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     private static Logger logger;
     private final NotificationFactory notificationFactory;
-    private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
     private final TargetConnectionManager connectionManager;
     private final Environment env;
@@ -79,7 +77,6 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
     TargetProbeDeleteHandler(
             Logger logger,
             NotificationFactory notificationFactory,
-            LocalProbeTemplateService service,
             FileSystem fs,
             AuthManager auth,
             TargetConnectionManager connectionManager,
@@ -88,7 +85,6 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
         super(auth, gson);
         this.logger = logger;
         this.notificationFactory = notificationFactory;
-        this.probeTemplateService = service;
         this.connectionManager = connectionManager;
         this.env = env;
         this.fs = fs;
@@ -130,22 +126,23 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
         }
         try {
             return connectionManager.executeConnectedTask(
-                getConnectionDescriptorFromParams(requestParams),
-                connection -> {
-                    connection.connect();
-                    AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
-                    // The convention for removing probes in the agent controller mbean is to call
-                    // defineEventProbes with a null argument.
-                    helper.defineEventProbes(null);
-                    notificationFactory
-                        .createBuilder()
-                        .metaCategory(NOTIFICATION_CATEGORY)
-                        .metaType(HttpMimeType.JSON)
-                        .message(Map.of("targetId", targetId))
-                        .build()
-                        .send();
-                    return new IntermediateResponse<Void>().body(null);
-                });
+                    getConnectionDescriptorFromParams(requestParams),
+                    connection -> {
+                        connection.connect();
+                        AgentJMXHelper helper = new AgentJMXHelper(connection.getHandle());
+                        // The convention for removing probes in the agent controller mbean is to
+                        // call
+                        // defineEventProbes with a null argument.
+                        helper.defineEventProbes(null);
+                        notificationFactory
+                                .createBuilder()
+                                .metaCategory(NOTIFICATION_CATEGORY)
+                                .metaType(HttpMimeType.JSON)
+                                .message(Map.of("targetId", targetId))
+                                .build()
+                                .send();
+                        return new IntermediateResponse<Void>().body(null);
+                    });
         } catch (Exception e) {
             throw e;
         }

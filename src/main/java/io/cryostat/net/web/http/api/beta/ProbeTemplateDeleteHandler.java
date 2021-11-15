@@ -82,6 +82,9 @@ public class ProbeTemplateDeleteHandler extends AbstractV2RequestHandler<Void> {
         this.logger = logger;
         this.probeTemplateService = probeTemplateService;
         this.fs = fs;
+        if (probeTemplateService == null) {
+            throw new RuntimeException("Construction of probeTemplateService failed");
+        }
     }
 
     @Override

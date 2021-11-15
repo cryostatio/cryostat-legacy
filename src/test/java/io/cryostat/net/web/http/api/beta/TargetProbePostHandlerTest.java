@@ -42,6 +42,11 @@ import static org.mockito.Mockito.lenient;
 
 import java.util.Map;
 
+import javax.management.MBeanServerConnection;
+import javax.management.ObjectName;
+
+import org.openjdk.jmc.rjmx.IConnectionHandle;
+
 import io.cryostat.MainModule;
 import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
@@ -56,10 +61,10 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import com.google.gson.Gson;
 import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 import io.cryostat.net.web.http.api.v2.RequestParameters;
+
+import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -72,59 +77,46 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.openjdk.jmc.rjmx.IConnectionHandle;
-
-import javax.management.MBeanServerConnection;
-import javax.management.ObjectName;
 
 @ExtendWith(MockitoExtension.class)
 public class TargetProbePostHandlerTest {
 
     TargetProbePostHandler handler;
-    @Mock
-    AuthManager auth;
-    @Mock
-    LocalProbeTemplateService templateService;
-    @Mock
-    FileSystem fs;
-    @Mock
-    Logger logger;
-    @Mock
-    NotificationFactory notificationFactory;
-    @Mock
-    Notification notification;
-    @Mock
-    Notification.Builder notificationBuilder;
-    @Mock
-    TargetConnectionManager targetConnectionManager;
-    @Mock
-    Environment env;
+    @Mock AuthManager auth;
+    @Mock LocalProbeTemplateService templateService;
+    @Mock FileSystem fs;
+    @Mock Logger logger;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
+    @Mock TargetConnectionManager targetConnectionManager;
+    @Mock Environment env;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
         lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
         lenient()
-            .when(notificationBuilder.metaCategory(Mockito.any()))
-            .thenReturn(notificationBuilder);
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
         lenient()
-            .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
-            .thenReturn(notificationBuilder);
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
         lenient()
-            .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
-            .thenReturn(notificationBuilder);
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.message(Mockito.any())).thenReturn(notificationBuilder);
         lenient().when(notificationBuilder.build()).thenReturn(notification);
         this.handler =
-            new TargetProbePostHandler(
-                logger,
-                notificationFactory,
-                templateService,
-                fs,
-                auth,
-                targetConnectionManager,
-                env,
-                gson);
+                new TargetProbePostHandler(
+                        logger,
+                        notificationFactory,
+                        templateService,
+                        fs,
+                        auth,
+                        targetConnectionManager,
+                        env,
+                        gson);
     }
 
     @Nested
@@ -142,14 +134,14 @@ public class TargetProbePostHandlerTest {
         @Test
         void shouldHaveExpectedPath() {
             MatcherAssert.assertThat(
-                handler.path(),
-                Matchers.equalTo("/api/v2/targets/:targetId/probes/:probeTemplate"));
+                    handler.path(),
+                    Matchers.equalTo("/api/v2/targets/:targetId/probes/:probeTemplate"));
         }
 
         @Test
         void shouldHaveExpectedRequiredPermissions() {
             MatcherAssert.assertThat(
-                handler.resourceActions(), Matchers.equalTo(ResourceAction.NONE));
+                    handler.resourceActions(), Matchers.equalTo(ResourceAction.NONE));
         }
 
         @Test
@@ -166,29 +158,34 @@ public class TargetProbePostHandlerTest {
     @Nested
     class Requests {
 
-        @Mock
-        RequestParameters requestParams;
+        @Mock RequestParameters requestParams;
 
         @Test
         public void shouldRespondOK() throws Exception {
-            Mockito.when(requestParams.getPathParams()).thenReturn(Map.of("targetId", "foo", "probeTemplate", "bar"));
+            Mockito.when(requestParams.getPathParams())
+                    .thenReturn(Map.of("targetId", "foo", "probeTemplate", "bar"));
             Mockito.when(requestParams.getHeaders()).thenReturn(MultiMap.caseInsensitiveMultiMap());
             JFRConnection connection = Mockito.mock(JFRConnection.class);
             IConnectionHandle handle = Mockito.mock(IConnectionHandle.class);
             MBeanServerConnection mbsc = Mockito.mock(MBeanServerConnection.class);
             Mockito.when(
-                    targetConnectionManager.executeConnectedTask(
-                        Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                    arg0 ->
-                        ((TargetConnectionManager.ConnectedTask<Object>)
-                            arg0.getArgument(1))
-                            .execute(connection));
+                            targetConnectionManager.executeConnectedTask(
+                                    Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                    .thenAnswer(
+                            arg0 ->
+                                    ((TargetConnectionManager.ConnectedTask<Object>)
+                                                    arg0.getArgument(1))
+                                            .execute(connection));
             Mockito.when(connection.getHandle()).thenReturn(handle);
             Mockito.when(handle.getServiceOrDummy(MBeanServerConnection.class)).thenReturn(mbsc);
             Object result = Mockito.mock(Object.class);
-            Mockito.when(mbsc.invoke(any(ObjectName.class), any(String.class), any(Object[].class)
-                , any(String[].class))).thenReturn(result);
+            Mockito.when(
+                            mbsc.invoke(
+                                    any(ObjectName.class),
+                                    any(String.class),
+                                    any(Object[].class),
+                                    any(String[].class)))
+                    .thenReturn(result);
             IntermediateResponse<Void> response = handler.handle(requestParams);
             MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
         }

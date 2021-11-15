@@ -150,6 +150,7 @@ public class ProbeTemplateUploadHandlerTest {
         @Test
         void shouldRespond500WhenUploadFails() throws Exception {
             FileUpload upload = Mockito.mock(FileUpload.class);
+            Mockito.when(upload.name()).thenReturn("probeTemplate");
             Mockito.when(requestParams.getFileUploads()).thenReturn(Set.of(upload));
             Mockito.when(requestParams.getPathParams())
                     .thenReturn(Map.of("probetemplateName", "foo.xml"));
@@ -169,6 +170,7 @@ public class ProbeTemplateUploadHandlerTest {
         @Test
         void shouldRespond400IfXmlInvalid() throws Exception {
             FileUpload upload = Mockito.mock(FileUpload.class);
+            Mockito.when(upload.name()).thenReturn("probeTemplate");
             Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
             Mockito.when(requestParams.getFileUploads()).thenReturn(Set.of(upload));
@@ -195,6 +197,7 @@ public class ProbeTemplateUploadHandlerTest {
         @Test
         void shouldProcessGoodRequest() throws Exception {
             FileUpload upload = Mockito.mock(FileUpload.class);
+            Mockito.when(upload.name()).thenReturn("probeTemplate");
             Mockito.when(upload.uploadedFileName()).thenReturn("/file-uploads/abcd-1234");
 
             Mockito.when(requestParams.getFileUploads()).thenReturn(Set.of(upload));

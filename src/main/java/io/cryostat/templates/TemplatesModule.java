@@ -60,7 +60,13 @@ public abstract class TemplatesModule {
     @Provides
     @Singleton
     static LocalProbeTemplateService provideLocalProbeTemplateService(
-        FileSystem fs, Environment env) {
-        return new LocalProbeTemplateService(fs, env);
+            FileSystem fs, Environment env) {
+        try {
+            return new LocalProbeTemplateService(fs, env);
+        } catch(Exception e) {
+            // Dagger doesn't like constructors that can throw exceptions, the probeTemplateService
+            // throws an exception if the sanity checks fail so we need to deal with it here
+            return null;
+        }
     }
 }
