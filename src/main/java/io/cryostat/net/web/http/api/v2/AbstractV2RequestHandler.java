@@ -110,9 +110,8 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                             || cause instanceof AuthorizationErrorException
                             || cause instanceof KubernetesClientException) {
                         throw new ApiException(401, "HTTP Authorization Failure", ee);
-                    } else {
-                        throw new ApiException(500, ee);
                     }
+                    throw new ApiException(500, ee);
                 }
             }
             writeResponse(ctx, handle(requestParams));

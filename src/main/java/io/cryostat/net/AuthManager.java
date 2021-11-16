@@ -37,7 +37,9 @@
  */
 package io.cryostat.net;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -48,7 +50,10 @@ import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 public interface AuthManager {
     AuthenticationScheme getScheme();
 
-    Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider);
+    Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
+
+    Optional<IntermediateResponse<UserInfo>> sendRedirectIfRequired(
+        Supplier<String> headerProvider, Set<ResourceAction> resourceActions) throws ExecutionException, InterruptedException;
 
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
@@ -61,4 +66,5 @@ public interface AuthManager {
 
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+
 }

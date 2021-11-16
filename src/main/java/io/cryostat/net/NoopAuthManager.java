@@ -37,6 +37,7 @@
  */
 package io.cryostat.net;
 
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
@@ -58,9 +59,14 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(
-                new IntermediateResponse<UserInfo>().body(new UserInfo("")));
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
+        return CompletableFuture.completedFuture(new UserInfo(""));
+    }
+
+    @Override
+    public Optional<IntermediateResponse<UserInfo>> sendRedirectIfRequired(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+        return Optional.empty();
     }
 
     @Override

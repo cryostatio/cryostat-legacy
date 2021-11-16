@@ -37,7 +37,9 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -61,7 +63,7 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
     @Override
     public boolean requiresAuthentication() {
-        return true;
+        return false;
     }
 
     @Override
@@ -96,8 +98,26 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
 
     @Override
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
-        return auth.getUserInfo(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION))
-                .get()
-                .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString());
+
+        Optional<IntermediateResponse<UserInfo>> redirectResponse =
+                auth.sendRedirectIfRequired(
+                        () -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
+                        resourceActions());
+
+        if(redirectResponse.isEmpty()) {
+            return
+                new IntermediateResponse<UserInfo>()
+                        .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString())
+                        .body(
+                                auth.getUserInfo(
+                                                () ->
+                                                        requestParams
+                                                                .getHeaders()
+                                                                .get(HttpHeaders.AUTHORIZATION))
+                                        .get());
+        } else {
+            return redirectResponse.get();
+        }
+
     }
 }

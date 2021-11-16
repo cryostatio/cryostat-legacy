@@ -43,6 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -83,7 +84,7 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider) {
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         if (!configLoaded) {
             this.loadConfig();
         }
@@ -96,8 +97,13 @@ class BasicAuthManager extends AbstractAuthManager {
         if (!users.containsKey(user)) {
             return CompletableFuture.failedFuture(new UnknownUserException(user));
         }
-        return CompletableFuture.completedFuture(
-                new IntermediateResponse<UserInfo>().body(new UserInfo(user)));
+        return CompletableFuture.completedFuture(new UserInfo(user));
+    }
+
+    @Override
+    public Optional<IntermediateResponse<UserInfo>> sendRedirectIfRequired(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+        return Optional.empty();
     }
 
     @Override

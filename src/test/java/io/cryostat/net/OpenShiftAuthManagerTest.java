@@ -141,7 +141,7 @@ class OpenShiftAuthManagerTest {
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
 
-        UserInfo userInfo = mgr.getUserInfo(() -> "Bearer abc123").get().getBody();
+        UserInfo userInfo = mgr.getUserInfo(() -> "Bearer abc123").get();
         MatcherAssert.assertThat(userInfo.getUsername(), Matchers.equalTo("fooUser"));
     }
 

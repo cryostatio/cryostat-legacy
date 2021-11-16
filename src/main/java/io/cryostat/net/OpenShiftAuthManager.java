@@ -39,11 +39,11 @@ package io.cryostat.net;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -112,13 +112,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<IntermediateResponse<UserInfo>> getUserInfo(Supplier<String> httpHeaderProvider) {
+    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
-
-        if (StringUtils.isBlank(token)) {
-            return this.getOAuthRedirectResponse();
-        }
-
         Future<TokenReviewStatus> fStatus = performTokenReview(token);
         try {
             TokenReviewStatus status = fStatus.get();
@@ -126,13 +121,29 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 return CompletableFuture.failedFuture(
                         new AuthorizationErrorException("Authentication Failed"));
             }
-            return CompletableFuture.completedFuture(
-                    new IntermediateResponse<UserInfo>()
-                            .body(new UserInfo(status.getUser().getUsername())));
+            return CompletableFuture.completedFuture(new UserInfo(status.getUser().getUsername()));
         } catch (ExecutionException ee) {
             return CompletableFuture.failedFuture(ee.getCause());
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Override
+    public Optional<IntermediateResponse<UserInfo>> sendRedirectIfRequired(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) throws ExecutionException, InterruptedException {
+
+        Boolean hasValidHeader = false;
+        try {
+            hasValidHeader = this.validateHttpHeader(headerProvider, resourceActions).get();
+
+            if (hasValidHeader) {
+                return Optional.empty();
+            }
+
+            return Optional.of(this.getOAuthRedirectResponse().get());
+        } catch (ExecutionException ee) {
+            return Optional.of(this.getOAuthRedirectResponse().get());
         }
     }
 
@@ -244,8 +255,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         String authorization = headerProvider.get();
         String token = getTokenFromHttpHeader(authorization);
         if (token == null) {
-            // allow empty tokens. auth post handler will trigger redirect response
-            return CompletableFuture.completedFuture(true);
+            return CompletableFuture.completedFuture(false);
         }
         return validateToken(() -> token, resourceActions);
     }
@@ -272,6 +282,19 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return validateToken(() -> decoded, resourceActions);
         } catch (IllegalArgumentException e) {
             return CompletableFuture.completedFuture(false);
+        }
+    }
+
+    public Future<IntermediateResponse<UserInfo>> getOAuthRedirectResponse() {
+        try {
+            return CompletableFuture.completedFuture(
+                    new IntermediateResponse<UserInfo>()
+                            .addHeader("X-Location", this.computeAuthorizationEndpoint().get())
+                            .addHeader("access-control-expose-headers", "Location")
+                            .statusCode(302));
+        } catch (ExecutionException | InterruptedException e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e.getCause());
         }
     }
 
@@ -312,19 +335,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private Future<IntermediateResponse<UserInfo>> getOAuthRedirectResponse() {
-        try {
-            return CompletableFuture.completedFuture(
-                    new IntermediateResponse<UserInfo>()
-                            .addHeader("X-Location", this.computeAuthorizationEndpoint().get())
-                            .addHeader("access-control-expose-headers", "Location")
-                            .statusCode(302));
-        } catch (ExecutionException | InterruptedException e) {
-            logger.error(e);
-            return CompletableFuture.failedFuture(e.getCause());
-        }
-    }
-
     private Future<String> computeAuthorizationEndpoint()
             throws ExecutionException, InterruptedException {
 
@@ -335,13 +345,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
         try {
             String clientId =
-                            String.format(
-                                    "system:serviceaccount:%s:cryostat-sample",
-                                    this.getNamespace());
+                    String.format("system:serviceaccount:%s:cryostat-sample", this.getNamespace());
             String scope =
-                            String.format(
-                                    "user:check-access role:cryostat-oauth:%s",
-                                    this.getNamespace());
+                    String.format(
+                            "user:check-access role:cryostat-operator-cryostat:%s",
+                            this.getNamespace());
 
             webClient
                     .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
