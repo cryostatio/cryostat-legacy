@@ -72,6 +72,10 @@ if [ ! -d "$(dirname $0)/clientlib" ]; then
     mkdir "$(dirname $0)/clientlib"
 fi
 
+if [ ! -d "$(dirname $0)/templates" ]; then
+    mkdir "$(dirname $0)/templates"
+fi
+
 if ! podman pod exists cryostat; then
     podman pod create \
         --hostname cryostat \
@@ -80,15 +84,19 @@ if ! podman pod exists cryostat; then
         --publish $CRYOSTAT_EXT_WEB_PORT:$CRYOSTAT_WEB_PORT
 fi
 
+# run as root (uid 0) within the container - with rootless podman this means
+# that the process will actually run with your own uid on the host machine,
+# rather than the uid being remapped to something else
 podman run \
     --pod cryostat \
+    --user 0 \
     --memory 512M \
-    --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared,bind-propagation=shared \
-    --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
-    --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
-    --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
-    --mount type=bind,source="$(dirname $0)/templates",destination=/opt/cryostat.d/templates.d,relabel=shared,bind-propagation=shared \
-    --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
+    --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/templates",destination=/opt/cryostat.d/templates.d,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared \
     -e CRYOSTAT_PLATFORM=$CRYOSTAT_PLATFORM \
     -e CRYOSTAT_DISABLE_SSL=$CRYOSTAT_DISABLE_SSL \
     -e CRYOSTAT_DISABLE_JMX_AUTH=$CRYOSTAT_DISABLE_JMX_AUTH \
