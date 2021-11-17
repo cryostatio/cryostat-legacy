@@ -39,6 +39,7 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.PushbackInputStream;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
@@ -152,6 +153,12 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
-        return (snapshot.read() == -1);
-    }
+        PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
+        int b = pushbackSnapshot.read();
+        if (b != -1) {
+            pushbackSnapshot.unread(b);
+            return false;
+        }
+        return true;
+     }
 }
