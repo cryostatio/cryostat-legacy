@@ -106,6 +106,10 @@ class RecordingGetHandler extends AbstractJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         try {
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
+            ctx.response()
+                    .putHeader(
+                            HttpHeaders.CONTENT_DISPOSITION,
+                            String.format("attachment; filename=\"%s\"", recordingName));
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
             ctx.response()
                     .putHeader(

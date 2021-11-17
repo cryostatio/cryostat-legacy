@@ -115,6 +115,7 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
     @Override
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
+        ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
         try {
             ctx.response()

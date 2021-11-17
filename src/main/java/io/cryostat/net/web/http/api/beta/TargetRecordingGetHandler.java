@@ -145,6 +145,10 @@ class TargetRecordingGetHandler extends AbstractJwtConsumingHandler {
         }
 
         ctx.response().setChunked(true);
+        ctx.response()
+                .putHeader(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        String.format("attachment; filename=\"%s.jfr\"", recordingName));
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
         try (InputStream s = stream.get()) {
             byte[] buff = new byte[WRITE_BUFFER_SIZE];

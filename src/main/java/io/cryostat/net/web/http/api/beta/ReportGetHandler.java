@@ -116,6 +116,7 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
         String recordingName = ctx.pathParam("recordingName");
         try {
             Path report = reportService.get(recordingName).get();
+            ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
