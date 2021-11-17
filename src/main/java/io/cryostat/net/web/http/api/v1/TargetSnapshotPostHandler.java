@@ -160,5 +160,5 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             return false;
         }
         return true;
-     }
+    }
 }
