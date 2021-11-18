@@ -137,7 +137,7 @@ public class RecordingTargetHelperTest {
                 .thenReturn(new ByteArrayInputStream(src));
 
         InputStream stream =
-                recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
+                recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get().get();
 
         Assertions.assertArrayEquals(src, stream.readAllBytes());
     }
@@ -163,7 +163,7 @@ public class RecordingTargetHelperTest {
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
         Optional<InputStream> stream =
-                recordingTargetHelper.getRecording(connectionDescriptor, recordingName);
+                recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
 
         Assertions.assertTrue(stream.isEmpty());
     }
@@ -189,7 +189,7 @@ public class RecordingTargetHelperTest {
         IRecordingDescriptor descriptor = createDescriptor(recordingName);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
 
-        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName);
+        recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
 
         Mockito.verify(service).close(descriptor);
         Mockito.verify(reportService)
@@ -234,7 +234,7 @@ public class RecordingTargetHelperTest {
                         RecordingNotFoundException.class,
                         () ->
                                 recordingTargetHelper.deleteRecording(
-                                        connectionDescriptor, recordingName));
+                                        connectionDescriptor, recordingName).get());
         MatcherAssert.assertThat(
                 ex.getTargetId(), Matchers.equalTo(connectionDescriptor.getTargetId()));
         MatcherAssert.assertThat(ex.getRecordingName(), Matchers.equalTo(recordingName));
