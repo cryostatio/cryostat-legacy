@@ -171,6 +171,42 @@ public class SnapshotIT extends StandardSelfTest {
     }
 
     @Test
+    void testPostV1ShouldHandleEmptySnapshot() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+
+        try {
+            // Create an empty snapshot recording (no active recordings present)
+            webClient
+                    .post(String.format("%s/snapshot", TARGET_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, result)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(202));
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusMessage(),
+                                            Matchers.equalTo("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from"));
+                                    result.complete(null);
+                                }
+                            });
+            result.get();
+        } finally {
+            // The empty snapshot should've been deleted (i.e. there should be no recordings present)
+            CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
+            webClient
+                    .get(String.format("%s/recordings", TARGET_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture2)) {
+                                    listRespFuture2.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listResp = listRespFuture2.get();
+            //Assertions.assertTrue(listResp.isEmpty());
+        }
+    }
+
+    @Test
     void testPostV1SnapshotThrowsWithNonExistentTarget() throws Exception {
 
         CompletableFuture<String> snapshotResponse = new CompletableFuture<>();
@@ -342,6 +378,42 @@ public class SnapshotIT extends StandardSelfTest {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete snapshot %s", snapshotName.get()), e);
             }
+        }
+    }
+
+    @Test
+    void testPostV2ShouldHandleEmptySnapshot() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+
+        try {
+            // Create an empty snapshot recording (no active recordings present)
+            webClient
+                    .post(String.format("%s/snapshot", V2_SNAPSHOT_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, result)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(202));
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusMessage(),
+                                            Matchers.equalTo("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from"));
+                                    result.complete(null);
+                                }
+                            });
+            result.get();
+        } finally {
+            // The empty snapshot should've been deleted (i.e. there should be no recordings present)
+            CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
+            webClient
+                    .get(String.format("%s/recordings", TARGET_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture2)) {
+                                    listRespFuture2.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listResp = listRespFuture2.get();
+            //Assertions.assertTrue(listResp.isEmpty());
         }
     }
 

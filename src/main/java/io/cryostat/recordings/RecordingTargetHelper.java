@@ -41,6 +41,8 @@ import java.io.InputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -168,51 +170,69 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
-    public Optional<InputStream> getRecording(
+
+
+    public Future<Optional<InputStream>> getRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
-        return targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                conn ->
-                        conn.getService().getAvailableRecordings().stream()
-                                .filter(r -> Objects.equals(recordingName, r.getName()))
-                                .map(
-                                        desc -> {
-                                            try {
-                                                return conn.getService().openStream(desc, false);
-                                            } catch (Exception e) {
-                                                logger.error(e);
-                                                return null;
-                                            }
-                                        })
-                                .filter(Objects::nonNull)
-                                .findFirst());
+        CompletableFuture<Optional<InputStream>> future = new CompletableFuture<>();
+        try {
+            Optional<InputStream> recording = 
+                targetConnectionManager.executeConnectedTask(
+                    connectionDescriptor,
+                    conn ->
+                            conn.getService().getAvailableRecordings().stream()
+                                    .filter(r -> Objects.equals(recordingName, r.getName()))
+                                    .map(
+                                            desc -> {
+                                                try {
+                                                    return conn.getService().openStream(desc, false);
+                                                } catch (Exception e) {
+                                                    logger.error(e);
+                                                    return null;
+                                                }
+                                            })
+                                    .filter(Objects::nonNull)
+                                    .findFirst());
+            
+            future.complete(recording);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
-    public void deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
+    public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
             throws Exception {
-        String targetId = connectionDescriptor.getTargetId();
-        targetConnectionManager.executeConnectedTask(
-                connectionDescriptor,
-                connection -> {
-                    Optional<IRecordingDescriptor> descriptor =
-                            connection.getService().getAvailableRecordings().stream()
-                                    .filter(recording -> recording.getName().equals(recordingName))
-                                    .findFirst();
-                    if (descriptor.isPresent()) {
-                        connection.getService().close(descriptor.get());
-                        reportService.delete(connectionDescriptor, recordingName);
-                        notificationFactory
-                                .createBuilder()
-                                .metaCategory(RECORDING_DELETION_NOTIFICATION_CATEGORY)
-                                .metaType(HttpMimeType.JSON)
-                                .message(Map.of("recording", recordingName, "target", targetId))
-                                .build()
-                                .send();
-                    } else {
-                        throw new RecordingNotFoundException(targetId, recordingName);
-                    }
-                    return null;
-                });
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            String targetId = connectionDescriptor.getTargetId();
+            targetConnectionManager.executeConnectedTask(
+                    connectionDescriptor,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                connection.getService().getAvailableRecordings().stream()
+                                        .filter(recording -> recording.getName().equals(recordingName))
+                                        .findFirst();
+                        if (descriptor.isPresent()) {
+                            connection.getService().close(descriptor.get());
+                            reportService.delete(connectionDescriptor, recordingName);
+                            notificationFactory
+                                    .createBuilder()
+                                    .metaCategory(RECORDING_DELETION_NOTIFICATION_CATEGORY)
+                                    .metaType(HttpMimeType.JSON)
+                                    .message(Map.of("recording", recordingName, "target", targetId))
+                                    .build()
+                                    .send();
+                        } else {
+                            throw new RecordingNotFoundException(targetId, recordingName);
+                        }
+                        return null;
+                    });
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     private IConstrainedMap<EventOptionID> enableEvents(

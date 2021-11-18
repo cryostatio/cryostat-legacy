@@ -133,14 +133,14 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
                         });
 
         Optional<InputStream> snapshotOptional =
-                recordingTargetHelper.getRecording(connectionDescriptor, result);
+                recordingTargetHelper.getRecording(connectionDescriptor, result).get();
         if (snapshotOptional.isEmpty()) {
             throw new HttpStatusException(
                     500,
                     String.format(
                             "Successful creation verification of snapshot %s failed", result));
         } else if (snapshotIsEmpty(snapshotOptional.get())) {
-            recordingTargetHelper.deleteRecording(connectionDescriptor, result);
+            recordingTargetHelper.deleteRecording(connectionDescriptor, result).get();
             ctx.response().setStatusCode(202);
             ctx.response()
                     .setStatusMessage(

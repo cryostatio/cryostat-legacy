@@ -159,7 +159,7 @@ class TargetSnapshotPostHandler
 
         String snapshotName = desc.getName();
         Optional<InputStream> snapshotOptional =
-                recordingTargetHelper.getRecording(connectionDescriptor, snapshotName);
+                recordingTargetHelper.getRecording(connectionDescriptor, snapshotName).get();
         if (snapshotOptional.isEmpty()) {
             throw new ApiException(
                     500,
@@ -167,7 +167,7 @@ class TargetSnapshotPostHandler
                             "Successful creation verification of snapshot %s failed",
                             snapshotName));
         } else if (snapshotIsEmpty(snapshotOptional.get())) {
-            recordingTargetHelper.deleteRecording(connectionDescriptor, snapshotName);
+            recordingTargetHelper.deleteRecording(connectionDescriptor, snapshotName).get();
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                     .statusCode(202)
                     .statusMessage(
