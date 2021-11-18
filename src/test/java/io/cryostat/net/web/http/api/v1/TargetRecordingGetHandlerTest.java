@@ -48,6 +48,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 
@@ -141,8 +142,10 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
+        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
-                .thenReturn(stream);
+                .thenReturn(future);
+        when(future.get()).thenReturn(stream);
         when(stream.isEmpty()).thenReturn(true);
 
         HttpStatusException ex =
@@ -169,9 +172,10 @@ class TargetRecordingGetHandlerTest {
         when(ctx.pathParam("targetId")).thenReturn("fooHost:0");
         when(ctx.pathParam("recordingName")).thenReturn(recordingName);
 
-        doThrow(Exception.class)
-                .when(recordingTargetHelper)
-                .getRecording(Mockito.any(), Mockito.eq(recordingName));
+        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
+                .thenReturn(future);
+        when(future.get()).thenThrow(new ExecutionException("fake exception for testing purposes", new NullPointerException()));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -206,8 +210,10 @@ class TargetRecordingGetHandlerTest {
 
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
-        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(Optional.of(new ByteArrayInputStream(src)));
+        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
+                .thenReturn(future);
+        when(future.get()).thenReturn(Optional.of(new ByteArrayInputStream(src)));
 
         Buffer dst = Buffer.buffer(1024 * 1024);
         when(resp.write(Mockito.any(Buffer.class)))

@@ -173,7 +173,7 @@ public class RecordingTargetHelper {
 
 
     public Future<Optional<InputStream>> getRecording(
-            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
         CompletableFuture<Optional<InputStream>> future = new CompletableFuture<>();
         try {
             Optional<InputStream> recording = 
@@ -201,8 +201,7 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName)
-            throws Exception {
+    public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             String targetId = connectionDescriptor.getTargetId();
