@@ -42,8 +42,11 @@ import java.io.InputStream;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -52,6 +55,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.buffer.Buffer;
@@ -112,8 +116,17 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
     void handleRecordingDownloadRequest(RoutingContext ctx, String recordingName) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        Optional<InputStream> stream =
-                recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
+        Optional<InputStream> stream;
+
+        try {
+            stream = recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();       
+        } catch (ExecutionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, ee.getMessage(), ee);
+            }
+            throw ee;
+        }
+    
         if (stream.isEmpty()) {
             throw new HttpStatusException(404, String.format("%s not found", recordingName));
         }

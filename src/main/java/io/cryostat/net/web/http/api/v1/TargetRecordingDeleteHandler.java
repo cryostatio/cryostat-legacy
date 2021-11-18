@@ -39,8 +39,11 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -97,9 +100,11 @@ class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
             recordingTargetHelper.deleteRecording(connectionDescriptor, recordingName).get();
             ctx.response().setStatusCode(200);
             ctx.response().end();
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(
-                    404, String.format("No recording with name \"%s\" found", recordingName));
+        } catch (ExecutionException e) {
+            if (ExceptionUtils.getRootCause(e) instanceof RecordingNotFoundException) {
+                throw new HttpStatusException(404, e.getMessage(), e);
+            }
+            throw e;
         }
     }
 }

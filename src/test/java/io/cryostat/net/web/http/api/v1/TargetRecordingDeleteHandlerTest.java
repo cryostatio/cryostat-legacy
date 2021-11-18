@@ -38,6 +38,8 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -104,6 +106,10 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.response()).thenReturn(resp);
 
+        CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.eq("someRecording")))
+               .thenReturn(future);
+
         handler.handleAuthenticated(ctx);
 
         InOrder inOrder = Mockito.inOrder(resp);
@@ -116,9 +122,13 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.doThrow(RecordingNotFoundException.class)
-                .when(recordingTargetHelper)
-                .deleteRecording(Mockito.any(), Mockito.eq("someRecording"));
+        
+        CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.eq("someRecording")))
+               .thenReturn(future);
+        ExecutionException ee = Mockito.mock(ExecutionException.class);
+        Mockito.when(future.get()).thenThrow(ee);
+        Mockito.when(ee.getCause()).thenReturn(new RecordingNotFoundException("someTarget", "someRecording"));
 
         HttpStatusException ex =
                 Assertions.assertThrows(
@@ -127,6 +137,6 @@ class TargetRecordingDeleteHandlerTest {
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
         MatcherAssert.assertThat(
                 ex.getPayload(),
-                Matchers.equalTo("No recording with name \"someRecording\" found"));
+                Matchers.equalTo("Recording someRecording not found in target someTarget"));
     }
 }
