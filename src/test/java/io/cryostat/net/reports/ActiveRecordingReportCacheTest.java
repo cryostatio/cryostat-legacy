@@ -43,7 +43,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Provider;
 
@@ -62,7 +61,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -74,7 +72,6 @@ class ActiveRecordingReportCacheTest {
     @Mock SubprocessReportGenerator subprocessReportGenerator;
     @Mock Environment env;
     @Mock FileSystem fs;
-    @Mock ReentrantLock lock;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock Logger logger;
     @Mock CompletableFuture<Path> pathFuture;
@@ -101,7 +98,7 @@ class ActiveRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        () -> subprocessReportGenerator, fs, lock, targetConnectionManager, logger);
+                        () -> subprocessReportGenerator, fs, targetConnectionManager, logger);
     }
 
     @Test
@@ -137,14 +134,8 @@ class ActiveRecordingReportCacheTest {
         Future<String> report = cache.get(connectionDescriptor, "foo");
         MatcherAssert.assertThat(report.get(), Matchers.equalTo(REPORT_DOC));
 
-        InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator, fs);
-        inOrder.verify(lock).lock();
-
-        inOrder.verify(subprocessReportGenerator).exec(Mockito.any(RecordingDescriptor.class));
-
-        inOrder.verify(fs).readString(destinationFile);
-
-        inOrder.verify(lock).unlock();
+        Mockito.verify(subprocessReportGenerator).exec(Mockito.any(RecordingDescriptor.class));
+        Mockito.verify(fs).readString(destinationFile);
     }
 
     @Test
@@ -163,13 +154,8 @@ class ActiveRecordingReportCacheTest {
         String report2 = cache.get(connectionDescriptor, recordingName).get();
         MatcherAssert.assertThat(report2, Matchers.equalTo(report1));
 
-        InOrder inOrder = Mockito.inOrder(lock, subprocessReportGenerator);
-        inOrder.verify(lock, Mockito.times(1)).lock();
-
-        inOrder.verify(subprocessReportGenerator, Mockito.times(1))
+        Mockito.verify(subprocessReportGenerator, Mockito.times(1))
                 .exec(Mockito.any(RecordingDescriptor.class));
-
-        inOrder.verify(lock, Mockito.times(1)).unlock();
     }
 
     @Test

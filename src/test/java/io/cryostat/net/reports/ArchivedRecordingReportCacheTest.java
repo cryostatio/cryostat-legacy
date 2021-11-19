@@ -42,7 +42,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
@@ -55,7 +54,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -68,7 +66,6 @@ class ArchivedRecordingReportCacheTest {
     @Mock Path destinationFile;
     @Mock FileSystem fs;
     @Mock SubprocessReportGenerator subprocessReportGenerator;
-    @Mock ReentrantLock generationLock;
     @Mock Logger logger;
     @Mock RecordingArchiveHelper recordingArchiveHelper;
 
@@ -76,11 +73,7 @@ class ArchivedRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ArchivedRecordingReportCache(
-                        fs,
-                        () -> subprocessReportGenerator,
-                        generationLock,
-                        logger,
-                        recordingArchiveHelper);
+                        fs, () -> subprocessReportGenerator, logger, recordingArchiveHelper);
     }
 
     @Test
@@ -100,9 +93,6 @@ class ArchivedRecordingReportCacheTest {
         Assertions.assertThrows(ExecutionException.class, () -> cache.get(recordingName).get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
-        InOrder lockOrder = Mockito.inOrder(generationLock);
-        lockOrder.verify(generationLock).lock();
-        lockOrder.verify(generationLock).unlock();
     }
 
     @Test
@@ -128,9 +118,6 @@ class ArchivedRecordingReportCacheTest {
 
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
-        InOrder lockOrder = Mockito.inOrder(generationLock);
-        lockOrder.verify(generationLock).lock();
-        lockOrder.verify(generationLock).unlock();
     }
 
     @Test
@@ -146,7 +133,6 @@ class ArchivedRecordingReportCacheTest {
         MatcherAssert.assertThat(res.get(), Matchers.sameInstance(destinationFile));
         Mockito.verify(fs).isReadable(destinationFile);
         Mockito.verify(fs).isRegularFile(destinationFile);
-        Mockito.verifyNoInteractions(generationLock);
     }
 
     @Test
@@ -173,8 +159,5 @@ class ArchivedRecordingReportCacheTest {
         Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo").get());
 
         Mockito.verify(fs, Mockito.atLeastOnce()).isReadable(destinationFile);
-        InOrder lockOrder = Mockito.inOrder(generationLock);
-        lockOrder.verify(generationLock).lock();
-        lockOrder.verify(generationLock).unlock();
     }
 }

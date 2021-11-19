@@ -41,9 +41,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.locks.ReentrantLock;
 
-import javax.inject.Named;
 import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
@@ -54,19 +52,16 @@ class ArchivedRecordingReportCache {
 
     protected final FileSystem fs;
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
-    protected final ReentrantLock generationLock;
     protected final Logger logger;
     protected final RecordingArchiveHelper recordingArchiveHelper;
 
     ArchivedRecordingReportCache(
             FileSystem fs,
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
-            @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger,
             RecordingArchiveHelper recordingArchiveHelper) {
         this.fs = fs;
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
-        this.generationLock = generationLock;
         this.logger = logger;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
@@ -80,12 +75,6 @@ class ArchivedRecordingReportCache {
         }
 
         try {
-            generationLock.lock();
-            // check again in case the previous lock holder already created the cached file
-            if (fs.isReadable(dest) && fs.isRegularFile(dest)) {
-                f.complete(dest);
-                return f;
-            }
             logger.trace("Archived report cache miss for {}", recordingName);
 
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
@@ -100,8 +89,6 @@ class ArchivedRecordingReportCache {
             } catch (IOException ioe) {
                 logger.warn(ioe);
             }
-        } finally {
-            generationLock.unlock();
         }
         return f;
     }

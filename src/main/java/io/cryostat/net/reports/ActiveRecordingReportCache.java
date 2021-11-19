@@ -44,9 +44,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
-import javax.inject.Named;
 import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -64,7 +62,6 @@ class ActiveRecordingReportCache {
 
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
-    protected final ReentrantLock generationLock;
     protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
     protected final Logger logger;
@@ -72,12 +69,10 @@ class ActiveRecordingReportCache {
     ActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
-            @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             TargetConnectionManager targetConnectionManager,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
-        this.generationLock = generationLock;
         this.targetConnectionManager = targetConnectionManager;
         this.logger = logger;
 
@@ -115,7 +110,6 @@ class ActiveRecordingReportCache {
     protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
         Path saveFile = null;
         try {
-            generationLock.lock();
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
                 saveFile = reportGeneratorServiceProvider.get().exec(recordingDescriptor).get();
@@ -152,7 +146,6 @@ class ActiveRecordingReportCache {
                 throw ee;
             }
         } finally {
-            generationLock.unlock();
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
             }

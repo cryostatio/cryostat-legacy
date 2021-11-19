@@ -91,7 +91,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     }
 
     @Override
-    public CompletableFuture<Path> exec(Path recording, Path saveFile)
+    public synchronized CompletableFuture<Path> exec(Path recording, Path saveFile)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -108,7 +108,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.DSYNC,
                 StandardOpenOption.WRITE);
-        Process proc =
+        JavaProcess.Builder procBuilder =
                 javaProcessBuilderProvider
                         .get()
                         .klazz(SubprocessReportGenerator.class)
@@ -118,11 +118,12 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                         .jvmArgs(
                                 createJvmArgs(
                                         Integer.parseInt(env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "0"))))
-                        .processArgs(createProcessArgs(recording, saveFile))
-                        .exec();
+                        .processArgs(createProcessArgs(recording, saveFile));
         return CompletableFuture.supplyAsync(
                 () -> {
+                    Process proc = null;
                     try {
+                        proc = procBuilder.exec();
                         proc.waitFor(5, TimeUnit.MINUTES); // FIXME extract to constant or env var
                         ExitStatus status =
                                 proc.isAlive()
@@ -139,17 +140,18 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                         }
                     } catch (InterruptedException e) {
                         logger.error(e);
-                        proc.destroyForcibly();
                         throw new CompletionException(
                                 new ReportGenerationException(ExitStatus.TERMINATED));
-                    } catch (ReportGenerationException
+                    } catch (IOException
+                            | ReportGenerationException
                             | RecordingNotFoundException
                             | IllegalThreadStateException e) {
                         logger.error(e);
-                        proc.destroyForcibly();
                         throw new CompletionException(e);
                     } finally {
-                        proc.destroyForcibly();
+                        if (proc != null) {
+                            proc.destroyForcibly();
+                        }
                     }
                 });
     }

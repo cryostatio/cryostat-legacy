@@ -4,6 +4,9 @@ set -x
 set -e
 
 function runCryostat() {
+    if [ -z "$CRYOSTAT_REPORT_GENERATOR" ]; then
+        CRYOSTAT_REPORT_GENERATOR=subprocess
+    fi
     local DIR="$(dirname "$(readlink -f "$0")")"
     local host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
     local datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
@@ -13,7 +16,7 @@ function runCryostat() {
         CRYOSTAT_RJMX_USER=smoketest \
         CRYOSTAT_RJMX_PASS=smoketest \
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
-        CRYOSTAT_REPORT_GENERATOR="http://0.0.0.0:10001" \
+        CRYOSTAT_REPORT_GENERATOR=$CRYOSTAT_REPORT_GENERATOR \
         exec "$DIR/run.sh"
 }
 

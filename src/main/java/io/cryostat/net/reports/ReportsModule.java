@@ -41,9 +41,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 
-import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
@@ -66,30 +64,15 @@ import io.vertx.ext.web.client.WebClient;
         })
 public abstract class ReportsModule {
 
-    static final String REPORT_GENERATION_LOCK = "REPORT_GENERATION_LOCK";
-
-    @Provides
-    @Singleton
-    @Named(REPORT_GENERATION_LOCK)
-    /** Used to ensure that only one report is generated at a time */
-    static ReentrantLock provideReportGenerationLock() {
-        return new ReentrantLock(true);
-    }
-
     @Provides
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
-            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             TargetConnectionManager targetConnectionManager,
             Logger logger) {
         return new ActiveRecordingReportCache(
-                reportGeneratorServiceProvider,
-                fs,
-                generationLock,
-                targetConnectionManager,
-                logger);
+                reportGeneratorServiceProvider, fs, targetConnectionManager, logger);
     }
 
     @Provides
@@ -97,11 +80,10 @@ public abstract class ReportsModule {
     static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
             FileSystem fs,
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
-            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger,
             RecordingArchiveHelper recordingArchiveHelper) {
         return new ArchivedRecordingReportCache(
-                fs, reportGeneratorServiceProvider, generationLock, logger, recordingArchiveHelper);
+                fs, reportGeneratorServiceProvider, logger, recordingArchiveHelper);
     }
 
     @Provides
