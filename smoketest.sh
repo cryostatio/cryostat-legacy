@@ -85,6 +85,8 @@ function runReportGenerator() {
     podman run \
         --name reports \
         --pod cryostat \
+        --cpus 1 \
+        --memory 512M \
         --env QUARKUS_HTTP_PORT=10001 \
         --rm -d quay.io/andrewazores/cryostat-reports:1.0.0-SNAPSHOT
 }
