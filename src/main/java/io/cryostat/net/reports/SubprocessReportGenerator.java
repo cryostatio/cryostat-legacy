@@ -136,12 +136,12 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                                 throw new RecordingNotFoundException(
                                         "archives", recording.toString());
                             default:
-                                throw new ReportGenerationException(status);
+                                throw new SubprocessReportGenerationException(status);
                         }
                     } catch (InterruptedException e) {
                         logger.error(e);
                         throw new CompletionException(
-                                new ReportGenerationException(ExitStatus.TERMINATED));
+                                new SubprocessReportGenerationException(ExitStatus.TERMINATED));
                     } catch (IOException
                             | ReportGenerationException
                             | RecordingNotFoundException
@@ -279,13 +279,13 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             throws Exception {
         var fs = new FileSystem();
         if (!fs.isRegularFile(recording)) {
-            throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
+            throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
         try (InputStream stream = fs.newInputStream(recording)) {
             return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
         } catch (IOException ioe) {
             ioe.printStackTrace();
-            throw new ReportGenerationException(ExitStatus.IO_EXCEPTION);
+            throw new SubprocessReportGenerationException(ExitStatus.IO_EXCEPTION);
         }
     }
 
@@ -319,10 +319,10 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         }
     }
 
-    public static class ReportGenerationException extends Exception {
+    public static class SubprocessReportGenerationException extends ReportGenerationException {
         private final ExitStatus status;
 
-        public ReportGenerationException(ExitStatus status) {
+        public SubprocessReportGenerationException(ExitStatus status) {
             super(String.format("[%d] %s", status.code, status.message));
             this.status = status;
         }

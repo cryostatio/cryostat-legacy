@@ -153,7 +153,7 @@ class ArchivedRecordingReportCacheTest {
                                 Mockito.any(Path.class), Mockito.any(Path.class)))
                 .thenThrow(
                         new CompletionException(
-                                new SubprocessReportGenerator.ReportGenerationException(
+                                new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY)));
 
         Assertions.assertThrows(ExecutionException.class, () -> cache.get("foo").get());

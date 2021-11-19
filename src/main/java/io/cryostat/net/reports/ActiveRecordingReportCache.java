@@ -114,14 +114,17 @@ class ActiveRecordingReportCache {
             try {
                 saveFile = reportGeneratorServiceProvider.get().exec(recordingDescriptor).get();
                 return fs.readString(saveFile);
-            } catch (ExecutionException | CompletionException ee) {
-                logger.error(ee);
+            } catch (ExecutionException | CompletionException e) {
+                logger.error(e);
 
                 delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
 
-                if (ee.getCause() instanceof SubprocessReportGenerator.ReportGenerationException) {
-                    SubprocessReportGenerator.ReportGenerationException generationException =
-                            (SubprocessReportGenerator.ReportGenerationException) ee.getCause();
+                if (e.getCause()
+                        instanceof SubprocessReportGenerator.SubprocessReportGenerationException) {
+                    SubprocessReportGenerator.SubprocessReportGenerationException
+                            generationException =
+                                    (SubprocessReportGenerator.SubprocessReportGenerationException)
+                                            e.getCause();
 
                     SubprocessReportGenerator.ExitStatus status = generationException.getStatus();
                     if (status == SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY) {
@@ -143,7 +146,7 @@ class ActiveRecordingReportCache {
                                 });
                     }
                 }
-                throw ee;
+                throw e;
             }
         } finally {
             if (saveFile != null) {

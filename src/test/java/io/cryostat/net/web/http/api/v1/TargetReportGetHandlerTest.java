@@ -177,7 +177,7 @@ class TargetReportGetHandlerTest {
         Future<String> content =
                 CompletableFuture.failedFuture(
                         new ExecutionException(
-                                new SubprocessReportGenerator.ReportGenerationException(
+                                new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus
                                                 .TARGET_CONNECTION_FAILURE)));
         when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
@@ -207,7 +207,7 @@ class TargetReportGetHandlerTest {
         Future<String> content =
                 CompletableFuture.failedFuture(
                         new ExecutionException(
-                                new SubprocessReportGenerator.ReportGenerationException(
+                                new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING)));
         when(reportService.get(Mockito.any(), Mockito.anyString())).thenReturn(content);
 

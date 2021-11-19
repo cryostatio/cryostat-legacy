@@ -39,6 +39,7 @@ package io.cryostat.net.reports;
 
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Provider;
 
@@ -47,6 +48,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
@@ -86,12 +88,17 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
         var f = new CompletableFuture<Path>();
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))
-                .timeout(30_000L)
+                .timeout(TimeUnit.MINUTES.toMillis(1))
                 .sendMultipartForm(
                         form,
                         ar -> {
                             if (ar.failed()) {
                                 f.completeExceptionally(ar.cause());
+                                return;
+                            }
+                            if (!HttpStatusCodeIdentifier.isSuccessCode(ar.result().statusCode())) {
+                                f.completeExceptionally(
+                                        new ReportGenerationException(ar.result().statusMessage()));
                                 return;
                             }
                             var body = ar.result().bodyAsBuffer();

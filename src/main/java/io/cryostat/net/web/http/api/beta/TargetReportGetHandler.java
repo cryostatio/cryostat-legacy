@@ -134,17 +134,18 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
         }
     }
 
+    // TODO this needs to also handle the case where sidecar report generator container responds 404
     private boolean targetRecordingNotFound(Exception rootCause) {
         if (rootCause instanceof RecordingNotFoundException) {
             return true;
         }
         boolean isReportGenerationException =
-                rootCause instanceof SubprocessReportGenerator.ReportGenerationException;
+                rootCause instanceof SubprocessReportGenerator.SubprocessReportGenerationException;
         if (!isReportGenerationException) {
             return false;
         }
-        SubprocessReportGenerator.ReportGenerationException generationException =
-                (SubprocessReportGenerator.ReportGenerationException) rootCause;
+        SubprocessReportGenerator.SubprocessReportGenerationException generationException =
+                (SubprocessReportGenerator.SubprocessReportGenerationException) rootCause;
         boolean isTargetConnectionFailure =
                 generationException.getStatus()
                         == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE;

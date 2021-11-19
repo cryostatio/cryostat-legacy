@@ -44,6 +44,8 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import org.apache.commons.lang3.exception.ExceptionUtils;
+
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
@@ -53,12 +55,10 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
-
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
-import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -127,17 +127,18 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
         }
     }
 
+    // TODO this needs to also handle the case where sidecar report generator container responds 404
     private boolean targetRecordingNotFound(Exception rootCause) {
         if (rootCause instanceof RecordingNotFoundException) {
             return true;
         }
         boolean isReportGenerationException =
-                rootCause instanceof SubprocessReportGenerator.ReportGenerationException;
+                rootCause instanceof SubprocessReportGenerator.SubprocessReportGenerationException;
         if (!isReportGenerationException) {
             return false;
         }
-        SubprocessReportGenerator.ReportGenerationException generationException =
-                (SubprocessReportGenerator.ReportGenerationException) rootCause;
+        SubprocessReportGenerator.SubprocessReportGenerationException generationException =
+                (SubprocessReportGenerator.SubprocessReportGenerationException) rootCause;
         boolean isTargetConnectionFailure =
                 generationException.getStatus()
                         == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE;

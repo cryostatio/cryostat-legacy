@@ -173,7 +173,7 @@ class ActiveRecordingReportCacheTest {
         Mockito.when(subprocessReportGenerator.exec(Mockito.any(RecordingDescriptor.class)))
                 .thenThrow(
                         new CompletionException(
-                                new SubprocessReportGenerator.ReportGenerationException(
+                                new SubprocessReportGenerator.SubprocessReportGenerationException(
                                         SubprocessReportGenerator.ExitStatus.OTHER)));
         Assertions.assertThrows(
                 ExecutionException.class, () -> cache.get(connectionDescriptor, "bar").get());
