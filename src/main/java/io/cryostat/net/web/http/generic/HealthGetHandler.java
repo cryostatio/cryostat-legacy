@@ -46,8 +46,6 @@ import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
-import com.google.gson.Gson;
-
 import io.cryostat.ApplicationVersion;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
@@ -57,6 +55,8 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.util.HttpStatusCodeIdentifier;
+
+import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;

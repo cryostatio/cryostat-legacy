@@ -47,6 +47,7 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
@@ -70,7 +71,6 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
     private final WebClient webClient;
-    private static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
     private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
@@ -114,7 +114,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         try {
-            URL uploadUrl = new URL(env.getEnv(GRAFANA_DATASOURCE_ENV));
+            URL uploadUrl = new URL(env.getEnv(Variables.GRAFANA_DATASOURCE_ENV));
             boolean isValidUploadUrl =
                     new UrlValidator(UrlValidator.ALLOW_LOCAL_URLS).isValid(uploadUrl.toString());
             if (!isValidUploadUrl) {
@@ -122,7 +122,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
                         501,
                         String.format(
                                 "$%s=%s is an invalid datasource URL",
-                                GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
+                                Variables.GRAFANA_DATASOURCE_ENV, uploadUrl.toString()));
             }
             ResponseMessage response = doPost(recordingName, uploadUrl);
             if (!HttpStatusCodeIdentifier.isSuccessCode(response.statusCode)
