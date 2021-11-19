@@ -53,19 +53,19 @@ import io.cryostat.recordings.RecordingArchiveHelper;
 class ArchivedRecordingReportCache {
 
     protected final FileSystem fs;
-    protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
+    protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final ReentrantLock generationLock;
     protected final Logger logger;
     protected final RecordingArchiveHelper recordingArchiveHelper;
 
     ArchivedRecordingReportCache(
             FileSystem fs,
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             Logger logger,
             RecordingArchiveHelper recordingArchiveHelper) {
         this.fs = fs;
-        this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
+        this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.generationLock = generationLock;
         this.logger = logger;
         this.recordingArchiveHelper = recordingArchiveHelper;
@@ -90,7 +90,7 @@ class ArchivedRecordingReportCache {
 
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             Path saveFile =
-                    subprocessReportGeneratorProvider.get().exec(archivedRecording, dest).get();
+                    reportGeneratorServiceProvider.get().exec(archivedRecording, dest).get();
             f.complete(saveFile);
         } catch (Exception e) {
             logger.error(e);

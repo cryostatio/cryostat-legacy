@@ -80,7 +80,7 @@ class SubprocessReportGeneratorTest {
     @Mock Logger logger;
     @Mock Process proc;
     ConnectionDescriptor connectionDescriptor;
-    SubprocessReportGenerator.RecordingDescriptor recordingDescriptor;
+    RecordingDescriptor recordingDescriptor;
     @Mock Path recordingFile;
     @Mock Path tempFile1;
     @Mock Path tempFile2;
@@ -91,9 +91,7 @@ class SubprocessReportGeneratorTest {
     void setup() throws Exception {
         connectionDescriptor =
                 new ConnectionDescriptor("fooHost:1234", new Credentials("someUser", "somePass"));
-        recordingDescriptor =
-                new SubprocessReportGenerator.RecordingDescriptor(
-                        connectionDescriptor, "testRecording");
+        recordingDescriptor = new RecordingDescriptor(connectionDescriptor, "testRecording");
 
         tempFileProvider = Mockito.mock(Provider.class);
         Mockito.lenient().when(tempFileProvider.get()).thenReturn(tempFile1).thenReturn(tempFile2);

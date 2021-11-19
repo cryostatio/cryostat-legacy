@@ -12,6 +12,8 @@ function runCryostat() {
         GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}" \
         CRYOSTAT_RJMX_USER=smoketest \
         CRYOSTAT_RJMX_PASS=smoketest \
+        CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
+        CRYOSTAT_REPORT_GENERATOR="http://0.0.0.0:10001" \
         exec "$DIR/run.sh"
 }
 
@@ -76,6 +78,14 @@ function runGrafana() {
         --rm -d "${stream}:${tag}"
 }
 
+function runReportGenerator() {
+    podman run \
+        --name reports \
+        --pod cryostat \
+        --env QUARKUS_HTTP_PORT=10001 \
+        --rm -d quay.io/andrewazores/cryostat-reports:1.0.0-SNAPSHOT
+}
+
 function createPod() {
     local jmxPort="$(xpath -q -e 'project/properties/cryostat.rjmxPort/text()' pom.xml)"
     local webPort="$(xpath -q -e 'project/properties/cryostat.webPort/text()' pom.xml)"
@@ -97,7 +107,8 @@ function createPod() {
         --publish 9999:9999 \
         --publish 8082:8082 \
         --publish 9990:9990 \
-        --publish 9991:9991
+        --publish 9991:9991 \
+        --publish 10001:10001
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo-1 RJMX
     # 9094: vertx-fib-demo-2 RJMX
@@ -107,6 +118,7 @@ function createPod() {
     # 8082: Wildfly HTTP
     # 9990: Wildfly Admin Console
     # 9990: Wildfly RJMX
+    # 10001: cryostat-reports
 }
 
 function destroyPod() {
@@ -119,4 +131,5 @@ createPod
 runDemoApps
 runJfrDatasource
 runGrafana
+runReportGenerator
 runCryostat

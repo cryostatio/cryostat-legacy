@@ -57,6 +57,8 @@ import io.cryostat.util.JavaProcess;
 
 import dagger.Module;
 import dagger.Provides;
+import io.vertx.core.Vertx;
+import io.vertx.ext.web.client.WebClient;
 
 @Module(
         includes = {
@@ -77,13 +79,13 @@ public abstract class ReportsModule {
     @Provides
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             TargetConnectionManager targetConnectionManager,
             Logger logger) {
         return new ActiveRecordingReportCache(
-                subprocessReportGeneratorProvider,
+                reportGeneratorServiceProvider,
                 fs,
                 generationLock,
                 targetConnectionManager,
@@ -91,8 +93,53 @@ public abstract class ReportsModule {
     }
 
     @Provides
+    @Singleton
+    static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
+            FileSystem fs,
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
+            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
+            Logger logger,
+            RecordingArchiveHelper recordingArchiveHelper) {
+        return new ArchivedRecordingReportCache(
+                fs, reportGeneratorServiceProvider, generationLock, logger, recordingArchiveHelper);
+    }
+
+    @Provides
     static JavaProcess.Builder provideJavaProcessBuilder() {
         return new JavaProcess.Builder();
+    }
+
+    @Provides
+    static ReportGeneratorService provideReportGeneratorService(
+            Environment env,
+            RemoteReportGenerator remoteGenerator,
+            SubprocessReportGenerator subprocessGenerator) {
+        if (env.getEnv("CRYOSTAT_REPORT_GENERATOR", "subprocess").equals("subprocess")) {
+            return subprocessGenerator;
+        }
+        return remoteGenerator;
+    }
+
+    @Provides
+    static RemoteReportGenerator provideRemoteReportGenerator(
+            TargetConnectionManager targetConnectionManager,
+            FileSystem fs,
+            Vertx vertx,
+            WebClient http,
+            Environment env,
+            Logger logger) {
+        // TODO extract this so it's reusable and not duplicated
+        Provider<Path> tempFileProvider =
+                () -> {
+                    try {
+                        return Files.createTempFile(null, null);
+                    } catch (IOException e) {
+                        logger.error(e);
+                        throw new RuntimeException(e);
+                    }
+                };
+        return new RemoteReportGenerator(
+                targetConnectionManager, fs, tempFileProvider, vertx, http, env, logger);
     }
 
     @Provides
@@ -120,22 +167,6 @@ public abstract class ReportsModule {
                 javaProcessBuilder,
                 tempFileProvider,
                 logger);
-    }
-
-    @Provides
-    @Singleton
-    static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
-            FileSystem fs,
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
-            @Named(REPORT_GENERATION_LOCK) ReentrantLock generationLock,
-            Logger logger,
-            RecordingArchiveHelper recordingArchiveHelper) {
-        return new ArchivedRecordingReportCache(
-                fs,
-                subprocessReportGeneratorProvider,
-                generationLock,
-                logger,
-                recordingArchiveHelper);
     }
 
     @Provides
