@@ -39,10 +39,6 @@ if [ -z "$CRYOSTAT_AUTH_MANAGER" ]; then
     CRYOSTAT_AUTH_MANAGER="io.cryostat.net.NoopAuthManager"
 fi
 
-if [ -z "$CRYOSTAT_REPORT_GENERATOR" ]; then
-    CRYOSTAT_REPORT_GENERATOR="subprocess"
-fi
-
 if [ -z "$CRYOSTAT_REPORT_GENERATION_MAX_HEAP" ]; then
     CRYOSTAT_REPORT_GENERATION_MAX_HEAP="200"
 fi

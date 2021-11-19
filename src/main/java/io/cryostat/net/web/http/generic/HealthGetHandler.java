@@ -119,7 +119,8 @@ class HealthGetHandler implements RequestHandler {
 
         checkUri(Variables.GRAFANA_DATASOURCE_ENV, "/", datasourceAvailable);
         checkUri(Variables.GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
-        if (this.env.getEnv(Variables.REPORT_GENERATOR_ENV, "subprocess").equals("subprocess")) {
+        if (!this.env.hasEnv(Variables.REPORT_GENERATOR_ENV)) {
+            // using subprocess generation, so it is available
             reportsAvailable.complete(true);
         } else {
             checkUri(Variables.REPORT_GENERATOR_ENV, "/health", reportsAvailable);

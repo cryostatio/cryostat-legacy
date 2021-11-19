@@ -96,10 +96,10 @@ public abstract class ReportsModule {
             Environment env,
             RemoteReportGenerator remoteGenerator,
             SubprocessReportGenerator subprocessGenerator) {
-        if (env.getEnv("CRYOSTAT_REPORT_GENERATOR", "subprocess").equals("subprocess")) {
-            return subprocessGenerator;
+        if (env.hasEnv("CRYOSTAT_REPORT_GENERATOR")) {
+            return remoteGenerator;
         }
-        return remoteGenerator;
+        return subprocessGenerator;
     }
 
     @Provides
