@@ -107,8 +107,10 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
 
         CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.eq("someRecording")))
-               .thenReturn(future);
+        Mockito.when(
+                        recordingTargetHelper.deleteRecording(
+                                Mockito.any(), Mockito.eq("someRecording")))
+                .thenReturn(future);
 
         handler.handleAuthenticated(ctx);
 
@@ -122,21 +124,21 @@ class TargetRecordingDeleteHandlerTest {
         Mockito.when(ctx.pathParam("recordingName")).thenReturn("someRecording");
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(ctx.request().headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        
+
         CompletableFuture<Void> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.eq("someRecording")))
-               .thenReturn(future);
+        Mockito.when(
+                        recordingTargetHelper.deleteRecording(
+                                Mockito.any(), Mockito.eq("someRecording")))
+                .thenReturn(future);
         ExecutionException ee = Mockito.mock(ExecutionException.class);
         Mockito.when(future.get()).thenThrow(ee);
-        Mockito.when(ee.getCause()).thenReturn(new RecordingNotFoundException("someTarget", "someRecording"));
+        Mockito.when(ee.getCause())
+                .thenReturn(new RecordingNotFoundException("someTarget", "someRecording"));
 
         HttpStatusException ex =
                 Assertions.assertThrows(
                         HttpStatusException.class, () -> handler.handleAuthenticated(ctx));
 
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(404));
-        MatcherAssert.assertThat(
-                ex.getPayload(),
-                Matchers.equalTo("Recording someRecording not found in target someTarget"));
     }
 }

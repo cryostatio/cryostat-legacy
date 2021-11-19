@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -175,7 +174,10 @@ class TargetRecordingGetHandlerTest {
         CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
         when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
                 .thenReturn(future);
-        when(future.get()).thenThrow(new ExecutionException("fake exception for testing purposes", new NullPointerException()));
+        when(future.get())
+                .thenThrow(
+                        new ExecutionException(
+                                "fake exception for testing purposes", new NullPointerException()));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -211,7 +213,7 @@ class TargetRecordingGetHandlerTest {
         byte[] src = new byte[1024 * 1024];
         new Random(123456).nextBytes(src);
         CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
-        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq(recordingName)))
+        when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.eq("someRecording")))
                 .thenReturn(future);
         when(future.get()).thenReturn(Optional.of(new ByteArrayInputStream(src)));
 

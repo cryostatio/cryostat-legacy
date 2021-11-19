@@ -114,7 +114,7 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
         Optional<InputStream> stream =
                 recordingTargetHelper.getRecording(connectionDescriptor, recordingName).get();
-                
+
         if (stream.isEmpty()) {
             throw new HttpStatusException(404, String.format("%s not found", recordingName));
         }

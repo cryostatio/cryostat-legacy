@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
@@ -61,8 +62,6 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.HttpMimeType;
 
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -229,15 +228,18 @@ public class RecordingTargetHelperTest {
         Mockito.when(connection.getService()).thenReturn(service);
         Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
 
-        RecordingNotFoundException ex =
-                Assertions.assertThrows(
-                        RecordingNotFoundException.class,
-                        () ->
-                                recordingTargetHelper.deleteRecording(
-                                        connectionDescriptor, recordingName).get());
-        MatcherAssert.assertThat(
-                ex.getTargetId(), Matchers.equalTo(connectionDescriptor.getTargetId()));
-        MatcherAssert.assertThat(ex.getRecordingName(), Matchers.equalTo(recordingName));
+        Assertions.assertThrows(
+                ExecutionException.class,
+                () -> {
+                    try {
+                        recordingTargetHelper
+                                .deleteRecording(connectionDescriptor, recordingName)
+                                .get();
+                    } catch (ExecutionException ee) {
+                        Assertions.assertTrue(ee.getCause() instanceof RecordingNotFoundException);
+                        throw ee;
+                    }
+                });
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

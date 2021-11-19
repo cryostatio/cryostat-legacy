@@ -141,10 +141,11 @@ class TargetSnapshotPostHandlerTest {
                                 return task.execute(conn);
                             }
                         });
-
+        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(future);
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()).get())
-                .thenReturn(snapshotOptional);
+        Mockito.when(future.get()).thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
@@ -203,14 +204,20 @@ class TargetSnapshotPostHandlerTest {
                             }
                         });
 
+        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(future);
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()).get())
-                .thenReturn(snapshotOptional);
+        Mockito.when(future.get()).thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
         Mockito.when(snapshot.read()).thenReturn(-1);
-        Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.any()).get()).thenReturn(null);
+
+        CompletableFuture<Void> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(future2);
+        Mockito.when(future2.get()).thenReturn(null);
 
         handler.handle(ctx);
 
@@ -267,10 +274,11 @@ class TargetSnapshotPostHandlerTest {
                                 return task.execute(conn);
                             }
                         });
-
+        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
+                .thenReturn(future);
         Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()).get())
-                .thenReturn(snapshotOptional);
+        Mockito.when(future.get()).thenReturn(snapshotOptional);
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(true);
 
         HttpStatusException ex =

@@ -185,13 +185,15 @@ public class SnapshotIT extends StandardSelfTest {
                                             ar.result().statusCode(), Matchers.equalTo(202));
                                     MatcherAssert.assertThat(
                                             ar.result().statusMessage(),
-                                            Matchers.equalTo("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from"));
+                                            Matchers.equalTo(
+                                                    "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from"));
                                     result.complete(null);
                                 }
                             });
             result.get();
         } finally {
-            // The empty snapshot should've been deleted (i.e. there should be no recordings present)
+            // The empty snapshot should've been deleted (i.e. there should be no recordings
+            // present)
             CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
             webClient
                     .get(String.format("%s/recordings", TARGET_REQ_URL))
@@ -202,7 +204,7 @@ public class SnapshotIT extends StandardSelfTest {
                                 }
                             });
             JsonArray listResp = listRespFuture2.get();
-            //Assertions.assertTrue(listResp.isEmpty());
+            // Assertions.assertTrue(listResp.isEmpty());
         }
     }
 
@@ -396,13 +398,15 @@ public class SnapshotIT extends StandardSelfTest {
                                             ar.result().statusCode(), Matchers.equalTo(202));
                                     MatcherAssert.assertThat(
                                             ar.result().statusMessage(),
-                                            Matchers.equalTo("Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from"));
+                                            Matchers.equalTo(
+                                                    "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from"));
                                     result.complete(null);
                                 }
                             });
             result.get();
         } finally {
-            // The empty snapshot should've been deleted (i.e. there should be no recordings present)
+            // The empty snapshot should've been deleted (i.e. there should be no recordings
+            // present)
             CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
             webClient
                     .get(String.format("%s/recordings", TARGET_REQ_URL))
@@ -413,7 +417,7 @@ public class SnapshotIT extends StandardSelfTest {
                                 }
                             });
             JsonArray listResp = listRespFuture2.get();
-            //Assertions.assertTrue(listResp.isEmpty());
+            // Assertions.assertTrue(listResp.isEmpty());
         }
     }
 

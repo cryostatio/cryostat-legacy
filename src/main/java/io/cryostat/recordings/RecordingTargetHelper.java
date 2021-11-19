@@ -170,30 +170,29 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
-
-
     public Future<Optional<InputStream>> getRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
         CompletableFuture<Optional<InputStream>> future = new CompletableFuture<>();
         try {
-            Optional<InputStream> recording = 
-                targetConnectionManager.executeConnectedTask(
-                    connectionDescriptor,
-                    conn ->
-                            conn.getService().getAvailableRecordings().stream()
-                                    .filter(r -> Objects.equals(recordingName, r.getName()))
-                                    .map(
-                                            desc -> {
-                                                try {
-                                                    return conn.getService().openStream(desc, false);
-                                                } catch (Exception e) {
-                                                    logger.error(e);
-                                                    return null;
-                                                }
-                                            })
-                                    .filter(Objects::nonNull)
-                                    .findFirst());
-            
+            Optional<InputStream> recording =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            conn ->
+                                    conn.getService().getAvailableRecordings().stream()
+                                            .filter(r -> Objects.equals(recordingName, r.getName()))
+                                            .map(
+                                                    desc -> {
+                                                        try {
+                                                            return conn.getService()
+                                                                    .openStream(desc, false);
+                                                        } catch (Exception e) {
+                                                            logger.error(e);
+                                                            return null;
+                                                        }
+                                                    })
+                                            .filter(Objects::nonNull)
+                                            .findFirst());
+
             future.complete(recording);
         } catch (Exception e) {
             future.completeExceptionally(e);
@@ -201,7 +200,8 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<Void> deleteRecording(ConnectionDescriptor connectionDescriptor, String recordingName) {
+    public Future<Void> deleteRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             String targetId = connectionDescriptor.getTargetId();
@@ -210,7 +210,9 @@ public class RecordingTargetHelper {
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
                                 connection.getService().getAvailableRecordings().stream()
-                                        .filter(recording -> recording.getName().equals(recordingName))
+                                        .filter(
+                                                recording ->
+                                                        recording.getName().equals(recordingName))
                                         .findFirst();
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
