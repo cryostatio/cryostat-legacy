@@ -198,8 +198,9 @@ public abstract class NetworkModule {
     @Provides
     @Singleton
     static OpenShiftAuthManager provideOpenShiftAuthManager(
-            Logger logger, FileSystem fs, WebClient webClient) {
+            Environment env, Logger logger, FileSystem fs, WebClient webClient) {
         return new OpenShiftAuthManager(
+                env,
                 logger,
                 fs,
                 token ->

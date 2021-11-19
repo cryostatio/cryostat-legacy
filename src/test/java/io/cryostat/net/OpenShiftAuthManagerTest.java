@@ -50,6 +50,7 @@ import java.util.function.Function;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
@@ -93,6 +94,7 @@ class OpenShiftAuthManagerTest {
     static final String TOKEN_REVIEW_API_PATH = "/apis/authentication.k8s.io/v1/tokenreviews";
 
     OpenShiftAuthManager mgr;
+    @Mock Environment env;
     @Mock FileSystem fs;
     @Mock Logger logger;
     @Mock WebClient webClient;
@@ -113,7 +115,7 @@ class OpenShiftAuthManagerTest {
     void setup() {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        mgr = new OpenShiftAuthManager(logger, fs, tokenProvider, webClient);
+        mgr = new OpenShiftAuthManager(env, logger, fs, tokenProvider, webClient);
     }
 
     @Test

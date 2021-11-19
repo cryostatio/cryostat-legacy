@@ -57,6 +57,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
@@ -86,6 +87,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static final Set<GroupResource> PERMISSION_NOT_REQUIRED =
             Set.of(GroupResource.PERMISSION_NOT_REQUIRED);
 
+    private final Environment env;
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
     private final WebClient webClient;
@@ -96,11 +98,13 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
 
     OpenShiftAuthManager(
+            Environment env,
             Logger logger,
             FileSystem fs,
             Function<String, OpenShiftClient> clientProvider,
             WebClient webClient) {
         super(logger);
+        this.env = env;
         this.fs = fs;
         this.clientProvider = clientProvider;
         this.webClient = webClient;
@@ -345,10 +349,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
         try {
             String clientId =
-                    String.format("system:serviceaccount:%s:cryostat-sample", this.getNamespace());
+                    String.format("system:serviceaccount:%s:%s", this.getNamespace(), env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
             String scope =
                     String.format(
-                            "user:check-access role:cryostat-operator-cryostat:%s",
+                            "user:check-access role:%s:%s", env.getEnv("CRYOSTAT_OAUTH_ROLE"),
                             this.getNamespace());
 
             webClient
