@@ -154,11 +154,15 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
         PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
-        int b = pushbackSnapshot.read();
-        if (b != -1) {
-            pushbackSnapshot.unread(b);
-            return false;
+        try {
+            int b = pushbackSnapshot.read();
+            if (b != -1) {
+                pushbackSnapshot.unread(b);
+                return false;
+            }
+            return true;
+        } catch (IOException e) {
+            return true;
         }
-        return true;
     }
 }
