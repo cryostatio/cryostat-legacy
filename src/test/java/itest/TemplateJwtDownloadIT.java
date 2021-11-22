@@ -35,45 +35,43 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package itest;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import itest.bases.JwtAssetsSelfTest;
+import itest.util.Utils;
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+public class TemplateJwtDownloadIT extends JwtAssetsSelfTest {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    @Test
+    void testDownloadRecordingUsingJwt() throws Exception {
+        URL resource = null;
+        Path assetDownload = null;
+        try {
+            resource =
+                    new URL(
+                            String.format(
+                                    "http://%s:%d/api/beta/targets/%s/templates/Profiling/type/TARGET",
+                                    Utils.WEB_HOST, Utils.WEB_PORT, SELF_REFERENCE_TARGET_ID));
+            String downloadUrl = getTokenDownloadUrl(resource);
+            assetDownload =
+                    downloadFileAbs(downloadUrl, "Profiling", ".jfc")
+                            .get(REQUEST_TIMEOUT_SECONDS, TimeUnit.SECONDS);
+            Assertions.assertTrue(Files.isReadable(assetDownload));
+            Assertions.assertTrue(Files.isRegularFile(assetDownload));
+            MatcherAssert.assertThat(assetDownload.toFile().length(), Matchers.greaterThan(0L));
+        } finally {
+            if (assetDownload != null) {
+                Files.deleteIfExists(assetDownload);
+            }
+        }
+    }
 }

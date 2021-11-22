@@ -53,6 +53,7 @@ import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.net.reports.ReportsModule;
+import io.cryostat.net.security.SecurityModule;
 import io.cryostat.net.web.WebModule;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
@@ -71,6 +72,7 @@ import io.vertx.ext.web.client.WebClientOptions;
         includes = {
             WebModule.class,
             ReportsModule.class,
+            SecurityModule.class,
         })
 public abstract class NetworkModule {
 
