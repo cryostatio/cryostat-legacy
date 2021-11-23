@@ -86,16 +86,16 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private static final Set<GroupResource> PERMISSION_NOT_REQUIRED =
             Set.of(GroupResource.PERMISSION_NOT_REQUIRED);
+    private final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
+    private final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
+    private final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
 
     private final Environment env;
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
     private final WebClient webClient;
 
-    private final CompletableFuture<String> authUrl = new CompletableFuture<>();
-    private final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
-    private final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
-    private final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
+    private final CompletableFuture<String> redirectUrl = new CompletableFuture<>();
 
     OpenShiftAuthManager(
             Environment env,
@@ -134,9 +134,9 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Optional<IntermediateResponse<UserInfo>> sendRedirectIfRequired(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) throws ExecutionException, InterruptedException {
-
+    public Optional<IntermediateResponse<UserInfo>> sendLoginRedirectIfRequired(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
+            throws ExecutionException, InterruptedException {
         Boolean hasValidHeader = false;
         try {
             hasValidHeader = this.validateHttpHeader(headerProvider, resourceActions).get();
@@ -144,7 +144,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             if (hasValidHeader) {
                 return Optional.empty();
             }
-
             return Optional.of(this.getOAuthRedirectResponse().get());
         } catch (ExecutionException ee) {
             return Optional.of(this.getOAuthRedirectResponse().get());
@@ -158,7 +157,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         if (StringUtils.isBlank(token)) {
             return CompletableFuture.completedFuture(false);
         }
-
         if (resourceActions.isEmpty()) {
             return reviewToken(token);
         }
@@ -342,18 +340,20 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private Future<String> computeAuthorizationEndpoint()
             throws ExecutionException, InterruptedException {
 
-        if (authUrl.isDone()) {
-            return authUrl;
+        if (redirectUrl.isDone()) {
+            return redirectUrl;
         }
 
         CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
         try {
             String clientId =
-                    String.format("system:serviceaccount:%s:%s", this.getNamespace(), env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
+                    String.format(
+                            "system:serviceaccount:%s:%s",
+                            this.getNamespace(), env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
             String scope =
                     String.format(
-                            "user:check-access role:%s:%s", env.getEnv("CRYOSTAT_OAUTH_ROLE"),
-                            this.getNamespace());
+                            "user:check-access role:%s:%s",
+                            env.getEnv("CRYOSTAT_OAUTH_ROLE"), this.getNamespace());
 
             webClient
                     .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
@@ -364,7 +364,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                     oauthMetadata.completeExceptionally(ar.cause());
                                     return;
                                 }
-
                                 oauthMetadata.complete(ar.result().bodyAsJsonObject());
                             });
 
@@ -376,11 +375,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             builder.addParameter("response_mode", "fragment");
             builder.addParameter("scope", scope);
 
-            authUrl.complete(builder.build().toString());
+            redirectUrl.complete(builder.build().toString());
         } catch (URISyntaxException | IOException e) {
-            authUrl.completeExceptionally(e);
+            redirectUrl.completeExceptionally(e);
         }
-        return authUrl;
+        return redirectUrl;
     }
 
     @SuppressFBWarnings(

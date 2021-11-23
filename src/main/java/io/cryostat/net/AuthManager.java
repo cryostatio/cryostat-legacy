@@ -52,8 +52,9 @@ public interface AuthManager {
 
     Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
 
-    Optional<IntermediateResponse<UserInfo>> sendRedirectIfRequired(
-        Supplier<String> headerProvider, Set<ResourceAction> resourceActions) throws ExecutionException, InterruptedException;
+    Optional<IntermediateResponse<UserInfo>> sendLoginRedirectIfRequired(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
+            throws ExecutionException, InterruptedException;
 
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
@@ -66,5 +67,4 @@ public interface AuthManager {
 
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
-
 }
