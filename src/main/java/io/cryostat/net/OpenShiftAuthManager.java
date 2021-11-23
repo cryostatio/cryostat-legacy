@@ -146,7 +146,13 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             }
             return Optional.of(this.getOAuthRedirectResponse().get());
         } catch (ExecutionException ee) {
-            return Optional.of(this.getOAuthRedirectResponse().get());
+            Throwable cause = ee.getCause();
+            if (cause instanceof PermissionDeniedException
+                    || cause instanceof AuthorizationErrorException
+                    || cause instanceof KubernetesClientException) {
+                return Optional.of(this.getOAuthRedirectResponse().get());
+            }
+            throw ee;
         }
     }
 

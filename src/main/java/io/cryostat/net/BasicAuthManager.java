@@ -167,6 +167,9 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     private Pair<String, String> splitCredentials(String credentials) {
+        if (credentials == null) {
+            return null;
+        }
         Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
         Matcher matcher = credentialsPattern.matcher(credentials);
         if (!matcher.matches()) {

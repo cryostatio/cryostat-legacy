@@ -39,10 +39,12 @@ package io.cryostat.net.web.http.api.v2;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.UnknownUserException;
 import io.cryostat.net.UserInfo;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
@@ -98,23 +100,31 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
     @Override
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
 
-        Optional<IntermediateResponse<UserInfo>> redirectResponse =
-                auth.sendLoginRedirectIfRequired(
-                        () -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
-                        resourceActions());
+        try {
+            Optional<IntermediateResponse<UserInfo>> redirectResponse =
+                    auth.sendLoginRedirectIfRequired(
+                            () -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
+                            resourceActions());
 
-        if (!redirectResponse.isEmpty()) {
-            return redirectResponse.get();
+            if (!redirectResponse.isEmpty()) {
+                return redirectResponse.get();
+            }
+
+            return new IntermediateResponse<UserInfo>()
+                    .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString())
+                    .body(
+                            auth.getUserInfo(
+                                            () ->
+                                                    requestParams
+                                                            .getHeaders()
+                                                            .get(HttpHeaders.AUTHORIZATION))
+                                    .get());
+        } catch (ExecutionException ee) {
+            Throwable cause = ee.getCause();
+            if (cause instanceof UnknownUserException) {
+                throw new ApiException(401, "HTTP Authorization Failure", ee);
+            }
+            throw new ApiException(500, ee);
         }
-
-        return new IntermediateResponse<UserInfo>()
-                .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString())
-                .body(
-                        auth.getUserInfo(
-                                        () ->
-                                                requestParams
-                                                        .getHeaders()
-                                                        .get(HttpHeaders.AUTHORIZATION))
-                                .get());
     }
 }
