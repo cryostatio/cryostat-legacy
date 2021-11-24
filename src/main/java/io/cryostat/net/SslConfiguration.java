@@ -49,7 +49,7 @@ import io.vertx.core.net.PemKeyCertOptions;
 import io.vertx.core.net.PfxOptions;
 import org.apache.commons.lang3.tuple.Pair;
 
-class SslConfiguration {
+public class SslConfiguration {
     private final Environment env;
     private final FileSystem fs;
     private final Logger logger;
@@ -66,6 +66,12 @@ class SslConfiguration {
         this.env = env;
         this.fs = fs;
         this.logger = logger;
+
+        if (env.hasEnv("CRYOSTAT_DISABLE_SSL")) {
+            strategy = new NoSslStrategy();
+            logger.info("Selected NoSSL strategy");
+            return;
+        }
 
         {
             Path path = obtainKeyStorePathIfSpecified();
@@ -199,11 +205,11 @@ class SslConfiguration {
         return Pair.of(key, cert);
     }
 
-    HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
+    public HttpServerOptions applyToHttpServerOptions(HttpServerOptions options) {
         return strategy.applyToHttpServerOptions(options);
     }
 
-    boolean enabled() {
+    public boolean enabled() {
         return strategy.enabled();
     }
 

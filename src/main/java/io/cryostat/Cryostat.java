@@ -37,6 +37,7 @@
  */
 package io.cryostat;
 
+import java.security.Security;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Singleton;
@@ -52,12 +53,15 @@ import io.cryostat.platform.PlatformClient;
 import io.cryostat.rules.RuleProcessor;
 import io.cryostat.rules.RuleRegistry;
 
+import com.nimbusds.jose.crypto.bc.BouncyCastleProviderSingleton;
 import dagger.Component;
 
 class Cryostat {
 
     public static void main(String[] args) throws Exception {
         CryostatCore.initialize();
+
+        Security.addProvider(BouncyCastleProviderSingleton.getInstance());
 
         final Logger logger = Logger.INSTANCE;
         final Environment environment = new Environment();
