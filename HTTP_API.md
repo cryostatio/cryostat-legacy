@@ -1029,6 +1029,9 @@
     ###### response
     `200` - The body is the name of the recording.
 
+    `202` - The request was accepted but the recording failed to create
+    due to a lack of active recordings to take event data from.
+
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
     the authentication scheme that is used.
@@ -1403,6 +1406,9 @@ The handler-specific descriptions below describe how each handler populates the
     `201` - The response is a descriptor of the newly created recording, in the form
     `{"downloadUrl":"$DOWNLOAD_URL","reportUrl":"$REPORT_URL","id":$ID,"name":"$NAME","state":"$STATE","startTime":$START_TIME,"duration":$DURATION,"continuous":$CONTINUOUS,"toDisk":$TO_DISK,"maxSize":$MAX_SIZE,"maxAge":$MAX_AGE}`. The `Location` header will also be set
     to the same URL as in the `downloadUrl` field.
+
+    `202` - The request was accepted but the recording failed to create
+    due to a lack of active recordings to take event data from.
 
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
