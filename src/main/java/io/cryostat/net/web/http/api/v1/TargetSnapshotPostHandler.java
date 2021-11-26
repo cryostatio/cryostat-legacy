@@ -156,13 +156,15 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
         try {
             int b = pushbackSnapshot.read();
-            if (b != -1) {
-                pushbackSnapshot.unread(b);
-                return false;
-            }
-            return true;
+            pushbackSnapshot.unread(
+                    b); // If this point is reached (i.e. no IOException is thrown) the stream must
+            // be non-empty so push back the last read byte
+            return false;
         } catch (IOException e) {
-            return true;
+            if (e.getMessage().equals("java.io.IOException: No recording data available")) {
+                return true;
+            }
+            throw e;
         }
     }
 }

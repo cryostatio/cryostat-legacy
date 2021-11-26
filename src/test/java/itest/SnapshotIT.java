@@ -204,7 +204,7 @@ public class SnapshotIT extends StandardSelfTest {
                                 }
                             });
             JsonArray listResp = listRespFuture2.get();
-            // Assertions.assertTrue(listResp.isEmpty());
+            Assertions.assertTrue(listResp.isEmpty());
         }
     }
 
@@ -417,7 +417,7 @@ public class SnapshotIT extends StandardSelfTest {
                                 }
                             });
             JsonArray listResp = listRespFuture2.get();
-            // Assertions.assertTrue(listResp.isEmpty());
+            Assertions.assertTrue(listResp.isEmpty());
         }
     }
 

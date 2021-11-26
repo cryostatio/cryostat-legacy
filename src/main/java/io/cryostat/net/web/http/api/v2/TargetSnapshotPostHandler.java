@@ -183,12 +183,18 @@ class TargetSnapshotPostHandler
 
     private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
         PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
-        int b = pushbackSnapshot.read();
-        if (b != -1) {
-            pushbackSnapshot.unread(b);
+        try {
+            int b = pushbackSnapshot.read();
+            pushbackSnapshot.unread(
+                    b); // If this point is reached (i.e. no IOException is thrown) the stream must
+            // be non-empty so push back the last read byte
             return false;
+        } catch (IOException e) {
+            if (e.getMessage().equals("java.io.IOException: No recording data available")) {
+                return true;
+            }
+            throw e;
         }
-        return true;
     }
 
     static class SnapshotDescriptor extends HyperlinkedSerializableRecordingDescriptor {

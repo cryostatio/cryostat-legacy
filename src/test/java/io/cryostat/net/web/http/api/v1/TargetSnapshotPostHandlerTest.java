@@ -37,6 +37,7 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.Optional;
 import java.util.Set;
@@ -149,7 +150,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
-        Mockito.when(snapshot.read()).thenReturn(0);
+        Mockito.when(snapshot.read()).thenReturn(1);
 
         handler.handle(ctx);
 
@@ -212,7 +213,8 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
-        Mockito.when(snapshot.read()).thenReturn(-1);
+        IOException e = new IOException("java.io.IOException: No recording data available");
+        Mockito.when(snapshot.read()).thenThrow(e);
 
         CompletableFuture<Void> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.any()))
