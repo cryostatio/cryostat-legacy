@@ -38,6 +38,7 @@
 package io.cryostat.net;
 
 import java.io.IOException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -46,6 +47,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -86,16 +88,14 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private static final Set<GroupResource> PERMISSION_NOT_REQUIRED =
             Set.of(GroupResource.PERMISSION_NOT_REQUIRED);
-    private final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
-    private final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
-    private final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
+    private static final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
+    private static final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
+    private static final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
 
     private final Environment env;
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
     private final WebClient webClient;
-
-    private final CompletableFuture<String> redirectUrl = new CompletableFuture<>();
 
     OpenShiftAuthManager(
             Environment env,
@@ -297,7 +297,9 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         try {
             return CompletableFuture.completedFuture(
                     new IntermediateResponse<UserInfo>()
-                            .addHeader("X-Location", this.computeAuthorizationEndpoint().get())
+                            .addHeader(
+                                    "X-Location",
+                                    this.computeAuthorizationEndpoint().get().toString())
                             .addHeader("access-control-expose-headers", "Location")
                             .statusCode(302));
         } catch (ExecutionException | InterruptedException e) {
@@ -343,49 +345,52 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private Future<String> computeAuthorizationEndpoint()
-            throws ExecutionException, InterruptedException {
+    private Future<URI> computeAuthorizationEndpoint() {
 
-        if (redirectUrl.isDone()) {
-            return redirectUrl;
-        }
+        return CompletableFuture.supplyAsync(
+                () -> {
+                    CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
+                    try {
+                        String namespace = this.getNamespace();
+                        String clientId =
+                                String.format(
+                                        "system:serviceaccount:%s:%s",
+                                        namespace, env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
 
-        CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
-        try {
-            String clientId =
-                    String.format(
-                            "system:serviceaccount:%s:%s",
-                            this.getNamespace(), env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
-            String scope =
-                    String.format(
-                            "user:check-access role:%s:%s",
-                            env.getEnv("CRYOSTAT_OAUTH_ROLE"), this.getNamespace());
+                        String scope =
+                                String.format(
+                                        "user:check-access role:%s:%s",
+                                        env.getEnv("CRYOSTAT_OAUTH_ROLE"), namespace);
 
-            webClient
-                    .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
-                    .putHeader("Accept", "application/json")
-                    .send(
-                            ar -> {
-                                if (ar.failed()) {
-                                    oauthMetadata.completeExceptionally(ar.cause());
-                                    return;
-                                }
-                                oauthMetadata.complete(ar.result().bodyAsJsonObject());
-                            });
+                        webClient
+                                .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
+                                .putHeader("Accept", "application/json")
+                                .send(
+                                        ar -> {
+                                            if (ar.failed()) {
+                                                oauthMetadata.completeExceptionally(ar.cause());
+                                                return;
+                                            }
+                                            oauthMetadata.complete(ar.result().bodyAsJsonObject());
+                                        });
 
-            String authorizeEndpoint = oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY);
+                        String authorizeEndpoint =
+                                oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY);
 
-            URIBuilder builder = new URIBuilder(authorizeEndpoint);
-            builder.addParameter("client_id", clientId);
-            builder.addParameter("response_type", "token");
-            builder.addParameter("response_mode", "fragment");
-            builder.addParameter("scope", scope);
+                        URIBuilder builder = new URIBuilder(authorizeEndpoint);
+                        builder.addParameter("client_id", clientId);
+                        builder.addParameter("response_type", "token");
+                        builder.addParameter("response_mode", "fragment");
+                        builder.addParameter("scope", scope);
 
-            redirectUrl.complete(builder.build().toString());
-        } catch (URISyntaxException | IOException e) {
-            redirectUrl.completeExceptionally(e);
-        }
-        return redirectUrl;
+                        return builder.build();
+                    } catch (ExecutionException
+                            | InterruptedException
+                            | URISyntaxException
+                            | IOException e) {
+                        throw new CompletionException(e);
+                    }
+                });
     }
 
     @SuppressFBWarnings(
