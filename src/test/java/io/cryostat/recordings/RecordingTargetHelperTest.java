@@ -42,7 +42,6 @@ import static org.mockito.Mockito.lenient;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
@@ -198,14 +197,6 @@ public class RecordingTargetHelperTest {
                                         arg.getTargetId()
                                                 .equals(connectionDescriptor.getTargetId())),
                         Mockito.eq(recordingName));
-
-        Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
-        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder)
-                .message(Map.of("recording", "someRecording", "target", "fooTarget"));
-        Mockito.verify(notificationBuilder).build();
-        Mockito.verify(notification).send();
     }
 
     @Test
