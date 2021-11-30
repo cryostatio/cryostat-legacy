@@ -185,8 +185,7 @@ class TargetSnapshotPostHandler
         PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
         try {
             int b = pushbackSnapshot.read();
-
-            // If the read was successful (i.e. no IOException is thrown) the stream must
+            // If the read was successful (i.e. no IOException was thrown) the stream must
             // be non-empty so push back the last read byte
             pushbackSnapshot.unread(b);
             return false;
