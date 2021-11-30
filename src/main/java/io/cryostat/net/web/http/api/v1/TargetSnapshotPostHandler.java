@@ -139,7 +139,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
                     500,
                     String.format(
                             "Successful creation verification of snapshot %s failed", result));
-        } else if (snapshotIsEmpty(snapshotOptional.get())) {
+        } else if (!snapshotIsReadable(snapshotOptional.get())) {
             recordingTargetHelper.deleteRecording(connectionDescriptor, result).get();
             ctx.response().setStatusCode(202);
             ctx.response()
@@ -152,19 +152,14 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         }
     }
 
-    private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
-        PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
+    private boolean snapshotIsReadable(InputStream snapshot) throws IOException {
         try {
+            PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
             int b = pushbackSnapshot.read();
-            // If this point is reached (i.e. no IOException was thrown) the stream must
-            // be non-empty so push back the last read byte
             pushbackSnapshot.unread(b);
-            return false;
+            return true;
         } catch (IOException e) {
-            if (e.getMessage().equals("java.io.IOException: No recording data available")) {
-                return true;
-            }
-            throw e;
+            return false;
         }
     }
 }

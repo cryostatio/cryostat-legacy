@@ -166,7 +166,7 @@ class TargetSnapshotPostHandler
                     String.format(
                             "Successful creation verification of snapshot %s failed",
                             snapshotName));
-        } else if (snapshotIsEmpty(snapshotOptional.get())) {
+        } else if (!snapshotIsReadable(snapshotOptional.get())) {
             recordingTargetHelper.deleteRecording(connectionDescriptor, snapshotName).get();
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                     .statusCode(202)
@@ -181,19 +181,14 @@ class TargetSnapshotPostHandler
         }
     }
 
-    private boolean snapshotIsEmpty(InputStream snapshot) throws IOException {
-        PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
+    private boolean snapshotIsReadable(InputStream snapshot) {
         try {
+            PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
             int b = pushbackSnapshot.read();
-            // If the read was successful (i.e. no IOException was thrown) the stream must
-            // be non-empty so push back the last read byte
             pushbackSnapshot.unread(b);
-            return false;
+            return true;
         } catch (IOException e) {
-            if (e.getMessage().equals("java.io.IOException: No recording data available")) {
-                return true;
-            }
-            throw e;
+            return false;
         }
     }
 
