@@ -66,7 +66,7 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
-    private static final String RECORDING_CREATION_NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
@@ -121,7 +121,7 @@ public class RecordingTargetHelper {
                                             enableEvents(connection, templateName, templateType));
                     notificationFactory
                             .createBuilder()
-                            .metaCategory(RECORDING_CREATION_NOTIFICATION_CATEGORY)
+                            .metaCategory(NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
                             .message(
                                     Map.of(
