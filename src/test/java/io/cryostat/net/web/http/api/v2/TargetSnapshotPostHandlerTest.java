@@ -280,7 +280,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.verify(resp).setStatusCode(202);
         Mockito.verify(resp)
                 .setStatusMessage(
-                        "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from");
+                        "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from");
     }
 
     @Test

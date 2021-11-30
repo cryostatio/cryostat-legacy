@@ -1030,7 +1030,8 @@
     `200` - The body is the name of the recording.
 
     `202` - The request was accepted but the recording failed to create
-    due to a lack of active recordings to take event data from.
+    because the resultant snapshot was unreadable. This could be due  
+    to a lack of active recordings to take event data from.
 
     `401` - User authentication failed. The body is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates
@@ -1408,7 +1409,8 @@ The handler-specific descriptions below describe how each handler populates the
     to the same URL as in the `downloadUrl` field.
 
     `202` - The request was accepted but the recording failed to create
-    due to a lack of active recordings to take event data from.
+    because the resultant snapshot was unreadable. This could be due  
+    to a lack of active recordings to take event data from.
 
     `401` - User authentication failed. The reason is an error message.
     There will be an `X-WWW-Authenticate: $SCHEME` header that indicates

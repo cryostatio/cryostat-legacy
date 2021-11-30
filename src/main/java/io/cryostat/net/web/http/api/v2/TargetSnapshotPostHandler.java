@@ -171,7 +171,7 @@ class TargetSnapshotPostHandler
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                     .statusCode(202)
                     .statusMessage(
-                            "Snapshot failed to create: Cryostat is not aware of any Active, non-Snapshot source recordings to take event data from")
+                            "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from")
                     .body(null);
         } else {
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
