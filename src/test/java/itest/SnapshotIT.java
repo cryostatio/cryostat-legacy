@@ -194,16 +194,16 @@ public class SnapshotIT extends StandardSelfTest {
         } finally {
             // The empty snapshot should've been deleted (i.e. there should be no recordings
             // present)
-            CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
+            CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
             webClient
                     .get(String.format("%s/recordings", TARGET_REQ_URL))
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, listRespFuture2)) {
-                                    listRespFuture2.complete(ar.result().bodyAsJsonArray());
+                                if (assertRequestStatus(ar, listRespFuture)) {
+                                    listRespFuture.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
-            JsonArray listResp = listRespFuture2.get();
+            JsonArray listResp = listRespFuture.get();
             Assertions.assertTrue(listResp.isEmpty());
         }
     }
@@ -407,16 +407,16 @@ public class SnapshotIT extends StandardSelfTest {
         } finally {
             // The empty snapshot should've been deleted (i.e. there should be no recordings
             // present)
-            CompletableFuture<JsonArray> listRespFuture2 = new CompletableFuture<>();
+            CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
             webClient
                     .get(String.format("%s/recordings", TARGET_REQ_URL))
                     .send(
                             ar -> {
-                                if (assertRequestStatus(ar, listRespFuture2)) {
-                                    listRespFuture2.complete(ar.result().bodyAsJsonArray());
+                                if (assertRequestStatus(ar, listRespFuture)) {
+                                    listRespFuture.complete(ar.result().bodyAsJsonArray());
                                 }
                             });
-            JsonArray listResp = listRespFuture2.get();
+            JsonArray listResp = listRespFuture.get();
             Assertions.assertTrue(listResp.isEmpty());
         }
     }
