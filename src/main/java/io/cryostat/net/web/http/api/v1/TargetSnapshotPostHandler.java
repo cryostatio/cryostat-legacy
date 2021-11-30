@@ -152,7 +152,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         }
     }
 
-    private boolean snapshotIsReadable(InputStream snapshot) throws IOException {
+    private boolean snapshotIsReadable(InputStream snapshot) {
         try {
             PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
             int b = pushbackSnapshot.read();
