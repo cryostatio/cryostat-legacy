@@ -37,12 +37,14 @@
  */
 package io.cryostat.net.reports;
 
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -74,12 +76,14 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.lang3.builder.EqualsBuilder;
 import org.apache.commons.lang3.builder.HashCodeBuilder;
 
 public class SubprocessReportGenerator {
 
     static final String SUBPROCESS_MAX_HEAP_ENV = "CRYOSTAT_REPORT_GENERATION_MAX_HEAP";
+    static final int READ_BUFFER_SIZE = 64 * 1024; // 64 KB
 
     private final Environment env;
     private final FileSystem fs;
@@ -190,16 +194,31 @@ public class SubprocessReportGenerator {
     Path getRecordingFromLiveTarget(String recordingName, ConnectionDescriptor cd)
             throws Exception {
         return this.targetConnectionManager.executeConnectedTask(
-                cd, conn -> copyRecordingToFile(conn, recordingName, tempFileProvider.get()));
+                cd, conn -> copyRecordingToFile(conn, cd, recordingName, tempFileProvider.get()));
     }
 
-    Path copyRecordingToFile(JFRConnection conn, String recordingName, Path path) throws Exception {
+    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
+    Path copyRecordingToFile(
+            JFRConnection conn, ConnectionDescriptor cd, String recordingName, Path path)
+            throws Exception {
         for (IRecordingDescriptor rec : conn.getService().getAvailableRecordings()) {
             if (!Objects.equals(rec.getName(), recordingName)) {
                 continue;
             }
-            try (InputStream stream = conn.getService().openStream(rec, false)) {
-                this.fs.copy(stream, path, StandardCopyOption.REPLACE_EXISTING);
+            try (conn;
+                    InputStream in = conn.getService().openStream(rec, false);
+                    OutputStream out =
+                            new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
+                byte[] buff = new byte[READ_BUFFER_SIZE];
+                int n = 0;
+                while ((n = in.read(buff)) != -1) {
+                    out.write(buff, 0, n);
+                    if (!targetConnectionManager.markConnectionInUse(cd)) {
+                        throw new IOException(
+                                "Target connection unexpectedly closed while streaming recording");
+                    }
+                }
+                out.flush();
                 return path;
             }
         }
