@@ -245,7 +245,8 @@ public class RuleProcessor
 
                         return null;
                     }
-                });
+                },
+                false);
     }
 
     private void startRuleRecording(ConnectionDescriptor connectionDescriptor, Rule rule)
@@ -276,6 +277,7 @@ public class RuleProcessor
                                 template.getRight());
                         return null;
                     }
-                });
+                },
+                false);
     }
 }

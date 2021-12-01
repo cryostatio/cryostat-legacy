@@ -141,7 +141,8 @@ public class RecordingArchiveHelper {
                                     throw new RecordingNotFoundException(
                                             "active recordings", recordingName);
                                 }
-                            });
+                            },
+                            false);
             future.complete(saveName);
             notificationFactory
                     .createBuilder()
