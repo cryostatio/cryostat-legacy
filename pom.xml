@@ -32,7 +32,6 @@
   <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
-  <cryostat.listenPort>9090</cryostat.listenPort>
   <cryostat.itest.webPort>8181</cryostat.itest.webPort>
   <cryostat.itest.webHost>localhost</cryostat.itest.webHost>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
@@ -590,7 +589,6 @@
           <mainClass>${cryostat.mainClass}</mainClass>
           <ports>
             <port>${cryostat.webPort}</port>
-            <port>${cryostat.listenPort}</port>
             <port>${cryostat.rjmxPort}</port>
           </ports>
         </container>
