@@ -90,7 +90,6 @@ class TargetSnapshotPostHandlerTest {
     @Mock AuthManager auth;
     @Mock WebServer webServer;
     @Mock TargetConnectionManager targetConnectionManager;
-    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
@@ -102,7 +101,6 @@ class TargetSnapshotPostHandlerTest {
                         auth,
                         targetConnectionManager,
                         () -> webServer,
-                        recordingOptionsBuilderFactory,
                         recordingTargetHelper,
                         gson);
     }

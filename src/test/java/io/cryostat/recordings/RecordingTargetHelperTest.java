@@ -78,6 +78,7 @@ public class RecordingTargetHelperTest {
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock NotificationFactory notificationFactory;
+    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
@@ -105,6 +106,7 @@ public class RecordingTargetHelperTest {
                         targetConnectionManager,
                         eventOptionsBuilderFactory,
                         notificationFactory,
+                        recordingOptionsBuilderFactory,
                         reportService,
                         logger);
     }
@@ -232,6 +234,25 @@ public class RecordingTargetHelperTest {
                     }
                 });
     }
+
+//     @Test
+//     void shouldCreateSnapshot() throws Exception {
+//         IRecordingDescriptor recordingDescriptor = Mockito.mock(IRecordingDescriptor.class);
+//         Mockito.when(recordingDescriptor.getName()).thenReturn("THESNAPSHOT");
+//         Mockito.when(recordingDescriptor.getId()).thenReturn(1234L);
+
+//         IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+//         JFRConnection conn = Mockito.mock(JFRConnection.class);
+//         Mockito.when(conn.getService()).thenReturn(svc);
+//         Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
+
+//         RecordingOptionsBuilder recordingOptionsBuilder =
+//                 Mockito.mock(RecordingOptionsBuilder.class);
+//         Mockito.when(recordingOptionsBuilderFactory.create(svc))
+//                 .thenReturn(recordingOptionsBuilder);
+//         IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
+//         Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);    
+//     }
 
     private static IRecordingDescriptor createDescriptor(String name)
             throws QuantityConversionException {

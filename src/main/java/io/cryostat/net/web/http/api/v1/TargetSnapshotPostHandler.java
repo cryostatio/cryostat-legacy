@@ -37,17 +37,10 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PushbackInputStream;
 import java.util.EnumSet;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
-
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -55,10 +48,10 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
+
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
@@ -66,18 +59,15 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final TargetConnectionManager targetConnectionManager;
-    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
     TargetSnapshotPostHandler(
             AuthManager auth,
             TargetConnectionManager targetConnectionManager,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             RecordingTargetHelper recordingTargetHelper) {
         super(auth);
         this.targetConnectionManager = targetConnectionManager;
-        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -113,25 +103,28 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
                 targetConnectionManager.executeConnectedTask(
                         connectionDescriptor,
                         connection -> {
-                            SnapshotMinimalDescriptor snapshot = recordingTargetHelper.createSnapshot(connection).get();
+                            SnapshotMinimalDescriptor snapshot =
+                                    recordingTargetHelper.createSnapshot(connection).get();
                             return snapshot.getName();
                         });
-    
+
         boolean verificationSuccessful = false;
         try {
-            verificationSuccessful = recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
+            verificationSuccessful =
+                    recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
         } catch (SnapshotCreationException e) {
             throw new HttpStatusException(
                     500,
                     String.format(
-                            "Successful creation verification of snapshot %s failed", snapshotName));
+                            "An error occured during the creation of snapshot %s",
+                            snapshotName));
         }
 
         if (!verificationSuccessful) {
             ctx.response().setStatusCode(202);
             ctx.response()
                     .setStatusMessage(
-                            "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from");
+                            String.format("Snapshot %s failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from", snapshotName));
             ctx.response().end();
         }
 

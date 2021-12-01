@@ -71,12 +71,14 @@ public abstract class RecordingsModule {
             TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             Logger logger) {
         return new RecordingTargetHelper(
                 targetConnectionManager,
                 eventOptionsBuilderFactory,
                 notificationFactory,
+                recordingOptionsBuilderFactory,
                 reportService,
                 logger);
     }

@@ -37,17 +37,12 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.PushbackInputStream;
 import java.util.EnumSet;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.inject.Inject;
 
 import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -73,7 +68,6 @@ class TargetSnapshotPostHandler
 
     private final TargetConnectionManager targetConnectionManager;
     private final Lazy<WebServer> webServer;
-    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
@@ -81,13 +75,11 @@ class TargetSnapshotPostHandler
             AuthManager auth,
             TargetConnectionManager targetConnectionManager,
             Lazy<WebServer> webServer,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             RecordingTargetHelper recordingTargetHelper,
             Gson gson) {
         super(auth, gson);
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
-        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -135,7 +127,8 @@ class TargetSnapshotPostHandler
                 targetConnectionManager.executeConnectedTask(
                         connectionDescriptor,
                         connection -> {
-                            SnapshotMinimalDescriptor snapshot = recordingTargetHelper.createSnapshot(connection).get();
+                            SnapshotMinimalDescriptor snapshot =
+                                    recordingTargetHelper.createSnapshot(connection).get();
                             String rename = snapshot.getName();
                             return new SnapshotDescriptor(
                                     rename,
@@ -147,12 +140,13 @@ class TargetSnapshotPostHandler
 
         boolean verificationSuccessful = false;
         try {
-            verificationSuccessful = recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
+            verificationSuccessful =
+                    recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
         } catch (SnapshotCreationException e) {
             throw new ApiException(
                     500,
                     String.format(
-                            "Successful creation verification of snapshot %s failed",
+                            "An error occured during the creation of snapshot %s",
                             snapshotName));
         }
 
@@ -165,9 +159,9 @@ class TargetSnapshotPostHandler
         }
 
         return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
-                    .statusCode(201)
-                    .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
-                    .body(desc);
+                .statusCode(201)
+                .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
+                .body(desc);
     }
 
     static class SnapshotDescriptor extends HyperlinkedSerializableRecordingDescriptor {

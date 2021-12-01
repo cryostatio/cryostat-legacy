@@ -233,16 +233,14 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<SnapshotMinimalDescriptor> createSnapshot(JFRConnection connection) throws Exception {
+    public Future<SnapshotMinimalDescriptor> createSnapshot(JFRConnection connection)
+            throws Exception {
         CompletableFuture<SnapshotMinimalDescriptor> future = new CompletableFuture<>();
         try {
-            IRecordingDescriptor descriptor =
-                        connection.getService().getSnapshotRecording();
+            IRecordingDescriptor descriptor = connection.getService().getSnapshotRecording();
 
             String rename =
-                    String.format(
-                            "%s-%d",
-                            descriptor.getName().toLowerCase(), descriptor.getId());
+                    String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
 
             RecordingOptionsBuilder recordingOptionsBuilder =
                     recordingOptionsBuilderFactory.create(connection.getService());
@@ -250,9 +248,8 @@ public class RecordingTargetHelper {
 
             connection
                     .getService()
-                    .updateRecordingOptions(
-                            descriptor, recordingOptionsBuilder.build());
-            
+                    .updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
+
             future.complete(new SnapshotMinimalDescriptor(rename, descriptor));
         } catch (Exception e) {
             future.completeExceptionally(e);
@@ -260,10 +257,12 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<Boolean> verifySnapshot(ConnectionDescriptor connectionDescriptor, String snapshotName) throws Exception {
+    public Future<Boolean> verifySnapshot(
+            ConnectionDescriptor connectionDescriptor, String snapshotName) throws Exception {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
-            Optional<InputStream> snapshotOptional = this.getRecording(connectionDescriptor, snapshotName).get();
+            Optional<InputStream> snapshotOptional =
+                    this.getRecording(connectionDescriptor, snapshotName).get();
             if (snapshotOptional.isEmpty()) {
                 throw new SnapshotCreationException(snapshotName);
             } else if (!snapshotIsReadable(snapshotOptional.get())) {
@@ -358,10 +357,13 @@ public class RecordingTargetHelper {
             return orig;
         }
     }
-    
+
     public static class SnapshotCreationException extends Exception {
         public SnapshotCreationException(String snapshotName) {
-            super(String.format("Successful creation verification of snapshot %s failed", snapshotName));
+            super(
+                    String.format(
+                            "Successful creation verification of snapshot %s failed",
+                            snapshotName));
         }
     }
 }
