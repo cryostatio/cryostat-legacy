@@ -37,7 +37,9 @@
  */
 package io.cryostat.recordings;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.PushbackInputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -74,6 +76,7 @@ public class RecordingTargetHelper {
     private final TargetConnectionManager targetConnectionManager;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
+    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
     private final Logger logger;
 
@@ -81,11 +84,13 @@ public class RecordingTargetHelper {
             TargetConnectionManager targetConnectionManager,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
+        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
         this.logger = logger;
     }
@@ -228,6 +233,51 @@ public class RecordingTargetHelper {
         return future;
     }
 
+    public Future<SnapshotMinimalDescriptor> createSnapshot(JFRConnection connection) throws Exception {
+        CompletableFuture<SnapshotMinimalDescriptor> future = new CompletableFuture<>();
+        try {
+            IRecordingDescriptor descriptor =
+                        connection.getService().getSnapshotRecording();
+
+            String rename =
+                    String.format(
+                            "%s-%d",
+                            descriptor.getName().toLowerCase(), descriptor.getId());
+
+            RecordingOptionsBuilder recordingOptionsBuilder =
+                    recordingOptionsBuilderFactory.create(connection.getService());
+            recordingOptionsBuilder.name(rename);
+
+            connection
+                    .getService()
+                    .updateRecordingOptions(
+                            descriptor, recordingOptionsBuilder.build());
+            
+            future.complete(new SnapshotMinimalDescriptor(rename, descriptor));
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    public Future<Boolean> verifySnapshot(ConnectionDescriptor connectionDescriptor, String snapshotName) throws Exception {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            Optional<InputStream> snapshotOptional = this.getRecording(connectionDescriptor, snapshotName).get();
+            if (snapshotOptional.isEmpty()) {
+                throw new SnapshotCreationException(snapshotName);
+            } else if (!snapshotIsReadable(snapshotOptional.get())) {
+                this.deleteRecording(connectionDescriptor, snapshotName).get();
+                future.complete(false);
+            } else {
+                future.complete(true);
+            }
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)
             throws Exception {
@@ -278,5 +328,40 @@ public class RecordingTargetHelper {
         }
 
         return builder.build();
+    }
+
+    private boolean snapshotIsReadable(InputStream snapshot) {
+        try {
+            PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
+            int b = pushbackSnapshot.read();
+            pushbackSnapshot.unread(b);
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static class SnapshotMinimalDescriptor {
+        private String name;
+        private IRecordingDescriptor orig;
+
+        SnapshotMinimalDescriptor(String name, IRecordingDescriptor orig) {
+            this.name = name;
+            this.orig = orig;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public IRecordingDescriptor getOriginalDescriptor() {
+            return orig;
+        }
+    }
+    
+    public static class SnapshotCreationException extends Exception {
+        public SnapshotCreationException(String snapshotName) {
+            super(String.format("Successful creation verification of snapshot %s failed", snapshotName));
+        }
     }
 }

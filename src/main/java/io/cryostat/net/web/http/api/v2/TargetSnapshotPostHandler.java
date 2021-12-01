@@ -60,6 +60,8 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
+import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
 import com.google.gson.Gson;
 import dagger.Lazy;
@@ -133,63 +135,39 @@ class TargetSnapshotPostHandler
                 targetConnectionManager.executeConnectedTask(
                         connectionDescriptor,
                         connection -> {
-                            IRecordingDescriptor descriptor =
-                                    connection.getService().getSnapshotRecording();
-
-                            String rename =
-                                    String.format(
-                                            "%s-%d",
-                                            descriptor.getName().toLowerCase(), descriptor.getId());
-
-                            RecordingOptionsBuilder recordingOptionsBuilder =
-                                    recordingOptionsBuilderFactory.create(connection.getService());
-                            recordingOptionsBuilder.name(rename);
-
-                            connection
-                                    .getService()
-                                    .updateRecordingOptions(
-                                            descriptor, recordingOptionsBuilder.build());
-
+                            SnapshotMinimalDescriptor snapshot = recordingTargetHelper.createSnapshot(connection).get();
+                            String rename = snapshot.getName();
                             return new SnapshotDescriptor(
                                     rename,
-                                    descriptor,
+                                    snapshot.getOriginalDescriptor(),
                                     webServer.get().getDownloadURL(connection, rename),
                                     webServer.get().getReportURL(connection, rename));
                         });
-
         String snapshotName = desc.getName();
-        Optional<InputStream> snapshotOptional =
-                recordingTargetHelper.getRecording(connectionDescriptor, snapshotName).get();
-        if (snapshotOptional.isEmpty()) {
+
+        boolean verificationSuccessful = false;
+        try {
+            verificationSuccessful = recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
+        } catch (SnapshotCreationException e) {
             throw new ApiException(
                     500,
                     String.format(
                             "Successful creation verification of snapshot %s failed",
                             snapshotName));
-        } else if (!snapshotIsReadable(snapshotOptional.get())) {
-            recordingTargetHelper.deleteRecording(connectionDescriptor, snapshotName).get();
+        }
+
+        if (!verificationSuccessful) {
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                     .statusCode(202)
                     .statusMessage(
                             "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from")
                     .body(null);
-        } else {
-            return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
+        }
+
+        return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                     .statusCode(201)
                     .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
                     .body(desc);
-        }
-    }
-
-    private boolean snapshotIsReadable(InputStream snapshot) {
-        try {
-            PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
-            int b = pushbackSnapshot.read();
-            pushbackSnapshot.unread(b);
-            return true;
-        } catch (IOException e) {
-            return false;
-        }
     }
 
     static class SnapshotDescriptor extends HyperlinkedSerializableRecordingDescriptor {
