@@ -10,6 +10,8 @@ else
     runs=1
 fi
 
+POD_NAME=cryostat-itests
+
 STARTFLAGS=(
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
@@ -40,14 +42,14 @@ DIR="$(dirname "$(readlink -f "$0")")"
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
-    client_logfile="$DIR/target/cryostat-itests-${timestamp}.client.log"
-    server_logfile="$DIR/target/cryostat-itests-${timestamp}.server.log"
+    client_logfile="$DIR/target/${POD_NAME}-${timestamp}.client.log"
+    server_logfile="$DIR/target/${POD_NAME}-${timestamp}.server.log"
     mvn "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER > "${client_logfile}")
     if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
-    podman logs cryostat-itest > "${server_logfile}"
+    podman pod logs -c cryostat-itest "${POD_NAME}" &> "${server_logfile}"
     mvn "${STOPFLAGS[@]}" |& tee -a >($PIPECLEANER > "${client_logfile}")
 done
 
