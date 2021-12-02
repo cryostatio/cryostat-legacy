@@ -10,7 +10,7 @@ else
     runs=1
 fi
 
-FLAGS=(
+STARTFLAGS=(
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
     "exec:exec@start-grafana"
@@ -18,13 +18,18 @@ FLAGS=(
     "exec:exec@wait-for-container"
     "failsafe:integration-test"
     "failsafe:verify"
+)
+
+STOPFLAGS=(
     "exec:exec@stop-jfr-datasource"
     "exec:exec@stop-grafana"
     "exec:exec@stop-container"
+    "exec:exec@destroy-pod"
 )
 
 if command -v ansi2txt >/dev/null; then
-    FLAGS+=("-Dstyle.color=always")
+    STARTFLAGS+=("-Dstyle.color=always")
+    STOPFLAGS+=("-Dstyle.color=always")
     PIPECLEANER=ansi2txt
 else
     PIPECLEANER=cat
@@ -35,13 +40,13 @@ while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
     client_logfile="cryostat-itests-${timestamp}.client.log"
     server_logfile="cryostat-itests-${timestamp}.server.log"
-    mvn "${FLAGS[@]}" |& tee >($PIPECLEANER > "${client_logfile}")
+    mvn "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER > "${client_logfile}")
     if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
     podman logs cryostat-itest > "${server_logfile}"
-    mvn exec:exec@destroy-pod
+    mvn "${STOPFLAGS[@]}" |& tee -a >($PIPECLEANER > "${client_logfile}")
 done
 
 echo
