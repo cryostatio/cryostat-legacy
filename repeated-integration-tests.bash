@@ -24,8 +24,10 @@ STARTFLAGS=(
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
     "exec:exec@start-grafana"
-    "exec:exec@start-container"
-    "exec:exec@wait-for-container"
+    "exec:exec@start-cryostat"
+    "exec:exec@wait-for-cryostat"
+    "exec:exec@wait-for-jfr-datasource"
+    "exec:exec@wait-for-grafana"
     "failsafe:integration-test"
     "failsafe:verify"
 )
