@@ -24,6 +24,7 @@ FLAGS=(
     "exec:exec@start-container"
     "exec:exec@wait-for-container"
     "failsafe:integration-test"
+    "failsafe:verify"
     "exec:exec@stop-jfr-datasource"
     "exec:exec@stop-grafana"
     "exec:exec@stop-container"
