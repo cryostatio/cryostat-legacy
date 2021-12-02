@@ -12,6 +12,14 @@ fi
 
 POD_NAME=cryostat-itests
 
+function cleanup() {
+    if podman pod exists "${POD_NAME}"; then
+        mvn exec:exec@destroy-pod
+    fi
+}
+trap cleanup EXIT
+cleanup
+
 STARTFLAGS=(
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
