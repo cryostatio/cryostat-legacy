@@ -442,7 +442,41 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+            </arguments>
+            <skip>${skipITs}</skip>
+          </configuration>
+        </execution>
+        <execution>
+          <id>wait-for-jfr-datasource</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>timeout</executable>
+            <arguments>
+              <argument>5m</argument>
+              <argument>sh</argument>
+              <argument>-c</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}; do sleep 10; done</argument>
+            </arguments>
+            <skip>${skipITs}</skip>
+          </configuration>
+        </execution>
+        <execution>
+          <id>wait-for-grafana</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>timeout</executable>
+            <arguments>
+              <argument>5m</argument>
+              <argument>sh</argument>
+              <argument>-c</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}; do sleep 10; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -457,54 +491,9 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>logs</argument>
-              <argument>cryostat-itest</argument>
+              <argument>${cryostat.itest.containerName}</argument>
             </arguments>
-            <outputFile>${project.build.directory}/cryostat-itest-${maven.build.timestamp}.log</outputFile>
-            <skip>${skipITs}</skip>
-          </configuration>
-        </execution>
-        <execution>
-          <id>stop-jfr-datasource</id>
-          <phase>post-integration-test</phase>
-          <goals>
-            <goal>exec</goal>
-          </goals>
-          <configuration>
-            <executable>${imageBuilder}</executable>
-            <arguments>
-              <argument>kill</argument>
-              <argument>jfr-datasource-itest</argument>
-            </arguments>
-            <skip>${skipITs}</skip>
-          </configuration>
-        </execution>
-        <execution>
-          <id>stop-grafana</id>
-          <phase>post-integration-test</phase>
-          <goals>
-            <goal>exec</goal>
-          </goals>
-          <configuration>
-            <executable>${imageBuilder}</executable>
-            <arguments>
-              <argument>kill</argument>
-              <argument>grafana-itest</argument>
-            </arguments>
-            <skip>${skipITs}</skip>
-          </configuration>
-        </execution>
-        <execution>
-          <id>stop-container</id>
-          <phase>post-integration-test</phase>
-          <goals>
-            <goal>exec</goal>
-          </goals>
-          <configuration>
-            <executable>${imageBuilder}</executable>
-            <arguments>
-              <argument>kill</argument>
-              <argument>cryostat-itest</argument>
-            </arguments>
+            <outputFile>${project.build.directory}/${cryostat.itest.containerName}-${maven.build.timestamp}.log</outputFile>
             <skip>${skipITs}</skip>
           </configuration>
         </execution>
