@@ -27,7 +27,6 @@ FLAGS=(
     "exec:exec@stop-jfr-datasource"
     "exec:exec@stop-grafana"
     "exec:exec@stop-container"
-    "exec:exec@destroy-pod"
 )
 
 if command -v ansi2txt >/dev/null; then
@@ -48,6 +47,7 @@ while [ "${runcount}" -lt "${runs}" ]; do
     fi
     runcount=$((runcount+1))
     podman logs cryostat-itest > "${server_logfile}"
+    mvn exec:exec@destroy-pod
 done
 
 echo
