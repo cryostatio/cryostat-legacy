@@ -14,10 +14,12 @@ function cleanup() {
 }
 trap cleanup EXIT
 
-logfile="cryostat-itests-$(date -Iminutes).log"
 
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
+    timestamp="$(date -Iminutes)"
+    client_logfile="cryostat-itests-${timestamp}.client.log"
+    server_logfile="cryostat-itests-${timestamp}.server.log"
     mvn \
         exec:exec@create-pod \
         exec:exec@start-jfr-datasource \
@@ -28,11 +30,12 @@ while [ "${runcount}" -lt "${runs}" ]; do
         exec:exec@stop-jfr-datasource \
         exec:exec@stop-grafana \
         exec:exec@stop-container \
-        exec:exec@destroy-pod |& tee -a "${logfile}"
+        exec:exec@destroy-pod |& tee -a "${client_logfile}"
     if [ $? -ne 0 ]; then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
+    podman logs cryostat-itest > "${server_logfile}"
 done
 
 echo
