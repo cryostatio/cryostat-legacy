@@ -8,6 +8,7 @@ build/
 target/
 bin/
 
+*.log
 archive/
 conf/
 certs/*.p12
