@@ -11,7 +11,6 @@ else
 fi
 
 function cleanup() {
-    runcount="${runs}"
     mvn exec:exec@destroy-pod || true
 }
 trap cleanup EXIT
@@ -55,6 +54,6 @@ echo
 echo "########################"
 echo "Test runs completed"
 echo "Failures: ${failures}"
-echo "Runs: ${runs}"
+echo "Runs: ${runcount}/${runs}"
 
 exit ${failures}

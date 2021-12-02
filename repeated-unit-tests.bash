@@ -35,6 +35,6 @@ echo
 echo "########################"
 echo "Test runs completed"
 echo "Failures: ${failures}"
-echo "Runs: ${runs}"
+echo "Runs: ${runcount}/${runs}"
 
 exit ${failures}
