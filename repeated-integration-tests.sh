@@ -15,22 +15,32 @@ function cleanup() {
 trap cleanup EXIT
 
 
+FLAGS=(
+    "exec:exec@create-pod"
+    "exec:exec@start-jfr-datasource"
+    "exec:exec@start-grafana"
+    "exec:exec@start-container"
+    "exec:exec@wait-for-container"
+    "failsafe:integration-test"
+    "exec:exec@stop-jfr-datasource"
+    "exec:exec@stop-grafana"
+    "exec:exec@stop-container"
+    "exec:exec@destroy-pod"
+)
+
+if command -v ansi2txt; then
+    FLAGS+=("-Dstyle.color=always")
+    PIPECLEANER=ansi2txt
+else
+    PIPECLEANER=cat
+fi
+
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
     client_logfile="cryostat-itests-${timestamp}.client.log"
     server_logfile="cryostat-itests-${timestamp}.server.log"
-    mvn \
-        exec:exec@create-pod \
-        exec:exec@start-jfr-datasource \
-        exec:exec@start-grafana \
-        exec:exec@start-container \
-        exec:exec@wait-for-container \
-        failsafe:integration-test \
-        exec:exec@stop-jfr-datasource \
-        exec:exec@stop-grafana \
-        exec:exec@stop-container \
-        exec:exec@destroy-pod |& tee -a "${client_logfile}"
+    mvn "${FLAGS[@]}" |& tee >($PIPECLEANER > ${client_logfile})
     if [ "${PIPESTATUS[0]}" -ne 0 ]; then
         failures=$((failures+1))
     fi
