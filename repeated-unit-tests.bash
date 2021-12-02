@@ -36,3 +36,5 @@ echo "########################"
 echo "Test runs completed"
 echo "Failures: ${failures}"
 echo "Runs: ${runs}"
+
+exit "${failures}"
