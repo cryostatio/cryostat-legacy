@@ -232,19 +232,17 @@ public class RuleProcessor
         targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
                 connection -> {
-                    try (connection) {
-                        IRecordingDescriptor descriptor =
-                                connection.getService().getSnapshotRecording();
-                        try {
-                            recordingArchiveHelper
-                                    .saveRecording(connectionDescriptor, descriptor.getName())
-                                    .get();
-                        } finally {
-                            connection.getService().close(descriptor);
-                        }
-
-                        return null;
+                    IRecordingDescriptor descriptor =
+                            connection.getService().getSnapshotRecording();
+                    try {
+                        recordingArchiveHelper
+                                .saveRecording(connectionDescriptor, descriptor.getName())
+                                .get();
+                    } finally {
+                        connection.getService().close(descriptor);
                     }
+
+                    return null;
                 },
                 false);
     }
@@ -255,28 +253,26 @@ public class RuleProcessor
         targetConnectionManager.executeConnectedTask(
                 connectionDescriptor,
                 connection -> {
-                    try (connection) {
-                        RecordingOptionsBuilder builder =
-                                recordingOptionsBuilderFactory
-                                        .create(connection.getService())
-                                        .name(rule.getRecordingName());
-                        if (rule.getMaxAgeSeconds() > 0) {
-                            builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
-                        }
-                        if (rule.getMaxSizeBytes() > 0) {
-                            builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
-                        }
-                        Pair<String, TemplateType> template =
-                                RecordingTargetHelper.parseEventSpecifierToTemplate(
-                                        rule.getEventSpecifier());
-                        recordingTargetHelper.startRecording(
-                                true,
-                                connectionDescriptor,
-                                builder.build(),
-                                template.getLeft(),
-                                template.getRight());
-                        return null;
+                    RecordingOptionsBuilder builder =
+                            recordingOptionsBuilderFactory
+                                    .create(connection.getService())
+                                    .name(rule.getRecordingName());
+                    if (rule.getMaxAgeSeconds() > 0) {
+                        builder = builder.maxAge(rule.getMaxAgeSeconds()).toDisk(true);
                     }
+                    if (rule.getMaxSizeBytes() > 0) {
+                        builder = builder.maxSize(rule.getMaxSizeBytes()).toDisk(true);
+                    }
+                    Pair<String, TemplateType> template =
+                            RecordingTargetHelper.parseEventSpecifierToTemplate(
+                                    rule.getEventSpecifier());
+                    recordingTargetHelper.startRecording(
+                            true,
+                            connectionDescriptor,
+                            builder.build(),
+                            template.getLeft(),
+                            template.getRight());
+                    return null;
                 },
                 false);
     }
