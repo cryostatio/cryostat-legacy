@@ -419,9 +419,9 @@
               <argument>--env</argument>
               <argument>SSL_TRUSTSTORE_DIR=/opt/cryostat.d/truststore.d</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:8080</argument>
+              <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:3000</argument>
+              <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.imageStream}:${cryostat.imageVersion}</argument>
