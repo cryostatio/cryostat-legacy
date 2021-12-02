@@ -10,12 +10,6 @@ else
     runs=1
 fi
 
-function cleanup() {
-    mvn exec:exec@destroy-pod || true
-}
-trap cleanup EXIT
-
-
 FLAGS=(
     "exec:exec@create-pod"
     "exec:exec@start-jfr-datasource"
