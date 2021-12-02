@@ -12,7 +12,6 @@ fi
 
 function cleanup() {
     runcount="${runs}"
-    exit 1
 }
 trap cleanup EXIT
 
