@@ -40,7 +40,7 @@ while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
     client_logfile="cryostat-itests-${timestamp}.client.log"
     server_logfile="cryostat-itests-${timestamp}.server.log"
-    mvn "${FLAGS[@]}" |& tee >($PIPECLEANER > ${client_logfile})
+    mvn "${FLAGS[@]}" |& tee >($PIPECLEANER > "${client_logfile}")
     if [ "${PIPESTATUS[0]}" -ne 0 ]; then
         failures=$((failures+1))
     fi
