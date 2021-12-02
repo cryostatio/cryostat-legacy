@@ -4,7 +4,7 @@ set -o pipefail
 
 failures=0
 numeric='^[0-9]+$'
-if [[ "$1" =~ "${numeric}" ]]; then
+if [[ "$1" =~ $numeric ]]; then
     runs="$1"
 else
     runs=1
