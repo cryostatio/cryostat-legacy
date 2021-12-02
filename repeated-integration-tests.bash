@@ -28,7 +28,7 @@ FLAGS=(
     "exec:exec@destroy-pod"
 )
 
-if command -v ansi2txt; then
+if command -v ansi2txt >/dev/null; then
     FLAGS+=("-Dstyle.color=always")
     PIPECLEANER=ansi2txt
 else
