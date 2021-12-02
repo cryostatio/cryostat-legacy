@@ -42,6 +42,7 @@ import java.io.InputStream;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
@@ -134,7 +135,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1234");
 
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), "thesnapshot-1234")).thenReturn(future2);
+        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1234"))).thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(true);
 
         handler.handle(ctx);
@@ -178,8 +179,11 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1234");
 
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), "thesnapshot-1234")).thenReturn(future2);
-        Mockito.when(future2.get()).thenThrow(new SnapshotCreationException("thesnapshot-1234"));
+        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1234"))).thenReturn(future2);
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(future2.get()).thenThrow(e);
+        Mockito.when(e.getCause())
+                .thenReturn(new SnapshotCreationException("thesnapshot-1234"));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -225,7 +229,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1234");
 
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), "thesnapshot-1234")).thenReturn(future2);
+        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1234"))).thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(false);
 
         handler.handle(ctx);

@@ -251,7 +251,26 @@ public class RecordingTargetHelperTest {
 //         Mockito.when(recordingOptionsBuilderFactory.create(svc))
 //                 .thenReturn(recordingOptionsBuilder);
 //         IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
-//         Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);    
+//         Mockito.when(recordingOptionsBuilder.build()).thenReturn(map); 
+
+        // IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+
+        // IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
+        // JFRConnection conn = Mockito.mock(JFRConnection.class);
+        // Mockito.when(conn.getService()).thenReturn(svc);
+        // Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
+
+        // RecordingOptionsBuilder recordingOptionsBuilder =
+        //         Mockito.mock(RecordingOptionsBuilder.class);
+        // Mockito.when(recordingOptionsBuilderFactory.create(svc))
+        //         .thenReturn(recordingOptionsBuilder);
+        // IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
+        // Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
+
+        // Mockito.verify(svc).getSnapshotRecording();
+        // Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
+        // Mockito.verify(recordingOptionsBuilder).build();
+        // Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
 //     }
 
     private static IRecordingDescriptor createDescriptor(String name)

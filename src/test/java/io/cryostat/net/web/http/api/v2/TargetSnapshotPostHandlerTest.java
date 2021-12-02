@@ -62,6 +62,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -126,20 +127,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
 
-        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
-
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
         JFRConnection conn = Mockito.mock(JFRConnection.class);
-        Mockito.when(conn.getService()).thenReturn(svc);
-        Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
-
-        RecordingOptionsBuilder recordingOptionsBuilder =
-                Mockito.mock(RecordingOptionsBuilder.class);
-        Mockito.when(recordingOptionsBuilderFactory.create(svc))
-                .thenReturn(recordingOptionsBuilder);
-        IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
-
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.any()))
@@ -159,22 +147,20 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
 
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(future);
-        Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(future.get()).thenReturn(snapshotOptional);
-        Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
-        InputStream snapshot = Mockito.mock(InputStream.class);
-        Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
-        Mockito.when(snapshot.read()).thenReturn(1);
+        SnapshotMinimalDescriptor snapshot = Mockito.mock(SnapshotMinimalDescriptor.class);
+        CompletableFuture<SnapshotMinimalDescriptor> future1  = Mockito.mock(CompletableFuture.class);
+        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+        Mockito.when(recordingTargetHelper.createSnapshot(conn)).thenReturn(future1);
+        Mockito.when(future1.get()).thenReturn(snapshot);
+        Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1");
+        Mockito.when(snapshot.getOriginalDescriptor()).thenReturn(recordingDescriptor);
+
+        CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1"))).thenReturn(future2);
+        Mockito.when(future2.get()).thenReturn(true);
 
         handler.handle(ctx);
 
-        Mockito.verify(svc).getSnapshotRecording();
-        Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
-        Mockito.verify(recordingOptionsBuilder).build();
-        Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
         Mockito.verify(resp).setStatusCode(201);
         Mockito.verify(resp).putHeader(HttpHeaders.LOCATION, "http://example.com/download");
 

@@ -39,8 +39,11 @@ package io.cryostat.net.web.http.api.v1;
 
 import java.util.EnumSet;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
+
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
@@ -112,12 +115,15 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         try {
             verificationSuccessful =
                     recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
-        } catch (SnapshotCreationException e) {
-            throw new HttpStatusException(
+        } catch (ExecutionException e) {
+            if (ExceptionUtils.getRootCause(e) instanceof SnapshotCreationException) {
+                throw new HttpStatusException(
                     500,
                     String.format(
                             "An error occured during the creation of snapshot %s",
                             snapshotName));
+            }
+            throw e;
         }
 
         if (!verificationSuccessful) {
