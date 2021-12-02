@@ -40,10 +40,12 @@ package io.cryostat.net.web.http.api.v2;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -62,6 +64,7 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
 import com.google.gson.Gson;
@@ -152,11 +155,11 @@ class TargetSnapshotPostHandlerTest {
         IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
         Mockito.when(recordingTargetHelper.createSnapshot(conn)).thenReturn(future1);
         Mockito.when(future1.get()).thenReturn(snapshot);
-        Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1");
+        Mockito.when(snapshot.getName()).thenReturn("snapshot-1");
         Mockito.when(snapshot.getOriginalDescriptor()).thenReturn(recordingDescriptor);
 
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1"))).thenReturn(future2);
+        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1"))).thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(true);
 
         handler.handle(ctx);
@@ -170,31 +173,84 @@ class TargetSnapshotPostHandlerTest {
                 gson.fromJson(
                         endCaptor.getValue(), new TypeToken<Map<String, Object>>() {}.getType());
 
-        Map<String, Object> expected = new HashMap<>();
-        Map<String, Object> meta = new HashMap<>();
-        Map<String, Object> data = new HashMap<>();
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> expected = new LinkedHashMap<>();
+        Map<String, Object> meta = new LinkedHashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         expected.put("meta", meta);
         meta.put("type", "text/plain");
         meta.put("status", "OK");
         expected.put("data", data);
         data.put("result", result);
-        result.put("name", "snapshot-1");
-        result.put("id", 1.0);
         result.put("downloadUrl", "http://example.com/download");
         result.put("reportUrl", "http://example.com/report");
-        result.put("startTime", 0.0);
+        result.put("id", 1.0);
+        result.put("name", "snapshot-1");
         result.put("state", "STOPPED");
+        result.put("startTime", 0.0);
         result.put("duration", 0.0);
-        result.put("maxAge", 0.0);
-        result.put("maxSize", 0.0);
-        result.put("toDisk", false);
         result.put("continuous", false);
+        result.put("toDisk", false);
+        result.put("maxSize", 0.0);
+        result.put("maxAge", 0.0);
         MatcherAssert.assertThat(parsed, Matchers.equalTo(expected));
     }
 
     @Test
-    void shouldHandleEmptySnapshot() throws Exception {
+    void shouldHandleSnapshotCreationError() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+
+        JFRConnection conn = Mockito.mock(JFRConnection.class);
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(conn);
+                            }
+                        });
+
+        Mockito.when(webServer.getDownloadURL(Mockito.any(), Mockito.any()))
+                .thenReturn("http://example.com/download");
+        Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
+                .thenReturn("http://example.com/report");
+
+        SnapshotMinimalDescriptor snapshot = Mockito.mock(SnapshotMinimalDescriptor.class);
+        CompletableFuture<SnapshotMinimalDescriptor> future1  = Mockito.mock(CompletableFuture.class);
+        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+        Mockito.when(recordingTargetHelper.createSnapshot(conn)).thenReturn(future1);
+        Mockito.when(future1.get()).thenReturn(snapshot);
+        Mockito.when(snapshot.getName()).thenReturn("snapshot-1");
+        Mockito.when(snapshot.getOriginalDescriptor()).thenReturn(recordingDescriptor);
+
+        CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1"))).thenReturn(future2);
+        ExecutionException e = Mockito.mock(ExecutionException.class);
+        Mockito.when(future2.get()).thenThrow(e);
+        Mockito.when(e.getCause())
+                .thenReturn(new SnapshotCreationException("snapshot-1"));
+
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        MatcherAssert.assertThat(
+                ex.getFailureReason(),
+                Matchers.equalTo("An error occured during the creation of snapshot snapshot-1."));
+    }
+
+    @Test
+    void shouldHandleFailedSnapshotVerification() throws Exception {
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
 
@@ -206,20 +262,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
 
-        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
-
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
         JFRConnection conn = Mockito.mock(JFRConnection.class);
-        Mockito.when(conn.getService()).thenReturn(svc);
-        Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
-
-        RecordingOptionsBuilder recordingOptionsBuilder =
-                Mockito.mock(RecordingOptionsBuilder.class);
-        Mockito.when(recordingOptionsBuilderFactory.create(svc))
-                .thenReturn(recordingOptionsBuilder);
-        IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
-
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.any()))
@@ -239,95 +282,24 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
 
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(future);
-        Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(future.get()).thenReturn(snapshotOptional);
-        Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
-        InputStream snapshot = Mockito.mock(InputStream.class);
-        Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
-        IOException e = new IOException("java.io.IOException: No recording data available");
-        Mockito.when(snapshot.read()).thenThrow(e);
-
-        CompletableFuture<Void> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.deleteRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(future2);
-        Mockito.when(future2.get()).thenReturn(null);
+        SnapshotMinimalDescriptor snapshot = Mockito.mock(SnapshotMinimalDescriptor.class);
+        CompletableFuture<SnapshotMinimalDescriptor> future1  = Mockito.mock(CompletableFuture.class);
+        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+        Mockito.when(recordingTargetHelper.createSnapshot(conn)).thenReturn(future1);
+        Mockito.when(future1.get()).thenReturn(snapshot);
+        Mockito.when(snapshot.getName()).thenReturn("snapshot-1");
+        Mockito.when(snapshot.getOriginalDescriptor()).thenReturn(recordingDescriptor);
+        
+        CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1"))).thenReturn(future2);
+        Mockito.when(future2.get()).thenReturn(false);
 
         handler.handle(ctx);
 
-        Mockito.verify(svc).getSnapshotRecording();
-        Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
-        Mockito.verify(recordingOptionsBuilder).build();
-        Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
         Mockito.verify(resp).setStatusCode(202);
         Mockito.verify(resp)
                 .setStatusMessage(
-                        "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from");
-    }
-
-    @Test
-    void shouldRespond500IfSnapshotCreationFails() throws Exception {
-        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture(true));
-
-        RoutingContext ctx = Mockito.mock(RoutingContext.class);
-        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
-        Mockito.when(ctx.request()).thenReturn(req);
-        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
-        Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
-
-        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
-
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
-        JFRConnection conn = Mockito.mock(JFRConnection.class);
-        Mockito.when(conn.getService()).thenReturn(svc);
-        Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
-
-        RecordingOptionsBuilder recordingOptionsBuilder =
-                Mockito.mock(RecordingOptionsBuilder.class);
-        Mockito.when(recordingOptionsBuilderFactory.create(svc))
-                .thenReturn(recordingOptionsBuilder);
-        IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
-
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                        new Answer() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(conn);
-                            }
-                        });
-
-        Mockito.when(webServer.getDownloadURL(Mockito.any(), Mockito.any()))
-                .thenReturn("http://example.com/download");
-        Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
-                .thenReturn("http://example.com/report");
-
-        CompletableFuture<Optional<InputStream>> future = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.getRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(future);
-        Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
-        Mockito.when(future.get()).thenReturn(snapshotOptional);
-        Mockito.when(snapshotOptional.isEmpty()).thenReturn(true);
-
-        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
-        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
-        MatcherAssert.assertThat(
-                ex.getFailureReason(),
-                Matchers.equalTo("Successful creation verification of snapshot snapshot-1 failed"));
-
-        Mockito.verify(svc).getSnapshotRecording();
-        Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
-        Mockito.verify(recordingOptionsBuilder).build();
-        Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
+                        "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from.");
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

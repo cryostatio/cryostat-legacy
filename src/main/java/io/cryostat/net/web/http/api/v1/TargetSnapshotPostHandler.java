@@ -120,7 +120,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
                 throw new HttpStatusException(
                     500,
                     String.format(
-                            "An error occured during the creation of snapshot %s",
+                            "An error occured during the creation of snapshot %s.",
                             snapshotName));
             }
             throw e;
@@ -130,7 +130,7 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().setStatusCode(202);
             ctx.response()
                     .setStatusMessage(
-                            String.format("Snapshot %s failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from", snapshotName));
+                            String.format("Snapshot %s failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from.", snapshotName));
             ctx.response().end();
         }
 

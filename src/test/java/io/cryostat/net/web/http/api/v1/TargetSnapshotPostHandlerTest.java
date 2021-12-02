@@ -191,7 +191,7 @@ class TargetSnapshotPostHandlerTest {
         MatcherAssert.assertThat(
                 ex.getPayload(),
                 Matchers.equalTo(
-                        "An error occured during the creation of snapshot thesnapshot-1234"));
+                        "An error occured during the creation of snapshot thesnapshot-1234."));
     }
 
     @Test
@@ -237,7 +237,7 @@ class TargetSnapshotPostHandlerTest {
         Mockito.verify(resp).setStatusCode(202);
         Mockito.verify(resp)
                 .setStatusMessage(
-                        "Snapshot thesnapshot-1234 failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from");
+                        "Snapshot thesnapshot-1234 failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from.");
         Mockito.verify(resp).end();
     }
 }
