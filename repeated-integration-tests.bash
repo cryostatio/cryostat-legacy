@@ -35,11 +35,13 @@ else
     PIPECLEANER=cat
 fi
 
+DIR="$(dirname "$(readlink -f "$0")")"
+
 runcount=0
 while [ "${runcount}" -lt "${runs}" ]; do
     timestamp="$(date -Iminutes)"
-    client_logfile="cryostat-itests-${timestamp}.client.log"
-    server_logfile="cryostat-itests-${timestamp}.server.log"
+    client_logfile="$DIR/target/cryostat-itests-${timestamp}.client.log"
+    server_logfile="$DIR/target/cryostat-itests-${timestamp}.server.log"
     mvn "${STARTFLAGS[@]}" |& tee -a >($PIPECLEANER > "${client_logfile}")
     if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
