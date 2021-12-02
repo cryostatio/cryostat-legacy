@@ -25,7 +25,7 @@ runcount=0
 while [ "${runcount}" -lt ${runs} ]; do
     logfile="cryostat-unittests-$(date -Iminutes).log"
     mvn "${FLAGS[@]}" surefire:test |& tee >($PIPECLEANER > "${logfile}")
-    if [ $? -ne 0 ]; then
+    if [ "$?" -ne 0 ]; then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
