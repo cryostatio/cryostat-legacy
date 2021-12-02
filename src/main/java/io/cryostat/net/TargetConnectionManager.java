@@ -211,7 +211,7 @@ public class TargetConnectionManager {
             ConnectionDescriptor cacheKey, JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
         JMXConnectionOpened evt = new JMXConnectionOpened(url.toString());
-        logger.info("Creating connection for {}", url.toString());
+        logger.info("Creating connection for {}", url);
         evt.begin();
         try {
             return jfrConnectionToolkit
