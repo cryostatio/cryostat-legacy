@@ -12,6 +12,7 @@ fi
 
 function cleanup() {
     runcount="${runs}"
+    mvn exec:exec@destroy-pod || true
 }
 trap cleanup EXIT
 
