@@ -100,31 +100,42 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
     @Override
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
 
-        try {
-            Optional<IntermediateResponse<UserInfo>> redirectResponse =
-                    auth.sendLoginRedirectIfRequired(
-                            () -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
-                            resourceActions());
+        Optional<String> redirectUrl =
+                auth.sendLoginRedirectIfRequired(
+                        () -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
+                        resourceActions());
 
-            if (!redirectResponse.isEmpty()) {
-                return redirectResponse.get();
-            }
-
-            return new IntermediateResponse<UserInfo>()
-                    .addHeader(WebServer.AUTH_SCHEME_HEADER, auth.getScheme().toString())
-                    .body(
-                            auth.getUserInfo(
-                                            () ->
-                                                    requestParams
-                                                            .getHeaders()
-                                                            .get(HttpHeaders.AUTHORIZATION))
-                                    .get());
-        } catch (ExecutionException ee) {
-            Throwable cause = ee.getCause();
-            if (cause instanceof UnknownUserException) {
-                throw new ApiException(401, "HTTP Authorization Failure", ee);
-            }
-            throw new ApiException(500, ee);
-        }
+        return redirectUrl
+                .map(
+                        location -> {
+                            return new IntermediateResponse<UserInfo>()
+                                    .addHeader("X-Location", location)
+                                    .addHeader("access-control-expose-headers", "Location")
+                                    .statusCode(302);
+                        })
+                .orElseGet(
+                        () -> {
+                            try {
+                                return new IntermediateResponse<UserInfo>()
+                                        .addHeader(
+                                                WebServer.AUTH_SCHEME_HEADER,
+                                                auth.getScheme().toString())
+                                        .body(
+                                                auth.getUserInfo(
+                                                                () ->
+                                                                        requestParams
+                                                                                .getHeaders()
+                                                                                .get(
+                                                                                        HttpHeaders
+                                                                                                .AUTHORIZATION))
+                                                        .get());
+                            } catch (ExecutionException | InterruptedException ee) {
+                                Throwable cause = ee.getCause();
+                                if (cause instanceof UnknownUserException) {
+                                    throw new ApiException(401, "HTTP Authorization Failure", ee);
+                                }
+                                throw new ApiException(500, ee);
+                            }
+                        });
     }
 }

@@ -45,7 +45,6 @@ import java.util.function.Supplier;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 
 public class NoopAuthManager extends AbstractAuthManager {
 
@@ -64,7 +63,7 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Optional<IntermediateResponse<UserInfo>> sendLoginRedirectIfRequired(
+    public Optional<String> sendLoginRedirectIfRequired(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         return Optional.empty();
     }

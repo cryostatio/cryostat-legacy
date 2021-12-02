@@ -58,7 +58,6 @@ import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 
 import com.google.gson.Gson;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
@@ -87,6 +86,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -289,11 +289,6 @@ class OpenShiftAuthManagerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "Bearer ", "invalidHeader"})
     void shouldSendRedirectResponseOnEmptyOrInvalidHeaders(String headers) throws Exception {
-        IntermediateResponse<UserInfo> expectedRedirectResponse =
-                new IntermediateResponse<UserInfo>()
-                        .addHeader("X-Location", EXPECTED_REDIRECT_URL)
-                        .addHeader("access-control-expose-headers", "Location")
-                        .statusCode(302);
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("namespace")));
         Mockito.when(env.getEnv(Mockito.anyString()))
@@ -324,28 +319,15 @@ class OpenShiftAuthManagerTest {
                 .when(req)
                 .send(Mockito.any());
 
-        IntermediateResponse<UserInfo> actualRedirectResponse =
+        String actualRedirectUrl =
                 mgr.sendLoginRedirectIfRequired(() -> headers, ResourceAction.NONE).get();
 
-        MatcherAssert.assertThat(
-                actualRedirectResponse.getHeaders(),
-                Matchers.equalTo(expectedRedirectResponse.getHeaders()));
-        MatcherAssert.assertThat(
-                actualRedirectResponse.getStatusCode(),
-                Matchers.equalTo(expectedRedirectResponse.getStatusCode()));
-        MatcherAssert.assertThat(
-                actualRedirectResponse.getBody(),
-                Matchers.equalTo(expectedRedirectResponse.getBody()));
+        MatcherAssert.assertThat(actualRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
     }
 
     @ParameterizedTest
     @ValueSource(strings = {"Bearer invalidToken", "Bearer 1234"})
     void shouldSendRedirectResponseOnInvalidToken(String headers) throws Exception {
-        IntermediateResponse<UserInfo> expectedRedirectResponse =
-                new IntermediateResponse<UserInfo>()
-                        .addHeader("X-Location", EXPECTED_REDIRECT_URL)
-                        .addHeader("access-control-expose-headers", "Location")
-                        .statusCode(302);
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
@@ -378,18 +360,76 @@ class OpenShiftAuthManagerTest {
                 .when(req)
                 .send(Mockito.any());
 
-        IntermediateResponse<UserInfo> actualRedirectResponse =
+        String actualRedirectUrl =
                 mgr.sendLoginRedirectIfRequired(() -> headers, ResourceAction.NONE).get();
 
+        MatcherAssert.assertThat(actualRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {",", "oauth-client-id,", ", oauth-role-scope"})
+    void shouldThrowWhenEnvironmentVariablesMissing(String clientId, String roleScope)
+            throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("namespace")));
+        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, roleScope);
+
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () ->
+                                mgr.sendLoginRedirectIfRequired(
+                                                () -> "Bearer ", ResourceAction.NONE)
+                                        .get());
         MatcherAssert.assertThat(
-                actualRedirectResponse.getHeaders(),
-                Matchers.equalTo(expectedRedirectResponse.getHeaders()));
-        MatcherAssert.assertThat(
-                actualRedirectResponse.getStatusCode(),
-                Matchers.equalTo(expectedRedirectResponse.getStatusCode()));
-        MatcherAssert.assertThat(
-                actualRedirectResponse.getBody(),
-                Matchers.equalTo(expectedRedirectResponse.getBody()));
+                ExceptionUtils.getRootCause(ee),
+                Matchers.instanceOf(MissingEnvironmentVariableException.class));
+    }
+
+    void shouldCacheOAuthServerResponse() throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("namespace")));
+        Mockito.when(env.getEnv(Mockito.anyString()))
+                .thenReturn("oauth-client-id", "oauth-role-scope");
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
+        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.bodyAsJsonObject())
+                                        .thenReturn(
+                                                new JsonObject(
+                                                        Map.of(
+                                                                "authorization_endpoint",
+                                                                AUTHORIZATION_URL)));
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
+
+        String firstRedirectUrl =
+                mgr.sendLoginRedirectIfRequired(() -> "Bearer", ResourceAction.NONE).get();
+
+        MatcherAssert.assertThat(firstRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
+
+        String secondRedirectUrl =
+                mgr.sendLoginRedirectIfRequired(() -> "Bearer", ResourceAction.NONE).get();
+        MatcherAssert.assertThat(secondRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
+
+        Mockito.verify(webClient, Mockito.atMostOnce())
+                .get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString());
     }
 
     @ParameterizedTest

@@ -55,7 +55,6 @@ import java.util.regex.Pattern;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.api.v2.IntermediateResponse;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -101,7 +100,7 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Optional<IntermediateResponse<UserInfo>> sendLoginRedirectIfRequired(
+    public Optional<String> sendLoginRedirectIfRequired(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         return Optional.empty();
     }
