@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -o pipefail
+
 failures=0
 numeric='^[0-9]+$'
 if [[ "$1" =~ "${numeric}" ]]; then
@@ -41,7 +43,7 @@ while [ "${runcount}" -lt "${runs}" ]; do
     client_logfile="cryostat-itests-${timestamp}.client.log"
     server_logfile="cryostat-itests-${timestamp}.server.log"
     mvn "${FLAGS[@]}" |& tee >($PIPECLEANER > "${client_logfile}")
-    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
+    if [ $? -ne 0 ]; then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
