@@ -31,7 +31,7 @@ while [ "${runcount}" -lt "${runs}" ]; do
         exec:exec@stop-grafana \
         exec:exec@stop-container \
         exec:exec@destroy-pod |& tee -a "${client_logfile}"
-    if [ $? -ne 0 ]; then
+    if [ "${PIPESTATUS[0]}" -ne 0 ]; then
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
