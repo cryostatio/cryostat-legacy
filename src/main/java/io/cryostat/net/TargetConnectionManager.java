@@ -152,6 +152,14 @@ public class TargetConnectionManager {
 
     private void closeConnection(
             ConnectionDescriptor descriptor, JFRConnection connection, RemovalCause cause) {
+        if (descriptor == null) {
+            logger.error("Connection eviction triggered with null descriptor");
+            return;
+        }
+        if (connection == null) {
+            logger.error("Connection eviction triggered with null connection");
+            return;
+        }
         try {
             JMXConnectionClosed evt =
                     new JMXConnectionClosed(descriptor.getTargetId(), cause.name());
