@@ -5,7 +5,7 @@ numeric='^[0-9]+$'
 if [[ "$1" =~ "${numeric}" ]]; then
     runs="$1"
 else
-    runs=50
+    runs=1
 fi
 
 function cleanup() {
