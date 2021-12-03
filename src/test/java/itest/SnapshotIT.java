@@ -183,10 +183,6 @@ public class SnapshotIT extends StandardSelfTest {
                                 if (assertRequestStatus(ar, result)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(202));
-                                    MatcherAssert.assertThat(
-                                            ar.result().statusMessage(),
-                                            Matchers.equalTo(
-                                                    "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from"));
                                     result.complete(null);
                                 }
                             });
@@ -396,10 +392,6 @@ public class SnapshotIT extends StandardSelfTest {
                                 if (assertRequestStatus(ar, result)) {
                                     MatcherAssert.assertThat(
                                             ar.result().statusCode(), Matchers.equalTo(202));
-                                    MatcherAssert.assertThat(
-                                            ar.result().statusMessage(),
-                                            Matchers.equalTo(
-                                                    "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from"));
                                     result.complete(null);
                                 }
                             });
