@@ -5,8 +5,11 @@ set -e
 
 function runCryostat() {
     local DIR="$(dirname "$(readlink -f "$0")")"
-    GRAFANA_DATASOURCE_URL="http://0.0.0.0:8080" \
-        GRAFANA_DASHBOARD_URL="http://0.0.0.0:3000" \
+    local host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
+    local datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
+    local grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
+    GRAFANA_DATASOURCE_URL="http://${host}:${datasourcePort}" \
+        GRAFANA_DASHBOARD_URL="http://${host}:${grafanaPort}" \
         CRYOSTAT_RJMX_USER=smoketest \
         CRYOSTAT_RJMX_PASS=smoketest \
         exec "$DIR/run.sh"
@@ -51,31 +54,41 @@ function runDemoApps() {
 }
 
 function runJfrDatasource() {
+    local stream="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.imageStream/text()' pom.xml)"
+    local tag="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.version/text()' pom.xml)"
     podman run \
         --name jfr-datasource \
         --pod cryostat \
-        --rm -d quay.io/cryostat/jfr-datasource:2.0.0
+        --rm -d "${stream}:${tag}"
 }
 
 function runGrafana() {
+    local stream="$(xpath -q -e 'project/properties/cryostat.itest.grafana.imageStream/text()' pom.xml)"
+    local tag="$(xpath -q -e 'project/properties/cryostat.itest.grafana.version/text()' pom.xml)"
+    local host="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
+    local port="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
     podman run \
         --name grafana \
         --pod cryostat \
         --env GF_INSTALL_PLUGINS=grafana-simple-json-datasource \
         --env GF_AUTH_ANONYMOUS_ENABLED=true \
-        --env JFR_DATASOURCE_URL="http://0.0.0.0:8080" \
-        --rm -d quay.io/cryostat/cryostat-grafana-dashboard:2.0.0
+        --env JFR_DATASOURCE_URL="http://${host}:${port}" \
+        --rm -d "${stream}:${tag}"
 }
 
 function createPod() {
+    local jmxPort="$(xpath -q -e 'project/properties/cryostat.rjmxPort/text()' pom.xml)"
+    local webPort="$(xpath -q -e 'project/properties/cryostat.webPort/text()' pom.xml)"
+    local datasourcePort="$(xpath -q -e 'project/properties/cryostat.itest.jfr-datasource.port/text()' pom.xml)"
+    local grafanaPort="$(xpath -q -e 'project/properties/cryostat.itest.grafana.port/text()' pom.xml)"
     podman pod create \
         --replace \
         --hostname cryostat \
         --name cryostat \
-        --publish 9091:9091 \
-        --publish 8181:8181 \
-        --publish 8080:8080 \
-        --publish 3000:3000 \
+        --publish "${jmxPort}:${jmxPort}" \
+        --publish "${webPort}:${webPort}" \
+        --publish "${datasourcePort}:${datasourcePort}" \
+        --publish "${grafanaPort}:${grafanaPort}" \
         --publish 8081:8081 \
         --publish 9093:9093 \
         --publish 9094:9094 \
@@ -85,10 +98,6 @@ function createPod() {
         --publish 8082:8082 \
         --publish 9990:9990 \
         --publish 9991:9991
-    # 9091: Cryostat RJMX
-    # 8181: Cryostat web services
-    # 8080: jfr-datasource
-    # 3000: grafana
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo-1 RJMX
     # 9094: vertx-fib-demo-2 RJMX
