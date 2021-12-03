@@ -38,7 +38,6 @@
 package io.cryostat.net;
 
 import java.io.IOException;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
@@ -48,6 +47,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -65,7 +65,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
 import io.cryostat.net.security.ResourceVerb;
 
-import com.google.common.base.Suppliers;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
@@ -97,6 +96,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private final Function<String, OpenShiftClient> clientProvider;
     private final WebClient webClient;
 
+    private ConcurrentHashMap<String, CompletableFuture<String>> authorizationUrl;
+
     OpenShiftAuthManager(
             Environment env,
             Logger logger,
@@ -108,6 +109,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         this.fs = fs;
         this.clientProvider = clientProvider;
         this.webClient = webClient;
+        authorizationUrl = new ConcurrentHashMap<>(1);
     }
 
     @Override
@@ -144,13 +146,13 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             if (Boolean.TRUE.equals(hasValidHeader)) {
                 return Optional.empty();
             }
-            return Optional.of(this.computeAuthorizationEndpoint().get().toString());
+            return Optional.of(this.computeAuthorizationEndpoint().get());
         } catch (ExecutionException ee) {
             Throwable cause = ee.getCause();
             if (cause instanceof PermissionDeniedException
                     || cause instanceof AuthorizationErrorException
                     || cause instanceof KubernetesClientException) {
-                return Optional.of(this.computeAuthorizationEndpoint().get().toString());
+                return Optional.of(this.computeAuthorizationEndpoint().get());
             }
             throw ee;
         }
@@ -330,83 +332,68 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private CompletableFuture<URI> computeAuthorizationEndpoint() {
+    private CompletableFuture<String> computeAuthorizationEndpoint() {
 
-        return Suppliers.memoize(
-                        () -> {
-                            return CompletableFuture.supplyAsync(
-                                    () -> {
-                                        CompletableFuture<JsonObject> oauthMetadata =
-                                                new CompletableFuture<>();
-                                        try {
-                                            String namespace = this.getNamespace();
-                                            Optional<String> clientId =
-                                                    Optional.ofNullable(
-                                                            env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
-                                            Optional<String> roleScope =
-                                                    Optional.ofNullable(
-                                                            env.getEnv("CRYOSTAT_OAUTH_ROLE"));
+        authorizationUrl.computeIfAbsent(
+                OAUTH_ENDPOINT_KEY,
+                key -> {
+                    CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
+                    try {
+                        String namespace = this.getNamespace();
+                        Optional<String> clientId =
+                                Optional.ofNullable(env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
+                        Optional<String> roleScope =
+                                Optional.ofNullable(env.getEnv("CRYOSTAT_OAUTH_ROLE"));
 
-                                            String serviceAccountAsOAuthClient =
-                                                    String.format(
-                                                            "system:serviceaccount:%s:%s",
-                                                            namespace,
-                                                            clientId.orElseThrow(
-                                                                    () ->
-                                                                            new MissingEnvironmentVariableException(
-                                                                                    "CRYOSTAT_OAUTH_CLIENT_ID")));
+                        String serviceAccountAsOAuthClient =
+                                String.format(
+                                        "system:serviceaccount:%s:%s",
+                                        namespace,
+                                        clientId.orElseThrow(
+                                                () ->
+                                                        new MissingEnvironmentVariableException(
+                                                                "CRYOSTAT_OAUTH_CLIENT_ID")));
 
-                                            String scope =
-                                                    String.format(
-                                                            "user:check-access role:%s:%s",
-                                                            roleScope.orElseThrow(
-                                                                    () ->
-                                                                            new MissingEnvironmentVariableException(
-                                                                                    "CRYOSTAT_OAUTH_ROLE")),
-                                                            namespace);
+                        String scope =
+                                String.format(
+                                        "user:check-access role:%s:%s",
+                                        roleScope.orElseThrow(
+                                                () ->
+                                                        new MissingEnvironmentVariableException(
+                                                                "CRYOSTAT_OAUTH_ROLE")),
+                                        namespace);
 
-                                            webClient
-                                                    .get(
-                                                            443,
-                                                            OAUTH_WELL_KNOWN_HOST,
-                                                            WELL_KNOWN_PATH)
-                                                    .putHeader("Accept", "application/json")
-                                                    .send(
-                                                            ar -> {
-                                                                if (ar.failed()) {
-                                                                    oauthMetadata
-                                                                            .completeExceptionally(
-                                                                                    ar.cause());
-                                                                    return;
-                                                                }
-                                                                oauthMetadata.complete(
-                                                                        ar.result()
-                                                                                .bodyAsJsonObject());
-                                                            });
+                        webClient
+                                .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
+                                .putHeader("Accept", "application/json")
+                                .send(
+                                        ar -> {
+                                            if (ar.failed()) {
+                                                oauthMetadata.completeExceptionally(ar.cause());
+                                                return;
+                                            }
+                                            oauthMetadata.complete(ar.result().bodyAsJsonObject());
+                                        });
 
-                                            String authorizeEndpoint =
-                                                    oauthMetadata
-                                                            .get()
-                                                            .getString(OAUTH_ENDPOINT_KEY);
+                        String authorizeEndpoint =
+                                oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY);
 
-                                            URIBuilder builder = new URIBuilder(authorizeEndpoint);
-                                            builder.addParameter(
-                                                    "client_id", serviceAccountAsOAuthClient);
-                                            builder.addParameter("response_type", "token");
-                                            builder.addParameter("response_mode", "fragment");
-                                            builder.addParameter("scope", scope);
+                        URIBuilder builder = new URIBuilder(authorizeEndpoint);
+                        builder.addParameter("client_id", serviceAccountAsOAuthClient);
+                        builder.addParameter("response_type", "token");
+                        builder.addParameter("response_mode", "fragment");
+                        builder.addParameter("scope", scope);
 
-                                            return builder.build();
-                                        } catch (ExecutionException
-                                                | InterruptedException
-                                                | URISyntaxException
-                                                | IOException
-                                                | MissingEnvironmentVariableException e) {
-                                            throw new CompletionException(e);
-                                        }
-                                    });
-                        })
-                .get();
+                        return CompletableFuture.completedFuture(builder.build().toString());
+                    } catch (ExecutionException
+                            | InterruptedException
+                            | URISyntaxException
+                            | IOException
+                            | MissingEnvironmentVariableException e) {
+                        throw new CompletionException(e);
+                    }
+                });
+        return authorizationUrl.get(OAUTH_ENDPOINT_KEY);
     }
 
     @SuppressFBWarnings(

@@ -46,6 +46,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
@@ -374,9 +375,9 @@ class OpenShiftAuthManagerTest {
                 .thenReturn(new BufferedReader(new StringReader("namespace")));
         Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, roleScope);
 
-        ExecutionException ee =
+        CompletionException ee =
                 Assertions.assertThrows(
-                        ExecutionException.class,
+                        CompletionException.class,
                         () ->
                                 mgr.sendLoginRedirectIfRequired(
                                                 () -> "Bearer ", ResourceAction.NONE)
@@ -386,9 +387,8 @@ class OpenShiftAuthManagerTest {
                 Matchers.instanceOf(MissingEnvironmentVariableException.class));
     }
 
+    @Test
     void shouldCacheOAuthServerResponse() throws Exception {
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("namespace")));
         Mockito.when(env.getEnv(Mockito.anyString()))
