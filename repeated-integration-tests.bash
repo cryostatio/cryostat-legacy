@@ -10,7 +10,8 @@ else
     runs=1
 fi
 
-POD_NAME=cryostat-itests
+POD_NAME="$(xpath -q -e 'project/properties/cryostat.itest.podName/text()' pom.xml)"
+CONTAINER_NAME="$(xpath -q -e 'project/properties/cryostat.itest.containerName/text()' pom.xml)"
 
 function cleanup() {
     if podman pod exists "${POD_NAME}"; then
@@ -59,7 +60,7 @@ while [ "${runcount}" -lt "${runs}" ]; do
         failures=$((failures+1))
     fi
     runcount=$((runcount+1))
-    podman pod logs -c cryostat-itest "${POD_NAME}" &>> "${server_logfile}"
+    podman pod logs -c "${CONTAINER_NAME}" "${POD_NAME}" &>> "${server_logfile}"
     mvn "${STOPFLAGS[@]}" |& tee -a >($PIPECLEANER >> "${client_logfile}")
 done
 
