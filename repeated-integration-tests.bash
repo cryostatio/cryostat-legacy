@@ -34,9 +34,6 @@ STARTFLAGS=(
 )
 
 STOPFLAGS=(
-    "exec:exec@stop-jfr-datasource"
-    "exec:exec@stop-grafana"
-    "exec:exec@stop-container"
     "exec:exec@destroy-pod"
 )
 
