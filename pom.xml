@@ -396,6 +396,8 @@
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/truststore.d</argument>
               <argument>--env</argument>
+              <argument>CRYOSTAT_TARGET_CACHE_TTL=60</argument>
+              <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_SSL=true</argument>
