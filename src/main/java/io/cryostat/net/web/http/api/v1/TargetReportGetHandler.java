@@ -120,8 +120,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);
 
-            if (rootCause instanceof RecordingNotFoundException
-                    || targetRecordingNotFound(rootCause)) {
+            if (targetRecordingNotFound(rootCause)) {
                 throw new HttpStatusException(404, ee);
             }
             throw ee;
@@ -129,11 +128,22 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
     }
 
     private boolean targetRecordingNotFound(Exception rootCause) {
-        return rootCause instanceof SubprocessReportGenerator.ReportGenerationException
-                        && (((SubprocessReportGenerator.ReportGenerationException) rootCause)
-                                        .getStatus()
-                                == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE)
-                || (((SubprocessReportGenerator.ReportGenerationException) rootCause).getStatus()
-                        == SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING);
+        if (rootCause instanceof RecordingNotFoundException) {
+            return true;
+        }
+        boolean isReportGenerationException =
+                rootCause instanceof SubprocessReportGenerator.ReportGenerationException;
+        if (!isReportGenerationException) {
+            return false;
+        }
+        SubprocessReportGenerator.ReportGenerationException generationException =
+                (SubprocessReportGenerator.ReportGenerationException) rootCause;
+        boolean isTargetConnectionFailure =
+                generationException.getStatus()
+                        == SubprocessReportGenerator.ExitStatus.TARGET_CONNECTION_FAILURE;
+        boolean isNoSuchRecording =
+                generationException.getStatus()
+                        == SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING;
+        return isTargetConnectionFailure || isNoSuchRecording;
     }
 }
