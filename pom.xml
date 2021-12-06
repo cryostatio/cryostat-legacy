@@ -37,10 +37,10 @@
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
   <cryostat.itest.grafana.port>3000</cryostat.itest.grafana.port>
   <cryostat.itest.grafana.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana.imageStream>
-  <cryostat.itest.grafana.version>1.0.0</cryostat.itest.grafana.version>
+  <cryostat.itest.grafana.version>2.0.0</cryostat.itest.grafana.version>
   <cryostat.itest.jfr-datasource.port>8080</cryostat.itest.jfr-datasource.port>
   <cryostat.itest.jfr-datasource.imageStream>quay.io/cryostat/jfr-datasource</cryostat.itest.jfr-datasource.imageStream>
-  <cryostat.itest.jfr-datasource.version>1.0.0</cryostat.itest.jfr-datasource.version>
+  <cryostat.itest.jfr-datasource.version>2.0.0</cryostat.itest.jfr-datasource.version>
 
   <org.apache.maven.plugins.compiler.version>3.8.1</org.apache.maven.plugins.compiler.version>
   <org.apache.maven.plugins.surefire.version>2.22.2</org.apache.maven.plugins.surefire.version>

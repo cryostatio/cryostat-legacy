@@ -16,7 +16,7 @@ fi
 echo -e "\n\nRunning $CRYOSTAT_IMAGE ...\n\n"
 
 if [ -z "$CRYOSTAT_RJMX_PORT" ]; then
-    CRYOSTAT_RJMX_PORT=9091
+    CRYOSTAT_RJMX_PORT="$(xpath -q -e 'project/properties/cryostat.rjmxPort/text()' pom.xml)"
 fi
 
 if [ -z "$CRYOSTAT_RMI_PORT" ]; then
@@ -24,11 +24,11 @@ if [ -z "$CRYOSTAT_RMI_PORT" ]; then
 fi
 
 if [ -z "$CRYOSTAT_WEB_HOST" ]; then
-    CRYOSTAT_WEB_HOST="0.0.0.0" # listens on all interfaces and hostnames for testing purposes
+    CRYOSTAT_WEB_HOST="$(xpath -q -e 'project/properties/cryostat.itest.webHost/text()' pom.xml)"
 fi
 
 if [ -z "$CRYOSTAT_WEB_PORT" ]; then
-    CRYOSTAT_WEB_PORT=8181
+    CRYOSTAT_WEB_PORT="$(xpath -q -e 'project/properties/cryostat.itest.webPort/text()' pom.xml)"
 fi
 
 if [ -z "$CRYOSTAT_EXT_WEB_PORT" ]; then
