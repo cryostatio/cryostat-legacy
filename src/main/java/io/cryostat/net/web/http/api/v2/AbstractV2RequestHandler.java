@@ -115,22 +115,16 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
                 }
             }
             writeResponse(ctx, handle(requestParams));
+        } catch (ExecutionException ee) {
+            Throwable cause = ee.getCause();
+            if (cause instanceof ConnectionException) {
+                handleConnectionException(ctx, (ConnectionException) cause);
+            }
+            throw new ApiException(500, ee.getMessage(), ee);
         } catch (ApiException e) {
             throw e;
         } catch (ConnectionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SecurityException) {
-                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                // FIXME should be 401, needs web-client to be adapted for V2 format
-                throw new ApiException(
-                        427, "Authentication Failure", "JMX Authentication Failure", e);
-            }
-            Throwable rootCause = ExceptionUtils.getRootCause(e);
-            if (rootCause instanceof ConnectIOException) {
-                throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
-            } else if (rootCause instanceof UnknownHostException) {
-                throw new ApiException(404, "Connection Failure", "Target Not Found", e);
-            }
+            handleConnectionException(ctx, e);
             throw new ApiException(500, e.getMessage(), e);
         } catch (Exception e) {
             throw new ApiException(500, e.getMessage(), e);
@@ -199,5 +193,20 @@ public abstract class AbstractV2RequestHandler<T> implements RequestHandler {
         ApiResponse<ApiResultData<T>> body = new ApiResponse<>(meta, data);
 
         response.end(gson.toJson(body));
+    }
+
+    private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof SecurityException) {
+            ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+            // FIXME should be 401, needs web-client to be adapted for V2 format
+            throw new ApiException(427, "Authentication Failure", "JMX Authentication Failure", e);
+        }
+        Throwable rootCause = ExceptionUtils.getRootCause(e);
+        if (rootCause instanceof ConnectIOException) {
+            throw new ApiException(502, "Connection Failure", "Target SSL Untrusted", e);
+        } else if (rootCause instanceof UnknownHostException) {
+            throw new ApiException(404, "Connection Failure", "Target Not Found", e);
+        }
     }
 }
