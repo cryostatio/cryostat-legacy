@@ -61,7 +61,7 @@
   <com.google.dagger.version>2.34.1</com.google.dagger.version>
   <com.google.dagger.compiler.version>2.26</com.google.dagger.compiler.version>
 
-  <io.cryostat.core.version>2.4.0</io.cryostat.core.version>
+  <io.cryostat.core.version>2.3.1</io.cryostat.core.version>
 
   <org.apache.commons.lang3.version>3.12.0</org.apache.commons.lang3.version>
   <org.apache.commons.codec.version>1.15</org.apache.commons.codec.version>
@@ -395,6 +395,8 @@
               <argument>type=tmpfs,target=/opt/cryostat.d/recordings.d</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/truststore.d</argument>
+              <argument>--mount</argument>
+              <argument>type=tmpfs,target=/opt/cryostat.d/probes.d</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_TARGET_CACHE_MAX_CONNECTIONS=1</argument>
               <argument>--env</argument>
@@ -417,6 +419,8 @@
               <argument>CRYOSTAT_ARCHIVE_PATH=/opt/cryostat.d/recordings.d</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_TEMPLATE_PATH=/opt/cryostat.d/templates.d</argument>
+              <argument>--env</argument>
+              <argument>CRYOSTAT_PROBE_TEMPLATE_PATH=/opt/cryostat.d/probes.d</argument>
               <argument>--env</argument>
               <argument>SSL_TRUSTSTORE_DIR=/opt/cryostat.d/truststore.d</argument>
               <argument>--env</argument>
