@@ -43,8 +43,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
-
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -58,6 +56,7 @@ import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
@@ -118,10 +117,10 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
         } catch (ExecutionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof SnapshotCreationException) {
                 throw new HttpStatusException(
-                    500,
-                    String.format(
-                            "An error occured during the creation of snapshot %s.",
-                            snapshotName));
+                        500,
+                        String.format(
+                                "An error occured during the creation of snapshot %s.",
+                                snapshotName));
             }
             throw e;
         }
@@ -130,7 +129,9 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response().setStatusCode(202);
             ctx.response()
                     .setStatusMessage(
-                            String.format("Snapshot %s failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from.", snapshotName));
+                            String.format(
+                                    "Snapshot %s failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from.",
+                                    snapshotName));
             ctx.response().end();
         }
 

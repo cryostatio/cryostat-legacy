@@ -37,27 +37,19 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-
-import org.openjdk.jmc.common.unit.IConstrainedMap;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
+
 import io.vertx.core.MultiMap;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
@@ -86,10 +78,7 @@ class TargetSnapshotPostHandlerTest {
     @BeforeEach
     void setup() {
         this.handler =
-                new TargetSnapshotPostHandler(
-                        auth,
-                        targetConnectionManager,
-                        recordingTargetHelper);
+                new TargetSnapshotPostHandler(auth, targetConnectionManager, recordingTargetHelper);
     }
 
     @Test
@@ -127,15 +116,20 @@ class TargetSnapshotPostHandlerTest {
                                 return task.execute(conn);
                             }
                         });
-        
+
         SnapshotMinimalDescriptor snapshot = Mockito.mock(SnapshotMinimalDescriptor.class);
-        CompletableFuture<SnapshotMinimalDescriptor> future1  = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<SnapshotMinimalDescriptor> future1 =
+                Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.createSnapshot(conn)).thenReturn(future1);
         Mockito.when(future1.get()).thenReturn(snapshot);
         Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1234");
 
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1234"))).thenReturn(future2);
+        Mockito.when(
+                        recordingTargetHelper.verifySnapshot(
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.eq("thesnapshot-1234")))
+                .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(true);
 
         handler.handle(ctx);
@@ -173,17 +167,21 @@ class TargetSnapshotPostHandlerTest {
                         });
 
         SnapshotMinimalDescriptor snapshot = Mockito.mock(SnapshotMinimalDescriptor.class);
-        CompletableFuture<SnapshotMinimalDescriptor> future1  = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<SnapshotMinimalDescriptor> future1 =
+                Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.createSnapshot(conn)).thenReturn(future1);
         Mockito.when(future1.get()).thenReturn(snapshot);
         Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1234");
 
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1234"))).thenReturn(future2);
+        Mockito.when(
+                        recordingTargetHelper.verifySnapshot(
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.eq("thesnapshot-1234")))
+                .thenReturn(future2);
         ExecutionException e = Mockito.mock(ExecutionException.class);
         Mockito.when(future2.get()).thenThrow(e);
-        Mockito.when(e.getCause())
-                .thenReturn(new SnapshotCreationException("thesnapshot-1234"));
+        Mockito.when(e.getCause()).thenReturn(new SnapshotCreationException("thesnapshot-1234"));
 
         HttpStatusException ex =
                 Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
@@ -223,13 +221,18 @@ class TargetSnapshotPostHandlerTest {
                         });
 
         SnapshotMinimalDescriptor snapshot = Mockito.mock(SnapshotMinimalDescriptor.class);
-        CompletableFuture<SnapshotMinimalDescriptor> future1  = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<SnapshotMinimalDescriptor> future1 =
+                Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.createSnapshot(conn)).thenReturn(future1);
         Mockito.when(future1.get()).thenReturn(snapshot);
         Mockito.when(snapshot.getName()).thenReturn("thesnapshot-1234");
 
         CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
-        Mockito.when(recordingTargetHelper.verifySnapshot(Mockito.any(ConnectionDescriptor.class), Mockito.eq("thesnapshot-1234"))).thenReturn(future2);
+        Mockito.when(
+                        recordingTargetHelper.verifySnapshot(
+                                Mockito.any(ConnectionDescriptor.class),
+                                Mockito.eq("thesnapshot-1234")))
+                .thenReturn(future2);
         Mockito.when(future2.get()).thenReturn(false);
 
         handler.handle(ctx);

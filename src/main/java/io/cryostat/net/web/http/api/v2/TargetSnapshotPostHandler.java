@@ -43,7 +43,6 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -55,7 +54,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
-import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
@@ -64,6 +62,7 @@ import com.google.gson.Gson;
 import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetSnapshotPostHandler
         extends AbstractV2RequestHandler<HyperlinkedSerializableRecordingDescriptor> {
@@ -147,10 +146,10 @@ class TargetSnapshotPostHandler
         } catch (ExecutionException e) {
             if (ExceptionUtils.getRootCause(e) instanceof SnapshotCreationException) {
                 throw new ApiException(
-                    500,
-                    String.format(
-                            "An error occured during the creation of snapshot %s.",
-                            snapshotName));
+                        500,
+                        String.format(
+                                "An error occured during the creation of snapshot %s.",
+                                snapshotName));
             }
             throw e;
         }
