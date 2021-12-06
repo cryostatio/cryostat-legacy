@@ -47,6 +47,7 @@ import javax.management.remote.JMXServiceURL;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.platform.PlatformClient;
 
 import com.github.benmanes.caffeine.cache.Scheduler;
 import org.hamcrest.MatcherAssert;
@@ -67,6 +68,7 @@ class TargetConnectionManagerTest {
     TargetConnectionManager mgr;
     @Mock Logger logger;
     @Mock JFRConnectionToolkit jfrConnectionToolkit;
+    @Mock PlatformClient platformClient;
     Duration TTL = Duration.ofMillis(250);
 
     @BeforeEach
@@ -74,6 +76,7 @@ class TargetConnectionManagerTest {
         this.mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        platformClient,
                         ForkJoinPool.commonPool(),
                         Scheduler.systemScheduler(),
                         TTL,
@@ -191,6 +194,7 @@ class TargetConnectionManagerTest {
         TargetConnectionManager mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        platformClient,
                         ForkJoinPool.commonPool(),
                         Scheduler.systemScheduler(),
                         Duration.ofNanos(1),
@@ -231,6 +235,7 @@ class TargetConnectionManagerTest {
         TargetConnectionManager mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        platformClient,
                         new DirectExecutor(),
                         Scheduler.disabledScheduler(),
                         Duration.ofSeconds(1),
@@ -270,6 +275,7 @@ class TargetConnectionManagerTest {
         TargetConnectionManager mgr =
                 new TargetConnectionManager(
                         () -> jfrConnectionToolkit,
+                        platformClient,
                         new DirectExecutor(),
                         Scheduler.disabledScheduler(),
                         Duration.ofNanos(1),

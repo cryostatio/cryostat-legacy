@@ -40,6 +40,7 @@ package io.cryostat.net;
 import java.net.MalformedURLException;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
@@ -51,6 +52,8 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.platform.PlatformClient;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
@@ -75,6 +78,7 @@ public class TargetConnectionManager {
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
+            PlatformClient platform,
             Executor executor,
             Scheduler scheduler,
             Duration ttl,
@@ -93,6 +97,23 @@ public class TargetConnectionManager {
             cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
         }
         this.connections = cacheBuilder.build(this::connect);
+
+        // force removal of connections from cache when we're notified about targets being lost.
+        // This should already be taken care of by the connection close listener, but this provides
+        // some additional insurance in case a target disappears and the underlying JMX network
+        // connection doesn't immediately report itself as closed
+        platform.addTargetDiscoveryListener(
+                tde -> {
+                    if (EventKind.LOST.equals(tde.getEventKind())) {
+                        for (ConnectionDescriptor cd : connections.asMap().keySet()) {
+                            if (Objects.equals(
+                                    cd.getTargetId(),
+                                    tde.getServiceRef().getServiceUri().toString())) {
+                                connections.invalidate(cd);
+                            }
+                        }
+                    }
+                });
     }
 
     public <T> T executeConnectedTask(
