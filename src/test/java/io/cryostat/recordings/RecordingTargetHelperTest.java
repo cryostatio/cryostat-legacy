@@ -288,6 +288,9 @@ public class RecordingTargetHelperTest {
         InputStream snapshot = new ByteArrayInputStream(src);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
 
+        Mockito.when(targetConnectionManager.markConnectionInUse(connectionDescriptor))
+                .thenReturn(true);
+
         boolean verified =
                 recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
 
@@ -338,6 +341,9 @@ public class RecordingTargetHelperTest {
 
         InputStream snapshot = Mockito.mock(InputStream.class);
         Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
+
+        Mockito.when(targetConnectionManager.markConnectionInUse(connectionDescriptor))
+                .thenReturn(true);
         Mockito.doThrow(IOException.class).when(snapshot).read();
 
         Future<Void> deleteFuture = Mockito.mock(Future.class);

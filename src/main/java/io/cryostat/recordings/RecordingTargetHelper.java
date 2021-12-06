@@ -264,7 +264,7 @@ public class RecordingTargetHelper {
                     this.getRecording(connectionDescriptor, snapshotName).get();
             if (snapshotOptional.isEmpty()) {
                 throw new SnapshotCreationException(snapshotName);
-            } else if (!snapshotIsReadable(snapshotOptional.get())) {
+            } else if (!snapshotIsReadable(connectionDescriptor, snapshotOptional.get())) {
                 this.deleteRecording(connectionDescriptor, snapshotName).get();
                 future.complete(false);
             } else {
@@ -328,7 +328,13 @@ public class RecordingTargetHelper {
         return builder.build();
     }
 
-    private boolean snapshotIsReadable(InputStream snapshot) {
+    private boolean snapshotIsReadable(
+            ConnectionDescriptor connectionDescriptor, InputStream snapshot) throws IOException {
+        if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
+            throw new IOException(
+                    "Target connection unexpectedly closed while streaming recording");
+        }
+
         try {
             PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
             int b = pushbackSnapshot.read();
