@@ -234,7 +234,7 @@ public class RecordingTargetHelper {
     }
 
     public Future<SnapshotMinimalDescriptor> createSnapshot(JFRConnection connection)
-            throws Exception {
+             {
         CompletableFuture<SnapshotMinimalDescriptor> future = new CompletableFuture<>();
         try {
             IRecordingDescriptor descriptor = connection.getService().getSnapshotRecording();
@@ -258,7 +258,7 @@ public class RecordingTargetHelper {
     }
 
     public Future<Boolean> verifySnapshot(
-            ConnectionDescriptor connectionDescriptor, String snapshotName) throws Exception {
+            ConnectionDescriptor connectionDescriptor, String snapshotName)  {
         CompletableFuture<Boolean> future = new CompletableFuture<>();
         try {
             Optional<InputStream> snapshotOptional =
