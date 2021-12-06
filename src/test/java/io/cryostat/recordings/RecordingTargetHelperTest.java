@@ -40,14 +40,18 @@ package io.cryostat.recordings;
 import static org.mockito.Mockito.lenient;
 
 import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 
+import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -60,7 +64,11 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
+import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
+import org.hamcrest.MatcherAssert;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -235,43 +243,114 @@ public class RecordingTargetHelperTest {
                 });
     }
 
-    //     @Test
-    //     void shouldCreateSnapshot() throws Exception {
-    //         IRecordingDescriptor recordingDescriptor = Mockito.mock(IRecordingDescriptor.class);
-    //         Mockito.when(recordingDescriptor.getName()).thenReturn("THESNAPSHOT");
-    //         Mockito.when(recordingDescriptor.getId()).thenReturn(1234L);
+    @Test
+    void shouldCreateSnapshot() throws Exception {
+        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+        Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getSnapshotRecording()).thenReturn(recordingDescriptor);
 
-    //         IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
-    //         JFRConnection conn = Mockito.mock(JFRConnection.class);
-    //         Mockito.when(conn.getService()).thenReturn(svc);
-    //         Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+        Mockito.when(recordingOptionsBuilderFactory.create(service))
+                .thenReturn(recordingOptionsBuilder);
+        IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
 
-    //         RecordingOptionsBuilder recordingOptionsBuilder =
-    //                 Mockito.mock(RecordingOptionsBuilder.class);
-    //         Mockito.when(recordingOptionsBuilderFactory.create(svc))
-    //                 .thenReturn(recordingOptionsBuilder);
-    //         IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
-    //         Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
+        SnapshotMinimalDescriptor minimalDescriptor =
+                recordingTargetHelper.createSnapshot(connection).get();
+        MatcherAssert.assertThat(minimalDescriptor.getName(), Matchers.equalTo("snapshot-1"));
+        MatcherAssert.assertThat(
+                minimalDescriptor.getOriginalDescriptor(), Matchers.equalTo(recordingDescriptor));
 
-    // IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+        Mockito.verify(service).getSnapshotRecording();
+        Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
+        Mockito.verify(recordingOptionsBuilder).build();
+        Mockito.verify(service).updateRecordingOptions(recordingDescriptor, map);
+    }
 
-    // IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
-    // JFRConnection conn = Mockito.mock(JFRConnection.class);
-    // Mockito.when(conn.getService()).thenReturn(svc);
-    // Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
+    @Test
+    void shouldVerifySnapshot() throws Exception {
+        RecordingTargetHelper recordingTargetHelperSpy = Mockito.spy(recordingTargetHelper);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        String snapshotName = "snapshot-1";
+        Future<Optional<InputStream>> future = Mockito.mock(Future.class);
+        Mockito.doReturn(future)
+                .when(recordingTargetHelperSpy)
+                .getRecording(connectionDescriptor, snapshotName);
 
-    // RecordingOptionsBuilder recordingOptionsBuilder =
-    //         Mockito.mock(RecordingOptionsBuilder.class);
-    // Mockito.when(recordingOptionsBuilderFactory.create(svc))
-    //         .thenReturn(recordingOptionsBuilder);
-    // IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
-    // Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
+        Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
+        Mockito.when(future.get()).thenReturn(snapshotOptional);
 
-    // Mockito.verify(svc).getSnapshotRecording();
-    // Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
-    // Mockito.verify(recordingOptionsBuilder).build();
-    // Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
-    //     }
+        Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
+
+        byte[] src = new byte[1024 * 1024];
+        new Random(123456).nextBytes(src);
+        InputStream snapshot = new ByteArrayInputStream(src);
+        Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
+
+        boolean verified =
+                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
+
+        Assertions.assertTrue(verified);
+    }
+
+    @Test
+    void shouldHandleVerificationWhenSnapshotCreationError() throws Exception {
+        RecordingTargetHelper recordingTargetHelperSpy = Mockito.spy(recordingTargetHelper);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        String snapshotName = "snapshot-1";
+        Future<Optional<InputStream>> future = Mockito.mock(Future.class);
+        Mockito.doReturn(future)
+                .when(recordingTargetHelperSpy)
+                .getRecording(connectionDescriptor, snapshotName);
+
+        Optional<InputStream> snapshotOptional = Optional.empty();
+        Mockito.when(future.get()).thenReturn(snapshotOptional);
+
+        Assertions.assertThrows(
+                ExecutionException.class,
+                () -> {
+                    try {
+                        recordingTargetHelperSpy
+                                .verifySnapshot(connectionDescriptor, snapshotName)
+                                .get();
+                    } catch (ExecutionException ee) {
+                        Assertions.assertTrue(ee.getCause() instanceof SnapshotCreationException);
+                        throw ee;
+                    }
+                });
+    }
+
+    @Test
+    void shouldHandleVerificationWhenSnapshotNotReadable() throws Exception {
+        RecordingTargetHelper recordingTargetHelperSpy = Mockito.spy(recordingTargetHelper);
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+        String snapshotName = "snapshot-1";
+        Future<Optional<InputStream>> getFuture = Mockito.mock(Future.class);
+        Mockito.doReturn(getFuture)
+                .when(recordingTargetHelperSpy)
+                .getRecording(connectionDescriptor, snapshotName);
+
+        Optional<InputStream> snapshotOptional = Mockito.mock(Optional.class);
+        Mockito.when(getFuture.get()).thenReturn(snapshotOptional);
+
+        Mockito.when(snapshotOptional.isEmpty()).thenReturn(false);
+
+        InputStream snapshot = Mockito.mock(InputStream.class);
+        Mockito.when(snapshotOptional.get()).thenReturn(snapshot);
+        Mockito.doThrow(IOException.class).when(snapshot).read();
+
+        Future<Void> deleteFuture = Mockito.mock(Future.class);
+        Mockito.doReturn(deleteFuture)
+                .when(recordingTargetHelperSpy)
+                .deleteRecording(connectionDescriptor, snapshotName);
+        Mockito.when(deleteFuture.get()).thenReturn(null);
+
+        boolean verified =
+                recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
+
+        Assertions.assertFalse(verified);
+    }
 
     private static IRecordingDescriptor createDescriptor(String name)
             throws QuantityConversionException {
