@@ -50,6 +50,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.util.HttpStatusCodeIdentifier;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.vertx.core.Vertx;
 import io.vertx.ext.web.client.WebClient;
 import io.vertx.ext.web.multipart.MultipartForm;
@@ -75,6 +76,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
     }
 
     @Override
+    @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public CompletableFuture<Path> exec(Path recording, Path destination) {
         String reportGenerator = env.getEnv("CRYOSTAT_REPORT_GENERATOR");
         logger.info("POSTing {} to {}", recording, reportGenerator);
