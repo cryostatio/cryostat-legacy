@@ -39,7 +39,6 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.PushbackInputStream;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -343,9 +342,7 @@ public class RecordingTargetHelper {
         }
 
         try {
-            PushbackInputStream pushbackSnapshot = new PushbackInputStream(snapshot);
-            int b = pushbackSnapshot.read();
-            pushbackSnapshot.unread(b);
+            snapshot.read();
             return true;
         } catch (IOException e) {
             return false;
