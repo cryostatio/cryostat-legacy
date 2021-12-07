@@ -66,7 +66,7 @@ public class TargetProbeDeleteHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/probes";
 
-    private static Logger logger;
+    private final Logger logger;
     private final NotificationFactory notificationFactory;
     private final FileSystem fs;
     private final TargetConnectionManager connectionManager;

@@ -91,7 +91,7 @@ public class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
 
     static final String PATH = "targets/:targetId/probes/:probeTemplate";
 
-    private static Logger logger;
+    private final Logger logger;
     private final NotificationFactory notificationFactory;
     private final LocalProbeTemplateService probeTemplateService;
     private final FileSystem fs;
