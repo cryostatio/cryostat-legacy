@@ -270,11 +270,15 @@ public class RecordingTargetHelper {
                     this.getRecording(connectionDescriptor, snapshotName).get();
             if (snapshotOptional.isEmpty()) {
                 throw new SnapshotCreationException(snapshotName);
-            } else if (!snapshotIsReadable(connectionDescriptor, snapshotOptional.get())) {
-                this.deleteRecording(connectionDescriptor, snapshotName).get();
-                future.complete(false);
             } else {
-                future.complete(true);
+                try (InputStream snapshot = snapshotOptional.get()) {
+                    if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
+                        this.deleteRecording(connectionDescriptor, snapshotName).get();
+                        future.complete(false);
+                    } else {
+                        future.complete(true);
+                    }
+                }
             }
         } catch (Exception e) {
             future.completeExceptionally(e);
