@@ -113,21 +113,21 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
             if (!Objects.equals(rec.getName(), recordingName)) {
                 continue;
             }
-            try (conn;
-                    InputStream in = conn.getService().openStream(rec, false);
-                    OutputStream out =
-                            new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
-                byte[] buff = new byte[READ_BUFFER_SIZE];
-                int n = 0;
-                while ((n = in.read(buff)) != -1) {
-                    out.write(buff, 0, n);
-                    if (!targetConnectionManager.markConnectionInUse(cd)) {
-                        throw new IOException(
-                                "Target connection unexpectedly closed while streaming recording");
+            try (OutputStream out = new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
+                try (conn;
+                        InputStream in = conn.getService().openStream(rec, false)) {
+                    byte[] buff = new byte[READ_BUFFER_SIZE];
+                    int n = 0;
+                    while ((n = in.read(buff)) != -1) {
+                        out.write(buff, 0, n);
+                        if (!targetConnectionManager.markConnectionInUse(cd)) {
+                            throw new IOException(
+                                    "Target connection unexpectedly closed while streaming recording");
+                        }
                     }
+                    out.flush();
+                    return path;
                 }
-                out.flush();
-                return path;
             }
         }
         throw new RecordingNotFoundException(cd.getTargetId(), recordingName);
