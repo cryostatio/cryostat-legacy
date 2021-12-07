@@ -144,7 +144,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class),
+                                Mockito.anyBoolean()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -178,7 +179,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class),
+                                Mockito.anyBoolean()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -265,7 +267,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class),
+                                Mockito.anyBoolean()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -337,7 +340,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class),
+                                Mockito.anyBoolean()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -420,7 +424,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class),
+                                Mockito.anyBoolean()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -498,7 +503,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class),
+                                Mockito.anyBoolean()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override
@@ -631,7 +637,8 @@ class RecordingArchiveHelperTest {
         Mockito.when(
                         targetConnectionManager.executeConnectedTask(
                                 Mockito.any(),
-                                Mockito.any(TargetConnectionManager.ConnectedTask.class)))
+                                Mockito.any(TargetConnectionManager.ConnectedTask.class),
+                                Mockito.anyBoolean()))
                 .thenAnswer(
                         new Answer<>() {
                             @Override

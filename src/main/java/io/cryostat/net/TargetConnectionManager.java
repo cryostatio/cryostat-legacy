@@ -40,6 +40,7 @@ package io.cryostat.net;
 import java.net.MalformedURLException;
 import java.time.Duration;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 import java.util.regex.Matcher;
@@ -51,11 +52,12 @@ import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.net.JFRConnectionToolkit;
+import io.cryostat.core.net.discovery.JvmDiscoveryClient.EventKind;
+import io.cryostat.platform.PlatformClient;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.github.benmanes.caffeine.cache.RemovalCause;
-import com.github.benmanes.caffeine.cache.RemovalListener;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import dagger.Lazy;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
@@ -76,6 +78,7 @@ public class TargetConnectionManager {
 
     TargetConnectionManager(
             Lazy<JFRConnectionToolkit> jfrConnectionToolkit,
+            PlatformClient platform,
             Executor executor,
             Scheduler scheduler,
             Duration ttl,
@@ -89,51 +92,66 @@ public class TargetConnectionManager {
                         .executor(executor)
                         .scheduler(scheduler)
                         .expireAfterAccess(ttl)
-                        .removalListener(
-                                new RemovalListener<ConnectionDescriptor, JFRConnection>() {
-                                    @Override
-                                    public void onRemoval(
-                                            ConnectionDescriptor descriptor,
-                                            JFRConnection connection,
-                                            RemovalCause cause) {
-                                        if (descriptor == null) {
-                                            logger.warn(
-                                                    "Connection eviction triggered with null descriptor");
-                                            return;
-                                        }
-                                        if (connection == null) {
-                                            logger.warn(
-                                                    "Connection eviction triggered with null connection");
-                                            return;
-                                        }
-                                        JMXConnectionClosed evt =
-                                                new JMXConnectionClosed(descriptor.getTargetId());
-                                        logger.info(
-                                                "Removing cached connection for {}",
-                                                descriptor.getTargetId());
-                                        evt.begin();
-                                        try {
-                                            connection.close();
-                                        } catch (RuntimeException e) {
-                                            evt.setExceptionThrown(true);
-                                            throw e;
-                                        } finally {
-                                            evt.end();
-                                            if (evt.shouldCommit()) {
-                                                evt.commit();
-                                            }
-                                        }
-                                    }
-                                });
+                        .removalListener(this::closeConnection);
         if (maxTargetConnections >= 0) {
             cacheBuilder = cacheBuilder.maximumSize(maxTargetConnections);
         }
         this.connections = cacheBuilder.build(this::connect);
+
+        // force removal of connections from cache when we're notified about targets being lost.
+        // This should already be taken care of by the connection close listener, but this provides
+        // some additional insurance in case a target disappears and the underlying JMX network
+        // connection doesn't immediately report itself as closed
+        platform.addTargetDiscoveryListener(
+                tde -> {
+                    if (EventKind.LOST.equals(tde.getEventKind())) {
+                        for (ConnectionDescriptor cd : connections.asMap().keySet()) {
+                            if (Objects.equals(
+                                    cd.getTargetId(),
+                                    tde.getServiceRef().getServiceUri().toString())) {
+                                connections.invalidate(cd);
+                            }
+                        }
+                    }
+                });
     }
 
     public <T> T executeConnectedTask(
             ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task) throws Exception {
-        return task.execute(connections.get(connectionDescriptor));
+        return executeConnectedTask(connectionDescriptor, task, true);
+    }
+
+    /**
+     * Execute a {@link ConnectedTask}, optionally caching the connection for future re-use. If
+     * useCache is true then the connection will be retrieved from cache if available, or created
+     * and stored in the cache if not. This is subject to the cache maxSize and TTL policy. If
+     * useCache is false then a connection will be taken from cache if available, otherwise a new
+     * connection will be created externally from the cache. After the task has completed the
+     * connection will be closed only if the connection was not originally retrieved from the cache,
+     * otherwise the connection is left as-is to be subject to the cache's standard eviction policy.
+     * "Interactive" use cases should prefer to call this with useCache==true (or simply call {@link
+     * #executeConnectedTask(ConnectionDescriptor cd, ConnectedTask task)} instead). Automated use
+     * cases such as Automated Rules should call this with useCache==false.
+     */
+    public <T> T executeConnectedTask(
+            ConnectionDescriptor connectionDescriptor, ConnectedTask<T> task, boolean useCache)
+            throws Exception {
+        if (useCache) {
+            return task.execute(connections.get(connectionDescriptor));
+        } else {
+            JFRConnection connection = connections.getIfPresent(connectionDescriptor);
+            boolean cached = connection != null;
+            if (!cached) {
+                connection = connect(connectionDescriptor);
+            }
+            try {
+                return task.execute(connection);
+            } finally {
+                if (!cached) {
+                    connection.close();
+                }
+            }
+        }
     }
 
     /**
@@ -151,6 +169,37 @@ public class TargetConnectionManager {
      */
     public boolean markConnectionInUse(ConnectionDescriptor connectionDescriptor) {
         return connections.getIfPresent(connectionDescriptor) != null;
+    }
+
+    private void closeConnection(
+            ConnectionDescriptor descriptor, JFRConnection connection, RemovalCause cause) {
+        if (descriptor == null) {
+            logger.error("Connection eviction triggered with null descriptor");
+            return;
+        }
+        if (connection == null) {
+            logger.error("Connection eviction triggered with null connection");
+            return;
+        }
+        try {
+            JMXConnectionClosed evt =
+                    new JMXConnectionClosed(descriptor.getTargetId(), cause.name());
+            logger.info("Removing cached connection for {}: {}", descriptor.getTargetId(), cause);
+            evt.begin();
+            try {
+                connection.close();
+            } catch (RuntimeException e) {
+                evt.setExceptionThrown(true);
+                throw e;
+            } finally {
+                evt.end();
+                if (evt.shouldCommit()) {
+                    evt.commit();
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e);
+        }
     }
 
     private JFRConnection connect(ConnectionDescriptor connectionDescriptor) throws Exception {
@@ -191,7 +240,7 @@ public class TargetConnectionManager {
             ConnectionDescriptor cacheKey, JMXServiceURL url, Optional<Credentials> credentials)
             throws Exception {
         JMXConnectionOpened evt = new JMXConnectionOpened(url.toString());
-        logger.info("Creating connection for {}", url.toString());
+        logger.info("Creating connection for {}", url);
         evt.begin();
         try {
             return jfrConnectionToolkit
@@ -199,7 +248,11 @@ public class TargetConnectionManager {
                     .connect(
                             url,
                             credentials.orElse(null),
-                            Collections.singletonList(() -> this.connections.invalidate(cacheKey)));
+                            Collections.singletonList(
+                                    () -> {
+                                        logger.info("Connection for {} closed", url);
+                                        this.connections.invalidate(cacheKey);
+                                    }));
         } catch (Exception e) {
             evt.setExceptionThrown(true);
             throw e;
@@ -244,10 +297,12 @@ public class TargetConnectionManager {
     public static class JMXConnectionClosed extends Event {
         String serviceUri;
         boolean exceptionThrown;
+        String reason;
 
-        JMXConnectionClosed(String serviceUri) {
+        JMXConnectionClosed(String serviceUri, String reason) {
             this.serviceUri = serviceUri;
             this.exceptionThrown = false;
+            this.reason = reason;
         }
 
         void setExceptionThrown(boolean exceptionThrown) {

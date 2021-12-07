@@ -61,7 +61,11 @@ public class ReportJwtDownloadIT extends JwtAssetsSelfTest {
         Path assetDownload = null;
         try {
             resource = createRecording();
-            String downloadUrl = getTokenDownloadUrl(new URL(resource.getString("reportUrl")));
+            String downloadUrl =
+                    getTokenDownloadUrl(
+                            new URL(
+                                    resource.getString("reportUrl")
+                                            .replace("/api/v1/", "/api/beta/")));
             Thread.sleep(10_000L);
             assetDownload =
                     downloadFileAbs(downloadUrl, TEST_RECORDING_NAME, ".html")
