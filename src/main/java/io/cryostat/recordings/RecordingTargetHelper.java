@@ -174,6 +174,13 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
+    /**
+     * The returned {@link InputStream}, if any, is only readable while the remote connection
+     * remains open. And so, {@link
+     * TargetConnectionManager#markConnectionInUse(ConnectionDescriptor)} should be used while
+     * reading to inform the {@link TargetConnectionManager} that the connection is still in use,
+     * thereby avoiding accidental expiration/closing of the connection.
+     */
     public Future<Optional<InputStream>> getRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
         CompletableFuture<Optional<InputStream>> future = new CompletableFuture<>();
