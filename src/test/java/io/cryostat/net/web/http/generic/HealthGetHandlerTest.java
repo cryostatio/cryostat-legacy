@@ -129,7 +129,8 @@ class HealthGetHandlerTest {
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
                                 "dashboardAvailable", false,
-                                "datasourceAvailable", false)));
+                                "datasourceAvailable", false,
+                                "reportsAvailable", true)));
     }
 
     @Test
@@ -184,7 +185,8 @@ class HealthGetHandlerTest {
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
                                 "dashboardAvailable", false,
-                                "datasourceAvailable", true)));
+                                "datasourceAvailable", true,
+                                "reportsAvailable", true)));
     }
 
     @Test
@@ -239,7 +241,8 @@ class HealthGetHandlerTest {
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
                                 "dashboardAvailable", true,
-                                "datasourceAvailable", false)));
+                                "datasourceAvailable", false,
+                                "reportsAvailable", true)));
     }
 
     @Test
@@ -293,6 +296,7 @@ class HealthGetHandlerTest {
                         Map.of(
                                 "cryostatVersion", "v1.2.3",
                                 "dashboardAvailable", true,
-                                "datasourceAvailable", false)));
+                                "datasourceAvailable", false,
+                                "reportsAvailable", true)));
     }
 }
