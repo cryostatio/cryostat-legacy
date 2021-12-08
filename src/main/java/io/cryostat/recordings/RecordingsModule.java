@@ -58,6 +58,7 @@ import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import org.apache.commons.codec.binary.Base32;
@@ -69,6 +70,7 @@ public abstract class RecordingsModule {
     @Singleton
     static RecordingTargetHelper provideRecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
+            Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
@@ -76,6 +78,7 @@ public abstract class RecordingsModule {
             Logger logger) {
         return new RecordingTargetHelper(
                 targetConnectionManager,
+                webServer,
                 eventOptionsBuilderFactory,
                 notificationFactory,
                 recordingOptionsBuilderFactory,

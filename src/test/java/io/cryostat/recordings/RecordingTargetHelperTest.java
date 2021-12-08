@@ -42,11 +42,17 @@ import static org.mockito.Mockito.lenient;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -55,17 +61,19 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
-import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
@@ -84,6 +92,7 @@ public class RecordingTargetHelperTest {
     RecordingTargetHelper recordingTargetHelper;
     @Mock AuthManager auth;
     @Mock TargetConnectionManager targetConnectionManager;
+    @Mock WebServer webServer;
     @Mock EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     @Mock NotificationFactory notificationFactory;
     @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -91,6 +100,7 @@ public class RecordingTargetHelperTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
     @Mock Logger logger;
+    Gson gson = MainModule.provideGson(logger);
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -112,6 +122,7 @@ public class RecordingTargetHelperTest {
         this.recordingTargetHelper =
                 new RecordingTargetHelper(
                         targetConnectionManager,
+                        () -> webServer,
                         eventOptionsBuilderFactory,
                         notificationFactory,
                         recordingOptionsBuilderFactory,
@@ -245,6 +256,22 @@ public class RecordingTargetHelperTest {
 
     @Test
     void shouldCreateSnapshot() throws Exception {
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+
+        Mockito.when(
+                targetConnectionManager.executeConnectedTask(
+                        Mockito.eq(connectionDescriptor), Mockito.any()))
+        .thenAnswer(
+                new Answer() {
+                    @Override
+                    public Object answer(InvocationOnMock invocation) throws Throwable {
+                        TargetConnectionManager.ConnectedTask task =
+                                (TargetConnectionManager.ConnectedTask)
+                                        invocation.getArgument(1);
+                        return task.execute(connection);
+                    }
+                });
+
         IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
         Mockito.when(connection.getService()).thenReturn(service);
         Mockito.when(service.getSnapshotRecording()).thenReturn(recordingDescriptor);
@@ -256,16 +283,47 @@ public class RecordingTargetHelperTest {
         IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
 
-        SnapshotMinimalDescriptor minimalDescriptor =
-                recordingTargetHelper.createSnapshot(connection).get();
-        MatcherAssert.assertThat(minimalDescriptor.getName(), Matchers.equalTo("snapshot-1"));
-        MatcherAssert.assertThat(
-                minimalDescriptor.getOriginalDescriptor(), Matchers.equalTo(recordingDescriptor));
+        List<IRecordingDescriptor> recordings = new ArrayList<>();
+        recordings.add(recordingDescriptor);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(recordings);
 
+        Mockito.when(webServer.getDownloadURL(Mockito.any(), Mockito.any()))
+                .thenReturn("http://example.com/download");
+        Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
+                .thenReturn("http://example.com/report");
+
+        HyperlinkedSerializableRecordingDescriptor desc =
+                recordingTargetHelper.createSnapshot(connectionDescriptor).get();
+        
         Mockito.verify(service).getSnapshotRecording();
         Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
         Mockito.verify(recordingOptionsBuilder).build();
         Mockito.verify(service).updateRecordingOptions(recordingDescriptor, map);
+
+        Map parsed =
+                gson.fromJson(
+                        desc.toString(), new TypeToken<Map<String, Object>>() {}.getType());
+        Map<String, Object> expected = new LinkedHashMap<>();
+        Map<String, Object> meta = new LinkedHashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
+        expected.put("meta", meta);
+        meta.put("type", "text/plain");
+        meta.put("status", "OK");
+        expected.put("data", data);
+        data.put("result", result);
+        result.put("downloadUrl", "http://example.com/download");
+        result.put("reportUrl", "http://example.com/report");
+        result.put("id", 1.0);
+        result.put("name", "snapshot-1");
+        result.put("state", "STOPPED");
+        result.put("startTime", 0.0);
+        result.put("duration", 0.0);
+        result.put("continuous", false);
+        result.put("toDisk", false);
+        result.put("maxSize", 0.0);
+        result.put("maxAge", 0.0);
+        MatcherAssert.assertThat(parsed, Matchers.equalTo(expected));
     }
 
     @Test
@@ -363,7 +421,7 @@ public class RecordingTargetHelperTest {
         IQuantity zeroQuantity = Mockito.mock(IQuantity.class);
         IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
         Mockito.lenient().when(descriptor.getId()).thenReturn(1L);
-        Mockito.lenient().when(descriptor.getName()).thenReturn(name);
+        Mockito.lenient().when(descriptor.getName()).thenReturn(name).thenReturn(name + "-1");
         Mockito.lenient()
                 .when(descriptor.getState())
                 .thenReturn(IRecordingDescriptor.RecordingState.STOPPED);

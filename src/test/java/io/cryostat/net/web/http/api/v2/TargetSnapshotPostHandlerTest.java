@@ -57,7 +57,6 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
-import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -84,8 +83,6 @@ class TargetSnapshotPostHandlerTest {
 
     TargetSnapshotPostHandler handler;
     @Mock AuthManager auth;
-    @Mock WebServer webServer;
-    @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
@@ -95,8 +92,6 @@ class TargetSnapshotPostHandlerTest {
         this.handler =
                 new TargetSnapshotPostHandler(
                         auth,
-                        targetConnectionManager,
-                        () -> webServer,
                         recordingTargetHelper,
                         gson);
     }
@@ -202,26 +197,6 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.request()).thenReturn(req);
         Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
-
-        JFRConnection conn = Mockito.mock(JFRConnection.class);
-        Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                        new Answer() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(conn);
-                            }
-                        });
-
-        Mockito.when(webServer.getDownloadURL(Mockito.any(), Mockito.any()))
-                .thenReturn("http://example.com/download");
-        Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
-                .thenReturn("http://example.com/report");
 
         SnapshotMinimalDescriptor snapshot = Mockito.mock(SnapshotMinimalDescriptor.class);
         CompletableFuture<SnapshotMinimalDescriptor> future1 =
