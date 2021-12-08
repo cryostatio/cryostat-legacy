@@ -43,23 +43,16 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
-import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
 import com.google.gson.Gson;
-import dagger.Lazy;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import org.apache.commons.lang3.exception.ExceptionUtils;
@@ -67,20 +60,12 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class TargetSnapshotPostHandler
         extends AbstractV2RequestHandler<HyperlinkedSerializableRecordingDescriptor> {
 
-    private final TargetConnectionManager targetConnectionManager;
-    private final Lazy<WebServer> webServer;
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
     TargetSnapshotPostHandler(
-            AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            Lazy<WebServer> webServer,
-            RecordingTargetHelper recordingTargetHelper,
-            Gson gson) {
+            AuthManager auth, RecordingTargetHelper recordingTargetHelper, Gson gson) {
         super(auth, gson);
-        this.targetConnectionManager = targetConnectionManager;
-        this.webServer = webServer;
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -124,56 +109,42 @@ class TargetSnapshotPostHandler
             RequestParameters requestParams) throws Exception {
         ConnectionDescriptor connectionDescriptor =
                 getConnectionDescriptorFromParams(requestParams);
-        HyperlinkedSerializableRecordingDescriptor desc =
-                targetConnectionManager.executeConnectedTask(
-                        connectionDescriptor,
-                        connection -> {
-                            SnapshotMinimalDescriptor snapshot =
-                                    recordingTargetHelper.createSnapshot(connection).get();
-                            String rename = snapshot.getName();
-                            return new SnapshotDescriptor(
-                                    rename,
-                                    snapshot.getOriginalDescriptor(),
-                                    webServer.get().getDownloadURL(connection, rename),
-                                    webServer.get().getReportURL(connection, rename));
-                        });
-        String snapshotName = desc.getName();
+
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor = null;
+        try {
+            snapshotDescriptor = recordingTargetHelper.createSnapshot(connectionDescriptor).get();
+        } catch (ExecutionException e) {
+            handleExecutionException(e);
+        }
+        String snapshotName = snapshotDescriptor.getName();
 
         boolean verificationSuccessful = false;
         try {
             verificationSuccessful =
                     recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
         } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof SnapshotCreationException) {
-                throw new ApiException(
-                        500,
-                        String.format(
-                                "An error occured during the creation of snapshot %s.",
-                                snapshotName));
-            }
-            throw e;
+            handleExecutionException(e);
         }
 
         if (!verificationSuccessful) {
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                     .statusCode(202)
                     .statusMessage(
-                            "Snapshot failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from.")
+                            "Snapshot failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.")
                     .body(null);
         }
 
         return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                 .statusCode(201)
-                .addHeader(HttpHeaders.LOCATION, desc.getDownloadUrl())
-                .body(desc);
+                .addHeader(HttpHeaders.LOCATION, snapshotDescriptor.getDownloadUrl())
+                .body(snapshotDescriptor);
     }
 
-    static class SnapshotDescriptor extends HyperlinkedSerializableRecordingDescriptor {
-        SnapshotDescriptor(
-                String name, IRecordingDescriptor orig, String downloadUrl, String reportUrl)
-                throws QuantityConversionException {
-            super(orig, downloadUrl, reportUrl);
-            this.name = name;
+    private void handleExecutionException(ExecutionException e) throws ExecutionException {
+        Throwable cause = ExceptionUtils.getRootCause(e);
+        if (cause instanceof SnapshotCreationException) {
+            throw new ApiException(500, cause.getMessage());
         }
+        throw e;
     }
 }

@@ -43,15 +43,14 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
-import io.cryostat.recordings.RecordingTargetHelper.SnapshotMinimalDescriptor;
 
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
@@ -60,16 +59,11 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
 
-    private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
-    TargetSnapshotPostHandler(
-            AuthManager auth,
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper) {
+    TargetSnapshotPostHandler(AuthManager auth, RecordingTargetHelper recordingTargetHelper) {
         super(auth);
-        this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -101,28 +95,21 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
     @Override
     public void handleAuthenticated(RoutingContext ctx) throws Exception {
         ConnectionDescriptor connectionDescriptor = getConnectionDescriptorFromContext(ctx);
-        String snapshotName =
-                targetConnectionManager.executeConnectedTask(
-                        connectionDescriptor,
-                        connection -> {
-                            SnapshotMinimalDescriptor snapshot =
-                                    recordingTargetHelper.createSnapshot(connection).get();
-                            return snapshot.getName();
-                        });
+
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor = null;
+        try {
+            snapshotDescriptor = recordingTargetHelper.createSnapshot(connectionDescriptor).get();
+        } catch (ExecutionException e) {
+            handleExecutionException(e);
+        }
+        String snapshotName = snapshotDescriptor.getName();
 
         boolean verificationSuccessful = false;
         try {
             verificationSuccessful =
                     recordingTargetHelper.verifySnapshot(connectionDescriptor, snapshotName).get();
         } catch (ExecutionException e) {
-            if (ExceptionUtils.getRootCause(e) instanceof SnapshotCreationException) {
-                throw new HttpStatusException(
-                        500,
-                        String.format(
-                                "An error occured during the creation of snapshot %s.",
-                                snapshotName));
-            }
-            throw e;
+            handleExecutionException(e);
         }
 
         if (!verificationSuccessful) {
@@ -130,11 +117,19 @@ class TargetSnapshotPostHandler extends AbstractAuthenticatedRequestHandler {
             ctx.response()
                     .end(
                             String.format(
-                                    "Snapshot %s failed to create: The resultant recording was unreadable for some reason, possibly due to a lack of Active, non-Snapshot source recordings to take event data from.",
+                                    "Snapshot %s failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.",
                                     snapshotName));
         }
 
         ctx.response().setStatusCode(200);
         ctx.response().end(snapshotName);
+    }
+
+    private void handleExecutionException(ExecutionException e) throws ExecutionException {
+        Throwable cause = ExceptionUtils.getRootCause(e);
+        if (cause instanceof SnapshotCreationException) {
+            throw new HttpStatusException(500, cause.getMessage());
+        }
+        throw e;
     }
 }

@@ -56,12 +56,15 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 
+import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -73,6 +76,7 @@ public class RecordingTargetHelper {
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
 
     private final TargetConnectionManager targetConnectionManager;
+    private final Lazy<WebServer> webServer;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
@@ -81,12 +85,14 @@ public class RecordingTargetHelper {
 
     RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
+            Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
+        this.webServer = webServer;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
@@ -150,29 +156,6 @@ public class RecordingTargetHelper {
                 false, connectionDescriptor, recordingOptions, templateName, templateType);
     }
 
-    public static Pair<String, TemplateType> parseEventSpecifierToTemplate(String eventSpecifier)
-            throws IllegalArgumentException {
-        if (TEMPLATE_PATTERN.matcher(eventSpecifier).matches()) {
-            Matcher m = TEMPLATE_PATTERN.matcher(eventSpecifier);
-            m.find();
-            String templateName = m.group(1);
-            String typeName = m.group(2);
-            TemplateType templateType = null;
-            if (StringUtils.isNotBlank(typeName)) {
-                templateType = TemplateType.valueOf(typeName.toUpperCase());
-            }
-            return Pair.of(templateName, templateType);
-        }
-        throw new IllegalArgumentException(eventSpecifier);
-    }
-
-    public Optional<IRecordingDescriptor> getDescriptorByName(
-            JFRConnection connection, String recordingName) throws Exception {
-        return connection.getService().getAvailableRecordings().stream()
-                .filter(recording -> recording.getName().equals(recordingName))
-                .findFirst();
-    }
-
     /**
      * The returned {@link InputStream}, if any, is only readable while the remote connection
      * remains open. And so, {@link
@@ -219,11 +202,7 @@ public class RecordingTargetHelper {
                     connectionDescriptor,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
-                                connection.getService().getAvailableRecordings().stream()
-                                        .filter(
-                                                recording ->
-                                                        recording.getName().equals(recordingName))
-                                        .findFirst();
+                                getDescriptorByName(connection, recordingName);
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
                             reportService.delete(connectionDescriptor, recordingName);
@@ -239,23 +218,48 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<SnapshotMinimalDescriptor> createSnapshot(JFRConnection connection) {
-        CompletableFuture<SnapshotMinimalDescriptor> future = new CompletableFuture<>();
+    public Future<HyperlinkedSerializableRecordingDescriptor> createSnapshot(
+            ConnectionDescriptor connectionDescriptor) {
+        CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future =
+                new CompletableFuture<>();
         try {
-            IRecordingDescriptor descriptor = connection.getService().getSnapshotRecording();
+            HyperlinkedSerializableRecordingDescriptor recordingDescriptor =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                IRecordingDescriptor descriptor =
+                                        connection.getService().getSnapshotRecording();
 
-            String rename =
-                    String.format("%s-%d", descriptor.getName().toLowerCase(), descriptor.getId());
+                                String rename =
+                                        String.format(
+                                                "%s-%d",
+                                                descriptor.getName().toLowerCase(),
+                                                descriptor.getId());
 
-            RecordingOptionsBuilder recordingOptionsBuilder =
-                    recordingOptionsBuilderFactory.create(connection.getService());
-            recordingOptionsBuilder.name(rename);
+                                RecordingOptionsBuilder recordingOptionsBuilder =
+                                        recordingOptionsBuilderFactory.create(
+                                                connection.getService());
+                                recordingOptionsBuilder.name(rename);
 
-            connection
-                    .getService()
-                    .updateRecordingOptions(descriptor, recordingOptionsBuilder.build());
+                                connection
+                                        .getService()
+                                        .updateRecordingOptions(
+                                                descriptor, recordingOptionsBuilder.build());
 
-            future.complete(new SnapshotMinimalDescriptor(rename, descriptor));
+                                Optional<IRecordingDescriptor> updatedDescriptor =
+                                        getDescriptorByName(connection, rename);
+
+                                if (updatedDescriptor.isEmpty()) {
+                                    throw new SnapshotCreationException(
+                                            "The newly created Snapshot could not be found under its rename");
+                                }
+
+                                return new HyperlinkedSerializableRecordingDescriptor(
+                                        updatedDescriptor.get(),
+                                        webServer.get().getDownloadURL(connection, rename),
+                                        webServer.get().getReportURL(connection, rename));
+                            });
+            future.complete(recordingDescriptor);
         } catch (Exception e) {
             future.completeExceptionally(e);
         }
@@ -269,7 +273,8 @@ public class RecordingTargetHelper {
             Optional<InputStream> snapshotOptional =
                     this.getRecording(connectionDescriptor, snapshotName).get();
             if (snapshotOptional.isEmpty()) {
-                throw new SnapshotCreationException(snapshotName);
+                throw new SnapshotCreationException(
+                        "The newly-created Snapshot could not be retrieved for verification");
             } else {
                 try (InputStream snapshot = snapshotOptional.get()) {
                     if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
@@ -284,6 +289,29 @@ public class RecordingTargetHelper {
             future.completeExceptionally(e);
         }
         return future;
+    }
+
+    public static Pair<String, TemplateType> parseEventSpecifierToTemplate(String eventSpecifier)
+            throws IllegalArgumentException {
+        if (TEMPLATE_PATTERN.matcher(eventSpecifier).matches()) {
+            Matcher m = TEMPLATE_PATTERN.matcher(eventSpecifier);
+            m.find();
+            String templateName = m.group(1);
+            String typeName = m.group(2);
+            TemplateType templateType = null;
+            if (StringUtils.isNotBlank(typeName)) {
+                templateType = TemplateType.valueOf(typeName.toUpperCase());
+            }
+            return Pair.of(templateName, templateType);
+        }
+        throw new IllegalArgumentException(eventSpecifier);
+    }
+
+    public Optional<IRecordingDescriptor> getDescriptorByName(
+            JFRConnection connection, String recordingName) throws Exception {
+        return connection.getService().getAvailableRecordings().stream()
+                .filter(recording -> recording.getName().equals(recordingName))
+                .findFirst();
     }
 
     private IConstrainedMap<EventOptionID> enableEvents(
@@ -356,30 +384,9 @@ public class RecordingTargetHelper {
         }
     }
 
-    public static class SnapshotMinimalDescriptor {
-        private String name;
-        private IRecordingDescriptor orig;
-
-        SnapshotMinimalDescriptor(String name, IRecordingDescriptor orig) {
-            this.name = name;
-            this.orig = orig;
-        }
-
-        public String getName() {
-            return name;
-        }
-
-        public IRecordingDescriptor getOriginalDescriptor() {
-            return orig;
-        }
-    }
-
     public static class SnapshotCreationException extends Exception {
-        public SnapshotCreationException(String snapshotName) {
-            super(
-                    String.format(
-                            "Successful creation verification of snapshot %s failed",
-                            snapshotName));
+        public SnapshotCreationException(String message) {
+            super(message);
         }
     }
 }
