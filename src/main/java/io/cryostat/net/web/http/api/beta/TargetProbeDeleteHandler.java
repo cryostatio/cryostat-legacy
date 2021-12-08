@@ -43,7 +43,6 @@ import java.util.Set;
 import javax.inject.Inject;
 
 import io.cryostat.core.agent.AgentJMXHelper;
-import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
