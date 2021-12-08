@@ -45,6 +45,7 @@ import java.util.Set;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
@@ -96,7 +97,7 @@ public abstract class ReportsModule {
             Environment env,
             RemoteReportGenerator remoteGenerator,
             SubprocessReportGenerator subprocessGenerator) {
-        if (env.hasEnv("CRYOSTAT_REPORT_GENERATOR")) {
+        if (env.hasEnv(Variables.REPORT_GENERATOR_ENV)) {
             return remoteGenerator;
         }
         return subprocessGenerator;

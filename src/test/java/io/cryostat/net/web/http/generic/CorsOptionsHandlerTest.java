@@ -58,10 +58,7 @@ class CorsOptionsHandlerTest {
 
     @BeforeEach
     void setup() {
-        Mockito.when(
-                        env.getEnv(
-                                CorsEnablingHandler.ENABLE_CORS_ENV,
-                                CorsEnablingHandler.DEV_ORIGIN))
+        Mockito.when(env.getEnv("CRYOSTAT_CORS_ORIGIN", CorsEnablingHandler.DEV_ORIGIN))
                 .thenReturn("http://localhost:9000");
         this.handler = new CorsOptionsHandler(env);
     }

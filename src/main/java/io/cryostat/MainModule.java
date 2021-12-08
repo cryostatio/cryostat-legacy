@@ -46,6 +46,7 @@ import javax.inject.Singleton;
 import javax.management.remote.JMXServiceURL;
 
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.tui.ClientWriter;
@@ -144,7 +145,7 @@ public abstract class MainModule {
     @Singleton
     @Named(RECORDINGS_PATH)
     static Path provideSavedRecordingsPath(Logger logger, Environment env) {
-        String archivePath = env.getEnv("CRYOSTAT_ARCHIVE_PATH", "/flightrecordings");
+        String archivePath = env.getEnv(Variables.ARCHIVE_PATH, "/flightrecordings");
         logger.info("Local save path for flight recordings set as {}", archivePath);
         return Paths.get(archivePath);
     }

@@ -118,7 +118,7 @@ class SubprocessReportGeneratorTest {
         Mockito.lenient()
                 .when(
                         env.getEnv(
-                                Mockito.eq(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV),
+                                Mockito.eq("CRYOSTAT_REPORT_GENERATION_MAX_HEAP"),
                                 Mockito.anyString()))
                 .thenReturn("200");
         this.generator =
@@ -201,7 +201,7 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
         Mockito.when(
                         env.getEnv(
-                                Mockito.eq(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV),
+                                Mockito.eq("CRYOSTAT_REPORT_GENERATION_MAX_HEAP"),
                                 Mockito.anyString()))
                 .thenReturn("0");
 

@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 
 import javax.inject.Provider;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -78,7 +79,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
     @Override
     @SuppressFBWarnings("NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE")
     public CompletableFuture<Path> exec(Path recording, Path destination) {
-        String reportGenerator = env.getEnv("CRYOSTAT_REPORT_GENERATOR");
+        String reportGenerator = env.getEnv(Variables.REPORT_GENERATOR_ENV);
         logger.info("POSTing {} to {}", recording, reportGenerator);
         var form =
                 MultipartForm.create()

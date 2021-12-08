@@ -41,6 +41,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.WebServer;
@@ -54,7 +55,6 @@ import io.vertx.ext.web.handler.CorsHandler;
 
 class CorsEnablingHandler implements RequestHandler {
     protected static final String DEV_ORIGIN = "http://localhost:9000";
-    protected static final String ENABLE_CORS_ENV = "CRYOSTAT_CORS_ORIGIN";
     protected final CorsHandler corsHandler;
     protected final Environment env;
 
@@ -88,7 +88,7 @@ class CorsEnablingHandler implements RequestHandler {
 
     @Override
     public boolean isAvailable() {
-        return this.env.hasEnv(ENABLE_CORS_ENV);
+        return this.env.hasEnv(Variables.ENABLE_CORS_ENV);
     }
 
     @Override
@@ -112,6 +112,6 @@ class CorsEnablingHandler implements RequestHandler {
     }
 
     String getOrigin() {
-        return this.env.getEnv(ENABLE_CORS_ENV, DEV_ORIGIN);
+        return this.env.getEnv(Variables.ENABLE_CORS_ENV, DEV_ORIGIN);
     }
 }

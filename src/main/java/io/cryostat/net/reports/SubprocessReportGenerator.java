@@ -58,6 +58,7 @@ import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.ReportGenerator;
@@ -69,8 +70,6 @@ import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
 public class SubprocessReportGenerator extends AbstractReportGeneratorService {
-
-    static final String SUBPROCESS_MAX_HEAP_ENV = "CRYOSTAT_REPORT_GENERATION_MAX_HEAP";
 
     private final Environment env;
     private final Set<ReportTransformer> reportTransformers;
@@ -117,7 +116,9 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                         // See https://github.com/cryostatio/cryostat/issues/287
                         .jvmArgs(
                                 createJvmArgs(
-                                        Integer.parseInt(env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "0"))))
+                                        Integer.parseInt(
+                                                env.getEnv(
+                                                        Variables.SUBPROCESS_MAX_HEAP_ENV, "0"))))
                         .processArgs(createProcessArgs(recording, saveFile));
         return CompletableFuture.supplyAsync(
                 () -> {

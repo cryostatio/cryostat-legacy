@@ -71,10 +71,7 @@ class CorsEnablingHandlerTest {
 
     @BeforeEach
     void setup() {
-        Mockito.when(
-                        env.getEnv(
-                                CorsEnablingHandler.ENABLE_CORS_ENV,
-                                CorsEnablingHandler.DEV_ORIGIN))
+        Mockito.when(env.getEnv("CRYOSTAT_CORS_ORIGIN", CorsEnablingHandler.DEV_ORIGIN))
                 .thenReturn(CUSTOM_ORIGIN);
         this.handler = new CorsEnablingHandler(env);
     }
@@ -92,7 +89,7 @@ class CorsEnablingHandlerTest {
     @ParameterizedTest
     @ValueSource(booleans = {true, false})
     void availabilityShouldDependOnEnvVar(boolean available) {
-        Mockito.when(env.hasEnv(CorsEnablingHandler.ENABLE_CORS_ENV)).thenReturn(available);
+        Mockito.when(env.hasEnv("CRYOSTAT_CORS_ORIGIN")).thenReturn(available);
         MatcherAssert.assertThat(handler.isAvailable(), Matchers.equalTo(available));
     }
 

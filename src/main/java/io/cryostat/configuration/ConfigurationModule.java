@@ -67,7 +67,7 @@ public abstract class ConfigurationModule {
     @Singleton
     @Named(CONFIGURATION_PATH)
     static Path provideConfigurationPath(Logger logger, Environment env) {
-        String path = env.getEnv("CRYOSTAT_CONFIG_PATH", "/opt/cryostat.d/conf.d");
+        String path = env.getEnv(Variables.CONFIG_PATH, "/opt/cryostat.d/conf.d");
         logger.info(String.format("Local config path set as %s", path));
         return Paths.get(path);
     }

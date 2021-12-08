@@ -43,6 +43,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import javax.inject.Named;
 import javax.inject.Singleton;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Clock;
 import io.cryostat.core.sys.Environment;
@@ -64,8 +65,6 @@ public abstract class MessagingModule {
     static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
     static final String LIMBO_PRUNER = "LIMBO_PRUNER";
     static final String KEEPALIVE_PINGER = "KEEPALIVE_PINGER";
-
-    static final String MAX_CONNECTIONS_ENV_VAR = "CRYOSTAT_MAX_WS_CONNECTIONS";
     static final int MIN_CONNECTIONS = 1;
     static final int MAX_CONNECTIONS = 64;
     static final int DEFAULT_MAX_CONNECTIONS = 2;
@@ -103,7 +102,7 @@ public abstract class MessagingModule {
             int maxConn =
                     Integer.parseInt(
                             env.getEnv(
-                                    MAX_CONNECTIONS_ENV_VAR,
+                                    Variables.MAX_CONNECTIONS_ENV_VAR,
                                     String.valueOf(DEFAULT_MAX_CONNECTIONS)));
             if (maxConn > MAX_CONNECTIONS) {
                 logger.info("Requested maximum WebSocket connections {} is too large.", maxConn);
