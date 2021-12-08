@@ -38,12 +38,14 @@
 package io.cryostat.net.web.http.api.v2;
 
 import java.net.URI;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
 import javax.inject.Inject;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
@@ -78,17 +80,22 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
     }
 
     @Override
-    HttpMimeType mimeType() {
+    public HttpMimeType mimeType() {
         return HttpMimeType.JSON;
     }
 
     @Override
-    boolean requiresAuthentication() {
+    public boolean requiresAuthentication() {
         return false;
     }
 
     @Override
-    IntermediateResponse<String> handle(RequestParameters requestParams) throws Exception {
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
+
+    @Override
+    public IntermediateResponse<String> handle(RequestParameters requestParams) throws Exception {
         String podmanPath = requestParams.getFormAttributes().get("podmanPath");
         String requestPath = BASE_PATH.resolve(podmanPath).normalize().toString();
         logger.info(String.format("requestPath: %s", requestPath));
@@ -97,8 +104,8 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
         webClient
                 .request(
                         HttpMethod.GET,
-                        // FIXME replace 185 with lookup for actual user ID
-                        SocketAddress.domainSocketAddress("/run/user/185/podman/podman.sock"),
+                        // FIXME replace 0 with lookup for actual user ID
+                        SocketAddress.domainSocketAddress("/run/user/0/podman/podman.sock"),
                         requestPath)
                 .timeout(5_000L)
                 .send(
