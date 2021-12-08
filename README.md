@@ -115,8 +115,10 @@ Cryostat can be configured via the following environment variables
 
 #### Configuration for JMX Cache
 
-* `CRYOSTAT_TARGET_CACHE_MAX_CONNECTIONS`: the maximum number of JMX connections to cache. Use `-1` for an unlimited amount
-* `CRYOSTAT_TARGET_CACHE_TTL`: the time to live in seconds for cached JMX connections
+* `CRYOSTAT_TARGET_CACHE_SIZE`: the maximum number of JMX connections to cache.
+Use `-1` for an unlimited cache size (TTL expiration only). Defaults to `-1`.
+* `CRYOSTAT_TARGET_CACHE_TTL`: the time to live (in seconds) for cached JMX
+connections. Defaults to `10`.
 
 #### Configuration for Logging
 

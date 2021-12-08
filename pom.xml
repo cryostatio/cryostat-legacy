@@ -32,16 +32,16 @@
   <cryostat.mainClass>io.cryostat.Cryostat</cryostat.mainClass>
   <cryostat.rjmxPort>9091</cryostat.rjmxPort>
   <cryostat.webPort>8181</cryostat.webPort>
-  <cryostat.listenPort>9090</cryostat.listenPort>
   <cryostat.itest.webPort>8181</cryostat.itest.webPort>
   <cryostat.itest.webHost>localhost</cryostat.itest.webHost>
   <cryostat.itest.podName>cryostat-itests</cryostat.itest.podName>
+  <cryostat.itest.containerName>cryostat-itest</cryostat.itest.containerName>
   <cryostat.itest.grafana.port>3000</cryostat.itest.grafana.port>
   <cryostat.itest.grafana.imageStream>quay.io/cryostat/cryostat-grafana-dashboard</cryostat.itest.grafana.imageStream>
-  <cryostat.itest.grafana.version>1.0.0</cryostat.itest.grafana.version>
+  <cryostat.itest.grafana.version>latest</cryostat.itest.grafana.version>
   <cryostat.itest.jfr-datasource.port>8080</cryostat.itest.jfr-datasource.port>
   <cryostat.itest.jfr-datasource.imageStream>quay.io/cryostat/jfr-datasource</cryostat.itest.jfr-datasource.imageStream>
-  <cryostat.itest.jfr-datasource.version>1.0.0</cryostat.itest.jfr-datasource.version>
+  <cryostat.itest.jfr-datasource.version>latest</cryostat.itest.jfr-datasource.version>
 
   <io.reactiverse.plugin.version>1.0.25</io.reactiverse.plugin.version>
   <org.apache.maven.plugins.compiler.version>3.8.1</org.apache.maven.plugins.compiler.version>
@@ -376,7 +376,7 @@
           </configuration>
         </execution>
         <execution>
-          <id>start-container</id>
+          <id>start-cryostat</id>
           <phase>pre-integration-test</phase>
           <goals>
             <goal>exec</goal>
@@ -386,7 +386,7 @@
             <arguments>
               <argument>run</argument>
               <argument>--pod=${cryostat.itest.podName}</argument>
-              <argument>--name=cryostat-itest</argument>
+              <argument>--name=${cryostat.itest.containerName}</argument>
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/conf.d</argument>
               <argument>--mount</argument>
@@ -398,9 +398,7 @@
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/probes.d</argument>
               <argument>--env</argument>
-              <argument>CRYOSTAT_TARGET_CACHE_MAX_CONNECTIONS=1</argument>
-              <argument>--env</argument>
-              <argument>CRYOSTAT_TARGET_CACHE_TTL=5</argument>
+              <argument>CRYOSTAT_TARGET_CACHE_TTL=60</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
               <argument>--env</argument>
@@ -424,9 +422,9 @@
               <argument>--env</argument>
               <argument>SSL_TRUSTSTORE_DIR=/opt/cryostat.d/truststore.d</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:8080</argument>
+              <argument>GRAFANA_DATASOURCE_URL=http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}</argument>
               <argument>--env</argument>
-              <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:3000</argument>
+              <argument>GRAFANA_DASHBOARD_URL=http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}</argument>
               <argument>--detach</argument>
               <argument>--rm</argument>
               <argument>${cryostat.imageStream}:${cryostat.imageVersion}</argument>
@@ -435,7 +433,7 @@
           </configuration>
         </execution>
         <execution>
-          <id>wait-for-container</id>
+          <id>wait-for-cryostat</id>
           <phase>pre-integration-test</phase>
           <goals>
             <goal>exec</goal>
@@ -446,7 +444,41 @@
               <argument>5m</argument>
               <argument>sh</argument>
               <argument>-c</argument>
-              <argument>until curl -sSk http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.webPort}/health; do sleep 10; done</argument>
+            </arguments>
+            <skip>${skipITs}</skip>
+          </configuration>
+        </execution>
+        <execution>
+          <id>wait-for-jfr-datasource</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>timeout</executable>
+            <arguments>
+              <argument>5m</argument>
+              <argument>sh</argument>
+              <argument>-c</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.jfr-datasource.port}; do sleep 10; done</argument>
+            </arguments>
+            <skip>${skipITs}</skip>
+          </configuration>
+        </execution>
+        <execution>
+          <id>wait-for-grafana</id>
+          <phase>pre-integration-test</phase>
+          <goals>
+            <goal>exec</goal>
+          </goals>
+          <configuration>
+            <executable>timeout</executable>
+            <arguments>
+              <argument>5m</argument>
+              <argument>sh</argument>
+              <argument>-c</argument>
+              <argument>until curl -sSk -o /dev/null http://${cryostat.itest.webHost}:${cryostat.itest.grafana.port}; do sleep 10; done</argument>
             </arguments>
             <skip>${skipITs}</skip>
           </configuration>
@@ -461,54 +493,9 @@
             <executable>${imageBuilder}</executable>
             <arguments>
               <argument>logs</argument>
-              <argument>cryostat-itest</argument>
+              <argument>${cryostat.itest.containerName}</argument>
             </arguments>
-            <outputFile>${project.build.directory}/cryostat-itest-${maven.build.timestamp}.log</outputFile>
-            <skip>${skipITs}</skip>
-          </configuration>
-        </execution>
-        <execution>
-          <id>stop-jfr-datasource</id>
-          <phase>post-integration-test</phase>
-          <goals>
-            <goal>exec</goal>
-          </goals>
-          <configuration>
-            <executable>${imageBuilder}</executable>
-            <arguments>
-              <argument>kill</argument>
-              <argument>jfr-datasource-itest</argument>
-            </arguments>
-            <skip>${skipITs}</skip>
-          </configuration>
-        </execution>
-        <execution>
-          <id>stop-grafana</id>
-          <phase>post-integration-test</phase>
-          <goals>
-            <goal>exec</goal>
-          </goals>
-          <configuration>
-            <executable>${imageBuilder}</executable>
-            <arguments>
-              <argument>kill</argument>
-              <argument>grafana-itest</argument>
-            </arguments>
-            <skip>${skipITs}</skip>
-          </configuration>
-        </execution>
-        <execution>
-          <id>stop-container</id>
-          <phase>post-integration-test</phase>
-          <goals>
-            <goal>exec</goal>
-          </goals>
-          <configuration>
-            <executable>${imageBuilder}</executable>
-            <arguments>
-              <argument>kill</argument>
-              <argument>cryostat-itest</argument>
-            </arguments>
+            <outputFile>${project.build.directory}/${cryostat.itest.containerName}-${maven.build.timestamp}.log</outputFile>
             <skip>${skipITs}</skip>
           </configuration>
         </execution>
@@ -594,7 +581,6 @@
           <mainClass>${cryostat.mainClass}</mainClass>
           <ports>
             <port>${cryostat.webPort}</port>
-            <port>${cryostat.listenPort}</port>
             <port>${cryostat.rjmxPort}</port>
           </ports>
         </container>

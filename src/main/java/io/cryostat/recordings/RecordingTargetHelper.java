@@ -120,7 +120,8 @@ public class RecordingTargetHelper {
                             .build()
                             .send();
                     return desc;
-                });
+                },
+                false);
     }
 
     public IRecordingDescriptor startRecording(

@@ -150,7 +150,9 @@ class RuleProcessorTest {
         IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(recordingOptions);
 
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(), Mockito.any(), Mockito.anyBoolean()))
                 .thenAnswer(
                         arg0 ->
                                 ((TargetConnectionManager.ConnectedTask<Object>)
@@ -239,7 +241,9 @@ class RuleProcessorTest {
 
     @Test
     void testSuccessfulArchiverRuleActivationWithCredentials() throws Exception {
-        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(), Mockito.any(), Mockito.anyBoolean()))
                 .thenAnswer(
                         arg0 ->
                                 ((TargetConnectionManager.ConnectedTask<Object>)
