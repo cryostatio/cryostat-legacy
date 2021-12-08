@@ -337,7 +337,11 @@ public class RecordingTargetHelper {
 
         return builder.build();
     }
-
+    /**
+     * This method will consume the first byte of the {@link InputStream} it is verifying, so 
+     * verification should only be done if the @param snapshot stream in question will not be 
+     * used for any other later purpose. Please ensure the stream is closed post-verification.
+     */
     private boolean snapshotIsReadable(
             ConnectionDescriptor connectionDescriptor, InputStream snapshot) throws IOException {
         if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
@@ -346,8 +350,7 @@ public class RecordingTargetHelper {
         }
 
         try {
-            snapshot.read();
-            return true;
+            return snapshot.read() != -1;
         } catch (IOException e) {
             return false;
         }
