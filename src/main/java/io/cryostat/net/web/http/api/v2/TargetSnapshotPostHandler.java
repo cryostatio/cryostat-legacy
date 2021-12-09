@@ -130,7 +130,9 @@ class TargetSnapshotPostHandler
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                     .statusCode(202)
                     .statusMessage(
-                            "Snapshot failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.")
+                            String.format(
+                                    "Snapshot %s failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.",
+                                    snapshotName))
                     .body(null);
         }
 
