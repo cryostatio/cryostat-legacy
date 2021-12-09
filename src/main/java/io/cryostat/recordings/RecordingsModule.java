@@ -53,10 +53,12 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.tui.ClientWriter;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.web.WebModule;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.platform.PlatformClient;
 
+import dagger.Lazy;
 import dagger.Module;
 import dagger.Provides;
 import org.apache.commons.codec.binary.Base32;
@@ -68,10 +70,20 @@ public abstract class RecordingsModule {
     @Singleton
     static RecordingTargetHelper provideRecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
+            Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            ReportService reportService,
+            Logger logger) {
         return new RecordingTargetHelper(
-                targetConnectionManager, eventOptionsBuilderFactory, notificationFactory);
+                targetConnectionManager,
+                webServer,
+                eventOptionsBuilderFactory,
+                notificationFactory,
+                recordingOptionsBuilderFactory,
+                reportService,
+                logger);
     }
 
     @Provides

@@ -37,27 +37,24 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
-import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnection;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.recordings.RecordingOptionsBuilderFactory;
+import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
@@ -68,42 +65,33 @@ import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class TargetSnapshotPostHandlerTest {
 
-    TargetSnapshotPostHandler snapshot;
+    TargetSnapshotPostHandler handler;
     @Mock AuthManager auth;
-    @Mock WebServer webServer;
-    @Mock TargetConnectionManager targetConnectionManager;
-    @Mock RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Logger logger;
     Gson gson = MainModule.provideGson(logger);
 
     @BeforeEach
     void setup() {
-        this.snapshot =
-                new TargetSnapshotPostHandler(
-                        auth,
-                        targetConnectionManager,
-                        () -> webServer,
-                        recordingOptionsBuilderFactory,
-                        gson);
+        this.handler = new TargetSnapshotPostHandler(auth, recordingTargetHelper, gson);
     }
 
     @Test
     void shouldHaveExpectedRequiredPermissions() {
         MatcherAssert.assertThat(
-                snapshot.resourceActions(),
+                handler.resourceActions(),
                 Matchers.equalTo(
                         Set.of(ResourceAction.READ_TARGET, ResourceAction.UPDATE_RECORDING)));
     }
@@ -121,45 +109,27 @@ class TargetSnapshotPostHandlerTest {
         Mockito.when(ctx.response()).thenReturn(resp);
         Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
 
-        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+        IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+        CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
+                Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(future1);
+        Mockito.when(future1.get()).thenReturn(snapshotDescriptor);
 
-        IFlightRecorderService svc = Mockito.mock(IFlightRecorderService.class);
-        JFRConnection conn = Mockito.mock(JFRConnection.class);
-        Mockito.when(conn.getService()).thenReturn(svc);
-        Mockito.when(svc.getSnapshotRecording()).thenReturn(recordingDescriptor);
-
-        RecordingOptionsBuilder recordingOptionsBuilder =
-                Mockito.mock(RecordingOptionsBuilder.class);
-        Mockito.when(recordingOptionsBuilderFactory.create(svc))
-                .thenReturn(recordingOptionsBuilder);
-        IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
-        Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
-
+        CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
         Mockito.when(
-                        targetConnectionManager.executeConnectedTask(
-                                Mockito.any(ConnectionDescriptor.class), Mockito.any()))
-                .thenAnswer(
-                        new Answer() {
-                            @Override
-                            public Object answer(InvocationOnMock invocation) throws Throwable {
-                                TargetConnectionManager.ConnectedTask task =
-                                        (TargetConnectionManager.ConnectedTask)
-                                                invocation.getArgument(1);
-                                return task.execute(conn);
-                            }
-                        });
+                        recordingTargetHelper.verifySnapshot(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                .thenReturn(future2);
+        Mockito.when(future2.get()).thenReturn(true);
 
-        Mockito.when(webServer.getDownloadURL(Mockito.any(), Mockito.any()))
-                .thenReturn("http://example.com/download");
-        Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
-                .thenReturn("http://example.com/report");
+        handler.handle(ctx);
 
-        snapshot.handle(ctx);
-
-        Mockito.verify(svc).getSnapshotRecording();
-        Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
-        Mockito.verify(recordingOptionsBuilder).build();
-        Mockito.verify(svc).updateRecordingOptions(recordingDescriptor, map);
         Mockito.verify(resp).setStatusCode(201);
         Mockito.verify(resp).putHeader(HttpHeaders.LOCATION, "http://example.com/download");
 
@@ -169,27 +139,130 @@ class TargetSnapshotPostHandlerTest {
                 gson.fromJson(
                         endCaptor.getValue(), new TypeToken<Map<String, Object>>() {}.getType());
 
-        Map<String, Object> expected = new HashMap<>();
-        Map<String, Object> meta = new HashMap<>();
-        Map<String, Object> data = new HashMap<>();
-        Map<String, Object> result = new HashMap<>();
+        Map<String, Object> expected = new LinkedHashMap<>();
+        Map<String, Object> meta = new LinkedHashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
+        Map<String, Object> result = new LinkedHashMap<>();
         expected.put("meta", meta);
         meta.put("type", "text/plain");
         meta.put("status", "OK");
         expected.put("data", data);
         data.put("result", result);
-        result.put("name", "snapshot-1");
-        result.put("id", 1.0);
         result.put("downloadUrl", "http://example.com/download");
         result.put("reportUrl", "http://example.com/report");
-        result.put("startTime", 0.0);
+        result.put("id", 1.0);
+        result.put("name", "snapshot-1");
         result.put("state", "STOPPED");
+        result.put("startTime", 0.0);
         result.put("duration", 0.0);
-        result.put("maxAge", 0.0);
-        result.put("maxSize", 0.0);
-        result.put("toDisk", false);
         result.put("continuous", false);
+        result.put("toDisk", false);
+        result.put("maxSize", 0.0);
+        result.put("maxAge", 0.0);
         MatcherAssert.assertThat(parsed, Matchers.equalTo(expected));
+    }
+
+    @Test
+    void shouldHandleSnapshotCreationExceptionDuringCreation() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+
+        CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
+                Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(future1);
+        Mockito.when(future1.get())
+                .thenThrow(
+                        new ExecutionException(
+                                new SnapshotCreationException("some error message")));
+
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("some error message"));
+    }
+
+    @Test
+    void shouldHandleSnapshotCreationExceptionDuringVerification() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+
+        IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+        CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
+                Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(future1);
+        Mockito.when(future1.get()).thenReturn(snapshotDescriptor);
+
+        CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(
+                        recordingTargetHelper.verifySnapshot(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                .thenReturn(future2);
+        Mockito.when(future2.get())
+                .thenThrow(
+                        new ExecutionException(
+                                new SnapshotCreationException("some error message")));
+
+        ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
+        MatcherAssert.assertThat(ex.getFailureReason(), Matchers.equalTo("some error message"));
+    }
+
+    @Test
+    void shouldHandleFailedSnapshotVerification() throws Exception {
+        Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+
+        RoutingContext ctx = Mockito.mock(RoutingContext.class);
+        HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
+        Mockito.when(ctx.request()).thenReturn(req);
+        Mockito.when(req.headers()).thenReturn(MultiMap.caseInsensitiveMultiMap());
+        HttpServerResponse resp = Mockito.mock(HttpServerResponse.class);
+        Mockito.when(ctx.response()).thenReturn(resp);
+        Mockito.when(ctx.pathParams()).thenReturn(Map.of("targetId", "someHost"));
+
+        IRecordingDescriptor minimalDescriptor = createDescriptor("snapshot-1");
+        HyperlinkedSerializableRecordingDescriptor snapshotDescriptor =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        minimalDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+        CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future1 =
+                Mockito.mock(CompletableFuture.class);
+        Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))
+                .thenReturn(future1);
+        Mockito.when(future1.get()).thenReturn(snapshotDescriptor);
+
+        CompletableFuture<Boolean> future2 = Mockito.mock(CompletableFuture.class);
+        Mockito.when(
+                        recordingTargetHelper.verifySnapshot(
+                                Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
+                .thenReturn(future2);
+        Mockito.when(future2.get()).thenReturn(false);
+
+        handler.handle(ctx);
+
+        Mockito.verify(resp).setStatusCode(202);
+        Mockito.verify(resp)
+                .setStatusMessage(
+                        "Snapshot snapshot-1 failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.");
     }
 
     private static IRecordingDescriptor createDescriptor(String name)

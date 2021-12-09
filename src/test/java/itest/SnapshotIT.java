@@ -171,6 +171,40 @@ public class SnapshotIT extends StandardSelfTest {
     }
 
     @Test
+    void testPostV1ShouldHandleEmptySnapshot() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+
+        try {
+            // Create an empty snapshot recording (no active recordings present)
+            webClient
+                    .post(String.format("%s/snapshot", TARGET_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, result)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(202));
+                                    result.complete(null);
+                                }
+                            });
+            result.get();
+        } finally {
+            // The empty snapshot should've been deleted (i.e. there should be no recordings
+            // present)
+            CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
+            webClient
+                    .get(String.format("%s/recordings", TARGET_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture)) {
+                                    listRespFuture.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listResp = listRespFuture.get();
+            Assertions.assertTrue(listResp.isEmpty());
+        }
+    }
+
+    @Test
     void testPostV1SnapshotThrowsWithNonExistentTarget() throws Exception {
 
         CompletableFuture<String> snapshotResponse = new CompletableFuture<>();
@@ -342,6 +376,40 @@ public class SnapshotIT extends StandardSelfTest {
                 throw new ITestCleanupFailedException(
                         String.format("Failed to delete snapshot %s", snapshotName.get()), e);
             }
+        }
+    }
+
+    @Test
+    void testPostV2ShouldHandleEmptySnapshot() throws Exception {
+        CompletableFuture<Void> result = new CompletableFuture<>();
+
+        try {
+            // Create an empty snapshot recording (no active recordings present)
+            webClient
+                    .post(String.format("%s/snapshot", V2_SNAPSHOT_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, result)) {
+                                    MatcherAssert.assertThat(
+                                            ar.result().statusCode(), Matchers.equalTo(202));
+                                    result.complete(null);
+                                }
+                            });
+            result.get();
+        } finally {
+            // The empty snapshot should've been deleted (i.e. there should be no recordings
+            // present)
+            CompletableFuture<JsonArray> listRespFuture = new CompletableFuture<>();
+            webClient
+                    .get(String.format("%s/recordings", TARGET_REQ_URL))
+                    .send(
+                            ar -> {
+                                if (assertRequestStatus(ar, listRespFuture)) {
+                                    listRespFuture.complete(ar.result().bodyAsJsonArray());
+                                }
+                            });
+            JsonArray listResp = listRespFuture.get();
+            Assertions.assertTrue(listResp.isEmpty());
         }
     }
 
