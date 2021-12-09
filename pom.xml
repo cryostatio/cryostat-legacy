@@ -210,6 +210,7 @@
     <artifactId>netty-transport-native-epoll</artifactId>
     <classifier>linux-x86_64</classifier>
     <version>4.1.67.Final</version><!-- FIXME this should be tied to the vertx version -->
+    <!-- https://groups.google.com/g/vertx/c/uzzcgw-YuOg -->
   </dependency>
   <dependency>
     <groupId>org.slf4j</groupId>
