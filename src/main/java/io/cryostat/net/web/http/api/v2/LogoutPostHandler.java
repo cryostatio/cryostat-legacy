@@ -35,59 +35,75 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.web.http.api.v2;
 
-import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
-import java.util.function.Supplier;
+import java.util.concurrent.ExecutionException;
 
-import io.cryostat.core.log.Logger;
+import javax.inject.Inject;
+
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-public class NoopAuthManager extends AbstractAuthManager {
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpMethod;
 
-    public NoopAuthManager(Logger logger) {
-        super(logger);
+class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
+
+    @Inject
+    protected LogoutPostHandler(AuthManager auth, Gson gson) {
+        super(auth, gson);
     }
 
     @Override
-    public AuthenticationScheme getScheme() {
-        return AuthenticationScheme.NONE;
+    public boolean requiresAuthentication() {
+        return false;
     }
 
     @Override
-    public Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider) {
-        return CompletableFuture.completedFuture(new UserInfo(""));
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_1;
     }
 
     @Override
-    public Optional<String> getLoginRedirectUrl(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        return Optional.empty();
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
     }
 
     @Override
-    public Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
     }
 
     @Override
-    public Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public String path() {
+        return basePath() + "logout";
     }
 
     @Override
-    public Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
-        return CompletableFuture.completedFuture(true);
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
     }
 
     @Override
-    public Future<Boolean> logout() {
-        return CompletableFuture.completedFuture(true);
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
+    public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
+
+        try {
+            Boolean loggedOut = auth.logout().get();
+            if (loggedOut) {
+                return new IntermediateResponse<Void>().body(null);
+            } else {
+                throw new ApiException(400, "Logout failed");
+            }
+        } catch (ExecutionException | InterruptedException e) {
+            throw new ApiException(500, e);
+        }
     }
 }

@@ -62,6 +62,10 @@ public abstract class HttpApiV2Module {
 
     @Binds
     @IntoSet
+    abstract RequestHandler bindLogoutPostHandler(LogoutPostHandler handler);
+
+    @Binds
+    @IntoSet
     abstract RequestHandler bindApiGetHandler(ApiGetHandler handler);
 
     @Binds

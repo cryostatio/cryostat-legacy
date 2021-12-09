@@ -369,11 +369,12 @@ class OpenShiftAuthManagerTest {
 
     @ParameterizedTest
     @CsvSource(value = {",", "oauth-client-id,", ", oauth-role-scope"})
-    void shouldThrowWhenEnvironmentVariablesMissing(String clientId, String roleScope)
+    void shouldThrowWhenEnvironmentVariablesMissing(String clientId, String tokenScope)
             throws Exception {
+
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(new BufferedReader(new StringReader("namespace")));
-        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, roleScope);
+        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, tokenScope);
 
         CompletionException ee =
                 Assertions.assertThrows(

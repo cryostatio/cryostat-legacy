@@ -73,6 +73,7 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
+import io.fabric8.openshift.api.model.OAuthAccessToken;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -296,6 +297,26 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
+    @Override
+    public Future<Boolean> logout() {
+        try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
+            String serviceAccountAsOAuthClient = this.getServiceAccountName();
+            List<OAuthAccessToken> userOauthAccessTokens =
+                    client.oAuthAccessTokens().list().getItems().stream()
+                            .filter(t -> t.getClientName().equals(serviceAccountAsOAuthClient))
+                            .collect(Collectors.toList());
+
+            Boolean deleted =
+                    Optional.of(client.oAuthAccessTokens().delete(userOauthAccessTokens))
+                            .orElse(false);
+
+            return CompletableFuture.completedFuture(deleted);
+        } catch (Exception e) {
+            logger.error(e);
+            return CompletableFuture.failedFuture(e);
+        }
+    }
+
     private String getTokenFromHttpHeader(String rawHttpHeader) {
         if (StringUtils.isBlank(rawHttpHeader)) {
             return null;
@@ -339,29 +360,8 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 key -> {
                     CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
                     try {
-                        String namespace = this.getNamespace();
-                        Optional<String> clientId =
-                                Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
-                        Optional<String> roleScope =
-                                Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_ROLE));
-
-                        String serviceAccountAsOAuthClient =
-                                String.format(
-                                        "system:serviceaccount:%s:%s",
-                                        namespace,
-                                        clientId.orElseThrow(
-                                                () ->
-                                                        new MissingEnvironmentVariableException(
-                                                                CRYOSTAT_OAUTH_CLIENT_ID)));
-
-                        String scope =
-                                String.format(
-                                        "user:check-access role:%s:%s",
-                                        roleScope.orElseThrow(
-                                                () ->
-                                                        new MissingEnvironmentVariableException(
-                                                                CRYOSTAT_OAUTH_ROLE)),
-                                        namespace);
+                        String oauthClient = this.getServiceAccountName();
+                        String tokenScope = this.getTokenScope();
 
                         webClient
                                 .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
@@ -379,10 +379,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                 oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY);
 
                         URIBuilder builder = new URIBuilder(authorizeEndpoint);
-                        builder.addParameter("client_id", serviceAccountAsOAuthClient);
+                        builder.addParameter("client_id", oauthClient);
                         builder.addParameter("response_type", "token");
                         builder.addParameter("response_mode", "fragment");
-                        builder.addParameter("scope", scope);
+                        builder.addParameter("scope", tokenScope);
 
                         return CompletableFuture.completedFuture(builder.build().toString());
                     } catch (ExecutionException
@@ -393,6 +393,31 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         throw new CompletionException(e);
                     }
                 });
+    }
+
+    private String getServiceAccountName() throws MissingEnvironmentVariableException, IOException {
+        Optional<String> clientId = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
+        String sa =
+                String.format(
+                        "system:serviceaccount:%s:%s",
+                        this.getNamespace(),
+                        clientId.orElseThrow(
+                                () ->
+                                        new MissingEnvironmentVariableException(
+                                                CRYOSTAT_OAUTH_CLIENT_ID)));
+        return sa;
+    }
+
+    private String getTokenScope() throws MissingEnvironmentVariableException, IOException {
+        Optional<String> tokenScope = Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_ROLE));
+
+        String scope =
+                String.format(
+                        "user:check-access role:%s:%s",
+                        tokenScope.orElseThrow(
+                                () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_ROLE)),
+                        this.getNamespace());
+        return scope;
     }
 
     @SuppressFBWarnings(

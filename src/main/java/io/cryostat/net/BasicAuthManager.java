@@ -165,6 +165,11 @@ class BasicAuthManager extends AbstractAuthManager {
         }
     }
 
+    @Override
+    public Future<Boolean> logout() {
+        return CompletableFuture.completedFuture(true);
+    }
+
     private Pair<String, String> splitCredentials(String credentials) {
         if (credentials == null) {
             return null;

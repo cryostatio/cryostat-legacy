@@ -64,6 +64,8 @@ public interface AuthManager {
     Future<Boolean> validateWebSocketSubProtocol(
             Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
 
+    Future<Boolean> logout();
+
     AuthenticatedAction doAuthenticated(
             Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
 }
