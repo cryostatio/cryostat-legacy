@@ -275,10 +275,8 @@ public class RecordingTargetHelperTest {
                 .thenReturn(recordingOptionsBuilder);
         IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
         Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
-
-        List<IRecordingDescriptor> recordings = new ArrayList<>();
-        recordings.add(recordingDescriptor);
-        Mockito.when(service.getAvailableRecordings()).thenReturn(recordings);
+        
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(recordingDescriptor));
 
         Mockito.when(webServer.getDownloadURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/download");

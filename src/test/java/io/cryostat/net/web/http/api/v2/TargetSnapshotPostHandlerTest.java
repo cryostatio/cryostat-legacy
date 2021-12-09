@@ -177,9 +177,7 @@ class TargetSnapshotPostHandlerTest {
                 Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingTargetHelper.createSnapshot(Mockito.any(ConnectionDescriptor.class)))
                 .thenReturn(future1);
-        ExecutionException e =
-                new ExecutionException(new SnapshotCreationException("some error message"));
-        Mockito.when(future1.get()).thenThrow(e);
+        Mockito.when(future1.get()).thenThrow(new ExecutionException(new SnapshotCreationException("some error message")));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
@@ -214,9 +212,7 @@ class TargetSnapshotPostHandlerTest {
                         recordingTargetHelper.verifySnapshot(
                                 Mockito.any(ConnectionDescriptor.class), Mockito.eq("snapshot-1")))
                 .thenReturn(future2);
-        ExecutionException e =
-                new ExecutionException(new SnapshotCreationException("some error message"));
-        Mockito.when(future2.get()).thenThrow(e);
+        Mockito.when(future2.get()).thenThrow(new ExecutionException(new SnapshotCreationException("some error message")));
 
         ApiException ex = Assertions.assertThrows(ApiException.class, () -> handler.handle(ctx));
         MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(500));
