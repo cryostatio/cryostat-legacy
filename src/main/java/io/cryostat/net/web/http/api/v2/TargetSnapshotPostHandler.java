@@ -136,9 +136,9 @@ class TargetSnapshotPostHandler
                     .body(null);
         } else {
             return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
-                .statusCode(201)
-                .addHeader(HttpHeaders.LOCATION, snapshotDescriptor.getDownloadUrl())
-                .body(snapshotDescriptor);
+                    .statusCode(201)
+                    .addHeader(HttpHeaders.LOCATION, snapshotDescriptor.getDownloadUrl())
+                    .body(snapshotDescriptor);
         }
     }
 
