@@ -54,7 +54,6 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.WebServer;
 import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.recordings.RecordingTargetHelper.SnapshotCreationException;
 
@@ -89,11 +88,7 @@ class TargetSnapshotPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler =
-                new TargetSnapshotPostHandler(
-                        auth,
-                        recordingTargetHelper,
-                        gson);
+        this.handler = new TargetSnapshotPostHandler(auth, recordingTargetHelper, gson);
     }
 
     @Test

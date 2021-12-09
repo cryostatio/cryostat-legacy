@@ -43,16 +43,11 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
-
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -61,7 +56,6 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -100,7 +94,6 @@ public class RecordingTargetHelperTest {
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
     @Mock Logger logger;
-    Gson gson = MainModule.provideGson(logger);
 
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
@@ -259,18 +252,18 @@ public class RecordingTargetHelperTest {
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
 
         Mockito.when(
-                targetConnectionManager.executeConnectedTask(
-                        Mockito.eq(connectionDescriptor), Mockito.any()))
-        .thenAnswer(
-                new Answer() {
-                    @Override
-                    public Object answer(InvocationOnMock invocation) throws Throwable {
-                        TargetConnectionManager.ConnectedTask task =
-                                (TargetConnectionManager.ConnectedTask)
-                                        invocation.getArgument(1);
-                        return task.execute(connection);
-                    }
-                });
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.eq(connectionDescriptor), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
 
         IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
         Mockito.when(connection.getService()).thenReturn(service);
@@ -292,38 +285,64 @@ public class RecordingTargetHelperTest {
         Mockito.when(webServer.getReportURL(Mockito.any(), Mockito.any()))
                 .thenReturn("http://example.com/report");
 
-        HyperlinkedSerializableRecordingDescriptor desc =
+        HyperlinkedSerializableRecordingDescriptor result =
                 recordingTargetHelper.createSnapshot(connectionDescriptor).get();
-        
+
         Mockito.verify(service).getSnapshotRecording();
         Mockito.verify(recordingOptionsBuilder).name("snapshot-1");
         Mockito.verify(recordingOptionsBuilder).build();
         Mockito.verify(service).updateRecordingOptions(recordingDescriptor, map);
 
-        Map parsed =
-                gson.fromJson(
-                        desc.toString(), new TypeToken<Map<String, Object>>() {}.getType());
-        Map<String, Object> expected = new LinkedHashMap<>();
-        Map<String, Object> meta = new LinkedHashMap<>();
-        Map<String, Object> data = new LinkedHashMap<>();
-        Map<String, Object> result = new LinkedHashMap<>();
-        expected.put("meta", meta);
-        meta.put("type", "text/plain");
-        meta.put("status", "OK");
-        expected.put("data", data);
-        data.put("result", result);
-        result.put("downloadUrl", "http://example.com/download");
-        result.put("reportUrl", "http://example.com/report");
-        result.put("id", 1.0);
-        result.put("name", "snapshot-1");
-        result.put("state", "STOPPED");
-        result.put("startTime", 0.0);
-        result.put("duration", 0.0);
-        result.put("continuous", false);
-        result.put("toDisk", false);
-        result.put("maxSize", 0.0);
-        result.put("maxAge", 0.0);
-        MatcherAssert.assertThat(parsed, Matchers.equalTo(expected));
+        HyperlinkedSerializableRecordingDescriptor expected =
+                new HyperlinkedSerializableRecordingDescriptor(
+                        recordingDescriptor,
+                        "http://example.com/download",
+                        "http://example.com/report");
+        MatcherAssert.assertThat(result, Matchers.equalTo(expected));
+    }
+
+    @Test
+    void shouldThrowSnapshotCreationExceptionWhenCreationFails() throws Exception {
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
+
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.eq(connectionDescriptor), Mockito.any()))
+                .thenAnswer(
+                        new Answer() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        IRecordingDescriptor recordingDescriptor = createDescriptor("snapshot");
+        Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getSnapshotRecording()).thenReturn(recordingDescriptor);
+
+        RecordingOptionsBuilder recordingOptionsBuilder =
+                Mockito.mock(RecordingOptionsBuilder.class);
+        Mockito.when(recordingOptionsBuilderFactory.create(service))
+                .thenReturn(recordingOptionsBuilder);
+        IConstrainedMap map = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(recordingOptionsBuilder.build()).thenReturn(map);
+
+        Mockito.when(service.getAvailableRecordings())
+                .thenReturn(new ArrayList<IRecordingDescriptor>());
+
+        Assertions.assertThrows(
+                ExecutionException.class,
+                () -> {
+                    try {
+                        recordingTargetHelper.createSnapshot(connectionDescriptor).get();
+                    } catch (ExecutionException ee) {
+                        Assertions.assertTrue(ee.getCause() instanceof SnapshotCreationException);
+                        throw ee;
+                    }
+                });
     }
 
     @Test
@@ -356,7 +375,7 @@ public class RecordingTargetHelperTest {
     }
 
     @Test
-    void shouldHandleVerificationWhenSnapshotCreationError() throws Exception {
+    void shouldThrowSnapshotCreationExceptionWhenVerificationFails() throws Exception {
         RecordingTargetHelper recordingTargetHelperSpy = Mockito.spy(recordingTargetHelper);
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor("fooTarget");
         String snapshotName = "snapshot-1";
