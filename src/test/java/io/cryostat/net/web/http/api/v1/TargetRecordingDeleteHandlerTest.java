@@ -160,7 +160,10 @@ class TargetRecordingDeleteHandlerTest {
                         recordingTargetHelper.deleteRecording(
                                 Mockito.any(), Mockito.eq("someRecording")))
                 .thenReturn(future);
-        Mockito.when(future.get()).thenThrow(new ExecutionException(new RecordingNotFoundException("someTarget", "someRecording")));
+        Mockito.when(future.get())
+                .thenThrow(
+                        new ExecutionException(
+                                new RecordingNotFoundException("someTarget", "someRecording")));
 
         HttpStatusException ex =
                 Assertions.assertThrows(
