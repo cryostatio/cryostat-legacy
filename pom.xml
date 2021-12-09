@@ -206,6 +206,10 @@
     <groupId>org.jasypt</groupId>
     <artifactId>jasypt-hibernate5</artifactId>
     <version>${org.jasypt-hibernate5.version}</version>
+    <groupId>io.netty</groupId>
+    <artifactId>netty-transport-native-epoll</artifactId>
+    <classifier>linux-x86_64</classifier>
+    <version>4.1.67.Final</version><!-- FIXME this should be tied to the vertx version -->
   </dependency>
   <dependency>
     <groupId>org.slf4j</groupId>
