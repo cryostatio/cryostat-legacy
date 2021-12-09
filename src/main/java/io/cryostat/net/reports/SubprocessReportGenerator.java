@@ -111,9 +111,6 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                 javaProcessBuilderProvider
                         .get()
                         .klazz(SubprocessReportGenerator.class)
-                        // FIXME the heap size should be determined by some heuristics if not
-                        // defined in env.
-                        // See https://github.com/cryostatio/cryostat/issues/287
                         .jvmArgs(
                                 createJvmArgs(
                                         Integer.parseInt(
