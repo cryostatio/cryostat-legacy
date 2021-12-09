@@ -134,12 +134,12 @@ class TargetSnapshotPostHandler
                                     "Snapshot %s failed to create: The resultant recording was unreadable for some reason, likely due to a lack of Active, non-Snapshot source recordings to take event data from.",
                                     snapshotName))
                     .body(null);
-        }
-
-        return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
+        } else {
+            return new IntermediateResponse<HyperlinkedSerializableRecordingDescriptor>()
                 .statusCode(201)
                 .addHeader(HttpHeaders.LOCATION, snapshotDescriptor.getDownloadUrl())
                 .body(snapshotDescriptor);
+        }
     }
 
     private void handleExecutionException(ExecutionException e) throws ExecutionException {
