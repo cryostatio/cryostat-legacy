@@ -50,23 +50,31 @@ import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
-import io.vertx.core.buffer.Buffer;
+import io.vertx.core.Vertx;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.json.JsonObject;
 import io.vertx.core.net.SocketAddress;
 import io.vertx.ext.web.client.HttpResponse;
 import io.vertx.ext.web.client.WebClient;
+import io.vertx.ext.web.client.WebClientOptions;
+import io.vertx.ext.web.client.predicate.ResponsePredicate;
+import io.vertx.ext.web.codec.BodyCodec;
 
 class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
-
-    private static final URI BASE_PATH = URI.create("http://d/v3.0.0/");
 
     private final WebClient webClient;
     private final Logger logger;
 
     @Inject
-    PodmanApiPostHandler(AuthManager auth, Gson gson, WebClient webClient, Logger logger) {
+    PodmanApiPostHandler(AuthManager auth, Gson gson, Vertx vertx, Logger logger) {
         super(auth, gson);
-        this.webClient = webClient;
+        this.webClient =
+                WebClient.create(
+                        vertx,
+                        new WebClientOptions()
+                                .setTcpFastOpen(true)
+                                .setTcpNoDelay(true)
+                                .setTcpQuickAck(true));
         this.logger = logger;
     }
 
@@ -110,11 +118,13 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
                 .request(
                         HttpMethod.GET,
                         // FIXME replace 0 with lookup for actual user ID
-                        SocketAddress.domainSocketAddress("/run/user/0/podman/podman.sock"),
-                        8080,
+                        SocketAddress.domainSocketAddress("/run/user/1000/podman/podman.sock"),
+                        80,
                         "localhost",
                         requestPath)
                 .timeout(5_000L)
+                .expect(ResponsePredicate.SC_ACCEPTED)
+                .as(BodyCodec.jsonObject())
                 .send(
                         ar -> {
                             if (ar.failed()) {
@@ -123,8 +133,8 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
                                 future.completeExceptionally(t);
                                 return;
                             }
-                            HttpResponse<Buffer> response = ar.result();
-                            future.complete(response.bodyAsString());
+                            HttpResponse<JsonObject> response = ar.result();
+                            future.complete(response.body().encodePrettily());
                         });
 
         return new IntermediateResponse<String>().body(future.get(5_000, TimeUnit.MILLISECONDS));
