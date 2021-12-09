@@ -13,7 +13,7 @@ function runCryostat() {
         CRYOSTAT_RJMX_USER=smoketest \
         CRYOSTAT_RJMX_PASS=smoketest \
         CRYOSTAT_ALLOW_UNTRUSTED_SSL=true \
-        CRYOSTAT_REPORT_GENERATOR="http://0.0.0.0:10001" \
+        CRYOSTAT_REPORT_GENERATOR="http://${host}:10001" \
         exec "$DIR/run.sh"
 }
 
