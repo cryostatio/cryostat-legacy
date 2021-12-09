@@ -40,6 +40,7 @@ package io.cryostat.net.web.http.api.v2;
 import java.net.URI;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 
@@ -97,8 +98,12 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
     @Override
     public IntermediateResponse<String> handle(RequestParameters requestParams) throws Exception {
         String podmanPath = requestParams.getFormAttributes().get("podmanPath");
-        String requestPath = BASE_PATH.resolve(podmanPath).normalize().toString();
-        logger.info(String.format("requestPath: %s", requestPath));
+        if (podmanPath == null) {
+            podmanPath = "/libpod/info";
+        }
+        String requestPath = String.format("http://d/v3.0.0/%s", podmanPath);
+        requestPath = URI.create(requestPath).normalize().toString();
+        logger.info("requestPath: {}", requestPath);
 
         CompletableFuture<String> future = new CompletableFuture<>();
         webClient
@@ -106,6 +111,8 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
                         HttpMethod.GET,
                         // FIXME replace 0 with lookup for actual user ID
                         SocketAddress.domainSocketAddress("/run/user/0/podman/podman.sock"),
+                        8080,
+                        "localhost",
                         requestPath)
                 .timeout(5_000L)
                 .send(
@@ -120,6 +127,6 @@ class PodmanApiPostHandler extends AbstractV2RequestHandler<String> {
                             future.complete(response.bodyAsString());
                         });
 
-        return new IntermediateResponse<String>().body(future.get());
+        return new IntermediateResponse<String>().body(future.get(5_000, TimeUnit.MILLISECONDS));
     }
 }
