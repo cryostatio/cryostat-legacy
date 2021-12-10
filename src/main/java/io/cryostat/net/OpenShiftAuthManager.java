@@ -38,12 +38,16 @@
 package io.cryostat.net;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Paths;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
@@ -55,6 +59,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.ResourceType;
@@ -69,25 +74,43 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewB
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.client.OpenShiftClient;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.WebClient;
 import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.http.client.utils.URIBuilder;
 
 public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private static final Set<GroupResource> PERMISSION_NOT_REQUIRED =
             Set.of(GroupResource.PERMISSION_NOT_REQUIRED);
+    private static final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
+    private static final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
+    private static final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
+    private static final String CRYOSTAT_OAUTH_CLIENT_ID = "CRYOSTAT_OAUTH_CLIENT_ID";
+    private static final String CRYOSTAT_OAUTH_ROLE = "CRYOSTAT_OAUTH_ROLE";
 
+    private final Environment env;
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
+    private final WebClient webClient;
+    private final ConcurrentHashMap<String, CompletableFuture<String>> authorizationUrl;
 
     OpenShiftAuthManager(
-            Logger logger, FileSystem fs, Function<String, OpenShiftClient> clientProvider) {
+            Environment env,
+            Logger logger,
+            FileSystem fs,
+            Function<String, OpenShiftClient> clientProvider,
+            WebClient webClient) {
         super(logger);
+        this.env = env;
         this.fs = fs;
         this.clientProvider = clientProvider;
+        this.webClient = webClient;
+        this.authorizationUrl = new ConcurrentHashMap<>(1);
     }
 
     @Override
@@ -110,6 +133,29 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             return CompletableFuture.failedFuture(ee.getCause());
         } catch (Exception e) {
             return CompletableFuture.failedFuture(e);
+        }
+    }
+
+    @Override
+    public Optional<String> getLoginRedirectUrl(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
+            throws ExecutionException, InterruptedException {
+        Boolean hasValidHeader = false;
+        try {
+            hasValidHeader = this.validateHttpHeader(headerProvider, resourceActions).get();
+
+            if (Boolean.TRUE.equals(hasValidHeader)) {
+                return Optional.empty();
+            }
+            return Optional.of(this.computeAuthorizationEndpoint().get());
+        } catch (ExecutionException ee) {
+            Throwable cause = ee.getCause();
+            if (cause instanceof PermissionDeniedException
+                    || cause instanceof AuthorizationErrorException
+                    || cause instanceof KubernetesClientException) {
+                return Optional.of(this.computeAuthorizationEndpoint().get());
+            }
+            throw ee;
         }
     }
 
@@ -285,6 +331,68 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
             logger.error(e);
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    private CompletableFuture<String> computeAuthorizationEndpoint() {
+        return authorizationUrl.computeIfAbsent(
+                OAUTH_ENDPOINT_KEY,
+                key -> {
+                    CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
+                    try {
+                        String namespace = this.getNamespace();
+                        Optional<String> clientId =
+                                Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
+                        Optional<String> roleScope =
+                                Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_ROLE));
+
+                        String serviceAccountAsOAuthClient =
+                                String.format(
+                                        "system:serviceaccount:%s:%s",
+                                        namespace,
+                                        clientId.orElseThrow(
+                                                () ->
+                                                        new MissingEnvironmentVariableException(
+                                                                CRYOSTAT_OAUTH_CLIENT_ID)));
+
+                        String scope =
+                                String.format(
+                                        "user:check-access role:%s:%s",
+                                        roleScope.orElseThrow(
+                                                () ->
+                                                        new MissingEnvironmentVariableException(
+                                                                CRYOSTAT_OAUTH_ROLE)),
+                                        namespace);
+
+                        webClient
+                                .get(443, OAUTH_WELL_KNOWN_HOST, WELL_KNOWN_PATH)
+                                .putHeader("Accept", "application/json")
+                                .send(
+                                        ar -> {
+                                            if (ar.failed()) {
+                                                oauthMetadata.completeExceptionally(ar.cause());
+                                                return;
+                                            }
+                                            oauthMetadata.complete(ar.result().bodyAsJsonObject());
+                                        });
+
+                        String authorizeEndpoint =
+                                oauthMetadata.get().getString(OAUTH_ENDPOINT_KEY);
+
+                        URIBuilder builder = new URIBuilder(authorizeEndpoint);
+                        builder.addParameter("client_id", serviceAccountAsOAuthClient);
+                        builder.addParameter("response_type", "token");
+                        builder.addParameter("response_mode", "fragment");
+                        builder.addParameter("scope", scope);
+
+                        return CompletableFuture.completedFuture(builder.build().toString());
+                    } catch (ExecutionException
+                            | InterruptedException
+                            | URISyntaxException
+                            | IOException
+                            | MissingEnvironmentVariableException e) {
+                        throw new CompletionException(e);
+                    }
+                });
     }
 
     @SuppressFBWarnings(
