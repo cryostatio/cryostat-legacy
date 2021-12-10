@@ -92,23 +92,16 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
             if (isAuthFailure(ee)) {
                 throw new HttpStatusException(401, "HTTP Authorization Failure", ee);
             }
+            Throwable cause = ee.getCause();
+            if (cause instanceof ConnectionException) {
+                handleConnectionException(ctx, (ConnectionException) cause);
+            }
             throw new HttpStatusException(500, ee.getMessage(), ee);
         } catch (HttpStatusException e) {
             throw e;
         } catch (ConnectionException e) {
-            Throwable cause = e.getCause();
-            if (cause instanceof SecurityException || cause instanceof SaslException) {
-                ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
-                throw new HttpStatusException(427, "JMX Authentication Failure", e);
-            }
-            Throwable rootCause = ExceptionUtils.getRootCause(e);
-            if (rootCause instanceof ConnectIOException) {
-                throw new HttpStatusException(502, "Target SSL Untrusted", e);
-            }
-            if (rootCause instanceof UnknownHostException) {
-                throw new HttpStatusException(404, "Target Not Found", e);
-            }
-            throw new HttpStatusException(500, e);
+            handleConnectionException(ctx, e);
+            throw new HttpStatusException(500, e.getMessage(), e);
         } catch (Exception e) {
             throw new HttpStatusException(500, e.getMessage(), e);
         }
@@ -167,5 +160,20 @@ public abstract class AbstractAuthenticatedRequestHandler implements RequestHand
         // in its cause chain
         return ExceptionUtils.indexOfType(e, PermissionDeniedException.class) >= 0
                 || ExceptionUtils.indexOfType(e, KubernetesClientException.class) >= 0;
+    }
+
+    private void handleConnectionException(RoutingContext ctx, ConnectionException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof SecurityException || cause instanceof SaslException) {
+            ctx.response().putHeader(JMX_AUTHENTICATE_HEADER, "Basic");
+            throw new HttpStatusException(427, "JMX Authentication Failure", e);
+        }
+        Throwable rootCause = ExceptionUtils.getRootCause(e);
+        if (rootCause instanceof ConnectIOException) {
+            throw new HttpStatusException(502, "Target SSL Untrusted", e);
+        }
+        if (rootCause instanceof UnknownHostException) {
+            throw new HttpStatusException(404, "Target Not Found", e);
+        }
     }
 }

@@ -37,8 +37,13 @@
  */
 package io.cryostat.recordings;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -48,13 +53,18 @@ import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBu
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.templates.TemplateType;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 
+import dagger.Lazy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 
@@ -66,16 +76,28 @@ public class RecordingTargetHelper {
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
 
     private final TargetConnectionManager targetConnectionManager;
+    private final Lazy<WebServer> webServer;
     private final EventOptionsBuilder.Factory eventOptionsBuilderFactory;
     private final NotificationFactory notificationFactory;
+    private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
+    private final ReportService reportService;
+    private final Logger logger;
 
     RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
+            Lazy<WebServer> webServer,
             EventOptionsBuilder.Factory eventOptionsBuilderFactory,
-            NotificationFactory notificationFactory) {
+            NotificationFactory notificationFactory,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            ReportService reportService,
+            Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
+        this.webServer = webServer;
         this.eventOptionsBuilderFactory = eventOptionsBuilderFactory;
         this.notificationFactory = notificationFactory;
+        this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
+        this.reportService = reportService;
+        this.logger = logger;
     }
 
     public IRecordingDescriptor startRecording(
@@ -132,6 +154,141 @@ public class RecordingTargetHelper {
             throws Exception {
         return startRecording(
                 false, connectionDescriptor, recordingOptions, templateName, templateType);
+    }
+
+    /**
+     * The returned {@link InputStream}, if any, is only readable while the remote connection
+     * remains open. And so, {@link
+     * TargetConnectionManager#markConnectionInUse(ConnectionDescriptor)} should be used while
+     * reading to inform the {@link TargetConnectionManager} that the connection is still in use,
+     * thereby avoiding accidental expiration/closing of the connection.
+     */
+    public Future<Optional<InputStream>> getRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
+        CompletableFuture<Optional<InputStream>> future = new CompletableFuture<>();
+        try {
+            Optional<InputStream> recording =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            conn ->
+                                    conn.getService().getAvailableRecordings().stream()
+                                            .filter(r -> Objects.equals(recordingName, r.getName()))
+                                            .map(
+                                                    desc -> {
+                                                        try {
+                                                            return conn.getService()
+                                                                    .openStream(desc, false);
+                                                        } catch (Exception e) {
+                                                            logger.error(e);
+                                                            return null;
+                                                        }
+                                                    })
+                                            .filter(Objects::nonNull)
+                                            .findFirst());
+
+            future.complete(recording);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    public Future<Void> deleteRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            String targetId = connectionDescriptor.getTargetId();
+            targetConnectionManager.executeConnectedTask(
+                    connectionDescriptor,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                getDescriptorByName(connection, recordingName);
+                        if (descriptor.isPresent()) {
+                            connection.getService().close(descriptor.get());
+                            reportService.delete(connectionDescriptor, recordingName);
+                        } else {
+                            throw new RecordingNotFoundException(targetId, recordingName);
+                        }
+                        return null;
+                    });
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    public Future<HyperlinkedSerializableRecordingDescriptor> createSnapshot(
+            ConnectionDescriptor connectionDescriptor) {
+        CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future =
+                new CompletableFuture<>();
+        try {
+            HyperlinkedSerializableRecordingDescriptor recordingDescriptor =
+                    targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                IRecordingDescriptor descriptor =
+                                        connection.getService().getSnapshotRecording();
+
+                                String rename =
+                                        String.format(
+                                                "%s-%d",
+                                                descriptor.getName().toLowerCase(),
+                                                descriptor.getId());
+
+                                RecordingOptionsBuilder recordingOptionsBuilder =
+                                        recordingOptionsBuilderFactory.create(
+                                                connection.getService());
+                                recordingOptionsBuilder.name(rename);
+
+                                connection
+                                        .getService()
+                                        .updateRecordingOptions(
+                                                descriptor, recordingOptionsBuilder.build());
+
+                                Optional<IRecordingDescriptor> updatedDescriptor =
+                                        getDescriptorByName(connection, rename);
+
+                                if (updatedDescriptor.isEmpty()) {
+                                    throw new SnapshotCreationException(
+                                            "The newly created Snapshot could not be found under its rename");
+                                }
+
+                                return new HyperlinkedSerializableRecordingDescriptor(
+                                        updatedDescriptor.get(),
+                                        webServer.get().getDownloadURL(connection, rename),
+                                        webServer.get().getReportURL(connection, rename));
+                            });
+            future.complete(recordingDescriptor);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
+    public Future<Boolean> verifySnapshot(
+            ConnectionDescriptor connectionDescriptor, String snapshotName) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            Optional<InputStream> snapshotOptional =
+                    this.getRecording(connectionDescriptor, snapshotName).get();
+            if (snapshotOptional.isEmpty()) {
+                throw new SnapshotCreationException(
+                        "The newly-created Snapshot could not be retrieved for verification");
+            } else {
+                try (InputStream snapshot = snapshotOptional.get()) {
+                    if (!snapshotIsReadable(connectionDescriptor, snapshot)) {
+                        this.deleteRecording(connectionDescriptor, snapshotName).get();
+                        future.complete(false);
+                    } else {
+                        future.complete(true);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
     }
 
     public static Pair<String, TemplateType> parseEventSpecifierToTemplate(String eventSpecifier)
@@ -207,5 +364,29 @@ public class RecordingTargetHelper {
         }
 
         return builder.build();
+    }
+    /**
+     * This method will consume the first byte of the {@link InputStream} it is verifying, so
+     * verification should only be done if the @param snapshot stream in question will not be used
+     * for any other later purpose. Please ensure the stream is closed post-verification.
+     */
+    private boolean snapshotIsReadable(
+            ConnectionDescriptor connectionDescriptor, InputStream snapshot) throws IOException {
+        if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
+            throw new IOException(
+                    "Target connection unexpectedly closed while streaming recording");
+        }
+
+        try {
+            return snapshot.read() != -1;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static class SnapshotCreationException extends Exception {
+        public SnapshotCreationException(String message) {
+            super(message);
+        }
     }
 }
