@@ -116,9 +116,6 @@ public class TargetProbePostHandler extends AbstractV2RequestHandler<Void> {
         this.connectionManager = connectionManager;
         this.env = env;
         this.fs = fs;
-        if (probeTemplateService == null) {
-            throw new RuntimeException("Construction of probeTemplateService failed");
-        }
     }
 
     @Override

@@ -66,7 +66,7 @@ public abstract class TemplatesModule {
         } catch (Exception e) {
             // Dagger doesn't like constructors that can throw exceptions, the probeTemplateService
             // throws an exception if the sanity checks fail so we need to deal with it here
-            return null;
+            throw new RuntimeException(e);
         }
     }
 }
