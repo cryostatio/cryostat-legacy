@@ -37,68 +37,55 @@
  */
 package io.cryostat.net.web.http.api.beta;
 
-import io.cryostat.net.web.http.RequestHandler;
+import java.util.Set;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import javax.inject.Inject;
 
-@Module
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+import io.cryostat.net.AuthManager;
+import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.BodyHandler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-            ProbeTemplateUploadBodyHandler handler);
+public class ProbeTemplateUploadBodyHandler extends AbstractAuthenticatedRequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
+    static final BodyHandler BODY_HANDLER = BodyHandler.create(true);
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
+    @Inject
+    ProbeTemplateUploadBodyHandler(AuthManager auth) {
+        super(auth);
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
+    @Override
+    public int getPriority() {
+        return DEFAULT_PRIORITY - 1;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
+    @Override
+    public String path() {
+        return basePath() + ProbeTemplateUploadHandler.PATH;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    @Override
+    public void handleAuthenticated(RoutingContext ctx) {
+        BODY_HANDLER.handle(ctx);
+    }
 }

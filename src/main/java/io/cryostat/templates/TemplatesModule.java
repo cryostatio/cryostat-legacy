@@ -39,6 +39,7 @@ package io.cryostat.templates;
 
 import javax.inject.Singleton;
 
+import io.cryostat.core.agent.LocalProbeTemplateService;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.core.templates.LocalStorageTemplateService;
@@ -54,5 +55,18 @@ public abstract class TemplatesModule {
     static LocalStorageTemplateService provideLocalStorageTemplateService(
             FileSystem fs, Environment env) {
         return new LocalStorageTemplateService(fs, env);
+    }
+
+    @Provides
+    @Singleton
+    static LocalProbeTemplateService provideLocalProbeTemplateService(
+            FileSystem fs, Environment env) {
+        try {
+            return new LocalProbeTemplateService(fs, env);
+        } catch (Exception e) {
+            // Dagger doesn't like constructors that can throw exceptions, the probeTemplateService
+            // throws an exception if the sanity checks fail so we need to deal with it here
+            throw new RuntimeException(e);
+        }
     }
 }
