@@ -43,6 +43,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -96,6 +97,12 @@ class BasicAuthManager extends AbstractAuthManager {
             return CompletableFuture.failedFuture(new UnknownUserException(user));
         }
         return CompletableFuture.completedFuture(new UserInfo(user));
+    }
+
+    @Override
+    public Optional<String> getLoginRedirectUrl(
+            Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
+        return Optional.empty();
     }
 
     @Override
@@ -159,6 +166,9 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     private Pair<String, String> splitCredentials(String credentials) {
+        if (credentials == null) {
+            return null;
+        }
         Pattern credentialsPattern = Pattern.compile("([\\S]+):([\\S]+)");
         Matcher matcher = credentialsPattern.matcher(credentials);
         if (!matcher.matches()) {

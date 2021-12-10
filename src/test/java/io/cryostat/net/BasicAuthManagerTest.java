@@ -278,7 +278,7 @@ class BasicAuthManagerTest {
         }
 
         @ParameterizedTest
-        @ValueSource(strings = {"", "Bearer sometoken", "Basic (not_b64)"})
+        @ValueSource(strings = {"", "Bearer sometoken", "Basic (not_b64)", "Basic "})
         @NullSource
         void shouldFailBadCredentials(String s) throws Exception {
             Assertions.assertFalse(mgr.validateHttpHeader(() -> s, ResourceAction.NONE).get());

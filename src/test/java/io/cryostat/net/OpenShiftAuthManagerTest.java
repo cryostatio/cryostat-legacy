@@ -43,13 +43,17 @@ import java.net.HttpURLConnection;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.OpenShiftAuthManager.PermissionDeniedException;
 import io.cryostat.net.security.ResourceAction;
@@ -66,6 +70,13 @@ import io.fabric8.openshift.client.OpenShiftClient;
 import io.fabric8.openshift.client.server.mock.EnableOpenShiftMockClient;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServer;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServerExtension;
+import io.vertx.core.AsyncResult;
+import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
+import io.vertx.core.json.JsonObject;
+import io.vertx.ext.web.client.HttpRequest;
+import io.vertx.ext.web.client.HttpResponse;
+import io.vertx.ext.web.client.WebClient;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.hamcrest.MatcherAssert;
@@ -76,12 +87,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.EnumSource;
 import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith({MockitoExtension.class, OpenShiftMockServerExtension.class})
 @EnableOpenShiftMockClient(https = false, crud = false)
@@ -90,14 +105,26 @@ class OpenShiftAuthManagerTest {
     static final String SUBJECT_REVIEW_API_PATH =
             "/apis/authorization.k8s.io/v1/selfsubjectaccessreviews";
     static final String TOKEN_REVIEW_API_PATH = "/apis/authentication.k8s.io/v1/tokenreviews";
+    static final String AUTHORIZATION_URL = "https://oauth-authorization-url";
+    static final String OAUTH_CLIENT_ID =
+            "client_id=system%3Aserviceaccount%3Anamespace%3Aoauth-client-id";
+    static final String OAUTH_TOKEN_PARAMS = "response_type=token&response_mode=fragment";
+    static final String OAUTH_ROLE_SCOPE =
+            "scope=user%3Acheck-access+role%3Aoauth-role-scope%3Anamespace";
+    static final String OAUTH_QUERY_PARAMETERS =
+            String.format("?%s&%s&%s", OAUTH_CLIENT_ID, OAUTH_TOKEN_PARAMS, OAUTH_ROLE_SCOPE);
+    static final String EXPECTED_REDIRECT_URL = AUTHORIZATION_URL + OAUTH_QUERY_PARAMETERS;
 
     OpenShiftAuthManager mgr;
+    @Mock Environment env;
     @Mock FileSystem fs;
     @Mock Logger logger;
+    @Mock WebClient webClient;
     OpenShiftClient client;
     OpenShiftMockServer server;
     TokenProvider tokenProvider;
     Gson gson = MainModule.provideGson(logger);
+    @Mock CompletableFuture<String> redirectUrl;
 
     @BeforeAll
     static void disableKubeConfig() {
@@ -111,7 +138,7 @@ class OpenShiftAuthManagerTest {
     void setup() {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
-        mgr = new OpenShiftAuthManager(logger, fs, tokenProvider);
+        mgr = new OpenShiftAuthManager(env, logger, fs, tokenProvider, webClient);
     }
 
     @Test
@@ -258,6 +285,148 @@ class OpenShiftAuthManagerTest {
         MatcherAssert.assertThat(
                 nsPathCaptor.getValue(),
                 Matchers.equalTo(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"", "Bearer ", "invalidHeader"})
+    void shouldSendRedirectResponseOnEmptyOrInvalidHeaders(String headers) throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("namespace")));
+        Mockito.when(env.getEnv(Mockito.anyString()))
+                .thenReturn("oauth-client-id", "oauth-role-scope");
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
+        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.bodyAsJsonObject())
+                                        .thenReturn(
+                                                new JsonObject(
+                                                        Map.of(
+                                                                "authorization_endpoint",
+                                                                AUTHORIZATION_URL)));
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
+
+        String actualRedirectUrl =
+                mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
+
+        MatcherAssert.assertThat(actualRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Bearer invalidToken", "Bearer 1234"})
+    void shouldSendRedirectResponseOnInvalidToken(String headers) throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("serviceAccountToken")));
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("namespace")));
+        Mockito.when(env.getEnv(Mockito.anyString()))
+                .thenReturn("oauth-client-id", "oauth-role-scope");
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
+        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.bodyAsJsonObject())
+                                        .thenReturn(
+                                                new JsonObject(
+                                                        Map.of(
+                                                                "authorization_endpoint",
+                                                                AUTHORIZATION_URL)));
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
+
+        String actualRedirectUrl =
+                mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
+
+        MatcherAssert.assertThat(actualRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
+    }
+
+    @ParameterizedTest
+    @CsvSource(value = {",", "oauth-client-id,", ", oauth-role-scope"})
+    void shouldThrowWhenEnvironmentVariablesMissing(String clientId, String roleScope)
+            throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("namespace")));
+        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(clientId, roleScope);
+
+        CompletionException ee =
+                Assertions.assertThrows(
+                        CompletionException.class,
+                        () -> mgr.getLoginRedirectUrl(() -> "Bearer ", ResourceAction.NONE).get());
+        MatcherAssert.assertThat(
+                ExceptionUtils.getRootCause(ee),
+                Matchers.instanceOf(MissingEnvironmentVariableException.class));
+    }
+
+    @Test
+    void shouldCacheOAuthServerResponse() throws Exception {
+        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
+                .thenReturn(new BufferedReader(new StringReader("namespace")));
+        Mockito.when(env.getEnv(Mockito.anyString()))
+                .thenReturn("oauth-client-id", "oauth-role-scope");
+        HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
+        HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
+        Mockito.when(webClient.get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString()))
+                .thenReturn(req);
+        Mockito.when(req.putHeader(Mockito.anyString(), Mockito.anyString())).thenReturn(req);
+        Mockito.doAnswer(
+                        new Answer<Void>() {
+                            @Override
+                            public Void answer(InvocationOnMock args) throws Throwable {
+                                AsyncResult<HttpResponse<Buffer>> asyncResult =
+                                        Mockito.mock(AsyncResult.class);
+                                Mockito.when(asyncResult.result()).thenReturn(resp);
+                                Mockito.when(resp.bodyAsJsonObject())
+                                        .thenReturn(
+                                                new JsonObject(
+                                                        Map.of(
+                                                                "authorization_endpoint",
+                                                                AUTHORIZATION_URL)));
+                                ((Handler<AsyncResult<HttpResponse<Buffer>>>) args.getArgument(0))
+                                        .handle(asyncResult);
+                                return null;
+                            }
+                        })
+                .when(req)
+                .send(Mockito.any());
+
+        String firstRedirectUrl =
+                mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
+
+        MatcherAssert.assertThat(firstRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
+
+        String secondRedirectUrl =
+                mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
+        MatcherAssert.assertThat(secondRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
+
+        Mockito.verify(webClient, Mockito.atMostOnce())
+                .get(Mockito.anyInt(), Mockito.anyString(), Mockito.anyString());
     }
 
     @ParameterizedTest
