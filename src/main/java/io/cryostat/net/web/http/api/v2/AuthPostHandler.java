@@ -101,7 +101,7 @@ class AuthPostHandler extends AbstractV2RequestHandler<UserInfo> {
     public IntermediateResponse<UserInfo> handle(RequestParameters requestParams) throws Exception {
 
         Optional<String> redirectUrl =
-                auth.sendLoginRedirectIfRequired(
+                auth.getLoginRedirectUrl(
                         () -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION),
                         resourceActions());
 

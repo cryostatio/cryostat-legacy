@@ -103,7 +103,7 @@ class AuthPostHandlerTest {
 
     @Test
     void shouldThrow401OnInvalidToken() throws Exception {
-        Mockito.when(auth.sendLoginRedirectIfRequired(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.getLoginRedirectUrl(Mockito.any(), Mockito.any()))
                 .thenReturn(Optional.empty());
         Mockito.when(auth.getScheme()).thenReturn(AuthenticationScheme.BASIC);
 
@@ -120,7 +120,7 @@ class AuthPostHandlerTest {
 
     @Test
     void shouldSend302WhenRedirectRequired() throws Exception {
-        Mockito.when(auth.sendLoginRedirectIfRequired(Mockito.any(), Mockito.any()))
+        Mockito.when(auth.getLoginRedirectUrl(Mockito.any(), Mockito.any()))
                 .thenReturn(Optional.of("https://oauth.redirect-url.com"));
 
         IntermediateResponse<UserInfo> response = handler.handle(requestParams);

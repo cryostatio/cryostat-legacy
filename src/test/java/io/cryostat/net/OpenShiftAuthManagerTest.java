@@ -321,7 +321,7 @@ class OpenShiftAuthManagerTest {
                 .send(Mockito.any());
 
         String actualRedirectUrl =
-                mgr.sendLoginRedirectIfRequired(() -> headers, ResourceAction.NONE).get();
+                mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
 
         MatcherAssert.assertThat(actualRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
     }
@@ -362,7 +362,7 @@ class OpenShiftAuthManagerTest {
                 .send(Mockito.any());
 
         String actualRedirectUrl =
-                mgr.sendLoginRedirectIfRequired(() -> headers, ResourceAction.NONE).get();
+                mgr.getLoginRedirectUrl(() -> headers, ResourceAction.NONE).get();
 
         MatcherAssert.assertThat(actualRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
     }
@@ -378,10 +378,7 @@ class OpenShiftAuthManagerTest {
         CompletionException ee =
                 Assertions.assertThrows(
                         CompletionException.class,
-                        () ->
-                                mgr.sendLoginRedirectIfRequired(
-                                                () -> "Bearer ", ResourceAction.NONE)
-                                        .get());
+                        () -> mgr.getLoginRedirectUrl(() -> "Bearer ", ResourceAction.NONE).get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee),
                 Matchers.instanceOf(MissingEnvironmentVariableException.class));
@@ -420,12 +417,12 @@ class OpenShiftAuthManagerTest {
                 .send(Mockito.any());
 
         String firstRedirectUrl =
-                mgr.sendLoginRedirectIfRequired(() -> "Bearer", ResourceAction.NONE).get();
+                mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
 
         MatcherAssert.assertThat(firstRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
 
         String secondRedirectUrl =
-                mgr.sendLoginRedirectIfRequired(() -> "Bearer", ResourceAction.NONE).get();
+                mgr.getLoginRedirectUrl(() -> "Bearer", ResourceAction.NONE).get();
         MatcherAssert.assertThat(secondRedirectUrl, Matchers.equalTo(EXPECTED_REDIRECT_URL));
 
         Mockito.verify(webClient, Mockito.atMostOnce())

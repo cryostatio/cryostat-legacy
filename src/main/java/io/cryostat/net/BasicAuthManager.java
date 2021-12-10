@@ -100,7 +100,7 @@ class BasicAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Optional<String> sendLoginRedirectIfRequired(
+    public Optional<String> getLoginRedirectUrl(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions) {
         return Optional.empty();
     }

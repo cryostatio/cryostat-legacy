@@ -90,13 +90,14 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private static final String OAUTH_WELL_KNOWN_HOST = "openshift.default.svc";
     private static final String WELL_KNOWN_PATH = "/.well-known/oauth-authorization-server";
     private static final String OAUTH_ENDPOINT_KEY = "authorization_endpoint";
+    private static final String CRYOSTAT_OAUTH_CLIENT_ID = "CRYOSTAT_OAUTH_CLIENT_ID";
+    private static final String CRYOSTAT_OAUTH_ROLE = "CRYOSTAT_OAUTH_ROLE";
 
     private final Environment env;
     private final FileSystem fs;
     private final Function<String, OpenShiftClient> clientProvider;
     private final WebClient webClient;
-
-    private ConcurrentHashMap<String, CompletableFuture<String>> authorizationUrl;
+    private final ConcurrentHashMap<String, CompletableFuture<String>> authorizationUrl;
 
     OpenShiftAuthManager(
             Environment env,
@@ -109,7 +110,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         this.fs = fs;
         this.clientProvider = clientProvider;
         this.webClient = webClient;
-        authorizationUrl = new ConcurrentHashMap<>(1);
+        this.authorizationUrl = new ConcurrentHashMap<>(1);
     }
 
     @Override
@@ -136,7 +137,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Optional<String> sendLoginRedirectIfRequired(
+    public Optional<String> getLoginRedirectUrl(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
             throws ExecutionException, InterruptedException {
         Boolean hasValidHeader = false;
@@ -333,17 +334,16 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     private CompletableFuture<String> computeAuthorizationEndpoint() {
-
-        authorizationUrl.computeIfAbsent(
+        return authorizationUrl.computeIfAbsent(
                 OAUTH_ENDPOINT_KEY,
                 key -> {
                     CompletableFuture<JsonObject> oauthMetadata = new CompletableFuture<>();
                     try {
                         String namespace = this.getNamespace();
                         Optional<String> clientId =
-                                Optional.ofNullable(env.getEnv("CRYOSTAT_OAUTH_CLIENT_ID"));
+                                Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_CLIENT_ID));
                         Optional<String> roleScope =
-                                Optional.ofNullable(env.getEnv("CRYOSTAT_OAUTH_ROLE"));
+                                Optional.ofNullable(env.getEnv(CRYOSTAT_OAUTH_ROLE));
 
                         String serviceAccountAsOAuthClient =
                                 String.format(
@@ -352,7 +352,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                         clientId.orElseThrow(
                                                 () ->
                                                         new MissingEnvironmentVariableException(
-                                                                "CRYOSTAT_OAUTH_CLIENT_ID")));
+                                                                CRYOSTAT_OAUTH_CLIENT_ID)));
 
                         String scope =
                                 String.format(
@@ -360,7 +360,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                                         roleScope.orElseThrow(
                                                 () ->
                                                         new MissingEnvironmentVariableException(
-                                                                "CRYOSTAT_OAUTH_ROLE")),
+                                                                CRYOSTAT_OAUTH_ROLE)),
                                         namespace);
 
                         webClient
@@ -393,7 +393,6 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                         throw new CompletionException(e);
                     }
                 });
-        return authorizationUrl.get(OAUTH_ENDPOINT_KEY);
     }
 
     @SuppressFBWarnings(

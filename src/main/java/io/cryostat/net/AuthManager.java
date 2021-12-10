@@ -51,7 +51,7 @@ public interface AuthManager {
 
     Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
 
-    Optional<String> sendLoginRedirectIfRequired(
+    Optional<String> getLoginRedirectUrl(
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
             throws ExecutionException, InterruptedException;
 
