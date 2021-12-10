@@ -73,7 +73,7 @@ class ArchivedRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ArchivedRecordingReportCache(
-                        fs, () -> subprocessReportGenerator, logger, recordingArchiveHelper);
+                        fs, () -> subprocessReportGenerator, recordingArchiveHelper, 30, logger);
     }
 
     @Test

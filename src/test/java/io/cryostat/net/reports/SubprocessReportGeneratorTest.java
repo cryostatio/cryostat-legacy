@@ -129,6 +129,7 @@ class SubprocessReportGeneratorTest {
                         Set.of(new TestReportTransformer()),
                         () -> javaProcessBuilder,
                         tempFileProvider,
+                        30,
                         logger);
     }
 

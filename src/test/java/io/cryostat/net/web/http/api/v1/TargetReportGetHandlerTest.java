@@ -82,7 +82,7 @@ class TargetReportGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetReportGetHandler(authManager, reportService, logger);
+        this.handler = new TargetReportGetHandler(authManager, reportService, 30, logger);
     }
 
     @Test

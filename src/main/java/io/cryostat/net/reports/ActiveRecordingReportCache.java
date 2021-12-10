@@ -45,6 +45,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Named;
 import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
@@ -64,16 +65,19 @@ class ActiveRecordingReportCache {
     protected final FileSystem fs;
     protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
+    protected final long generationTimeoutSeconds;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
         this.targetConnectionManager = targetConnectionManager;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.logger = logger;
 
         this.cache =
@@ -112,7 +116,11 @@ class ActiveRecordingReportCache {
         try {
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
-                saveFile = reportGeneratorServiceProvider.get().exec(recordingDescriptor).get();
+                saveFile =
+                        reportGeneratorServiceProvider
+                                .get()
+                                .exec(recordingDescriptor)
+                                .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
             } catch (ExecutionException | CompletionException e) {
                 logger.error(e);

@@ -41,7 +41,9 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
+import javax.inject.Named;
 import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
@@ -52,18 +54,21 @@ class ArchivedRecordingReportCache {
 
     protected final FileSystem fs;
     protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
-    protected final Logger logger;
     protected final RecordingArchiveHelper recordingArchiveHelper;
+    protected final long generationTimeoutSeconds;
+    protected final Logger logger;
 
     ArchivedRecordingReportCache(
             FileSystem fs,
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
-            Logger logger,
-            RecordingArchiveHelper recordingArchiveHelper) {
+            RecordingArchiveHelper recordingArchiveHelper,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Logger logger) {
         this.fs = fs;
         this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
-        this.logger = logger;
         this.recordingArchiveHelper = recordingArchiveHelper;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
+        this.logger = logger;
     }
 
     Future<Path> get(String recordingName) {
@@ -79,7 +84,10 @@ class ArchivedRecordingReportCache {
 
             Path archivedRecording = recordingArchiveHelper.getRecordingPath(recordingName).get();
             Path saveFile =
-                    reportGeneratorServiceProvider.get().exec(archivedRecording, dest).get();
+                    reportGeneratorServiceProvider
+                            .get()
+                            .exec(archivedRecording, dest)
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             f.complete(saveFile);
         } catch (Exception e) {
             logger.error(e);

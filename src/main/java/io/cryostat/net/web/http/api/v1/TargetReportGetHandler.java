@@ -41,12 +41,15 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
@@ -63,12 +66,19 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     protected final ReportService reportService;
+    protected final long reportGenerationTimeoutSeconds;
     protected final Logger logger;
 
     @Inject
-    TargetReportGetHandler(AuthManager auth, ReportService reportService, Logger logger) {
+    TargetReportGetHandler(
+            AuthManager auth,
+            ReportService reportService,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
+                    long reportGenerationTimeoutSeconds,
+            Logger logger) {
         super(auth);
         this.reportService = reportService;
+        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
         this.logger = logger;
     }
 
@@ -115,7 +125,7 @@ class TargetReportGetHandler extends AbstractAuthenticatedRequestHandler {
                     .end(
                             reportService
                                     .get(getConnectionDescriptorFromContext(ctx), recordingName)
-                                    .get());
+                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);

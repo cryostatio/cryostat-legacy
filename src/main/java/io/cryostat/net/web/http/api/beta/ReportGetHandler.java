@@ -42,12 +42,15 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
 import io.cryostat.net.web.WebServer;
@@ -66,6 +69,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class ReportGetHandler extends AbstractJwtConsumingHandler {
 
     private final ReportService reportService;
+    private final long generationTimeoutSeconds;
 
     @Inject
     ReportGetHandler(
@@ -73,9 +77,11 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             ReportService reportService,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(auth, jwtFactory, webServer, logger);
         this.reportService = reportService;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
     @Override
@@ -115,7 +121,10 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
     public void handleWithValidJwt(RoutingContext ctx, JWT jwt) throws Exception {
         String recordingName = ctx.pathParam("recordingName");
         try {
-            Path report = reportService.get(recordingName).get();
+            Path report =
+                    reportService
+                            .get(recordingName)
+                            .get(generationTimeoutSeconds, TimeUnit.SECONDS);
             ctx.response().putHeader(HttpHeaders.CONTENT_DISPOSITION, "inline");
             ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.HTML.mime());
             ctx.response()

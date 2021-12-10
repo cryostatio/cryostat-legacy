@@ -54,6 +54,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Named;
 import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
@@ -74,6 +75,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
     private final Environment env;
     private final Set<ReportTransformer> reportTransformers;
     private final Provider<JavaProcess.Builder> javaProcessBuilderProvider;
+    private final long generationTimeoutSeconds;
 
     SubprocessReportGenerator(
             Environment env,
@@ -82,11 +84,13 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilderProvider,
             Provider<Path> tempFileProvider,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(targetConnectionManager, fs, tempFileProvider, logger);
         this.env = env;
         this.reportTransformers = reportTransformers;
         this.javaProcessBuilderProvider = javaProcessBuilderProvider;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
     @Override
@@ -122,7 +126,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                     Process proc = null;
                     try {
                         proc = procBuilder.exec();
-                        proc.waitFor(5, TimeUnit.MINUTES); // FIXME extract to constant or env var
+                        proc.waitFor(generationTimeoutSeconds - 1, TimeUnit.SECONDS);
                         ExitStatus status =
                                 proc.isAlive()
                                         ? ExitStatus.TIMED_OUT

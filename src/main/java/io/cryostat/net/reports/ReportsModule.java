@@ -42,6 +42,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Set;
 
+import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
@@ -65,15 +66,31 @@ import io.vertx.ext.web.client.WebClient;
         })
 public abstract class ReportsModule {
 
+    public static final String REPORT_GENERATION_TIMEOUT_SECONDS =
+            "REPORT_GENERATION_TIMEOUT_SECONDS";
+
+    @Provides
+    @Named(REPORT_GENERATION_TIMEOUT_SECONDS)
+    static long provideReportGenerationTimeoutSeconds() {
+        // TODO make this configurable via env var? It is also related to the max HTTP response
+        // timeout that clients expect, and which usually defaults to 30 seconds
+        return 29;
+    }
+
     @Provides
     @Singleton
     static ActiveRecordingReportCache provideActiveRecordingReportCache(
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         return new ActiveRecordingReportCache(
-                reportGeneratorServiceProvider, fs, targetConnectionManager, logger);
+                reportGeneratorServiceProvider,
+                fs,
+                targetConnectionManager,
+                generationTimeoutSeconds,
+                logger);
     }
 
     @Provides
@@ -81,10 +98,15 @@ public abstract class ReportsModule {
     static ArchivedRecordingReportCache provideArchivedRecordingReportCache(
             FileSystem fs,
             Provider<ReportGeneratorService> reportGeneratorServiceProvider,
-            Logger logger,
-            RecordingArchiveHelper recordingArchiveHelper) {
+            RecordingArchiveHelper recordingArchiveHelper,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
+            Logger logger) {
         return new ArchivedRecordingReportCache(
-                fs, reportGeneratorServiceProvider, logger, recordingArchiveHelper);
+                fs,
+                reportGeneratorServiceProvider,
+                recordingArchiveHelper,
+                generationTimeoutSeconds,
+                logger);
     }
 
     @Provides
@@ -110,6 +132,7 @@ public abstract class ReportsModule {
             Vertx vertx,
             WebClient http,
             Environment env,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         // TODO extract this so it's reusable and not duplicated
         Provider<Path> tempFileProvider =
@@ -122,7 +145,14 @@ public abstract class ReportsModule {
                     }
                 };
         return new RemoteReportGenerator(
-                targetConnectionManager, fs, tempFileProvider, vertx, http, env, logger);
+                targetConnectionManager,
+                fs,
+                tempFileProvider,
+                vertx,
+                http,
+                env,
+                generationTimeoutSeconds,
+                logger);
     }
 
     @Provides
@@ -132,6 +162,7 @@ public abstract class ReportsModule {
             TargetConnectionManager targetConnectionManager,
             Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilder,
+            @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         Provider<Path> tempFileProvider =
                 () -> {
@@ -149,6 +180,7 @@ public abstract class ReportsModule {
                 reportTransformers,
                 javaProcessBuilder,
                 tempFileProvider,
+                generationTimeoutSeconds,
                 logger);
     }
 

@@ -41,12 +41,15 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.reports.ReportService;
+import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.reports.SubprocessReportGenerator;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.security.jwt.AssetJwtHelper;
@@ -66,6 +69,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 class TargetReportGetHandler extends AbstractJwtConsumingHandler {
 
     protected final ReportService reportService;
+    protected final long reportGenerationTimeoutSeconds;
 
     @Inject
     TargetReportGetHandler(
@@ -73,9 +77,12 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
             AssetJwtHelper jwtFactory,
             Lazy<WebServer> webServer,
             ReportService reportService,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS)
+                    long reportGenerationTimeoutSeconds,
             Logger logger) {
         super(auth, jwtFactory, webServer, logger);
         this.reportService = reportService;
+        this.reportGenerationTimeoutSeconds = reportGenerationTimeoutSeconds;
     }
 
     @Override
@@ -122,7 +129,7 @@ class TargetReportGetHandler extends AbstractJwtConsumingHandler {
                     .end(
                             reportService
                                     .get(getConnectionDescriptorFromJwt(ctx, jwt), recordingName)
-                                    .get());
+                                    .get(reportGenerationTimeoutSeconds, TimeUnit.SECONDS));
         } catch (CompletionException | ExecutionException ee) {
 
             Exception rootCause = (Exception) ExceptionUtils.getRootCause(ee);

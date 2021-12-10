@@ -83,7 +83,7 @@ class ActiveRecordingReportCacheTest {
     void setup() {
         this.cache =
                 new ActiveRecordingReportCache(
-                        () -> subprocessReportGenerator, fs, targetConnectionManager, logger);
+                        () -> subprocessReportGenerator, fs, targetConnectionManager, 30, logger);
     }
 
     @Test

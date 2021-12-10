@@ -80,7 +80,7 @@ class TargetReportGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new TargetReportGetHandler(auth, jwt, () -> webServer, reports, logger);
+        this.handler = new TargetReportGetHandler(auth, jwt, () -> webServer, reports, 30, logger);
     }
 
     @Nested

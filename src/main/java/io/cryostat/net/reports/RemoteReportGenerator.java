@@ -41,6 +41,7 @@ import java.nio.file.Path;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Named;
 import javax.inject.Provider;
 
 import io.cryostat.configuration.Variables;
@@ -61,6 +62,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
     private final Vertx vertx;
     private final WebClient http;
     private final Environment env;
+    private final long generationTimeoutSeconds;
 
     RemoteReportGenerator(
             TargetConnectionManager targetConnectionManager,
@@ -69,11 +71,13 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
             Vertx vertx,
             WebClient http,
             Environment env,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
         super(targetConnectionManager, fs, tempFileProvider, logger);
         this.vertx = vertx;
         this.http = http;
         this.env = env;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
     @Override
@@ -91,7 +95,7 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
         var f = new CompletableFuture<Path>();
         this.http
                 .postAbs(String.format("%s/report", reportGenerator))
-                .timeout(TimeUnit.MINUTES.toMillis(1))
+                .timeout(TimeUnit.SECONDS.toMillis(generationTimeoutSeconds))
                 .sendMultipartForm(
                         form,
                         ar -> {
