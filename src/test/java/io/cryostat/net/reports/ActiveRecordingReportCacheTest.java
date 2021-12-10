@@ -38,7 +38,6 @@
 package io.cryostat.net.reports;
 
 import java.nio.file.Path;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
@@ -47,7 +46,6 @@ import java.util.concurrent.Future;
 import javax.inject.Provider;
 
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.ConnectionDescriptor;
@@ -80,19 +78,6 @@ class ActiveRecordingReportCacheTest {
     Provider<JavaProcess.Builder> javaProcessBuilderProvider = () -> javaProcessBuilder;
     Provider<Path> tempFileProvider = () -> destinationFile;
     final String REPORT_DOC = "<html><body><p>This is a report</p></body></html>";
-
-    class TestSubprocessReportGenerator extends SubprocessReportGenerator {
-        TestSubprocessReportGenerator(FileSystem fs, Set<ReportTransformer> reportTransformers) {
-            super(
-                    ActiveRecordingReportCacheTest.this.env,
-                    ActiveRecordingReportCacheTest.this.fs,
-                    ActiveRecordingReportCacheTest.this.targetConnectionManager,
-                    reportTransformers,
-                    ActiveRecordingReportCacheTest.this.javaProcessBuilderProvider,
-                    ActiveRecordingReportCacheTest.this.tempFileProvider,
-                    ActiveRecordingReportCacheTest.this.logger);
-        }
-    }
 
     @BeforeEach
     void setup() {
