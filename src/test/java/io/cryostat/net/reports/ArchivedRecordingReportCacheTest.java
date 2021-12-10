@@ -108,7 +108,7 @@ class ArchivedRecordingReportCacheTest {
                 .thenReturn(future);
         Mockito.when(future.get()).thenReturn(recording);
 
-        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(
                         subprocessReportGenerator.exec(
                                 Mockito.any(Path.class), Mockito.any(Path.class)))

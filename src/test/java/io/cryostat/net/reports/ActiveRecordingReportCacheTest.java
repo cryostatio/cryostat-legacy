@@ -93,7 +93,7 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnTrueWhenDeletingReport() throws Exception {
-        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(subprocessReportGenerator.exec(Mockito.any(RecordingDescriptor.class)))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
@@ -108,7 +108,7 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnGeneratedReportResult() throws Exception {
-        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(subprocessReportGenerator.exec(Mockito.any(RecordingDescriptor.class)))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);
@@ -125,7 +125,7 @@ class ActiveRecordingReportCacheTest {
 
     @Test
     void shouldReturnCachedReportResultOnSecondRequest() throws Exception {
-        Mockito.when(pathFuture.get()).thenReturn(destinationFile);
+        Mockito.when(pathFuture.get(Mockito.anyLong(), Mockito.any())).thenReturn(destinationFile);
         Mockito.when(subprocessReportGenerator.exec(Mockito.any(RecordingDescriptor.class)))
                 .thenReturn(pathFuture);
         Mockito.when(fs.readString(destinationFile)).thenReturn(REPORT_DOC);

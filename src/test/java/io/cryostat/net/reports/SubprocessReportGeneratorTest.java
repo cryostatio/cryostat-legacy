@@ -235,7 +235,7 @@ class SubprocessReportGeneratorTest {
         Path dest = Mockito.mock(Path.class);
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(true);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(true);
 
         Assertions.assertTimeoutPreemptively(
                 Duration.ofSeconds(2),
@@ -250,7 +250,7 @@ class SubprocessReportGeneratorTest {
         Path dest = Mockito.mock(Path.class);
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(false);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(false);
         Mockito.when(proc.exitValue())
                 .thenReturn(SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING.code);
 
@@ -270,7 +270,7 @@ class SubprocessReportGeneratorTest {
 
     @Test
     void shouldExecuteProcessAndDeleteRecordingOnCompletion() throws Exception {
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(true);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(true);
         Mockito.when(proc.exitValue()).thenReturn(SubprocessReportGenerator.ExitStatus.OK.code);
 
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -290,7 +290,7 @@ class SubprocessReportGeneratorTest {
 
     @Test
     void shouldExecuteProcessAndDeleteRecordingOnFailure() throws Exception {
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(true);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(true);
         Mockito.when(proc.exitValue())
                 .thenReturn(SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING.code);
 
