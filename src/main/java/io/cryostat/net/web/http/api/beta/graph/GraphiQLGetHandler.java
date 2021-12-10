@@ -35,71 +35,63 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.beta;
+package io.cryostat.net.web.http.api.beta.graph;
 
+import java.util.Set;
+
+import javax.inject.Inject;
+
+import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.beta.graph.GraphModule;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-import dagger.Binds;
-import dagger.Module;
-import dagger.multibindings.IntoSet;
+import io.vertx.core.http.HttpMethod;
+import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.graphql.GraphiQLHandler;
+import io.vertx.ext.web.handler.graphql.GraphiQLHandlerOptions;
 
-@Module(includes = {GraphModule.class})
-public abstract class HttpApiBetaModule {
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindDiscoveryGetHandler(DiscoveryGetHandler handler);
+class GraphiQLGetHandler implements RequestHandler {
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadHandler(ProbeTemplateUploadHandler handler);
+    private final GraphiQLHandler handler;
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateUploadBodyHandler(
-            ProbeTemplateUploadBodyHandler handler);
+    @Inject
+    GraphiQLGetHandler() {
+        this.handler =
+                GraphiQLHandler.create(
+                        new GraphiQLHandlerOptions()
+                                .setEnabled(true)
+                                .setGraphQLUri("/api/beta/graphql"));
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindProbeTemplateDeleteHandler(ProbeTemplateDeleteHandler handler);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.BETA;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbePostHandler(TargetProbePostHandler handler);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.GET;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbeDeleteHandler(TargetProbeDeleteHandler handler);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetProbesGetHandler(TargetProbesGetHandler handler);
+    @Override
+    public boolean isAvailable() {
+        // FIXME this should only be available in dev mode
+        // ex. "VERTXWEB_ENVIRONMENT=dev"
+        return true;
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostHandler(AuthTokenPostHandler handler);
+    @Override
+    public String path() {
+        return basePath() + "graphiql/*";
+    }
 
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindAuthTokenPostBodyHandler(AuthTokenPostBodyHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetRecordingGetHandler(TargetRecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetReportGetHandler(TargetReportGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindTargetTemplateGetHandler(TargetTemplateGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindRecordingGetHandler(RecordingGetHandler handler);
-
-    @Binds
-    @IntoSet
-    abstract RequestHandler bindReportGetHandler(ReportGetHandler handler);
+    @Override
+    public void handle(RoutingContext ctx) {
+        this.handler.handle(ctx);
+    }
 }

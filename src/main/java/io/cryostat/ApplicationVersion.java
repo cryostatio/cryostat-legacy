@@ -45,6 +45,7 @@ import io.cryostat.core.log.Logger;
 
 public class ApplicationVersion {
 
+    private static final String RESOURCE_LOCATION = "/io/cryostat/version";
     private volatile String version;
     private final Logger logger;
 
@@ -57,7 +58,7 @@ public class ApplicationVersion {
             try (BufferedReader br =
                     new BufferedReader(
                             new InputStreamReader(
-                                    getClass().getResourceAsStream("/io/cryostat/version"),
+                                    getClass().getResourceAsStream(RESOURCE_LOCATION),
                                     StandardCharsets.UTF_8))) {
                 version =
                         br.lines()
@@ -65,7 +66,9 @@ public class ApplicationVersion {
                                 .orElseThrow(
                                         () ->
                                                 new IllegalStateException(
-                                                        "Resource file /io/cryostat/version is empty"))
+                                                        String.format(
+                                                                "Resource file %s is empty",
+                                                                RESOURCE_LOCATION)))
                                 .trim();
             } catch (Exception e) {
                 logger.error(e);
