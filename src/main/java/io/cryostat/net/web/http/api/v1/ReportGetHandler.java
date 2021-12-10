@@ -110,7 +110,7 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
 
     @Override
     public boolean isOrdered() {
-        return true;
+        return false;
     }
 
     @Override

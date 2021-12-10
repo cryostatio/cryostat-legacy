@@ -114,7 +114,7 @@ class ReportGetHandler extends AbstractJwtConsumingHandler {
 
     @Override
     public boolean isOrdered() {
-        return true;
+        return false;
     }
 
     @Override

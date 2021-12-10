@@ -108,8 +108,8 @@ class ReportGetHandlerTest {
     }
 
     @Test
-    void shouldBeOrdered() {
-        Assertions.assertTrue(handler.isOrdered());
+    void shouldNotBeOrdered() {
+        Assertions.assertFalse(handler.isOrdered());
     }
 
     @Test
