@@ -1,5 +1,9 @@
+scalar Object
+
 type Query {
     bookById(id: ID): Book
+    customTargets: [ServiceRef]!
+    customTargetsWithAnnotation(annotation: String): [ServiceRef]!
 }
 
 type Book {
@@ -13,4 +17,16 @@ type Author {
     id: ID
     firstName: String
     lastName: String
+}
+
+type ServiceRef {
+    serviceUri: String!
+    alias: String
+    labels: Object!
+    annotations: Annotations!
+}
+
+type Annotations {
+    platform: Object!
+    cryostat: Object!
 }

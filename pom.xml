@@ -148,6 +148,16 @@
     <version>${io.vertx.web.version}</version>
   </dependency>
   <dependency>
+      <!--
+      FIXME this needs to be synced with the vertx - is there a BOM to use or something?
+      https://github.com/graphql-java/graphql-java-extended-scalars#extended-scalars-for-graphql-java
+      https://github.com/vert-x3/vertx-web/blob/f1aacf7e3e39a76e26b0bce01165dee846a02b77/vertx-web-graphql/pom.xml#L35
+      -->
+    <groupId>com.graphql-java</groupId>
+    <artifactId>graphql-java-extended-scalars</artifactId>
+    <version>1.0.1</version>
+  </dependency>
+  <dependency>
     <groupId>com.nimbusds</groupId>
     <artifactId>nimbus-jose-jwt</artifactId>
     <version>${com.nimbusds.jose.jwt.version}</version>
