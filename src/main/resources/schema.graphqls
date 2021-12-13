@@ -2,6 +2,7 @@ scalar Object
 
 type Query {
     discovery: EnvironmentNode!
+    targetsByParent(name: String!, nodeType: String!): [TargetNode]!
 }
 
 type ServiceRef {

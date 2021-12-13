@@ -1,0 +1,15 @@
+{
+    targetsByParent(name: "JDP", nodeType: "Realm") {
+        name
+        nodeType
+        target {
+            alias
+            serviceUri
+            labels
+            annotations {
+                platform
+                cryostat
+            }
+        }
+    }
+}

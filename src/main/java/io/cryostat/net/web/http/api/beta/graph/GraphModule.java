@@ -41,17 +41,17 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.NoSuchElementException;
+import java.util.Objects;
 
 import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.ServiceRef;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.internal.CustomTargetPlatformClient;
+import io.cryostat.platform.discovery.TargetNode;
 
 import dagger.Binds;
 import dagger.Module;
@@ -88,13 +88,17 @@ public abstract class GraphModule {
     @Singleton
     static GraphQL provideGraphQL(
             @Named("discovery") DataFetcher<EnvironmentNode> discoveryFetcher,
-            @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher) {
+            @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher,
+            @Named("targetsByParent") DataFetcher<List<TargetNode>> targetsByParentFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
                                         .dataFetcher("discovery", discoveryFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Query")
+                                        .dataFetcher("targetsByParent", targetsByParentFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
@@ -131,6 +135,54 @@ public abstract class GraphModule {
     @Named("discovery")
     static DataFetcher<EnvironmentNode> provideDiscoveryFetcher(PlatformClient client) {
         return env -> client.getDiscoveryTree();
+    }
+
+    @Provides
+    @Singleton
+    @Named("targetsByParent")
+    static DataFetcher<List<TargetNode>> provideTargetsByParentFetcher(PlatformClient client) {
+        return env -> {
+            String name = env.getArgument("name");
+            String nodeType = env.getArgument("nodeType");
+
+            AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
+
+            if (parent != null) {
+                return recurseChildren(parent);
+            }
+            throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
+        };
+    }
+
+    static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
+        if (Objects.equals(name.toLowerCase(), root.getName().toLowerCase())
+                && Objects.equals(
+                        nodeType.toLowerCase(), root.getNodeType().getKind().toLowerCase())) {
+            return root;
+        }
+        if (root instanceof EnvironmentNode) {
+            for (AbstractNode child : ((EnvironmentNode) root).getChildren()) {
+                AbstractNode found = findNode(name, nodeType, child);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
+    }
+
+    static List<TargetNode> recurseChildren(AbstractNode node) {
+        if (node instanceof TargetNode) {
+            return List.of((TargetNode) node);
+        } else if (node instanceof EnvironmentNode) {
+            List<TargetNode> result = new ArrayList<>();
+            for (AbstractNode child : ((EnvironmentNode) node).getChildren()) {
+                result.addAll(recurseChildren(child));
+            }
+            return result;
+        } else {
+            throw new IllegalStateException(node.getClass().toString());
+        }
     }
 
     @Provides

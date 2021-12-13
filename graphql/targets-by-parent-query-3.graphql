@@ -1,0 +1,16 @@
+{
+    targetsByParent(name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi", nodeType: "JVM") {
+        name
+        nodeType
+        target {
+            alias
+            serviceUri
+            labels
+            annotations {
+                platform
+                cryostat
+            }
+        }
+    }
+}
+

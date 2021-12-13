@@ -1,0 +1,15 @@
+{
+    targetsByParent(name: "Universe", nodeType: "Universe") {
+        name
+        nodeType
+        target {
+            alias
+            serviceUri
+            labels
+            annotations {
+                platform
+                cryostat
+            }
+        }
+    }
+}
