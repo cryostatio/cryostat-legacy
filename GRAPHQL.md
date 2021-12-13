@@ -12,28 +12,7 @@ Accepts `GET` or `POST` requests to perform GraphQL queries. See:
 for some more info.
 
 src/main/java/io/cryostat/net/web/http/api/beta/graph/GraphModule.java
-contains the mock data that can be queried as well as bindings for the GraphQL
-engine to query custom targets.
-
-```bash
-$ https :8181/api/beta/graphql query=@sample-query.graphql
-HTTP/1.1 200 OK
-content-encoding: gzip
-content-length: 105
-content-type: application/json
-
-{
-    "data": {
-        "bookById": {
-            "author": {
-                "firstName": "Joanne",
-                "lastName": "Rowling"
-            },
-            "pageCount": 223
-        }
-    }
-}
-```
+contains the bindings for the GraphQL engine to query custom targets.
 
 ```bash
 $ https -f :8181/api/v2/targets alias=foo connectUrl=localhost:0 annotations.cryostat.HOST=localhost

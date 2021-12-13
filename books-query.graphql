@@ -1,9 +1,0 @@
-{
-  bookById(id: "book-1") {
-    pageCount
-    author {
-      firstName
-      lastName
-    }
-  }
-}

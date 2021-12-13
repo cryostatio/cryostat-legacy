@@ -40,9 +40,7 @@ package io.cryostat.net.web.http.api.beta.graph;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.inject.Named;
@@ -67,41 +65,6 @@ import graphql.schema.idl.TypeRuntimeWiring;
 
 @Module
 public abstract class GraphModule {
-    private static List<Map<String, String>> books =
-            Arrays.asList(
-                    Map.of(
-                            "id",
-                            "book-1",
-                            "name",
-                            "Harry Potter and the Philosopher's Stone",
-                            "pageCount",
-                            "223",
-                            "authorId",
-                            "author-1"),
-                    Map.of(
-                            "id",
-                            "book-2",
-                            "name",
-                            "Moby Dick",
-                            "pageCount",
-                            "635",
-                            "authorId",
-                            "author-2"),
-                    Map.of(
-                            "id",
-                            "book-3",
-                            "name",
-                            "Interview with the vampire",
-                            "pageCount",
-                            "371",
-                            "authorId",
-                            "author-3"));
-
-    private static List<Map<String, String>> authors =
-            Arrays.asList(
-                    Map.of("id", "author-1", "firstName", "Joanne", "lastName", "Rowling"),
-                    Map.of("id", "author-2", "firstName", "Herman", "lastName", "Melville"),
-                    Map.of("id", "author-3", "firstName", "Anne", "lastName", "Rice"));
 
     @Binds
     @IntoSet
@@ -120,9 +83,7 @@ public abstract class GraphModule {
     static GraphQL provideGraphQL(
             @Named("customTargets") DataFetcher<List<ServiceRef>> customTargetsFetcher,
             @Named("customTargetsWithAnnotation")
-                    DataFetcher<List<ServiceRef>> customTargetsWithAnnotationFetcher,
-            @Named("bookById") DataFetcher<Map<String, String>> bookByIdFetcher,
-            @Named("author") DataFetcher<Map<String, String>> authorFetcher) {
+                    DataFetcher<List<ServiceRef>> customTargetsWithAnnotationFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -134,12 +95,6 @@ public abstract class GraphModule {
                                         .dataFetcher(
                                                 "customTargetsWithAnnotation",
                                                 customTargetsWithAnnotationFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("bookById", bookByIdFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Book")
-                                        .dataFetcher("author", authorFetcher))
                         .build();
         try (InputStream is = GraphModule.class.getResourceAsStream("/schema.graphql")) {
             TypeDefinitionRegistry tdr = new SchemaParser().parse(is);
@@ -182,28 +137,6 @@ public abstract class GraphModule {
             result.addAll(withPlatformAnnotation);
             result.addAll(withCryostatAnnotation);
             return result;
-        };
-    }
-
-    @Provides
-    @Singleton
-    @Named("bookById")
-    static DataFetcher<Map<String, String>> provideBookByIdFetcher() {
-        return env ->
-                books.stream()
-                        .filter(v -> v.get("id").equals(env.getArgument("id")))
-                        .findFirst()
-                        .orElse(null);
-    }
-
-    @Provides
-    @Singleton
-    @Named("author")
-    static DataFetcher<Map<String, String>> provideAuthorFetcher() {
-        return env -> {
-            Map<String, String> src = env.getSource();
-            var id = src.get("authorId");
-            return authors.stream().filter(v -> v.get("id").equals(id)).findFirst().orElse(null);
         };
     }
 }
