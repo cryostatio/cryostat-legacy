@@ -61,7 +61,7 @@ import com.google.gson.reflect.TypeToken;
 
 public class CustomTargetPlatformClient extends AbstractPlatformClient {
 
-    public static final CustomTargetNodeType NODE_TYPE = new CustomTargetNodeType();
+    public static final CustomTargetNodeType NODE_TYPE = CustomTargetNodeType.CUSTOM_TARGET;
 
     static final String SAVEFILE_NAME = "custom_targets.json";
 
@@ -140,20 +140,13 @@ public class CustomTargetPlatformClient extends AbstractPlatformClient {
         return customTargetsNode;
     }
 
-    public static class CustomTargetNodeType implements NodeType {
-
-        private CustomTargetNodeType() {}
-
-        public static final String KIND = "CustomTarget";
+    public enum CustomTargetNodeType implements NodeType {
+        CUSTOM_TARGET,
+        ;
 
         @Override
         public String getKind() {
-            return KIND;
-        }
-
-        @Override
-        public int ordinal() {
-            return 0;
+            return "CustomTarget";
         }
     }
 }

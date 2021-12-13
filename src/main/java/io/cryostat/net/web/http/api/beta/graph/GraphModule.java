@@ -47,7 +47,10 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.ServiceRef;
+import io.cryostat.platform.discovery.AbstractNode;
+import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.internal.CustomTargetPlatformClient;
 
 import dagger.Binds;
@@ -55,8 +58,11 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import graphql.GraphQL;
+import graphql.TypeResolutionEnvironment;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.DataFetcher;
+import graphql.schema.GraphQLObjectType;
+import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -83,7 +89,9 @@ public abstract class GraphModule {
     static GraphQL provideGraphQL(
             @Named("customTargets") DataFetcher<List<ServiceRef>> customTargetsFetcher,
             @Named("customTargetsWithAnnotation")
-                    DataFetcher<List<ServiceRef>> customTargetsWithAnnotationFetcher) {
+                    DataFetcher<List<ServiceRef>> customTargetsWithAnnotationFetcher,
+            @Named("discovery") DataFetcher<EnvironmentNode> discoveryFetcher,
+            @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -95,8 +103,32 @@ public abstract class GraphModule {
                                         .dataFetcher(
                                                 "customTargetsWithAnnotation",
                                                 customTargetsWithAnnotationFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Query")
+                                        .dataFetcher("discovery", discoveryFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
+                                        .dataFetcher("children", nodeChildrenFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Node")
+                                        .typeResolver(
+                                                new TypeResolver() {
+                                                    @Override
+                                                    public GraphQLObjectType getType(
+                                                            TypeResolutionEnvironment env) {
+                                                        Object o = env.getObject();
+                                                        if (o instanceof EnvironmentNode) {
+                                                            return env.getSchema()
+                                                                    .getObjectType(
+                                                                            "EnvironmentNode");
+                                                        } else {
+                                                            return env.getSchema()
+                                                                    .getObjectType("TargetNode");
+                                                        }
+                                                    }
+                                                }))
                         .build();
-        try (InputStream is = GraphModule.class.getResourceAsStream("/schema.graphql")) {
+        try (InputStream is = GraphModule.class.getResourceAsStream("/schema.graphqls")) {
             TypeDefinitionRegistry tdr = new SchemaParser().parse(is);
             return GraphQL.newGraphQL(new SchemaGenerator().makeExecutableSchema(tdr, wiring))
                     .build();
@@ -137,6 +169,23 @@ public abstract class GraphModule {
             result.addAll(withPlatformAnnotation);
             result.addAll(withCryostatAnnotation);
             return result;
+        };
+    }
+
+    @Provides
+    @Singleton
+    @Named("discovery")
+    static DataFetcher<EnvironmentNode> provideDiscoveryFetcher(PlatformClient client) {
+        return env -> client.getDiscoveryTree();
+    }
+
+    @Provides
+    @Singleton
+    @Named("nodeChildren")
+    static DataFetcher<List<AbstractNode>> provideNodeChildrenFetcher() {
+        return env -> {
+            EnvironmentNode source = env.getSource();
+            return new ArrayList<>(source.getChildren());
         };
     }
 }

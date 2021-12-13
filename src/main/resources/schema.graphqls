@@ -1,0 +1,41 @@
+scalar Object
+
+type Query {
+    customTargets: [ServiceRef]!
+    customTargetsWithAnnotation(annotation: String): [ServiceRef]!
+    discovery: EnvironmentNode!
+}
+
+type ServiceRef {
+    serviceUri: String!
+    alias: String
+    labels: Object!
+    annotations: Annotations!
+}
+
+type Annotations {
+    platform: Object!
+    cryostat: Object!
+}
+
+type TargetNode implements Node {
+    target: ServiceRef!
+
+    name: String!
+    nodeType: String!
+    labels: Object!
+}
+
+type EnvironmentNode implements Node {
+    children: [Node]!
+
+    name: String!
+    nodeType: String!
+    labels: Object!
+}
+
+interface Node {
+    name: String!
+    nodeType: String!
+    labels: Object!
+}
