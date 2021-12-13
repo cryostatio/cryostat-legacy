@@ -87,22 +87,11 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     static GraphQL provideGraphQL(
-            @Named("customTargets") DataFetcher<List<ServiceRef>> customTargetsFetcher,
-            @Named("customTargetsWithAnnotation")
-                    DataFetcher<List<ServiceRef>> customTargetsWithAnnotationFetcher,
             @Named("discovery") DataFetcher<EnvironmentNode> discoveryFetcher,
             @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("customTargets", customTargetsFetcher))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher(
-                                                "customTargetsWithAnnotation",
-                                                customTargetsWithAnnotationFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
                                         .dataFetcher("discovery", discoveryFetcher))
@@ -135,41 +124,6 @@ public abstract class GraphModule {
         } catch (IOException ioe) {
             throw new RuntimeException(ioe);
         }
-    }
-
-    @Provides
-    @Singleton
-    @Named("customTargets")
-    static DataFetcher<List<ServiceRef>> provideCustomTargetsFetcher(
-            CustomTargetPlatformClient client) {
-        return env -> client.listDiscoverableServices();
-    }
-
-    @Provides
-    @Singleton
-    @Named("customTargetsWithAnnotation")
-    static DataFetcher<List<ServiceRef>> provideCustomTargetsWithAnnotationFetcher(
-            CustomTargetPlatformClient client) {
-        return env -> {
-            String annotationKey = env.getArgument("annotation");
-            List<ServiceRef> withPlatformAnnotation =
-                    client.listDiscoverableServices().stream()
-                            .filter(c -> c.getPlatformAnnotations().containsKey(annotationKey))
-                            .collect(Collectors.toList());
-            List<ServiceRef> withCryostatAnnotation =
-                    client.listDiscoverableServices().stream()
-                            .filter(
-                                    c ->
-                                            c.getCryostatAnnotations().keySet().stream()
-                                                    .map(Enum::name)
-                                                    .anyMatch(k -> k.equals(annotationKey)))
-                            .collect(Collectors.toList());
-
-            List<ServiceRef> result = new ArrayList<>();
-            result.addAll(withPlatformAnnotation);
-            result.addAll(withCryostatAnnotation);
-            return result;
-        };
     }
 
     @Provides

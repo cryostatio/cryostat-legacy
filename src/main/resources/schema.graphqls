@@ -1,8 +1,6 @@
 scalar Object
 
 type Query {
-    customTargets: [ServiceRef]!
-    customTargetsWithAnnotation(annotation: String): [ServiceRef]!
     discovery: EnvironmentNode!
 }
 
