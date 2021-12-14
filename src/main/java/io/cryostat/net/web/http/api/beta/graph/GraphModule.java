@@ -90,7 +90,7 @@ public abstract class GraphModule {
     static GraphQL provideGraphQL(
             @Named("discovery") DataFetcher<EnvironmentNode> discoveryFetcher,
             @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher,
-            @Named("targetsByParent") DataFetcher<List<TargetNode>> targetsByParentFetcher) {
+            @Named("childrenOf") DataFetcher<List<TargetNode>> childrenOfFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -99,7 +99,7 @@ public abstract class GraphModule {
                                         .dataFetcher("discovery", discoveryFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("targetsByParent", targetsByParentFetcher))
+                                        .dataFetcher("childrenOf", childrenOfFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
@@ -140,19 +140,22 @@ public abstract class GraphModule {
 
     @Provides
     @Singleton
-    @Named("targetsByParent")
-    static DataFetcher<List<TargetNode>> provideTargetsByParentFetcher(PlatformClient client) {
+    @Named("childrenOf")
+    static DataFetcher<List<TargetNode>> provideChildrenOfFetcher(PlatformClient client) {
         return env -> {
-            Map<String, String> selector = env.getArgument("node");
-            String name = selector.get("name");
-            String nodeType = selector.get("nodeType");
+            List<Map<String, String>> selectors = env.getArgument("nodes");
+            List<TargetNode> result = new ArrayList<>();
+            for (Map<String, String> selector : selectors) {
+                String name = selector.get("name");
+                String nodeType = selector.get("nodeType");
 
-            AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
-
-            if (parent != null) {
-                return recurseChildren(parent);
+                AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
+                if (parent == null) {
+                    throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
+                }
+                result.addAll(recurseChildren(parent));
             }
-            throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
+            return result;
         };
     }
 

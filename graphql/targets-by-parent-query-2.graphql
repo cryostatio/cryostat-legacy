@@ -1,5 +1,5 @@
 query {
-    targetsByParent(node: { name: "JDP", nodeType: "Realm" }) {
+    childrenOf(nodes: [{ name: "JDP", nodeType: "Realm" }]) {
         name
         nodeType
         target {
