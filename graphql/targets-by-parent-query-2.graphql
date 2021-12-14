@@ -1,5 +1,5 @@
-{
-    targetsByParent(name: "JDP", nodeType: "Realm") {
+query {
+    targetsByParent(node: { name: "JDP", nodeType: "Realm" }) {
         name
         nodeType
         target {

@@ -41,6 +41,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 
@@ -142,8 +143,9 @@ public abstract class GraphModule {
     @Named("targetsByParent")
     static DataFetcher<List<TargetNode>> provideTargetsByParentFetcher(PlatformClient client) {
         return env -> {
-            String name = env.getArgument("name");
-            String nodeType = env.getArgument("nodeType");
+            Map<String, String> selector = env.getArgument("node");
+            String name = selector.get("name");
+            String nodeType = selector.get("nodeType");
 
             AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
 

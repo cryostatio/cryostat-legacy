@@ -1,5 +1,5 @@
-{
-    targetsByParent(name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi", nodeType: "JVM") {
+query {
+    targetsByParent(node: { name: "service:jmx:rmi:///jndi/rmi://cryostat:9091/jmxrmi", nodeType: "JVM" }) {
         name
         nodeType
         target {

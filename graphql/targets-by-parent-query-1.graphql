@@ -1,5 +1,5 @@
-{
-    targetsByParent(name: "Universe", nodeType: "Universe") {
+query {
+    targetsByParent(node: { name: "Universe", nodeType: "Universe" }) {
         name
         nodeType
         target {

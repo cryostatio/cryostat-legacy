@@ -2,7 +2,12 @@ scalar Object
 
 type Query {
     discovery: EnvironmentNode!
-    targetsByParent(name: String!, nodeType: String!): [TargetNode!]!
+    targetsByParent(node: NodeSelector): [TargetNode!]!
+    # TODO - can these all be done in one query? With an implied "AND" or "OR"
+    # of the various selector parameters? Or would the AND/OR be another argument?
+    # targetsWithLabel(key: String!, value: String): [TargetNode!]!
+    # targetsWithAnnotation(key: String!, value: String): [TargetNode!]!
+    # targetsWithAnnotations(annotations: [String!]!): [TargetNode!]!
 }
 
 type ServiceRef {
@@ -37,4 +42,9 @@ interface Node {
     name: String!
     nodeType: String!
     labels: Object!
+}
+
+input NodeSelector {
+    name: String!
+    nodeType: String!
 }
