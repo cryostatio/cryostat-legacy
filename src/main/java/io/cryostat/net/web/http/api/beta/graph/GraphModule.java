@@ -153,7 +153,7 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     @Named("targetsDescendedFrom")
-    static DataFetcher<List<TargetNode>> provideChildrenOfFetcher(PlatformClient client) {
+    static DataFetcher<List<TargetNode>> targetsDescendedFromFetcher(PlatformClient client) {
         return env -> {
             List<Map<String, String>> selectors = env.getArgument("nodes");
             List<TargetNode> result = new ArrayList<>();
