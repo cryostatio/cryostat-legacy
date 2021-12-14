@@ -1,5 +1,5 @@
 query {
-    childrenOf(nodes: [{ name: "Universe", nodeType: "Universe" }]) {
+    targetsDescendedFrom(nodes: [{ name: "Universe", nodeType: "Universe" }]) {
         name
         nodeType
         target {

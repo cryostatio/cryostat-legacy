@@ -90,7 +90,8 @@ public abstract class GraphModule {
     static GraphQL provideGraphQL(
             @Named("discovery") DataFetcher<EnvironmentNode> discoveryFetcher,
             @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher,
-            @Named("childrenOf") DataFetcher<List<TargetNode>> childrenOfFetcher) {
+            @Named("targetsDescendedFrom")
+                    DataFetcher<List<TargetNode>> targetsDescendedFromFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -99,7 +100,9 @@ public abstract class GraphModule {
                                         .dataFetcher("discovery", discoveryFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher("childrenOf", childrenOfFetcher))
+                                        .dataFetcher(
+                                                "targetsDescendedFrom",
+                                                targetsDescendedFromFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
@@ -140,7 +143,7 @@ public abstract class GraphModule {
 
     @Provides
     @Singleton
-    @Named("childrenOf")
+    @Named("targetsDescendedFrom")
     static DataFetcher<List<TargetNode>> provideChildrenOfFetcher(PlatformClient client) {
         return env -> {
             List<Map<String, String>> selectors = env.getArgument("nodes");
