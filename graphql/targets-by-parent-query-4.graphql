@@ -1,0 +1,35 @@
+query {
+    targetsDescendedFrom(nodes: [{ name: "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi", nodeType: "JVM" }]) {
+        name
+        nodeType
+        target {
+            alias
+            serviceUri
+            labels
+            annotations {
+                platform
+                cryostat
+            }
+        }
+        recordings {
+            active {
+                name
+                downloadUrl
+                reportUrl
+                state
+                startTime
+                duration
+                continuous
+                toDisk
+                maxSize
+                maxAge
+            }
+            archived {
+                name
+                downloadUrl
+                reportUrl
+            }
+        }
+    }
+}
+

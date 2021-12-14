@@ -1,6 +1,9 @@
 scalar Object
 scalar ServiceURI
 scalar NodeType
+scalar Url
+scalar Boolean
+scalar Long
 
 type Query {
     discovery: EnvironmentNode!
@@ -26,6 +29,7 @@ type Annotations {
 
 type TargetNode implements Node {
     target: ServiceRef!
+    recordings: Recordings!
 
     name: String!
     nodeType: NodeType!
@@ -49,4 +53,35 @@ interface Node {
 input NodeSelector {
     name: String!
     nodeType: NodeType!
+}
+
+type Recordings {
+    active: [ActiveRecording!]!
+    archived: [ArchivedRecording!]!
+}
+
+type ActiveRecording implements Recording {
+    state: String!
+    startTime: Long!
+    duration: Long!
+    continuous: Boolean!
+    toDisk: Boolean!
+    maxSize: Long!
+    maxAge: Long!
+
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+}
+
+type ArchivedRecording implements Recording {
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
+}
+
+interface Recording {
+    name: String!
+    reportUrl: Url!
+    downloadUrl: Url!
 }

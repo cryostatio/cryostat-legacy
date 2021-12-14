@@ -39,20 +39,32 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.inject.Named;
+import javax.inject.Provider;
 import javax.inject.Singleton;
 
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+
+import io.cryostat.core.log.Logger;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import dagger.Binds;
 import dagger.Module;
@@ -91,11 +103,15 @@ public abstract class GraphModule {
     static GraphQL provideGraphQL(
             @Named("discovery") DataFetcher<EnvironmentNode> discoveryFetcher,
             @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher,
+            @Named("recordings") DataFetcher<Recordings> recordingsFetcher,
             @Named("targetsDescendedFrom")
                     DataFetcher<List<TargetNode>> targetsDescendedFromFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
+                        .scalar(ExtendedScalars.Url)
+                        .scalar(Scalars.GraphQLLong)
+                        .scalar(Scalars.GraphQLBoolean)
                         .scalar(
                                 ExtendedScalars.newAliasedScalar("ServiceURI")
                                         .aliasedScalar(Scalars.GraphQLString)
@@ -116,6 +132,9 @@ public abstract class GraphModule {
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
                         .type(
+                                TypeRuntimeWiring.newTypeWiring("TargetNode")
+                                        .dataFetcher("recordings", recordingsFetcher))
+                        .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
                                         .typeResolver(
                                                 new TypeResolver() {
@@ -130,6 +149,27 @@ public abstract class GraphModule {
                                                         } else {
                                                             return env.getSchema()
                                                                     .getObjectType("TargetNode");
+                                                        }
+                                                    }
+                                                }))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Recording")
+                                        .typeResolver(
+                                                new TypeResolver() {
+                                                    @Override
+                                                    public GraphQLObjectType getType(
+                                                            TypeResolutionEnvironment env) {
+                                                        Object o = env.getObject();
+                                                        if (o
+                                                                instanceof
+                                                                HyperlinkedSerializableRecordingDescriptor) {
+                                                            return env.getSchema()
+                                                                    .getObjectType(
+                                                                            "ActiveRecording");
+                                                        } else {
+                                                            return env.getSchema()
+                                                                    .getObjectType(
+                                                                            "ArchivedRecording");
                                                         }
                                                     }
                                                 }))
@@ -153,7 +193,7 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     @Named("targetsDescendedFrom")
-    static DataFetcher<List<TargetNode>> targetsDescendedFromFetcher(PlatformClient client) {
+    static DataFetcher<List<TargetNode>> provideTargetsDescendedFromFetcher(PlatformClient client) {
         return env -> {
             List<Map<String, String>> selectors = env.getArgument("nodes");
             List<TargetNode> result = new ArrayList<>();
@@ -168,6 +208,56 @@ public abstract class GraphModule {
                 result.addAll(recurseChildren(parent));
             }
             return result;
+        };
+    }
+
+    @Provides
+    @Singleton
+    @Named("recordings")
+    static DataFetcher<Recordings> provideRecordingsFetcher(
+            TargetConnectionManager tcm,
+            RecordingArchiveHelper archiveHelper,
+            Provider<WebServer> webServer,
+            Logger logger) {
+        return env -> {
+            String targetId = ((TargetNode) env.getSource()).getTarget().getServiceUri().toString();
+            Recordings recordings = new Recordings();
+
+            ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
+            recordings.archived = archiveHelper.getRecordings(targetId).get();
+            recordings.active =
+                    tcm.executeConnectedTask(
+                            cd,
+                            conn -> {
+                                return conn.getService().getAvailableRecordings().stream()
+                                        .map(
+                                                r -> {
+                                                    try {
+                                                        String downloadUrl =
+                                                                webServer
+                                                                        .get()
+                                                                        .getDownloadURL(
+                                                                                conn, r.getName());
+                                                        String reportUrl =
+                                                                webServer
+                                                                        .get()
+                                                                        .getReportURL(
+                                                                                conn, r.getName());
+                                                        return new HyperlinkedSerializableRecordingDescriptor(
+                                                                r, downloadUrl, reportUrl);
+                                                    } catch (QuantityConversionException
+                                                            | URISyntaxException
+                                                            | IOException e) {
+                                                        logger.error(e);
+                                                        return null;
+                                                    }
+                                                })
+                                        .filter(Objects::nonNull)
+                                        .collect(Collectors.toList());
+                            },
+                            false);
+
+            return recordings;
         };
     }
 
@@ -210,5 +300,10 @@ public abstract class GraphModule {
             EnvironmentNode source = env.getSource();
             return new ArrayList<>(source.getChildren());
         };
+    }
+
+    static class Recordings {
+        List<HyperlinkedSerializableRecordingDescriptor> active;
+        List<ArchivedRecordingInfo> archived;
     }
 }
