@@ -1,4 +1,6 @@
 scalar Object
+scalar ServiceURI
+scalar NodeType
 
 type Query {
     discovery: EnvironmentNode!
@@ -11,7 +13,7 @@ type Query {
 }
 
 type ServiceRef {
-    serviceUri: String!
+    serviceUri: ServiceURI!
     alias: String
     labels: Object!
     annotations: Annotations!
@@ -26,7 +28,7 @@ type TargetNode implements Node {
     target: ServiceRef!
 
     name: String!
-    nodeType: String!
+    nodeType: NodeType!
     labels: Object!
 }
 
@@ -34,17 +36,17 @@ type EnvironmentNode implements Node {
     children: [Node!]!
 
     name: String!
-    nodeType: String!
+    nodeType: NodeType!
     labels: Object!
 }
 
 interface Node {
     name: String!
-    nodeType: String!
+    nodeType: NodeType!
     labels: Object!
 }
 
 input NodeSelector {
     name: String!
-    nodeType: String!
+    nodeType: NodeType!
 }

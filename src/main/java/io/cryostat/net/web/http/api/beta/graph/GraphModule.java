@@ -59,6 +59,7 @@ import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import graphql.GraphQL;
+import graphql.Scalars;
 import graphql.TypeResolutionEnvironment;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.DataFetcher;
@@ -95,6 +96,14 @@ public abstract class GraphModule {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
+                        .scalar(
+                                ExtendedScalars.newAliasedScalar("ServiceURI")
+                                        .aliasedScalar(Scalars.GraphQLString)
+                                        .build())
+                        .scalar(
+                                ExtendedScalars.newAliasedScalar("NodeType")
+                                        .aliasedScalar(Scalars.GraphQLString)
+                                        .build())
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
                                         .dataFetcher("discovery", discoveryFetcher))
