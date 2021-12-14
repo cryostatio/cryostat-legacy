@@ -1,0 +1,9 @@
+type Query {
+    discovery: EnvironmentNode!
+    targetsDescendedFrom(nodes: [NodeSelector!]!): [TargetNode!]!
+    # TODO - can these all be done in one query? With an implied "AND" or "OR"
+    # of the various selector parameters? Or would the AND/OR be another argument?
+    # targetsWithLabel(key: String!, value: String): [TargetNode!]!
+    # targetsWithAnnotation(key: String!, value: String): [TargetNode!]!
+    # targetsWithAnnotations(annotations: [String!]!): [TargetNode!]!
+}

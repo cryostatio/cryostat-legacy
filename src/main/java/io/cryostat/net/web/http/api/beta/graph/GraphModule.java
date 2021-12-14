@@ -174,13 +174,18 @@ public abstract class GraphModule {
                                                     }
                                                 }))
                         .build();
-        try (InputStream is = GraphModule.class.getResourceAsStream("/schema.graphqls")) {
-            TypeDefinitionRegistry tdr = new SchemaParser().parse(is);
-            return GraphQL.newGraphQL(new SchemaGenerator().makeExecutableSchema(tdr, wiring))
-                    .build();
-        } catch (IOException ioe) {
-            throw new RuntimeException(ioe);
+        SchemaParser parser = new SchemaParser();
+        TypeDefinitionRegistry tdr = new TypeDefinitionRegistry();
+        List<String> schemaFilenames = List.of("types", "queries");
+        for (String schema : schemaFilenames) {
+            try (InputStream is =
+                    GraphModule.class.getResourceAsStream(String.format("/%s.graphqls", schema))) {
+                tdr.merge(parser.parse(is));
+            } catch (IOException ioe) {
+                throw new RuntimeException(ioe);
+            }
         }
+        return GraphQL.newGraphQL(new SchemaGenerator().makeExecutableSchema(tdr, wiring)).build();
     }
 
     @Provides
