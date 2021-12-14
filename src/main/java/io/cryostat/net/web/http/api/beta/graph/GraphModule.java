@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import javax.inject.Named;
@@ -52,8 +53,11 @@ import javax.inject.Provider;
 import javax.inject.Singleton;
 
 import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
@@ -64,6 +68,8 @@ import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingOptionsBuilderFactory;
+import io.cryostat.recordings.RecordingTargetHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
 
 import dagger.Binds;
@@ -105,7 +111,10 @@ public abstract class GraphModule {
             @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher,
             @Named("recordings") DataFetcher<Recordings> recordingsFetcher,
             @Named("targetsDescendedFrom")
-                    DataFetcher<List<TargetNode>> targetsDescendedFromFetcher) {
+                    DataFetcher<List<TargetNode>> targetsDescendedFromFetcher,
+            @Named("startRecording")
+                    DataFetcher<List<HyperlinkedSerializableRecordingDescriptor>>
+                            startRecordingFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -128,6 +137,9 @@ public abstract class GraphModule {
                                         .dataFetcher(
                                                 "targetsDescendedFrom",
                                                 targetsDescendedFromFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Mutation")
+                                        .dataFetcher("startRecording", startRecordingFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
@@ -176,7 +188,7 @@ public abstract class GraphModule {
                         .build();
         SchemaParser parser = new SchemaParser();
         TypeDefinitionRegistry tdr = new TypeDefinitionRegistry();
-        List<String> schemaFilenames = List.of("types", "queries");
+        List<String> schemaFilenames = List.of("types", "queries", "mutations");
         for (String schema : schemaFilenames) {
             try (InputStream is =
                     GraphModule.class.getResourceAsStream(String.format("/%s.graphqls", schema))) {
@@ -197,21 +209,81 @@ public abstract class GraphModule {
 
     @Provides
     @Singleton
-    @Named("targetsDescendedFrom")
-    static DataFetcher<List<TargetNode>> provideTargetsDescendedFromFetcher(PlatformClient client) {
+    @Named("startRecording")
+    static DataFetcher<List<HyperlinkedSerializableRecordingDescriptor>>
+            provideStartRecordingFetcher(
+                    PlatformClient client,
+                    TargetConnectionManager tcm,
+                    RecordingTargetHelper helper,
+                    RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+                    Provider<WebServer> webServer,
+                    Logger logger) {
         return env -> {
+            Map<String, Object> settings = env.getArgument("recording");
             List<Map<String, String>> selectors = env.getArgument("nodes");
-            List<TargetNode> result = new ArrayList<>();
+
+            List<HyperlinkedSerializableRecordingDescriptor> result = new ArrayList<>();
+
             for (Map<String, String> selector : selectors) {
                 String name = selector.get("name");
                 String nodeType = selector.get("nodeType");
-
                 AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
                 if (parent == null) {
                     throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
                 }
-                result.addAll(recurseChildren(parent));
+                for (TargetNode tn : recurseChildren(parent)) {
+                    String uri = tn.getTarget().getServiceUri().toString();
+                    ConnectionDescriptor cd = new ConnectionDescriptor(uri);
+                    HyperlinkedSerializableRecordingDescriptor descriptor =
+                            tcm.executeConnectedTask(
+                                    cd,
+                                    conn -> {
+                                        RecordingOptionsBuilder builder =
+                                                recordingOptionsBuilderFactory
+                                                        .create(conn.getService())
+                                                        .name((String) settings.get("name"));
+                                        if (settings.containsKey("duration")) {
+                                            builder =
+                                                    builder.duration(
+                                                            TimeUnit.SECONDS.toMillis(
+                                                                    (Long)
+                                                                            settings.get(
+                                                                                    "duration")));
+                                        }
+                                        if (settings.containsKey("toDisk")) {
+                                            builder =
+                                                    builder.toDisk(
+                                                            (Boolean) settings.get("toDisk"));
+                                        }
+                                        if (settings.containsKey("maxAge")) {
+                                            builder = builder.maxAge((Long) settings.get("maxAge"));
+                                        }
+                                        if (settings.containsKey("maxSize")) {
+                                            builder =
+                                                    builder.maxSize((Long) settings.get("maxSize"));
+                                        }
+                                        IRecordingDescriptor desc =
+                                                helper.startRecording(
+                                                        cd,
+                                                        builder.build(),
+                                                        (String) settings.get("template"),
+                                                        TemplateType.valueOf(
+                                                                ((String)
+                                                                                settings.get(
+                                                                                        "templateType"))
+                                                                        .toUpperCase()));
+                                        return new HyperlinkedSerializableRecordingDescriptor(
+                                                desc,
+                                                webServer
+                                                        .get()
+                                                        .getDownloadURL(conn, desc.getName()),
+                                                webServer.get().getReportURL(conn, desc.getName()));
+                                    },
+                                    false);
+                    result.add(descriptor);
+                }
             }
+
             return result;
         };
     }
@@ -263,6 +335,27 @@ public abstract class GraphModule {
                             false);
 
             return recordings;
+        };
+    }
+
+    @Provides
+    @Singleton
+    @Named("targetsDescendedFrom")
+    static DataFetcher<List<TargetNode>> provideTargetsDescendedFromFetcher(PlatformClient client) {
+        return env -> {
+            List<Map<String, String>> selectors = env.getArgument("nodes");
+            List<TargetNode> result = new ArrayList<>();
+            for (Map<String, String> selector : selectors) {
+                String name = selector.get("name");
+                String nodeType = selector.get("nodeType");
+
+                AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
+                if (parent == null) {
+                    throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
+                }
+                result.addAll(recurseChildren(parent));
+            }
+            return result;
         };
     }
 

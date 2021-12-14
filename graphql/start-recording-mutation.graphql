@@ -1,0 +1,18 @@
+mutation {
+    startRecording(
+        recording: {
+            name: "foo",
+            template: "Profiling",
+            templateType: "TARGET",
+            duration: 30
+        },
+        nodes: [
+            {
+                name: "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi",
+                nodeType: "JVM"
+            }
+        ]
+    ) {
+        name
+    }
+}

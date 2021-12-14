@@ -53,6 +53,7 @@ type Recordings {
 type ActiveRecording implements Recording {
     state: String!
     startTime: Long!
+
     duration: Long!
     continuous: Boolean!
     toDisk: Boolean!
@@ -74,4 +75,15 @@ interface Recording {
     name: String!
     reportUrl: Url!
     downloadUrl: Url!
+}
+
+input RecordingSettings {
+    name: String!
+    template: String!
+    templateType: String!
+    duration: Long
+    continuous: Boolean
+    toDisk: Boolean
+    maxSize: Long
+    maxAge: Long
 }
