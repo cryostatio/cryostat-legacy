@@ -250,16 +250,29 @@ public class RecordingArchiveHelper {
         Path specificRecordingsPath = archivedRecordingsPath.resolve(encodedServiceUri);
 
         try {
-            if (!fs.exists(specificRecordingsPath)) {
+            if (!fs.exists(archivedRecordingsPath)) {
                 throw new ArchivePathException(archivedRecordingsPath.toString(), "does not exist");
             }
-            if (!fs.isReadable(specificRecordingsPath)) {
+            if (!fs.isReadable(archivedRecordingsPath)) {
                 throw new ArchivePathException(
                         archivedRecordingsPath.toString(), "is not readable");
             }
-            if (!fs.isDirectory(specificRecordingsPath)) {
+            if (!fs.isDirectory(archivedRecordingsPath)) {
                 throw new ArchivePathException(
                         archivedRecordingsPath.toString(), "is not a directory");
+            }
+
+            if (!fs.exists(specificRecordingsPath)) {
+                future.complete(List.of());
+                return future;
+            }
+            if (!fs.isReadable(specificRecordingsPath)) {
+                throw new ArchivePathException(
+                        specificRecordingsPath.toString(), "is not readable");
+            }
+            if (!fs.isDirectory(specificRecordingsPath)) {
+                throw new ArchivePathException(
+                        specificRecordingsPath.toString(), "is not a directory");
             }
             WebServer webServer = webServerProvider.get();
             List<ArchivedRecordingInfo> archivedRecordings = new ArrayList<>();

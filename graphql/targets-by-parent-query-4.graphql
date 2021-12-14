@@ -1,5 +1,5 @@
 query {
-    targetsDescendedFrom(nodes: [{ name: "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi", nodeType: "JVM" }]) {
+    targetsDescendedFrom(nodes: [{ name: "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi", nodeType: "JVM" }, { name: "service:jmx:rmi:///jndi/rmi://cryostat:9096/jmxrmi", nodeType: "JVM" }]) {
         name
         nodeType
         target {
