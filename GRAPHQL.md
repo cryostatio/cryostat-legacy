@@ -328,6 +328,68 @@ content-type: application/json
 }
 ```
 
+```bash
+$ https -v https://cryostat-sample-myproject.apps-crc.testing/api/beta/graphql query=@graphql/targets-by-parent-query-5.graphql Authorization:"Bearer $(oc whoami -t | base64)"
+POST /api/beta/graphql HTTP/1.1
+Accept: application/json, */*;q=0.5
+Accept-Encoding: gzip, deflate
+Authorization: Bearer c2hhMjU2fmM3SVNwTnR2cWEwd0YwRGtwcnlSVEIzeW9ZVHBIc05KMWZCdU1fZWUzR1kK
+Connection: keep-alive
+Content-Length: 712
+Content-Type: application/json
+Host: cryostat-sample-myproject.apps-crc.testing
+User-Agent: HTTPie/2.6.0
+
+{
+    "query": "query {\n    targetsDescendedFrom(nodes: [{ name: \"vertx-fib-demo\", nodeType: \"deployment\" }]) {\n        name\n        nodeType\n        target {\n            alias\n            serviceUri\n            labels\n            annotations {\n                platform\n                cryostat\n            }\n        }\n        recordings {\n            active {\n                name\n                downloadUrl\n                reportUrl\n                state\n                startTime\n                duration\n                continuous\n            }\n            archived {\n                name\n                downloadUrl\n                reportUrl\n            }\n        }\n    }\n}\n"
+}
+
+
+HTTP/1.1 200 OK
+Set-Cookie: ac6fe4a79b8104f3ee178c2547bbced6=2a63f1baf376857abb4108fb8fd76d19; path=/; HttpOnly; Secure; SameSite=None
+content-encoding: gzip
+content-length: 464
+content-type: application/json
+set-cookie: ac6fe4a79b8104f3ee178c2547bbced6=2a63f1baf376857abb4108fb8fd76d19; path=/; HttpOnly; Secure; SameSite=None
+
+{
+    "data": {
+        "targetsDescendedFrom": [
+            {
+                "name": "service:jmx:rmi:///jndi/rmi://10.217.0.42:9091/jmxrmi",
+                "nodeType": "ENDPOINT",
+                "recordings": {
+                    "active": [],
+                    "archived": []
+                },
+                "target": {
+                    "alias": "vertx-fib-demo-6f4775cdbf-hlqrq",
+                    "annotations": {
+                        "cryostat": {
+                            "HOST": "10.217.0.42",
+                            "NAMESPACE": "myproject",
+                            "POD_NAME": "vertx-fib-demo-6f4775cdbf-hlqrq",
+                            "PORT": "9091"
+                        },
+                        "platform": {
+                            "k8s.v1.cni.cncf.io/network-status": "[{\n    \"name\": \"openshift-sdn\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.217.0.42\"\n    ],\n    \"default\": true,\n    \"dns\": {}\n}]",
+                            "k8s.v1.cni.cncf.io/networks-status": "[{\n    \"name\": \"openshift-sdn\",\n    \"interface\": \"eth0\",\n    \"ips\": [\n        \"10.217.0.42\"\n    ],\n    \"default\": true,\n    \"dns\": {}\n}]",
+                            "openshift.io/generated-by": "OpenShiftNewApp",
+                            "openshift.io/scc": "restricted"
+                        }
+                    },
+                    "labels": {
+                        "deployment": "vertx-fib-demo",
+                        "pod-template-hash": "6f4775cdbf"
+                    },
+                    "serviceUri": "service:jmx:rmi:///jndi/rmi://10.217.0.42:9091/jmxrmi"
+                }
+            }
+        ]
+    }
+}
+```
+
 ### `GET /api/beta/graphiql/*`
 
 Serves a GraphQL "query IDE" that can be used for testing out writing queries

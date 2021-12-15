@@ -1,0 +1,31 @@
+query {
+    targetsDescendedFrom(nodes: [{ name: "vertx-fib-demo", nodeType: "deployment" }]) {
+        name
+        nodeType
+        target {
+            alias
+            serviceUri
+            labels
+            annotations {
+                platform
+                cryostat
+            }
+        }
+        recordings {
+            active {
+                name
+                downloadUrl
+                reportUrl
+                state
+                startTime
+                duration
+                continuous
+            }
+            archived {
+                name
+                downloadUrl
+                reportUrl
+            }
+        }
+    }
+}
