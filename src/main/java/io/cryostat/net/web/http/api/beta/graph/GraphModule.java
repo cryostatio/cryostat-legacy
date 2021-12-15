@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -224,6 +225,7 @@ public abstract class GraphModule {
 
             List<HyperlinkedSerializableRecordingDescriptor> result = new ArrayList<>();
 
+            List<AbstractNode> parents = new ArrayList<>();
             for (Map<String, String> selector : selectors) {
                 String name = selector.get("name");
                 String nodeType = selector.get("nodeType");
@@ -231,57 +233,54 @@ public abstract class GraphModule {
                 if (parent == null) {
                     throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
                 }
-                for (TargetNode tn : recurseChildren(parent)) {
-                    String uri = tn.getTarget().getServiceUri().toString();
-                    ConnectionDescriptor cd = new ConnectionDescriptor(uri);
-                    HyperlinkedSerializableRecordingDescriptor descriptor =
-                            tcm.executeConnectedTask(
-                                    cd,
-                                    conn -> {
-                                        RecordingOptionsBuilder builder =
-                                                recordingOptionsBuilderFactory
-                                                        .create(conn.getService())
-                                                        .name((String) settings.get("name"));
-                                        if (settings.containsKey("duration")) {
-                                            builder =
-                                                    builder.duration(
-                                                            TimeUnit.SECONDS.toMillis(
-                                                                    (Long)
-                                                                            settings.get(
-                                                                                    "duration")));
-                                        }
-                                        if (settings.containsKey("toDisk")) {
-                                            builder =
-                                                    builder.toDisk(
-                                                            (Boolean) settings.get("toDisk"));
-                                        }
-                                        if (settings.containsKey("maxAge")) {
-                                            builder = builder.maxAge((Long) settings.get("maxAge"));
-                                        }
-                                        if (settings.containsKey("maxSize")) {
-                                            builder =
-                                                    builder.maxSize((Long) settings.get("maxSize"));
-                                        }
-                                        IRecordingDescriptor desc =
-                                                helper.startRecording(
-                                                        cd,
-                                                        builder.build(),
-                                                        (String) settings.get("template"),
-                                                        TemplateType.valueOf(
-                                                                ((String)
-                                                                                settings.get(
-                                                                                        "templateType"))
-                                                                        .toUpperCase()));
-                                        return new HyperlinkedSerializableRecordingDescriptor(
-                                                desc,
-                                                webServer
-                                                        .get()
-                                                        .getDownloadURL(conn, desc.getName()),
-                                                webServer.get().getReportURL(conn, desc.getName()));
-                                    },
-                                    false);
-                    result.add(descriptor);
-                }
+                parents.add(parent);
+            }
+            Set<TargetNode> children =
+                    parents.stream()
+                            .map(GraphModule::recurseChildren)
+                            .flatMap(List::stream)
+                            .collect(Collectors.toSet());
+            for (TargetNode tn : children) {
+                String uri = tn.getTarget().getServiceUri().toString();
+                ConnectionDescriptor cd = new ConnectionDescriptor(uri);
+                HyperlinkedSerializableRecordingDescriptor descriptor =
+                        tcm.executeConnectedTask(
+                                cd,
+                                conn -> {
+                                    RecordingOptionsBuilder builder =
+                                            recordingOptionsBuilderFactory
+                                                    .create(conn.getService())
+                                                    .name((String) settings.get("name"));
+                                    if (settings.containsKey("duration")) {
+                                        builder =
+                                                builder.duration(
+                                                        TimeUnit.SECONDS.toMillis(
+                                                                (Long) settings.get("duration")));
+                                    }
+                                    if (settings.containsKey("toDisk")) {
+                                        builder = builder.toDisk((Boolean) settings.get("toDisk"));
+                                    }
+                                    if (settings.containsKey("maxAge")) {
+                                        builder = builder.maxAge((Long) settings.get("maxAge"));
+                                    }
+                                    if (settings.containsKey("maxSize")) {
+                                        builder = builder.maxSize((Long) settings.get("maxSize"));
+                                    }
+                                    IRecordingDescriptor desc =
+                                            helper.startRecording(
+                                                    cd,
+                                                    builder.build(),
+                                                    (String) settings.get("template"),
+                                                    TemplateType.valueOf(
+                                                            ((String) settings.get("templateType"))
+                                                                    .toUpperCase()));
+                                    return new HyperlinkedSerializableRecordingDescriptor(
+                                            desc,
+                                            webServer.get().getDownloadURL(conn, desc.getName()),
+                                            webServer.get().getReportURL(conn, desc.getName()));
+                                },
+                                false);
+                result.add(descriptor);
             }
 
             return result;
