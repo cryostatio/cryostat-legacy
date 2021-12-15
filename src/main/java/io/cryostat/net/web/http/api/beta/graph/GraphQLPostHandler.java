@@ -38,14 +38,18 @@
 package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
+import graphql.GraphQL;
+import io.cryostat.core.log.Logger;
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
-
-import graphql.GraphQL;
+import io.cryostat.net.web.http.api.v2.ApiException;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.graphql.GraphQLHandler;
@@ -53,10 +57,14 @@ import io.vertx.ext.web.handler.graphql.GraphQLHandler;
 class GraphQLPostHandler implements RequestHandler {
 
     private final GraphQLHandler handler;
+    private final AuthManager auth;
+    private final Logger logger;
 
     @Inject
-    GraphQLPostHandler(GraphQL graph) {
+    GraphQLPostHandler(GraphQL graph, AuthManager auth, Logger logger) {
         this.handler = GraphQLHandler.create(graph);
+        this.auth = auth;
+        this.logger = logger;
     }
 
     @Override
@@ -81,6 +89,16 @@ class GraphQLPostHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
+        try {
+            if (!auth.validateHttpHeader(
+                            () -> ctx.request().getHeader(HttpHeaders.AUTHORIZATION),
+                            ResourceAction.ALL)
+                    .get()) {
+                throw new ApiException(401);
+            }
+        } catch (InterruptedException | ExecutionException e) {
+            throw new ApiException(500, e);
+        }
         this.handler.handle(ctx);
     }
 }
