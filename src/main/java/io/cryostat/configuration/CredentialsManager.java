@@ -38,6 +38,7 @@
 package io.cryostat.configuration;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.HashMap;
@@ -50,20 +51,24 @@ import io.cryostat.core.sys.FileSystem;
 import io.cryostat.platform.ServiceRef;
 
 import com.google.gson.Gson;
+import org.apache.commons.codec.binary.Base32;
 
 public class CredentialsManager {
 
     private final Path credentialsDir;
     private final FileSystem fs;
     private final Gson gson;
+    private final Base32 base32;
     private final Logger logger;
 
     private final Map<String, Credentials> credentialsMap;
 
-    CredentialsManager(Path credentialsDir, FileSystem fs, Gson gson, Logger logger) {
+    CredentialsManager(
+            Path credentialsDir, FileSystem fs, Gson gson, Base32 base32, Logger logger) {
         this.credentialsDir = credentialsDir;
         this.fs = fs;
         this.gson = gson;
+        this.base32 = base32;
         this.logger = logger;
         this.credentialsMap = new HashMap<>();
     }
@@ -92,7 +97,7 @@ public class CredentialsManager {
 
     // FIXME `persist` should not be a parameter here but rather a Strategy selected by ex. env var,
     // with corresponding backing storage either in-memory or on-disk (with in-memory cache?)
-    boolean addCredentials(String targetId, Credentials credentials, boolean persist)
+    public boolean addCredentials(String targetId, Credentials credentials, boolean persist)
             throws IOException {
         boolean replaced = credentialsMap.containsKey(targetId);
         credentialsMap.put(targetId, credentials);
@@ -130,7 +135,10 @@ public class CredentialsManager {
     }
 
     private Path getPersistedPath(String targetId) {
-        return credentialsDir.resolve(String.format("%d.json", targetId.hashCode()));
+        return credentialsDir.resolve(
+                String.format(
+                        "%s.json",
+                        base32.encodeAsString(targetId.getBytes(StandardCharsets.UTF_8))));
     }
 
     public static class StoredCredentials {

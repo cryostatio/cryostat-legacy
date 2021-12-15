@@ -56,6 +56,7 @@ import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.codec.binary.Base32;
 
 @Module
 public abstract class ConfigurationModule {
@@ -75,7 +76,11 @@ public abstract class ConfigurationModule {
     @Provides
     @Singleton
     static CredentialsManager provideCredentialsManager(
-            @Named(CONFIGURATION_PATH) Path confDir, FileSystem fs, Gson gson, Logger logger) {
+            @Named(CONFIGURATION_PATH) Path confDir,
+            FileSystem fs,
+            Gson gson,
+            Base32 base32,
+            Logger logger) {
         try {
             Path credentialsDir = confDir.resolve(CREDENTIALS_SUBDIRECTORY);
             if (!fs.isDirectory(credentialsDir)) {
@@ -87,7 +92,7 @@ public abstract class ConfigurationModule {
                                         PosixFilePermission.OWNER_WRITE,
                                         PosixFilePermission.OWNER_EXECUTE)));
             }
-            return new CredentialsManager(credentialsDir, fs, gson, logger);
+            return new CredentialsManager(credentialsDir, fs, gson, base32, logger);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }

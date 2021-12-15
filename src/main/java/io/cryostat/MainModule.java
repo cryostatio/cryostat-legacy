@@ -70,6 +70,7 @@ import com.google.gson.GsonBuilder;
 import dagger.Module;
 import dagger.Provides;
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import org.apache.commons.codec.binary.Base32;
 
 @Module(
         includes = {
@@ -96,6 +97,11 @@ public abstract class MainModule {
     @Singleton
     static Logger provideLogger() {
         return Logger.INSTANCE;
+    }
+
+    @Provides
+    static Base32 provideBase32() {
+        return new Base32();
     }
 
     @Provides
