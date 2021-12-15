@@ -215,7 +215,6 @@ public abstract class GraphModule {
             RecordingTargetHelper helper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
-            Provider<WebServer> webServer,
             Logger logger) {
         return env -> {
             Map<String, Object> settings = env.getArgument("recording");
@@ -291,16 +290,7 @@ public abstract class GraphModule {
                                                                                                 .get(
                                                                                                         "templateType"))
                                                                                 .toUpperCase()));
-                                                return new HyperlinkedSerializableRecordingDescriptor(
-                                                        desc,
-                                                        webServer
-                                                                .get()
-                                                                .getDownloadURL(
-                                                                        conn, desc.getName()),
-                                                        webServer
-                                                                .get()
-                                                                .getReportURL(
-                                                                        conn, desc.getName()));
+                                                return null;
                                             },
                                             true);
                                 } catch (Exception e) {
