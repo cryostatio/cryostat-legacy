@@ -11,5 +11,21 @@ query {
                 cryostat
             }
         }
+        recordings {
+            active {
+                name
+                downloadUrl
+                reportUrl
+                state
+                startTime
+                duration
+                continuous
+            }
+            archived {
+                name
+                downloadUrl
+                reportUrl
+            }
+        }
     }
 }

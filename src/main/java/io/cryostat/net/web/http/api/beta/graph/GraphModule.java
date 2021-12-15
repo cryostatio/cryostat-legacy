@@ -45,7 +45,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -114,9 +113,7 @@ public abstract class GraphModule {
             @Named("recordings") DataFetcher<Recordings> recordingsFetcher,
             @Named("targetsDescendedFrom")
                     DataFetcher<List<TargetNode>> targetsDescendedFromFetcher,
-            @Named("startRecording")
-                    DataFetcher<List<HyperlinkedSerializableRecordingDescriptor>>
-                            startRecordingFetcher) {
+            @Named("startRecording") DataFetcher<List<TargetNode>> startRecordingFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -212,20 +209,17 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     @Named("startRecording")
-    static DataFetcher<List<HyperlinkedSerializableRecordingDescriptor>>
-            provideStartRecordingFetcher(
-                    PlatformClient client,
-                    TargetConnectionManager tcm,
-                    RecordingTargetHelper helper,
-                    RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-                    CredentialsManager credentialsManager,
-                    Provider<WebServer> webServer,
-                    Logger logger) {
+    static DataFetcher<List<TargetNode>> provideStartRecordingFetcher(
+            PlatformClient client,
+            TargetConnectionManager tcm,
+            RecordingTargetHelper helper,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            CredentialsManager credentialsManager,
+            Provider<WebServer> webServer,
+            Logger logger) {
         return env -> {
             Map<String, Object> settings = env.getArgument("recording");
             List<Map<String, String>> selectors = env.getArgument("nodes");
-
-            List<HyperlinkedSerializableRecordingDescriptor> result = new ArrayList<>();
 
             List<AbstractNode> parents = new ArrayList<>();
             for (Map<String, String> selector : selectors) {
@@ -237,57 +231,88 @@ public abstract class GraphModule {
                 }
                 parents.add(parent);
             }
-            Set<TargetNode> children =
-                    parents.stream()
+            List<Exception> exceptions = new ArrayList<>();
+            List<TargetNode> children =
+                    parents.parallelStream()
                             .map(GraphModule::recurseChildren)
                             .flatMap(List::stream)
-                            .collect(Collectors.toSet());
-            for (TargetNode tn : children) {
-                String uri = tn.getTarget().getServiceUri().toString();
-                ConnectionDescriptor cd =
-                        new ConnectionDescriptor(
-                                uri, credentialsManager.getCredentials(tn.getTarget()));
-                HyperlinkedSerializableRecordingDescriptor descriptor =
-                        tcm.executeConnectedTask(
-                                cd,
-                                conn -> {
-                                    RecordingOptionsBuilder builder =
-                                            recordingOptionsBuilderFactory
-                                                    .create(conn.getService())
-                                                    .name((String) settings.get("name"));
-                                    if (settings.containsKey("duration")) {
-                                        builder =
-                                                builder.duration(
-                                                        TimeUnit.SECONDS.toMillis(
-                                                                (Long) settings.get("duration")));
-                                    }
-                                    if (settings.containsKey("toDisk")) {
-                                        builder = builder.toDisk((Boolean) settings.get("toDisk"));
-                                    }
-                                    if (settings.containsKey("maxAge")) {
-                                        builder = builder.maxAge((Long) settings.get("maxAge"));
-                                    }
-                                    if (settings.containsKey("maxSize")) {
-                                        builder = builder.maxSize((Long) settings.get("maxSize"));
-                                    }
-                                    IRecordingDescriptor desc =
-                                            helper.startRecording(
-                                                    cd,
-                                                    builder.build(),
-                                                    (String) settings.get("template"),
-                                                    TemplateType.valueOf(
-                                                            ((String) settings.get("templateType"))
-                                                                    .toUpperCase()));
-                                    return new HyperlinkedSerializableRecordingDescriptor(
-                                            desc,
-                                            webServer.get().getDownloadURL(conn, desc.getName()),
-                                            webServer.get().getReportURL(conn, desc.getName()));
-                                },
-                                false);
-                result.add(descriptor);
+                            .collect(Collectors.toList());
+            children.parallelStream()
+                    .forEach(
+                            tn -> {
+                                String uri = tn.getTarget().getServiceUri().toString();
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(
+                                                uri,
+                                                credentialsManager.getCredentials(tn.getTarget()));
+                                try {
+                                    tcm.executeConnectedTask(
+                                            cd,
+                                            conn -> {
+                                                RecordingOptionsBuilder builder =
+                                                        recordingOptionsBuilderFactory
+                                                                .create(conn.getService())
+                                                                .name(
+                                                                        (String)
+                                                                                settings.get(
+                                                                                        "name"));
+                                                if (settings.containsKey("duration")) {
+                                                    builder =
+                                                            builder.duration(
+                                                                    TimeUnit.SECONDS.toMillis(
+                                                                            (Long)
+                                                                                    settings.get(
+                                                                                            "duration")));
+                                                }
+                                                if (settings.containsKey("toDisk")) {
+                                                    builder =
+                                                            builder.toDisk(
+                                                                    (Boolean)
+                                                                            settings.get("toDisk"));
+                                                }
+                                                if (settings.containsKey("maxAge")) {
+                                                    builder =
+                                                            builder.maxAge(
+                                                                    (Long) settings.get("maxAge"));
+                                                }
+                                                if (settings.containsKey("maxSize")) {
+                                                    builder =
+                                                            builder.maxSize(
+                                                                    (Long) settings.get("maxSize"));
+                                                }
+                                                IRecordingDescriptor desc =
+                                                        helper.startRecording(
+                                                                cd,
+                                                                builder.build(),
+                                                                (String) settings.get("template"),
+                                                                TemplateType.valueOf(
+                                                                        ((String)
+                                                                                        settings
+                                                                                                .get(
+                                                                                                        "templateType"))
+                                                                                .toUpperCase()));
+                                                return new HyperlinkedSerializableRecordingDescriptor(
+                                                        desc,
+                                                        webServer
+                                                                .get()
+                                                                .getDownloadURL(
+                                                                        conn, desc.getName()),
+                                                        webServer
+                                                                .get()
+                                                                .getReportURL(
+                                                                        conn, desc.getName()));
+                                            },
+                                            true);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    exceptions.add(e);
+                                }
+                            });
+            if (!exceptions.isEmpty()) {
+                throw new BatchedExceptions(exceptions);
             }
 
-            return result;
+            return children;
         };
     }
 
@@ -411,5 +436,19 @@ public abstract class GraphModule {
     static class Recordings {
         List<HyperlinkedSerializableRecordingDescriptor> active;
         List<ArchivedRecordingInfo> archived;
+    }
+
+    static class BatchedExceptions extends RuntimeException {
+        final List<Exception> causes;
+
+        BatchedExceptions(List<Exception> causes) {
+            super(
+                    String.format(
+                            "Causes: %s",
+                            causes.stream()
+                                    .map(Exception::getMessage)
+                                    .collect(Collectors.toList())));
+            this.causes = causes;
+        }
     }
 }

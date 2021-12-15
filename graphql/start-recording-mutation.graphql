@@ -8,11 +8,25 @@ mutation {
         },
         nodes: [
             {
-                name: "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi",
-                nodeType: "JVM"
+                name: "JDP",
+                nodeType: "Realm"
             }
         ]
     ) {
         name
+        nodeType
+        target {
+            alias
+            serviceUri
+        }
+        recordings {
+            active {
+                name
+                downloadUrl
+                reportUrl
+                state
+                startTime
+            }
+        }
     }
 }
