@@ -87,7 +87,7 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Future<Boolean> logout() {
-        return CompletableFuture.completedFuture(true);
+    public Optional<String> logout() {
+        return Optional.empty();
     }
 }

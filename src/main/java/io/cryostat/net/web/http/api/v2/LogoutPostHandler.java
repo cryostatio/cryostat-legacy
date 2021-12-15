@@ -37,8 +37,8 @@
  */
 package io.cryostat.net.web.http.api.v2;
 
+import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
@@ -59,7 +59,7 @@ class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public boolean requiresAuthentication() {
-        return false;
+        return true;
     }
 
     @Override
@@ -94,16 +94,16 @@ class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
+        Optional<String> logoutRedirectUrl = auth.logout();
 
-        try {
-            Boolean loggedOut = auth.logout().get();
-            if (loggedOut) {
-                return new IntermediateResponse<Void>().body(null);
-            } else {
-                throw new ApiException(400, "Logout failed");
-            }
-        } catch (ExecutionException | InterruptedException e) {
-            throw new ApiException(500, e);
-        }
+        return logoutRedirectUrl
+                .map(
+                        location -> {
+                            return new IntermediateResponse<Void>()
+                                    .addHeader("X-Location", location)
+                                    .addHeader("access-control-expose-headers", "Location")
+                                    .statusCode(302);
+                        })
+                .orElse(new IntermediateResponse<Void>().body(null));
     }
 }
