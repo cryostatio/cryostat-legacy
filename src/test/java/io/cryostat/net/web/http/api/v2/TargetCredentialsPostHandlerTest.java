@@ -233,8 +233,9 @@ class TargetCredentialsPostHandlerTest {
             form.set("password", "abc123");
             Mockito.when(requestParams.getFormAttributes()).thenReturn(form);
 
-            Mockito.when(credentialsManager.addCredentials(Mockito.anyString(), Mockito.any(),
-                        Mockito.anyBoolean()))
+            Mockito.when(
+                            credentialsManager.addCredentials(
+                                    Mockito.anyString(), Mockito.any(), Mockito.anyBoolean()))
                     .thenThrow(IOException.class);
 
             ApiException ex =

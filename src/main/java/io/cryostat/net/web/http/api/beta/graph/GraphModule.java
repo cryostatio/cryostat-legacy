@@ -77,6 +77,7 @@ import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.GraphQL;
 import graphql.Scalars;
 import graphql.TypeResolutionEnvironment;
@@ -309,6 +310,10 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     @Named("recordings")
+    @SuppressFBWarnings(
+            value = "URF_UNREAD_FIELD",
+            justification =
+                    "The Recordings fields are serialized and returned to the client by the GraphQL engine")
     static DataFetcher<Recordings> provideRecordingsFetcher(
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
