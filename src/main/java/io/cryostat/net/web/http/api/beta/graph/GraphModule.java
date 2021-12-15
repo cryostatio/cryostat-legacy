@@ -57,6 +57,7 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -217,6 +218,7 @@ public abstract class GraphModule {
                     TargetConnectionManager tcm,
                     RecordingTargetHelper helper,
                     RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+                    CredentialsManager credentialsManager,
                     Provider<WebServer> webServer,
                     Logger logger) {
         return env -> {
@@ -242,7 +244,9 @@ public abstract class GraphModule {
                             .collect(Collectors.toSet());
             for (TargetNode tn : children) {
                 String uri = tn.getTarget().getServiceUri().toString();
-                ConnectionDescriptor cd = new ConnectionDescriptor(uri);
+                ConnectionDescriptor cd =
+                        new ConnectionDescriptor(
+                                uri, credentialsManager.getCredentials(tn.getTarget()));
                 HyperlinkedSerializableRecordingDescriptor descriptor =
                         tcm.executeConnectedTask(
                                 cd,
@@ -293,13 +297,18 @@ public abstract class GraphModule {
     static DataFetcher<Recordings> provideRecordingsFetcher(
             TargetConnectionManager tcm,
             RecordingArchiveHelper archiveHelper,
+            CredentialsManager credentialsManager,
             Provider<WebServer> webServer,
             Logger logger) {
         return env -> {
             String targetId = ((TargetNode) env.getSource()).getTarget().getServiceUri().toString();
             Recordings recordings = new Recordings();
 
-            ConnectionDescriptor cd = new ConnectionDescriptor(targetId);
+            ConnectionDescriptor cd =
+                    new ConnectionDescriptor(
+                            targetId,
+                            credentialsManager.getCredentials(
+                                    ((TargetNode) env.getSource()).getTarget()));
             recordings.archived = archiveHelper.getRecordings(targetId).get();
             recordings.active =
                     tcm.executeConnectedTask(
