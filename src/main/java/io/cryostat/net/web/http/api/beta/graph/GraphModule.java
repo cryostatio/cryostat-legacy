@@ -602,9 +602,8 @@ public abstract class GraphModule {
     }
 
     static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
-        if (Objects.equals(name.toLowerCase(), root.getName().toLowerCase())
-                && Objects.equals(
-                        nodeType.toLowerCase(), root.getNodeType().getKind().toLowerCase())) {
+        if (Objects.equals(name, root.getName())
+                && Objects.equals(nodeType, root.getNodeType().getKind())) {
             return root;
         }
         if (root instanceof EnvironmentNode) {
