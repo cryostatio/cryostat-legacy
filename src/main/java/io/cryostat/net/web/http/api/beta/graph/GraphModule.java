@@ -41,10 +41,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -65,6 +67,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.platform.PlatformClient;
+import io.cryostat.platform.ServiceRef.AnnotationKey;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
@@ -114,7 +117,12 @@ public abstract class GraphModule {
             @Named("recordings") DataFetcher<Recordings> recordingsFetcher,
             @Named("targetsDescendedFrom")
                     DataFetcher<List<TargetNode>> targetsDescendedFromFetcher,
-            @Named("startRecording") DataFetcher<List<TargetNode>> startRecordingFetcher) {
+            @Named("startRecordingByNodes")
+                    DataFetcher<List<TargetNode>> startRecordingByNodesFetcher,
+            @Named("startRecordingByAnnotations")
+                    DataFetcher<List<TargetNode>> startRecordingByAnnotationsFetcher,
+            @Named("startRecordingByLabels")
+                    DataFetcher<List<TargetNode>> startRecordingByLabelsFetcher) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -139,7 +147,19 @@ public abstract class GraphModule {
                                                 targetsDescendedFromFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Mutation")
-                                        .dataFetcher("startRecording", startRecordingFetcher))
+                                        .dataFetcher(
+                                                "startRecordingByNodes",
+                                                startRecordingByNodesFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Mutation")
+                                        .dataFetcher(
+                                                "startRecordingByAnnotations",
+                                                startRecordingByAnnotationsFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Mutation")
+                                        .dataFetcher(
+                                                "startRecordingByLabels",
+                                                startRecordingByLabelsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
@@ -209,8 +229,8 @@ public abstract class GraphModule {
 
     @Provides
     @Singleton
-    @Named("startRecording")
-    static DataFetcher<List<TargetNode>> provideStartRecordingFetcher(
+    @Named("startRecordingByNodes")
+    static DataFetcher<List<TargetNode>> providestartRecordingByNodesFetcher(
             PlatformClient client,
             TargetConnectionManager tcm,
             RecordingTargetHelper helper,
@@ -309,6 +329,200 @@ public abstract class GraphModule {
 
     @Provides
     @Singleton
+    @Named("startRecordingByAnnotations")
+    static DataFetcher<List<TargetNode>> provideStartRecordingByAnnotationsFetcher(
+            PlatformClient client,
+            TargetConnectionManager tcm,
+            RecordingTargetHelper helper,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            CredentialsManager credentialsManager,
+            Logger logger) {
+        return env -> {
+            Map<String, Object> settings = env.getArgument("recording");
+            List<Map<String, String>> annotationSelectors = env.getArgument("annotations");
+
+            EnvironmentNode root = client.getDiscoveryTree();
+            List<TargetNode> matches = new ArrayList<>();
+            for (Map<String, String> selector : annotationSelectors) {
+                String selectorKey = selector.get("key");
+                String selectorValue = selector.get("value");
+                Set<TargetNode> labeled =
+                        findNodesWithAnnotation(selectorKey, selectorValue, root).stream()
+                                .map(GraphModule::recurseChildren)
+                                .flatMap(List::stream)
+                                .collect(Collectors.toSet());
+                matches.addAll(labeled);
+            }
+            List<Exception> exceptions = new ArrayList<>();
+            matches.parallelStream()
+                    .forEach(
+                            tn -> {
+                                String uri = tn.getTarget().getServiceUri().toString();
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(
+                                                uri,
+                                                credentialsManager.getCredentials(tn.getTarget()));
+                                try {
+                                    tcm.executeConnectedTask(
+                                            cd,
+                                            conn -> {
+                                                RecordingOptionsBuilder builder =
+                                                        recordingOptionsBuilderFactory
+                                                                .create(conn.getService())
+                                                                .name(
+                                                                        (String)
+                                                                                settings.get(
+                                                                                        "name"));
+                                                if (settings.containsKey("duration")) {
+                                                    builder =
+                                                            builder.duration(
+                                                                    TimeUnit.SECONDS.toMillis(
+                                                                            (Long)
+                                                                                    settings.get(
+                                                                                            "duration")));
+                                                }
+                                                if (settings.containsKey("toDisk")) {
+                                                    builder =
+                                                            builder.toDisk(
+                                                                    (Boolean)
+                                                                            settings.get("toDisk"));
+                                                }
+                                                if (settings.containsKey("maxAge")) {
+                                                    builder =
+                                                            builder.maxAge(
+                                                                    (Long) settings.get("maxAge"));
+                                                }
+                                                if (settings.containsKey("maxSize")) {
+                                                    builder =
+                                                            builder.maxSize(
+                                                                    (Long) settings.get("maxSize"));
+                                                }
+                                                IRecordingDescriptor desc =
+                                                        helper.startRecording(
+                                                                cd,
+                                                                builder.build(),
+                                                                (String) settings.get("template"),
+                                                                TemplateType.valueOf(
+                                                                        ((String)
+                                                                                        settings
+                                                                                                .get(
+                                                                                                        "templateType"))
+                                                                                .toUpperCase()));
+                                                return null;
+                                            },
+                                            true);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    exceptions.add(e);
+                                }
+                            });
+            if (!exceptions.isEmpty()) {
+                throw new BatchedExceptions(exceptions);
+            }
+
+            return matches;
+        };
+    }
+
+    @Provides
+    @Singleton
+    @Named("startRecordingByLabels")
+    static DataFetcher<List<TargetNode>> provideStartRecordingByLabelsFetcher(
+            PlatformClient client,
+            TargetConnectionManager tcm,
+            RecordingTargetHelper helper,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            CredentialsManager credentialsManager,
+            Logger logger) {
+        return env -> {
+            Map<String, Object> settings = env.getArgument("recording");
+            List<Map<String, String>> labelSelectors = env.getArgument("labels");
+
+            EnvironmentNode root = client.getDiscoveryTree();
+            List<TargetNode> matches = new ArrayList<>();
+            for (Map<String, String> selector : labelSelectors) {
+                String selectorKey = selector.get("key");
+                String selectorValue = selector.get("value");
+                Set<TargetNode> labeled =
+                        findNodesWithLabel(selectorKey, selectorValue, root).stream()
+                                .map(GraphModule::recurseChildren)
+                                .flatMap(List::stream)
+                                .collect(Collectors.toSet());
+                matches.addAll(labeled);
+            }
+            List<Exception> exceptions = new ArrayList<>();
+            matches.parallelStream()
+                    .forEach(
+                            tn -> {
+                                String uri = tn.getTarget().getServiceUri().toString();
+                                ConnectionDescriptor cd =
+                                        new ConnectionDescriptor(
+                                                uri,
+                                                credentialsManager.getCredentials(tn.getTarget()));
+                                try {
+                                    tcm.executeConnectedTask(
+                                            cd,
+                                            conn -> {
+                                                RecordingOptionsBuilder builder =
+                                                        recordingOptionsBuilderFactory
+                                                                .create(conn.getService())
+                                                                .name(
+                                                                        (String)
+                                                                                settings.get(
+                                                                                        "name"));
+                                                if (settings.containsKey("duration")) {
+                                                    builder =
+                                                            builder.duration(
+                                                                    TimeUnit.SECONDS.toMillis(
+                                                                            (Long)
+                                                                                    settings.get(
+                                                                                            "duration")));
+                                                }
+                                                if (settings.containsKey("toDisk")) {
+                                                    builder =
+                                                            builder.toDisk(
+                                                                    (Boolean)
+                                                                            settings.get("toDisk"));
+                                                }
+                                                if (settings.containsKey("maxAge")) {
+                                                    builder =
+                                                            builder.maxAge(
+                                                                    (Long) settings.get("maxAge"));
+                                                }
+                                                if (settings.containsKey("maxSize")) {
+                                                    builder =
+                                                            builder.maxSize(
+                                                                    (Long) settings.get("maxSize"));
+                                                }
+                                                IRecordingDescriptor desc =
+                                                        helper.startRecording(
+                                                                cd,
+                                                                builder.build(),
+                                                                (String) settings.get("template"),
+                                                                TemplateType.valueOf(
+                                                                        ((String)
+                                                                                        settings
+                                                                                                .get(
+                                                                                                        "templateType"))
+                                                                                .toUpperCase()));
+                                                return null;
+                                            },
+                                            true);
+                                } catch (Exception e) {
+                                    logger.error(e);
+                                    exceptions.add(e);
+                                }
+                            });
+            if (!exceptions.isEmpty()) {
+                throw new BatchedExceptions(exceptions);
+            }
+
+            return matches;
+        };
+    }
+
+    @Provides
+    @Singleton
     @Named("recordings")
     @SuppressFBWarnings(
             value = "URF_UNREAD_FIELD",
@@ -402,6 +616,65 @@ public abstract class GraphModule {
             }
         }
         return null;
+    }
+
+    static List<AbstractNode> findNodesWithAnnotation(String key, String value, AbstractNode root) {
+        List<AbstractNode> nodes = new ArrayList<>();
+        if (root instanceof TargetNode) {
+            Map<String, String> annotations = new HashMap<>();
+            TargetNode targetNode = (TargetNode) root;
+            annotations.putAll(targetNode.getTarget().getPlatformAnnotations());
+            for (Map.Entry<AnnotationKey, String> annotation :
+                    targetNode.getTarget().getCryostatAnnotations().entrySet()) {
+                annotations.put(annotation.getKey().name(), annotation.getValue());
+            }
+            if (annotations.containsKey(key)) {
+                if (value == null) {
+                    nodes.add(root);
+                } else if (value.equals(annotations.get(key))) {
+                    nodes.add(root);
+                }
+            }
+        } else if (root instanceof EnvironmentNode) {
+            EnvironmentNode envNode = (EnvironmentNode) root;
+            envNode.getChildren()
+                    .forEach(
+                            child -> {
+                                nodes.addAll(findNodesWithAnnotation(key, value, child));
+                            });
+        }
+
+        return nodes;
+    }
+
+    static List<AbstractNode> findNodesWithLabel(String key, String value, AbstractNode root) {
+        List<AbstractNode> nodes = new ArrayList<>();
+        if (root instanceof TargetNode) {
+            TargetNode targetNode = (TargetNode) root;
+            if (targetNode.getTarget().getLabels().containsKey(key)) {
+                if (value == null) {
+                    nodes.add(root);
+                } else if (value.equals(targetNode.getTarget().getLabels().get(key))) {
+                    nodes.add(root);
+                }
+            }
+        } else if (root instanceof EnvironmentNode) {
+            EnvironmentNode envNode = (EnvironmentNode) root;
+            if (envNode.getLabels().containsKey(key)) {
+                if (value == null) {
+                    nodes.add(root);
+                } else if (value.equals(envNode.getLabels().get(key))) {
+                    nodes.add(root);
+                }
+            }
+            envNode.getChildren()
+                    .forEach(
+                            child -> {
+                                nodes.addAll(findNodesWithAnnotation(key, value, child));
+                            });
+        }
+
+        return nodes;
     }
 
     static List<TargetNode> recurseChildren(AbstractNode node) {

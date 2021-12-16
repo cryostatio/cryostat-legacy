@@ -1,0 +1,32 @@
+mutation {
+    startRecordingByNodes(
+        recording: {
+            name: "foo",
+            template: "Profiling",
+            templateType: "TARGET",
+            duration: 30
+        },
+        nodes: [
+            {
+                name: "JDP",
+                nodeType: "Realm"
+            }
+        ]
+    ) {
+        name
+        nodeType
+        target {
+            alias
+            serviceUri
+        }
+        recordings {
+            active {
+                name
+                downloadUrl
+                reportUrl
+                state
+                startTime
+            }
+        }
+    }
+}

@@ -45,6 +45,16 @@ input NodeSelector {
     nodeType: NodeType!
 }
 
+input LabelSelector {
+    key: String!
+    value: String
+}
+
+input AnnotationSelector {
+    key: String!
+    value: String
+}
+
 type Recordings {
     active: [ActiveRecording!]!
     archived: [ArchivedRecording!]!

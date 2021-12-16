@@ -1,3 +1,5 @@
 type Mutation {
-    startRecording(recording: RecordingSettings!, nodes: [NodeSelector!]!): [TargetNode!]!
+    startRecordingByNodes(recording: RecordingSettings!, nodes: [NodeSelector!]!): [TargetNode!]!
+    startRecordingByAnnotations(recording: RecordingSettings!, annotations: [AnnotationSelector!]!): [TargetNode!]!
+    startRecordingByLabels(recording: RecordingSettings!, labels: [LabelSelector!]!): [TargetNode!]!
 }
