@@ -670,7 +670,7 @@ public abstract class GraphModule {
             envNode.getChildren()
                     .forEach(
                             child -> {
-                                nodes.addAll(findNodesWithAnnotation(key, value, child));
+                                nodes.addAll(findNodesWithLabel(key, value, child));
                             });
         }
 

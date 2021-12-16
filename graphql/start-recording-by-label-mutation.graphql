@@ -1,0 +1,34 @@
+mutation {
+    startRecordingByLabels(
+        recording: {
+            name: "foo",
+            template: "Profiling",
+            templateType: "TARGET",
+            duration: 30
+        },
+        labels: [
+            {
+                key: "deployment",
+                value: "quarkus-test"
+            }
+        ]
+    ) {
+        name
+        nodeType
+        target {
+            alias
+            serviceUri
+        }
+        recordings {
+            active {
+                name
+                downloadUrl
+                reportUrl
+                state
+                startTime
+            }
+        }
+    }
+}
+
+
