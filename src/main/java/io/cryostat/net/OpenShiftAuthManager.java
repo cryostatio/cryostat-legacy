@@ -321,7 +321,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                     Optional.ofNullable(client.oAuthAccessTokens().delete(userOauthAccessTokens))
                             .orElseThrow(TokenNotFoundException::new);
 
-            if (!deleted) {
+            if (Boolean.FALSE.equals(deleted)) {
                 throw new TokenNotFoundException();
             }
 
