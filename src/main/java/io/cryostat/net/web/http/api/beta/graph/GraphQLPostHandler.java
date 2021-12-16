@@ -42,13 +42,14 @@ import java.util.concurrent.ExecutionException;
 
 import javax.inject.Inject;
 
-import graphql.GraphQL;
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.net.web.http.api.v2.ApiException;
+
+import graphql.GraphQL;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.ext.web.RoutingContext;
