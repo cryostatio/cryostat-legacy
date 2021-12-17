@@ -47,6 +47,7 @@ import io.cryostat.net.security.ResourceAction;
 
 import com.google.gson.Gson;
 import io.vertx.core.MultiMap;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
@@ -76,6 +77,7 @@ public class LogoutPostHandlerTest {
 
         HttpServerRequest req = Mockito.mock(HttpServerRequest.class);
         MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
         Mockito.lenient().when(req.headers()).thenReturn(headers);
         Mockito.lenient().when(ctx.request()).thenReturn(req);
     }
@@ -97,7 +99,7 @@ public class LogoutPostHandlerTest {
 
     @Test
     void shouldHandleLogoutWhenNoRedirectNecessary() throws Exception {
-        Mockito.when(auth.logout(() -> "Bearer myToken")).thenReturn(Optional.empty());
+        Mockito.when(auth.logout(Mockito.any())).thenReturn(Optional.empty());
 
         IntermediateResponse<Void> response = handler.handle(requestParams);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
@@ -106,7 +108,7 @@ public class LogoutPostHandlerTest {
 
     @Test
     void shouldSendLogoutRedirectUrlWhenPresent() throws Exception {
-        Mockito.when(auth.logout(() -> "Bearer myToken")).thenReturn(Optional.of("https://oauth.redirect-url/logout"));
+        Mockito.when(auth.logout(Mockito.any())).thenReturn(Optional.of("https://oauth.redirect-url/logout"));
 
         IntermediateResponse<Void> response = handler.handle(requestParams);
 
