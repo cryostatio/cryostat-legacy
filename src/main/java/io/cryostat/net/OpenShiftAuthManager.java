@@ -165,9 +165,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Optional<String> logout() throws ExecutionException, InterruptedException {
+    public Optional<String> logout(Supplier<String> httpHeaderProvider) throws ExecutionException, InterruptedException {
 
-        deleteToken().get();
+        String token = getTokenFromHttpHeader(httpHeaderProvider.get());
+        deleteToken(token).get();
 
         return Optional.of(this.computeLogoutRedirectEndpoint().get());
     }
@@ -309,12 +310,19 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private Future<Boolean> deleteToken() {
+    private Future<Boolean> deleteToken(String token) {
         try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
             String serviceAccountAsOAuthClient = this.getServiceAccountName();
+            Future<TokenReviewStatus> fStatus = performTokenReview(token);
+            TokenReviewStatus status = fStatus.get();
+            String uid = status.getUser().getUid();
+
             List<OAuthAccessToken> userOauthAccessTokens =
                     client.oAuthAccessTokens().list().getItems().stream()
-                            .filter(t -> t.getClientName().equals(serviceAccountAsOAuthClient))
+                            .filter(t -> {
+                                return (t.getClientName().equals(serviceAccountAsOAuthClient)
+                                    && t.getUserUID().equals(uid));
+                            })
                             .collect(Collectors.toList());
 
             Boolean deleted =

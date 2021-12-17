@@ -479,7 +479,7 @@ class OpenShiftAuthManagerTest {
                 .when(req)
                 .send(Mockito.any());
 
-        String logoutRedirectUrl = mgr.logout().get();
+        String logoutRedirectUrl = mgr.logout(() -> "Bearer myToken").get();
 
         MatcherAssert.assertThat(logoutRedirectUrl, Matchers.equalTo(EXPECTED_LOGOUT_REDIRECT_URL));
     }
@@ -509,7 +509,7 @@ class OpenShiftAuthManagerTest {
         Mockito.when(nonNamespaceOperation.delete(tokens)).thenReturn(deletionFailure);
 
         ExecutionException ee =
-                Assertions.assertThrows(ExecutionException.class, () -> mgr.logout().get());
+                Assertions.assertThrows(ExecutionException.class, () -> mgr.logout(() -> "Bearer myToken").get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee), Matchers.instanceOf(TokenNotFoundException.class));
     }

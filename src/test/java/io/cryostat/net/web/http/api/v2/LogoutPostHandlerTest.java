@@ -97,7 +97,7 @@ public class LogoutPostHandlerTest {
 
     @Test
     void shouldHandleLogoutWhenNoRedirectNecessary() throws Exception {
-        Mockito.when(auth.logout()).thenReturn(Optional.empty());
+        Mockito.when(auth.logout(() -> "Bearer myToken")).thenReturn(Optional.empty());
 
         IntermediateResponse<Void> response = handler.handle(requestParams);
         MatcherAssert.assertThat(response.getStatusCode(), Matchers.equalTo(200));
@@ -106,7 +106,7 @@ public class LogoutPostHandlerTest {
 
     @Test
     void shouldSendLogoutRedirectUrlWhenPresent() throws Exception {
-        Mockito.when(auth.logout()).thenReturn(Optional.of("https://oauth.redirect-url/logout"));
+        Mockito.when(auth.logout(() -> "Bearer myToken")).thenReturn(Optional.of("https://oauth.redirect-url/logout"));
 
         IntermediateResponse<Void> response = handler.handle(requestParams);
 

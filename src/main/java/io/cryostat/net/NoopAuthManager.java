@@ -87,7 +87,7 @@ public class NoopAuthManager extends AbstractAuthManager {
     }
 
     @Override
-    public Optional<String> logout() {
+    public Optional<String> logout(Supplier<String> httpHeaderProvider) {
         return Optional.empty();
     }
 }
