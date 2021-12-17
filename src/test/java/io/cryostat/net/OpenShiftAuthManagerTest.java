@@ -509,7 +509,8 @@ class OpenShiftAuthManagerTest {
         Mockito.when(nonNamespaceOperation.delete(tokens)).thenReturn(deletionFailure);
 
         ExecutionException ee =
-                Assertions.assertThrows(ExecutionException.class, () -> mgr.logout(() -> "Bearer myToken").get());
+                Assertions.assertThrows(
+                        ExecutionException.class, () -> mgr.logout(() -> "Bearer myToken").get());
         MatcherAssert.assertThat(
                 ExceptionUtils.getRootCause(ee), Matchers.instanceOf(TokenNotFoundException.class));
     }

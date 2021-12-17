@@ -55,7 +55,8 @@ public interface AuthManager {
             Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
             throws ExecutionException, InterruptedException;
 
-    Optional<String> logout(Supplier<String> httpHeaderProvider) throws ExecutionException, InterruptedException;
+    Optional<String> logout(Supplier<String> httpHeaderProvider)
+            throws ExecutionException, InterruptedException;
 
     Future<Boolean> validateToken(
             Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);

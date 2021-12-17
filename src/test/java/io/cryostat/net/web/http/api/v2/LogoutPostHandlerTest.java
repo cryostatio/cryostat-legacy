@@ -108,7 +108,8 @@ public class LogoutPostHandlerTest {
 
     @Test
     void shouldSendLogoutRedirectUrlWhenPresent() throws Exception {
-        Mockito.when(auth.logout(Mockito.any())).thenReturn(Optional.of("https://oauth.redirect-url/logout"));
+        Mockito.when(auth.logout(Mockito.any()))
+                .thenReturn(Optional.of("https://oauth.redirect-url/logout"));
 
         IntermediateResponse<Void> response = handler.handle(requestParams);
 

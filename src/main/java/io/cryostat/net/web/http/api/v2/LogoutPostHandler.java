@@ -48,7 +48,6 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 
 import com.google.gson.Gson;
-
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
 
@@ -96,7 +95,8 @@ class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
 
     @Override
     public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
-        Optional<String> logoutRedirectUrl = auth.logout(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION));
+        Optional<String> logoutRedirectUrl =
+                auth.logout(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION));
 
         return logoutRedirectUrl
                 .map(
