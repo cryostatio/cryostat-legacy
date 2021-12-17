@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -64,6 +65,7 @@ import io.cryostat.net.security.ResourceVerb;
 import com.google.gson.Gson;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
+import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -76,7 +78,9 @@ import io.fabric8.openshift.client.server.mock.OpenShiftMockServer;
 import io.fabric8.openshift.client.server.mock.OpenShiftMockServerExtension;
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
+import io.vertx.core.MultiMap;
 import io.vertx.core.buffer.Buffer;
+import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.HttpResponse;
@@ -153,6 +157,8 @@ class OpenShiftAuthManagerTest {
         client = Mockito.spy(client);
         tokenProvider = new TokenProvider(client);
         mgr = new OpenShiftAuthManager(env, logger, fs, tokenProvider, webClient);
+        MultiMap headers = MultiMap.caseInsensitiveMultiMap();
+        headers.set(HttpHeaders.AUTHORIZATION, "abcd1234==");
     }
 
     @Test
@@ -452,10 +458,27 @@ class OpenShiftAuthManagerTest {
         List<OAuthAccessToken> tokens = new ArrayList<OAuthAccessToken>();
         tokens.add(token);
 
+        TokenReview tokenReview =
+                new TokenReviewBuilder()
+                        .withNewStatus()
+                        .withAuthenticated(true)
+                        .withNewUser()
+                        .withUsername("fooUser")
+                        .withUid("uid")
+                        .endUser()
+                        .endStatus()
+                        .build();
+        server.expect()
+                .post()
+                .withPath(TOKEN_REVIEW_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .once();
+
         Mockito.when(client.oAuthAccessTokens()).thenReturn(nonNamespaceOperation);
         Mockito.when(nonNamespaceOperation.list()).thenReturn(oAuthAccessTokenList);
         Mockito.when(oAuthAccessTokenList.getItems()).thenReturn(tokens);
         Mockito.when(token.getClientName()).thenReturn(SERVICE_ACCOUNT);
+        Mockito.when(token.getUserUID()).thenReturn("uid");
         Mockito.when(nonNamespaceOperation.delete(tokens)).thenReturn(true);
 
         HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
@@ -502,10 +525,27 @@ class OpenShiftAuthManagerTest {
         List<OAuthAccessToken> tokens = new ArrayList<OAuthAccessToken>();
         tokens.add(token);
 
+        TokenReview tokenReview =
+                new TokenReviewBuilder()
+                        .withNewStatus()
+                        .withAuthenticated(true)
+                        .withNewUser()
+                        .withUsername("fooUser")
+                        .withUid("uid")
+                        .endUser()
+                        .endStatus()
+                        .build();
+        server.expect()
+                .post()
+                .withPath(TOKEN_REVIEW_API_PATH)
+                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
+                .once();
+
         Mockito.when(client.oAuthAccessTokens()).thenReturn(nonNamespaceOperation);
         Mockito.when(nonNamespaceOperation.list()).thenReturn(oAuthAccessTokenList);
         Mockito.when(oAuthAccessTokenList.getItems()).thenReturn(tokens);
         Mockito.when(token.getClientName()).thenReturn(SERVICE_ACCOUNT);
+        Mockito.when(token.getUserUID()).thenReturn("uid");
         Mockito.when(nonNamespaceOperation.delete(tokens)).thenReturn(deletionFailure);
 
         ExecutionException ee =
