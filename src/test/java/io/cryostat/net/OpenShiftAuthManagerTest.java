@@ -49,7 +49,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Function;
 
@@ -65,7 +64,6 @@ import io.cryostat.net.security.ResourceVerb;
 import com.google.gson.Gson;
 import io.fabric8.kubernetes.api.model.authentication.TokenReview;
 import io.fabric8.kubernetes.api.model.authentication.TokenReviewBuilder;
-import io.fabric8.kubernetes.api.model.authentication.TokenReviewStatus;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
@@ -445,7 +443,9 @@ class OpenShiftAuthManagerTest {
     @Test
     void shouldReturnLogoutRedirectUrl() throws Exception {
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
+                .thenReturn(
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(
                         new BufferedReader(new StringReader(NAMESPACE)),
@@ -512,7 +512,9 @@ class OpenShiftAuthManagerTest {
     @ValueSource(booleans = {false})
     void shouldThrowWhenTokenDeletionFailsOnLogout(Boolean deletionFailure) throws Exception {
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
+                .thenReturn(
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
+                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
                 .thenReturn(
                         new BufferedReader(new StringReader(NAMESPACE)),
@@ -692,9 +694,6 @@ class OpenShiftAuthManagerTest {
 
         @Override
         public OpenShiftClient apply(String token) {
-            if (this.token != null) {
-                throw new IllegalStateException("Token was already set!");
-            }
             this.token = token;
             return osc;
         }

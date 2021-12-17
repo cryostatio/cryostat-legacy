@@ -73,7 +73,6 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewB
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
 import io.fabric8.openshift.api.model.OAuthAccessToken;
-import io.fabric8.openshift.client.DefaultOpenShiftClient;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -315,16 +314,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     private Future<Boolean> deleteToken(String token) {
         try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
             String serviceAccountAsOAuthClient = this.getServiceAccountName();
-
-            // FIXME reuse performTokenReview instead of copying it here
-            TokenReview review =
-                    new TokenReviewBuilder().withNewSpec().withToken(token).endSpec().build();
-            review = client.tokenReviews().create(review);
-            TokenReviewStatus status = review.getStatus();
-            if (StringUtils.isNotBlank(status.getError())) {
-                return CompletableFuture.failedFuture(
-                        new AuthorizationErrorException(status.getError()));
-            }
+            TokenReviewStatus status = performTokenReview(token).get();
             String uid = status.getUser().getUid();
 
             List<OAuthAccessToken> userOauthAccessTokens =
