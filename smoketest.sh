@@ -85,8 +85,9 @@ function runReportGenerator() {
         --cpus 1 \
         --memory 512M \
         --restart on-failure \
+        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true" \
         --env QUARKUS_HTTP_PORT=10001 \
-        --rm -d quay.io/cryostat/cryostat-reports:1.0.0-SNAPSHOT
+        --rm -d quay.io/cryostat/cryostat-reports:latest
 }
 
 function createPod() {
