@@ -72,7 +72,6 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.openshift.api.model.OAuthAccessToken;
 import io.fabric8.openshift.client.OpenShiftClient;
 import io.vertx.core.json.JsonObject;
 import io.vertx.ext.web.client.WebClient;
@@ -80,6 +79,7 @@ import jdk.jfr.Category;
 import jdk.jfr.Event;
 import jdk.jfr.Label;
 import jdk.jfr.Name;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.client.utils.URIBuilder;
 
@@ -313,22 +313,11 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     private Future<Boolean> deleteToken(String token) {
         try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
-            String serviceAccountAsOAuthClient = this.getServiceAccountName();
-            TokenReviewStatus status = performTokenReview(token).get();
-            String uid = status.getUser().getUid();
-
-            List<OAuthAccessToken> userOauthAccessTokens =
-                    client.oAuthAccessTokens().list().getItems().stream()
-                            .filter(
-                                    t -> {
-                                        return (t.getClientName()
-                                                        .equals(serviceAccountAsOAuthClient)
-                                                && t.getUserUID().equals(uid));
-                                    })
-                            .collect(Collectors.toList());
-
             Boolean deleted =
-                    Optional.ofNullable(client.oAuthAccessTokens().delete(userOauthAccessTokens))
+                    Optional.ofNullable(
+                                    client.oAuthAccessTokens()
+                                            .withName(this.getOauthAccessTokenName(token))
+                                            .delete())
                             .orElseThrow(TokenNotFoundException::new);
 
             if (Boolean.FALSE.equals(deleted)) {
@@ -380,6 +369,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
     }
 
     private CompletableFuture<String> computeAuthorizationEndpoint() {
+
         return oauthUrls.computeIfAbsent(
                 AUTHORIZATION_URL_KEY,
                 key -> {
@@ -465,6 +455,16 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 tokenScope.orElseThrow(
                         () -> new MissingEnvironmentVariableException(CRYOSTAT_OAUTH_ROLE)),
                 this.getNamespace());
+    }
+
+    private String getOauthAccessTokenName(String token) {
+        String sha256Prefix = "sha256~";
+        String rawToken = StringUtils.removeStart(token, sha256Prefix);
+        byte[] checksum = DigestUtils.sha256(rawToken);
+        String encodedTokenHash =
+                new String(Base64.getUrlEncoder().encode(checksum), StandardCharsets.UTF_8).trim();
+
+        return sha256Prefix + StringUtils.removeEnd(encodedTokenHash, "=");
     }
 
     @SuppressFBWarnings(

@@ -42,9 +42,7 @@ import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -68,6 +66,7 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReview;
 import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder;
 import io.fabric8.kubernetes.client.Config;
 import io.fabric8.kubernetes.client.dsl.NonNamespaceOperation;
+import io.fabric8.kubernetes.client.dsl.Resource;
 import io.fabric8.openshift.api.model.OAuthAccessToken;
 import io.fabric8.openshift.api.model.OAuthAccessTokenList;
 import io.fabric8.openshift.client.OpenShiftClient;
@@ -443,43 +442,15 @@ class OpenShiftAuthManagerTest {
     @Test
     void shouldReturnLogoutRedirectUrl() throws Exception {
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(NAMESPACE)),
-                        new BufferedReader(new StringReader(NAMESPACE)));
-        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID);
+                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
 
-        NonNamespaceOperation nonNamespaceOperation = Mockito.mock(NonNamespaceOperation.class);
-        OAuthAccessTokenList oAuthAccessTokenList = Mockito.mock(OAuthAccessTokenList.class);
-        OAuthAccessToken token = Mockito.mock(OAuthAccessToken.class);
-        List<OAuthAccessToken> tokens = new ArrayList<OAuthAccessToken>();
-        tokens.add(token);
+        Resource<OAuthAccessToken> token = Mockito.mock(Resource.class);
+        NonNamespaceOperation<OAuthAccessToken, OAuthAccessTokenList, Resource<OAuthAccessToken>>
+                tokens = Mockito.mock(NonNamespaceOperation.class);
 
-        TokenReview tokenReview =
-                new TokenReviewBuilder()
-                        .withNewStatus()
-                        .withAuthenticated(true)
-                        .withNewUser()
-                        .withUsername("fooUser")
-                        .withUid("uid")
-                        .endUser()
-                        .endStatus()
-                        .build();
-        server.expect()
-                .post()
-                .withPath(TOKEN_REVIEW_API_PATH)
-                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
-                .once();
-
-        Mockito.when(client.oAuthAccessTokens()).thenReturn(nonNamespaceOperation);
-        Mockito.when(nonNamespaceOperation.list()).thenReturn(oAuthAccessTokenList);
-        Mockito.when(oAuthAccessTokenList.getItems()).thenReturn(tokens);
-        Mockito.when(token.getClientName()).thenReturn(SERVICE_ACCOUNT);
-        Mockito.when(token.getUserUID()).thenReturn("uid");
-        Mockito.when(nonNamespaceOperation.delete(tokens)).thenReturn(true);
+        Mockito.when(client.oAuthAccessTokens()).thenReturn(tokens);
+        Mockito.when(tokens.withName(Mockito.anyString())).thenReturn(token);
+        Mockito.when(token.delete()).thenReturn(true);
 
         HttpRequest<Buffer> req = Mockito.mock(HttpRequest.class);
         HttpResponse<Buffer> resp = Mockito.mock(HttpResponse.class);
@@ -512,43 +483,15 @@ class OpenShiftAuthManagerTest {
     @ValueSource(booleans = {false})
     void shouldThrowWhenTokenDeletionFailsOnLogout(Boolean deletionFailure) throws Exception {
         Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)),
-                        new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
-        Mockito.when(fs.readFile(Paths.get(Config.KUBERNETES_NAMESPACE_PATH)))
-                .thenReturn(
-                        new BufferedReader(new StringReader(NAMESPACE)),
-                        new BufferedReader(new StringReader(NAMESPACE)));
-        Mockito.when(env.getEnv(Mockito.anyString())).thenReturn(CLIENT_ID);
+                .thenReturn(new BufferedReader(new StringReader(SERVICE_ACCOUNT_TOKEN)));
 
-        NonNamespaceOperation nonNamespaceOperation = Mockito.mock(NonNamespaceOperation.class);
-        OAuthAccessTokenList oAuthAccessTokenList = Mockito.mock(OAuthAccessTokenList.class);
-        OAuthAccessToken token = Mockito.mock(OAuthAccessToken.class);
-        List<OAuthAccessToken> tokens = new ArrayList<OAuthAccessToken>();
-        tokens.add(token);
+        Resource<OAuthAccessToken> token = Mockito.mock(Resource.class);
+        NonNamespaceOperation<OAuthAccessToken, OAuthAccessTokenList, Resource<OAuthAccessToken>>
+                tokens = Mockito.mock(NonNamespaceOperation.class);
 
-        TokenReview tokenReview =
-                new TokenReviewBuilder()
-                        .withNewStatus()
-                        .withAuthenticated(true)
-                        .withNewUser()
-                        .withUsername("fooUser")
-                        .withUid("uid")
-                        .endUser()
-                        .endStatus()
-                        .build();
-        server.expect()
-                .post()
-                .withPath(TOKEN_REVIEW_API_PATH)
-                .andReturn(HttpURLConnection.HTTP_CREATED, tokenReview)
-                .once();
-
-        Mockito.when(client.oAuthAccessTokens()).thenReturn(nonNamespaceOperation);
-        Mockito.when(nonNamespaceOperation.list()).thenReturn(oAuthAccessTokenList);
-        Mockito.when(oAuthAccessTokenList.getItems()).thenReturn(tokens);
-        Mockito.when(token.getClientName()).thenReturn(SERVICE_ACCOUNT);
-        Mockito.when(token.getUserUID()).thenReturn("uid");
-        Mockito.when(nonNamespaceOperation.delete(tokens)).thenReturn(deletionFailure);
+        Mockito.when(client.oAuthAccessTokens()).thenReturn(tokens);
+        Mockito.when(tokens.withName(Mockito.anyString())).thenReturn(token);
+        Mockito.when(token.delete()).thenReturn(deletionFailure);
 
         ExecutionException ee =
                 Assertions.assertThrows(
