@@ -79,13 +79,14 @@ function runGrafana() {
 }
 
 function runReportGenerator() {
+    local RJMX_PORT=10000
     podman run \
         --name reports \
         --pod cryostat \
         --cpus 1 \
         --memory 512M \
         --restart on-failure \
-        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true" \
+        --env JAVA_OPTIONS="-XX:ActiveProcessorCount=1 -XX:+UseSerialGC -Dorg.openjdk.jmc.flightrecorder.parser.singlethreaded=true -Dcom.sun.management.jmxremote.autodiscovery=true -Dcom.sun.management.jmxremote.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.rmi.port=${RJMX_PORT} -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false" \
         --env QUARKUS_HTTP_PORT=10001 \
         --rm -d quay.io/cryostat/cryostat-reports:latest
 }
@@ -112,6 +113,7 @@ function createPod() {
         --publish 8082:8082 \
         --publish 9990:9990 \
         --publish 9991:9991 \
+        --publish 10000:10000 \
         --publish 10001:10001
     # 8081: vertx-fib-demo
     # 9093: vertx-fib-demo-1 RJMX
@@ -121,8 +123,9 @@ function createPod() {
     # 9999: quarkus-test HTTP
     # 8082: Wildfly HTTP
     # 9990: Wildfly Admin Console
-    # 9990: Wildfly RJMX
-    # 10001: cryostat-reports
+    # 9991: Wildfly RJMX
+    # 10000: cryostat-reports RJMX
+    # 10001: cryostat-reports HTTP
 }
 
 function destroyPod() {
