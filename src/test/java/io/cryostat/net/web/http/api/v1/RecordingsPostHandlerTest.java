@@ -42,6 +42,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -68,8 +69,11 @@ import io.vertx.core.http.HttpServerRequest;
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.FileUpload;
 import io.vertx.ext.web.RoutingContext;
+import io.vertx.ext.web.handler.impl.HttpStatusException;
+
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -272,5 +276,105 @@ class RecordingsPostHandlerTest {
         Mockito.verify(notificationBuilder).message(Map.of("recording", filename));
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+    }
+
+    @Test
+    void shouldHandleNoRecordingSubmission() throws Exception {
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        when(authManager.validateHttpHeader(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+
+        when(ctx.fileUploads()).thenReturn(new HashSet<FileUpload>());
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
+    }
+
+    @Test
+    void shouldHandleIncorrectFormField() throws Exception {
+        String savePath = "/some/path/";
+
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        when(authManager.validateHttpHeader(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+
+        Set<FileUpload> uploads = new HashSet<>();
+        FileUpload upload = mock(FileUpload.class);
+        uploads.add(upload);
+        when(ctx.fileUploads()).thenReturn(uploads);
+        when(upload.name()).thenReturn("incorrect_field_name");
+        when(upload.uploadedFileName()).thenReturn("foo");
+
+        when(recordingsPath.resolve("file-uploads")).thenReturn(Path.of(savePath, "file-uploads"));
+
+        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
+        when(vertx.fileSystem()).thenReturn(vertxFs);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("No recording submission"));
+
+        verify(vertxFs).deleteBlocking(Path.of(savePath, "file-uploads", "foo").toString());
+    }
+
+    @Test
+    void shouldHandleEmptyRecordingName() throws Exception {
+        String savePath = "/some/path/";
+
+        RoutingContext ctx = mock(RoutingContext.class);
+
+        when(authManager.validateHttpHeader(any(), any()))
+                .thenReturn(CompletableFuture.completedFuture(true));
+        HttpServerRequest req = mock(HttpServerRequest.class);
+        when(ctx.request()).thenReturn(req);
+        HttpServerResponse rep = mock(HttpServerResponse.class);
+        when(ctx.response()).thenReturn(rep);
+        when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
+
+        when(cryoFs.isDirectory(recordingsPath)).thenReturn(true);
+
+        Set<FileUpload> uploads = new HashSet<>();
+        FileUpload upload = mock(FileUpload.class);
+        uploads.add(upload);
+        when(ctx.fileUploads()).thenReturn(uploads);
+        when(upload.name()).thenReturn("recording");
+        when(upload.fileName()).thenReturn("");
+        when(upload.uploadedFileName()).thenReturn("foo");
+
+        when(recordingsPath.resolve("file-uploads")).thenReturn(Path.of(savePath, "file-uploads"));
+
+        io.vertx.core.file.FileSystem vertxFs = mock(io.vertx.core.file.FileSystem.class);
+        when(vertx.fileSystem()).thenReturn(vertxFs);
+
+        HttpStatusException ex =
+                Assertions.assertThrows(HttpStatusException.class, () -> handler.handle(ctx));
+        MatcherAssert.assertThat(ex.getStatusCode(), Matchers.equalTo(400));
+        MatcherAssert.assertThat(ex.getPayload(), Matchers.equalTo("Recording name must not be empty"));
+
+        verify(vertxFs).deleteBlocking(Path.of(savePath, "file-uploads", "foo").toString());
+    }
+
+    @Test
+    void shouldHandleIncorectFileNamePattern() {
+
     }
 }
