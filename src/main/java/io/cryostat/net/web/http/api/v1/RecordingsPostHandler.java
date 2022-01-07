@@ -157,8 +157,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
             if ("recording".equals(fu.name())) {
                 upload = fu;
             } else {
-                Path p = savedRecordingsPath.resolve("file-uploads").resolve(fu.uploadedFileName());
-                vertx.fileSystem().deleteBlocking(p.toString());
+                deleteTempFileUpload(fu);
             }
         }
 
@@ -168,6 +167,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         String fileName = upload.fileName();
         if (fileName == null || fileName.isEmpty()) {
+            deleteTempFileUpload(upload);
             throw new HttpStatusException(400, "Recording name must not be empty");
         }
 
@@ -177,6 +177,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
 
         Matcher m = RECORDING_FILENAME_PATTERN.matcher(fileName);
         if (!m.matches()) {
+            deleteTempFileUpload(upload);
             throw new HttpStatusException(400, "Incorrect recording file name pattern");
         }
 
@@ -316,6 +317,11 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
                                                 handler.handle(makeAsyncResult(filename));
                                             });
                         });
+    }
+
+    private void deleteTempFileUpload(FileUpload upload) {
+        Path p = savedRecordingsPath.resolve("file-uploads").resolve(upload.uploadedFileName());
+        vertx.fileSystem().deleteBlocking(p.toString());
     }
 
     private <T> AsyncResult<T> makeAsyncResult(T result) {
