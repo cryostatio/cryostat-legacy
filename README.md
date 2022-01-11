@@ -36,6 +36,14 @@ Build Requirements:
 Run Requirements:
 - Kubernetes/OpenShift/Minishift, Podman/Docker, or other container platform
 
+- If running on Podman/Docker, [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html) must be enabled.
+This allows resource configuration for any rootless containers running on Podman. 
+
+First, update your Docker installation; instructions to do so, as well as how to enable cgroups v2 can be found [here](https://docs.docker.com/config/containers/runmetrics/#changing-cgroup-version). Finally, to ensure Podman works with cgroups v2, follow these [instructions](https://podman.io/blogs/2019/10/29/podman-crun-f31.html)*.
+
+*If your Podman runtime is set to runc v1.0.0-rc91 or later it is not necessary to change it crun as recommended in these instructions. This version of 
+runc supports cgroups v2, as stated in the [Docker documentation on the subject](https://docs.docker.com/config/containers/runmetrics/#running-docker-on-cgroup-v2). 
+
 ## BUILD
 
 ### Setup Dependencies
