@@ -81,6 +81,7 @@ class MessagingServerTest {
     Gson gson = MainModule.provideGson(logger);
     @Mock ServerWebSocket sws;
     @Mock ScheduledExecutorService limboPruner;
+    @Mock ScheduledExecutorService keepalivePinger;
     @Mock Clock clock;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -122,6 +123,7 @@ class MessagingServerTest {
                         notificationFactory,
                         2,
                         limboPruner,
+                        keepalivePinger,
                         clock,
                         logger,
                         gson);
