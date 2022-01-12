@@ -46,6 +46,7 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -60,6 +61,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
 import io.vertx.core.Handler;
+import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.SocketAddress;
 import org.junit.jupiter.api.BeforeEach;
@@ -276,6 +278,26 @@ class MessagingServerTest {
         authFailCaptor.getValue().run();
 
         verify(sws).close((short) 1002, "Invalid auth subprotocol");
+    }
+
+    @Test
+    void shouldPingAcceptedClients() throws SocketException, UnknownHostException, InterruptedException {
+        server.start();
+
+        ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        Mockito.verify(httpServer).websocketHandler(websocketHandlerCaptor.capture());
+        websocketHandlerCaptor.getValue().handle(sws);
+        verify(sws).accept();
+
+        ArgumentCaptor<Handler> textMessageHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        verify(sws).textMessageHandler(textMessageHandlerCaptor.capture());
+        textMessageHandlerCaptor.getValue().handle("irrelevant");
+
+        ArgumentCaptor<Runnable> authSuccessCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(authAction).onSuccess(authSuccessCaptor.capture());
+        authSuccessCaptor.getValue().run();
+
+        verify(keepalivePinger).scheduleAtFixedRate(Mockito.any(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any(TimeUnit.class));
     }
 
     @Test
