@@ -61,7 +61,6 @@ import io.cryostat.net.web.http.HttpMimeType;
 
 import com.google.gson.Gson;
 import io.vertx.core.Handler;
-import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.ServerWebSocket;
 import io.vertx.core.net.SocketAddress;
 import org.junit.jupiter.api.BeforeEach;
@@ -281,7 +280,7 @@ class MessagingServerTest {
     }
 
     @Test
-    void shouldPingAcceptedClients() throws SocketException, UnknownHostException, InterruptedException {
+    void shouldPingAcceptedClients() throws SocketException, UnknownHostException {
         server.start();
 
         ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
@@ -297,7 +296,12 @@ class MessagingServerTest {
         verify(authAction).onSuccess(authSuccessCaptor.capture());
         authSuccessCaptor.getValue().run();
 
-        verify(keepalivePinger).scheduleAtFixedRate(Mockito.any(), Mockito.anyLong(), Mockito.anyLong(), Mockito.any(TimeUnit.class));
+        verify(keepalivePinger)
+                .scheduleAtFixedRate(
+                        Mockito.any(),
+                        Mockito.anyLong(),
+                        Mockito.anyLong(),
+                        Mockito.any(TimeUnit.class));
     }
 
     @Test
