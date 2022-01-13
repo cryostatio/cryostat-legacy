@@ -42,6 +42,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Function;
 
 import javax.inject.Named;
@@ -76,6 +77,7 @@ public abstract class RulesModule {
     public static final String RULES_SUBDIRECTORY = "rules";
     public static final String RULES_WEB_CLIENT = "RULES_WEB_CLIENT";
     public static final String RULES_HEADERS_FACTORY = "RULES_HEADERS_FACTORY";
+    static final String RULE_SCHEDULER = "RULE_SCHEDULER";
 
     @Provides
     @Singleton
@@ -107,6 +109,7 @@ public abstract class RulesModule {
     static RuleProcessor provideRuleProcessor(
             PlatformClient platformClient,
             RuleRegistry registry,
+            @Named(RULE_SCHEDULER) ScheduledExecutorService scheduler,
             CredentialsManager credentialsManager,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             TargetConnectionManager targetConnectionManager,
@@ -118,7 +121,7 @@ public abstract class RulesModule {
         return new RuleProcessor(
                 platformClient,
                 registry,
-                Executors.newScheduledThreadPool(1),
+                scheduler,
                 credentialsManager,
                 recordingOptionsBuilderFactory,
                 targetConnectionManager,
@@ -127,6 +130,22 @@ public abstract class RulesModule {
                 periodicArchiverFactory,
                 logger,
                 base32);
+    }
+
+    @Provides
+    @Named(RULE_SCHEDULER)
+    @Singleton
+    static ScheduledExecutorService provideRuleScheduler() {
+        ScheduledExecutorService ses =
+                Executors.newScheduledThreadPool(
+                        1,
+                        r -> {
+                            Thread t = Executors.defaultThreadFactory().newThread(r);
+                            t.setDaemon(true);
+                            return t;
+                        });
+        Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdownNow));
+        return ses;
     }
 
     @Provides
