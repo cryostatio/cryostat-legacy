@@ -105,22 +105,7 @@ public class MessagingServer implements AutoCloseable {
 
         prunerTask =
                 this.limboPruner.scheduleAtFixedRate(
-                        () -> {
-                            long now = clock.getMonotonicTime();
-                            synchronized (connections) {
-                                for (WsClient wsc : connections) {
-                                    long expiry =
-                                            wsc.getConnectionTime() + TimeUnit.SECONDS.toNanos(10);
-                                    boolean isOld = now > expiry;
-                                    if (isOld && !wsc.isAccepted()) {
-                                        removeConnection(wsc);
-                                    }
-                                }
-                            }
-                        },
-                        0,
-                        1,
-                        TimeUnit.SECONDS);
+                        this::pruneConnections, 0, 1, TimeUnit.SECONDS);
 
         server.websocketHandler(
                 (sws) -> {
@@ -171,9 +156,7 @@ public class MessagingServer implements AutoCloseable {
                                                         pingTask =
                                                                 this.keepalivePinger
                                                                         .scheduleAtFixedRate(
-                                                                                () -> {
-                                                                                    wsc.ping();
-                                                                                },
+                                                                                wsc::ping,
                                                                                 0,
                                                                                 5,
                                                                                 TimeUnit.SECONDS);
@@ -245,6 +228,23 @@ public class MessagingServer implements AutoCloseable {
                 logger.info("Disconnected remote client {}", wsc.getRemoteAddress());
                 sendClientActivityNotification(wsc.getRemoteAddress().toString(), "disconnected");
             }
+        }
+    }
+
+    private void pruneConnections() {
+        try {
+            long now = clock.getMonotonicTime();
+            synchronized (connections) {
+                for (WsClient wsc : connections) {
+                    long expiry = wsc.getConnectionTime() + TimeUnit.SECONDS.toNanos(10);
+                    boolean isOld = now > expiry;
+                    if (isOld && !wsc.isAccepted()) {
+                        removeConnection(wsc);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            logger.error(e);
         }
     }
 
