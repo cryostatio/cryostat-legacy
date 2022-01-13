@@ -47,12 +47,14 @@ import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
 
 import io.cryostat.ApplicationVersion;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.net.web.http.api.ApiVersion;
+import io.cryostat.util.HttpStatusCodeIdentifier;
 
 import com.google.gson.Gson;
 import io.vertx.core.buffer.Buffer;
@@ -63,9 +65,6 @@ import io.vertx.ext.web.client.HttpRequest;
 import io.vertx.ext.web.client.WebClient;
 
 class HealthGetHandler implements RequestHandler {
-
-    static final String GRAFANA_DATASOURCE_ENV = "GRAFANA_DATASOURCE_URL";
-    static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
     private final ApplicationVersion appVersion;
     private final WebClient webClient;
@@ -116,9 +115,16 @@ class HealthGetHandler implements RequestHandler {
     public void handle(RoutingContext ctx) {
         CompletableFuture<Boolean> datasourceAvailable = new CompletableFuture<>();
         CompletableFuture<Boolean> dashboardAvailable = new CompletableFuture<>();
+        CompletableFuture<Boolean> reportsAvailable = new CompletableFuture<>();
 
-        checkUri(GRAFANA_DATASOURCE_ENV, "/", datasourceAvailable);
-        checkUri(GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
+        checkUri(Variables.GRAFANA_DATASOURCE_ENV, "/", datasourceAvailable);
+        checkUri(Variables.GRAFANA_DASHBOARD_ENV, "/api/health", dashboardAvailable);
+        if (!this.env.hasEnv(Variables.REPORT_GENERATOR_ENV)) {
+            // using subprocess generation, so it is available
+            reportsAvailable.complete(true);
+        } else {
+            checkUri(Variables.REPORT_GENERATOR_ENV, "/health", reportsAvailable);
+        }
 
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
@@ -130,7 +136,9 @@ class HealthGetHandler implements RequestHandler {
                                         "dashboardAvailable",
                                         dashboardAvailable.join(),
                                         "datasourceAvailable",
-                                        datasourceAvailable.join())));
+                                        datasourceAvailable.join(),
+                                        "reportsAvailable",
+                                        reportsAvailable.join())));
     }
 
     private void checkUri(String envName, String path, CompletableFuture<Boolean> future) {
@@ -157,7 +165,9 @@ class HealthGetHandler implements RequestHandler {
                                     future.complete(false);
                                     return;
                                 }
-                                future.complete(handler.result().statusCode() == 200);
+                                future.complete(
+                                        HttpStatusCodeIdentifier.isSuccessCode(
+                                                handler.result().statusCode()));
                             });
         } else {
             future.complete(false);

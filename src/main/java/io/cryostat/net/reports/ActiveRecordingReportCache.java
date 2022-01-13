@@ -44,7 +44,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.ReentrantLock;
 
 import javax.inject.Named;
 import javax.inject.Provider;
@@ -62,23 +61,23 @@ import com.github.benmanes.caffeine.cache.Scheduler;
 
 class ActiveRecordingReportCache {
 
-    protected final Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider;
+    protected final Provider<ReportGeneratorService> reportGeneratorServiceProvider;
     protected final FileSystem fs;
-    protected final ReentrantLock generationLock;
-    protected final LoadingCache<SubprocessReportGenerator.RecordingDescriptor, String> cache;
+    protected final LoadingCache<RecordingDescriptor, String> cache;
     protected final TargetConnectionManager targetConnectionManager;
+    protected final long generationTimeoutSeconds;
     protected final Logger logger;
 
     ActiveRecordingReportCache(
-            Provider<SubprocessReportGenerator> subprocessReportGeneratorProvider,
+            Provider<ReportGeneratorService> reportGeneratorServiceProvider,
             FileSystem fs,
-            @Named(ReportsModule.REPORT_GENERATION_LOCK) ReentrantLock generationLock,
             TargetConnectionManager targetConnectionManager,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        this.subprocessReportGeneratorProvider = subprocessReportGeneratorProvider;
+        this.reportGeneratorServiceProvider = reportGeneratorServiceProvider;
         this.fs = fs;
-        this.generationLock = generationLock;
         this.targetConnectionManager = targetConnectionManager;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
         this.logger = logger;
 
         this.cache =
@@ -93,10 +92,7 @@ class ActiveRecordingReportCache {
     Future<String> get(ConnectionDescriptor connectionDescriptor, String recordingName) {
         CompletableFuture<String> f = new CompletableFuture<>();
         try {
-            f.complete(
-                    cache.get(
-                            new SubprocessReportGenerator.RecordingDescriptor(
-                                    connectionDescriptor, recordingName)));
+            f.complete(cache.get(new RecordingDescriptor(connectionDescriptor, recordingName)));
         } catch (Exception e) {
             f.completeExceptionally(e);
         }
@@ -104,9 +100,7 @@ class ActiveRecordingReportCache {
     }
 
     boolean delete(ConnectionDescriptor connectionDescriptor, String recordingName) {
-        SubprocessReportGenerator.RecordingDescriptor key =
-                new SubprocessReportGenerator.RecordingDescriptor(
-                        connectionDescriptor, recordingName);
+        RecordingDescriptor key = new RecordingDescriptor(connectionDescriptor, recordingName);
         boolean hasKey = cache.asMap().containsKey(key);
         if (hasKey) {
             logger.trace("Invalidated active report cache for {}", recordingName);
@@ -117,23 +111,28 @@ class ActiveRecordingReportCache {
         return hasKey;
     }
 
-    protected String getReport(SubprocessReportGenerator.RecordingDescriptor recordingDescriptor)
-            throws Exception {
+    protected String getReport(RecordingDescriptor recordingDescriptor) throws Exception {
         Path saveFile = null;
         try {
-            generationLock.lock();
             logger.trace("Active report cache miss for {}", recordingDescriptor.recordingName);
             try {
-                saveFile = subprocessReportGeneratorProvider.get().exec(recordingDescriptor).get();
+                saveFile =
+                        reportGeneratorServiceProvider
+                                .get()
+                                .exec(recordingDescriptor)
+                                .get(generationTimeoutSeconds, TimeUnit.SECONDS);
                 return fs.readString(saveFile);
-            } catch (ExecutionException | CompletionException ee) {
-                logger.error(ee);
+            } catch (ExecutionException | CompletionException e) {
+                logger.error(e);
 
                 delete(recordingDescriptor.connectionDescriptor, recordingDescriptor.recordingName);
 
-                if (ee.getCause() instanceof SubprocessReportGenerator.ReportGenerationException) {
-                    SubprocessReportGenerator.ReportGenerationException generationException =
-                            (SubprocessReportGenerator.ReportGenerationException) ee.getCause();
+                if (e.getCause()
+                        instanceof SubprocessReportGenerator.SubprocessReportGenerationException) {
+                    SubprocessReportGenerator.SubprocessReportGenerationException
+                            generationException =
+                                    (SubprocessReportGenerator.SubprocessReportGenerationException)
+                                            e.getCause();
 
                     SubprocessReportGenerator.ExitStatus status = generationException.getStatus();
                     if (status == SubprocessReportGenerator.ExitStatus.OUT_OF_MEMORY) {
@@ -155,10 +154,9 @@ class ActiveRecordingReportCache {
                                 });
                     }
                 }
-                throw ee;
+                throw e;
             }
         } finally {
-            generationLock.unlock();
             if (saveFile != null) {
                 fs.deleteIfExists(saveFile);
             }

@@ -37,11 +37,8 @@
  */
 package io.cryostat.net.reports;
 
-import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,48 +48,34 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
-import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import javax.inject.Named;
 import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.ConnectionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.net.JFRConnection;
 import io.cryostat.core.reports.ReportGenerator;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
-import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-
-public class SubprocessReportGenerator {
-
-    static final String SUBPROCESS_MAX_HEAP_ENV = "CRYOSTAT_REPORT_GENERATION_MAX_HEAP";
-    static final int READ_BUFFER_SIZE = 64 * 1024; // 64 KB
+public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
     private final Environment env;
-    private final FileSystem fs;
-    private final TargetConnectionManager targetConnectionManager;
     private final Set<ReportTransformer> reportTransformers;
     private final Provider<JavaProcess.Builder> javaProcessBuilderProvider;
-    // FIXME extract TempFileProvider to FileSystem
-    private final Provider<Path> tempFileProvider;
-    private final Logger logger;
+    private final long generationTimeoutSeconds;
 
     SubprocessReportGenerator(
             Environment env,
@@ -101,17 +84,17 @@ public class SubprocessReportGenerator {
             Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilderProvider,
             Provider<Path> tempFileProvider,
+            @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
+        super(targetConnectionManager, fs, tempFileProvider, logger);
         this.env = env;
-        this.fs = fs;
-        this.targetConnectionManager = targetConnectionManager;
         this.reportTransformers = reportTransformers;
         this.javaProcessBuilderProvider = javaProcessBuilderProvider;
-        this.tempFileProvider = tempFileProvider;
-        this.logger = logger;
+        this.generationTimeoutSeconds = generationTimeoutSeconds;
     }
 
-    CompletableFuture<Path> exec(Path recording, Path saveFile)
+    @Override
+    public synchronized CompletableFuture<Path> exec(Path recording, Path saveFile)
             throws NoSuchMethodException, SecurityException, IllegalAccessException,
                     IllegalArgumentException, InvocationTargetException, IOException,
                     InterruptedException, ReportGenerationException {
@@ -128,22 +111,22 @@ public class SubprocessReportGenerator {
                 StandardOpenOption.TRUNCATE_EXISTING,
                 StandardOpenOption.DSYNC,
                 StandardOpenOption.WRITE);
-        Process proc =
+        JavaProcess.Builder procBuilder =
                 javaProcessBuilderProvider
                         .get()
                         .klazz(SubprocessReportGenerator.class)
-                        // FIXME the heap size should be determined by some heuristics if not
-                        // defined in env.
-                        // See https://github.com/cryostatio/cryostat/issues/287
                         .jvmArgs(
                                 createJvmArgs(
-                                        Integer.parseInt(env.getEnv(SUBPROCESS_MAX_HEAP_ENV, "0"))))
-                        .processArgs(createProcessArgs(recording, saveFile))
-                        .exec();
+                                        Integer.parseInt(
+                                                env.getEnv(
+                                                        Variables.SUBPROCESS_MAX_HEAP_ENV, "0"))))
+                        .processArgs(createProcessArgs(recording, saveFile));
         return CompletableFuture.supplyAsync(
                 () -> {
+                    Process proc = null;
                     try {
-                        proc.waitFor(5, TimeUnit.MINUTES); // FIXME extract to constant or env var
+                        proc = procBuilder.exec();
+                        proc.waitFor(generationTimeoutSeconds - 1, TimeUnit.SECONDS);
                         ExitStatus status =
                                 proc.isAlive()
                                         ? ExitStatus.TIMED_OUT
@@ -155,74 +138,24 @@ public class SubprocessReportGenerator {
                                 throw new RecordingNotFoundException(
                                         "archives", recording.toString());
                             default:
-                                throw new ReportGenerationException(status);
+                                throw new SubprocessReportGenerationException(status);
                         }
                     } catch (InterruptedException e) {
                         logger.error(e);
-                        proc.destroyForcibly();
                         throw new CompletionException(
-                                new ReportGenerationException(ExitStatus.TERMINATED));
-                    } catch (ReportGenerationException
+                                new SubprocessReportGenerationException(ExitStatus.TERMINATED));
+                    } catch (IOException
+                            | ReportGenerationException
                             | RecordingNotFoundException
                             | IllegalThreadStateException e) {
                         logger.error(e);
-                        proc.destroyForcibly();
                         throw new CompletionException(e);
                     } finally {
-                        proc.destroyForcibly();
+                        if (proc != null) {
+                            proc.destroyForcibly();
+                        }
                     }
                 });
-    }
-
-    Future<Path> exec(RecordingDescriptor recordingDescriptor) throws Exception {
-        Path recording =
-                getRecordingFromLiveTarget(
-                        recordingDescriptor.recordingName,
-                        recordingDescriptor.connectionDescriptor);
-        Path saveFile = tempFileProvider.get();
-        CompletableFuture<Path> cf = exec(recording, saveFile);
-        return cf.whenComplete(
-                (p, t) -> {
-                    try {
-                        fs.deleteIfExists(recording);
-                    } catch (IOException e) {
-                        logger.warn(e);
-                    }
-                });
-    }
-
-    Path getRecordingFromLiveTarget(String recordingName, ConnectionDescriptor cd)
-            throws Exception {
-        return this.targetConnectionManager.executeConnectedTask(
-                cd, conn -> copyRecordingToFile(conn, cd, recordingName, tempFileProvider.get()));
-    }
-
-    @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")
-    Path copyRecordingToFile(
-            JFRConnection conn, ConnectionDescriptor cd, String recordingName, Path path)
-            throws Exception {
-        for (IRecordingDescriptor rec : conn.getService().getAvailableRecordings()) {
-            if (!Objects.equals(rec.getName(), recordingName)) {
-                continue;
-            }
-            try (conn;
-                    InputStream in = conn.getService().openStream(rec, false);
-                    OutputStream out =
-                            new BufferedOutputStream(new FileOutputStream(path.toFile()))) {
-                byte[] buff = new byte[READ_BUFFER_SIZE];
-                int n = 0;
-                while ((n = in.read(buff)) != -1) {
-                    out.write(buff, 0, n);
-                    if (!targetConnectionManager.markConnectionInUse(cd)) {
-                        throw new IOException(
-                                "Target connection unexpectedly closed while streaming recording");
-                    }
-                }
-                out.flush();
-                return path;
-            }
-        }
-        throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
     }
 
     private List<String> createJvmArgs(int maxHeapMegabytes) throws IOException {
@@ -348,49 +281,13 @@ public class SubprocessReportGenerator {
             throws Exception {
         var fs = new FileSystem();
         if (!fs.isRegularFile(recording)) {
-            throw new ReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
+            throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
         try (InputStream stream = fs.newInputStream(recording)) {
             return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
         } catch (IOException ioe) {
             ioe.printStackTrace();
-            throw new ReportGenerationException(ExitStatus.IO_EXCEPTION);
-        }
-    }
-
-    static class RecordingDescriptor {
-        final ConnectionDescriptor connectionDescriptor;
-        final String recordingName;
-
-        RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
-            this.connectionDescriptor = Objects.requireNonNull(connectionDescriptor);
-            this.recordingName = Objects.requireNonNull(recordingName);
-        }
-
-        @Override
-        public boolean equals(Object other) {
-            if (other == null) {
-                return false;
-            }
-            if (other == this) {
-                return true;
-            }
-            if (!(other instanceof RecordingDescriptor)) {
-                return false;
-            }
-            RecordingDescriptor rd = (RecordingDescriptor) other;
-            return new EqualsBuilder()
-                    .append(connectionDescriptor, rd.connectionDescriptor)
-                    .append(recordingName, rd.recordingName)
-                    .isEquals();
-        }
-
-        @Override
-        public int hashCode() {
-            return new HashCodeBuilder()
-                    .append(connectionDescriptor)
-                    .append(recordingName)
-                    .hashCode();
+            throw new SubprocessReportGenerationException(ExitStatus.IO_EXCEPTION);
         }
     }
 
@@ -424,10 +321,10 @@ public class SubprocessReportGenerator {
         }
     }
 
-    public static class ReportGenerationException extends Exception {
+    public static class SubprocessReportGenerationException extends ReportGenerationException {
         private final ExitStatus status;
 
-        public ReportGenerationException(ExitStatus status) {
+        public SubprocessReportGenerationException(ExitStatus status) {
             super(String.format("[%d] %s", status.code, status.message));
             this.status = status;
         }

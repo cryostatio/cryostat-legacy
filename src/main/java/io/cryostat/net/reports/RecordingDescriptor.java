@@ -35,75 +35,44 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.api.v1;
+package io.cryostat.net.reports;
 
-import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
 
-import javax.inject.Inject;
+import io.cryostat.net.ConnectionDescriptor;
 
-import io.cryostat.configuration.Variables;
-import io.cryostat.core.sys.Environment;
-import io.cryostat.net.security.ResourceAction;
-import io.cryostat.net.web.http.HttpMimeType;
-import io.cryostat.net.web.http.RequestHandler;
-import io.cryostat.net.web.http.api.ApiVersion;
+import org.apache.commons.lang3.builder.EqualsBuilder;
+import org.apache.commons.lang3.builder.HashCodeBuilder;
 
-import com.google.gson.Gson;
-import io.vertx.core.http.HttpHeaders;
-import io.vertx.core.http.HttpMethod;
-import io.vertx.ext.web.RoutingContext;
-import io.vertx.ext.web.handler.impl.HttpStatusException;
+class RecordingDescriptor {
+    final ConnectionDescriptor connectionDescriptor;
+    final String recordingName;
 
-class GrafanaDatasourceUrlGetHandler implements RequestHandler {
-
-    private final Environment env;
-    private final Gson gson;
-
-    @Inject
-    GrafanaDatasourceUrlGetHandler(Environment env, Gson gson) {
-        this.env = env;
-        this.gson = gson;
+    RecordingDescriptor(ConnectionDescriptor connectionDescriptor, String recordingName) {
+        this.connectionDescriptor = Objects.requireNonNull(connectionDescriptor);
+        this.recordingName = Objects.requireNonNull(recordingName);
     }
 
     @Override
-    public ApiVersion apiVersion() {
-        return ApiVersion.V1;
-    }
-
-    @Override
-    public String path() {
-        return basePath() + "grafana_datasource_url";
-    }
-
-    @Override
-    public Set<ResourceAction> resourceActions() {
-        return ResourceAction.NONE;
-    }
-
-    @Override
-    public HttpMethod httpMethod() {
-        return HttpMethod.GET;
-    }
-
-    // This handler is not async, but it's simple enough that it doesn't need
-    // to be run in a seperate worker thread.
-    @Override
-    public boolean isAsync() {
-        return true;
-    }
-
-    @Override
-    public void handle(RoutingContext ctx) {
-        if (!this.env.hasEnv(Variables.GRAFANA_DATASOURCE_ENV)) {
-            throw new HttpStatusException(500, "Deployment has no Grafana configuration");
+    public boolean equals(Object other) {
+        if (other == null) {
+            return false;
         }
-        ctx.response()
-                .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                .end(
-                        gson.toJson(
-                                Map.of(
-                                        "grafanaDatasourceUrl",
-                                        env.getEnv(Variables.GRAFANA_DATASOURCE_ENV))));
+        if (other == this) {
+            return true;
+        }
+        if (!(other instanceof RecordingDescriptor)) {
+            return false;
+        }
+        RecordingDescriptor rd = (RecordingDescriptor) other;
+        return new EqualsBuilder()
+                .append(connectionDescriptor, rd.connectionDescriptor)
+                .append(recordingName, rd.recordingName)
+                .isEquals();
+    }
+
+    @Override
+    public int hashCode() {
+        return new HashCodeBuilder().append(connectionDescriptor).append(recordingName).hashCode();
     }
 }

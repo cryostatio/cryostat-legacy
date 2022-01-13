@@ -45,6 +45,7 @@ import javax.inject.Named;
 import javax.inject.Singleton;
 
 import io.cryostat.configuration.ConfigurationModule;
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.discovery.JvmDiscoveryClient;
 import io.cryostat.core.sys.Environment;
@@ -63,9 +64,6 @@ import dagger.Provides;
 
 @Module(includes = {PlatformStrategyModule.class, PlatformDiscoveryModule.class})
 public abstract class PlatformModule {
-
-    static final String PLATFORM_STRATEGY_ENV_VAR = "CRYOSTAT_PLATFORM";
-    static final String AUTH_MANAGER_ENV_VAR = "CRYOSTAT_AUTH_MANAGER";
 
     @Provides
     @Singleton
@@ -96,8 +94,8 @@ public abstract class PlatformModule {
             Set<AuthManager> authManagers,
             Logger logger) {
         final String authManagerClass;
-        if (env.hasEnv(AUTH_MANAGER_ENV_VAR)) {
-            authManagerClass = env.getEnv(AUTH_MANAGER_ENV_VAR);
+        if (env.hasEnv(Variables.AUTH_MANAGER_ENV_VAR)) {
+            authManagerClass = env.getEnv(Variables.AUTH_MANAGER_ENV_VAR);
             logger.info("Selecting configured AuthManager \"{}\"", authManagerClass);
         } else {
             authManagerClass = platformStrategy.getAuthManager().getClass().getCanonicalName();
@@ -119,8 +117,8 @@ public abstract class PlatformModule {
     static PlatformDetectionStrategy<?> providePlatformStrategy(
             Logger logger, Set<PlatformDetectionStrategy<?>> strategies, Environment env) {
         PlatformDetectionStrategy<?> strat = null;
-        if (env.hasEnv(PLATFORM_STRATEGY_ENV_VAR)) {
-            String platform = env.getEnv(PLATFORM_STRATEGY_ENV_VAR);
+        if (env.hasEnv(Variables.PLATFORM_STRATEGY_ENV_VAR)) {
+            String platform = env.getEnv(Variables.PLATFORM_STRATEGY_ENV_VAR);
             logger.info("Selecting configured PlatformDetectionStrategy \"{}\"", platform);
             for (PlatformDetectionStrategy<?> s : strategies) {
                 if (Objects.equals(platform, s.getClass().getCanonicalName())) {

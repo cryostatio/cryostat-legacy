@@ -42,6 +42,7 @@ import java.util.Set;
 
 import javax.inject.Inject;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.HttpMimeType;
@@ -55,8 +56,6 @@ import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class GrafanaDashboardUrlGetHandler implements RequestHandler {
-
-    static final String GRAFANA_DASHBOARD_ENV = "GRAFANA_DASHBOARD_URL";
 
     private final Environment env;
     private final Gson gson;
@@ -96,11 +95,15 @@ class GrafanaDashboardUrlGetHandler implements RequestHandler {
 
     @Override
     public void handle(RoutingContext ctx) {
-        if (!this.env.hasEnv(GRAFANA_DASHBOARD_ENV)) {
+        if (!this.env.hasEnv(Variables.GRAFANA_DASHBOARD_ENV)) {
             throw new HttpStatusException(500, "Deployment has no Grafana configuration");
         }
         ctx.response()
                 .putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime())
-                .end(gson.toJson(Map.of("grafanaDashboardUrl", env.getEnv(GRAFANA_DASHBOARD_ENV))));
+                .end(
+                        gson.toJson(
+                                Map.of(
+                                        "grafanaDashboardUrl",
+                                        env.getEnv(Variables.GRAFANA_DASHBOARD_ENV))));
     }
 }

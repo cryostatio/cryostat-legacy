@@ -77,7 +77,7 @@ class ReportGetHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new ReportGetHandler(authManager, reportService, logger);
+        this.handler = new ReportGetHandler(authManager, reportService, 30, logger);
     }
 
     @Test
@@ -108,8 +108,8 @@ class ReportGetHandlerTest {
     }
 
     @Test
-    void shouldBeOrdered() {
-        Assertions.assertTrue(handler.isOrdered());
+    void shouldNotBeOrdered() {
+        Assertions.assertFalse(handler.isOrdered());
     }
 
     @Test

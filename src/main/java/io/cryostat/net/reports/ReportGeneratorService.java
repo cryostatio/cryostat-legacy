@@ -35,47 +35,13 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net.web.http.generic;
+package io.cryostat.net.reports;
 
-import io.cryostat.core.sys.Environment;
-import io.cryostat.net.web.http.RequestHandler;
+import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 
-import io.vertx.core.http.HttpMethod;
-import org.hamcrest.MatcherAssert;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+interface ReportGeneratorService {
+    CompletableFuture<Path> exec(Path in, Path out) throws Exception;
 
-@ExtendWith(MockitoExtension.class)
-class CorsOptionsHandlerTest {
-
-    CorsOptionsHandler handler;
-    @Mock Environment env;
-
-    @BeforeEach
-    void setup() {
-        Mockito.when(env.getEnv("CRYOSTAT_CORS_ORIGIN", CorsEnablingHandler.DEV_ORIGIN))
-                .thenReturn("http://localhost:9000");
-        this.handler = new CorsOptionsHandler(env);
-    }
-
-    @Test
-    void shouldApplyOPTIONSVerb() {
-        MatcherAssert.assertThat(handler.httpMethod(), Matchers.equalTo(HttpMethod.OPTIONS));
-    }
-
-    @Test
-    void shouldApplyToAllRequests() {
-        MatcherAssert.assertThat(handler.path(), Matchers.equalTo("/*"));
-    }
-
-    @Test
-    void shouldBeHighPriority() {
-        MatcherAssert.assertThat(
-                handler.getPriority(), Matchers.lessThan(RequestHandler.DEFAULT_PRIORITY));
-    }
+    CompletableFuture<Path> exec(RecordingDescriptor rd) throws Exception;
 }

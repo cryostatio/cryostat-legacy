@@ -40,6 +40,7 @@ package io.cryostat.net;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
 
 public class NetworkConfiguration {
@@ -53,7 +54,7 @@ public class NetworkConfiguration {
     }
 
     public String getWebServerHost() throws SocketException, UnknownHostException {
-        return env.getEnv("CRYOSTAT_WEB_HOST", resolver.getHostAddress());
+        return env.getEnv(Variables.WEBSERVER_HOST, resolver.getHostAddress());
     }
 
     public int getDefaultWebServerPort() {
@@ -62,19 +63,20 @@ public class NetworkConfiguration {
 
     public int getInternalWebServerPort() {
         return Integer.parseInt(
-                env.getEnv("CRYOSTAT_WEB_PORT", String.valueOf(getDefaultWebServerPort())));
+                env.getEnv(Variables.WEBSERVER_PORT, String.valueOf(getDefaultWebServerPort())));
     }
 
     public int getExternalWebServerPort() {
         return Integer.parseInt(
-                env.getEnv("CRYOSTAT_EXT_WEB_PORT", String.valueOf(getInternalWebServerPort())));
+                env.getEnv(
+                        Variables.WEBSERVER_PORT_EXT, String.valueOf(getInternalWebServerPort())));
     }
 
     public boolean isSslProxied() {
-        return env.hasEnv("CRYOSTAT_SSL_PROXIED");
+        return env.hasEnv(Variables.WEBSERVER_SSL_PROXIED);
     }
 
     public boolean isUntrustedSslAllowed() {
-        return env.hasEnv("CRYOSTAT_ALLOW_UNTRUSTED_SSL");
+        return env.hasEnv(Variables.WEBSERVER_ALLOW_UNTRUSTED_SSL);
     }
 }

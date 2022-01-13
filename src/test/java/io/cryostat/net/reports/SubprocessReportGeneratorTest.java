@@ -80,7 +80,7 @@ class SubprocessReportGeneratorTest {
     @Mock Logger logger;
     @Mock Process proc;
     ConnectionDescriptor connectionDescriptor;
-    SubprocessReportGenerator.RecordingDescriptor recordingDescriptor;
+    RecordingDescriptor recordingDescriptor;
     @Mock Path recordingFile;
     @Mock Path tempFile1;
     @Mock Path tempFile2;
@@ -91,9 +91,7 @@ class SubprocessReportGeneratorTest {
     void setup() throws Exception {
         connectionDescriptor =
                 new ConnectionDescriptor("fooHost:1234", new Credentials("someUser", "somePass"));
-        recordingDescriptor =
-                new SubprocessReportGenerator.RecordingDescriptor(
-                        connectionDescriptor, "testRecording");
+        recordingDescriptor = new RecordingDescriptor(connectionDescriptor, "testRecording");
 
         tempFileProvider = Mockito.mock(Provider.class);
         Mockito.lenient().when(tempFileProvider.get()).thenReturn(tempFile1).thenReturn(tempFile2);
@@ -120,7 +118,7 @@ class SubprocessReportGeneratorTest {
         Mockito.lenient()
                 .when(
                         env.getEnv(
-                                Mockito.eq(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV),
+                                Mockito.eq("CRYOSTAT_REPORT_GENERATION_MAX_HEAP"),
                                 Mockito.anyString()))
                 .thenReturn("200");
         this.generator =
@@ -131,6 +129,7 @@ class SubprocessReportGeneratorTest {
                         Set.of(new TestReportTransformer()),
                         () -> javaProcessBuilder,
                         tempFileProvider,
+                        30,
                         logger);
     }
 
@@ -203,7 +202,7 @@ class SubprocessReportGeneratorTest {
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
         Mockito.when(
                         env.getEnv(
-                                Mockito.eq(SubprocessReportGenerator.SUBPROCESS_MAX_HEAP_ENV),
+                                Mockito.eq("CRYOSTAT_REPORT_GENERATION_MAX_HEAP"),
                                 Mockito.anyString()))
                 .thenReturn("0");
 
@@ -236,7 +235,7 @@ class SubprocessReportGeneratorTest {
         Path dest = Mockito.mock(Path.class);
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(true);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(true);
 
         Assertions.assertTimeoutPreemptively(
                 Duration.ofSeconds(2),
@@ -251,7 +250,7 @@ class SubprocessReportGeneratorTest {
         Path dest = Mockito.mock(Path.class);
         Mockito.when(dest.toAbsolutePath()).thenReturn(dest);
         Mockito.when(dest.toString()).thenReturn("/dest/somefile.tmp");
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(false);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(false);
         Mockito.when(proc.exitValue())
                 .thenReturn(SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING.code);
 
@@ -271,7 +270,7 @@ class SubprocessReportGeneratorTest {
 
     @Test
     void shouldExecuteProcessAndDeleteRecordingOnCompletion() throws Exception {
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(true);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(true);
         Mockito.when(proc.exitValue()).thenReturn(SubprocessReportGenerator.ExitStatus.OK.code);
 
         Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
@@ -291,7 +290,7 @@ class SubprocessReportGeneratorTest {
 
     @Test
     void shouldExecuteProcessAndDeleteRecordingOnFailure() throws Exception {
-        Mockito.when(proc.waitFor(5, TimeUnit.MINUTES)).thenReturn(true);
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(true);
         Mockito.when(proc.exitValue())
                 .thenReturn(SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING.code);
 
