@@ -46,6 +46,7 @@ import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import io.cryostat.MainModule;
 import io.cryostat.core.log.Logger;
@@ -81,6 +82,7 @@ class MessagingServerTest {
     Gson gson = MainModule.provideGson(logger);
     @Mock ServerWebSocket sws;
     @Mock ScheduledExecutorService limboPruner;
+    @Mock ScheduledExecutorService keepalivePinger;
     @Mock Clock clock;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
@@ -122,6 +124,7 @@ class MessagingServerTest {
                         notificationFactory,
                         2,
                         limboPruner,
+                        keepalivePinger,
                         clock,
                         logger,
                         gson);
@@ -274,6 +277,31 @@ class MessagingServerTest {
         authFailCaptor.getValue().run();
 
         verify(sws).close((short) 1002, "Invalid auth subprotocol");
+    }
+
+    @Test
+    void shouldPingAcceptedClients() throws SocketException, UnknownHostException {
+        server.start();
+
+        ArgumentCaptor<Handler> websocketHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        Mockito.verify(httpServer).websocketHandler(websocketHandlerCaptor.capture());
+        websocketHandlerCaptor.getValue().handle(sws);
+        verify(sws).accept();
+
+        ArgumentCaptor<Handler> textMessageHandlerCaptor = ArgumentCaptor.forClass(Handler.class);
+        verify(sws).textMessageHandler(textMessageHandlerCaptor.capture());
+        textMessageHandlerCaptor.getValue().handle("irrelevant");
+
+        ArgumentCaptor<Runnable> authSuccessCaptor = ArgumentCaptor.forClass(Runnable.class);
+        verify(authAction).onSuccess(authSuccessCaptor.capture());
+        authSuccessCaptor.getValue().run();
+
+        verify(keepalivePinger)
+                .scheduleAtFixedRate(
+                        Mockito.any(),
+                        Mockito.anyLong(),
+                        Mockito.anyLong(),
+                        Mockito.any(TimeUnit.class));
     }
 
     @Test

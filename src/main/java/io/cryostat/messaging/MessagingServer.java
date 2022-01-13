@@ -68,12 +68,14 @@ public class MessagingServer implements AutoCloseable {
     private final AuthManager authManager;
     private final NotificationFactory notificationFactory;
     private final ScheduledExecutorService limboPruner;
+    private final ScheduledExecutorService keepalivePinger;
     private final Clock clock;
     private final int maxConnections;
     private final Logger logger;
     private final Gson gson;
 
     private Future<?> prunerTask;
+    private Future<?> pingTask;
 
     MessagingServer(
             HttpServer server,
@@ -82,6 +84,7 @@ public class MessagingServer implements AutoCloseable {
             NotificationFactory notificationFactory,
             @Named(MessagingModule.WS_MAX_CONNECTIONS) int maxConnections,
             @Named(MessagingModule.LIMBO_PRUNER) ScheduledExecutorService limboPruner,
+            @Named(MessagingModule.KEEPALIVE_PINGER) ScheduledExecutorService keepalivePinger,
             Clock clock,
             Logger logger,
             Gson gson) {
@@ -91,6 +94,7 @@ public class MessagingServer implements AutoCloseable {
         this.notificationFactory = notificationFactory;
         this.maxConnections = maxConnections;
         this.limboPruner = limboPruner;
+        this.keepalivePinger = keepalivePinger;
         this.clock = clock;
         this.logger = logger;
         this.gson = gson;
@@ -163,6 +167,16 @@ public class MessagingServer implements AutoCloseable {
                                                         wsc.setAccepted();
                                                         sendClientActivityNotification(
                                                                 remoteAddress, "accepted");
+
+                                                        pingTask =
+                                                                this.keepalivePinger
+                                                                        .scheduleAtFixedRate(
+                                                                                () -> {
+                                                                                    wsc.ping();
+                                                                                },
+                                                                                0,
+                                                                                5,
+                                                                                TimeUnit.SECONDS);
                                                     })
                                             // 1002: WebSocket "Protocol Error" close reason
                                             .onFailure(
@@ -207,6 +221,11 @@ public class MessagingServer implements AutoCloseable {
         if (prunerTask != null) {
             prunerTask.cancel(false);
         }
+
+        if (pingTask != null) {
+            pingTask.cancel(false);
+        }
+
         synchronized (connections) {
             connections.forEach(this::removeConnection);
             connections.clear();

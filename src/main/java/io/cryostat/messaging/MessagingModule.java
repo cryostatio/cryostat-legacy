@@ -63,6 +63,7 @@ public abstract class MessagingModule {
 
     static final String WS_MAX_CONNECTIONS = "WS_MAX_CONNECTIONS";
     static final String LIMBO_PRUNER = "LIMBO_PRUNER";
+    static final String KEEPALIVE_PINGER = "KEEPALIVE_PINGER";
 
     static final String MAX_CONNECTIONS_ENV_VAR = "CRYOSTAT_MAX_WS_CONNECTIONS";
     static final int MIN_CONNECTIONS = 1;
@@ -78,6 +79,7 @@ public abstract class MessagingModule {
             NotificationFactory notificationFactory,
             @Named(WS_MAX_CONNECTIONS) int maxConnections,
             @Named(LIMBO_PRUNER) ScheduledExecutorService limboPruner,
+            @Named(KEEPALIVE_PINGER) ScheduledExecutorService keepalivePinger,
             Clock clock,
             Logger logger,
             Gson gson) {
@@ -88,6 +90,7 @@ public abstract class MessagingModule {
                 notificationFactory,
                 maxConnections,
                 limboPruner,
+                keepalivePinger,
                 clock,
                 logger,
                 gson);
@@ -120,6 +123,12 @@ public abstract class MessagingModule {
     @Provides
     @Named(LIMBO_PRUNER)
     static ScheduledExecutorService provideLimboPruner() {
+        return Executors.newSingleThreadScheduledExecutor();
+    }
+
+    @Provides
+    @Named(KEEPALIVE_PINGER)
+    static ScheduledExecutorService provideKeepalivePinger() {
         return Executors.newSingleThreadScheduledExecutor();
     }
 }
