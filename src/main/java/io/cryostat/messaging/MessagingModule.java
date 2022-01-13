@@ -123,12 +123,21 @@ public abstract class MessagingModule {
     @Provides
     @Named(LIMBO_PRUNER)
     static ScheduledExecutorService provideLimboPruner() {
-        return Executors.newSingleThreadScheduledExecutor();
+        ScheduledExecutorService ses =
+                Executors.newSingleThreadScheduledExecutor(
+                        r -> {
+                            Thread t = Executors.defaultThreadFactory().newThread(r);
+                            t.setDaemon(true);
+                            return t;
+                        });
+        Runtime.getRuntime().addShutdownHook(new Thread(ses::shutdown));
+        return ses;
     }
 
     @Provides
     @Named(KEEPALIVE_PINGER)
     static ScheduledExecutorService provideKeepalivePinger() {
-        return Executors.newSingleThreadScheduledExecutor();
+        // just reuse the existing thread - these tasks are light weight and safe
+        return provideLimboPruner();
     }
 }
