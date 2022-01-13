@@ -138,7 +138,7 @@ public abstract class RulesModule {
     static ScheduledExecutorService provideRuleScheduler() {
         ScheduledExecutorService ses =
                 Executors.newScheduledThreadPool(
-                        1,
+                        Runtime.getRuntime().availableProcessors(),
                         r -> {
                             Thread t = Executors.defaultThreadFactory().newThread(r);
                             t.setDaemon(true);
