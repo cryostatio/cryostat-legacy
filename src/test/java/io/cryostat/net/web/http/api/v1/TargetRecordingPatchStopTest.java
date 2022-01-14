@@ -43,8 +43,11 @@ import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.messaging.notifications.Notification;
+import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpMimeType;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -71,10 +74,28 @@ class TargetRecordingPatchStopTest {
     @Mock HttpServerResponse resp;
     @Mock JFRConnection connection;
     @Mock IFlightRecorderService service;
+    @Mock NotificationFactory notificationFactory;
+    @Mock Notification notification;
+    @Mock Notification.Builder notificationBuilder;
 
     @BeforeEach
     void setup() {
-        this.patchStop = new TargetRecordingPatchStop(targetConnectionManager);
+        Mockito.lenient().when(notificationFactory.createBuilder()).thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaCategory(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(Notification.MetaType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.metaType(Mockito.any(HttpMimeType.class)))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient()
+                .when(notificationBuilder.message(Mockito.any()))
+                .thenReturn(notificationBuilder);
+        Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
+
+        this.patchStop = new TargetRecordingPatchStop(targetConnectionManager, notificationFactory);
     }
 
     @Test
