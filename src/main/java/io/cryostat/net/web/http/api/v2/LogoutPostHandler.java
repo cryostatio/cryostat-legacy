@@ -35,39 +35,76 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.net;
+package io.cryostat.net.web.http.api.v2;
 
-import java.io.IOException;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Future;
-import java.util.function.Function;
-import java.util.function.Supplier;
 
+import javax.inject.Inject;
+
+import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.api.ApiVersion;
 
-public interface AuthManager {
-    AuthenticationScheme getScheme();
+import com.google.gson.Gson;
+import io.vertx.core.http.HttpHeaders;
+import io.vertx.core.http.HttpMethod;
 
-    Future<UserInfo> getUserInfo(Supplier<String> httpHeaderProvider);
+class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
 
-    Optional<String> getLoginRedirectUrl(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions)
-            throws ExecutionException, InterruptedException;
+    @Inject
+    protected LogoutPostHandler(AuthManager auth, Gson gson) {
+        super(auth, gson);
+    }
 
-    Optional<String> logout(Supplier<String> httpHeaderProvider)
-            throws ExecutionException, InterruptedException, IOException, TokenNotFoundException;
+    @Override
+    public boolean requiresAuthentication() {
+        return true;
+    }
 
-    Future<Boolean> validateToken(
-            Supplier<String> tokenProvider, Set<ResourceAction> resourceActions);
+    @Override
+    public ApiVersion apiVersion() {
+        return ApiVersion.V2_1;
+    }
 
-    Future<Boolean> validateHttpHeader(
-            Supplier<String> headerProvider, Set<ResourceAction> resourceActions);
+    @Override
+    public HttpMethod httpMethod() {
+        return HttpMethod.POST;
+    }
 
-    Future<Boolean> validateWebSocketSubProtocol(
-            Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions);
+    @Override
+    public Set<ResourceAction> resourceActions() {
+        return ResourceAction.NONE;
+    }
 
-    AuthenticatedAction doAuthenticated(
-            Supplier<String> provider, Function<Supplier<String>, Future<Boolean>> validator);
+    @Override
+    public String path() {
+        return basePath() + "logout";
+    }
+
+    @Override
+    public HttpMimeType mimeType() {
+        return HttpMimeType.JSON;
+    }
+
+    @Override
+    public boolean isAsync() {
+        return true;
+    }
+
+    @Override
+    public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
+        Optional<String> logoutRedirectUrl =
+                auth.logout(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION));
+        return logoutRedirectUrl
+                .map(
+                        location -> {
+                            return new IntermediateResponse<Void>()
+                                    .addHeader("X-Location", location)
+                                    .addHeader("access-control-expose-headers", "Location")
+                                    .statusCode(302);
+                        })
+                .orElse(new IntermediateResponse<Void>().body(null));
+    }
 }

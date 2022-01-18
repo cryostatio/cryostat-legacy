@@ -165,6 +165,11 @@ class BasicAuthManager extends AbstractAuthManager {
         }
     }
 
+    @Override
+    public Optional<String> logout(Supplier<String> httpHeaderProvider) {
+        return Optional.empty();
+    }
+
     private Pair<String, String> splitCredentials(String credentials) {
         if (credentials == null) {
             return null;

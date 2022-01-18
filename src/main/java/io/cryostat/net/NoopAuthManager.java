@@ -85,4 +85,9 @@ public class NoopAuthManager extends AbstractAuthManager {
             Supplier<String> subProtocolProvider, Set<ResourceAction> resourceActions) {
         return CompletableFuture.completedFuture(true);
     }
+
+    @Override
+    public Optional<String> logout(Supplier<String> httpHeaderProvider) {
+        return Optional.empty();
+    }
 }
