@@ -49,6 +49,7 @@ import javax.inject.Named;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.net.AuthManager;
+import io.cryostat.net.reports.ReportGenerationException;
 import io.cryostat.net.reports.ReportService;
 import io.cryostat.net.reports.ReportsModule;
 import io.cryostat.net.security.ResourceAction;
@@ -126,6 +127,11 @@ class ReportGetHandler extends AbstractAuthenticatedRequestHandler {
                     .putHeader(HttpHeaders.CONTENT_LENGTH, Long.toString(report.toFile().length()));
             ctx.response().sendFile(report.toAbsolutePath().toString());
         } catch (ExecutionException | CompletionException ee) {
+            if (ExceptionUtils.getRootCause(ee) instanceof ReportGenerationException) {
+                ReportGenerationException rge =
+                        (ReportGenerationException) ExceptionUtils.getRootCause(ee);
+                throw new HttpStatusException(rge.getStatusCode(), ee.getMessage());
+            }
             if (ExceptionUtils.getRootCause(ee) instanceof RecordingNotFoundException) {
                 throw new HttpStatusException(404, ee);
             }

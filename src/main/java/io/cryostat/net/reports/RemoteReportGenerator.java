@@ -105,7 +105,9 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
                             }
                             if (!HttpStatusCodeIdentifier.isSuccessCode(ar.result().statusCode())) {
                                 f.completeExceptionally(
-                                        new ReportGenerationException(ar.result().statusMessage()));
+                                        new ReportGenerationException(
+                                                ar.result().statusCode(),
+                                                ar.result().statusMessage()));
                                 return;
                             }
                             var body = ar.result().bodyAsBuffer();

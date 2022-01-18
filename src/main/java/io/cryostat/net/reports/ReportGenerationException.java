@@ -39,11 +39,23 @@ package io.cryostat.net.reports;
 
 public class ReportGenerationException extends Exception {
 
+    private final int status;
+
     public ReportGenerationException(String message) {
-        super(message);
+        this(500, message);
     }
 
     public ReportGenerationException(String message, Throwable cause) {
         super(message, cause);
+        this.status = 500;
+    }
+
+    public ReportGenerationException(int status, String message) {
+        super(message);
+        this.status = status;
+    }
+
+    public int getStatusCode() {
+        return status;
     }
 }
