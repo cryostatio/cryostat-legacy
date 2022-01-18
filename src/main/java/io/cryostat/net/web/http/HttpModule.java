@@ -37,12 +37,17 @@
  */
 package io.cryostat.net.web.http;
 
+import javax.inject.Named;
+
+import io.cryostat.configuration.Variables;
+import io.cryostat.core.sys.Environment;
 import io.cryostat.net.web.http.api.beta.HttpApiBetaModule;
 import io.cryostat.net.web.http.api.v1.HttpApiV1Module;
 import io.cryostat.net.web.http.api.v2.HttpApiV2Module;
 import io.cryostat.net.web.http.generic.HttpGenericModule;
 
 import dagger.Module;
+import dagger.Provides;
 
 @Module(
         includes = {
@@ -51,4 +56,13 @@ import dagger.Module;
             HttpApiV1Module.class,
             HttpApiV2Module.class,
         })
-public abstract class HttpModule {}
+public abstract class HttpModule {
+
+    public static final String HTTP_REQUEST_TIMEOUT_SECONDS = "HTTP_REQUEST_TIMEOUT_SECONDS";
+
+    @Provides
+    @Named(HTTP_REQUEST_TIMEOUT_SECONDS)
+    static long provideReportGenerationTimeoutSeconds(Environment env) {
+        return Integer.valueOf(env.getEnv(Variables.HTTP_REQUEST_TIMEOUT, "29"));
+    }
+}

@@ -47,8 +47,10 @@ import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.net.JFRConnection;
@@ -59,6 +61,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.HttpStatusCodeIdentifier;
@@ -77,6 +80,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
 
     private final Environment env;
     private final TargetConnectionManager targetConnectionManager;
+    private final long httpTimeoutSeconds;
     private final WebClient webClient;
     private final FileSystem fs;
 
@@ -85,11 +89,13 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
             AuthManager auth,
             Environment env,
             TargetConnectionManager targetConnectionManager,
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
             FileSystem fs) {
         super(auth);
         this.env = env;
         this.targetConnectionManager = targetConnectionManager;
+        this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.fs = fs;
     }
@@ -179,7 +185,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
         try {
             webClient
                     .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
-                    .timeout(30_000L)
+                    .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                     .sendMultipartForm(
                             form,
                             uploadHandler -> {

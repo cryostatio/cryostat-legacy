@@ -52,6 +52,7 @@ import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.util.JavaProcess;
 
@@ -71,10 +72,9 @@ public abstract class ReportsModule {
 
     @Provides
     @Named(REPORT_GENERATION_TIMEOUT_SECONDS)
-    static long provideReportGenerationTimeoutSeconds() {
-        // TODO make this configurable via env var? It is also related to the max HTTP response
-        // timeout that clients expect, and which usually defaults to 30 seconds
-        return 29;
+    static long provideReportGenerationTimeoutSeconds(
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout) {
+        return httpTimeout;
     }
 
     @Provides

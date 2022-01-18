@@ -104,7 +104,7 @@ class TargetRecordingUploadPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingUploadPostHandler(
-                        auth, env, targetConnectionManager, webClient, fs);
+                        auth, env, targetConnectionManager, 30, webClient, fs);
     }
 
     @Test

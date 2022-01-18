@@ -89,7 +89,8 @@ class RecordingUploadPostHandlerTest {
 
     @BeforeEach
     void setup() {
-        this.handler = new RecordingUploadPostHandler(auth, env, webClient, recordingArchiveHelper);
+        this.handler =
+                new RecordingUploadPostHandler(auth, env, 30, webClient, recordingArchiveHelper);
     }
 
     @Test
