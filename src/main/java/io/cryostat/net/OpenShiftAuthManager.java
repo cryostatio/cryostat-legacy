@@ -311,7 +311,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private Boolean deleteToken(String token) throws IOException, TokenNotFoundException {
+    private boolean deleteToken(String token) throws IOException, TokenNotFoundException {
         try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
             Boolean deleted =
                     Optional.ofNullable(
