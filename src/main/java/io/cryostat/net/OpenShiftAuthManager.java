@@ -166,10 +166,10 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
 
     @Override
     public Optional<String> logout(Supplier<String> httpHeaderProvider)
-            throws ExecutionException, InterruptedException {
+            throws ExecutionException, InterruptedException, IOException, TokenNotFoundException {
 
         String token = getTokenFromHttpHeader(httpHeaderProvider.get());
-        deleteToken(token).get();
+        deleteToken(token);
 
         return Optional.of(this.computeLogoutRedirectEndpoint().get());
     }
@@ -311,7 +311,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
         }
     }
 
-    private Future<Boolean> deleteToken(String token) {
+    private Boolean deleteToken(String token) throws IOException, TokenNotFoundException {
         try (OpenShiftClient client = clientProvider.apply(getServiceAccountToken())) {
             Boolean deleted =
                     Optional.ofNullable(
@@ -324,10 +324,7 @@ public class OpenShiftAuthManager extends AbstractAuthManager {
                 throw new TokenNotFoundException();
             }
 
-            return CompletableFuture.completedFuture(deleted);
-        } catch (Exception e) {
-            logger.error(e);
-            return CompletableFuture.failedFuture(e);
+            return deleted;
         }
     }
 

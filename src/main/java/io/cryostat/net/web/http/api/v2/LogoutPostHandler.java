@@ -97,7 +97,6 @@ class LogoutPostHandler extends AbstractV2RequestHandler<Void> {
     public IntermediateResponse<Void> handle(RequestParameters requestParams) throws Exception {
         Optional<String> logoutRedirectUrl =
                 auth.logout(() -> requestParams.getHeaders().get(HttpHeaders.AUTHORIZATION));
-
         return logoutRedirectUrl
                 .map(
                         location -> {
