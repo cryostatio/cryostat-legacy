@@ -63,6 +63,6 @@ public abstract class HttpModule {
     @Provides
     @Named(HTTP_REQUEST_TIMEOUT_SECONDS)
     static long provideReportGenerationTimeoutSeconds(Environment env) {
-        return Integer.valueOf(env.getEnv(Variables.HTTP_REQUEST_TIMEOUT, "29"));
+        return Long.parseLong(env.getEnv(Variables.HTTP_REQUEST_TIMEOUT, "29"));
     }
 }
