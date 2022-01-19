@@ -40,7 +40,6 @@ package io.cryostat.net.web.http.api.v1;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.EnumSet;
@@ -214,8 +213,7 @@ class TargetRecordingUploadPostHandler extends AbstractAuthenticatedRequestHandl
                 .map(
                         descriptor -> {
                             try {
-                                // FIXME extract createTempFile wrapper into FileSystem
-                                Path tempFile = Files.createTempFile(null, null);
+                                Path tempFile = fs.createTempFile(null, null);
                                 try (InputStream stream =
                                         connection.getService().openStream(descriptor, false)) {
                                     fs.copy(stream, tempFile, StandardCopyOption.REPLACE_EXISTING);

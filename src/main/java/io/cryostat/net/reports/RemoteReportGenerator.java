@@ -42,7 +42,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
-import javax.inject.Provider;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
@@ -67,13 +66,12 @@ class RemoteReportGenerator extends AbstractReportGeneratorService {
     RemoteReportGenerator(
             TargetConnectionManager targetConnectionManager,
             FileSystem fs,
-            Provider<Path> tempFileProvider,
             Vertx vertx,
             WebClient http,
             Environment env,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        super(targetConnectionManager, fs, tempFileProvider, logger);
+        super(targetConnectionManager, fs, logger);
         this.vertx = vertx;
         this.http = http;
         this.env = env;

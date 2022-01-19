@@ -93,8 +93,10 @@ class SubprocessReportGeneratorTest {
                 new ConnectionDescriptor("fooHost:1234", new Credentials("someUser", "somePass"));
         recordingDescriptor = new RecordingDescriptor(connectionDescriptor, "testRecording");
 
-        tempFileProvider = Mockito.mock(Provider.class);
-        Mockito.lenient().when(tempFileProvider.get()).thenReturn(tempFile1).thenReturn(tempFile2);
+        Mockito.lenient()
+                .when(fs.createTempFile(null, null))
+                .thenReturn(tempFile1)
+                .thenReturn(tempFile2);
         Mockito.lenient().when(tempFile1.toAbsolutePath()).thenReturn(tempFile1);
         Mockito.lenient().when(tempFile1.toString()).thenReturn("/tmp/file1.tmp");
         Mockito.lenient().when(tempFile2.toAbsolutePath()).thenReturn(tempFile2);
@@ -128,7 +130,6 @@ class SubprocessReportGeneratorTest {
                         targetConnectionManager,
                         Set.of(new TestReportTransformer()),
                         () -> javaProcessBuilder,
-                        tempFileProvider,
                         30,
                         logger);
     }
