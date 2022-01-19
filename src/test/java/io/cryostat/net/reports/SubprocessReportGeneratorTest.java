@@ -46,8 +46,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import javax.inject.Provider;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.reports.ReportTransformer;
@@ -84,7 +82,6 @@ class SubprocessReportGeneratorTest {
     @Mock Path recordingFile;
     @Mock Path tempFile1;
     @Mock Path tempFile2;
-    @Mock Provider<Path> tempFileProvider;
     SubprocessReportGenerator generator;
 
     @BeforeEach
@@ -279,7 +276,7 @@ class SubprocessReportGeneratorTest {
                         new Answer<Path>() {
                             @Override
                             public Path answer(InvocationOnMock invocation) throws Throwable {
-                                return tempFileProvider.get();
+                                return fs.createTempFile(null, null);
                             }
                         });
 
@@ -300,7 +297,7 @@ class SubprocessReportGeneratorTest {
                         new Answer<Path>() {
                             @Override
                             public Path answer(InvocationOnMock invocation) throws Throwable {
-                                return tempFileProvider.get();
+                                return fs.createTempFile(null, null);
                             }
                         });
 
