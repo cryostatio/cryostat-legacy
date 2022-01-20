@@ -76,7 +76,6 @@ class ActiveRecordingReportCacheTest {
     @Mock Path destinationFile;
     @Mock JavaProcess.Builder javaProcessBuilder;
     Provider<JavaProcess.Builder> javaProcessBuilderProvider = () -> javaProcessBuilder;
-    Provider<Path> tempFileProvider = () -> destinationFile;
     final String REPORT_DOC = "<html><body><p>This is a report</p></body></html>";
 
     @BeforeEach
