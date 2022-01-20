@@ -83,10 +83,9 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             TargetConnectionManager targetConnectionManager,
             Set<ReportTransformer> reportTransformers,
             Provider<JavaProcess.Builder> javaProcessBuilderProvider,
-            Provider<Path> tempFileProvider,
             @Named(ReportsModule.REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        super(targetConnectionManager, fs, tempFileProvider, logger);
+        super(targetConnectionManager, fs, logger);
         this.env = env;
         this.reportTransformers = reportTransformers;
         this.javaProcessBuilderProvider = javaProcessBuilderProvider;

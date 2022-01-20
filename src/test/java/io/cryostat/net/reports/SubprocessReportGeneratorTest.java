@@ -46,8 +46,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
-import javax.inject.Provider;
-
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.reports.ReportTransformer;
@@ -84,7 +82,6 @@ class SubprocessReportGeneratorTest {
     @Mock Path recordingFile;
     @Mock Path tempFile1;
     @Mock Path tempFile2;
-    @Mock Provider<Path> tempFileProvider;
     SubprocessReportGenerator generator;
 
     @BeforeEach
@@ -93,8 +90,10 @@ class SubprocessReportGeneratorTest {
                 new ConnectionDescriptor("fooHost:1234", new Credentials("someUser", "somePass"));
         recordingDescriptor = new RecordingDescriptor(connectionDescriptor, "testRecording");
 
-        tempFileProvider = Mockito.mock(Provider.class);
-        Mockito.lenient().when(tempFileProvider.get()).thenReturn(tempFile1).thenReturn(tempFile2);
+        Mockito.lenient()
+                .when(fs.createTempFile(null, null))
+                .thenReturn(tempFile1)
+                .thenReturn(tempFile2);
         Mockito.lenient().when(tempFile1.toAbsolutePath()).thenReturn(tempFile1);
         Mockito.lenient().when(tempFile1.toString()).thenReturn("/tmp/file1.tmp");
         Mockito.lenient().when(tempFile2.toAbsolutePath()).thenReturn(tempFile2);
@@ -128,7 +127,6 @@ class SubprocessReportGeneratorTest {
                         targetConnectionManager,
                         Set.of(new TestReportTransformer()),
                         () -> javaProcessBuilder,
-                        tempFileProvider,
                         30,
                         logger);
     }
@@ -278,7 +276,7 @@ class SubprocessReportGeneratorTest {
                         new Answer<Path>() {
                             @Override
                             public Path answer(InvocationOnMock invocation) throws Throwable {
-                                return tempFileProvider.get();
+                                return fs.createTempFile(null, null);
                             }
                         });
 
@@ -299,7 +297,7 @@ class SubprocessReportGeneratorTest {
                         new Answer<Path>() {
                             @Override
                             public Path answer(InvocationOnMock invocation) throws Throwable {
-                                return tempFileProvider.get();
+                                return fs.createTempFile(null, null);
                             }
                         });
 

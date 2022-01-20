@@ -44,8 +44,10 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
+import javax.inject.Named;
 
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.sys.Environment;
@@ -53,6 +55,7 @@ import io.cryostat.net.AuthManager;
 import io.cryostat.net.security.ResourceAction;
 import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingNotFoundException;
@@ -70,6 +73,7 @@ import org.apache.commons.validator.routines.UrlValidator;
 class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
 
     private final Environment env;
+    private final long httpTimeoutSeconds;
     private final WebClient webClient;
     private final RecordingArchiveHelper recordingArchiveHelper;
 
@@ -77,10 +81,12 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
     RecordingUploadPostHandler(
             AuthManager auth,
             Environment env,
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeoutSeconds,
             WebClient webClient,
             RecordingArchiveHelper recordingArchiveHelper) {
         super(auth);
         this.env = env;
+        this.httpTimeoutSeconds = httpTimeoutSeconds;
         this.webClient = webClient;
         this.recordingArchiveHelper = recordingArchiveHelper;
     }
@@ -164,7 +170,7 @@ class RecordingUploadPostHandler extends AbstractAuthenticatedRequestHandler {
         CompletableFuture<ResponseMessage> future = new CompletableFuture<>();
         webClient
                 .postAbs(uploadUrl.toURI().resolve("/load").normalize().toString())
-                .timeout(30_000L)
+                .timeout(TimeUnit.SECONDS.toMillis(httpTimeoutSeconds))
                 .sendMultipartForm(
                         form,
                         uploadHandler -> {

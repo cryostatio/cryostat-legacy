@@ -37,9 +37,6 @@
  */
 package io.cryostat.net.reports;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.Set;
 
 import javax.inject.Named;
@@ -52,6 +49,7 @@ import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
 import io.cryostat.net.TargetConnectionManager;
+import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.util.JavaProcess;
 
@@ -71,10 +69,9 @@ public abstract class ReportsModule {
 
     @Provides
     @Named(REPORT_GENERATION_TIMEOUT_SECONDS)
-    static long provideReportGenerationTimeoutSeconds() {
-        // TODO make this configurable via env var? It is also related to the max HTTP response
-        // timeout that clients expect, and which usually defaults to 30 seconds
-        return 29;
+    static long provideReportGenerationTimeoutSeconds(
+            @Named(HttpModule.HTTP_REQUEST_TIMEOUT_SECONDS) long httpTimeout) {
+        return httpTimeout;
     }
 
     @Provides
@@ -134,25 +131,8 @@ public abstract class ReportsModule {
             Environment env,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        // TODO extract this so it's reusable and not duplicated
-        Provider<Path> tempFileProvider =
-                () -> {
-                    try {
-                        return Files.createTempFile(null, null);
-                    } catch (IOException e) {
-                        logger.error(e);
-                        throw new RuntimeException(e);
-                    }
-                };
         return new RemoteReportGenerator(
-                targetConnectionManager,
-                fs,
-                tempFileProvider,
-                vertx,
-                http,
-                env,
-                generationTimeoutSeconds,
-                logger);
+                targetConnectionManager, fs, vertx, http, env, generationTimeoutSeconds, logger);
     }
 
     @Provides
@@ -164,22 +144,12 @@ public abstract class ReportsModule {
             Provider<JavaProcess.Builder> javaProcessBuilder,
             @Named(REPORT_GENERATION_TIMEOUT_SECONDS) long generationTimeoutSeconds,
             Logger logger) {
-        Provider<Path> tempFileProvider =
-                () -> {
-                    try {
-                        return Files.createTempFile(null, null);
-                    } catch (IOException e) {
-                        logger.error(e);
-                        throw new RuntimeException(e);
-                    }
-                };
         return new SubprocessReportGenerator(
                 env,
                 fs,
                 targetConnectionManager,
                 reportTransformers,
                 javaProcessBuilder,
-                tempFileProvider,
                 generationTimeoutSeconds,
                 logger);
     }

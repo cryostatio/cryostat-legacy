@@ -46,8 +46,6 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 
-import javax.inject.Provider;
-
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
@@ -65,18 +63,12 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
 
     protected final TargetConnectionManager targetConnectionManager;
     protected final FileSystem fs;
-    // FIXME extract TempFileProvider to FileSystem
-    protected final Provider<Path> tempFileProvider;
     protected final Logger logger;
 
     protected AbstractReportGeneratorService(
-            TargetConnectionManager targetConnectionManager,
-            FileSystem fs,
-            Provider<Path> tempFileProvider,
-            Logger logger) {
+            TargetConnectionManager targetConnectionManager, FileSystem fs, Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.fs = fs;
-        this.tempFileProvider = tempFileProvider;
         this.logger = logger;
     }
 
@@ -87,7 +79,7 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
                 getRecordingFromLiveTarget(
                         recordingDescriptor.recordingName,
                         recordingDescriptor.connectionDescriptor);
-        Path saveFile = tempFileProvider.get();
+        Path saveFile = fs.createTempFile(null, null);
         CompletableFuture<Path> cf = exec(recording, saveFile);
         return cf.whenComplete(
                 (p, t) -> {
@@ -102,7 +94,10 @@ abstract class AbstractReportGeneratorService implements ReportGeneratorService 
     Path getRecordingFromLiveTarget(String recordingName, ConnectionDescriptor cd)
             throws Exception {
         return this.targetConnectionManager.executeConnectedTask(
-                cd, conn -> copyRecordingToFile(conn, cd, recordingName, tempFileProvider.get()));
+                cd,
+                conn ->
+                        copyRecordingToFile(
+                                conn, cd, recordingName, fs.createTempFile(null, null)));
     }
 
     @SuppressFBWarnings("RCN_REDUNDANT_NULLCHECK_WOULD_HAVE_BEEN_A_NPE")

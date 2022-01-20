@@ -38,6 +38,7 @@
 package io.cryostat.net.web.http.api.v1;
 
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -104,7 +105,7 @@ class TargetRecordingUploadPostHandlerTest {
     void setup() {
         this.handler =
                 new TargetRecordingUploadPostHandler(
-                        auth, env, targetConnectionManager, webClient, fs);
+                        auth, env, targetConnectionManager, 30, webClient, fs);
     }
 
     @Test
@@ -193,6 +194,9 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldDoUpload() throws Exception {
+        Path tempFile = Mockito.mock(Path.class);
+        Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
@@ -259,6 +263,9 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleInvalidResponseStatusCode() throws Exception {
+        Path tempFile = Mockito.mock(Path.class);
+        Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
@@ -328,6 +335,9 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleNullStatusMessage() throws Exception {
+        Path tempFile = Mockito.mock(Path.class);
+        Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
@@ -397,6 +407,9 @@ class TargetRecordingUploadPostHandlerTest {
 
     @Test
     void shouldHandleNullResponseBody() throws Exception {
+        Path tempFile = Mockito.mock(Path.class);
+        Mockito.when(fs.createTempFile(null, null)).thenReturn(tempFile);
+
         Mockito.when(auth.validateHttpHeader(Mockito.any(), Mockito.any()))
                 .thenReturn(CompletableFuture.completedFuture(true));
         Mockito.when(
