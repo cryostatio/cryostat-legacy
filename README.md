@@ -97,7 +97,7 @@ exec:exec@destroy-pod`
 *To run on local podman, [cgroups v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html) should be enabled.
 This allows resource configuration for any rootless containers running on podman. To ensure podman works with cgroups v2, follow these [instructions](https://podman.io/blogs/2019/10/29/podman-crun-f31.html).
 
-Note: If your podman runtime is set to runc v1.0.0-rc91 or later it is not necessary to change it to crun as recommended in the instructions, since this version of runc supports cgroups v2. The article refers to an older version of runc. 
+Note: If your podman runtime is set to runc v1.0.0-rc91 or later it is not necessary to change it to crun as recommended in the instructions, since this version of runc supports cgroups v2. The article refers to an older version of runc.
 
 ## CONFIGURATION
 
@@ -109,7 +109,7 @@ Cryostat can be configured via the following environment variables
 * `CRYOSTAT_WEB_PORT`: the internal port used by the cryostat web server
 * `CRYOSTAT_EXT_WEB_PORT`: the external port used by the cryostat web server
 * `CRYOSTAT_CORS_ORIGIN`: the origin for CORS to load a different cryostat-web instance
-* `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of webscoket client connections allowed (minimum 1, maximum 64, default 2)
+* `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of websocket client connections allowed (minimum 1, maximum 64, default 2)
 * `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`.
 * `CRYOSTAT_PLATFORM`: the platform client used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the platform, whether that platform is specified by the user or automatically detected. Set to the fully-qualified name of the platform detection strategy implementation to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
 * `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory (default `/opt/cryostat.d/conf.d`)
