@@ -64,7 +64,6 @@ import io.cryostat.configuration.Variables;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.reports.InterruptibleReportGenerator;
-import io.cryostat.core.reports.ReportGenerator;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -285,7 +284,10 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
         try (InputStream stream = fs.newInputStream(recording)) {
-            return new InterruptibleReportGenerator(Logger.INSTANCE, transformers, ForkJoinPool.commonPool()).generateReportInterruptibly(stream).get();
+            return new InterruptibleReportGenerator(
+                            Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
+                    .generateReportInterruptibly(stream)
+                    .get();
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new SubprocessReportGenerationException(ExitStatus.IO_EXCEPTION);
