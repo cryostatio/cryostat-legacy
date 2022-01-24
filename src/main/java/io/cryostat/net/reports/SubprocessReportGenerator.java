@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
@@ -62,6 +63,7 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
+import io.cryostat.core.reports.InterruptibleReportGenerator;
 import io.cryostat.core.reports.ReportGenerator;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
@@ -283,7 +285,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
         try (InputStream stream = fs.newInputStream(recording)) {
-            return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
+            return new InterruptibleReportGenerator(Logger.INSTANCE, transformers, ForkJoinPool.commonPool()).generateReportInterruptibly(stream).get();
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new SubprocessReportGenerationException(ExitStatus.IO_EXCEPTION);
