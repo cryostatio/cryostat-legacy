@@ -39,7 +39,6 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -54,7 +53,6 @@ import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
@@ -74,13 +72,11 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
-import io.cryostat.rules.ArchivedRecordingInfo;
 
 import dagger.Binds;
 import dagger.Module;
 import dagger.Provides;
 import dagger.multibindings.IntoSet;
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import graphql.GraphQL;
 import graphql.Scalars;
 import graphql.TypeResolutionEnvironment;
@@ -112,11 +108,10 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     static GraphQL provideGraphQL(
-            @Named("discovery") DataFetcher<EnvironmentNode> discoveryFetcher,
-            @Named("nodeChildren") DataFetcher<List<AbstractNode>> nodeChildrenFetcher,
-            @Named("recordings") DataFetcher<Recordings> recordingsFetcher,
-            @Named("targetsDescendedFrom")
-                    DataFetcher<List<TargetNode>> targetsDescendedFromFetcher,
+            DiscoveryFetcher discoveryFetcher,
+            EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
+            RecordingsFetcher recordingsFetcher,
+            TargetDescendentsFetcher targetsDescendentsFetcher,
             @Named("startRecordingByNodes")
                     DataFetcher<List<TargetNode>> startRecordingByNodesFetcher,
             @Named("startRecordingByAnnotations")
@@ -143,8 +138,7 @@ public abstract class GraphModule {
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
                                         .dataFetcher(
-                                                "targetsDescendedFrom",
-                                                targetsDescendedFromFetcher))
+                                                "targetsDescendedFrom", targetsDescendentsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Mutation")
                                         .dataFetcher(
@@ -221,10 +215,39 @@ public abstract class GraphModule {
     }
 
     @Provides
-    @Singleton
-    @Named("discovery")
-    static DataFetcher<EnvironmentNode> provideDiscoveryFetcher(PlatformClient client) {
-        return env -> client.getDiscoveryTree();
+    static DiscoveryFetcher provideDiscoveryFetcher(PlatformClient client) {
+        return new DiscoveryFetcher(client);
+    }
+
+    @Provides
+    static RecordingsFetcher provideRecordingsFetcher(
+            TargetConnectionManager tcm,
+            RecordingArchiveHelper archiveHelper,
+            CredentialsManager credentialsManager,
+            Provider<WebServer> webServer,
+            Logger logger) {
+        return new RecordingsFetcher(tcm, archiveHelper, credentialsManager, webServer, logger);
+    }
+
+    @Provides
+    static TargetDescendentsFetcher provideTargetsDescendedFromFetcher(
+            TargetNodeRecurseFetcher recurseFetcher, NodeFetcher nodeFetcher) {
+        return new TargetDescendentsFetcher(recurseFetcher, nodeFetcher);
+    }
+
+    @Provides
+    static EnvironmentNodeChildrenFetcher provideEnvironmentNodeChildrenFetcher() {
+        return new EnvironmentNodeChildrenFetcher();
+    }
+
+    @Provides
+    static TargetNodeRecurseFetcher provideTargetNodeRecurseFetcher() {
+        return new TargetNodeRecurseFetcher();
+    }
+
+    @Provides
+    static NodeFetcher provideNodeFetcher(DiscoveryFetcher discoveryFetcher) {
+        return new NodeFetcher(discoveryFetcher);
     }
 
     @Provides
@@ -521,86 +544,6 @@ public abstract class GraphModule {
         };
     }
 
-    @Provides
-    @Singleton
-    @Named("recordings")
-    @SuppressFBWarnings(
-            value = "URF_UNREAD_FIELD",
-            justification =
-                    "The Recordings fields are serialized and returned to the client by the GraphQL engine")
-    static DataFetcher<Recordings> provideRecordingsFetcher(
-            TargetConnectionManager tcm,
-            RecordingArchiveHelper archiveHelper,
-            CredentialsManager credentialsManager,
-            Provider<WebServer> webServer,
-            Logger logger) {
-        return env -> {
-            String targetId = ((TargetNode) env.getSource()).getTarget().getServiceUri().toString();
-            Recordings recordings = new Recordings();
-
-            ConnectionDescriptor cd =
-                    new ConnectionDescriptor(
-                            targetId,
-                            credentialsManager.getCredentials(
-                                    ((TargetNode) env.getSource()).getTarget()));
-            recordings.archived = archiveHelper.getRecordings(targetId).get();
-            recordings.active =
-                    tcm.executeConnectedTask(
-                            cd,
-                            conn -> {
-                                return conn.getService().getAvailableRecordings().stream()
-                                        .map(
-                                                r -> {
-                                                    try {
-                                                        String downloadUrl =
-                                                                webServer
-                                                                        .get()
-                                                                        .getDownloadURL(
-                                                                                conn, r.getName());
-                                                        String reportUrl =
-                                                                webServer
-                                                                        .get()
-                                                                        .getReportURL(
-                                                                                conn, r.getName());
-                                                        return new HyperlinkedSerializableRecordingDescriptor(
-                                                                r, downloadUrl, reportUrl);
-                                                    } catch (QuantityConversionException
-                                                            | URISyntaxException
-                                                            | IOException e) {
-                                                        logger.error(e);
-                                                        return null;
-                                                    }
-                                                })
-                                        .filter(Objects::nonNull)
-                                        .collect(Collectors.toList());
-                            },
-                            false);
-
-            return recordings;
-        };
-    }
-
-    @Provides
-    @Singleton
-    @Named("targetsDescendedFrom")
-    static DataFetcher<List<TargetNode>> provideTargetsDescendedFromFetcher(PlatformClient client) {
-        return env -> {
-            List<Map<String, String>> selectors = env.getArgument("nodes");
-            List<TargetNode> result = new ArrayList<>();
-            for (Map<String, String> selector : selectors) {
-                String name = selector.get("name");
-                String nodeType = selector.get("nodeType");
-
-                AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
-                if (parent == null) {
-                    throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
-                }
-                result.addAll(recurseChildren(parent));
-            }
-            return result;
-        };
-    }
-
     static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
         if (Objects.equals(name, root.getName())
                 && Objects.equals(nodeType, root.getNodeType().getKind())) {
@@ -688,21 +631,6 @@ public abstract class GraphModule {
         } else {
             throw new IllegalStateException(node.getClass().toString());
         }
-    }
-
-    @Provides
-    @Singleton
-    @Named("nodeChildren")
-    static DataFetcher<List<AbstractNode>> provideNodeChildrenFetcher() {
-        return env -> {
-            EnvironmentNode source = env.getSource();
-            return new ArrayList<>(source.getChildren());
-        };
-    }
-
-    static class Recordings {
-        List<HyperlinkedSerializableRecordingDescriptor> active;
-        List<ArchivedRecordingInfo> archived;
     }
 
     static class BatchedExceptions extends RuntimeException {
