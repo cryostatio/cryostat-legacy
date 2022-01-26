@@ -104,9 +104,6 @@ class StartRecordingByNodesMutator implements DataFetcher<List<TargetNode>> {
                             DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
                                     .arguments(Map.of("name", name, "nodeType", nodeType))
                                     .build());
-            if (parent == null) {
-                throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
-            }
             parents.add(parent);
         }
         List<Exception> exceptions = new ArrayList<>();
