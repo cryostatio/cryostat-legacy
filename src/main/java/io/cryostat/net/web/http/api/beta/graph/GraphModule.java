@@ -59,7 +59,6 @@ import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.templates.TemplateType;
-import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
@@ -79,11 +78,8 @@ import dagger.Provides;
 import dagger.multibindings.IntoSet;
 import graphql.GraphQL;
 import graphql.Scalars;
-import graphql.TypeResolutionEnvironment;
 import graphql.scalars.ExtendedScalars;
 import graphql.schema.DataFetcher;
-import graphql.schema.GraphQLObjectType;
-import graphql.schema.TypeResolver;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -108,6 +104,8 @@ public abstract class GraphModule {
     @Provides
     @Singleton
     static GraphQL provideGraphQL(
+            NodeTypeResolver nodeTypeResolver,
+            RecordingTypeResolver recordingTypeResolver,
             DiscoveryFetcher discoveryFetcher,
             EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
             RecordingsFetcher recordingsFetcher,
@@ -162,43 +160,10 @@ public abstract class GraphModule {
                                         .dataFetcher("recordings", recordingsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
-                                        .typeResolver(
-                                                new TypeResolver() {
-                                                    @Override
-                                                    public GraphQLObjectType getType(
-                                                            TypeResolutionEnvironment env) {
-                                                        Object o = env.getObject();
-                                                        if (o instanceof EnvironmentNode) {
-                                                            return env.getSchema()
-                                                                    .getObjectType(
-                                                                            "EnvironmentNode");
-                                                        } else {
-                                                            return env.getSchema()
-                                                                    .getObjectType("TargetNode");
-                                                        }
-                                                    }
-                                                }))
+                                        .typeResolver(nodeTypeResolver))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Recording")
-                                        .typeResolver(
-                                                new TypeResolver() {
-                                                    @Override
-                                                    public GraphQLObjectType getType(
-                                                            TypeResolutionEnvironment env) {
-                                                        Object o = env.getObject();
-                                                        if (o
-                                                                instanceof
-                                                                HyperlinkedSerializableRecordingDescriptor) {
-                                                            return env.getSchema()
-                                                                    .getObjectType(
-                                                                            "ActiveRecording");
-                                                        } else {
-                                                            return env.getSchema()
-                                                                    .getObjectType(
-                                                                            "ArchivedRecording");
-                                                        }
-                                                    }
-                                                }))
+                                        .typeResolver(recordingTypeResolver))
                         .build();
         SchemaParser parser = new SchemaParser();
         TypeDefinitionRegistry tdr = new TypeDefinitionRegistry();
