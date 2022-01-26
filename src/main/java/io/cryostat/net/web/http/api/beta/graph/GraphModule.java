@@ -39,35 +39,18 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
-import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
-
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.templates.TemplateType;
-import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.platform.PlatformClient;
-import io.cryostat.platform.ServiceRef.AnnotationKey;
-import io.cryostat.platform.discovery.AbstractNode;
-import io.cryostat.platform.discovery.EnvironmentNode;
-import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -79,7 +62,6 @@ import dagger.multibindings.IntoSet;
 import graphql.GraphQL;
 import graphql.Scalars;
 import graphql.scalars.ExtendedScalars;
-import graphql.schema.DataFetcher;
 import graphql.schema.idl.RuntimeWiring;
 import graphql.schema.idl.SchemaGenerator;
 import graphql.schema.idl.SchemaParser;
@@ -110,12 +92,9 @@ public abstract class GraphModule {
             EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
             RecordingsFetcher recordingsFetcher,
             TargetDescendentsFetcher targetsDescendentsFetcher,
-            @Named("startRecordingByNodes")
-                    DataFetcher<List<TargetNode>> startRecordingByNodesFetcher,
-            @Named("startRecordingByAnnotations")
-                    DataFetcher<List<TargetNode>> startRecordingByAnnotationsFetcher,
-            @Named("startRecordingByLabels")
-                    DataFetcher<List<TargetNode>> startRecordingByLabelsFetcher) {
+            StartRecordingByNodesMutator startRecordingByNodesMutator,
+            StartRecordingByAnnotationsMutator startRecordingByAnnotationsMutator,
+            StartRecordingByLabelsMutator startRecordingByLabelsMutator) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -141,17 +120,17 @@ public abstract class GraphModule {
                                 TypeRuntimeWiring.newTypeWiring("Mutation")
                                         .dataFetcher(
                                                 "startRecordingByNodes",
-                                                startRecordingByNodesFetcher))
+                                                startRecordingByNodesMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Mutation")
                                         .dataFetcher(
                                                 "startRecordingByAnnotations",
-                                                startRecordingByAnnotationsFetcher))
+                                                startRecordingByAnnotationsMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Mutation")
                                         .dataFetcher(
                                                 "startRecordingByLabels",
-                                                startRecordingByLabelsFetcher))
+                                                startRecordingByLabelsMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
@@ -216,399 +195,61 @@ public abstract class GraphModule {
     }
 
     @Provides
-    @Singleton
-    @Named("startRecordingByNodes")
-    static DataFetcher<List<TargetNode>> providestartRecordingByNodesFetcher(
-            PlatformClient client,
-            TargetConnectionManager tcm,
-            RecordingTargetHelper helper,
+    static StartRecordingByNodesMutator providestartRecordingByNodesMutator(
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
+            NodeFetcher nodeFetcher,
+            TargetNodeRecurseFetcher recurseFetcher,
             Logger logger) {
-        return env -> {
-            Map<String, Object> settings = env.getArgument("recording");
-            List<Map<String, String>> selectors = env.getArgument("nodes");
-
-            List<AbstractNode> parents = new ArrayList<>();
-            for (Map<String, String> selector : selectors) {
-                String name = selector.get("name");
-                String nodeType = selector.get("nodeType");
-                AbstractNode parent = findNode(name, nodeType, client.getDiscoveryTree());
-                if (parent == null) {
-                    throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
-                }
-                parents.add(parent);
-            }
-            List<Exception> exceptions = new ArrayList<>();
-            List<TargetNode> children =
-                    parents.parallelStream()
-                            .map(GraphModule::recurseChildren)
-                            .flatMap(List::stream)
-                            .collect(Collectors.toList());
-            children.parallelStream()
-                    .forEach(
-                            tn -> {
-                                String uri = tn.getTarget().getServiceUri().toString();
-                                ConnectionDescriptor cd =
-                                        new ConnectionDescriptor(
-                                                uri,
-                                                credentialsManager.getCredentials(tn.getTarget()));
-                                try {
-                                    tcm.executeConnectedTask(
-                                            cd,
-                                            conn -> {
-                                                RecordingOptionsBuilder builder =
-                                                        recordingOptionsBuilderFactory
-                                                                .create(conn.getService())
-                                                                .name(
-                                                                        (String)
-                                                                                settings.get(
-                                                                                        "name"));
-                                                if (settings.containsKey("duration")) {
-                                                    builder =
-                                                            builder.duration(
-                                                                    TimeUnit.SECONDS.toMillis(
-                                                                            (Long)
-                                                                                    settings.get(
-                                                                                            "duration")));
-                                                }
-                                                if (settings.containsKey("toDisk")) {
-                                                    builder =
-                                                            builder.toDisk(
-                                                                    (Boolean)
-                                                                            settings.get("toDisk"));
-                                                }
-                                                if (settings.containsKey("maxAge")) {
-                                                    builder =
-                                                            builder.maxAge(
-                                                                    (Long) settings.get("maxAge"));
-                                                }
-                                                if (settings.containsKey("maxSize")) {
-                                                    builder =
-                                                            builder.maxSize(
-                                                                    (Long) settings.get("maxSize"));
-                                                }
-                                                IRecordingDescriptor desc =
-                                                        helper.startRecording(
-                                                                cd,
-                                                                builder.build(),
-                                                                (String) settings.get("template"),
-                                                                TemplateType.valueOf(
-                                                                        ((String)
-                                                                                        settings
-                                                                                                .get(
-                                                                                                        "templateType"))
-                                                                                .toUpperCase()));
-                                                return null;
-                                            },
-                                            true);
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    exceptions.add(e);
-                                }
-                            });
-            if (!exceptions.isEmpty()) {
-                throw new BatchedExceptions(exceptions);
-            }
-
-            return children;
-        };
+        return new StartRecordingByNodesMutator(
+                targetConnectionManager,
+                recordingTargetHelper,
+                recordingOptionsBuilderFactory,
+                credentialsManager,
+                nodeFetcher,
+                recurseFetcher,
+                logger);
     }
 
     @Provides
-    @Singleton
-    @Named("startRecordingByAnnotations")
-    static DataFetcher<List<TargetNode>> provideStartRecordingByAnnotationsFetcher(
-            PlatformClient client,
-            TargetConnectionManager tcm,
-            RecordingTargetHelper helper,
+    static StartRecordingByAnnotationsMutator provideStartRecordingByAnnotationsFetcher(
+            DiscoveryFetcher discoveryFetcher,
+            TargetNodeRecurseFetcher recurseFetcher,
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
             Logger logger) {
-        return env -> {
-            Map<String, Object> settings = env.getArgument("recording");
-            List<Map<String, String>> annotationSelectors = env.getArgument("annotations");
-
-            EnvironmentNode root = client.getDiscoveryTree();
-            List<TargetNode> matches = new ArrayList<>();
-            for (Map<String, String> selector : annotationSelectors) {
-                String selectorKey = selector.get("key");
-                String selectorValue = selector.get("value");
-                Set<TargetNode> labeled =
-                        findNodesWithAnnotation(selectorKey, selectorValue, root).stream()
-                                .map(GraphModule::recurseChildren)
-                                .flatMap(List::stream)
-                                .collect(Collectors.toSet());
-                matches.addAll(labeled);
-            }
-            List<Exception> exceptions = new ArrayList<>();
-            matches.parallelStream()
-                    .forEach(
-                            tn -> {
-                                String uri = tn.getTarget().getServiceUri().toString();
-                                ConnectionDescriptor cd =
-                                        new ConnectionDescriptor(
-                                                uri,
-                                                credentialsManager.getCredentials(tn.getTarget()));
-                                try {
-                                    tcm.executeConnectedTask(
-                                            cd,
-                                            conn -> {
-                                                RecordingOptionsBuilder builder =
-                                                        recordingOptionsBuilderFactory
-                                                                .create(conn.getService())
-                                                                .name(
-                                                                        (String)
-                                                                                settings.get(
-                                                                                        "name"));
-                                                if (settings.containsKey("duration")) {
-                                                    builder =
-                                                            builder.duration(
-                                                                    TimeUnit.SECONDS.toMillis(
-                                                                            (Long)
-                                                                                    settings.get(
-                                                                                            "duration")));
-                                                }
-                                                if (settings.containsKey("toDisk")) {
-                                                    builder =
-                                                            builder.toDisk(
-                                                                    (Boolean)
-                                                                            settings.get("toDisk"));
-                                                }
-                                                if (settings.containsKey("maxAge")) {
-                                                    builder =
-                                                            builder.maxAge(
-                                                                    (Long) settings.get("maxAge"));
-                                                }
-                                                if (settings.containsKey("maxSize")) {
-                                                    builder =
-                                                            builder.maxSize(
-                                                                    (Long) settings.get("maxSize"));
-                                                }
-                                                IRecordingDescriptor desc =
-                                                        helper.startRecording(
-                                                                cd,
-                                                                builder.build(),
-                                                                (String) settings.get("template"),
-                                                                TemplateType.valueOf(
-                                                                        ((String)
-                                                                                        settings
-                                                                                                .get(
-                                                                                                        "templateType"))
-                                                                                .toUpperCase()));
-                                                return null;
-                                            },
-                                            true);
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    exceptions.add(e);
-                                }
-                            });
-            if (!exceptions.isEmpty()) {
-                throw new BatchedExceptions(exceptions);
-            }
-
-            return matches;
-        };
+        return new StartRecordingByAnnotationsMutator(
+                discoveryFetcher,
+                recurseFetcher,
+                targetConnectionManager,
+                recordingTargetHelper,
+                recordingOptionsBuilderFactory,
+                credentialsManager,
+                logger);
     }
 
     @Provides
     @Singleton
     @Named("startRecordingByLabels")
-    static DataFetcher<List<TargetNode>> provideStartRecordingByLabelsFetcher(
-            PlatformClient client,
-            TargetConnectionManager tcm,
-            RecordingTargetHelper helper,
+    static StartRecordingByLabelsMutator provideStartRecordingByLabelsMutator(
+            DiscoveryFetcher discoveryFetcher,
+            TargetNodeRecurseFetcher recurseFetcher,
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
             Logger logger) {
-        return env -> {
-            Map<String, Object> settings = env.getArgument("recording");
-            List<Map<String, String>> labelSelectors = env.getArgument("labels");
-
-            EnvironmentNode root = client.getDiscoveryTree();
-            List<TargetNode> matches = new ArrayList<>();
-            for (Map<String, String> selector : labelSelectors) {
-                String selectorKey = selector.get("key");
-                String selectorValue = selector.get("value");
-                Set<TargetNode> labeled =
-                        findNodesWithLabel(selectorKey, selectorValue, root).stream()
-                                .map(GraphModule::recurseChildren)
-                                .flatMap(List::stream)
-                                .collect(Collectors.toSet());
-                matches.addAll(labeled);
-            }
-            List<Exception> exceptions = new ArrayList<>();
-            matches.parallelStream()
-                    .forEach(
-                            tn -> {
-                                String uri = tn.getTarget().getServiceUri().toString();
-                                ConnectionDescriptor cd =
-                                        new ConnectionDescriptor(
-                                                uri,
-                                                credentialsManager.getCredentials(tn.getTarget()));
-                                try {
-                                    tcm.executeConnectedTask(
-                                            cd,
-                                            conn -> {
-                                                RecordingOptionsBuilder builder =
-                                                        recordingOptionsBuilderFactory
-                                                                .create(conn.getService())
-                                                                .name(
-                                                                        (String)
-                                                                                settings.get(
-                                                                                        "name"));
-                                                if (settings.containsKey("duration")) {
-                                                    builder =
-                                                            builder.duration(
-                                                                    TimeUnit.SECONDS.toMillis(
-                                                                            (Long)
-                                                                                    settings.get(
-                                                                                            "duration")));
-                                                }
-                                                if (settings.containsKey("toDisk")) {
-                                                    builder =
-                                                            builder.toDisk(
-                                                                    (Boolean)
-                                                                            settings.get("toDisk"));
-                                                }
-                                                if (settings.containsKey("maxAge")) {
-                                                    builder =
-                                                            builder.maxAge(
-                                                                    (Long) settings.get("maxAge"));
-                                                }
-                                                if (settings.containsKey("maxSize")) {
-                                                    builder =
-                                                            builder.maxSize(
-                                                                    (Long) settings.get("maxSize"));
-                                                }
-                                                IRecordingDescriptor desc =
-                                                        helper.startRecording(
-                                                                cd,
-                                                                builder.build(),
-                                                                (String) settings.get("template"),
-                                                                TemplateType.valueOf(
-                                                                        ((String)
-                                                                                        settings
-                                                                                                .get(
-                                                                                                        "templateType"))
-                                                                                .toUpperCase()));
-                                                return null;
-                                            },
-                                            true);
-                                } catch (Exception e) {
-                                    logger.error(e);
-                                    exceptions.add(e);
-                                }
-                            });
-            if (!exceptions.isEmpty()) {
-                throw new BatchedExceptions(exceptions);
-            }
-
-            return matches;
-        };
-    }
-
-    static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
-        if (Objects.equals(name, root.getName())
-                && Objects.equals(nodeType, root.getNodeType().getKind())) {
-            return root;
-        }
-        if (root instanceof EnvironmentNode) {
-            for (AbstractNode child : ((EnvironmentNode) root).getChildren()) {
-                AbstractNode found = findNode(name, nodeType, child);
-                if (found != null) {
-                    return found;
-                }
-            }
-        }
-        return null;
-    }
-
-    static List<AbstractNode> findNodesWithAnnotation(String key, String value, AbstractNode root) {
-        List<AbstractNode> nodes = new ArrayList<>();
-        if (root instanceof TargetNode) {
-            Map<String, String> annotations = new HashMap<>();
-            TargetNode targetNode = (TargetNode) root;
-            annotations.putAll(targetNode.getTarget().getPlatformAnnotations());
-            for (Map.Entry<AnnotationKey, String> annotation :
-                    targetNode.getTarget().getCryostatAnnotations().entrySet()) {
-                annotations.put(annotation.getKey().name(), annotation.getValue());
-            }
-            if (annotations.containsKey(key)) {
-                if (value == null) {
-                    nodes.add(root);
-                } else if (value.equals(annotations.get(key))) {
-                    nodes.add(root);
-                }
-            }
-        } else if (root instanceof EnvironmentNode) {
-            EnvironmentNode envNode = (EnvironmentNode) root;
-            envNode.getChildren()
-                    .forEach(
-                            child -> {
-                                nodes.addAll(findNodesWithAnnotation(key, value, child));
-                            });
-        }
-
-        return nodes;
-    }
-
-    static List<AbstractNode> findNodesWithLabel(String key, String value, AbstractNode root) {
-        List<AbstractNode> nodes = new ArrayList<>();
-        if (root instanceof TargetNode) {
-            TargetNode targetNode = (TargetNode) root;
-            if (targetNode.getTarget().getLabels().containsKey(key)) {
-                if (value == null) {
-                    nodes.add(root);
-                } else if (value.equals(targetNode.getTarget().getLabels().get(key))) {
-                    nodes.add(root);
-                }
-            }
-        } else if (root instanceof EnvironmentNode) {
-            EnvironmentNode envNode = (EnvironmentNode) root;
-            if (envNode.getLabels().containsKey(key)) {
-                if (value == null) {
-                    nodes.add(root);
-                } else if (value.equals(envNode.getLabels().get(key))) {
-                    nodes.add(root);
-                }
-            }
-            envNode.getChildren()
-                    .forEach(
-                            child -> {
-                                nodes.addAll(findNodesWithLabel(key, value, child));
-                            });
-        }
-
-        return nodes;
-    }
-
-    static List<TargetNode> recurseChildren(AbstractNode node) {
-        if (node instanceof TargetNode) {
-            return List.of((TargetNode) node);
-        } else if (node instanceof EnvironmentNode) {
-            List<TargetNode> result = new ArrayList<>();
-            for (AbstractNode child : ((EnvironmentNode) node).getChildren()) {
-                result.addAll(recurseChildren(child));
-            }
-            return result;
-        } else {
-            throw new IllegalStateException(node.getClass().toString());
-        }
-    }
-
-    static class BatchedExceptions extends RuntimeException {
-        final List<Exception> causes;
-
-        BatchedExceptions(List<Exception> causes) {
-            super(
-                    String.format(
-                            "Causes: %s",
-                            causes.stream()
-                                    .map(Exception::getMessage)
-                                    .collect(Collectors.toList())));
-            this.causes = causes;
-        }
+        return new StartRecordingByLabelsMutator(
+                discoveryFetcher,
+                recurseFetcher,
+                targetConnectionManager,
+                recordingTargetHelper,
+                recordingOptionsBuilderFactory,
+                credentialsManager,
+                logger);
     }
 }
