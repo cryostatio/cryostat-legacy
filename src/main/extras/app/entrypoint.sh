@@ -112,15 +112,15 @@ FLAGS=(
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
 )
 
-if [ "CRYOSTAT_ENABLE_JDP_BROADCAST" = "true" ]; then
+if [ "$CRYOSTAT_ENABLE_JDP_BROADCAST" = "true" ]; then
     FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=true")
 fi
 
-if [ -z "CRYOSTAT_JDP_ADDRESS" ]; then
+if [ -n "$CRYOSTAT_JDP_ADDRESS" ]; then
     FLAGS+=("-Dcom.sun.management.jmxremote.jdp.address=$CRYOSTAT_JDP_ADDRESS")
 fi
 
-if [ -z "CRYOSTAT_JDP_PORT" ]; then
+if [ -n "$CRYOSTAT_JDP_PORT" ]; then
     FLAGS+=("-Dcom.sun.management.jmxremote.jdp.port=$CRYOSTAT_JDP_PORT")
 fi
 
