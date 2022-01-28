@@ -94,7 +94,8 @@ public abstract class GraphModule {
             TargetNodeRecurseFetcher targetNodeRecurseFetcher,
             RecordingsFetcher recordingsFetcher,
             StartRecordingOnTargetMutator startRecordingOnTargetMutator,
-            StopRecordingsOnTargetMutator stopRecordingsOnTargetMutator) {
+            StopRecordingsOnTargetMutator stopRecordingsOnTargetMutator,
+            DeleteRecordingsOnTargetMutator deleteRecordingsOnTargetMutator) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -135,6 +136,11 @@ public abstract class GraphModule {
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
                                         .dataFetcher(
                                                 "stopRecordings", stopRecordingsOnTargetMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("TargetNode")
+                                        .dataFetcher(
+                                                "deleteRecordings",
+                                                deleteRecordingsOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
                                         .typeResolver(nodeTypeResolver))
@@ -229,8 +235,18 @@ public abstract class GraphModule {
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
-            Provider<WebServer> webServer
-            ) {
-        return new StopRecordingsOnTargetMutator(targetConnectionManager, recordingTargetHelper, credentialsManager, webServer);
-            }
+            Provider<WebServer> webServer) {
+        return new StopRecordingsOnTargetMutator(
+                targetConnectionManager, recordingTargetHelper, credentialsManager, webServer);
+    }
+
+    @Provides
+    static DeleteRecordingsOnTargetMutator provideDeleteRecordingsOnTargetMutator(
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager,
+            Provider<WebServer> webServer) {
+        return new DeleteRecordingsOnTargetMutator(
+                targetConnectionManager, recordingTargetHelper, credentialsManager, webServer);
+    }
 }

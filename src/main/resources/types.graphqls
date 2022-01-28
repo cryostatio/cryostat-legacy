@@ -27,7 +27,7 @@ type TargetNode implements Node {
 
     startRecording(recording: RecordingSettings!): ActiveRecording!
     stopRecordings(names: [String!]): [ActiveRecording!]
-    # deleteRecording(name: String!): ActiveRecording!
+    deleteRecordings(names: [String!]): [ActiveRecording!]
     # archiveRecording(name: String!): ActiveRecording!
     # snapshot: ActiveRecording!
 }

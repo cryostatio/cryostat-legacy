@@ -46,8 +46,6 @@ import javax.inject.Provider;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
@@ -58,7 +56,11 @@ import io.cryostat.platform.discovery.TargetNode;
 import io.cryostat.recordings.RecordingOptionsBuilderFactory;
 import io.cryostat.recordings.RecordingTargetHelper;
 
-class StartRecordingOnTargetMutator implements DataFetcher<HyperlinkedSerializableRecordingDescriptor> {
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+
+class StartRecordingOnTargetMutator
+        implements DataFetcher<HyperlinkedSerializableRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -72,8 +74,7 @@ class StartRecordingOnTargetMutator implements DataFetcher<HyperlinkedSerializab
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
-            Provider<WebServer> webServer
-            ) {
+            Provider<WebServer> webServer) {
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
@@ -82,56 +83,48 @@ class StartRecordingOnTargetMutator implements DataFetcher<HyperlinkedSerializab
     }
 
     @Override
-    public HyperlinkedSerializableRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+    public HyperlinkedSerializableRecordingDescriptor get(DataFetchingEnvironment environment)
+            throws Exception {
         TargetNode node = environment.getSource();
         Map<String, Object> settings = environment.getArgument("recording");
 
         String uri = node.getTarget().getServiceUri().toString();
         ConnectionDescriptor cd =
-            new ConnectionDescriptor(
-                    uri, credentialsManager.getCredentials(node.getTarget()));
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
                     RecordingOptionsBuilder builder =
-                        recordingOptionsBuilderFactory
-                        .create(conn.getService())
-                        .name((String) settings.get("name"));
+                            recordingOptionsBuilderFactory
+                                    .create(conn.getService())
+                                    .name((String) settings.get("name"));
                     if (settings.containsKey("duration")) {
                         builder =
-                            builder.duration(
-                                    TimeUnit.SECONDS.toMillis(
-                                        (Long)
-                                        settings.get(
-                                            "duration")));
+                                builder.duration(
+                                        TimeUnit.SECONDS.toMillis((Long) settings.get("duration")));
                     }
                     if (settings.containsKey("toDisk")) {
-                        builder =
-                            builder.toDisk(
-                                    (Boolean) settings.get("toDisk"));
+                        builder = builder.toDisk((Boolean) settings.get("toDisk"));
                     }
                     if (settings.containsKey("maxAge")) {
-                        builder =
-                            builder.maxAge(
-                                    (Long) settings.get("maxAge"));
+                        builder = builder.maxAge((Long) settings.get("maxAge"));
                     }
                     if (settings.containsKey("maxSize")) {
-                        builder =
-                            builder.maxSize(
-                                    (Long) settings.get("maxSize"));
+                        builder = builder.maxSize((Long) settings.get("maxSize"));
                     }
-                    IRecordingDescriptor desc = recordingTargetHelper.startRecording(
-                            cd,
-                            builder.build(),
-                            (String) settings.get("template"),
-                            TemplateType.valueOf(
-                                ((String) settings.get("templateType"))
-                                .toUpperCase()));
-        WebServer ws = webServer.get();
-        return new HyperlinkedSerializableRecordingDescriptor(desc, ws.getDownloadURL(conn,
-                    desc.getName()), ws.getReportURL(conn, desc.getName()));
+                    IRecordingDescriptor desc =
+                            recordingTargetHelper.startRecording(
+                                    cd,
+                                    builder.build(),
+                                    (String) settings.get("template"),
+                                    TemplateType.valueOf(
+                                            ((String) settings.get("templateType")).toUpperCase()));
+                    WebServer ws = webServer.get();
+                    return new HyperlinkedSerializableRecordingDescriptor(
+                            desc,
+                            ws.getDownloadURL(conn, desc.getName()),
+                            ws.getReportURL(conn, desc.getName()));
                 },
                 true);
     }
 }
-

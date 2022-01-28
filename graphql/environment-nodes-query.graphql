@@ -10,10 +10,14 @@ query {
             #         name
             #         state
             # }
-            stopRecordings {
-                name
-                state
-            }
+            # stopRecordings {
+            #     name
+            #     state
+            # }
+            # deleteRecordings(names: ["foo"]) {
+            #     name
+            #     state
+            # }
             recordings {
                 active {
                     name

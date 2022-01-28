@@ -57,7 +57,7 @@ import io.cryostat.recordings.RecordingTargetHelper;
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class StopRecordingsOnTargetMutator
+class DeleteRecordingsOnTargetMutator
         implements DataFetcher<List<HyperlinkedSerializableRecordingDescriptor>> {
 
     private final TargetConnectionManager targetConnectionManager;
@@ -66,7 +66,7 @@ class StopRecordingsOnTargetMutator
     private final Provider<WebServer> webServer;
 
     @Inject
-    StopRecordingsOnTargetMutator(
+    DeleteRecordingsOnTargetMutator(
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
@@ -89,24 +89,28 @@ class StopRecordingsOnTargetMutator
                 cd,
                 conn -> {
                     List<String> recordingNames = environment.getArgument("names");
+                    List<IRecordingDescriptor> availableRecordings =
+                            conn.getService().getAvailableRecordings();
                     if (recordingNames == null || recordingNames.isEmpty()) {
                         recordingNames =
-                                conn.getService().getAvailableRecordings().stream()
+                                availableRecordings.stream()
                                         .map(IRecordingDescriptor::getName)
                                         .collect(Collectors.toList());
                     }
+                    WebServer ws = webServer.get();
 
                     List<HyperlinkedSerializableRecordingDescriptor> descriptors =
                             new ArrayList<>();
-                    for (String recordingName : recordingNames) {
-                        IRecordingDescriptor desc =
-                                recordingTargetHelper.stopRecording(cd, recordingName, true);
-                        WebServer ws = webServer.get();
+                    for (IRecordingDescriptor recording : availableRecordings) {
+                        if (!recordingNames.contains(recording.getName())) {
+                            continue;
+                        }
                         descriptors.add(
                                 new HyperlinkedSerializableRecordingDescriptor(
-                                        desc,
-                                        ws.getDownloadURL(conn, desc.getName()),
-                                        ws.getReportURL(conn, desc.getName())));
+                                        recording,
+                                        ws.getDownloadURL(conn, recording.getName()),
+                                        ws.getReportURL(conn, recording.getName())));
+                        recordingTargetHelper.deleteRecording(cd, recording.getName());
                     }
                     return descriptors;
                 },

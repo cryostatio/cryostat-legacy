@@ -46,12 +46,13 @@ import java.util.function.Function;
 
 import javax.inject.Inject;
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
-import graphql.schema.DataFetchingEnvironmentImpl;
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
 import io.cryostat.platform.discovery.TargetNode;
+
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
 class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
 
@@ -69,10 +70,11 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
     public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
         Map<String, String> filter = environment.getArgument("filter");
         EnvironmentNode root = discoveryFetcher.get(environment);
-        List<EnvironmentNode> nodes = recurseFetcher.get(
-                DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
-                .source(root)
-                .build());
+        List<EnvironmentNode> nodes =
+                recurseFetcher.get(
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
+                                .source(root)
+                                .build());
 
         if (filter == null) {
             return nodes;
@@ -80,7 +82,8 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
 
         if (filter.containsKey("nodeName")) {
             String nodeName = filter.get("nodeName");
-            List<EnvironmentNode> namedNodes = recurse(root, n -> Objects.equals(n.getName(), nodeName));
+            List<EnvironmentNode> namedNodes =
+                    recurse(root, n -> Objects.equals(n.getName(), nodeName));
             if (namedNodes.isEmpty()) {
                 throw new NoSuchElementException(String.format("Node named %s", nodeName));
             }
@@ -89,7 +92,8 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
 
         if (filter.containsKey("nodeType")) {
             String nodeType = filter.get("nodeType");
-            List<EnvironmentNode> typedNodes = recurse(root, n -> n.getNodeType().getKind().equalsIgnoreCase(nodeType));
+            List<EnvironmentNode> typedNodes =
+                    recurse(root, n -> n.getNodeType().getKind().equalsIgnoreCase(nodeType));
             if (typedNodes.isEmpty()) {
                 throw new NoSuchElementException(String.format("Node of type %s", nodeType));
             }
@@ -99,13 +103,16 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
         if (filter.containsKey("labelKey") && filter.containsKey("labelValue")) {
             String labelKey = filter.get("labelKey");
             String labelValue = filter.get("labelValue");
-            List<EnvironmentNode> labelledNodes = recurse(root, n -> {
-                Map<String, String> labels = n.getLabels();
-                return Objects.equals(labels.get(labelKey), labelValue);
-            });
+            List<EnvironmentNode> labelledNodes =
+                    recurse(
+                            root,
+                            n -> {
+                                Map<String, String> labels = n.getLabels();
+                                return Objects.equals(labels.get(labelKey), labelValue);
+                            });
             if (labelledNodes.isEmpty()) {
-                throw new NoSuchElementException(String.format("Node with label %s=%s", labelKey,
-                            labelValue));
+                throw new NoSuchElementException(
+                        String.format("Node with label %s=%s", labelKey, labelValue));
             }
             return labelledNodes;
         }
@@ -113,7 +120,8 @@ class EnvironmentNodesFetcher implements DataFetcher<List<EnvironmentNode>> {
         throw new UnsupportedOperationException(filter.toString());
     }
 
-    List<EnvironmentNode> recurse(EnvironmentNode node, Function<EnvironmentNode, Boolean> matcher) {
+    List<EnvironmentNode> recurse(
+            EnvironmentNode node, Function<EnvironmentNode, Boolean> matcher) {
         List<EnvironmentNode> result = new ArrayList<>();
         if (matcher.apply(node)) {
             result.add(node);
