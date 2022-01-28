@@ -6,7 +6,7 @@ if [ -z $MVN ]; then
     MVN=$(which mvn)
 fi
 
-for i in archive clientlib conf templates; do
+for i in archive clientlib conf templates probes; do
     if [ -e $work_dir/$i ]; then
         if [ ! -d $work_dir/$i ]; then
             echo "$work_dir/$i already exists but is not a directory"
@@ -38,4 +38,5 @@ MAVEN_OPTS="${flags[@]}" \
     CRYOSTAT_CLIENTLIB_PATH="$work_dir/clientlib" \
     CRYOSTAT_CONFIG_PATH="$work_dir/conf" \
     CRYOSTAT_TEMPLATE_PATH="$work_dir/templates" \
+    CRYOSTAT_PROBE_TEMPLATE_PATH="$work_dir/probes" \
     $MVN -Dcryostat.minimal=true clean vertx:run
