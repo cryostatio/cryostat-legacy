@@ -24,6 +24,8 @@ type TargetNode implements Node {
     name: String!
     nodeType: NodeType!
     labels: Object!
+
+    startRecording(recording: RecordingSettings!): ActiveRecording!
 }
 
 type EnvironmentNode implements Node {

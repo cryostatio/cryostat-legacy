@@ -41,7 +41,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
 
-import javax.inject.Named;
 import javax.inject.Provider;
 import javax.inject.Singleton;
 
@@ -94,7 +93,8 @@ public abstract class GraphModule {
             TargetDescendentsFetcher targetsDescendentsFetcher,
             StartRecordingByNodesMutator startRecordingByNodesMutator,
             StartRecordingByAnnotationsMutator startRecordingByAnnotationsMutator,
-            StartRecordingByLabelsMutator startRecordingByLabelsMutator) {
+            StartRecordingByLabelsMutator startRecordingByLabelsMutator,
+            StartRecordingOnTargetMutator startRecordingOnTargetMutator) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -137,6 +137,9 @@ public abstract class GraphModule {
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
                                         .dataFetcher("recordings", recordingsFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("TargetNode")
+                                        .dataFetcher("startRecording", startRecordingOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
                                         .typeResolver(nodeTypeResolver))
@@ -233,8 +236,6 @@ public abstract class GraphModule {
     }
 
     @Provides
-    @Singleton
-    @Named("startRecordingByLabels")
     static StartRecordingByLabelsMutator provideStartRecordingByLabelsMutator(
             DiscoveryFetcher discoveryFetcher,
             TargetNodeRecurseFetcher recurseFetcher,
@@ -252,4 +253,16 @@ public abstract class GraphModule {
                 credentialsManager,
                 logger);
     }
+
+    @Provides
+    static StartRecordingOnTargetMutator provideStartRecordingOnTargetMutator(
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
+            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
+            CredentialsManager credentialsManager,
+            Provider<WebServer> webServer
+            ) {
+        return new StartRecordingOnTargetMutator(targetConnectionManager, recordingTargetHelper,
+                recordingOptionsBuilderFactory, credentialsManager, webServer);
+            }
 }
