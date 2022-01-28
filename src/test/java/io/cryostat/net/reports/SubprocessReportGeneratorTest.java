@@ -46,6 +46,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import io.cryostat.configuration.Variables;
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.Credentials;
 import io.cryostat.core.reports.ReportTransformer;
@@ -55,6 +56,7 @@ import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.util.JavaProcess;
 
+import com.google.gson.Gson;
 import org.hamcrest.MatcherAssert;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Assertions;
@@ -72,6 +74,7 @@ import org.mockito.stubbing.Answer;
 class SubprocessReportGeneratorTest {
 
     @Mock Environment env;
+    @Mock Gson gson;
     @Mock FileSystem fs;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock JavaProcess.Builder javaProcessBuilder;
@@ -123,6 +126,7 @@ class SubprocessReportGeneratorTest {
         this.generator =
                 new SubprocessReportGenerator(
                         env,
+                        gson,
                         fs,
                         targetConnectionManager,
                         Set.of(new TestReportTransformer()),
@@ -251,7 +255,6 @@ class SubprocessReportGeneratorTest {
         Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(false);
         Mockito.when(proc.exitValue())
                 .thenReturn(SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING.code);
-
         Assertions.assertTimeoutPreemptively(
                 Duration.ofSeconds(2),
                 () -> {
@@ -308,6 +311,30 @@ class SubprocessReportGeneratorTest {
                 });
 
         Mockito.verify(fs).deleteIfExists(tempFile1);
+    }
+
+    @Test
+    void shouldExecuteProcessAndDeleteTempReportStatsFileOnFailure() throws Exception {
+        Mockito.when(proc.waitFor(29, TimeUnit.SECONDS)).thenReturn(true);
+        Mockito.when(proc.exitValue())
+                .thenReturn(SubprocessReportGenerator.ExitStatus.NO_SUCH_RECORDING.code);
+
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .then(
+                        new Answer<Path>() {
+                            @Override
+                            public Path answer(InvocationOnMock invocation) throws Throwable {
+                                return fs.createTempFile(null, null);
+                            }
+                        });
+
+        Assertions.assertThrows(
+                ExecutionException.class,
+                () -> {
+                    generator.exec(recordingDescriptor).get();
+                });
+
+        Mockito.verify(fs).deleteIfExists(Path.of(Variables.REPORT_STATS_PATH));
     }
 
     static class TestReportTransformer implements ReportTransformer {
