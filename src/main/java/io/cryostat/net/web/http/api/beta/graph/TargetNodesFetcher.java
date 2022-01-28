@@ -38,16 +38,31 @@
 package io.cryostat.net.web.http.api.beta.graph;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
-public class BatchedExceptions extends RuntimeException {
-    final List<Exception> causes;
+import javax.inject.Inject;
 
-    public BatchedExceptions(List<Exception> causes) {
-        super(
-                String.format(
-                        "Causes: %s",
-                        causes.stream().map(Exception::getMessage).collect(Collectors.toList())));
-        this.causes = causes;
+import io.cryostat.platform.discovery.TargetNode;
+
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
+
+class TargetNodesFetcher implements DataFetcher<List<TargetNode>> {
+
+    private final DiscoveryFetcher discoveryFetcher;
+    private final TargetNodeRecurseFetcher recurseFetcher;
+
+    @Inject
+    TargetNodesFetcher(DiscoveryFetcher discoveryFetcher, TargetNodeRecurseFetcher recurseFetcher) {
+        this.discoveryFetcher = discoveryFetcher;
+        this.recurseFetcher = recurseFetcher;
+    }
+
+    @Override
+    public List<TargetNode> get(DataFetchingEnvironment environment) throws Exception {
+        return recurseFetcher.get(
+                DataFetchingEnvironmentImpl.newDataFetchingEnvironment(environment)
+                        .source(discoveryFetcher.get(environment))
+                        .build());
     }
 }

@@ -88,13 +88,13 @@ public abstract class GraphModule {
             NodeTypeResolver nodeTypeResolver,
             RecordingTypeResolver recordingTypeResolver,
             DiscoveryFetcher discoveryFetcher,
+            EnvironmentNodesFetcher environmentNodesFetcher,
+            TargetNodesFetcher targetNodesFetcher,
             EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
+            TargetNodeRecurseFetcher targetNodeRecurseFetcher,
             RecordingsFetcher recordingsFetcher,
-            TargetDescendentsFetcher targetsDescendentsFetcher,
-            StartRecordingByNodesMutator startRecordingByNodesMutator,
-            StartRecordingByAnnotationsMutator startRecordingByAnnotationsMutator,
-            StartRecordingByLabelsMutator startRecordingByLabelsMutator,
-            StartRecordingOnTargetMutator startRecordingOnTargetMutator) {
+            StartRecordingOnTargetMutator startRecordingOnTargetMutator,
+            StopRecordingsOnTargetMutator stopRecordingsOnTargetMutator) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -114,32 +114,27 @@ public abstract class GraphModule {
                                         .dataFetcher("discovery", discoveryFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Query")
-                                        .dataFetcher(
-                                                "targetsDescendedFrom", targetsDescendentsFetcher))
+                                        .dataFetcher("environmentNodes", environmentNodesFetcher))
                         .type(
-                                TypeRuntimeWiring.newTypeWiring("Mutation")
-                                        .dataFetcher(
-                                                "startRecordingByNodes",
-                                                startRecordingByNodesMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Mutation")
-                                        .dataFetcher(
-                                                "startRecordingByAnnotations",
-                                                startRecordingByAnnotationsMutator))
-                        .type(
-                                TypeRuntimeWiring.newTypeWiring("Mutation")
-                                        .dataFetcher(
-                                                "startRecordingByLabels",
-                                                startRecordingByLabelsMutator))
+                                TypeRuntimeWiring.newTypeWiring("Query")
+                                        .dataFetcher("targetNodes", targetNodesFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
                                         .dataFetcher("children", nodeChildrenFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("EnvironmentNode")
+                                        .dataFetcher("descendantTargets", targetNodeRecurseFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
                                         .dataFetcher("recordings", recordingsFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher("startRecording", startRecordingOnTargetMutator))
+                                        .dataFetcher(
+                                                "startRecording", startRecordingOnTargetMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("TargetNode")
+                                        .dataFetcher(
+                                                "stopRecordings", stopRecordingsOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
                                         .typeResolver(nodeTypeResolver))
@@ -193,65 +188,25 @@ public abstract class GraphModule {
     }
 
     @Provides
+    static EnvironmentNodeRecurseFetcher provideEnvironmentNodeRecurseFetcher() {
+        return new EnvironmentNodeRecurseFetcher();
+    }
+
+    @Provides
     static NodeFetcher provideNodeFetcher(DiscoveryFetcher discoveryFetcher) {
         return new NodeFetcher(discoveryFetcher);
     }
 
     @Provides
-    static StartRecordingByNodesMutator providestartRecordingByNodesMutator(
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            CredentialsManager credentialsManager,
-            NodeFetcher nodeFetcher,
-            TargetNodeRecurseFetcher recurseFetcher,
-            Logger logger) {
-        return new StartRecordingByNodesMutator(
-                targetConnectionManager,
-                recordingTargetHelper,
-                recordingOptionsBuilderFactory,
-                credentialsManager,
-                nodeFetcher,
-                recurseFetcher,
-                logger);
+    static EnvironmentNodesFetcher provideEnvironmentNodesFetcher(
+            DiscoveryFetcher discoveryFetcher, EnvironmentNodeRecurseFetcher recurseFetcher) {
+        return new EnvironmentNodesFetcher(discoveryFetcher, recurseFetcher);
     }
 
     @Provides
-    static StartRecordingByAnnotationsMutator provideStartRecordingByAnnotationsFetcher(
-            DiscoveryFetcher discoveryFetcher,
-            TargetNodeRecurseFetcher recurseFetcher,
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            CredentialsManager credentialsManager,
-            Logger logger) {
-        return new StartRecordingByAnnotationsMutator(
-                discoveryFetcher,
-                recurseFetcher,
-                targetConnectionManager,
-                recordingTargetHelper,
-                recordingOptionsBuilderFactory,
-                credentialsManager,
-                logger);
-    }
-
-    @Provides
-    static StartRecordingByLabelsMutator provideStartRecordingByLabelsMutator(
-            DiscoveryFetcher discoveryFetcher,
-            TargetNodeRecurseFetcher recurseFetcher,
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
-            RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
-            CredentialsManager credentialsManager,
-            Logger logger) {
-        return new StartRecordingByLabelsMutator(
-                discoveryFetcher,
-                recurseFetcher,
-                targetConnectionManager,
-                recordingTargetHelper,
-                recordingOptionsBuilderFactory,
-                credentialsManager,
-                logger);
+    static TargetNodesFetcher provideTargetNodesFetcher(
+            DiscoveryFetcher discoveryFetcher, TargetNodeRecurseFetcher recurseFetcher) {
+        return new TargetNodesFetcher(discoveryFetcher, recurseFetcher);
     }
 
     @Provides
@@ -260,9 +215,22 @@ public abstract class GraphModule {
             RecordingTargetHelper recordingTargetHelper,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             CredentialsManager credentialsManager,
+            Provider<WebServer> webServer) {
+        return new StartRecordingOnTargetMutator(
+                targetConnectionManager,
+                recordingTargetHelper,
+                recordingOptionsBuilderFactory,
+                credentialsManager,
+                webServer);
+    }
+
+    @Provides
+    static StopRecordingsOnTargetMutator provideStopRecordingsOnTargetMutator(
+            TargetConnectionManager targetConnectionManager,
+            RecordingTargetHelper recordingTargetHelper,
+            CredentialsManager credentialsManager,
             Provider<WebServer> webServer
             ) {
-        return new StartRecordingOnTargetMutator(targetConnectionManager, recordingTargetHelper,
-                recordingOptionsBuilderFactory, credentialsManager, webServer);
+        return new StopRecordingsOnTargetMutator(targetConnectionManager, recordingTargetHelper, credentialsManager, webServer);
             }
 }

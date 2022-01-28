@@ -37,51 +37,38 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
-import java.util.NoSuchElementException;
-import java.util.Objects;
-
-import javax.inject.Inject;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.cryostat.platform.discovery.AbstractNode;
 import io.cryostat.platform.discovery.EnvironmentNode;
+import io.cryostat.platform.discovery.TargetNode;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
+import graphql.schema.DataFetchingEnvironmentImpl;
 
-class NodeFetcher implements DataFetcher<AbstractNode> {
-
-    private final DiscoveryFetcher discoveryFetcher;
-
-    @Inject
-    NodeFetcher(DiscoveryFetcher discoveryFetcher) {
-        this.discoveryFetcher = discoveryFetcher;
-    }
+class EnvironmentNodeRecurseFetcher implements DataFetcher<List<EnvironmentNode>> {
 
     @Override
-    public AbstractNode get(DataFetchingEnvironment environment) throws Exception {
-        EnvironmentNode root = discoveryFetcher.get(environment);
-        String name = environment.getArgument("name");
-        String nodeType = environment.getArgument("nodeType");
-        AbstractNode node = findNode(name, nodeType, root);
-        if (node == null) {
-            throw new NoSuchElementException(String.format("%s named %s", nodeType, name));
-        }
-        return node;
-    }
-
-    static AbstractNode findNode(String name, String nodeType, AbstractNode root) {
-        if (Objects.equals(name, root.getName())
-                && root.getNodeType().getKind().equalsIgnoreCase(nodeType)) {
-            return root;
-        }
-        if (root instanceof EnvironmentNode) {
-            for (AbstractNode child : ((EnvironmentNode) root).getChildren()) {
-                AbstractNode found = findNode(name, nodeType, child);
-                if (found != null) {
-                    return found;
-                }
+    public List<EnvironmentNode> get(DataFetchingEnvironment environment) throws Exception {
+        AbstractNode node = environment.getSource();
+        if (node instanceof TargetNode) {
+            return List.of();
+        } else if (node instanceof EnvironmentNode) {
+            EnvironmentNode environmentNode = (EnvironmentNode) node;
+            List<EnvironmentNode> result = new ArrayList<>();
+            result.add(environmentNode);
+            for (AbstractNode child : environmentNode.getChildren()) {
+                DataFetchingEnvironment newEnv =
+                        DataFetchingEnvironmentImpl.newDataFetchingEnvironment()
+                                .source(child)
+                                .build();
+                result.addAll(get(newEnv));
             }
+            return result;
+        } else {
+            throw new IllegalStateException(node.getClass().toString());
         }
-        return null;
     }
 }

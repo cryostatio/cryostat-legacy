@@ -1,5 +1,22 @@
 query {
     targetsDescendedFrom(nodes: [{ name: "service:jmx:rmi:///jndi/rmi://cryostat:9093/jmxrmi", nodeType: "JVM" }]) {
+        startRecording(recording: {
+            name: "bar",
+            template: "Profiling",
+            templateType: "TARGET",
+            duration: 30
+            }) {
+                name
+                downloadUrl
+                reportUrl
+                state
+                startTime
+                duration
+                continuous
+                toDisk
+                maxSize
+                maxAge
+        }
         name
         nodeType
         target {
@@ -29,23 +46,6 @@ query {
                 downloadUrl
                 reportUrl
             }
-        }
-        startRecording(recording: {
-            name: "foo",
-            template: "Profiling",
-            templateType: "TARGET",
-            duration: 30
-            }) {
-                name
-                downloadUrl
-                reportUrl
-                state
-                startTime
-                duration
-                continuous
-                toDisk
-                maxSize
-                maxAge
         }
     }
 }

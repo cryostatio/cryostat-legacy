@@ -39,6 +39,7 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -113,6 +114,14 @@ public class RecordingTargetHelper {
         this.scheduler = scheduler;
         this.logger = logger;
         this.scheduledStopNotifications = new ConcurrentHashMap<>();
+    }
+
+    public List<IRecordingDescriptor> getRecordings(ConnectionDescriptor connectionDescriptor)
+            throws Exception {
+        return targetConnectionManager.executeConnectedTask(
+                connectionDescriptor,
+                connection -> connection.getService().getAvailableRecordings(),
+                false);
     }
 
     public IRecordingDescriptor startRecording(
@@ -268,12 +277,15 @@ public class RecordingTargetHelper {
         return future;
     }
 
-    public Future<Void> stopRecording(
+    public IRecordingDescriptor stopRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
-        CompletableFuture<Void> future = new CompletableFuture<>();
+        return stopRecording(connectionDescriptor, recordingName, false);
+    }
+
+    public IRecordingDescriptor stopRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName, boolean quiet) throws Exception {
         String targetId = connectionDescriptor.getTargetId();
-        try {
-            targetConnectionManager.executeConnectedTask(
+            return targetConnectionManager.executeConnectedTask(
                     connectionDescriptor,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
@@ -284,6 +296,9 @@ public class RecordingTargetHelper {
                                         .findFirst();
                         if (descriptor.isPresent()) {
                             IRecordingDescriptor d = descriptor.get();
+                            if (d.getState().equals(RecordingState.STOPPED) && quiet) {
+                                return d;
+                            }
                             connection.getService().stop(d);
                             this.cancelScheduledNotificationIfExists(targetId, recordingName);
                             HyperlinkedSerializableRecordingDescriptor linkedDesc =
@@ -292,16 +307,11 @@ public class RecordingTargetHelper {
                                             webServer.get().getDownloadURL(connection, d.getName()),
                                             webServer.get().getReportURL(connection, d.getName()));
                             this.notifyRecordingStopped(targetId, linkedDesc);
-                            return null;
+                            return getDescriptorByName(connection, recordingName).get();
                         } else {
                             throw new RecordingNotFoundException(targetId, recordingName);
                         }
                     });
-            future.complete(null);
-        } catch (Exception e) {
-            future.completeExceptionally(e);
-        }
-        return future;
     }
 
     public Future<HyperlinkedSerializableRecordingDescriptor> createSnapshot(

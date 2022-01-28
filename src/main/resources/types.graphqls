@@ -26,6 +26,10 @@ type TargetNode implements Node {
     labels: Object!
 
     startRecording(recording: RecordingSettings!): ActiveRecording!
+    stopRecordings(names: [String!]): [ActiveRecording!]
+    # deleteRecording(name: String!): ActiveRecording!
+    # archiveRecording(name: String!): ActiveRecording!
+    # snapshot: ActiveRecording!
 }
 
 type EnvironmentNode implements Node {
@@ -34,27 +38,21 @@ type EnvironmentNode implements Node {
     name: String!
     nodeType: NodeType!
     labels: Object!
+
+    descendantTargets: [TargetNode!]! # TODO add some kind of filters
+}
+
+input EnvironmentNodeFilterInput {
+    nodeName: String
+    nodeType: String
+    labelKey: String
+    labelValue: String
 }
 
 interface Node {
     name: String!
     nodeType: NodeType!
     labels: Object!
-}
-
-input NodeSelector {
-    name: String!
-    nodeType: NodeType!
-}
-
-input LabelSelector {
-    key: String!
-    value: String
-}
-
-input AnnotationSelector {
-    key: String!
-    value: String
 }
 
 type Recordings {

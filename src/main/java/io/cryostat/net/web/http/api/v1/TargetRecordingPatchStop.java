@@ -59,9 +59,9 @@ class TargetRecordingPatchStop {
         String recordingName = ctx.pathParam("recordingName");
 
         try {
-            recordingTargetHelper.stopRecording(connectionDescriptor, recordingName).get();
-        } catch (RecordingNotFoundException e) {
-            throw new HttpStatusException(404, e);
+            recordingTargetHelper.stopRecording(connectionDescriptor, recordingName);
+        } catch (RecordingNotFoundException rnfe) {
+            throw new HttpStatusException(404, rnfe);
         }
         ctx.response().setStatusCode(200);
         ctx.response().end();
