@@ -48,6 +48,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import javax.inject.Named;
 
@@ -56,6 +57,7 @@ import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IEventTypeInfo;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor.RecordingState;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
@@ -150,14 +152,14 @@ public class RecordingTargetHelper {
                             .build()
                             .send();
 
-                    Object fixedDuration = recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
+                    Object fixedDuration =
+                            recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
                     if (fixedDuration != null) {
-                        Long delay = Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
+                        Long delay =
+                                Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
 
                         scheduleRecordingStopNotification(
-                                recordingName,
-                                delay,
-                                connectionDescriptor.getTargetId());
+                                recordingName, delay, connectionDescriptor);
                     }
 
                     return desc;
@@ -396,13 +398,48 @@ public class RecordingTargetHelper {
     }
 
     private void scheduleRecordingStopNotification(
-            String recordingName, long delay, String targetId) {
+            String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
         this.scheduler.schedule(
                 () -> {
-                    this.notifyRecordingStopped(recordingName, targetId);
-                },
-                delay,
-                TimeUnit.MILLISECONDS);
+                    return targetConnectionManager.executeConnectedTask(
+                            connectionDescriptor,
+                            connection -> {
+                                Optional<IRecordingDescriptor> desc =
+                                        getDescriptorByName(connection, recordingName);
+
+                                boolean recordingPresentAndStopped =
+                                        desc.isPresent()
+                                                && !desc.stream()
+                                                        .filter(
+                                                                recording ->
+                                                                        recording.getState()
+                                                                                == RecordingState
+                                                                                        .STOPPED)
+                                                        .collect(Collectors.toList())
+                                                        .isEmpty();
+
+                                        boolean recordingStopped =
+                                                desc.isPresent()
+                                                        && !desc.stream()
+                                                                .filter(
+                                                                        recording ->
+                                                                                recording.getState()
+                                                                                        == RecordingState
+                                                                                                .STOPPED)
+                                                                .collect(Collectors.toList())
+                                                                .isEmpty();
+
+                                        if (recordingStopped) {
+                                            this.notifyRecordingStopped(
+                                                    recordingName,
+                                                    connectionDescriptor.getTargetId());
+                                        }
+
+                                        return desc;
+                                    });
+                        },
+                        delay,
+                        TimeUnit.MILLISECONDS);
     }
 
     /**
