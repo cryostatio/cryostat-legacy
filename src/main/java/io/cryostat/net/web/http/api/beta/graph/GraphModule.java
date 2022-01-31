@@ -93,6 +93,8 @@ public abstract class GraphModule {
             EnvironmentNodeChildrenFetcher nodeChildrenFetcher,
             TargetNodeRecurseFetcher targetNodeRecurseFetcher,
             RecordingsFetcher recordingsFetcher,
+            ActiveRecordingsByNameFetcher activeRecordingsByNameFetcher,
+            ArchivedRecordingsByNameFetcher archivedRecordingsByNameFetcher,
             StartRecordingOnTargetMutator startRecordingOnTargetMutator,
             StopRecordingsOnTargetMutator stopRecordingsOnTargetMutator,
             DeleteRecordingsOnTargetMutator deleteRecordingsOnTargetMutator) {
@@ -128,6 +130,12 @@ public abstract class GraphModule {
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
                                         .dataFetcher("recordings", recordingsFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Recordings")
+                                        .dataFetcher("active", activeRecordingsByNameFetcher))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("Recordings")
+                                        .dataFetcher("archived", archivedRecordingsByNameFetcher))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
                                         .dataFetcher(
@@ -175,6 +183,16 @@ public abstract class GraphModule {
             Provider<WebServer> webServer,
             Logger logger) {
         return new RecordingsFetcher(tcm, archiveHelper, credentialsManager, webServer, logger);
+    }
+
+    @Provides
+    static ActiveRecordingsByNameFetcher provideActiveRecordingsByNameFetcher() {
+        return new ActiveRecordingsByNameFetcher();
+    }
+
+    @Provides
+    static ArchivedRecordingsByNameFetcher provideArchivedRecordingsByNameFetcher() {
+        return new ArchivedRecordingsByNameFetcher();
     }
 
     @Provides

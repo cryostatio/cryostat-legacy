@@ -57,8 +57,8 @@ interface Node {
 }
 
 type Recordings {
-    active: [ActiveRecording!]! # TODO add a filter for names
-    archived: [ArchivedRecording!]! # TODO add a filter for names
+    active(names: [String!]): [ActiveRecording!]!
+    archived(names: [String!]): [ArchivedRecording!]!
 }
 
 type ActiveRecording implements Recording {

@@ -1,0 +1,10 @@
+query {
+    environmentNodes(filter: { nodeName: "JDP" }) {
+        descendantTargets {
+            stopRecordings {
+                name
+                state
+            }
+        }
+    }
+}
