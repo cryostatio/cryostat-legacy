@@ -48,6 +48,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -93,6 +94,7 @@ public class RecordingTargetHelperTest {
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
     @Mock ReportService reportService;
+    @Mock ScheduledExecutorService scheduler;
     @Mock Logger logger;
 
     @Mock JFRConnection connection;
@@ -120,6 +122,7 @@ public class RecordingTargetHelperTest {
                         notificationFactory,
                         recordingOptionsBuilderFactory,
                         reportService,
+                        scheduler,
                         logger);
     }
 

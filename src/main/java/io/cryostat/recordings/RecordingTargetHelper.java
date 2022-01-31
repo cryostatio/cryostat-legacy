@@ -44,8 +44,12 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.inject.Named;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
@@ -70,7 +74,8 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public class RecordingTargetHelper {
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String CREATE_NOTIFICATION_CATEGORY = "RecordingCreated";
+    private static final String STOP_NOTIFICATION_CATEGORY = "RecordingStopped";
 
     private static final Pattern TEMPLATE_PATTERN =
             Pattern.compile("^template=([\\w]+)(?:,type=([\\w]+))?$");
@@ -81,6 +86,7 @@ public class RecordingTargetHelper {
     private final NotificationFactory notificationFactory;
     private final RecordingOptionsBuilderFactory recordingOptionsBuilderFactory;
     private final ReportService reportService;
+    private final ScheduledExecutorService scheduler;
     private final Logger logger;
 
     RecordingTargetHelper(
@@ -90,6 +96,7 @@ public class RecordingTargetHelper {
             NotificationFactory notificationFactory,
             RecordingOptionsBuilderFactory recordingOptionsBuilderFactory,
             ReportService reportService,
+            @Named(RecordingsModule.NOTIFICATION_SCHEDULER) ScheduledExecutorService scheduler,
             Logger logger) {
         this.targetConnectionManager = targetConnectionManager;
         this.webServer = webServer;
@@ -97,6 +104,7 @@ public class RecordingTargetHelper {
         this.notificationFactory = notificationFactory;
         this.recordingOptionsBuilderFactory = recordingOptionsBuilderFactory;
         this.reportService = reportService;
+        this.scheduler = scheduler;
         this.logger = logger;
     }
 
@@ -131,7 +139,7 @@ public class RecordingTargetHelper {
                                             enableEvents(connection, templateName, templateType));
                     notificationFactory
                             .createBuilder()
-                            .metaCategory(NOTIFICATION_CATEGORY)
+                            .metaCategory(CREATE_NOTIFICATION_CATEGORY)
                             .metaType(HttpMimeType.JSON)
                             .message(
                                     Map.of(
@@ -141,6 +149,17 @@ public class RecordingTargetHelper {
                                             connectionDescriptor.getTargetId()))
                             .build()
                             .send();
+
+                    Object fixedDuration = recordingOptions.get(RecordingOptionsBuilder.KEY_DURATION);
+                    if (fixedDuration != null) {
+                        Long delay = Long.valueOf(fixedDuration.toString().replaceAll("[^0-9]", ""));
+
+                        scheduleRecordingStopNotification(
+                                recordingName,
+                                delay,
+                                connectionDescriptor.getTargetId());
+                    }
+
                     return desc;
                 },
                 false);
@@ -314,6 +333,16 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
+    public void notifyRecordingStopped(String recordingName, String targetId) {
+        notificationFactory
+                .createBuilder()
+                .metaCategory(STOP_NOTIFICATION_CATEGORY)
+                .metaType(HttpMimeType.JSON)
+                .message(Map.of("recording", recordingName, "target", targetId))
+                .build()
+                .send();
+    }
+
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)
             throws Exception {
@@ -365,6 +394,17 @@ public class RecordingTargetHelper {
 
         return builder.build();
     }
+
+    private void scheduleRecordingStopNotification(
+            String recordingName, long delay, String targetId) {
+        this.scheduler.schedule(
+                () -> {
+                    this.notifyRecordingStopped(recordingName, targetId);
+                },
+                delay,
+                TimeUnit.MILLISECONDS);
+    }
+
     /**
      * This method will consume the first byte of the {@link InputStream} it is verifying, so
      * verification should only be done if the @param snapshot stream in question will not be used

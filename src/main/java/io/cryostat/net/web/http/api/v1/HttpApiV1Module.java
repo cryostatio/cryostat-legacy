@@ -41,6 +41,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import dagger.Binds;
 import dagger.Module;
@@ -100,8 +101,10 @@ public abstract class HttpApiV1Module {
     @Provides
     static TargetRecordingPatchStop provideTargetRecordingPatchStop(
             TargetConnectionManager targetConnectionManager,
-            NotificationFactory notificationFactory) {
-        return new TargetRecordingPatchStop(targetConnectionManager, notificationFactory);
+            NotificationFactory notificationFactory,
+            RecordingTargetHelper recordingTargetHelper) {
+        return new TargetRecordingPatchStop(
+                targetConnectionManager, notificationFactory, recordingTargetHelper);
     }
 
     @Binds

@@ -48,6 +48,7 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.HttpMimeType;
+import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -77,6 +78,7 @@ class TargetRecordingPatchStopTest {
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock RecordingTargetHelper recordingTargetHelper;
 
     @BeforeEach
     void setup() {
@@ -95,7 +97,9 @@ class TargetRecordingPatchStopTest {
                 .thenReturn(notificationBuilder);
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
 
-        this.patchStop = new TargetRecordingPatchStop(targetConnectionManager, notificationFactory);
+        this.patchStop =
+                new TargetRecordingPatchStop(
+                        targetConnectionManager, notificationFactory, recordingTargetHelper);
     }
 
     @Test
