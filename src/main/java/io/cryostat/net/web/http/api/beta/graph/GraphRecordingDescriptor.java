@@ -37,32 +37,20 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
-import java.util.List;
-import java.util.stream.Collectors;
+import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import javax.inject.Inject;
+import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
+import io.cryostat.platform.ServiceRef;
 
-import io.cryostat.net.web.http.api.beta.graph.RecordingsFetcher.Recordings;
+class GraphRecordingDescriptor extends HyperlinkedSerializableRecordingDescriptor {
 
-import graphql.schema.DataFetcher;
-import graphql.schema.DataFetchingEnvironment;
+    protected transient ServiceRef target;
 
-class ActiveRecordingsByNameFetcher implements DataFetcher<List<GraphRecordingDescriptor>> {
-
-    @Inject
-    ActiveRecordingsByNameFetcher() {}
-
-    public List<GraphRecordingDescriptor> get(DataFetchingEnvironment environment)
-            throws Exception {
-        Recordings source = environment.getSource();
-
-        List<String> names = environment.getArgument("names");
-        if (names == null || names.isEmpty()) {
-            return source.active;
-        }
-
-        return source.active.stream()
-                .filter(r -> names.contains(r.getName()))
-                .collect(Collectors.toList());
+    public GraphRecordingDescriptor(
+            ServiceRef target, IRecordingDescriptor original, String downloadUrl, String reportUrl)
+            throws QuantityConversionException {
+        super(original, downloadUrl, reportUrl);
+        this.target = target;
     }
 }

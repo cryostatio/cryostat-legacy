@@ -26,11 +26,7 @@ type TargetNode implements Node {
     labels: Object!
 
     startRecording(recording: RecordingSettings!): ActiveRecording!
-    # snapshot: ActiveRecording!
-    # TODO the below queries should actually belong to ActiveRecording and mutate the recording as the source
-    stopRecordings(names: [String!]): [ActiveRecording!]
-    deleteRecordings(names: [String!]): [ActiveRecording!]
-    # archiveRecordings(names: [String!]): [ArchivedRecording!]
+    # snapshot: ActiveRecording! # mutation
 }
 
 type EnvironmentNode implements Node {
@@ -74,6 +70,10 @@ type ActiveRecording implements Recording {
     name: String!
     reportUrl: Url!
     downloadUrl: Url!
+
+    stop: ActiveRecording! # mutation
+    delete: ActiveRecording! # mutation
+    # archive: ArchivedRecording! # mutation
 }
 
 type ArchivedRecording implements Recording {

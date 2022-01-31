@@ -238,7 +238,7 @@ public class RecordingTargetHelper {
         CompletableFuture<Void> future = new CompletableFuture<>();
         try {
             String targetId = connectionDescriptor.getTargetId();
-            targetConnectionManager.executeConnectedTask(
+            Void v = targetConnectionManager.executeConnectedTask(
                     connectionDescriptor,
                     connection -> {
                         Optional<IRecordingDescriptor> descriptor =
@@ -270,7 +270,7 @@ public class RecordingTargetHelper {
                         }
                         return null;
                     });
-            future.complete(null);
+            future.complete(v);
         } catch (Exception e) {
             future.completeExceptionally(e);
         }

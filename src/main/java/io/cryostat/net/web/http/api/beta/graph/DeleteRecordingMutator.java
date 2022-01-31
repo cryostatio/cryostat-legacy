@@ -37,78 +37,46 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import javax.inject.Inject;
-import javax.inject.Provider;
-
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class StopRecordingsOnTargetMutator
-        implements DataFetcher<List<HyperlinkedSerializableRecordingDescriptor>> {
+class DeleteRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
-    private final Provider<WebServer> webServer;
 
     @Inject
-    StopRecordingsOnTargetMutator(
+    DeleteRecordingMutator(
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
-            CredentialsManager credentialsManager,
-            Provider<WebServer> webServer) {
+            CredentialsManager credentialsManager) {
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
-        this.webServer = webServer;
     }
 
     @Override
-    public List<HyperlinkedSerializableRecordingDescriptor> get(DataFetchingEnvironment environment)
-            throws Exception {
-        TargetNode node = environment.getSource();
-        String uri = node.getTarget().getServiceUri().toString();
+    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+        GraphRecordingDescriptor source = environment.getSource();
+        ServiceRef target = source.target;
+        String uri = target.getServiceUri().toString();
         ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    List<String> recordingNames = environment.getArgument("names");
-                    if (recordingNames == null || recordingNames.isEmpty()) {
-                        recordingNames =
-                                conn.getService().getAvailableRecordings().stream()
-                                        .map(IRecordingDescriptor::getName)
-                                        .collect(Collectors.toList());
-                    }
-
-                    List<HyperlinkedSerializableRecordingDescriptor> descriptors =
-                            new ArrayList<>();
-                    for (String recordingName : recordingNames) {
-                        IRecordingDescriptor desc =
-                                recordingTargetHelper.stopRecording(cd, recordingName, true);
-                        WebServer ws = webServer.get();
-                        descriptors.add(
-                                new HyperlinkedSerializableRecordingDescriptor(
-                                        desc,
-                                        ws.getDownloadURL(conn, desc.getName()),
-                                        ws.getReportURL(conn, desc.getName())));
-                    }
-                    return descriptors;
+                    recordingTargetHelper.deleteRecording(cd, source.getName()).get();
+                    return source;
                 },
                 true);
     }

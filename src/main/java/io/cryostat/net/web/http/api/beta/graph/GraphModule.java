@@ -96,8 +96,8 @@ public abstract class GraphModule {
             ActiveRecordingsByNameFetcher activeRecordingsByNameFetcher,
             ArchivedRecordingsByNameFetcher archivedRecordingsByNameFetcher,
             StartRecordingOnTargetMutator startRecordingOnTargetMutator,
-            StopRecordingsOnTargetMutator stopRecordingsOnTargetMutator,
-            DeleteRecordingsOnTargetMutator deleteRecordingsOnTargetMutator) {
+            StopRecordingMutator stopRecordingMutator,
+            DeleteRecordingMutator deleteRecordingMutator) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -141,14 +141,11 @@ public abstract class GraphModule {
                                         .dataFetcher(
                                                 "startRecording", startRecordingOnTargetMutator))
                         .type(
-                                TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher(
-                                                "stopRecordings", stopRecordingsOnTargetMutator))
+                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
+                                        .dataFetcher("stop", stopRecordingMutator))
                         .type(
-                                TypeRuntimeWiring.newTypeWiring("TargetNode")
-                                        .dataFetcher(
-                                                "deleteRecordings",
-                                                deleteRecordingsOnTargetMutator))
+                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
+                                        .dataFetcher("delete", deleteRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
                                         .typeResolver(nodeTypeResolver))
@@ -158,7 +155,7 @@ public abstract class GraphModule {
                         .build();
         SchemaParser parser = new SchemaParser();
         TypeDefinitionRegistry tdr = new TypeDefinitionRegistry();
-        List<String> schemaFilenames = List.of("types", "queries", "mutations");
+        List<String> schemaFilenames = List.of("types", "queries");
         for (String schema : schemaFilenames) {
             try (InputStream is =
                     GraphModule.class.getResourceAsStream(String.format("/%s.graphqls", schema))) {
@@ -249,22 +246,21 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static StopRecordingsOnTargetMutator provideStopRecordingsOnTargetMutator(
+    static StopRecordingMutator provideStopRecordingsOnTargetMutator(
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
             Provider<WebServer> webServer) {
-        return new StopRecordingsOnTargetMutator(
+        return new StopRecordingMutator(
                 targetConnectionManager, recordingTargetHelper, credentialsManager, webServer);
     }
 
     @Provides
-    static DeleteRecordingsOnTargetMutator provideDeleteRecordingsOnTargetMutator(
+    static DeleteRecordingMutator provideDeleteRecordingMutator(
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
-            CredentialsManager credentialsManager,
-            Provider<WebServer> webServer) {
-        return new DeleteRecordingsOnTargetMutator(
-                targetConnectionManager, recordingTargetHelper, credentialsManager, webServer);
+            CredentialsManager credentialsManager) {
+        return new DeleteRecordingMutator(
+                targetConnectionManager, recordingTargetHelper, credentialsManager);
     }
 }

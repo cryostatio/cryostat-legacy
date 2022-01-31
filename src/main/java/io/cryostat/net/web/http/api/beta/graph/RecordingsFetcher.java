@@ -50,7 +50,6 @@ import org.openjdk.jmc.common.unit.QuantityConversionException;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.core.log.Logger;
-import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
@@ -118,8 +117,8 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
                                                                     .get()
                                                                     .getReportURL(
                                                                             conn, r.getName());
-                                                    return new HyperlinkedSerializableRecordingDescriptor(
-                                                            r, downloadUrl, reportUrl);
+                                                    return new GraphRecordingDescriptor(
+                                                            target, r, downloadUrl, reportUrl);
                                                 } catch (QuantityConversionException
                                                         | URISyntaxException
                                                         | IOException e) {
@@ -136,7 +135,7 @@ class RecordingsFetcher implements DataFetcher<Recordings> {
     }
 
     static class Recordings {
-        List<HyperlinkedSerializableRecordingDescriptor> active;
+        List<GraphRecordingDescriptor> active;
         List<ArchivedRecordingInfo> archived;
     }
 }

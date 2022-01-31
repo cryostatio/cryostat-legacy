@@ -37,28 +37,22 @@
  */
 package io.cryostat.net.web.http.api.beta.graph;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
-
 import javax.inject.Inject;
 import javax.inject.Provider;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.WebServer;
-import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class DeleteRecordingsOnTargetMutator
-        implements DataFetcher<List<HyperlinkedSerializableRecordingDescriptor>> {
+class StopRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
 
     private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
@@ -66,7 +60,7 @@ class DeleteRecordingsOnTargetMutator
     private final Provider<WebServer> webServer;
 
     @Inject
-    DeleteRecordingsOnTargetMutator(
+    StopRecordingMutator(
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager,
@@ -78,41 +72,24 @@ class DeleteRecordingsOnTargetMutator
     }
 
     @Override
-    public List<HyperlinkedSerializableRecordingDescriptor> get(DataFetchingEnvironment environment)
-            throws Exception {
-        TargetNode node = environment.getSource();
-        String uri = node.getTarget().getServiceUri().toString();
+    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+        GraphRecordingDescriptor source = environment.getSource();
+        ServiceRef target = source.target;
+        String uri = target.getServiceUri().toString();
         ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
         return targetConnectionManager.executeConnectedTask(
                 cd,
                 conn -> {
-                    List<String> recordingNames = environment.getArgument("names");
-                    List<IRecordingDescriptor> availableRecordings =
-                            conn.getService().getAvailableRecordings();
-                    if (recordingNames == null || recordingNames.isEmpty()) {
-                        recordingNames =
-                                availableRecordings.stream()
-                                        .map(IRecordingDescriptor::getName)
-                                        .collect(Collectors.toList());
-                    }
+                    IRecordingDescriptor desc =
+                            recordingTargetHelper.stopRecording(cd, source.getName(), true);
                     WebServer ws = webServer.get();
-
-                    List<HyperlinkedSerializableRecordingDescriptor> descriptors =
-                            new ArrayList<>();
-                    for (IRecordingDescriptor recording : availableRecordings) {
-                        if (!recordingNames.contains(recording.getName())) {
-                            continue;
-                        }
-                        descriptors.add(
-                                new HyperlinkedSerializableRecordingDescriptor(
-                                        recording,
-                                        ws.getDownloadURL(conn, recording.getName()),
-                                        ws.getReportURL(conn, recording.getName())));
-                        recordingTargetHelper.deleteRecording(cd, recording.getName());
-                    }
-                    return descriptors;
+                    return new GraphRecordingDescriptor(
+                            target,
+                            desc,
+                            ws.getDownloadURL(conn, desc.getName()),
+                            ws.getReportURL(conn, desc.getName()));
                 },
                 true);
     }
