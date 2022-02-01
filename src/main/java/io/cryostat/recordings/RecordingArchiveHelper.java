@@ -122,11 +122,16 @@ public class RecordingArchiveHelper {
         this.base32 = base32;
     }
 
+<<<<<<< HEAD
     @SuppressFBWarnings(
             value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
             justification =
                     "SpotBugs false positive. validateSavePath() ensures that the getParent() and getFileName() of the Path are not null, barring some exceptional circumstance like some external filesystem access race.")
     public Future<ArchivedRecordingInfo> saveRecording(
+=======
+    // TODO this should return an ArchivedRecordingInfo, not a String
+    public Future<String> saveRecording(
+>>>>>>> 391cdbe0 (implement archiving active recordings)
             ConnectionDescriptor connectionDescriptor, String recordingName) {
 
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();

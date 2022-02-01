@@ -3,9 +3,8 @@ query {
         descendantTargets {
             recordings {
                 active {
-                    stop {
+                    archive {
                         name
-                        state
                     }
                 }
             }
