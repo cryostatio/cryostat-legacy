@@ -41,7 +41,6 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingTargetHelper;
 
@@ -50,16 +49,12 @@ import graphql.schema.DataFetchingEnvironment;
 
 class DeleteActiveRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
 
-    private final TargetConnectionManager targetConnectionManager;
     private final RecordingTargetHelper recordingTargetHelper;
     private final CredentialsManager credentialsManager;
 
     @Inject
     DeleteActiveRecordingMutator(
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
-            CredentialsManager credentialsManager) {
-        this.targetConnectionManager = targetConnectionManager;
+            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
         this.recordingTargetHelper = recordingTargetHelper;
         this.credentialsManager = credentialsManager;
     }
@@ -72,12 +67,7 @@ class DeleteActiveRecordingMutator implements DataFetcher<GraphRecordingDescript
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
-        return targetConnectionManager.executeConnectedTask(
-                cd,
-                conn -> {
-                    recordingTargetHelper.deleteRecording(cd, source.getName()).get();
-                    return source;
-                },
-                true);
+        recordingTargetHelper.deleteRecording(cd, source.getName()).get();
+        return source;
     }
 }

@@ -44,7 +44,6 @@ import javax.inject.Inject;
 
 import io.cryostat.configuration.CredentialsManager;
 import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.ServiceRef;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.rules.ArchivedRecordingInfo;
@@ -54,16 +53,12 @@ import graphql.schema.DataFetchingEnvironment;
 
 class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
 
-    private final TargetConnectionManager targetConnectionManager;
     private final RecordingArchiveHelper recordingArchiveHelper;
     private final CredentialsManager credentialsManager;
 
     @Inject
     ArchiveRecordingMutator(
-            TargetConnectionManager targetConnectionManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            CredentialsManager credentialsManager) {
-        this.targetConnectionManager = targetConnectionManager;
+            RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
         this.recordingArchiveHelper = recordingArchiveHelper;
         this.credentialsManager = credentialsManager;
     }
@@ -76,21 +71,13 @@ class ArchiveRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
         ConnectionDescriptor cd =
                 new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
 
-        return targetConnectionManager.executeConnectedTask(
-                cd,
-                conn -> {
-                    String archivedName =
-                            recordingArchiveHelper.saveRecording(cd, source.getName()).get();
-                    for (ArchivedRecordingInfo info :
-                            recordingArchiveHelper
-                                    .getRecordings(target.getServiceUri().toString())
-                                    .get()) {
-                        if (Objects.equals(info.getName(), archivedName)) {
-                            return info;
-                        }
-                    }
-                    throw new NoSuchElementException();
-                },
-                true);
+        String archivedName = recordingArchiveHelper.saveRecording(cd, source.getName()).get();
+        for (ArchivedRecordingInfo info :
+                recordingArchiveHelper.getRecordings(target.getServiceUri().toString()).get()) {
+            if (Objects.equals(info.getName(), archivedName)) {
+                return info;
+            }
+        }
+        throw new NoSuchElementException();
     }
 }

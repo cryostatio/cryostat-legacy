@@ -265,11 +265,8 @@ public abstract class GraphModule {
 
     @Provides
     static ArchiveRecordingMutator provideArchiveRecordingMutator(
-            TargetConnectionManager targetConnectionManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            CredentialsManager credentialsManager) {
-        return new ArchiveRecordingMutator(
-                targetConnectionManager, recordingArchiveHelper, credentialsManager);
+            RecordingArchiveHelper recordingArchiveHelper, CredentialsManager credentialsManager) {
+        return new ArchiveRecordingMutator(recordingArchiveHelper, credentialsManager);
     }
 
     @Provides
@@ -284,11 +281,8 @@ public abstract class GraphModule {
 
     @Provides
     static DeleteActiveRecordingMutator provideDeleteActiveRecordingMutator(
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
-            CredentialsManager credentialsManager) {
-        return new DeleteActiveRecordingMutator(
-                targetConnectionManager, recordingTargetHelper, credentialsManager);
+            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+        return new DeleteActiveRecordingMutator(recordingTargetHelper, credentialsManager);
     }
 
     @Provides
