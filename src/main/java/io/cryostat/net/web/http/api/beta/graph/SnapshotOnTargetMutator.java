@@ -35,56 +35,38 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-package io.cryostat.jmc.serialization;
+package io.cryostat.net.web.http.api.beta.graph;
 
-import org.openjdk.jmc.common.unit.QuantityConversionException;
-import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
+import javax.inject.Inject;
 
-import org.apache.commons.lang3.builder.EqualsBuilder;
-import org.apache.commons.lang3.builder.HashCodeBuilder;
-import org.apache.commons.lang3.builder.ToStringBuilder;
+import io.cryostat.configuration.CredentialsManager;
+import io.cryostat.net.ConnectionDescriptor;
+import io.cryostat.platform.discovery.TargetNode;
+import io.cryostat.recordings.RecordingTargetHelper;
 
-public class HyperlinkedSerializableRecordingDescriptor extends SerializableRecordingDescriptor {
+import graphql.schema.DataFetcher;
+import graphql.schema.DataFetchingEnvironment;
 
-    protected String downloadUrl;
-    protected String reportUrl;
+class SnapshotOnTargetMutator implements DataFetcher<GraphRecordingDescriptor> {
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            IRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
+    private final RecordingTargetHelper recordingTargetHelper;
+    private final CredentialsManager credentialsManager;
 
-    public HyperlinkedSerializableRecordingDescriptor(
-            SerializableRecordingDescriptor original, String downloadUrl, String reportUrl)
-            throws QuantityConversionException {
-        super(original);
-        this.downloadUrl = downloadUrl;
-        this.reportUrl = reportUrl;
-    }
-
-    public String getDownloadUrl() {
-        return downloadUrl;
-    }
-
-    public String getReportUrl() {
-        return reportUrl;
+    @Inject
+    SnapshotOnTargetMutator(
+            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+        this.recordingTargetHelper = recordingTargetHelper;
+        this.credentialsManager = credentialsManager;
     }
 
     @Override
-    public String toString() {
-        return ToStringBuilder.reflectionToString(this);
-    }
+    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
+        TargetNode node = environment.getSource();
 
-    @Override
-    public int hashCode() {
-        return HashCodeBuilder.reflectionHashCode(this);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        return EqualsBuilder.reflectionEquals(this, o);
+        String uri = node.getTarget().getServiceUri().toString();
+        ConnectionDescriptor cd =
+                new ConnectionDescriptor(uri, credentialsManager.getCredentials(node.getTarget()));
+        return new GraphRecordingDescriptor(
+                node.getTarget(), recordingTargetHelper.createSnapshot(cd).get());
     }
 }

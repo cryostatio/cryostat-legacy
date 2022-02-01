@@ -53,4 +53,10 @@ class GraphRecordingDescriptor extends HyperlinkedSerializableRecordingDescripto
         super(original, downloadUrl, reportUrl);
         this.target = target;
     }
+
+    public GraphRecordingDescriptor(ServiceRef target, HyperlinkedSerializableRecordingDescriptor o)
+            throws QuantityConversionException {
+        super(o, o.getDownloadUrl(), o.getReportUrl());
+        this.target = target;
+    }
 }

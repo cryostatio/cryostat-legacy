@@ -96,6 +96,7 @@ public abstract class GraphModule {
             ActiveRecordingsByNameFetcher activeRecordingsByNameFetcher,
             ArchivedRecordingsByNameFetcher archivedRecordingsByNameFetcher,
             StartRecordingOnTargetMutator startRecordingOnTargetMutator,
+            SnapshotOnTargetMutator snapshotOnTargetMutator,
             StopRecordingMutator stopRecordingMutator,
             ArchiveRecordingMutator archiveRecordingMutator,
             DeleteActiveRecordingMutator deleteActiveRecordingMutator,
@@ -142,6 +143,9 @@ public abstract class GraphModule {
                                 TypeRuntimeWiring.newTypeWiring("TargetNode")
                                         .dataFetcher(
                                                 "startRecording", startRecordingOnTargetMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("TargetNode")
+                                        .dataFetcher("snapshot", snapshotOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
                                         .dataFetcher("archive", archiveRecordingMutator))
@@ -251,6 +255,12 @@ public abstract class GraphModule {
                 recordingOptionsBuilderFactory,
                 credentialsManager,
                 webServer);
+    }
+
+    @Provides
+    static SnapshotOnTargetMutator provideSnapshotOnTargetMutator(
+            RecordingTargetHelper recordingTargetHelper, CredentialsManager credentialsManager) {
+        return new SnapshotOnTargetMutator(recordingTargetHelper, credentialsManager);
     }
 
     @Provides

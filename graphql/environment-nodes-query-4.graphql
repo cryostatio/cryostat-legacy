@@ -1,6 +1,10 @@
 query {
     environmentNodes(filter: { nodeName: "JDP" }) {
         descendantTargets {
+            snapshot {
+                name
+                state
+            }
             recordings {
                 active {
                     archive {

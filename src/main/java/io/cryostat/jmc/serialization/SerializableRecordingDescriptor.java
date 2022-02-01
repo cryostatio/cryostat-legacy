@@ -71,6 +71,18 @@ public class SerializableRecordingDescriptor {
         this.maxAge = orig.getMaxAge().longValueIn(UnitLookup.MILLISECOND);
     }
 
+    public SerializableRecordingDescriptor(SerializableRecordingDescriptor o) {
+        this.id = o.getId();
+        this.name = o.getName();
+        this.state = o.getState();
+        this.startTime = o.getStartTime();
+        this.duration = o.getDuration();
+        this.continuous = o.isContinuous();
+        this.toDisk = o.getToDisk();
+        this.maxSize = o.getMaxSize();
+        this.maxAge = o.getMaxAge();
+    }
+
     public long getId() {
         return id;
     }
