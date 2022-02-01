@@ -98,7 +98,8 @@ public abstract class GraphModule {
             StartRecordingOnTargetMutator startRecordingOnTargetMutator,
             StopRecordingMutator stopRecordingMutator,
             ArchiveRecordingMutator archiveRecordingMutator,
-            DeleteRecordingMutator deleteRecordingMutator) {
+            DeleteActiveRecordingMutator deleteActiveRecordingMutator,
+            DeleteArchivedRecordingMutator deleteArchivedRecordingMutator) {
         RuntimeWiring wiring =
                 RuntimeWiring.newRuntimeWiring()
                         .scalar(ExtendedScalars.Object)
@@ -143,13 +144,16 @@ public abstract class GraphModule {
                                                 "startRecording", startRecordingOnTargetMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
+                                        .dataFetcher("archive", archiveRecordingMutator))
+                        .type(
+                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
                                         .dataFetcher("stop", stopRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("delete", deleteRecordingMutator))
+                                        .dataFetcher("delete", deleteActiveRecordingMutator))
                         .type(
-                                TypeRuntimeWiring.newTypeWiring("ActiveRecording")
-                                        .dataFetcher("archive", archiveRecordingMutator))
+                                TypeRuntimeWiring.newTypeWiring("ArchivedRecording")
+                                        .dataFetcher("delete", deleteArchivedRecordingMutator))
                         .type(
                                 TypeRuntimeWiring.newTypeWiring("Node")
                                         .typeResolver(nodeTypeResolver))
@@ -250,6 +254,15 @@ public abstract class GraphModule {
     }
 
     @Provides
+    static ArchiveRecordingMutator provideArchiveRecordingMutator(
+            TargetConnectionManager targetConnectionManager,
+            RecordingArchiveHelper recordingArchiveHelper,
+            CredentialsManager credentialsManager) {
+        return new ArchiveRecordingMutator(
+                targetConnectionManager, recordingArchiveHelper, credentialsManager);
+    }
+
+    @Provides
     static StopRecordingMutator provideStopRecordingsOnTargetMutator(
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
@@ -260,20 +273,17 @@ public abstract class GraphModule {
     }
 
     @Provides
-    static ArchiveRecordingMutator provideArchiveRecordingMutator(
-            TargetConnectionManager targetConnectionManager,
-            RecordingArchiveHelper recordingArchiveHelper,
-            CredentialsManager credentialsManager) {
-        return new ArchiveRecordingMutator(
-                targetConnectionManager, recordingArchiveHelper, credentialsManager);
-    }
-
-    @Provides
-    static DeleteRecordingMutator provideDeleteRecordingMutator(
+    static DeleteActiveRecordingMutator provideDeleteActiveRecordingMutator(
             TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper,
             CredentialsManager credentialsManager) {
-        return new DeleteRecordingMutator(
+        return new DeleteActiveRecordingMutator(
                 targetConnectionManager, recordingTargetHelper, credentialsManager);
+    }
+
+    @Provides
+    static DeleteArchivedRecordingMutator provideDeleteArchivedRecordingMutator(
+            RecordingArchiveHelper recordingArchiveHelper) {
+        return new DeleteArchivedRecordingMutator(recordingArchiveHelper);
     }
 }

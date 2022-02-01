@@ -39,45 +39,25 @@ package io.cryostat.net.web.http.api.beta.graph;
 
 import javax.inject.Inject;
 
-import io.cryostat.configuration.CredentialsManager;
-import io.cryostat.net.ConnectionDescriptor;
-import io.cryostat.net.TargetConnectionManager;
-import io.cryostat.platform.ServiceRef;
-import io.cryostat.recordings.RecordingTargetHelper;
+import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import graphql.schema.DataFetcher;
 import graphql.schema.DataFetchingEnvironment;
 
-class DeleteRecordingMutator implements DataFetcher<GraphRecordingDescriptor> {
+class DeleteArchivedRecordingMutator implements DataFetcher<ArchivedRecordingInfo> {
 
-    private final TargetConnectionManager targetConnectionManager;
-    private final RecordingTargetHelper recordingTargetHelper;
-    private final CredentialsManager credentialsManager;
+    private final RecordingArchiveHelper recordingArchiveHelper;
 
     @Inject
-    DeleteRecordingMutator(
-            TargetConnectionManager targetConnectionManager,
-            RecordingTargetHelper recordingTargetHelper,
-            CredentialsManager credentialsManager) {
-        this.targetConnectionManager = targetConnectionManager;
-        this.recordingTargetHelper = recordingTargetHelper;
-        this.credentialsManager = credentialsManager;
+    DeleteArchivedRecordingMutator(RecordingArchiveHelper recordingArchiveHelper) {
+        this.recordingArchiveHelper = recordingArchiveHelper;
     }
 
     @Override
-    public GraphRecordingDescriptor get(DataFetchingEnvironment environment) throws Exception {
-        GraphRecordingDescriptor source = environment.getSource();
-        ServiceRef target = source.target;
-        String uri = target.getServiceUri().toString();
-        ConnectionDescriptor cd =
-                new ConnectionDescriptor(uri, credentialsManager.getCredentials(target));
-
-        return targetConnectionManager.executeConnectedTask(
-                cd,
-                conn -> {
-                    recordingTargetHelper.deleteRecording(cd, source.getName()).get();
-                    return source;
-                },
-                true);
+    public ArchivedRecordingInfo get(DataFetchingEnvironment environment) throws Exception {
+        ArchivedRecordingInfo source = environment.getSource();
+        recordingArchiveHelper.deleteRecording(source.getName());
+        return source;
     }
 }
