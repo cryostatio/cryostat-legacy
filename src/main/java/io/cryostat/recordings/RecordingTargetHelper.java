@@ -406,8 +406,7 @@ public class RecordingTargetHelper {
                             connection -> {
                                 Optional<IRecordingDescriptor> desc =
                                         getDescriptorByName(connection, recordingName);
-
-                                boolean recordingPresentAndStopped =
+                                boolean recordingStopped =
                                         desc.isPresent()
                                                 && !desc.stream()
                                                         .filter(
@@ -418,28 +417,16 @@ public class RecordingTargetHelper {
                                                         .collect(Collectors.toList())
                                                         .isEmpty();
 
-                                        boolean recordingStopped =
-                                                desc.isPresent()
-                                                        && !desc.stream()
-                                                                .filter(
-                                                                        recording ->
-                                                                                recording.getState()
-                                                                                        == RecordingState
-                                                                                                .STOPPED)
-                                                                .collect(Collectors.toList())
-                                                                .isEmpty();
+                                if (recordingStopped) {
+                                    this.notifyRecordingStopped(
+                                            recordingName, connectionDescriptor.getTargetId());
+                                }
 
-                                        if (recordingStopped) {
-                                            this.notifyRecordingStopped(
-                                                    recordingName,
-                                                    connectionDescriptor.getTargetId());
-                                        }
-
-                                        return desc;
-                                    });
-                        },
-                        delay,
-                        TimeUnit.MILLISECONDS);
+                                return desc;
+                            });
+                },
+                delay,
+                TimeUnit.MILLISECONDS);
     }
 
     /**

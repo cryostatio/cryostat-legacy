@@ -43,22 +43,29 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
 import org.openjdk.jmc.common.unit.QuantityConversionException;
+import org.openjdk.jmc.flightrecorder.configuration.events.EventOptionID;
 import org.openjdk.jmc.flightrecorder.configuration.recording.RecordingOptionsBuilder;
 import org.openjdk.jmc.rjmx.services.jfr.IFlightRecorderService;
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
 import io.cryostat.core.log.Logger;
 import io.cryostat.core.net.JFRConnection;
+import io.cryostat.core.templates.TemplateService;
+import io.cryostat.core.templates.TemplateType;
 import io.cryostat.jmc.serialization.HyperlinkedSerializableRecordingDescriptor;
 import io.cryostat.messaging.notifications.Notification;
 import io.cryostat.messaging.notifications.NotificationFactory;
@@ -76,6 +83,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -434,6 +442,66 @@ public class RecordingTargetHelperTest {
                 recordingTargetHelperSpy.verifySnapshot(connectionDescriptor, snapshotName).get();
 
         Assertions.assertFalse(verified);
+    }
+
+    @Test
+    void shouldStartRecordingWithFixedDuration() throws Exception {
+        String recordingName = "someRecording";
+        String targetId = "fooTarget";
+        String duration = "3000ms";
+        String templateName = "Profiling";
+        TemplateType templateType = TemplateType.TARGET;
+        ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
+        IRecordingDescriptor recordingDescriptor = createDescriptor(recordingName);
+        IConstrainedMap<String> recordingOptions = Mockito.mock(IConstrainedMap.class);
+
+        Mockito.when(
+                        targetConnectionManager.executeConnectedTask(
+                                Mockito.any(), Mockito.any(), Mockito.anyBoolean()))
+                .thenAnswer(
+                        new Answer<Object>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+
+        Mockito.when(recordingOptions.get(Mockito.any())).thenReturn(recordingName, duration);
+
+        Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getAvailableRecordings())
+                .thenReturn(Collections.emptyList(), List.of(recordingDescriptor));
+
+        Mockito.when(service.start(Mockito.any(), Mockito.any())).thenReturn(recordingDescriptor);
+
+        TemplateService templateService = Mockito.mock(TemplateService.class);
+        IConstrainedMap<EventOptionID> events = Mockito.mock(IConstrainedMap.class);
+        Mockito.when(connection.getTemplateService()).thenReturn(templateService);
+        Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
+                .thenReturn(Optional.of(events));
+
+        ArgumentCaptor<Callable> scheduledStoppedNotificationCaptor =
+                ArgumentCaptor.forClass(Callable.class);
+
+        recordingTargetHelper.startRecording(
+                false, connectionDescriptor, recordingOptions, templateName, templateType);
+
+        Mockito.verify(scheduler)
+                .schedule(
+                        scheduledStoppedNotificationCaptor.capture(),
+                        Mockito.eq(3_000L),
+                        Mockito.eq(TimeUnit.MILLISECONDS));
+        scheduledStoppedNotificationCaptor.getValue().call();
+
+        Mockito.verify(notificationFactory).createBuilder();
+        Mockito.verify(notificationBuilder).metaCategory("RecordingCreated");
+        Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
+        Mockito.verify(notificationBuilder)
+                .message(Map.of("recording", recordingName, "target", targetId));
+        Mockito.verify(notificationBuilder).build();
+        Mockito.verify(notification).send();
     }
 
     private static IRecordingDescriptor createDescriptor(String name)
