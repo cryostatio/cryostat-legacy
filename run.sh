@@ -83,12 +83,24 @@ fi
 podman run \
     --pod cryostat \
     --memory 512M \
+<<<<<<< HEAD
     --mount type=tmpfs,target=/opt/cryostat.d/templates.d \
     --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared,bind-propagation=shared \
     --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared,bind-propagation=shared \
+=======
+    --mount type=bind,source="$(dirname $0)/archive",destination=/opt/cryostat.d/recordings.d,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/certs",destination=/certs,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/clientlib",destination=/clientlib,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/conf",destination=/opt/cryostat.d/conf.d,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/templates",destination=/opt/cryostat.d/templates.d,relabel=shared \
+    --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared \
+    --mount type=tmpfs,target=/opt/cryostat.d/probes.d \
+    -e CRYOSTAT_ENABLE_JDP_BROADCAST=true \
+    -e CRYOSTAT_REPORT_GENERATOR=$CRYOSTAT_REPORT_GENERATOR \
+>>>>>>> 5fd17e73 (feat(jdp): add env vars to enable/configure JDP (#804))
     -e CRYOSTAT_PLATFORM=$CRYOSTAT_PLATFORM \
     -e CRYOSTAT_DISABLE_SSL=$CRYOSTAT_DISABLE_SSL \
     -e CRYOSTAT_DISABLE_JMX_AUTH=$CRYOSTAT_DISABLE_JMX_AUTH \
