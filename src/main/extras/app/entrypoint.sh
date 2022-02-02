@@ -112,8 +112,10 @@ FLAGS=(
     "-Djavax.net.ssl.trustStorePassword=$SSL_TRUSTSTORE_PASS"
 )
 
-if [ "$CRYOSTAT_ENABLE_JDP_BROADCAST" = "true" ]; then
+if [ -z "$CRYOSTAT_ENABLE_JDP_BROADCAST" ]; then
     FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=true")
+else
+    FLAGS+=("-Dcom.sun.management.jmxremote.autodiscovery=$CRYOSTAT_ENABLE_JDP_BROADCAST")
 fi
 
 if [ -n "$CRYOSTAT_JDP_ADDRESS" ]; then
