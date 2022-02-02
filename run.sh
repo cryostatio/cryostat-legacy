@@ -98,6 +98,7 @@ podman run \
     --mount type=bind,source="$(dirname $0)/templates",destination=/opt/cryostat.d/templates.d,relabel=shared \
     --mount type=bind,source="$(dirname $0)/truststore",destination=/truststore,relabel=shared \
     --mount type=tmpfs,target=/opt/cryostat.d/probes.d \
+    -e CRYOSTAT_ENABLE_JDP_BROADCAST=true \
     -e CRYOSTAT_REPORT_GENERATOR=$CRYOSTAT_REPORT_GENERATOR \
     -e CRYOSTAT_PLATFORM=$CRYOSTAT_PLATFORM \
     -e CRYOSTAT_DISABLE_SSL=$CRYOSTAT_DISABLE_SSL \

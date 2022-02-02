@@ -398,6 +398,8 @@
               <argument>--mount</argument>
               <argument>type=tmpfs,target=/opt/cryostat.d/probes.d</argument>
               <argument>--env</argument>
+              <argument>CRYOSTAT_ENABLE_JDP_BROADCAST=true</argument>
+              <argument>--env</argument>
               <argument>CRYOSTAT_TARGET_CACHE_TTL=60</argument>
               <argument>--env</argument>
               <argument>CRYOSTAT_DISABLE_JMX_AUTH=true</argument>
