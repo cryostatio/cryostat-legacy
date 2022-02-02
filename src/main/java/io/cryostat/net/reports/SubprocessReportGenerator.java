@@ -52,6 +52,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.TimeUnit;
 
 import javax.inject.Named;
@@ -62,7 +63,10 @@ import org.openjdk.jmc.rjmx.ConnectionException;
 import io.cryostat.configuration.Variables;
 import io.cryostat.core.CryostatCore;
 import io.cryostat.core.log.Logger;
-import io.cryostat.core.reports.ReportGenerator;
+import io.cryostat.core.reports.InterruptibleReportGenerator;
+import io.cryostat.core.reports.InterruptibleReportGenerator.ReportGenerationEvent;
+import io.cryostat.core.reports.InterruptibleReportGenerator.ReportResult;
+import io.cryostat.core.reports.InterruptibleReportGenerator.ReportStats;
 import io.cryostat.core.reports.ReportTransformer;
 import io.cryostat.core.sys.Environment;
 import io.cryostat.core.sys.FileSystem;
@@ -70,15 +74,19 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingNotFoundException;
 import io.cryostat.util.JavaProcess;
 
+import com.google.gson.Gson;
+
 public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
     private final Environment env;
+    private final Gson gson;
     private final Set<ReportTransformer> reportTransformers;
     private final Provider<JavaProcess.Builder> javaProcessBuilderProvider;
     private final long generationTimeoutSeconds;
 
     SubprocessReportGenerator(
             Environment env,
+            Gson gson,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             Set<ReportTransformer> reportTransformers,
@@ -87,6 +95,7 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
             Logger logger) {
         super(targetConnectionManager, fs, logger);
         this.env = env;
+        this.gson = gson;
         this.reportTransformers = reportTransformers;
         this.javaProcessBuilderProvider = javaProcessBuilderProvider;
         this.generationTimeoutSeconds = generationTimeoutSeconds;
@@ -123,13 +132,27 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         return CompletableFuture.supplyAsync(
                 () -> {
                     Process proc = null;
+                    ReportGenerationEvent evt = new ReportGenerationEvent(recording.toString());
+                    evt.begin();
+                    Path reportStatsPath = Paths.get(Variables.REPORT_STATS_PATH);
+
                     try {
                         proc = procBuilder.exec();
                         proc.waitFor(generationTimeoutSeconds - 1, TimeUnit.SECONDS);
+
                         ExitStatus status =
                                 proc.isAlive()
                                         ? ExitStatus.TIMED_OUT
                                         : ExitStatus.byExitCode(proc.exitValue());
+
+                        if (fs.exists(reportStatsPath)) {
+                            ReportStats stats =
+                                    gson.fromJson(fs.readFile(reportStatsPath), ReportStats.class);
+                            evt.setRecordingSizeBytes(stats.getRecordingSizeBytes());
+                            evt.setRulesEvaluated(stats.getRulesEvaluated());
+                            evt.setRulesApplicable(stats.getRulesApplicable());
+                        }
+
                         switch (status) {
                             case OK:
                                 return saveFile;
@@ -152,6 +175,18 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                     } finally {
                         if (proc != null) {
                             proc.destroyForcibly();
+                        }
+
+                        try {
+                            fs.deleteIfExists(reportStatsPath);
+                        } catch (IOException e) {
+                            logger.error(e);
+                            throw new CompletionException(e);
+                        }
+
+                        evt.end();
+                        if (evt.shouldCommit()) {
+                            evt.commit();
                         }
                     }
                 });
@@ -216,6 +251,8 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
                                 }));
 
         var fs = new FileSystem();
+        var gson = new Gson();
+
         try {
             CryostatCore.initialize();
             // If we're on a system that supports it, set our own OOM score adjustment to
@@ -252,17 +289,27 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
 
         try {
             Logger.INSTANCE.info(SubprocessReportGenerator.class.getName() + " processing report");
-            String report = generateReportFromFile(recording, transformers);
+            ReportResult reportResult = generateReportFromFile(recording, transformers);
             Logger.INSTANCE.info(
                     SubprocessReportGenerator.class.getName() + " writing report to file");
 
             fs.writeString(
                     saveFile,
-                    report,
+                    reportResult.getHtml(),
                     StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING,
                     StandardOpenOption.DSYNC,
                     StandardOpenOption.WRITE);
+
+            Path reportStats = Paths.get(Variables.REPORT_STATS_PATH);
+            fs.writeString(
+                    reportStats,
+                    gson.toJson(reportResult.getReportStats()),
+                    StandardOpenOption.CREATE,
+                    StandardOpenOption.TRUNCATE_EXISTING,
+                    StandardOpenOption.DSYNC,
+                    StandardOpenOption.WRITE);
+
             System.exit(ExitStatus.OK.code);
         } catch (ConnectionException e) {
             e.printStackTrace();
@@ -276,14 +323,17 @@ public class SubprocessReportGenerator extends AbstractReportGeneratorService {
         }
     }
 
-    static String generateReportFromFile(Path recording, Set<ReportTransformer> transformers)
+    static ReportResult generateReportFromFile(Path recording, Set<ReportTransformer> transformers)
             throws Exception {
         var fs = new FileSystem();
         if (!fs.isRegularFile(recording)) {
             throw new SubprocessReportGenerationException(ExitStatus.NO_SUCH_RECORDING);
         }
         try (InputStream stream = fs.newInputStream(recording)) {
-            return new ReportGenerator(Logger.INSTANCE, transformers).generateReport(stream);
+            return new InterruptibleReportGenerator(
+                            Logger.INSTANCE, transformers, ForkJoinPool.commonPool())
+                    .generateReportInterruptibly(stream)
+                    .get();
         } catch (IOException ioe) {
             ioe.printStackTrace();
             throw new SubprocessReportGenerationException(ExitStatus.IO_EXCEPTION);

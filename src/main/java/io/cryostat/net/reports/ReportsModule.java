@@ -53,6 +53,7 @@ import io.cryostat.net.web.http.HttpModule;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.util.JavaProcess;
 
+import com.google.gson.Gson;
 import dagger.Module;
 import dagger.Provides;
 import io.vertx.core.Vertx;
@@ -138,6 +139,7 @@ public abstract class ReportsModule {
     @Provides
     static SubprocessReportGenerator provideSubprocessReportGenerator(
             Environment env,
+            Gson gson,
             FileSystem fs,
             TargetConnectionManager targetConnectionManager,
             Set<ReportTransformer> reportTransformers,
@@ -146,6 +148,7 @@ public abstract class ReportsModule {
             Logger logger) {
         return new SubprocessReportGenerator(
                 env,
+                gson,
                 fs,
                 targetConnectionManager,
                 reportTransformers,
