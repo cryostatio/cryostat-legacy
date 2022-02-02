@@ -33,6 +33,7 @@ fi
 cp -r target/assets/app/resources/* target/classes
 
 flags=(
+    "-cp 'target/classes:target/assets/app/resources:@target/dependency-plugin-classpath-file'"
     "-Dcom.sun.management.jmxremote.autodiscovery=true"
     "-Dcom.sun.management.jmxremote.port=9091"
     "-Dcom.sun.management.jmxremote.rmi.port=9091"
