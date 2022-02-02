@@ -39,12 +39,14 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -91,6 +93,7 @@ public class RecordingTargetHelper {
     private final ReportService reportService;
     private final ScheduledExecutorService scheduler;
     private final Logger logger;
+    private final Map<String, Future<?>> scheduledStopNotifications;
 
     RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
@@ -109,6 +112,7 @@ public class RecordingTargetHelper {
         this.reportService = reportService;
         this.scheduler = scheduler;
         this.logger = logger;
+        this.scheduledStopNotifications = new HashMap<>();
     }
 
     public IRecordingDescriptor startRecording(
@@ -346,6 +350,13 @@ public class RecordingTargetHelper {
                 .send();
     }
 
+    public void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
+        if (scheduledStopNotifications.containsKey(stoppedRecordingName)) {
+            scheduledStopNotifications.get(stoppedRecordingName).cancel(true);
+            scheduledStopNotifications.remove(stoppedRecordingName);
+        }
+    }
+
     private IConstrainedMap<EventOptionID> enableEvents(
             JFRConnection connection, String templateName, TemplateType templateType)
             throws Exception {
@@ -400,34 +411,38 @@ public class RecordingTargetHelper {
 
     private void scheduleRecordingStopNotification(
             String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
-        this.scheduler.schedule(
-                () -> {
-                    return targetConnectionManager.executeConnectedTask(
-                            connectionDescriptor,
-                            connection -> {
-                                Optional<IRecordingDescriptor> desc =
-                                        getDescriptorByName(connection, recordingName);
-                                boolean recordingStopped =
-                                        desc.isPresent()
-                                                && !desc.stream()
-                                                        .filter(
-                                                                recording ->
-                                                                        recording.getState()
-                                                                                == RecordingState
-                                                                                        .STOPPED)
-                                                        .collect(Collectors.toList())
-                                                        .isEmpty();
+        ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
+                this.scheduler.schedule(
+                        () -> {
+                            return targetConnectionManager.executeConnectedTask(
+                                    connectionDescriptor,
+                                    connection -> {
+                                        Optional<IRecordingDescriptor> desc =
+                                                getDescriptorByName(connection, recordingName);
 
-                                if (recordingStopped) {
-                                    this.notifyRecordingStopped(
-                                            recordingName, connectionDescriptor.getTargetId());
-                                }
+                                        boolean recordingStopped =
+                                                desc.isPresent()
+                                                        && !desc.stream()
+                                                                .filter(
+                                                                        recording ->
+                                                                                recording.getState()
+                                                                                        == RecordingState
+                                                                                                .STOPPED)
+                                                                .collect(Collectors.toList())
+                                                                .isEmpty();
+                                        if (recordingStopped) {
+                                            this.notifyRecordingStopped(
+                                                    recordingName,
+                                                    connectionDescriptor.getTargetId());
+                                        }
 
-                                return desc;
-                            });
-                },
-                delay + TIMESTAMP_DRIFT_SAFEGUARD,
-                TimeUnit.MILLISECONDS);
+                                        return desc;
+                                    });
+                        },
+                        delay + TIMESTAMP_DRIFT_SAFEGUARD,
+                        TimeUnit.MILLISECONDS);
+
+        scheduledStopNotifications.put(recordingName, scheduledFuture);
     }
 
     /**

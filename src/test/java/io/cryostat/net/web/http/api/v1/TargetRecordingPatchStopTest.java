@@ -98,8 +98,7 @@ class TargetRecordingPatchStopTest {
         Mockito.lenient().when(notificationBuilder.build()).thenReturn(notification);
 
         this.patchStop =
-                new TargetRecordingPatchStop(
-                        targetConnectionManager, notificationFactory, recordingTargetHelper);
+                new TargetRecordingPatchStop(targetConnectionManager, recordingTargetHelper);
     }
 
     @Test

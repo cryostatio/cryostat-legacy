@@ -43,7 +43,6 @@ import javax.inject.Inject;
 
 import org.openjdk.jmc.rjmx.services.jfr.IRecordingDescriptor;
 
-import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.ConnectionDescriptor;
 import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -54,16 +53,13 @@ import io.vertx.ext.web.handler.impl.HttpStatusException;
 class TargetRecordingPatchStop {
 
     private final TargetConnectionManager targetConnectionManager;
-    private final NotificationFactory notificationFactory;
     private final RecordingTargetHelper recordingTargetHelper;
 
     @Inject
     TargetRecordingPatchStop(
             TargetConnectionManager targetConnectionManager,
-            NotificationFactory notificationFactory,
             RecordingTargetHelper recordingTargetHelper) {
         this.targetConnectionManager = targetConnectionManager;
-        this.notificationFactory = notificationFactory;
         this.recordingTargetHelper = recordingTargetHelper;
     }
 
@@ -90,6 +86,7 @@ class TargetRecordingPatchStop {
         ctx.response().setStatusCode(200);
         ctx.response().end();
 
+        recordingTargetHelper.cancelScheduledNotificationIfExists(recordingName);
         recordingTargetHelper.notifyRecordingStopped(
                 recordingName, connectionDescriptor.getTargetId());
     }
