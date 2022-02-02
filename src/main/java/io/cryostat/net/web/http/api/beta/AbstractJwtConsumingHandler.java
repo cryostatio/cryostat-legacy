@@ -135,6 +135,7 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         URI fullRequestUri =
                 new URI(hostUrl.getProtocol(), hostUrl.getAuthority(), null, null, null)
                         .resolve(requestUri.getRawPath());
+        URI relativeRequestUri = new URI(requestUri.getRawPath());
         URI resourceClaim;
         try {
             resourceClaim =
@@ -142,7 +143,10 @@ abstract class AbstractJwtConsumingHandler implements RequestHandler {
         } catch (URISyntaxException use) {
             throw new ApiException(401, use);
         }
-        if (!Objects.equals(fullRequestUri, resourceClaim)) {
+        boolean matchesAbsoluteRequestUri =
+                resourceClaim.isAbsolute() && Objects.equals(fullRequestUri, resourceClaim);
+        boolean matchesRelativeRequestUri = Objects.equals(relativeRequestUri, resourceClaim);
+        if (!matchesAbsoluteRequestUri && !matchesRelativeRequestUri) {
             throw new ApiException(401, "Token resource claim does not match requested resource");
         }
 
