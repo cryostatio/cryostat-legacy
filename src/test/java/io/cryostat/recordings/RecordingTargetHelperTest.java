@@ -450,6 +450,7 @@ public class RecordingTargetHelperTest {
         String targetId = "fooTarget";
         String duration = "3000ms";
         String templateName = "Profiling";
+        long TIMESTAMP_DRIFT_SAFEGUARD = 3_000L;
         TemplateType templateType = TemplateType.TARGET;
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         IRecordingDescriptor recordingDescriptor = createDescriptor(recordingName);
@@ -491,7 +492,7 @@ public class RecordingTargetHelperTest {
         Mockito.verify(scheduler)
                 .schedule(
                         scheduledStoppedNotificationCaptor.capture(),
-                        Mockito.eq(3_000L),
+                        Mockito.eq(3_000L+TIMESTAMP_DRIFT_SAFEGUARD),
                         Mockito.eq(TimeUnit.MILLISECONDS));
         scheduledStoppedNotificationCaptor.getValue().call();
 
