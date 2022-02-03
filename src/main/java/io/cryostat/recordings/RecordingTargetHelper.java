@@ -349,7 +349,7 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    public void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
+    public synchronized void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
         var f = scheduledStopNotifications.remove(stoppedRecordingName);
         if (f != null) {
             f.cancel(true);
@@ -408,7 +408,7 @@ public class RecordingTargetHelper {
         return builder.build();
     }
 
-    private void scheduleRecordingStopNotification(
+    private synchronized void scheduleRecordingStopNotification(
             String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
         ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
                 this.scheduler.schedule(
