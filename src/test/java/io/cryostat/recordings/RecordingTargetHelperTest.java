@@ -492,7 +492,7 @@ public class RecordingTargetHelperTest {
         Mockito.verify(scheduler)
                 .schedule(
                         scheduledStoppedNotificationCaptor.capture(),
-                        Mockito.eq(3_000L+TIMESTAMP_DRIFT_SAFEGUARD),
+                        Mockito.eq(3_000L + TIMESTAMP_DRIFT_SAFEGUARD),
                         Mockito.eq(TimeUnit.MILLISECONDS));
         scheduledStoppedNotificationCaptor.getValue().call();
 
