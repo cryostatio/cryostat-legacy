@@ -50,7 +50,6 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import javax.inject.Named;
 
@@ -351,9 +350,9 @@ public class RecordingTargetHelper {
     }
 
     public void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
-        if (scheduledStopNotifications.containsKey(stoppedRecordingName)) {
-            scheduledStopNotifications.get(stoppedRecordingName).cancel(true);
-            scheduledStopNotifications.remove(stoppedRecordingName);
+        var f = scheduledStopNotifications.remove(stoppedRecordingName);
+        if (f != null) {
+            f.cancel(true);
         }
     }
 
@@ -420,17 +419,16 @@ public class RecordingTargetHelper {
                                         Optional<IRecordingDescriptor> desc =
                                                 getDescriptorByName(connection, recordingName);
 
-                                        boolean recordingStopped =
-                                                desc.isPresent()
-                                                        && !desc.stream()
-                                                                .filter(
-                                                                        recording ->
-                                                                                recording.getState()
-                                                                                        == RecordingState
-                                                                                                .STOPPED)
-                                                                .collect(Collectors.toList())
-                                                                .isEmpty();
-                                        if (recordingStopped) {
+                                        long recordingStopped =
+                                                desc.stream()
+                                                        .map(IRecordingDescriptor::getState)
+                                                        .filter(
+                                                                s ->
+                                                                        s.equals(
+                                                                                RecordingState
+                                                                                        .STOPPED))
+                                                        .count();
+                                        if (recordingStopped > 0) {
                                             this.notifyRecordingStopped(
                                                     recordingName,
                                                     connectionDescriptor.getTargetId());
