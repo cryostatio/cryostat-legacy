@@ -58,8 +58,10 @@ import io.cryostat.messaging.notifications.NotificationFactory;
 import io.cryostat.net.AuthManager;
 import io.cryostat.net.HttpServer;
 import io.cryostat.net.security.ResourceAction;
+import io.cryostat.net.web.WebServer;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.RequestHandler;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import io.vertx.core.AsyncResult;
 import io.vertx.core.Handler;
@@ -76,10 +78,13 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 @ExtendWith(MockitoExtension.class)
 class RecordingsPostHandlerTest {
@@ -90,10 +95,11 @@ class RecordingsPostHandlerTest {
     @Mock Vertx vertx;
     @Mock FileSystem cryoFs;
     @Mock Path recordingsPath;
-    @Mock Logger logger;
+    @Mock WebServer webServer;
     @Mock NotificationFactory notificationFactory;
     @Mock Notification notification;
     @Mock Notification.Builder notificationBuilder;
+    @Mock Logger logger;
 
     @BeforeEach
     void setup() {
@@ -117,8 +123,9 @@ class RecordingsPostHandlerTest {
                         cryoFs,
                         recordingsPath,
                         MainModule.provideGson(logger),
-                        logger,
-                        notificationFactory);
+                        notificationFactory,
+                        () -> webServer,
+                        logger);
     }
 
     @Test
@@ -263,18 +270,45 @@ class RecordingsPostHandlerTest {
         when(ctx.response()).thenReturn(rep);
         when(rep.putHeader(Mockito.any(CharSequence.class), Mockito.anyString())).thenReturn(rep);
 
+        when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+                .then(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return "/some/download/path/" + invocation.getArgument(0);
+                            }
+                        });
+        when(webServer.getArchivedReportURL(Mockito.anyString()))
+                .then(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                return "/some/report/path/" + invocation.getArgument(0);
+                            }
+                        });
+
         handler.handle(ctx);
 
         InOrder inOrder = Mockito.inOrder(rep);
         inOrder.verify(rep).putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.JSON.mime());
         inOrder.verify(rep).end("{\"name\":\"" + filename + "\"}");
 
+        ArchivedRecordingInfo recordingInfo =
+                new ArchivedRecordingInfo(
+                        "archive",
+                        filename,
+                        "/some/download/path/" + filename,
+                        "/some/report/path/" + filename);
+        ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingSaved");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", filename));
+        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+
+        MatcherAssert.assertThat(
+                messageCaptor.getValue(), Matchers.equalTo(Map.of("recording", recordingInfo)));
     }
 
     @Test
