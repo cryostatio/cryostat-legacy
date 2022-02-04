@@ -95,8 +95,8 @@ public class RecordingArchiveHelper {
     private final NotificationFactory notificationFactory;
     private final Base32 base32;
 
-    private static final String SAVE_NOTIFICATION_CATEGORY = "RecordingArchived";
-    private static final String DELETE_NOTIFICATION_CATEGORY = "RecordingDeleted";
+    private static final String SAVE_NOTIFICATION_CATEGORY = "ActiveRecordingSaved";
+    private static final String DELETE_NOTIFICATION_CATEGORY = "ArchivedRecordingDeleted";
 
     RecordingArchiveHelper(
             FileSystem fs,

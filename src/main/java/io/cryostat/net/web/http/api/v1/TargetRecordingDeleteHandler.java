@@ -61,7 +61,7 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 
 class TargetRecordingDeleteHandler extends AbstractAuthenticatedRequestHandler {
 
-    private static final String RECORDING_DELETION_NOTIFICATION_CATEGORY = "RecordingDeleted";
+    private static final String RECORDING_DELETION_NOTIFICATION_CATEGORY = "ActiveRecordingDeleted";
 
     private final RecordingTargetHelper recordingTargetHelper;
     private final NotificationFactory notificationFactory;

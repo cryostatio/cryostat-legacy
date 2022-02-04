@@ -97,7 +97,7 @@ class RecordingsPostHandler extends AbstractAuthenticatedRequestHandler {
     private final Provider<WebServer> webServer;
     private final Logger logger;
 
-    private static final String NOTIFICATION_CATEGORY = "RecordingSaved";
+    private static final String NOTIFICATION_CATEGORY = "ArchivedRecordingCreated";
 
     @Inject
     RecordingsPostHandler(

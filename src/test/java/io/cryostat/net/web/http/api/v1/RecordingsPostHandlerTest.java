@@ -301,7 +301,7 @@ class RecordingsPostHandlerTest {
                         "/some/report/path/" + filename);
         ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingSaved");
+        Mockito.verify(notificationBuilder).metaCategory("ArchivedRecordingCreated");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
