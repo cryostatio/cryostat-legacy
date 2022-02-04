@@ -143,10 +143,22 @@ public class RecordingArchiveHelper {
                                 }
                             },
                             false);
-            String filename = savePath.getFileName().toString();
+            Path parentPath = savePath.getParent();
+            if (parentPath == null) {
+                throw new IOException(
+                        String.format(
+                                "Filesystem parent for %s could not be determined", recordingName));
+            }
+            Path filenamePath = savePath.getFileName();
+            if (filenamePath == null) {
+                throw new IOException(
+                        String.format(
+                                "Filesystem path for %s could not be determined", recordingName));
+            }
+            String filename = filenamePath.toString();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
-                            savePath.getParent().toString(),
+                            parentPath.toString(),
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename));
@@ -177,10 +189,22 @@ public class RecordingArchiveHelper {
         try {
             Path archivedRecording = getRecordingPath(recordingName).get();
             fs.deleteIfExists(archivedRecording);
-            String filename = archivedRecording.getFileName().toString();
+            Path parentPath = archivedRecording.getParent();
+            if (parentPath == null) {
+                throw new IOException(
+                        String.format(
+                                "Filesystem parent for %s could not be determined", recordingName));
+            }
+            Path filenamePath = archivedRecording.getFileName();
+            if (filenamePath == null) {
+                throw new IOException(
+                        String.format(
+                                "Filesystem path for %s could not be determined", recordingName));
+            }
+            String filename = filenamePath.toString();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
-                            archivedRecording.getParent().toString(),
+                            parentPath.toString(),
                             filename,
                             webServerProvider.get().getArchivedDownloadURL(filename),
                             webServerProvider.get().getArchivedReportURL(filename));
