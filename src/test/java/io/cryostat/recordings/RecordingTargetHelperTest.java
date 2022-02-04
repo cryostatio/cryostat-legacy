@@ -52,7 +52,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ScheduledFuture;
 
 import org.openjdk.jmc.common.unit.IConstrainedMap;
 import org.openjdk.jmc.common.unit.IQuantity;
@@ -83,7 +83,6 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -450,7 +449,6 @@ public class RecordingTargetHelperTest {
         String targetId = "fooTarget";
         String duration = "3000ms";
         String templateName = "Profiling";
-        long TIMESTAMP_DRIFT_SAFEGUARD = 3_000L;
         TemplateType templateType = TemplateType.TARGET;
         ConnectionDescriptor connectionDescriptor = new ConnectionDescriptor(targetId);
         IRecordingDescriptor recordingDescriptor = createDescriptor(recordingName);
@@ -483,18 +481,15 @@ public class RecordingTargetHelperTest {
         Mockito.when(templateService.getEvents(Mockito.any(), Mockito.any()))
                 .thenReturn(Optional.of(events));
 
-        ArgumentCaptor<Callable> scheduledStoppedNotificationCaptor =
-                ArgumentCaptor.forClass(Callable.class);
+        ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
+                Mockito.mock(ScheduledFuture.class);
+        Mockito.when(
+                        scheduler.schedule(
+                                Mockito.any(Callable.class), Mockito.anyLong(), Mockito.any()))
+                .thenReturn(scheduledFuture);
 
         recordingTargetHelper.startRecording(
                 false, connectionDescriptor, recordingOptions, templateName, templateType);
-
-        Mockito.verify(scheduler)
-                .schedule(
-                        scheduledStoppedNotificationCaptor.capture(),
-                        Mockito.eq(3_000L + TIMESTAMP_DRIFT_SAFEGUARD),
-                        Mockito.eq(TimeUnit.MILLISECONDS));
-        scheduledStoppedNotificationCaptor.getValue().call();
 
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingCreated");

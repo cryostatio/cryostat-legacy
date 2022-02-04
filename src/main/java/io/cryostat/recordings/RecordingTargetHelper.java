@@ -39,11 +39,11 @@ package io.cryostat.recordings;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -111,7 +111,7 @@ public class RecordingTargetHelper {
         this.reportService = reportService;
         this.scheduler = scheduler;
         this.logger = logger;
-        this.scheduledStopNotifications = new HashMap<>();
+        this.scheduledStopNotifications = new ConcurrentHashMap<>();
     }
 
     public IRecordingDescriptor startRecording(
@@ -349,7 +349,7 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    public synchronized void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
+    public void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
         var f = scheduledStopNotifications.remove(stoppedRecordingName);
         if (f != null) {
             f.cancel(true);
@@ -408,7 +408,7 @@ public class RecordingTargetHelper {
         return builder.build();
     }
 
-    private synchronized void scheduleRecordingStopNotification(
+    private void scheduleRecordingStopNotification(
             String recordingName, long delay, ConnectionDescriptor connectionDescriptor) {
         ScheduledFuture<Optional<IRecordingDescriptor>> scheduledFuture =
                 this.scheduler.schedule(

@@ -75,6 +75,9 @@ class TargetRecordingPatchStop {
                                     .findFirst();
                     if (descriptor.isPresent()) {
                         connection.getService().stop(descriptor.get());
+                        recordingTargetHelper.cancelScheduledNotificationIfExists(recordingName);
+                        recordingTargetHelper.notifyRecordingStopped(
+                        recordingName, connectionDescriptor.getTargetId());
                         return null;
                     } else {
                         throw new HttpStatusException(
@@ -85,9 +88,5 @@ class TargetRecordingPatchStop {
                 });
         ctx.response().setStatusCode(200);
         ctx.response().end();
-
-        recordingTargetHelper.cancelScheduledNotificationIfExists(recordingName);
-        recordingTargetHelper.notifyRecordingStopped(
-                recordingName, connectionDescriptor.getTargetId());
     }
 }
