@@ -258,11 +258,12 @@ public class RecordingArchiveHelper {
 
         try {
             List<String> subdirectories = this.fs.listDirectoryChildren(archivedRecordingsPath);
-            Path archivedRecording =
+            Optional<Path> optional =
                     searchSubdirectories(subdirectories, archivedRecordingsPath, recordingName);
-            if (archivedRecording == null) {
+            if (optional.isEmpty()) {
                 throw new RecordingNotFoundException("archives", recordingName);
             }
+            Path archivedRecording = optional.get();
             if (!fs.exists(archivedRecording)) {
                 throw new ArchivePathException(archivedRecording.toString(), "does not exist");
             }
@@ -281,18 +282,26 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    private Path searchSubdirectories(
+    private Optional<Path> searchSubdirectories(
             List<String> subdirectories, Path parent, String recordingName) throws IOException {
-        for (String subdirectory : subdirectories) {
-            List<String> files = this.fs.listDirectoryChildren(parent.resolve(subdirectory));
-
-            for (String file : files) {
-                if (recordingName.equals(file)) {
-                    return parent.resolve(subdirectory).resolve(file).normalize().toAbsolutePath();
+        // TODO refactor this into nicer streaming
+        return subdirectories
+            .parallelStream()
+            .map(parent::resolve)
+            .map(subdirectory -> {
+                try {
+                    for (String file : this.fs.listDirectoryChildren(subdirectory)) {
+                        if (recordingName.equals(file)) {
+                            return subdirectory.resolve(file).normalize().toAbsolutePath();
+                        }
+                    }
+                } catch (IOException ioe) {
+                    logger.error(ioe);
                 }
-            }
-        }
-        return null;
+                return null;
+            })
+            .filter(Objects::nonNull)
+            .findFirst();
     }
 
     String writeRecordingToDestination(
