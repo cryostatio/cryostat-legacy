@@ -295,7 +295,7 @@ public class RecordingArchiveHelper {
         return null;
     }
 
-    public String writeRecordingToDestination(
+    String writeRecordingToDestination(
             JFRConnection connection, IRecordingDescriptor descriptor)
             throws IOException, URISyntaxException, FlightRecorderException, Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
