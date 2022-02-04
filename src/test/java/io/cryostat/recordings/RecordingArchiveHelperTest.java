@@ -823,13 +823,13 @@ class RecordingArchiveHelperTest {
                 List.of(
                         new ArchivedRecordingInfo(
                                 "encodedServiceUriA",
-                                "/some/path/download/recordingA",
                                 "recordingA",
+                                "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA"),
                         new ArchivedRecordingInfo(
                                 "encodedServiceUri123",
-                                "/some/path/download/123recording",
                                 "123recording",
+                                "/some/path/download/123recording",
                                 "/some/path/archive/123recording"));
         MatcherAssert.assertThat(result, Matchers.equalTo(expected));
     }

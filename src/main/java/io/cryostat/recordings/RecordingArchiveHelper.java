@@ -231,8 +231,8 @@ public class RecordingArchiveHelper {
                                             try {
                                                 return new ArchivedRecordingInfo(
                                                         subdirectory,
-                                                        webServer.getArchivedDownloadURL(file),
                                                         file,
+                                                        webServer.getArchivedDownloadURL(file),
                                                         webServer.getArchivedReportURL(file));
                                             } catch (SocketException
                                                     | UnknownHostException

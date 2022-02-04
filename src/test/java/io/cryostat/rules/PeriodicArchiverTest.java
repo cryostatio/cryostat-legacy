@@ -201,23 +201,23 @@ class PeriodicArchiverTest {
                 List.of(
                         new ArchivedRecordingInfo(
                                 encodedServiceUri,
-                                "/some/path/download/recordingFoo",
                                 "targetFoo_recordingFoo_20210101T202547Z.jfr",
+                                "/some/path/download/recordingFoo",
                                 "/some/path/archive/recordingFoo"),
                         new ArchivedRecordingInfo(
                                 "encodedServiceUriA",
-                                "/some/path/download/recordingA",
                                 "targetA_recordingA_20190801T202547Z.jfr",
+                                "/some/path/download/recordingA",
                                 "/some/path/archive/recordingA"),
                         new ArchivedRecordingInfo(
                                 "encodedServiceUri123",
-                                "/some/path/download/123recording",
                                 "target123_123recording_20211107T202547Z.jfr",
+                                "/some/path/download/123recording",
                                 "/some/path/archive/123recording"),
                         new ArchivedRecordingInfo(
                                 encodedServiceUri,
-                                String.format("/some/path/download/%s", rule.getRecordingName()),
                                 matchingFileName,
+                                String.format("/some/path/download/%s", rule.getRecordingName()),
                                 String.format("/some/path/archive/%s", rule.getRecordingName()))));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
