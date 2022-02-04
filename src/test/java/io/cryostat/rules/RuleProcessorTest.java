@@ -274,7 +274,9 @@ class RuleProcessorTest {
         Mockito.when(registry.getRules(serviceRef)).thenReturn(Set.of(rule));
 
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
-                .thenReturn(CompletableFuture.completedFuture("unusedPath"));
+                .thenReturn(
+                        CompletableFuture.completedFuture(
+                                Mockito.mock(ArchivedRecordingInfo.class)));
 
         processor.accept(tde);
 

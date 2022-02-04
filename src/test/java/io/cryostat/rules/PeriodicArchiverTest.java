@@ -110,10 +110,10 @@ class PeriodicArchiverTest {
         listFuture.complete(new ArrayList<>());
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
-        CompletableFuture<String> stringFuture = new CompletableFuture<>();
-        stringFuture.complete("someRecording.jfr");
+        CompletableFuture<ArchivedRecordingInfo> infoFuture = new CompletableFuture<>();
+        infoFuture.complete(Mockito.mock(ArchivedRecordingInfo.class));
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
-                .thenReturn(stringFuture);
+                .thenReturn(infoFuture);
 
         archiver.run();
 
@@ -127,7 +127,7 @@ class PeriodicArchiverTest {
         listFuture.complete(new ArrayList<>());
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
-        CompletableFuture<String> future = Mockito.mock(CompletableFuture.class);
+        CompletableFuture<ArchivedRecordingInfo> future = Mockito.mock(CompletableFuture.class);
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
                 .thenReturn(future);
         ExecutionException e = Mockito.mock(ExecutionException.class);
@@ -162,14 +162,17 @@ class PeriodicArchiverTest {
         listFuture.complete(new ArrayList<>());
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
-        CompletableFuture<String> stringFuture = new CompletableFuture<>();
-        stringFuture.complete("someRecording.jfr");
+        CompletableFuture<ArchivedRecordingInfo> saveFuture = new CompletableFuture<>();
+        ArchivedRecordingInfo info = Mockito.mock(ArchivedRecordingInfo.class);
+        saveFuture.complete(info);
+        Mockito.when(info.getName()).thenReturn("someRecording");
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
-                .thenReturn(stringFuture);
+                .thenReturn(saveFuture);
 
-        CompletableFuture<ArchivedRecordingInfo> infoFuture = new CompletableFuture<>();
-        infoFuture.complete(Mockito.mock(ArchivedRecordingInfo.class));
-        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any())).thenReturn(infoFuture);
+        CompletableFuture<ArchivedRecordingInfo> deleteFuture = new CompletableFuture<>();
+        deleteFuture.complete(Mockito.mock(ArchivedRecordingInfo.class));
+        Mockito.when(recordingArchiveHelper.deleteRecording(Mockito.any()))
+                .thenReturn(deleteFuture);
 
         // get the archiver into a state where it has reached its limit of preserved recordings
         for (int i = 0; i < rule.getPreservedArchives(); i++) {
@@ -218,11 +221,16 @@ class PeriodicArchiverTest {
                                 String.format("/some/path/archive/%s", rule.getRecordingName()))));
         Mockito.when(recordingArchiveHelper.getRecordings()).thenReturn(listFuture);
 
-        CompletableFuture<String> stringFuture = new CompletableFuture<>();
-        String newlySavedRecording = "someRecording.jfr";
-        stringFuture.complete(newlySavedRecording);
+        CompletableFuture<ArchivedRecordingInfo> saveFuture = new CompletableFuture<>();
+        ArchivedRecordingInfo newlySavedRecording =
+                new ArchivedRecordingInfo(
+                        encodedServiceUri,
+                        "someRecording.jfr",
+                        "/some/path/download/someRecording.jfr",
+                        "/some/path/archive/someRecording.jfr");
+        saveFuture.complete(newlySavedRecording);
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.anyString()))
-                .thenReturn(stringFuture);
+                .thenReturn(saveFuture);
 
         archiver.run();
 
@@ -231,7 +239,7 @@ class PeriodicArchiverTest {
         // followed by the newly saved "someRecording.jfr"
         Queue<String> previousRecordings = archiver.getPreviousRecordings();
         Assertions.assertEquals(matchingFileName, previousRecordings.remove());
-        Assertions.assertEquals(newlySavedRecording, previousRecordings.remove());
+        Assertions.assertEquals(newlySavedRecording.getName(), previousRecordings.remove());
 
         Mockito.verify(credentialsManager).getCredentials(serviceRef);
         Mockito.verify(recordingArchiveHelper).saveRecording(Mockito.any(), Mockito.anyString());

@@ -53,6 +53,7 @@ import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.platform.PlatformClient;
 import io.cryostat.recordings.EmptyRecordingException;
 import io.cryostat.recordings.RecordingArchiveHelper;
+import io.cryostat.rules.ArchivedRecordingInfo;
 
 import io.vertx.core.http.HttpServerResponse;
 import io.vertx.ext.web.RoutingContext;
@@ -97,8 +98,10 @@ class TargetRecordingPatchSaveTest {
         Instant now = Instant.now();
         String timestamp = now.truncatedTo(ChronoUnit.SECONDS).toString().replaceAll("[-:]+", "");
 
-        CompletableFuture<String> future = new CompletableFuture<>();
-        future.complete("some-Alias-2_someRecording_" + timestamp + ".jfr");
+        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
+        ArchivedRecordingInfo info = Mockito.mock(ArchivedRecordingInfo.class);
+        Mockito.when(info.getName()).thenReturn("some-Alias-2_someRecording_" + timestamp + ".jfr");
+        future.complete(info);
         Mockito.when(recordingArchiveHelper.saveRecording(Mockito.any(), Mockito.any()))
                 .thenReturn(future);
 

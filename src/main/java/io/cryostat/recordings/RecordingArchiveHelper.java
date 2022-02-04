@@ -121,13 +121,13 @@ public class RecordingArchiveHelper {
         this.base32 = base32;
     }
 
-    public Future<String> saveRecording(
+    public Future<ArchivedRecordingInfo> saveRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
 
-        CompletableFuture<String> future = new CompletableFuture<>();
+        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
 
         try {
-            String saveName =
+            Path savePath =
                     targetConnectionManager.executeConnectedTask(
                             connectionDescriptor,
                             connection -> {
@@ -143,7 +143,14 @@ public class RecordingArchiveHelper {
                                 }
                             },
                             false);
-            future.complete(saveName);
+            String filename = savePath.getFileName().toString();
+            ArchivedRecordingInfo archivedRecordingInfo =
+                    new ArchivedRecordingInfo(
+                            savePath.getParent().toString(),
+                            filename,
+                            webServerProvider.get().getArchivedDownloadURL(filename),
+                            webServerProvider.get().getArchivedReportURL(filename));
+            future.complete(archivedRecordingInfo);
             notificationFactory
                     .createBuilder()
                     .metaCategory(SAVE_NOTIFICATION_CATEGORY)
@@ -151,7 +158,7 @@ public class RecordingArchiveHelper {
                     .message(
                             Map.of(
                                     "recording",
-                                    saveName,
+                                    archivedRecordingInfo,
                                     "target",
                                     connectionDescriptor.getTargetId()))
                     .build()
@@ -315,7 +322,7 @@ public class RecordingArchiveHelper {
                 .findFirst();
     }
 
-    String writeRecordingToDestination(JFRConnection connection, IRecordingDescriptor descriptor)
+    Path writeRecordingToDestination(JFRConnection connection, IRecordingDescriptor descriptor)
             throws IOException, URISyntaxException, FlightRecorderException, Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri =
@@ -365,6 +372,7 @@ public class RecordingArchiveHelper {
             }
         }
         destination += ".jfr";
+        Path destinationPath = specificRecordingsPath.resolve(destination);
         try (BufferedInputStream bufferedStream =
                 new BufferedInputStream(connection.getService().openStream(descriptor, false))) {
 
@@ -374,7 +382,7 @@ public class RecordingArchiveHelper {
 
             try {
                 if (bufferedStream.read() == -1) {
-                    fs.deleteIfExists(specificRecordingsPath.resolve(destination));
+                    fs.deleteIfExists(destinationPath);
                     throw new EmptyRecordingException();
                 }
             } catch (IOException e) {
@@ -383,9 +391,9 @@ public class RecordingArchiveHelper {
 
             bufferedStream.reset();
 
-            fs.copy(bufferedStream, specificRecordingsPath.resolve(destination));
+            fs.copy(bufferedStream, destinationPath);
         }
-        return destination;
+        return destinationPath;
     }
 
     private Optional<IRecordingDescriptor> getDescriptorByName(
