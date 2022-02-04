@@ -55,16 +55,22 @@ import io.cryostat.net.web.http.AbstractAuthenticatedRequestHandler;
 import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.net.web.http.api.ApiVersion;
 import io.cryostat.recordings.RecordingTargetHelper;
-
+import io.cryostat.util.AsyncInputStream;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
+import io.vertx.core.streams.Pipe;
+import io.vertx.core.streams.Pump;
+import io.vertx.core.streams.ReadStream;
+import io.vertx.core.streams.WriteStream;
 import io.vertx.ext.web.RoutingContext;
 import io.vertx.ext.web.handler.impl.HttpStatusException;
 
 class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
     protected static final int WRITE_BUFFER_SIZE = 64 * 1024; // 64 KB
 
+    private final Vertx vertx;
     protected final TargetConnectionManager targetConnectionManager;
     protected final RecordingTargetHelper recordingTargetHelper;
 
@@ -73,9 +79,11 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
             AuthManager auth,
             CredentialsManager credentialsManager,
             TargetConnectionManager targetConnectionManager,
+            Vertx vertx,
             RecordingTargetHelper recordingTargetHelper,
             Logger logger) {
         super(auth, credentialsManager, logger);
+        this.vertx = vertx;
         this.targetConnectionManager = targetConnectionManager;
         this.recordingTargetHelper = recordingTargetHelper;
     }
@@ -125,19 +133,33 @@ class TargetRecordingGetHandler extends AbstractAuthenticatedRequestHandler {
 
         ctx.response().setChunked(true);
         ctx.response().putHeader(HttpHeaders.CONTENT_TYPE, HttpMimeType.OCTET_STREAM.mime());
-        try (InputStream s = stream.get()) {
-            byte[] buff = new byte[WRITE_BUFFER_SIZE];
-            int n;
-            while ((n = s.read(buff)) != -1) {
-                // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
-                ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
+
+        try (InputStream is = stream.get()) {
+            AsyncInputStream ais = new AsyncInputStream(vertx, vertx.getOrCreateContext(), is);
+            ais.handler(data -> {
+                targetConnectionManager.markConnectionInUse(connectionDescriptor);
+            });
+            // Pump pump = Pump.pump(ais, ctx.response());
+            // pump.start();
+            Pipe<Buffer> pipe = ais.pipe();
+            pipe.endOnComplete(true);
+            pipe.to(ctx.response());
+
+
+
+
+            // byte[] buff = new byte[WRITE_BUFFER_SIZE];
+            // int n;
+            // while ((n = s.read(buff)) != -1) {
+            //     // FIXME replace this with Vertx async IO, ie. ReadStream/WriteStream/Pump
+            //     ctx.response().write(Buffer.buffer(n).appendBytes(buff, 0, n));
                 if (!targetConnectionManager.markConnectionInUse(connectionDescriptor)) {
                     throw new IOException(
                             "Target connection unexpectedly closed while streaming recording");
                 }
-            }
-
-            ctx.response().end();
+            // }
+            //ctx.response().end();
         }
     }
+
 }

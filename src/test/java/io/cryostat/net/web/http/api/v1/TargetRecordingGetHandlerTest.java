@@ -61,6 +61,7 @@ import io.cryostat.net.web.http.HttpMimeType;
 import io.cryostat.recordings.RecordingTargetHelper;
 
 import io.vertx.core.MultiMap;
+import io.vertx.core.Vertx;
 import io.vertx.core.buffer.Buffer;
 import io.vertx.core.http.HttpHeaders;
 import io.vertx.core.http.HttpMethod;
@@ -84,6 +85,7 @@ class TargetRecordingGetHandlerTest {
     TargetRecordingGetHandler handler;
     @Mock AuthManager authManager;
     @Mock CredentialsManager credentialsManager;
+    @Mock Vertx vertx;
     @Mock TargetConnectionManager targetConnectionManager;
     @Mock RecordingTargetHelper recordingTargetHelper;
     @Mock Optional<InputStream> stream;
@@ -99,6 +101,7 @@ class TargetRecordingGetHandlerTest {
                         authManager,
                         credentialsManager,
                         targetConnectionManager,
+                        vertx,
                         recordingTargetHelper,
                         logger);
     }
