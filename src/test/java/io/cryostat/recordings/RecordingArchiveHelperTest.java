@@ -81,6 +81,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -740,15 +741,47 @@ class RecordingArchiveHelperTest {
         Mockito.when(archivedRecordingsReportPath.toAbsolutePath())
                 .thenReturn(archivedRecordingsReportPath);
 
+        Mockito.when(webServer.getArchivedReportURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/archive/" + name;
+                            }
+                        });
+        Mockito.when(webServer.getArchivedDownloadURL(Mockito.anyString()))
+                .thenAnswer(
+                        new Answer<String>() {
+                            @Override
+                            public String answer(InvocationOnMock invocation) throws Throwable {
+                                String name = invocation.getArgument(0);
+                                return "/some/path/download/" + name;
+                            }
+                        });
+
         recordingArchiveHelper.deleteRecording(recordingName);
+
+        ArgumentCaptor<Map<String, Object>> messageCaptor = ArgumentCaptor.forClass(Map.class);
 
         Mockito.verify(fs, Mockito.times(2)).deleteIfExists(Mockito.any());
         Mockito.verify(notificationFactory).createBuilder();
         Mockito.verify(notificationBuilder).metaCategory("RecordingDeleted");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
-        Mockito.verify(notificationBuilder).message(Map.of("recording", recordingName));
+        Mockito.verify(notificationBuilder).message(messageCaptor.capture());
         Mockito.verify(notificationBuilder).build();
         Mockito.verify(notification).send();
+
+        MatcherAssert.assertThat(
+                messageCaptor.getValue(),
+                Matchers.equalTo(
+                        Map.of(
+                                "recording",
+                                new ArchivedRecordingInfo(
+                                        Path.of(subdirectories.get(1)).toAbsolutePath().toString(),
+                                        recordingName,
+                                        "/some/path/download/" + recordingName,
+                                        "/some/path/archive/" + recordingName))));
     }
 
     @ParameterizedTest

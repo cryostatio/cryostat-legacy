@@ -163,22 +163,29 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    public Future<Path> deleteRecording(String recordingName) {
+    public Future<ArchivedRecordingInfo> deleteRecording(String recordingName) {
 
-        CompletableFuture<Path> future = new CompletableFuture<>();
+        CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
 
         try {
             Path archivedRecording = getRecordingPath(recordingName).get();
             fs.deleteIfExists(archivedRecording);
+            String filename = archivedRecording.getFileName().toString();
+            ArchivedRecordingInfo archivedRecordingInfo =
+                    new ArchivedRecordingInfo(
+                            archivedRecording.getParent().toString(),
+                            filename,
+                            webServerProvider.get().getArchivedDownloadURL(filename),
+                            webServerProvider.get().getArchivedReportURL(filename));
             notificationFactory
                     .createBuilder()
                     .metaCategory(DELETE_NOTIFICATION_CATEGORY)
                     .metaType(HttpMimeType.JSON)
-                    .message(Map.of("recording", recordingName))
+                    .message(Map.of("recording", archivedRecordingInfo))
                     .build()
                     .send();
-            future.complete(archivedRecording);
-        } catch (IOException | InterruptedException | ExecutionException e) {
+            future.complete(archivedRecordingInfo);
+        } catch (IOException | InterruptedException | ExecutionException | URISyntaxException e) {
             future.completeExceptionally(e);
         } finally {
             deleteReport(recordingName);
@@ -286,26 +293,29 @@ public class RecordingArchiveHelper {
             List<String> subdirectories, Path parent, String recordingName) throws IOException {
         // TODO refactor this into nicer streaming
         return subdirectories
-            .parallelStream()
-            .map(parent::resolve)
-            .map(subdirectory -> {
-                try {
-                    for (String file : this.fs.listDirectoryChildren(subdirectory)) {
-                        if (recordingName.equals(file)) {
-                            return subdirectory.resolve(file).normalize().toAbsolutePath();
-                        }
-                    }
-                } catch (IOException ioe) {
-                    logger.error(ioe);
-                }
-                return null;
-            })
-            .filter(Objects::nonNull)
-            .findFirst();
+                .parallelStream()
+                .map(parent::resolve)
+                .map(
+                        subdirectory -> {
+                            try {
+                                for (String file : this.fs.listDirectoryChildren(subdirectory)) {
+                                    if (recordingName.equals(file)) {
+                                        return subdirectory
+                                                .resolve(file)
+                                                .normalize()
+                                                .toAbsolutePath();
+                                    }
+                                }
+                            } catch (IOException ioe) {
+                                logger.error(ioe);
+                            }
+                            return null;
+                        })
+                .filter(Objects::nonNull)
+                .findFirst();
     }
 
-    String writeRecordingToDestination(
-            JFRConnection connection, IRecordingDescriptor descriptor)
+    String writeRecordingToDestination(JFRConnection connection, IRecordingDescriptor descriptor)
             throws IOException, URISyntaxException, FlightRecorderException, Exception {
         URI serviceUri = URIUtil.convert(connection.getJMXURL());
         String encodedServiceUri =
