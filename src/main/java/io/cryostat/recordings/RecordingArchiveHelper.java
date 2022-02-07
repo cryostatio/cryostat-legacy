@@ -144,17 +144,8 @@ public class RecordingArchiveHelper {
                             },
                             false);
             Path parentPath = savePath.getParent();
-            if (parentPath == null) {
-                throw new IOException(
-                        String.format(
-                                "Filesystem parent for %s could not be determined", recordingName));
-            }
             Path filenamePath = savePath.getFileName();
-            if (filenamePath == null) {
-                throw new IOException(
-                        String.format(
-                                "Filesystem path for %s could not be determined", recordingName));
-            }
+            validateSavePath(recordingName, parentPath, filenamePath);
             String filename = filenamePath.toString();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
@@ -190,17 +181,8 @@ public class RecordingArchiveHelper {
             Path archivedRecording = getRecordingPath(recordingName).get();
             fs.deleteIfExists(archivedRecording);
             Path parentPath = archivedRecording.getParent();
-            if (parentPath == null) {
-                throw new IOException(
-                        String.format(
-                                "Filesystem parent for %s could not be determined", recordingName));
-            }
             Path filenamePath = archivedRecording.getFileName();
-            if (filenamePath == null) {
-                throw new IOException(
-                        String.format(
-                                "Filesystem path for %s could not be determined", recordingName));
-            }
+            validateSavePath(recordingName, filenamePath, filenamePath);
             String filename = filenamePath.toString();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
@@ -223,6 +205,19 @@ public class RecordingArchiveHelper {
         }
 
         return future;
+    }
+
+    private void validateSavePath(String recordingName, Path parentPath, Path filenamePath)
+            throws IOException {
+        if (parentPath == null) {
+            throw new IOException(
+                    String.format(
+                            "Filesystem parent for %s could not be determined", recordingName));
+        }
+        if (filenamePath == null) {
+            throw new IOException(
+                    String.format("Filesystem path for %s could not be determined", recordingName));
+        }
     }
 
     public boolean deleteReport(String recordingName) {
