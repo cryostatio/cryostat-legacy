@@ -80,6 +80,7 @@ import io.cryostat.rules.ArchivePathException;
 import io.cryostat.rules.ArchivedRecordingInfo;
 import io.cryostat.util.URIUtil;
 
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import org.apache.commons.codec.binary.Base32;
 
 public class RecordingArchiveHelper {
@@ -121,6 +122,10 @@ public class RecordingArchiveHelper {
         this.base32 = base32;
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and getFileName() of the Path are not null, barring some exceptional circumstance like some external filesystem access race.")
     public Future<ArchivedRecordingInfo> saveRecording(
             ConnectionDescriptor connectionDescriptor, String recordingName) {
 
@@ -143,9 +148,9 @@ public class RecordingArchiveHelper {
                                 }
                             },
                             false);
+            validateSavePath(recordingName, savePath);
             Path parentPath = savePath.getParent();
             Path filenamePath = savePath.getFileName();
-            validateSavePath(recordingName, parentPath, filenamePath);
             String filename = filenamePath.toString();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
@@ -173,6 +178,10 @@ public class RecordingArchiveHelper {
         return future;
     }
 
+    @SuppressFBWarnings(
+            value = "NP_NULL_ON_SOME_PATH_FROM_RETURN_VALUE",
+            justification =
+                    "SpotBugs false positive. validateSavePath() ensures that the getParent() and getFileName() of the Path are not null, barring some exceptional circumstance like some external filesystem access race.")
     public Future<ArchivedRecordingInfo> deleteRecording(String recordingName) {
 
         CompletableFuture<ArchivedRecordingInfo> future = new CompletableFuture<>();
@@ -180,9 +189,9 @@ public class RecordingArchiveHelper {
         try {
             Path archivedRecording = getRecordingPath(recordingName).get();
             fs.deleteIfExists(archivedRecording);
+            validateSavePath(recordingName, archivedRecording);
             Path parentPath = archivedRecording.getParent();
             Path filenamePath = archivedRecording.getFileName();
-            validateSavePath(recordingName, filenamePath, filenamePath);
             String filename = filenamePath.toString();
             ArchivedRecordingInfo archivedRecordingInfo =
                     new ArchivedRecordingInfo(
@@ -207,14 +216,13 @@ public class RecordingArchiveHelper {
         return future;
     }
 
-    private void validateSavePath(String recordingName, Path parentPath, Path filenamePath)
-            throws IOException {
-        if (parentPath == null) {
+    private void validateSavePath(String recordingName, Path path) throws IOException {
+        if (path.getParent() == null) {
             throw new IOException(
                     String.format(
                             "Filesystem parent for %s could not be determined", recordingName));
         }
-        if (filenamePath == null) {
+        if (path.getFileName() == null) {
             throw new IOException(
                     String.format("Filesystem path for %s could not be determined", recordingName));
         }
