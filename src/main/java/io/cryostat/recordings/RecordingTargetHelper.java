@@ -380,7 +380,7 @@ public class RecordingTargetHelper {
                 .send();
     }
 
-    public void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
+    private void cancelScheduledNotificationIfExists(String stoppedRecordingName) {
         var f = scheduledStopNotifications.remove(stoppedRecordingName);
         if (f != null) {
             f.cancel(true);
