@@ -92,7 +92,7 @@ public class RecordingTargetHelper {
     private final ReportService reportService;
     private final ScheduledExecutorService scheduler;
     private final Logger logger;
-    private final Map<String, Future<?>> scheduledStopNotifications;
+    private final Map<Pair<String, String>, Future<?>> scheduledStopNotifications;
 
     RecordingTargetHelper(
             TargetConnectionManager targetConnectionManager,
@@ -472,7 +472,8 @@ public class RecordingTargetHelper {
                         delay + TIMESTAMP_DRIFT_SAFEGUARD,
                         TimeUnit.MILLISECONDS);
 
-        scheduledStopNotifications.put(recordingName, scheduledFuture);
+        scheduledStopNotifications.put(
+                Pair.of(connectionDescriptor.getTargetId(), recordingName), scheduledFuture);
     }
 
     /**
