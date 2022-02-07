@@ -500,6 +500,60 @@ public class RecordingTargetHelperTest {
         Mockito.verify(notification).send();
     }
 
+    @Test
+    void shouldStopRecording() throws Exception {
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        Mockito.when(connection.getService()).thenReturn(service);
+        IRecordingDescriptor descriptor = Mockito.mock(IRecordingDescriptor.class);
+        Mockito.when(descriptor.getName()).thenReturn("someRecording");
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of(descriptor));
+
+        recordingTargetHelper
+                .stopRecording(new ConnectionDescriptor("fooTarget"), "someRecording")
+                .get();
+
+        Mockito.verify(service).stop(descriptor);
+    }
+
+    @Test
+    void shouldThrowWhenStopRecordingNotFound() throws Exception {
+        Mockito.when(targetConnectionManager.executeConnectedTask(Mockito.any(), Mockito.any()))
+                .thenAnswer(
+                        new Answer<>() {
+                            @Override
+                            public Object answer(InvocationOnMock invocation) throws Throwable {
+                                TargetConnectionManager.ConnectedTask task =
+                                        (TargetConnectionManager.ConnectedTask)
+                                                invocation.getArgument(1);
+                                return task.execute(connection);
+                            }
+                        });
+        Mockito.when(connection.getService()).thenReturn(service);
+        Mockito.when(service.getAvailableRecordings()).thenReturn(List.of());
+
+        ExecutionException ee =
+                Assertions.assertThrows(
+                        ExecutionException.class,
+                        () ->
+                                recordingTargetHelper
+                                        .stopRecording(
+                                                new ConnectionDescriptor("fooTarget"),
+                                                "someRecording")
+                                        .get());
+        MatcherAssert.assertThat(
+                ee.getCause(), Matchers.instanceOf(RecordingNotFoundException.class));
+    }
+
     private static IRecordingDescriptor createDescriptor(String name)
             throws QuantityConversionException {
         IQuantity zeroQuantity = Mockito.mock(IQuantity.class);

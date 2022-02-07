@@ -37,7 +37,6 @@
  */
 package io.cryostat.net.web.http.api.v1;
 
-import io.cryostat.net.TargetConnectionManager;
 import io.cryostat.net.web.http.RequestHandler;
 import io.cryostat.recordings.RecordingArchiveHelper;
 import io.cryostat.recordings.RecordingTargetHelper;
@@ -99,9 +98,8 @@ public abstract class HttpApiV1Module {
 
     @Provides
     static TargetRecordingPatchStop provideTargetRecordingPatchStop(
-            TargetConnectionManager targetConnectionManager,
             RecordingTargetHelper recordingTargetHelper) {
-        return new TargetRecordingPatchStop(targetConnectionManager, recordingTargetHelper);
+        return new TargetRecordingPatchStop(recordingTargetHelper);
     }
 
     @Binds

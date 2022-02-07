@@ -243,6 +243,37 @@ public class RecordingTargetHelper {
         return future;
     }
 
+    public Future<Void> stopRecording(
+            ConnectionDescriptor connectionDescriptor, String recordingName) throws Exception {
+        CompletableFuture<Void> future = new CompletableFuture<>();
+        try {
+            targetConnectionManager.executeConnectedTask(
+                    connectionDescriptor,
+                    connection -> {
+                        Optional<IRecordingDescriptor> descriptor =
+                                connection.getService().getAvailableRecordings().stream()
+                                        .filter(
+                                                recording ->
+                                                        recording.getName().equals(recordingName))
+                                        .findFirst();
+                        if (descriptor.isPresent()) {
+                            connection.getService().stop(descriptor.get());
+                            this.cancelScheduledNotificationIfExists(recordingName);
+                            this.notifyRecordingStopped(
+                                    recordingName, connectionDescriptor.getTargetId());
+                            return null;
+                        } else {
+                            throw new RecordingNotFoundException(
+                                    connectionDescriptor.getTargetId(), recordingName);
+                        }
+                    });
+            future.complete(null);
+        } catch (Exception e) {
+            future.completeExceptionally(e);
+        }
+        return future;
+    }
+
     public Future<HyperlinkedSerializableRecordingDescriptor> createSnapshot(
             ConnectionDescriptor connectionDescriptor) {
         CompletableFuture<HyperlinkedSerializableRecordingDescriptor> future =
@@ -339,7 +370,7 @@ public class RecordingTargetHelper {
                 .findFirst();
     }
 
-    public void notifyRecordingStopped(String recordingName, String targetId) {
+    private void notifyRecordingStopped(String recordingName, String targetId) {
         notificationFactory
                 .createBuilder()
                 .metaCategory(STOP_NOTIFICATION_CATEGORY)
