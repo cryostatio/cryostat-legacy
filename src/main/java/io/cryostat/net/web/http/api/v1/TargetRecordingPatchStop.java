@@ -77,7 +77,7 @@ class TargetRecordingPatchStop {
                         connection.getService().stop(descriptor.get());
                         recordingTargetHelper.cancelScheduledNotificationIfExists(recordingName);
                         recordingTargetHelper.notifyRecordingStopped(
-                        recordingName, connectionDescriptor.getTargetId());
+                                recordingName, connectionDescriptor.getTargetId());
                         return null;
                     } else {
                         throw new HttpStatusException(
