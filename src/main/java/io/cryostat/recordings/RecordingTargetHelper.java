@@ -231,6 +231,7 @@ public class RecordingTargetHelper {
                         if (descriptor.isPresent()) {
                             connection.getService().close(descriptor.get());
                             reportService.delete(connectionDescriptor, recordingName);
+                            this.cancelScheduledNotificationIfExists(recordingName);
                         } else {
                             throw new RecordingNotFoundException(targetId, recordingName);
                         }
