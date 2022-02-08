@@ -99,10 +99,10 @@ Cryostat can be configured via the following environment variables:
 * `CRYOSTAT_MAX_WS_CONNECTIONS`: the maximum number of webscoket client connections allowed (minimum 1, maximum 64, default 2)
 * `CRYOSTAT_AUTH_MANAGER`: the authentication/authorization manager used for validating user accesses. See the `USER AUTHENTICATION / AUTHORIZATION` section for more details. Set to the fully-qualified class name of the auth manager implementation to use, ex. `io.cryostat.net.BasicAuthManager`.
 * `CRYOSTAT_PLATFORM`: the platform client used for performing platform-specific actions, such as listing available target JVMs. If `CRYOSTAT_AUTH_MANAGER` is not specified then a default auth manager will also be selected corresponding to the platform, whether that platform is specified by the user or automatically detected. Set to the fully-qualified name of the platform detection strategy implementation to use, ex. `io.cryostat.platform.internal.KubeEnvPlatformStrategy`.
+* `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory.
 * `CRYOSTAT_ENABLE_JDP_BROADCAST`: enable the Cryostat JVM to broadcast itself via JDP (Java Discovery Protocol). Defaults to `true`.
 * `CRYOSTAT_JDP_ADDRESS`: the JDP multicast address to send discovery packets. Defaults to `224.0.23.178`.
 * `CRYOSTAT_JDP_PORT`: the JDP multicast port to send discovery packets. Defaults to `7095`.
-* `CRYOSTAT_CONFIG_PATH`: the filesystem path for the configuration directory. Defaults to `/opt/cryostat.d/conf.d`.
 
 #### Configuration for Automated Analysis Reports
 
