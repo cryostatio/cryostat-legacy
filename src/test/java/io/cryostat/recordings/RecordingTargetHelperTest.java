@@ -492,7 +492,7 @@ public class RecordingTargetHelperTest {
                 false, connectionDescriptor, recordingOptions, templateName, templateType);
 
         Mockito.verify(notificationFactory).createBuilder();
-        Mockito.verify(notificationBuilder).metaCategory("RecordingCreated");
+        Mockito.verify(notificationBuilder).metaCategory("ActiveRecordingCreated");
         Mockito.verify(notificationBuilder).metaType(HttpMimeType.JSON);
         Mockito.verify(notificationBuilder)
                 .message(Map.of("recording", recordingName, "target", targetId));
